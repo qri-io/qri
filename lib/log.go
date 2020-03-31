@@ -48,7 +48,7 @@ type DatasetLogItem = logbook.DatasetLogItem
 // Log returns the history of changes for a given dataset
 func (r *LogRequests) Log(params *LogParams, res *[]DatasetLogItem) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("LogRequests.Log", params, res)
+		return checkRPCError(r.cli.Call("LogRequests.Log", params, res))
 	}
 	ctx := context.TODO()
 
@@ -94,7 +94,7 @@ type LogEntry = logbook.LogEntry
 // Logbook lists log entries for actions taken on a given dataset
 func (r *LogRequests) Logbook(p *RefListParams, res *[]LogEntry) error {
 	if r.cli != nil {
-		return r.cli.Call("LogRequests.Logbook", p, res)
+		return checkRPCError(r.cli.Call("LogRequests.Logbook", p, res))
 	}
 	ctx := context.TODO()
 
@@ -122,7 +122,7 @@ type PlainLogs = []logbook.PlainLog
 // PlainLogs encodes the full logbook as human-oriented json
 func (r *LogRequests) PlainLogs(p *PlainLogsParams, res *PlainLogs) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("LogRequests.PlainLogs", p, res)
+		return checkRPCError(r.cli.Call("LogRequests.PlainLogs", p, res))
 	}
 	ctx := context.TODO()
 	*res, err = r.node.Repo.Logbook().PlainLogs(ctx)

@@ -32,7 +32,7 @@ func (m FSIMethods) CoreRequestsName() string { return "fsi" }
 // LinkedRefs lists all fsi links
 func (m *FSIMethods) LinkedRefs(p *ListParams, res *[]reporef.DatasetRef) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.LinkedRefs", p, res)
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.LinkedRefs", p, res))
 	}
 
 	*res, err = m.inst.fsi.LinkedRefs(p.Offset, p.Limit)
@@ -55,7 +55,7 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
 	p.Dir = path
 
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.CreateLink", p, res)
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.CreateLink", p, res))
 	}
 
 	*res, _, err = m.inst.fsi.CreateLink(p.Dir, p.Ref)
@@ -67,7 +67,7 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
 // will remove the fsi path from that reference, and remove the link file from that fsi path
 func (m *FSIMethods) Unlink(p *LinkParams, res *string) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.Unlink", p, res)
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.Unlink", p, res))
 	}
 
 	if p.Dir != "" && p.Ref != "" {
@@ -108,7 +108,7 @@ type StatusItem = fsi.StatusItem
 // version in the repo. Must only be called if FSI is enabled for this dataset.
 func (m *FSIMethods) Status(dir *string, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.Status", dir, res)
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.Status", dir, res))
 	}
 	ctx := context.TODO()
 
@@ -121,7 +121,7 @@ func (m *FSIMethods) Status(dir *string, res *[]StatusItem) (err error) {
 // is not linked.
 func (m *FSIMethods) StatusForAlias(alias *string, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.AliasStatus", alias, res)
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.AliasStatus", alias, res))
 	}
 	ctx := context.TODO()
 
@@ -137,7 +137,7 @@ func (m *FSIMethods) StatusForAlias(alias *string, res *[]StatusItem) (err error
 // dataset reference. Not used for FSI.
 func (m *FSIMethods) WhatChanged(ref *string, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.WhatChanged", ref, res)
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.WhatChanged", ref, res))
 	}
 	ctx := context.TODO()
 
@@ -154,7 +154,7 @@ type CheckoutParams struct {
 // Checkout method writes a dataset to a directory as individual files.
 func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.Checkout", p, out)
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.Checkout", p, out))
 	}
 	ctx := context.TODO()
 
@@ -231,7 +231,7 @@ type FSIWriteParams struct {
 // Write mutates a linked dataset on the filesystem
 func (m *FSIMethods) Write(p *FSIWriteParams, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.Write", p, res)
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.Write", p, res))
 	}
 	ctx := context.TODO()
 
@@ -274,7 +274,7 @@ type RestoreParams struct {
 // Restore method restores a component or all of the component files of a dataset from the repo
 func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.Restore", p, out)
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.Restore", p, out))
 	}
 	ctx := context.TODO()
 
@@ -344,7 +344,7 @@ type InitFSIDatasetParams = fsi.InitParams
 // InitDataset creates a new dataset and FSI link
 func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, name *string) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.InitDataset", p, name)
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.InitDataset", p, name))
 	}
 
 	*name, err = m.inst.fsi.InitDataset(*p)
@@ -360,7 +360,7 @@ type EnsureParams struct {
 // EnsureRef will modify the directory path in the repo for the given reference
 func (m *FSIMethods) EnsureRef(p *EnsureParams, out *bool) error {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.EnsureRef", p, out)
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.EnsureRef", p, out))
 	}
 
 	return m.inst.fsi.ModifyLinkDirectory(p.Dir, p.Ref)

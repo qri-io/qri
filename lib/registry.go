@@ -30,7 +30,7 @@ type RegistryProfile = registry.Profile
 // CreateProfile creates a profile
 func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok)
+		return checkRPCError(m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok))
 	}
 
 	pro, err := m.inst.registry.CreateProfile(p, m.inst.repo.PrivateKey())
@@ -48,7 +48,7 @@ func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err 
 // specified private key
 func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) error {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok)
+		return checkRPCError(m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok))
 	}
 
 	pro, err := m.inst.registry.ProveProfileKey(p, m.inst.repo.PrivateKey())

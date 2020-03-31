@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
+	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/logbook"
@@ -742,4 +743,24 @@ func (inst *Instance) RemoteClient() remote.Client {
 // Teardown destroys the instance, releasing reserved resources
 func (inst *Instance) Teardown() {
 	inst.teardown()
+}
+
+// checkRPCError validates RPC errors and in case of EOF returns a
+// more user friendly message
+func checkRPCError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if strings.Contains(err.Error(), "EOF") {
+		msg := `Qri couldn't parse the response and is unsure if it was successful. 
+It is possible you have a Qri node running or the Desktop app is open.
+Try closing them and running the command again.
+Check our issue tracker for RPC issues & feature requests:
+  https://github.com/qri-io/qri/issues?q=is:issue+label:RPC
+
+Error:
+%s`
+		return qrierr.New(err, fmt.Sprintf(msg, err.Error()))
+	}
+	return err
 }

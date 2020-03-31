@@ -70,7 +70,7 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 		return fmt.Errorf("apologies, we currently can't schedule updates while `qri connect` is running")
 		// TODO (b5) - this returns error EOF when run. need to figure out why. I suspect it's b/c
 		// job contains an interface field: Options
-		// return m.inst.rpc.Call("UpdateMethods.Schedule", in, out)
+		// return checkRPCError(m.inst.rpc.Call("UpdateMethods.Schedule", in, out))
 	}
 
 	job, err := m.jobFromScheduleParams(ctx, in)
@@ -297,7 +297,7 @@ func (m *UpdateMethods) Run(p *Job, res *reporef.DatasetRef) (err error) {
 	}
 
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("UpdateMethods.Run", p, res)
+		return checkRPCError(m.inst.rpc.Call("UpdateMethods.Run", p, res))
 	}
 	ctx := context.TODO()
 
