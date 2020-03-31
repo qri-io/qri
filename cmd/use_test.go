@@ -1,19 +1,16 @@
 package cmd
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 )
 
 func TestUseComplete(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_use_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -33,14 +30,14 @@ func TestUseComplete(t *testing.T) {
 
 	for i, c := range cases {
 		opt := &UseOptions{
-			IOStreams: streams,
+			IOStreams: run.Streams,
 		}
 
 		opt.Complete(f, c.args)
 
-		if c.err != errs.String() {
-			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
-			ioReset(in, out, errs)
+		if c.err != run.ErrStream.String() {
+			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, run.ErrStream.String())
+			run.IOReset()
 			continue
 		}
 
@@ -48,7 +45,7 @@ func TestUseComplete(t *testing.T) {
 
 		if c.expect != optRefs {
 			t.Errorf("case %d, opt.Refs not set correctly. Expected: [%s], Got: [%s]", i, c.expect, optRefs)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 	}
@@ -93,21 +90,10 @@ func TestUseValidate(t *testing.T) {
 }
 
 func TestUseRun(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_use_run")
+	defer run.Delete()
 
-	tmpdir := filepath.Join(os.TempDir(), "qri_use_test")
-	//clean up if previous cleanup failed
-	if _, err := os.Stat(tmpdir); os.IsNotExist(err) {
-		if err := os.RemoveAll(tmpdir); err != nil {
-			t.Fatalf("failed to cleanup from previous test execution: %s", err.Error())
-		}
-	}
-	if err := os.MkdirAll(tmpdir, os.ModePerm); err != nil {
-		t.Errorf("error creating test path: %s", err.Error())
-		return
-	}
-	defer os.RemoveAll(tmpdir)
+	tmpDir := run.MakeTmpDir(t, "qri_use_test")
 
 	_, err := NewTestFactory()
 	if err != nil {
@@ -131,25 +117,25 @@ func TestUseRun(t *testing.T) {
 
 	for i, c := range cases {
 		opt := &UseOptions{
-			IOStreams:   streams,
+			IOStreams:   run.Streams,
 			Refs:        c.refs,
 			List:        c.list,
 			Clear:       c.clear,
-			QriRepoPath: tmpdir,
+			QriRepoPath: tmpDir,
 		}
 
 		err = opt.Run()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
 			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
-		if c.expected != out.String() {
-			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
-			ioReset(in, out, errs)
+		if c.expected != run.OutStream.String() {
+			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, run.OutStream.String())
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }

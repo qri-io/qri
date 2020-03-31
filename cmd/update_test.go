@@ -2,20 +2,17 @@ package cmd
 
 import (
 	"context"
-	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 )
 
 func TestUpdateComplete(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_update_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -35,29 +32,29 @@ func TestUpdateComplete(t *testing.T) {
 
 	for i, c := range cases {
 		opt := &UpdateOptions{
-			IOStreams: streams,
+			IOStreams: run.Streams,
 		}
 
 		opt.Complete(f, c.args)
 
-		if c.err != errs.String() {
-			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
-			ioReset(in, out, errs)
+		if c.err != run.ErrStream.String() {
+			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, run.ErrStream.String())
+			run.IOReset()
 			continue
 		}
 
 		if c.ref != opt.Ref {
 			t.Errorf("case %d, opt.From not set correctly. Expected: '%s', Got: '%s'", i, c.ref, opt.Ref)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if opt.updateMethods == nil {
 			t.Errorf("case %d, opt.updateMethods not set.", i)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }
 
@@ -66,79 +63,75 @@ func TestUpdateMethods(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	tmpDir, err := ioutil.TempDir("", "update_methods")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	run := NewTestRunner(t, "test_peer", "qri_test_update_methods")
+	defer run.Delete()
 
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	tmpDir := run.MakeTmpDir(t, "update_methods")
 
 	cfg := config.DefaultConfigForTesting().Copy()
 	cfg.Update = &config.Update{Type: "mem"}
 	cfg.Repo = &config.Repo{Type: "mem", Middleware: []string{}}
 	cfg.Store = &config.Store{Type: "map"}
 
-	inst, err := lib.NewInstance(context.Background(), tmpDir, lib.OptConfig(cfg), lib.OptIOStreams(streams))
+	inst, err := lib.NewInstance(context.Background(), tmpDir, lib.OptConfig(cfg), lib.OptIOStreams(run.Streams))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	o := &UpdateOptions{
-		IOStreams:     streams,
+		IOStreams:     run.Streams,
 		Page:          1,
 		PageSize:      25,
 		inst:          inst,
 		updateMethods: lib.NewUpdateMethods(inst),
 	}
 
-	ioReset(in, out, errs)
+	run.IOReset()
 	if err := o.Schedule([]string{"testdata/hello.sh", "R/PT1S"}); err != nil {
 		t.Error(err)
 	}
 
 	expErrOutContains := "update scheduled, next update: 0001-01-01 00:00:01 +0000 UTC\n"
-	if !strings.Contains(errs.String(), expErrOutContains) {
-		t.Errorf("schedule response mismatch. expected errOut:\n%s\ngot:\n%s", expErrOutContains, errs.String())
+	if !strings.Contains(run.ErrStream.String(), expErrOutContains) {
+		t.Errorf("schedule response mismatch. expected errOut:\n%s\ngot:\n%s", expErrOutContains, run.ErrStream.String())
 	}
 
-	ioReset(in, out, errs)
+	run.IOReset()
 	if err := o.List(); err != nil {
 		t.Error(err)
 	}
 
 	// TODO (b5) - wee note on TestJobStringer, we should be testing times by setting local timezones
 	listStdOutContains := "| shell"
-	if !strings.Contains(out.String(), listStdOutContains) {
-		t.Errorf("list response mismatch. stdOut doesn't contain:\n%s\ngot:\n%s", listStdOutContains, out.String())
+	if !strings.Contains(run.OutStream.String(), listStdOutContains) {
+		t.Errorf("list response mismatch. stdOut doesn't contain:\n%s\ngot:\n%s", listStdOutContains, run.OutStream.String())
 	}
 
 	// TODO (b5) - need to actually run an update here that generates a log entry
 	// ideally by manually calling o.Run
 
-	ioReset(in, out, errs)
+	run.IOReset()
 	if err := o.Logs([]string{}); err != nil {
 		t.Error(err)
 	}
 	logsStdOut := "" // should be empty b/c this test runs no updates
-	if logsStdOut != out.String() {
-		t.Errorf("logs response mismatch. expected errOut:\n%s\ngot:\n%s", logsStdOut, out.String())
+	if logsStdOut != run.OutStream.String() {
+		t.Errorf("logs response mismatch. expected errOut:\n%s\ngot:\n%s", logsStdOut, run.OutStream.String())
 	}
 
-	ioReset(in, out, errs)
+	run.IOReset()
 	if err := o.Unschedule([]string{"testdata/hello.sh"}); err != nil {
 		t.Error(err)
 	}
 	unscheduleErrOutContains := "update unscheduled"
-	if !strings.Contains(errs.String(), unscheduleErrOutContains) {
-		t.Errorf("logs response mismatch. errOut doesn't contain:\n%s\ngot:\n%s", unscheduleErrOutContains, errs.String())
+	if !strings.Contains(run.ErrStream.String(), unscheduleErrOutContains) {
+		t.Errorf("logs response mismatch. errOut doesn't contain:\n%s\ngot:\n%s", unscheduleErrOutContains, run.ErrStream.String())
 	}
 }
 
 func TestUpdateRun(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_update_run")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -156,14 +149,14 @@ func TestUpdateRun(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		ioReset(in, out, errs)
+		run.IOReset()
 		// dsr, err := f.DatasetRequests()
 		// if err != nil {
 		// 	t.Errorf("case %d, error creating dataset request: %s", i, err)
 		// 	continue
 		// }
 
-		c.opt.IOStreams = streams
+		c.opt.IOStreams = run.Streams
 		c.opt.updateMethods = lib.NewUpdateMethods(f.Instance())
 
 		// TODO (b5): fix tests
@@ -176,17 +169,17 @@ func TestUpdateRun(t *testing.T) {
 		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
-				ioReset(in, out, errs)
+				run.IOReset()
 				continue
 			}
 		} else if c.msg != "" {
 			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
-		if c.expect != out.String() {
-			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expect, out.String())
+		if c.expect != run.OutStream.String() {
+			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expect, run.OutStream.String())
 			continue
 		}
 	}

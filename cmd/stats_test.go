@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"testing"
-
-	"github.com/qri-io/ioes"
 )
 
 func TestStatsComplete(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_stats_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -26,18 +24,18 @@ func TestStatsComplete(t *testing.T) {
 
 	for i, c := range badCases {
 		opt := &StatsOptions{
-			IOStreams: streams,
+			IOStreams: run.Streams,
 		}
 
 		err := opt.Complete(f, c.args)
 
 		if c.err != err.Error() {
 			t.Errorf("%d. case %s, error mismatch. Expected: '%s', Got: '%s'", i, c.description, c.err, err.Error())
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 
 	goodCases := []struct {
@@ -51,7 +49,7 @@ func TestStatsComplete(t *testing.T) {
 
 	for i, c := range goodCases {
 		opt := &StatsOptions{
-			IOStreams: streams,
+			IOStreams: run.Streams,
 		}
 
 		if err := opt.Complete(f, c.args); err != nil {
@@ -60,23 +58,22 @@ func TestStatsComplete(t *testing.T) {
 
 		if c.expectedRef != opt.Refs.Ref() {
 			t.Errorf("%d. case %s, incorrect ref. Expected: '%s', Got: '%s'", i, c.description, c.expectedRef, opt.Refs.Ref())
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if opt.DatasetRequests == nil {
 			t.Errorf("%d. case %s, opt.DatasetRequests not set.", i, c.description)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }
 
 func TestStatsRun(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
-	setNoPrompt(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_stats_run")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -97,10 +94,10 @@ func TestStatsRun(t *testing.T) {
 	}
 
 	for i, c := range badCases {
-		ioReset(in, out, errs)
+		run.IOReset()
 
 		opt := &StatsOptions{
-			IOStreams:       streams,
+			IOStreams:       run.Streams,
 			Refs:            NewExplicitRefSelect(c.ref),
 			DatasetRequests: dsr,
 		}
@@ -124,10 +121,10 @@ func TestStatsRun(t *testing.T) {
 	}
 
 	for i, c := range goodCases {
-		ioReset(in, out, errs)
+		run.IOReset()
 
 		opt := &StatsOptions{
-			IOStreams:       streams,
+			IOStreams:       run.Streams,
 			Refs:            NewExplicitRefSelect(c.ref),
 			DatasetRequests: dsr,
 		}

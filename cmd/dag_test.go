@@ -2,10 +2,7 @@ package cmd
 
 import (
 	"testing"
-	"time"
 
-	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/errors"
 )
 
@@ -54,8 +51,8 @@ func TestAbbrFieldToFull(t *testing.T) {
 }
 
 func TestDAGComplete(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_dag_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -76,13 +73,13 @@ func TestDAGComplete(t *testing.T) {
 	}
 	for i, c := range cases {
 		opt := &DAGOptions{
-			IOStreams: streams,
+			IOStreams: run.Streams,
 		}
 
 		opt.Complete(f, c.args, true)
-		if c.err != errs.String() {
-			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
-			ioReset(in, out, errs)
+		if c.err != run.ErrStream.String() {
+			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, run.ErrStream.String())
+			run.IOReset()
 			continue
 		}
 
@@ -96,7 +93,7 @@ func TestDAGComplete(t *testing.T) {
 
 		if len(opt.Refs) != len(c.expRefs) {
 			t.Errorf("case %d, expected Refs mismatch. Expected: %s, Got: %s", i, c.expRefs, opt.Refs)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
@@ -106,19 +103,13 @@ func TestDAGComplete(t *testing.T) {
 				break
 			}
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }
 
 func TestDAGInfo(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
-
-	// to keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_dag_info")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -161,33 +152,33 @@ func TestDAGInfo(t *testing.T) {
 		}
 
 		opt := c.opt
-		opt.IOStreams = streams
+		opt.IOStreams = run.Streams
 		opt.DatasetRequests = dsr
 
 		err = opt.Info()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
 			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.errMsg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.errMsg, libErr.Message())
-				ioReset(in, out, errs)
+				run.IOReset()
 				continue
 			}
 		} else if c.errMsg != "" {
 			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.errMsg)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
-		if c.stdout != out.String() {
-			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.stdout, out.String())
-			ioReset(in, out, errs)
+		if c.stdout != run.OutStream.String() {
+			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.stdout, run.OutStream.String())
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }

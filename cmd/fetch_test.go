@@ -11,43 +11,16 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/logbook"
 )
 
 func TestFetchCommand(t *testing.T) {
 	a := NewTestRunner(t, "peer_a", "qri_test_fetch_a")
 	defer a.Delete()
-
-	// TODO(dustmop): Move most of the below hooks into a common testRunner. Maybe the basic
-	// TestRunner will work?
-
-	// Set the location to New York so that timezone printing is consistent
-	location, err := time.LoadLocation("America/New_York")
-	if err != nil {
-		panic(err)
-	}
-	locOrig := StringerLocation
-	StringerLocation = location
-
-	// Restore the location function
-	a.Teardown = func() {
-		StringerLocation = locOrig
-	}
-
-	// Hook timestamp generation.
-	prevTimestampFunc := logbook.NewTimestamp
-	logbook.NewTimestamp = func() int64 {
-		return 1000
-	}
-	defer func() {
-		logbook.NewTimestamp = prevTimestampFunc
-	}()
 
 	// Save a version with some rows in its body
 	a.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
@@ -57,8 +30,8 @@ func TestFetchCommand(t *testing.T) {
 
 	// Get the log, should have two versions.
 	actual := a.MustExec(t, "qri log peer_a/test_movies")
-	expect := `1   Commit:  /ipfs/Qmb6eo8uyhbKVtB3BJqNGejxxyA17Y9N6uLwv24thudbK4
-    Date:    Sun Dec 31 20:02:01 EST 2000
+	expect := `1   Commit:  /ipfs/QmTvaHYDQWvYUYLj9Dd2K3ntYrue8BA6LsEpkoFmmK7sku
+    Date:    Sun Dec 31 20:05:01 EST 2000
     Storage: local
     Size:    720 B
 
@@ -66,8 +39,8 @@ func TestFetchCommand(t *testing.T) {
     body:
     	changed by 70%
 
-2   Commit:  /ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6
-    Date:    Sun Dec 31 20:01:01 EST 2000
+2   Commit:  /ipfs/QmbG4b2j8FnhqNwVbZQYGD2UqvPBmavfFbVXq8kCWqHAya
+    Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    224 B
 
@@ -135,15 +108,15 @@ func TestFetchCommand(t *testing.T) {
 
 	// Have peer B fetch from peer A, output correlates to the log from peer A earlier
 	actual = b.MustExec(t, "qri fetch peer_a/test_movies --remote a_node")
-	expect = `1   Commit:  /ipfs/Qmb6eo8uyhbKVtB3BJqNGejxxyA17Y9N6uLwv24thudbK4
-    Date:    Sun Dec 31 20:02:01 EST 2000
+	expect = `1   Commit:  /ipfs/QmTvaHYDQWvYUYLj9Dd2K3ntYrue8BA6LsEpkoFmmK7sku
+    Date:    Sun Dec 31 20:05:01 EST 2000
     Storage: remote
     Size:    720 B
 
     body changed by 70%
 
-2   Commit:  /ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6
-    Date:    Sun Dec 31 20:01:01 EST 2000
+2   Commit:  /ipfs/QmbG4b2j8FnhqNwVbZQYGD2UqvPBmavfFbVXq8kCWqHAya
+    Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: remote
     Size:    224 B
 
@@ -164,6 +137,9 @@ func TestFetchCommand(t *testing.T) {
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
+
+	// TODO(dustmop): Try to add the below to a separate test in api/. Need to populate the peers
+	// in a fashion similar to api/fsi_test.go's `TestNoHistory`.
 
 	localInst, err := lib.NewInstance(
 		ctx,
@@ -188,10 +164,9 @@ func TestFetchCommand(t *testing.T) {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
 	actualBody = string(fixTs.ReplaceAll([]byte(actualBody), []byte(`"commitTime":"timeStampHere"`)))
-	expectBody := `{"data":[{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/Qmb6eo8uyhbKVtB3BJqNGejxxyA17Y9N6uLwv24thudbK4","bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%","commitMessage":"body:\n\tchanged by 70%"},{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6","bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset","commitMessage":"created dataset"}],"meta":{"code":200},"pagination":{"nextUrl":"/history/peer_a/test_movies?page=2"}}`
-
-	if expectBody != actualBody {
-		t.Errorf("expected body %s, got %s", expectBody, actualBody)
+	expectBody := `{"data":[{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/QmTvaHYDQWvYUYLj9Dd2K3ntYrue8BA6LsEpkoFmmK7sku","bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%","commitMessage":"body:\n\tchanged by 70%"},{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/QmbG4b2j8FnhqNwVbZQYGD2UqvPBmavfFbVXq8kCWqHAya","bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset","commitMessage":"created dataset"}],"meta":{"code":200},"pagination":{"nextUrl":"/history/peer_a/test_movies?page=2"}}`
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
+		t.Errorf("body mismatch (-want +got):%s\n", diff)
 	}
 
 	remClientHandler := api.NewRemoteClientHandlers(localInst, false)
@@ -208,9 +183,9 @@ func TestFetchCommand(t *testing.T) {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
 	actualBody = string(fixTs.ReplaceAll([]byte(actualBody), []byte(`"commitTime":"timeStampHere"`)))
-	expectBody = `{"data":[{"username":"peer_a","name":"test_movies","path":"/ipfs/Qmb6eo8uyhbKVtB3BJqNGejxxyA17Y9N6uLwv24thudbK4","foreign":true,"bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%"},{"username":"peer_a","name":"test_movies","path":"/ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6","foreign":true,"bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset"}],"meta":{"code":200}}`
-	if expectBody != actualBody {
-		t.Errorf("expected body %s, got %s", expectBody, actualBody)
+	expectBody = `{"data":[{"username":"peer_a","name":"test_movies","path":"/ipfs/QmTvaHYDQWvYUYLj9Dd2K3ntYrue8BA6LsEpkoFmmK7sku","foreign":true,"bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%"},{"username":"peer_a","name":"test_movies","path":"/ipfs/QmbG4b2j8FnhqNwVbZQYGD2UqvPBmavfFbVXq8kCWqHAya","foreign":true,"bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset"}],"meta":{"code":200}}`
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
+		t.Errorf("body mismatch (-want +got):%s\n", diff)
 	}
 }
 

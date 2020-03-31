@@ -5,6 +5,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -18,22 +19,32 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
+	"github.com/qri-io/qri/startf"
 	"github.com/spf13/cobra"
 )
 
 // TestRunner holds data used to run tests
 type TestRunner struct {
-	RepoRoot    *repotest.TempRepo
-	Context     context.Context
-	ContextDone func()
-	TsFunc      func() time.Time
-	CmdR        *cobra.Command
-	Teardown    func()
+	RepoRoot      *repotest.TempRepo
+	Context       context.Context
+	ContextDone   func()
+	TmpDir        string
+	Streams       ioes.IOStreams
+	InStream      *bytes.Buffer
+	OutStream     *bytes.Buffer
+	ErrStream     *bytes.Buffer
+	DsfsTsFunc    func() time.Time
+	LogbookTsFunc func() int64
+	LocOrig       *time.Location
+	XformVersion  string
+	CmdR          *cobra.Command
+	Teardown      func()
 
 	pathFactory PathFactory
 
@@ -101,14 +112,38 @@ func newTestRunnerFromRoot(root *repotest.TempRepo) *TestRunner {
 	run.RepoRoot = root
 	run.Context, run.ContextDone = context.WithCancel(context.Background())
 
+	// TmpDir will be removed recursively, only if it is non-empty
+	run.TmpDir = ""
+
 	// To keep hashes consistent, artificially specify the timestamp by overriding
 	// the dsfs.Timestamp func
 	counter := 0
-	run.TsFunc = dsfs.Timestamp
+	run.DsfsTsFunc = dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time {
 		counter++
 		return time.Date(2001, 01, 01, 01, counter, 01, 01, time.UTC)
 	}
+
+	// Do the same for logbook.NewTimestamp
+	run.LogbookTsFunc = logbook.NewTimestamp
+	logbook.NewTimestamp = func() int64 {
+		counter++
+		return time.Date(2001, 01, 01, 01, counter, 01, 01, time.UTC).Unix()
+	}
+
+	// Set IOStreams
+	run.Streams, run.InStream, run.OutStream, run.ErrStream = ioes.NewTestIOStreams()
+	setNoColor(true)
+	//setNoPrompt(true)
+
+	// Set the location to New York so that timezone printing is consistent
+	location, _ := time.LoadLocation("America/New_York")
+	run.LocOrig = StringerLocation
+	StringerLocation = location
+
+	// Stub the version of starlark, because it is output when transforms run
+	run.XformVersion = startf.Version
+	startf.Version = "test_version"
 
 	return &run
 }
@@ -118,10 +153,31 @@ func (run *TestRunner) Delete() {
 	if run.Teardown != nil {
 		run.Teardown()
 	}
-	dsfs.Timestamp = run.TsFunc
+	if run.TmpDir != "" {
+		os.RemoveAll(run.TmpDir)
+	}
+	dsfs.Timestamp = run.DsfsTsFunc
+	logbook.NewTimestamp = run.LogbookTsFunc
+	StringerLocation = run.LocOrig
+	startf.Version = run.XformVersion
 	run.ContextDone()
 	run.RepoRoot.Delete()
 }
+
+// MakeTmpDir returns a temporary directory that runner will delete when done
+func (run *TestRunner) MakeTmpDir(t *testing.T, pattern string) string {
+	if run.TmpDir != "" {
+		t.Fatal("can only make one tmpDir at a time")
+	}
+	tmpDir, err := ioutil.TempDir("", pattern)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run.TmpDir = tmpDir
+	return tmpDir
+}
+
+// TODO(dustmop): Look into using options instead of multiple exec functions.
 
 // ExecCommand executes the given command string
 func (run *TestRunner) ExecCommand(cmdText string) error {
@@ -131,13 +187,16 @@ func (run *TestRunner) ExecCommand(cmdText string) error {
 
 // ExecCommandWithStdin executes the given command string with the string as stdin content
 func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinText string) error {
-	in := bytes.NewBufferString(stdinText)
-	out := &bytes.Buffer{}
-	run.RepoRoot.Streams = ioes.NewIOStreams(in, out, out)
 	setNoColor(true)
-	cmd := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, run.RepoRoot.Streams)
-	cmd.SetOutput(out)
+	cmd := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, run.Streams)
+	cmd.SetOutput(run.OutStream)
 	run.CmdR = cmd
+	return executeCommand(run.CmdR, cmdText)
+}
+
+// ExecCommandCombinedOutErr executes the command with a combined stdout and stderr stream
+func (run *TestRunner) ExecCommandCombinedOutErr(cmdText string) error {
+	run.CmdR = run.CreateCommandRunnerCombinedOutErr(run.Context)
 	return executeCommand(run.CmdR, cmdText)
 }
 
@@ -163,11 +222,20 @@ func (run *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText stri
 
 // CreateCommandRunner returns a cobra runable command.
 func (run *TestRunner) CreateCommandRunner(ctx context.Context) *cobra.Command {
-	in := &bytes.Buffer{}
-	out := &bytes.Buffer{}
-	run.RepoRoot.Streams = ioes.NewIOStreams(in, out, out)
-	setNoColor(true)
+	return run.newCommandRunner(ctx, false)
+}
 
+// CreateCommandRunnerCombinedOutErr returns a cobra command that combines stdout and stderr
+func (run *TestRunner) CreateCommandRunnerCombinedOutErr(ctx context.Context) *cobra.Command {
+	return run.newCommandRunner(ctx, true)
+}
+
+func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool) *cobra.Command {
+	run.IOReset()
+	streams := run.Streams
+	if combineOutErr {
+		streams = ioes.NewIOStreams(run.InStream, run.OutStream, run.OutStream)
+	}
 	if run.RepoRoot.UseMockRemoteClient {
 		// Set this context value, which is used in lib.NewInstance to construct a
 		// remote.MockClient instead. Using context.Value is discouraged, but it's difficult
@@ -175,10 +243,16 @@ func (run *TestRunner) CreateCommandRunner(ctx context.Context) *cobra.Command {
 		key := lib.InstanceContextKey("RemoteClient")
 		ctx = context.WithValue(ctx, key, "mock")
 	}
-
-	cmd := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, run.RepoRoot.Streams)
-	cmd.SetOutput(out)
+	cmd := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, streams)
+	cmd.SetOutput(run.OutStream)
 	return cmd
+}
+
+// IOReset resets the io streams
+func (run *TestRunner) IOReset() {
+	run.InStream.Reset()
+	run.OutStream.Reset()
+	run.ErrStream.Reset()
 }
 
 // FileExists returns whether the file exists
@@ -282,6 +356,21 @@ func (run *TestRunner) MustExec(t *testing.T, cmdText string) string {
 	return run.GetCommandOutput()
 }
 
+// MustExec runs a command, returning combined standard output and standard err
+func (run *TestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
+	run.CmdR = run.CreateCommandRunnerCombinedOutErr(run.Context)
+	err := executeCommand(run.CmdR, cmdText)
+	if err != nil {
+		_, callerFile, callerLine, ok := runtime.Caller(1)
+		if !ok {
+			t.Fatal(err)
+		} else {
+			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
+		}
+	}
+	return run.GetCommandOutput()
+}
+
 // MustWriteFile writes to a file, failing the test if there's an error
 func (run *TestRunner) MustWriteFile(t *testing.T, filename, contents string) {
 	if err := ioutil.WriteFile(filename, []byte(contents), os.FileMode(0644)); err != nil {
@@ -313,13 +402,29 @@ func (run *TestRunner) Must(t *testing.T, err error) {
 // GetCommandOutput returns the standard output from the previously executed
 // command
 func (run *TestRunner) GetCommandOutput() string {
-	return run.RepoRoot.GetOutput()
+	outputText := ""
+	if buffer, ok := run.Streams.Out.(*bytes.Buffer); ok {
+		outputText = run.niceifyTempDirs(buffer.String())
+	}
+	return outputText
 }
 
 // GetCommandErrOutput fetches the stderr value from the previously executed
 // command
 func (run *TestRunner) GetCommandErrOutput() string {
-	return run.RepoRoot.GetErrOutput()
+	errOutText := ""
+	if buffer, ok := run.Streams.ErrOut.(*bytes.Buffer); ok {
+		errOutText = run.niceifyTempDirs(buffer.String())
+	}
+	return errOutText
+}
+
+func (run *TestRunner) niceifyTempDirs(text string) string {
+	realRoot, err := filepath.EvalSymlinks(run.RepoRoot.RootPath)
+	if err == nil {
+		text = strings.Replace(text, realRoot, "/root", -1)
+	}
+	return text
 }
 
 func executeCommand(root *cobra.Command, cmd string) error {

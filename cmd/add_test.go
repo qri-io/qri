@@ -34,7 +34,7 @@ func TestAddAndListRefs(t *testing.T) {
 	expect := `0 Peername:  test_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      my_dataset
-  Path:      /ipfs/QmeyznW4FBaLY8rk5xpZyFHXixrq8qFJrFf8v1REZzmLLg
+  Path:      /ipfs/QmTNy5ZpjdaLLqWBuuX9GhjdoxgHdGksyhV4VFQNtXTcHu
   FSIPath:   
   Published: false
 
@@ -50,13 +50,13 @@ func TestAddAndListRefs(t *testing.T) {
 	expect = `0 Peername:  other_peer
   ProfileID: QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
   Name:      their_dataset
-  Path:      /ipfs/QmeD7XLpUoz6EKzBBGHQ4dMEsA8veRJDz4Ky2WAjkBM5kt
+  Path:      /ipfs/QmeQC8QdAVtruVyEyAejZBHFDBhqy99pDhDpdPXkALfhfD
   FSIPath:   
   Published: false
 1 Peername:  test_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      my_dataset
-  Path:      /ipfs/QmeyznW4FBaLY8rk5xpZyFHXixrq8qFJrFf8v1REZzmLLg
+  Path:      /ipfs/QmTNy5ZpjdaLLqWBuuX9GhjdoxgHdGksyhV4VFQNtXTcHu
   FSIPath:   
   Published: false
 
@@ -82,7 +82,7 @@ func TestAddWithCheckout(t *testing.T) {
 	expect := `0 Peername:  other_peer
   ProfileID: QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
   Name:      their_dataset
-  Path:      /ipfs/QmbCV8415B6uM4A1UC6YpPCzGpUd5Kx4txWTcPLoXjEcQP
+  Path:      /ipfs/QmeD7XLpUoz6EKzBBGHQ4dMEsA8veRJDz4Ky2WAjkBM5kt
   FSIPath:   /tmp/workdir
   Published: false
 

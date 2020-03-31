@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"testing"
-
-	"github.com/qri-io/ioes"
 )
 
 func TestGetComplete(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_get_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -36,34 +34,34 @@ func TestGetComplete(t *testing.T) {
 
 	for i, c := range cases {
 		opt := &GetOptions{
-			IOStreams: streams,
+			IOStreams: run.Streams,
 		}
 
 		opt.Complete(f, c.args)
 
-		if c.err != errs.String() {
-			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
-			ioReset(in, out, errs)
+		if c.err != run.ErrStream.String() {
+			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, run.ErrStream.String())
+			run.IOReset()
 			continue
 		}
 
 		if !testSliceEqual(c.refs, opt.Refs.RefList()) {
 			t.Errorf("case %d, opt.Refs not set correctly. Expected: '%q', Got: '%q'", i, c.refs, opt.Refs.RefList())
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if c.selector != opt.Selector {
 			t.Errorf("case %d, opt.Selector not set correctly. Expected: '%s', Got: '%s'", i, c.selector, opt.Selector)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if opt.DatasetRequests == nil {
 			t.Errorf("case %d, opt.DatasetRequests not set.", i)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }

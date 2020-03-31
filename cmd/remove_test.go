@@ -2,18 +2,15 @@ package cmd
 
 import (
 	"testing"
-	"time"
 
-	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 )
 
 func TestRemoveComplete(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_remove_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -32,23 +29,23 @@ func TestRemoveComplete(t *testing.T) {
 
 	for i, c := range cases {
 		opt := &RemoveOptions{
-			IOStreams: streams,
+			IOStreams: run.Streams,
 		}
 
 		opt.Complete(f, c.args)
 
-		if c.err != errs.String() {
-			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
-			ioReset(in, out, errs)
+		if c.err != run.ErrStream.String() {
+			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, run.ErrStream.String())
+			run.IOReset()
 			continue
 		}
 
 		if opt.DatasetRequests == nil {
 			t.Errorf("case %d, opt.DatasetRequests not set.", i)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }
 
@@ -85,14 +82,8 @@ func TestRemoveValidate(t *testing.T) {
 }
 
 func TestRemoveRun(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
-
-	// to keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_dag_info")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -109,8 +100,8 @@ func TestRemoveRun(t *testing.T) {
 	}{
 		{[]string{}, -1, "", "repo: empty dataset reference", ""},
 		{[]string{"me/bad_dataset"}, -1, "", "repo: not found", "could not find dataset 'me/bad_dataset'"},
-		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@/map/QmVnSLjFfZ8QRyTvAMfqjWoTZS1zo4JthKjBaFjnneirAc'\n", "", ""},
-		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@/map/QmfRUKSPd2hR8w7RLkLb7ihhsAmcFCMuwnXHtKp5fMfgwv'\n", "", ""},
+		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@/map/QmZ6FC5pfDUB8CpbyoXhZzEJpHC8w675JE471WUg4FmAdo'\n", "", ""},
+		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@/map/QmSEjjiLYtkQ8iy8icK4hKwq37JVDFXVtL21eGuEjPv6uA'\n", "", ""},
 		{[]string{"me/movies"}, -1, "", "repo: not found", "could not find dataset 'me/movies'"},
 	}
 
@@ -122,7 +113,7 @@ func TestRemoveRun(t *testing.T) {
 		}
 
 		opt := &RemoveOptions{
-			IOStreams:       streams,
+			IOStreams:       run.Streams,
 			Refs:            NewListOfRefSelects(c.args),
 			Revision:        dsref.Rev{Field: "ds", Gen: c.revision},
 			DatasetRequests: dsr,
@@ -131,28 +122,28 @@ func TestRemoveRun(t *testing.T) {
 		err = opt.Run()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
 			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
-				ioReset(in, out, errs)
+				run.IOReset()
 				continue
 			}
 		} else if c.msg != "" {
 			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
-		if c.expected != out.String() {
-			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
-			ioReset(in, out, errs)
+		if c.expected != run.OutStream.String() {
+			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, run.OutStream.String())
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }
 

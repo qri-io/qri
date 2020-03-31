@@ -4,14 +4,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/errors"
 )
 
 func TestValidateComplete(t *testing.T) {
-	// in, out, and errs are buffers
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_validate_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -33,37 +31,37 @@ func TestValidateComplete(t *testing.T) {
 
 	for i, c := range cases {
 		opt := &ValidateOptions{
-			IOStreams:      streams,
+			IOStreams:      run.Streams,
 			BodyFilepath:   c.bodyFilepath,
 			SchemaFilepath: c.schemaFilepath,
 		}
 		opt.Complete(f, c.args)
 
-		if c.err != errs.String() {
-			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
-			ioReset(in, out, errs)
+		if c.err != run.ErrStream.String() {
+			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, run.ErrStream.String())
+			run.IOReset()
 			continue
 		}
 
 		if c.expect != opt.Refs.Ref() {
 			t.Errorf("case %d, opt.Refs not set correctly. Expected: '%s', Got: '%s'", i, c.expect, opt.Refs.Ref())
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if opt.DatasetRequests == nil {
 			t.Errorf("case %d, opt.DatasetRequests not set.", i)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 
 }
 
 func TestValidateRun(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_validate_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -100,7 +98,7 @@ func TestValidateRun(t *testing.T) {
 		}
 
 		opt := &ValidateOptions{
-			IOStreams:       streams,
+			IOStreams:       run.Streams,
 			Refs:            NewExplicitRefSelect(c.ref),
 			BodyFilepath:    c.bodyFilePath,
 			SchemaFilepath:  c.schemaFilePath,
@@ -111,29 +109,29 @@ func TestValidateRun(t *testing.T) {
 		err = opt.Run()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
 			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
-				ioReset(in, out, errs)
+				run.IOReset()
 				continue
 			}
 		} else if c.msg != "" {
 			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
-		if c.expected != out.String() {
-			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
-			ioReset(in, out, errs)
+		if c.expected != run.OutStream.String() {
+			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, run.OutStream.String())
+			run.IOReset()
 			continue
 		}
 
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }
 

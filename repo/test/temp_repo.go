@@ -1,14 +1,12 @@
 package test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/qri-io/ioes"
 	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
@@ -24,7 +22,6 @@ type TempRepo struct {
 	IPFSPath            string
 	QriPath             string
 	TestCrypto          gen.CryptoGenerator
-	Streams             ioes.IOStreams
 	cfg                 *config.Config
 	repo                repo.Repo
 	UseMockRemoteClient bool
@@ -110,24 +107,6 @@ func (r *TempRepo) WriteConfigFile() error {
 // GetConfig returns the configuration for the test repo.
 func (r *TempRepo) GetConfig() *config.Config {
 	return r.cfg
-}
-
-// GetOutput returns the output from the previously executed command.
-func (r *TempRepo) GetOutput() string {
-	buffer, ok := r.Streams.Out.(*bytes.Buffer)
-	if ok {
-		return buffer.String()
-	}
-	return ""
-}
-
-// GetErrOutput returns the "stderr" output from the previously executed command
-func (r *TempRepo) GetErrOutput() string {
-	buffer, ok := r.Streams.ErrOut.(*bytes.Buffer)
-	if ok {
-		return buffer.String()
-	}
-	return ""
 }
 
 // GetPathForDataset returns the path to where the index'th dataset is stored on CAFS.
