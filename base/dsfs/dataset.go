@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"sync"
 	"time"
@@ -21,9 +22,24 @@ import (
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base/friendly"
 	"github.com/qri-io/qri/base/toqtype"
 )
+
+// BodySizeSmallEnoughToDiff sets how small a body must be to generate a message from it
+var BodySizeSmallEnoughToDiff = 20000000 // 20M or less is small
+
+// TODO(dustmop): Limiting the body size for diffs causes an undesirable side-effect: if a user
+// has a dataset body larger than this size, then any `save` operation will create a commit, even
+// if no changes have been made, since our change detection will see BodyTooBig and assume
+// something changed. Some solutions to this:
+//   * above 20M start using a less-accurate non-structured checksum instead of deepdiff
+//   * calculate a structured checksum and compare that to the last commit's checksum
+//   * immitate "redo" (https://apenwarr.ca/log/20181113), store file attributes, see if any change
+//   * at a large enough size, like 4G, just assume the file is always changed. don't be expensive
+// We should make this algorithm agree with how `status` works.
+// See issue: https://github.com/qri-io/qri/issues/1150
 
 // LoadDataset reads a dataset from a cafs and dereferences structure, transform, and commitMsg if they exist,
 // returning a fully-hydrated dataset
@@ -196,7 +212,7 @@ func DerefDatasetCommit(ctx context.Context, store cafs.Filestore, ds *dataset.D
 // Dataset to be saved
 // Pin the dataset if the underlying store supports the pinning interface
 // All streaming files (Body, Transform Script, Viz Script) Must be Resolved before calling if data their data is to be saved
-func CreateDataset(ctx context.Context, store cafs.Filestore, ds, dsPrev *dataset.Dataset, pk crypto.PrivKey, pin, force, shouldRender bool) (path string, err error) {
+func CreateDataset(ctx context.Context, store cafs.Filestore, ds, dsPrev *dataset.Dataset, pk crypto.PrivKey, pin, forceIfNoChanges, shouldRender bool) (path string, err error) {
 
 	if pk == nil {
 		err = fmt.Errorf("private key is required to create a dataset")
@@ -221,7 +237,7 @@ func CreateDataset(ctx context.Context, store cafs.Filestore, ds, dsPrev *datase
 			return
 		}
 	}
-	err = prepareDataset(store, ds, dsPrev, pk, force, shouldRender)
+	err = prepareDataset(store, ds, dsPrev, pk, forceIfNoChanges, shouldRender)
 	if err != nil {
 		log.Debug(err.Error())
 		return
@@ -241,17 +257,30 @@ var Timestamp = func() time.Time {
 	return time.Now().UTC()
 }
 
+// BodyAction represents the action that should be taken to understand how the body changed
+type BodyAction string
+
+const (
+	// BodyDefault is the default action: compare them to get how much changed
+	BodyDefault = BodyAction("default")
+	// BodySame means that the bodies are the same, no need to compare
+	BodySame = BodyAction("same")
+	// BodyTooBig means the body is too big to compare, and should be assumed to have changed
+	BodyTooBig = BodyAction("too_big")
+)
+
 // prepareDataset modifies a dataset in preparation for adding to a dsfs
 // it returns a new data file for use in WriteDataset
-func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey crypto.PrivKey, force, shouldRender bool) error {
+func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey crypto.PrivKey, forceIfNoChanges, shouldRender bool) error {
 	var (
 		err error
 		// lock for parallel edits to ds pointer
 		mu sync.Mutex
 		// accumulate reader into a buffer for shasum calculation & passing out another qfs.File
-		buf    bytes.Buffer
-		bf     = ds.BodyFile()
-		bfPrev qfs.File
+		buf     bytes.Buffer
+		bf      = ds.BodyFile()
+		bodyAct = BodyDefault
+		bfPrev  qfs.File
 	)
 
 	if dsPrev != nil {
@@ -263,6 +292,11 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 	}
 
 	if bf == nil {
+		// TODO(dustmop): If no bf provided, we're assuming that the body is the same as it
+		// was in the previous commit. In this case, we shouldn't be recalculating the
+		// structure (err count, depth, checksum, length) we should just copy it from the
+		// previous version.
+		bodyAct = BodySame
 		bf = bfPrev
 	}
 
@@ -310,7 +344,21 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 		return fmt.Errorf("strict mode: dataset body did not validate against its schema")
 	}
 
-	if err = generateCommit(dsPrev, ds, privKey, force); err != nil {
+	// If the body exists and is small enough, deserialize it and assign it
+	if len(buf.Bytes()) < BodySizeSmallEnoughToDiff {
+		file := qfs.NewMemfileBytes("body."+ds.Structure.Format, buf.Bytes())
+		reader, err := dsio.NewEntryReader(ds.Structure, file)
+		if err == nil {
+			dsBody, err := readAllEntries(reader)
+			if err == nil {
+				ds.Body = dsBody
+			}
+		}
+	} else {
+		bodyAct = BodyTooBig
+	}
+
+	if err = generateCommit(store, dsPrev, ds, privKey, bodyAct, forceIfNoChanges); err != nil {
 		return err
 	}
 
@@ -330,8 +378,8 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 }
 
 // generateCommit creates the commit title, message, timestamp, etc
-func generateCommit(prev, ds *dataset.Dataset, privKey crypto.PrivKey, force bool) error {
-	shortTitle, longMessage, err := generateCommitDescriptions(prev, ds, force)
+func generateCommit(store cafs.Filestore, prev, ds *dataset.Dataset, privKey crypto.PrivKey, bodyAct BodyAction, forceIfNoChanges bool) error {
+	shortTitle, longMessage, err := generateCommitDescriptions(store, prev, ds, bodyAct, forceIfNoChanges)
 	if err != nil {
 		log.Debug(fmt.Errorf("error saving: %s", err))
 		return fmt.Errorf("error saving: %s", err)
@@ -470,16 +518,49 @@ func setChecksumAndLength(ds *dataset.Dataset, data qfs.File, buf *bytes.Buffer,
 }
 
 // returns a commit message based on the diff of the two datasets
-func generateCommitDescriptions(prev, ds *dataset.Dataset, force bool) (short, long string, err error) {
+func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset, bodyAct BodyAction, forceIfNoChanges bool) (short, long string, err error) {
 	if prev == nil || prev.IsEmpty() {
 		return "created dataset", "created dataset", nil
 	}
 
 	ctx := context.TODO()
 
-	// TODO(dlong): Inline body if it is a reasonable size, in order to get information about
-	// how the body has changed.
-	// TODO(dlong): Also should ignore derived fields, like structure.{checksum,entries,length}.
+	// Inline body if it is a reasonable size, to get message about how the body has changed.
+	if bodyAct != BodySame {
+		// If previous version had bodyfile, read it and assign it
+		if prev.Structure != nil && prev.Structure.Length < BodySizeSmallEnoughToDiff {
+			if prev.BodyFile() != nil {
+				prevReader, err := dsio.NewEntryReader(prev.Structure, prev.BodyFile())
+				if err == nil {
+					prevBodyData, err := readAllEntries(prevReader)
+					if err == nil {
+						prev.Body = prevBodyData
+					}
+				}
+			}
+		} else {
+			bodyAct = BodyTooBig
+		}
+	}
+
+	// Read the transform files to see if they changed.
+	// TODO(dustmop): Would be better to get a line-by-line diff
+	if prev.Transform != nil && prev.Transform.ScriptPath != "" {
+		err := prev.Transform.OpenScriptFile(ctx, store)
+		if err == nil {
+			tfFile := prev.Transform.ScriptFile()
+			prev.Transform.ScriptBytes, _ = ioutil.ReadAll(tfFile)
+		}
+	}
+	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
+		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
+		// local here. Is there some way to have a cafs store that works with both?
+		err := ds.Transform.OpenScriptFile(ctx, localfs.NewFS())
+		if err == nil {
+			tfFile := ds.Transform.ScriptFile()
+			ds.Transform.ScriptBytes, _ = ioutil.ReadAll(tfFile)
+		}
+	}
 
 	var prevData map[string]interface{}
 	prevData, err = toqtype.StructToMap(prev)
@@ -493,20 +574,105 @@ func generateCommitDescriptions(prev, ds *dataset.Dataset, force bool) (short, l
 		return "", "", err
 	}
 
-	diff, stat, err := deepdiff.New().StatDiff(ctx, prevData, nextData)
+	// TODO(dustmop): All of this should be using fill and/or component. Would be awesome to
+	// be able to do:
+	//   prevBody = fill.GetPathValue(prevData, "body")
+	//   fill.DeletePathValue(prevData, "body")
+	//   component.DropDerivedValues(prevData, "structure")
+	var prevBody interface{}
+	var nextBody interface{}
+	if bodyAct != BodySame {
+		prevBody = prevData["body"]
+		nextBody = nextData["body"]
+	}
+	delete(prevData, "body")
+	delete(nextData, "body")
+
+	if prevTransform, ok := prevData["transform"]; ok {
+		if prevObject, ok := prevTransform.(map[string]interface{}); ok {
+			delete(prevObject, "scriptPath")
+		}
+	}
+	if nextTransform, ok := nextData["transform"]; ok {
+		if nextObject, ok := nextTransform.(map[string]interface{}); ok {
+			delete(nextObject, "scriptPath")
+		}
+	}
+
+	if prevStructure, ok := prevData["structure"]; ok {
+		if prevObject, ok := prevStructure.(map[string]interface{}); ok {
+			delete(prevObject, "checksum")
+			delete(prevObject, "entries")
+			delete(prevObject, "length")
+			delete(prevObject, "depth")
+		}
+	}
+	if nextStructure, ok := nextData["structure"]; ok {
+		if nextObject, ok := nextStructure.(map[string]interface{}); ok {
+			delete(nextObject, "checksum")
+			delete(nextObject, "entries")
+			delete(nextObject, "length")
+			delete(nextObject, "depth")
+		}
+	}
+
+	var headDiff, bodyDiff deepdiff.Deltas
+	var bodyStat *deepdiff.Stats
+
+	// Diff the head and body separately. This allows accurate stats when figuring out how much
+	// of the body has changed.
+	headDiff, _, err = deepdiff.New().StatDiff(ctx, prevData, nextData)
 	if err != nil {
 		return "", "", err
 	}
+	if prevBody != nil && nextBody != nil {
+		bodyDiff, bodyStat, err = deepdiff.New().StatDiff(ctx, prevBody, nextBody)
+		if err != nil {
+			return "", "", err
+		}
+	}
 
-	shortTitle, longMessage := friendly.DiffDescriptions(diff, stat)
+	shortTitle, longMessage := friendly.DiffDescriptions(headDiff, bodyDiff, bodyStat, bodyAct == BodyTooBig)
 	if shortTitle == "" {
-		if force {
+		if forceIfNoChanges {
 			return "forced update", "forced update", nil
 		}
 		return "", "", fmt.Errorf("no changes")
 	}
 
 	return shortTitle, longMessage, nil
+}
+
+// copied from base/body.go to avoid circular dependency
+// TODO(dustmop): Move from base/body.go into this package
+func readAllEntries(reader dsio.EntryReader) (interface{}, error) {
+	obj := make(map[string]interface{})
+	array := make([]interface{}, 0)
+
+	tlt, err := dsio.GetTopLevelType(reader.Structure())
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; ; i++ {
+		val, err := reader.ReadEntry()
+		if err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			return nil, err
+		}
+		if tlt == "object" {
+			obj[val.Key] = val.Value
+		} else {
+			array = append(array, val.Value)
+		}
+	}
+
+	if tlt == "object" {
+		return obj, nil
+	}
+	return array, nil
 }
 
 // WriteDataset writes a dataset to a cafs, replacing subcomponents of a dataset with path references

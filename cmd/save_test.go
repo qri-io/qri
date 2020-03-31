@@ -543,7 +543,7 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
      bodySize      = 137
      bodyRows      = 4
      commitTime    = 978310921
-     headRef       = /ipfs/QmbKb9dHzcFsngjDUUUZ12XsREuh37Zm7yJ4f3t5BkCdQv
+     headRef       = /ipfs/QmQ7BtW8wyYqHYMyFy8bUfSgJjfREXwF9B7uJA6MBeaZm1
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)

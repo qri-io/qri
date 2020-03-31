@@ -16,17 +16,21 @@ const smallNumberOfChangesToBody = 3
 type ComponentChanges struct {
 	EntireMessage string
 	Num           int
+	Size          int
 	Rows          []string
 }
 
-// DiffDescriptions creates a friendly message from a diff operation
-func DiffDescriptions(deltas []*deepdiff.Delta, stats *deepdiff.Stats) (string, string) {
-	if len(deltas) == 0 {
+// DiffDescriptions creates a friendly message from diff operations. If there's no differences
+// found, return empty strings.
+func DiffDescriptions(headDeltas, bodyDeltas []*deepdiff.Delta, bodyStats *deepdiff.Stats, assumeBodyChanged bool) (string, string) {
+	if len(headDeltas) == 0 && len(bodyDeltas) == 0 {
 		return "", ""
 	}
 
-	deltas = preprocess(deltas, "")
-	perComponentChanges := buildComponentChanges(deltas)
+	headDeltas = preprocess(headDeltas, "")
+	bodyDeltas = preprocess(bodyDeltas, "")
+
+	perComponentChanges := buildComponentChanges(headDeltas, bodyDeltas, bodyStats, assumeBodyChanged)
 
 	// Data accumulated while iterating over the components.
 	shortTitle := ""
@@ -50,7 +54,12 @@ func DiffDescriptions(deltas []*deepdiff.Delta, stats *deepdiff.Stats) (string, 
 				if changes.Rows == nil {
 					// Body works specially. If a significant number of changes have been made,
 					// just report the percentage of the body that has changed.
-					percentChange := int(100.0 * changes.Num / stats.Left)
+					// Take the max of left and right to calculate the percentage change.
+					divisor := bodyStats.Left
+					if bodyStats.Right > divisor {
+						divisor = bodyStats.Right
+					}
+					percentChange := int(100.0 * changes.Size / divisor)
 					action := fmt.Sprintf("changed by %d%%", percentChange)
 					msg = fmt.Sprintf("%s:\n\t%s", compName, action)
 					shortTitle = fmt.Sprintf("%s %s", compName, action)
@@ -63,19 +72,15 @@ func DiffDescriptions(deltas []*deepdiff.Delta, stats *deepdiff.Stats) (string, 
 					shortTitle = fmt.Sprintf("%s %s", compName, strings.Join(changes.Rows, " and "))
 				}
 			} else {
-				if len(changes.Rows) == 1 {
+				if len(changes.Rows) == 0 {
+					// This should never happen. If a component has no changes, it should not have
+					// a key in the perComponentChanges map.
+					log.Errorf("for %s: changes.Row is zero-sized", compName)
+				} else if len(changes.Rows) == 1 {
 					// For any other component, if there's only one change, directly describe
 					// it for both the long message and short title.
 					msg = fmt.Sprintf("%s:\n\t%s", compName, changes.Rows[0])
 					shortTitle = fmt.Sprintf("%s %s", compName, changes.Rows[0])
-				} else if len(changes.Rows) == 0 && compName == "transform" {
-					// TODO (b5) - this is a hack to make TestSaveTransformWithoutChanges
-					// in the cmd package pass. We're getting to this stage with 0 rows of
-					// changes, which is making msg & title not-empty, which is in turn allowing
-					// a commit b/c it looks like a change. ideally we don't make it here at all,
-					// but we DEFINITELY need a better hueristic for dsfs.CreateDataset's
-					// change detection check. Maybe use diffstat?
-					continue
 				} else {
 					// If there were multiple changes, describe them all for the long message
 					// but just show the number of changes for the short title.
@@ -131,15 +136,6 @@ func preprocess(deltas deepdiff.Deltas, path string) deepdiff.Deltas {
 				}
 			}
 		}
-
-		p := joinPath(path, d.Path.String())
-		// TODO (b5) - We need this because it's possible to write a transform script
-		// that changes nothing other than the script itself, and we currently reject
-		// that change. Should we? I think I'm missing something.
-		if p == "transform.scriptPath" {
-			continue
-		}
-
 		build = append(build, d)
 		if len(d.Deltas) > 0 {
 			d.Deltas = preprocess(d.Deltas, joinPath(path, d.Path.String()))
@@ -148,9 +144,9 @@ func preprocess(deltas deepdiff.Deltas, path string) deepdiff.Deltas {
 	return build
 }
 
-func buildComponentChanges(deltas deepdiff.Deltas) map[string]*ComponentChanges {
+func buildComponentChanges(headDeltas, bodyDeltas deepdiff.Deltas, bodyStats *deepdiff.Stats, assumeBodyChanged bool) map[string]*ComponentChanges {
 	perComponentChanges := make(map[string]*ComponentChanges)
-	for _, d := range deltas {
+	for _, d := range headDeltas {
 		compName := d.Path.String()
 		if d.Type != deepdiff.DTContext {
 			// Entire component changed
@@ -168,14 +164,17 @@ func buildComponentChanges(deltas deepdiff.Deltas) map[string]*ComponentChanges 
 		} else if len(d.Deltas) > 0 {
 			// Part of the component changed, record some state to build into a message later
 			changes := &ComponentChanges{}
-
-			if compName == "body" {
-				buildBodyChanges(changes, "", d.Deltas)
-			} else {
-				buildChanges(changes, "", d.Deltas)
-			}
-
+			buildChanges(changes, "", d.Deltas)
 			perComponentChanges[compName] = changes
+		}
+	}
+	if assumeBodyChanged {
+		perComponentChanges["body"] = &ComponentChanges{EntireMessage: "changed"}
+	} else if len(bodyDeltas) > 0 && bodyStats != nil {
+		bodyChanges := &ComponentChanges{}
+		buildBodyChanges(bodyChanges, "", bodyDeltas)
+		if bodyChanges.Num > 0 {
+			perComponentChanges["body"] = bodyChanges
 		}
 	}
 	return perComponentChanges
@@ -198,6 +197,13 @@ func buildBodyChanges(changes *ComponentChanges, parentPath string, deltas deepd
 	for _, d := range deltas {
 		if d.Type == deepdiff.DTDelete || d.Type == deepdiff.DTInsert || d.Type == deepdiff.DTUpdate || d.Type == dtReplace {
 			changes.Num++
+			if valArray, ok := d.Value.([]interface{}); ok {
+				changes.Size += len(valArray) + 1
+			} else if valMap, ok := d.Value.(map[string]interface{}); ok {
+				changes.Size += len(valMap) + 1
+			} else {
+				changes.Size++
+			}
 			if changes.Num <= smallNumberOfChangesToBody {
 				rowModify := fmt.Sprintf("%s row %s", pastTense(string(d.Type)), joinPath(parentPath, d.Path.String()))
 				changes.Rows = append(changes.Rows, rowModify)

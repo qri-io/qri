@@ -9,10 +9,12 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/startf"
 )
 
@@ -231,6 +233,54 @@ func TestSaveThenOverrideMetaComponent(t *testing.T) {
 	}
 }
 
+// Test save with a body, then adding a meta
+func TestSaveWithBodyThenAddMetaComponent(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	defer run.Delete()
+
+	// Save a version with a csv body, then another with a new meta component.
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/simple_ds")
+	run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml me/simple_ds")
+
+	// Read head from the dataset that was saved, as json string.
+	dsPath := run.GetPathForDataset(t, 0)
+	actual := run.DatasetMarshalJSON(t, dsPath)
+
+	// This version has a commit message about the meta being added
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta added","path":"/ipfs/QmVieZLxyvYRPyGPt6MKDwTMoNb6EfqJshg4kcVmrxfJEZ","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"meta added"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmeGqv8UiU9x1dd7gPWfNvtQcbizfq9CATvhizoEyvPtn4","peername":"me","previousPath":"/ipfs/QmV8boFBdLupyTiB8evgWZ9j12JopfXMp42NBnLFpBz1Mu","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmQu9hptYCMAupEuEL7cje9bx7Wcg5HtxV4j4xbDtuuFot","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("dataset (-want +got):\n%s", diff)
+	}
+}
+
+// Test save with a body, then adding a meta
+func TestSaveWithBodyThenAddMetaAndSmallBodyChange(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	defer run.Delete()
+
+	// Save a version with a csv body, then another with a new meta component and different body.
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/simple_ds")
+	run.MustExec(t, "qri save --body=testdata/movies/body_twenty.csv --file=testdata/movies/meta_override.yaml me/simple_ds")
+
+	// Read head from the dataset that was saved, as json string.
+	dsPath := run.GetPathForDataset(t, 0)
+	actual := run.DatasetMarshalJSON(t, dsPath)
+
+	// This version has a commit message about the meta being added and body changing
+	expect := `{"bodyPath":"/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta added\nbody:\n\tchanged by 54%","path":"/ipfs/QmWjDi8FrAjtSt3drCR4Vh6FDvCbKrN24sM5vtLyEJu8VJ","qri":"cm:0","signature":"eLr+Pk3wg8JSoeARoelNzdKLeiYFqL1k87YpXtSXigO39cAXFHg8FQki/+zt+gLPCBmPfD/mfQbR3R2mQmxyR4F+wQ1wbwkzJfumWbluyPfBsKbPQ55XLhkYUg6Ho5HqVsBn7sZ28WJ/1+GPC5xMaFYeMLTRnD2jflB5NR33eYxVQL/IDUybhgmlV5D2GOeZAOjQcCtgf0Me8o/HMqn9TsW9mNzilf7GF7lxyV+Jrz1pYjvOPlXoJGqRGRBnDbIzvEwmH7XBGHZvsbCntFw1XEEJIQslTm5mFbVrGTzqvmsPIB/SfbTjWL4Elq4uAocr7Mnu9TFKD15XNaZ8pMhaQw==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta and body"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/Qmav44x9ye7NQp4CWg8SBt82txB1vZLnjHJMEWCeU5Pv5s","peername":"me","previousPath":"/ipfs/QmV8boFBdLupyTiB8evgWZ9j12JopfXMp42NBnLFpBz1Mu","qri":"ds:0","structure":{"checksum":"QmSa4i985cF3dxNHxD5mSN7c6q1eYa83uNo1pLRmPZgTsa","depth":2,"errCount":1,"entries":18,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":532,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmQu9hptYCMAupEuEL7cje9bx7Wcg5HtxV4j4xbDtuuFot","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("dataset (-want +got):\n%s", diff)
+	}
+}
+
 // Test that saving with two components at once will merge them together.
 func TestSaveTwoComponents(t *testing.T) {
 	if err := confirmQriNotRunning(); err != nil {
@@ -281,7 +331,7 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 	actual := run.DatasetMarshalJSON(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added transform section
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"transform added","path":"/ipfs/QmWq1C8kx6d4Fe5hBsUaqXFh2VDUMzaE5ewTNjqgGnXivV","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"transform added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmTPdKe6Erfft7MEfcLufYCn9yBPYCQTvLfViop14rGUGa","peername":"me","previousPath":"/ipfs/QmVdDACqmUoFGCotChqSuYJMnocPwkXPifEB6kGqiTjhiL","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"transform added","path":"/ipfs/QmWq1C8kx6d4Fe5hBsUaqXFh2VDUMzaE5ewTNjqgGnXivV","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"transform added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/Qmam5mmFaxmHegRv9rqBjYo6sJ5szfY1ZP7Tc1eSUehxaJ","peername":"me","previousPath":"/ipfs/QmVdDACqmUoFGCotChqSuYJMnocPwkXPifEB6kGqiTjhiL","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -336,7 +386,7 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 	actual := run.DatasetMarshalJSON(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added meta component, and transform, and viz
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nviz:\n\tupdated scriptPath\ntransform added","path":"/ipfs/QmPtYLgM886MQCQhsyJDgb4FnNqNH8FBBDE1NqwJpJi4Js","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta, viz, and transform"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmSJyjtKNNBoEJGNAXLStagJbziiaBskDbrxJPesg2JLW1","peername":"me","previousPath":"/ipfs/QmVdDACqmUoFGCotChqSuYJMnocPwkXPifEB6kGqiTjhiL","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nviz:\n\tupdated scriptPath\ntransform added","path":"/ipfs/QmPtYLgM886MQCQhsyJDgb4FnNqNH8FBBDE1NqwJpJi4Js","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta, viz, and transform"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmYGCCSFQXc634QMTtGF2YykMyaYQPiUVovQrkFdEqQP75","peername":"me","previousPath":"/ipfs/QmVdDACqmUoFGCotChqSuYJMnocPwkXPifEB6kGqiTjhiL","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -431,6 +481,70 @@ func TestTransformUsingGetBodyAndSetBody(t *testing.T) {
 	expectBody := `[["Avatar",179],["Pirates of the Caribbean: At World's End",170]]`
 	if actualBody != expectBody {
 		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actualBody, expectBody)
+	}
+}
+
+// Test that modifying a transform that produces the same body results in a new version
+func TestSaveTransformModifiedButSameBody(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	run := NewTestRunner(t, "test_peer", "qri_test_transform_modified")
+	defer run.Delete()
+
+	// Hook timestamp generation.
+	prevTimestampFunc := logbook.NewTimestamp
+	logbook.NewTimestamp = func() int64 {
+		return 1000
+	}
+	defer func() {
+		logbook.NewTimestamp = prevTimestampFunc
+	}()
+
+	// Set the location to New York so that timezone printing is consistent
+	location, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		panic(err)
+	}
+	locOrig := StringerLocation
+	StringerLocation = location
+
+	// Restore the location function
+	run.Teardown = func() {
+		StringerLocation = locOrig
+	}
+
+	// Save a version
+	run.MustExec(t, "qri save --file=testdata/movies/tf_123.star me/test_ds")
+
+	// Save another version with a modified transform that produces the same body
+	err = run.ExecCommand("qri save --file=testdata/movies/tf_modified.star me/test_ds")
+
+	if err != nil {
+		t.Errorf("unexpected error: %q", err)
+	}
+
+	output := run.MustExec(t, "qri log me/test_ds")
+	expect := `1   Commit:  /ipfs/QmUfc7udMMsdjA3UqYyaqD4owm7kMYFsvsVrPrLLEUmrh6
+    Date:    Sun Dec 31 20:02:01 EST 2000
+    Storage: local
+    Size:    7 B
+
+    transform updated scriptBytes
+    transform:
+    	updated scriptBytes
+
+2   Commit:  /ipfs/QmXj4aEusqp63sGMaB4YWX2JPJQigTmgK73Sh55YvQYtgJ
+    Date:    Sun Dec 31 20:01:01 EST 2000
+    Storage: local
+    Size:    7 B
+
+    created dataset
+
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("log (-want +got):\n%s", diff)
 	}
 }
 
