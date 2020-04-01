@@ -758,19 +758,19 @@ func TestGetPreviousVersionExplicitPath(t *testing.T) {
 	defer run.Delete()
 
 	// First version has only a body
-	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/get_ver")
+	output := run.MustExecCombinedOutErr(t, "qri save --body=testdata/movies/body_two.json me/get_ver")
 	ref1 := parseRefFromSave(output)
 
 	// Add a meta
-	output = run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml me/get_ver")
+	output = run.MustExecCombinedOutErr(t, "qri save --file=testdata/movies/meta_override.yaml me/get_ver")
 	_ = parseRefFromSave(output)
 
 	// Modify the body
-	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/get_ver")
+	output = run.MustExecCombinedOutErr(t, "qri save --body=testdata/movies/body_four.json me/get_ver")
 	ref3 := parseRefFromSave(output)
 
 	// Change the meta
-	output = run.MustExec(t, "qri save --file=testdata/movies/meta_another.yaml me/get_ver")
+	output = run.MustExecCombinedOutErr(t, "qri save --file=testdata/movies/meta_another.yaml me/get_ver")
 	_ = parseRefFromSave(output)
 
 	run.ChdirToRoot()
