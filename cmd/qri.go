@@ -37,6 +37,7 @@ https://github.com/qri-io/qri/issues`,
 				setNoPrompt(noPrompt)
 			}
 		},
+		BashCompletionFunction: bash_completion_func,
 	}
 
 	qriPath, ipfsPath := pf()

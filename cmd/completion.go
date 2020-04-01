@@ -16,12 +16,15 @@ func NewAutocompleteCommand(_ Factory, ioStreams ioes.IOStreams) *cobra.Command 
 		Short: "Generates shell completion scripts",
 		Long: `To load completion run
 
-. <(qri completion [bash|zsh])
+source <(qri completion [bash|zsh])
 
 To configure your bash/zsh shell to load completions for each session add to your bashrc/zshrc
 
 # ~/.bashrc or ~/.zshrc
-. <(qri completion [bash|zsh])
+source <(qri completion [bash|zsh])
+
+Alternatively you can pipe the output to a local script and
+reference that as the source for faster loading
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return o.Run(cmd, args)
@@ -217,3 +220,34 @@ __qri_bash_source <(__qri_convert_bash_to_zsh)
 	}
 	return nil
 }
+
+const (
+        bash_completion_func = `
+__qri_parse_list()
+{
+    local qri_output out
+    if qri_output=$(qri list --simple 2>/dev/null); then
+        out=($(echo "${qri_output}"))
+        COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
+    fi
+}
+
+__qri_get_datasets()
+{
+    __qri_parse_list
+    if [[ $? -eq 0 ]]; then
+        return 0
+    fi
+}
+
+__qri_custom_func() {
+    case ${last_command} in
+        qri_get | qri_log)
+            __qri_get_datasets
+            return
+            ;;
+        *)
+            ;;
+    esac
+}
+`)
