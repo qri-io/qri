@@ -574,7 +574,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	}
 
 	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
-	if p.UseDscache {
+	if p.UseDscache && !p.DryRun {
 		c := r.node.Repo.Dscache()
 		c.CreateNewEnabled = true
 	}
@@ -598,7 +598,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	}
 
 	// TODO (b5) - this should be integrated into base.SaveDataset
-	if fsiPath != "" {
+	if fsiPath != "" && !p.DryRun {
 		datasetRef.FSIPath = fsiPath
 		if err = r.node.Repo.PutRef(datasetRef); err != nil {
 			return err
@@ -612,6 +612,9 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	}
 
 	if p.Publish {
+		if p.DryRun {
+			return fmt.Errorf("can't use publish & dry-run together")
+		}
 		var publishedRef reporef.DatasetRef
 		err = r.SetPublishStatus(&SetPublishStatusParams{
 			Ref:           datasetRef.String(),
@@ -627,7 +630,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 
 	*res = datasetRef
 
-	if fsiPath != "" {
+	if fsiPath != "" && !p.DryRun {
 		// Need to pass filesystem here so that we can read the README component and write it
 		// properly back to disk.
 		fsi.WriteComponents(res.Dataset, datasetRef.FSIPath, r.inst.node.Repo.Filesystem())

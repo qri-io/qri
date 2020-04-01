@@ -199,21 +199,15 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		Path:      path,
 	}
 
-	// TODO (b5) - when we're doing a dry run, this is putting a reference into
-	// a blank in-memory repo, and is needed by the ReadDataset call below. I'd
-	// prefer this move into the `if !dryRun` clause below, or be dropped entirely
-	// in favour of dscache
-	if err = r.PutRef(ref); err != nil {
-		log.Debugf("r.PutRef: %s", err)
-		return
-	}
-
-	// TODO (b5): confirm these assignments happen in dsfs.CreateDataset with tests
-	ds.ProfileID = pro.ID.String()
-	ds.Peername = pro.Peername
-	ds.Path = path
-
 	if !dryRun {
+		if err = r.PutRef(ref); err != nil {
+			log.Debugf("r.PutRef: %s", err)
+			return
+		}
+
+		ds.ProfileID = pro.ID.String()
+		ds.Peername = pro.Peername
+		ds.Path = path
 
 		err := r.Logbook().WriteVersionSave(ctx, ds)
 		if err != nil && err != logbook.ErrNoLogbook {
@@ -221,10 +215,15 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		}
 	}
 
-	if err = ReadDataset(ctx, r, &ref); err != nil {
-		log.Debugf("ReadDataset: %s", err)
+	ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path)
+	if err != nil {
 		return ref, err
 	}
+	ds.ProfileID = pro.ID.String()
+	ds.Name = ref.Name
+	ds.Peername = ref.Peername
+	ds.Path = path
+	ref.Dataset = ds
 
 	// need to open here b/c we might be doing a dry-run, which would mean we have
 	// references to files in a store that won't exist after this function call
