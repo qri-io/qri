@@ -227,7 +227,7 @@ func (o *QriOptions) PeerRequests() (*lib.PeerRequests, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
-	return lib.NewPeerRequests(nil, o.inst.RPC()), nil
+	return lib.NewPeerRequests(o.inst.Node(), o.inst.RPC()), nil
 }
 
 // ProfileMethods generates a lib.ProfileMethods from internal state

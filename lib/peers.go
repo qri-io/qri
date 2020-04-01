@@ -30,9 +30,6 @@ func (d PeerRequests) CoreRequestsName() string { return "peers" }
 // NewPeerRequests creates a PeerRequests pointer from either a
 // qri Node or an rpc.Client
 func NewPeerRequests(node *p2p.QriNode, cli *rpc.Client) *PeerRequests {
-	if node != nil && cli != nil {
-		panic(fmt.Errorf("both node and client supplied to NewPeerRequests"))
-	}
 
 	return &PeerRequests{
 		qriNode: node,
