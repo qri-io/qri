@@ -27,6 +27,16 @@ https://qri.io
 
 Feedback, questions, bug reports, and contributions are welcome!
 https://github.com/qri-io/qri/issues`,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			noColor, err := cmd.Flags().GetBool("no-color")
+			if err == nil && noColor {
+				setNoColor(noColor)
+			}
+			noPrompt, err := cmd.Flags().GetBool("no-prompt")
+			if err == nil && noPrompt {
+				setNoPrompt(noPrompt)
+			}
+		},
 	}
 
 	qriPath, ipfsPath := pf()

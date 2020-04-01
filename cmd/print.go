@@ -68,6 +68,10 @@ func printItems(w io.Writer, items []fmt.Stringer, offset int) (err error) {
 }
 
 func printToPager(w io.Writer, buf *bytes.Buffer) (err error) {
+	if noPrompt {
+		fmt.Fprintln(w, buf.String())
+		return
+	}
 	// TODO (ramfox): This is POSIX specific, need to expand!
 	envPager := os.Getenv("PAGER")
 	if ok := doesCommandExist(envPager); !ok {
