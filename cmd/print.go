@@ -67,6 +67,16 @@ func printItems(w io.Writer, items []fmt.Stringer, offset int) (err error) {
 	return printToPager(w, buf)
 }
 
+// print a slice of stringer items to io.Writer as an indented & numbered list
+// offset specifies the number of items that have been skipped, index is 1-based
+func printlnStringItems(w io.Writer, items []string) (err error) {
+	buf := &bytes.Buffer{}
+	for _, item := range items {
+		buf.WriteString(item + "\n")
+	}
+	return printToPager(w, buf)
+}
+
 func printToPager(w io.Writer, buf *bytes.Buffer) (err error) {
 	if noPrompt {
 		fmt.Fprintln(w, buf.String())

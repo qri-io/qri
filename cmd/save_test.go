@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/errors"
 )
@@ -564,4 +565,50 @@ func copyFile(t *testing.T, source, destin string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestSaveLargeBodyIsSame(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_large_body")
+	defer run.Delete()
+
+	prevBodySizeLimit := dsfs.BodySizeSmallEnoughToDiff
+	defer func() { dsfs.BodySizeSmallEnoughToDiff = prevBodySizeLimit }()
+	dsfs.BodySizeSmallEnoughToDiff = 100
+
+	// Save a first version
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+
+	// Try to save another, but no changes
+	err := run.ExecCommand("qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+	if err == nil {
+		t.Fatal("expected error trying to save, did not get an error")
+	}
+	expect := `error saving: no changes`
+	if err.Error() != expect {
+		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	}
+
+	// Save a second version by making changes
+	run.MustExec(t, "qri save --body testdata/movies/body_twenty.csv test_peer/my_ds")
+
+	output := run.MustExec(t, "qri log test_peer/my_ds")
+	expect = `1   Commit:  /ipfs/QmYi3KLDXFjjx8j29E7Y2gBXf71efcUZVvBCfsw4nriRwZ
+    Date:    Sun Dec 31 20:05:01 EST 2000
+    Storage: local
+    Size:    532 B
+
+    body changed
+
+2   Commit:  /ipfs/QmeDzJEv6mHkQ42NXVLUNRmDsoWFkePovmCydts9M5Age9
+    Date:    Sun Dec 31 20:02:01 EST 2000
+    Storage: local
+    Size:    224 B
+
+    created dataset
+
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+
 }

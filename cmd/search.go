@@ -39,7 +39,7 @@ Any dataset that has been published to the registry is available for search.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
+	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json|simple]")
 	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
 
@@ -109,7 +109,13 @@ func (o *SearchOptions) Run() (err error) {
 		o.StopSpinner()
 		printItems(o.Out, items, page.Offset())
 		return nil
-
+	case "simple":
+		items := make([]string, len(results))
+		for i, r := range results {
+			items[i] = fmt.Sprintf("%s/%s", r.Value.Peername, r.Value.Name)
+		}
+		printlnStringItems(o.Out, items)
+		return nil
 	case dataset.JSONDataFormat.String():
 		data, err := json.MarshalIndent(results, "", "  ")
 		if err != nil {
