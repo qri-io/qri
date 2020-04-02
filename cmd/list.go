@@ -51,7 +51,7 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
+	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json|simple]")
 	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number results, default 1")
 	cmd.Flags().BoolVarP(&o.Published, "published", "p", false, "list only published datasets")
@@ -59,7 +59,6 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	cmd.Flags().StringVar(&o.Peername, "peer", "", "peer whose datasets to list")
 	cmd.Flags().BoolVarP(&o.Raw, "raw", "r", false, "to show raw references")
 	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "build and use dscache to list")
-	cmd.Flags().BoolVarP(&o.Simple, "simple", "", false, "only list dataset names")
 
 	return cmd
 }
@@ -77,7 +76,6 @@ type ListOptions struct {
 	ShowNumVersions bool
 	Raw             bool
 	UseDscache      bool
-	Simple          bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -142,14 +140,6 @@ func (o *ListOptions) Run() (err error) {
 		return
 	}
 
-	if o.Simple {
-		items := make([]string, len(infos))
-		for i, r := range infos {
-			items[i] = r.SimpleRef().Alias()
-		}
-		printlnStringItems(o.Out, items)
-		return nil
-	}
 	switch o.Format {
 	case "":
 		items := make([]fmt.Stringer, len(infos))
@@ -157,6 +147,13 @@ func (o *ListOptions) Run() (err error) {
 			items[i] = versionInfoStringer(r)
 		}
 		printItems(o.Out, items, page.Offset())
+		return nil
+	case "simple":
+		items := make([]string, len(infos))
+		for i, r := range infos {
+			items[i] = r.SimpleRef().Alias()
+		}
+		printlnStringItems(o.Out, items)
 		return nil
 	case dataset.JSONDataFormat.String():
 		// TODO(dlong): This is broken, and has no tests, otherwise this regression would have
