@@ -119,7 +119,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
 			matched := make([]reporef.DatasetRef, len(refs))
 			count := 0
 			for _, ref := range refs {
-				if strings.Contains(ref.Name, p.Term) {
+				if strings.Contains(ref.AliasString(), p.Term) {
 					matched[count] = ref
 					count++
 				}

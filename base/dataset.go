@@ -108,18 +108,6 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 		return nil, fmt.Errorf("error getting dataset list: %s", err.Error())
 	}
 
-	if term != "" {
-		matched := make([]reporef.DatasetRef, len(res))
-		i := 0
-		for _, ref := range res {
-			if strings.Contains(ref.Name, term) {
-				matched[i] = ref
-				i++
-			}
-		}
-		res = matched[:i]
-	}
-
 	if publishedOnly {
 		pub := make([]reporef.DatasetRef, len(res))
 		i := 0
@@ -172,6 +160,18 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 				res[i].Dataset.NumVersions = len(dsVersions)
 			}
 		}
+	}
+
+	if term != "" {
+		matched := make([]reporef.DatasetRef, len(res))
+		i := 0
+		for _, ref := range res {
+			if strings.Contains(ref.AliasString(), term) {
+				matched[i] = ref
+				i++
+			}
+		}
+		res = matched[:i]
 	}
 
 	return
