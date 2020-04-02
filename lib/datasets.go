@@ -1067,7 +1067,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, valerrs *[]jsonsche
 	} else {
 		data, err := ioutil.ReadFile(schemaFilename)
 		if err != nil {
-			return fmt.Errorf("error opening %s file: %s, error was: %s", schemaFlagType, schemaFilename, err)
+			return fmt.Errorf("error opening %s file: %s", schemaFlagType, schemaFilename)
 		}
 		var fileContent map[string]interface{}
 		err = json.Unmarshal(data, &fileContent)
