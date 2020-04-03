@@ -33,6 +33,7 @@ the name of the peer that originally added the dataset. You must have
 	}
 
 	cmd.Flags().StringVar(&o.LinkDir, "link", "", "path to directory to link dataset to")
+	cmd.MarkFlagFilename("link")
 	cmd.Flags().BoolVar(&o.LogsOnly, "logs-only", false, "only fetch logs, skipping HEAD data")
 
 	return cmd

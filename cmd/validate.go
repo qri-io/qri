@@ -71,8 +71,11 @@ if these flags are provided.`,
 	// TODO: restore
 	// cmd.Flags().StringVarP(&o.URL, "url", "u", "", "url to file to initialize from")
 	cmd.Flags().StringVarP(&o.BodyFilepath, "body", "b", "", "body file to validate")
+	cmd.MarkFlagFilename("body")
 	cmd.Flags().StringVarP(&o.SchemaFilepath, "schema", "", "", "json schema file to use for validation")
+	cmd.MarkFlagFilename("schema", "json")
 	cmd.Flags().StringVarP(&o.StructureFilepath, "structure", "", "", "json structure file to use for validation")
+	cmd.MarkFlagFilename("structure", "json")
 
 	return cmd
 }

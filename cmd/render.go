@@ -43,8 +43,10 @@ provided, Qri will render the dataset with a default template.`,
 	}
 
 	cmd.Flags().StringVarP(&o.Template, "template", "t", "", "path to template file")
+	cmd.MarkFlagFilename("template")
 	cmd.Flags().BoolVarP(&o.UseViz, "viz", "v", false, "whether to use the viz component")
 	cmd.Flags().StringVarP(&o.Output, "output", "o", "", "path to write output file")
+	cmd.MarkFlagFilename("output")
 
 	return cmd
 }

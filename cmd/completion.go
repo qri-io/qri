@@ -73,6 +73,16 @@ __qri_parse_list()
     fi
 }
 
+__qri_parse_search()
+{
+	echo 'test'
+    local qri_output out
+    if qri_output=$(qri search $1 --format=simple --no-prompt --no-color 2>/dev/null); then
+        out=($(echo "${qri_output}"))
+        COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
+    fi
+}
+
 __qri_get_datasets()
 {
     __qri_parse_list
@@ -81,12 +91,24 @@ __qri_get_datasets()
     fi
 }
 
+__qri_get_search()
+{
+    __qri_parse_search
+    if [[ $? -eq 0 ]]; then
+        return 0
+    fi
+}
+
 __qri_custom_func() {
     case ${last_command} in
-        qri_checkout | qri_get | qri_log | qri_publish | qri_remove | qri_rename | qri_stats | qri_use | qri_whatchanged)
+        qri_checkout | qri_export | qri_get | qri_log | qri_logbook | qri_publish | qri_remove | qri_rename | qri_render | qri_save | qri_stats | qri_use | qri_validate | qri_whatchanged)
             __qri_get_datasets
             return
             ;;
+        qri_add | qri_fetch | qri_search)
+        	__qri_get_search
+        	return
+        	;;
         *)
             ;;
     esac
@@ -173,9 +195,13 @@ __qri_get_comp_words_by_ref() {
 }
 
 __qri_filedir() {
+	# todo(arqu): This is a horrible hack to just return to normal 
+	# path completion, ZSH has issues with correctly handling _filedir in this case.
+	# Extension filtering is not supported right now
+	return 1
 	local RET OLD_IFS w qw
 
-	__debug "_filedir $@ cur=$cur"
+	__qri_debug "_filedir $@ cur=$cur"
 	if [[ "$1" = \~* ]]; then
 		# somehow does not work. Maybe, zsh does not call this at all
 		eval echo "$1"
@@ -192,7 +218,7 @@ __qri_filedir() {
 	fi
 	IFS="$OLD_IFS"
 
-	IFS="," __debug "RET=${RET[@]} len=${#RET[@]}"
+	IFS="," __qri_debug "RET=${RET[@]} len=${#RET[@]}"
 
 	for w in ${RET[@]}; do
 		if [[ ! "${w}" = "${cur}"* ]]; then
