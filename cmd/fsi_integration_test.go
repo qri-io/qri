@@ -1653,9 +1653,13 @@ func TestUnlinkDirectoryButRefNotFound(t *testing.T) {
 func parseRefFromSave(output string) string {
 	pos := strings.Index(output, "saved: ")
 	if pos == -1 {
-		panic(fmt.Errorf("expected output to start with \"saved:\", got %q", output))
+		panic(fmt.Errorf("expected output to contain \"saved:\", got %q", output))
 	}
 	ref := output[pos+7:]
+	endPos := strings.Index(ref, "\n")
+	if endPos > -1 {
+		ref = ref[:endPos]
+	}
 	return strings.TrimSpace(ref)
 }
 

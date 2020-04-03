@@ -28,6 +28,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/resolver/loader"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -202,8 +203,8 @@ func (r *DatasetRequests) ListRawRefs(p *ListParams, text *string) (err error) {
 
 // GetParams defines parameters for looking up the body of a dataset
 type GetParams struct {
-	// Ref to get, for example a dataset reference like me/dataset
-	Ref string
+	// Refstr to get, representing a dataset ref to be parsed
+	Refstr string
 
 	// read from a filesystem link instead of stored version
 	Format       string
@@ -217,14 +218,16 @@ type GetParams struct {
 
 // GetResult combines data with it's hashed path
 type GetResult struct {
-	Ref     *reporef.DatasetRef `json:"ref"`
-	Dataset *dataset.Dataset    `json:"data"`
-	Bytes   []byte              `json:"bytes"`
+	Ref       *dsref.Ref       `json:"ref"`
+	Dataset   *dataset.Dataset `json:"data"`
+	Bytes     []byte           `json:"bytes"`
+	FSIPath   string           `json:"fsipath"`
+	Published bool             `json:"published"`
 }
 
-// Get retrieves datasets and components for a given reference. If p.Ref is provided, it is
-// used to load the dataset, otherwise p.Ref is parsed to create a reference. The
-// dataset will be loaded from the local repo if available, or by asking peers for it.
+// Get retrieves datasets and components for a given reference. p.Refstr is parsed to create
+// a reference, which is used to load the dataset. It will be loaded from the local repo
+// or from the filesystem if it has a linked working direoctry.
 // Using p.Selector will control what components are returned in res.Bytes. The default,
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
@@ -236,35 +239,55 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	ctx := context.TODO()
 
 	// Check if the dataset ref uses bad-case characters, show a warning.
-	dr, err := dsref.Parse(p.Ref)
+	dr, err := dsref.Parse(p.Refstr)
 	if err == dsref.ErrBadCaseName {
 		log.Error(dsref.ErrBadCaseShouldRename)
 	}
 
-	ref, err := base.ToDatasetRef(p.Ref, r.node.Repo, true)
-	if err != nil {
-		log.Debugf("Get dataset, base.ToDatasetRef %q failed, error: %s", p.Ref, err)
-		return err
-	}
-
 	var ds *dataset.Dataset
-	if dr.Path == "" && ref.FSIPath != "" {
-		if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
-			log.Debugf("Get dataset, fsi.ReadDir %q failed, error: %s", ref.FSIPath, err)
-			return fmt.Errorf("loading linked dataset: %s", err)
-		}
-	} else {
-		ds, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path)
+	c := r.node.Repo.Dscache()
+
+	if c.IsEmpty() {
+		// The old lookup path, using repo and refstore
+		ref, err := base.ToDatasetRef(p.Refstr, r.node.Repo, true)
 		if err != nil {
-			log.Debugf("Get dataset, dsfs.LoadDataset %q failed, error: %s", ref, err)
+			log.Debugf("Get dataset, base.ToDatasetRef %q failed, error: %s", p.Refstr, err)
+			return err
+		}
+
+		if dr.Path == "" && ref.FSIPath != "" {
+			if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
+				log.Debugf("Get dataset, fsi.ReadDir %q failed, error: %s", ref.FSIPath, err)
+				return fmt.Errorf("loading linked dataset: %s", err)
+			}
+		} else {
+			ds, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path)
+			if err != nil {
+				log.Debugf("Get dataset, dsfs.LoadDataset %q failed, error: %s", ref, err)
+				return fmt.Errorf("loading dataset: %s", err)
+			}
+		}
+		r := reporef.ConvertToDsref(*ref)
+		ds.Name = ref.Name
+		ds.Peername = ref.Peername
+		res.Ref = &r
+		res.Dataset = ds
+		res.FSIPath = ref.FSIPath
+		res.Published = ref.Published
+	} else {
+		// New lookup path, using dscache and resolver
+		rsolv := loader.NewDatasetResolver(c, r.node.Repo.Store())
+		loadedDs, initID, ref, info, err := rsolv.LoadDsref(ctx, p.Refstr)
+		if err != nil {
 			return fmt.Errorf("loading dataset: %s", err)
 		}
+		ds = loadedDs
+		res.Ref = &ref
+		res.Dataset = ds
+		res.FSIPath = info.FSIPath
+		res.Published = info.Published
+		_ = initID
 	}
-
-	ds.Name = ref.Name
-	ds.Peername = ref.Peername
-	res.Ref = ref
-	res.Dataset = ds
 
 	if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
 		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
@@ -282,24 +305,23 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 			return err
 		}
 
-		var bufData []byte
-		if dr.Path == "" && ref.FSIPath != "" {
+		if dr.Path == "" && res.FSIPath != "" {
 			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
 			// but no structure, which should infer a schema in order to read the body. Once that
 			// works we can remove the fsi.GetBody call and just use base.ReadBody.
-			if bufData, err = fsi.GetBody(ref.FSIPath, df, p.FormatConfig, p.Offset, p.Limit, p.All); err != nil {
-				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", ref.FSIPath, err)
+			res.Bytes, err = fsi.GetBody(res.FSIPath, df, p.FormatConfig, p.Offset, p.Limit, p.All)
+			if err != nil {
+				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
 				return err
 			}
 		} else {
-			if bufData, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All); err != nil {
+			res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
+			if err != nil {
 				log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
 				return err
 			}
 		}
-
-		res.Bytes = bufData
-		return err
+		return nil
 	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
 		// Fields that have qfs.File types should be read and returned
 		res.Bytes, err = ioutil.ReadAll(scriptFile)
@@ -483,6 +505,11 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 
 	ds := &dataset.Dataset{}
 
+	// TODO(dustmop): In the future, resolve the dataset ref early, get the initID, and use that
+	// everywhere. If dataset has no name, don't bother to canonicalize, instead, call Infer
+	// here. If either ref failed to resolve, or Infer was called, generate a new initID using
+	// logbook immediately. Regardless, stop using the dsref after this point.
+
 	// Check if the dataset has an FSIPath, which requires a different save codepath.
 	err = repo.CanonicalizeDatasetRef(r.node.Repo, &datasetRef)
 	// Ignore errors that happen when saving a new dataset for the first time
@@ -641,7 +668,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 // See this issue: https://github.com/qri-io/qri/issues/1132
 func (r *DatasetRequests) nameIsInUse(ref dsref.Ref) bool {
 	param := GetParams{
-		Ref: ref.Alias(),
+		Refstr: ref.Alias(),
 	}
 	res := GetResult{}
 	err := r.Get(&param, &res)

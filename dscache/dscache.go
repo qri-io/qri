@@ -11,7 +11,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
+	"github.com/qri-io/qri/dscache/dscachefb"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
@@ -31,6 +31,7 @@ type Dscache struct {
 	Buffer              []byte
 	CreateNewEnabled    bool
 	ProfileIDToUsername map[string]string
+	DefaultUsername     string
 }
 
 // NewDscache will construct a dscache from the given filename, or will construct an empty dscache
@@ -51,6 +52,7 @@ func NewDscache(ctx context.Context, fsys qfs.Filesystem, book *logbook.Book, fi
 	}
 	if book != nil {
 		book.Observe(cache.update)
+		cache.DefaultUsername = book.AuthorName()
 	}
 	return &cache
 }
@@ -272,6 +274,7 @@ func (d *Dscache) updateMoveCursor(act *logbook.Action) error {
 	return d.save()
 }
 
+// copied to dscache/loader/loader.go
 func convertEntryToVersionInfo(r *dscachefb.RefEntryInfo) dsref.VersionInfo {
 	return dsref.VersionInfo{
 		InitID:      string(r.InitID()),

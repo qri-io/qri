@@ -53,7 +53,7 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := lib.GetParams{
-		Ref: ref.String(),
+		Refstr: ref.String(),
 	}
 	res := lib.GetResult{}
 	err := mh.dsh.Get(&p, &res)
@@ -86,8 +86,8 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		ProfileID: profile.IDB58DecodeOrEmpty(res.Dataset.ProfileID),
 		Name:      res.Dataset.Name,
 		Path:      res.Dataset.Path,
-		FSIPath:   res.Ref.FSIPath,
-		Published: res.Ref.Published,
+		FSIPath:   res.FSIPath,
+		Published: res.Published,
 		Dataset:   res.Dataset,
 	}
 

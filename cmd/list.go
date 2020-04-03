@@ -58,7 +58,7 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	cmd.Flags().BoolVarP(&o.ShowNumVersions, "num-versions", "n", false, "show number of versions")
 	cmd.Flags().StringVar(&o.Peername, "peer", "", "peer whose datasets to list")
 	cmd.Flags().BoolVarP(&o.Raw, "raw", "r", false, "to show raw references")
-	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "build and use dscache to list")
+	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "experimental: build and use dscache to list")
 
 	return cmd
 }
@@ -156,8 +156,6 @@ func (o *ListOptions) Run() (err error) {
 		printlnStringItems(o.Out, items)
 		return nil
 	case dataset.JSONDataFormat.String():
-		// TODO(dlong): This is broken, and has no tests, otherwise this regression would have
-		// been caught.
 		data, err := json.MarshalIndent(infos, "", "  ")
 		if err != nil {
 			return err
