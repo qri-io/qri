@@ -30,15 +30,9 @@ import (
 // BodySizeSmallEnoughToDiff sets how small a body must be to generate a message from it
 var BodySizeSmallEnoughToDiff = 20000000 // 20M or less is small
 
-// TODO(dustmop): Limiting the body size for diffs causes an undesirable side-effect: if a user
-// has a dataset body larger than this size, then any `save` operation will create a commit, even
-// if no changes have been made, since our change detection will see BodyTooBig and assume
-// something changed. Some solutions to this:
-//   * above 20M start using a less-accurate non-structured checksum instead of deepdiff
-//   * calculate a structured checksum and compare that to the last commit's checksum
-//   * immitate "redo" (https://apenwarr.ca/log/20181113), store file attributes, see if any change
-//   * at a large enough size, like 4G, just assume the file is always changed. don't be expensive
-// We should make this algorithm agree with how `status` works.
+// If a user has a dataset larger than the above limit, then instead of diffing we compare the
+// checksum against the previous version. We should make this algorithm agree with how `status`
+// works.
 // See issue: https://github.com/qri-io/qri/issues/1150
 
 // LoadDataset reads a dataset from a cafs and dereferences structure, transform, and commitMsg if they exist,
@@ -599,8 +593,14 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 		}
 	}
 
+	prevChecksum := ""
+	nextChecksum := ""
+
 	if prevStructure, ok := prevData["structure"]; ok {
 		if prevObject, ok := prevStructure.(map[string]interface{}); ok {
+			if checksum, ok := prevObject["checksum"].(string); ok {
+				prevChecksum = checksum
+			}
 			delete(prevObject, "checksum")
 			delete(prevObject, "entries")
 			delete(prevObject, "length")
@@ -609,10 +609,24 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 	}
 	if nextStructure, ok := nextData["structure"]; ok {
 		if nextObject, ok := nextStructure.(map[string]interface{}); ok {
+			if checksum, ok := nextObject["checksum"].(string); ok {
+				nextChecksum = checksum
+			}
 			delete(nextObject, "checksum")
 			delete(nextObject, "entries")
 			delete(nextObject, "length")
 			delete(nextObject, "depth")
+		}
+	}
+
+	// If the body is too big to diff, compare the checksums. If they differ, assume the
+	// body has changed.
+	assumeBodyChanged := false
+	if bodyAct == BodyTooBig {
+		prevBody = nil
+		nextBody = nil
+		if prevChecksum != nextChecksum {
+			assumeBodyChanged = true
 		}
 	}
 
@@ -632,7 +646,7 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 		}
 	}
 
-	shortTitle, longMessage := friendly.DiffDescriptions(headDiff, bodyDiff, bodyStat, bodyAct == BodyTooBig)
+	shortTitle, longMessage := friendly.DiffDescriptions(headDiff, bodyDiff, bodyStat, assumeBodyChanged)
 	if shortTitle == "" {
 		if forceIfNoChanges {
 			return "forced update", "forced update", nil
