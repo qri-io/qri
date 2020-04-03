@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"io"
 
 	"github.com/qri-io/ioes"
 	"github.com/spf13/cobra"
@@ -52,7 +53,47 @@ func (o *AutocompleteOptions) Run(cmd *cobra.Command, args []string) (err error)
 		cmd.Parent().GenBashCompletion(o.Out)
 	}
 	if args[0] == "zsh" {
-		zshHead := `# reference kubectl completion zsh
+		zshBody := bytes.Buffer{}
+		cmd.Parent().GenBashCompletion(&zshBody)
+		io.WriteString(o.Out, zshHead)
+		o.Out.Write(zshBody.Bytes())
+		io.WriteString(o.Out, zshTail)
+	}
+	return nil
+}
+
+const (
+	bashCompletionFunc = `
+__qri_parse_list()
+{
+    local qri_output out
+    if qri_output=$(qri list --simple 2>/dev/null); then
+        out=($(echo "${qri_output}"))
+        COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
+    fi
+}
+
+__qri_get_datasets()
+{
+    __qri_parse_list
+    if [[ $? -eq 0 ]]; then
+        return 0
+    fi
+}
+
+__qri_custom_func() {
+    case ${last_command} in
+        qri_get | qri_log)
+            __qri_get_datasets
+            return
+            ;;
+        *)
+            ;;
+    esac
+}
+`
+
+	zshHead = `# reference kubectl completion zsh
 
 __qri_bash_source() {
 	alias shopt=':'
@@ -204,50 +245,10 @@ __qri_convert_bash_to_zsh() {
 	<<'BASH_COMPLETION_EOF'
 `
 
-		zshBody := new(bytes.Buffer)
-		cmd.Parent().GenBashCompletion(zshBody)
-
-		zshTail := `
+	zshTail = `
 BASH_COMPLETION_EOF
 }
 
 __qri_bash_source <(__qri_convert_bash_to_zsh)
 `
-
-		o.Out.Write([]byte(zshHead))
-		o.Out.Write(zshBody.Bytes())
-		o.Out.Write([]byte(zshTail))
-	}
-	return nil
-}
-
-const (
-        bash_completion_func = `
-__qri_parse_list()
-{
-    local qri_output out
-    if qri_output=$(qri list --simple 2>/dev/null); then
-        out=($(echo "${qri_output}"))
-        COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
-    fi
-}
-
-__qri_get_datasets()
-{
-    __qri_parse_list
-    if [[ $? -eq 0 ]]; then
-        return 0
-    fi
-}
-
-__qri_custom_func() {
-    case ${last_command} in
-        qri_get | qri_log)
-            __qri_get_datasets
-            return
-            ;;
-        *)
-            ;;
-    esac
-}
-`)
+)
