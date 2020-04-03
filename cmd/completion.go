@@ -67,7 +67,7 @@ const (
 __qri_parse_list()
 {
     local qri_output out
-    if qri_output=$(qri list --simple 2>/dev/null); then
+    if qri_output=$(qri list --format=simple --no-prompt --no-color 2>/dev/null); then
         out=($(echo "${qri_output}"))
         COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
     fi
@@ -83,7 +83,7 @@ __qri_get_datasets()
 
 __qri_custom_func() {
     case ${last_command} in
-        qri_get | qri_log)
+        qri_checkout | qri_get | qri_log | qri_publish | qri_remove | qri_rename | qri_stats | qri_use | qri_whatchanged)
             __qri_get_datasets
             return
             ;;
