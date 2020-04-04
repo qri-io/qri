@@ -27,8 +27,17 @@ import (
 	"github.com/qri-io/qri/base/toqtype"
 )
 
-// BodySizeSmallEnoughToDiff sets how small a body must be to generate a message from it
-var BodySizeSmallEnoughToDiff = 20000000 // 20M or less is small
+var (
+	// BodySizeSmallEnoughToDiff sets how small a body must be to generate a message from it
+	BodySizeSmallEnoughToDiff = 20000000 // 20M or less is small
+	// OpenFileTimeoutDuration determines the maximium amount of time to wait for
+	// a Filestore to open a file. Some filestores (like IPFS) fallback to a
+	// network request when it can't find a file locally. Setting a short timeout
+	// prevents waiting for a slow network response, at the expense of leaving
+	// files unresolved.
+	// TODO (b5) - allow -1 duration as a sentinel value for no timeout
+	OpenFileTimeoutDuration = time.Millisecond * 700
+)
 
 // If a user has a dataset larger than the above limit, then instead of diffing we compare the
 // checksum against the previous version. We should make this algorithm agree with how `status`
@@ -38,6 +47,16 @@ var BodySizeSmallEnoughToDiff = 20000000 // 20M or less is small
 // LoadDataset reads a dataset from a cafs and dereferences structure, transform, and commitMsg if they exist,
 // returning a fully-hydrated dataset
 func LoadDataset(ctx context.Context, store cafs.Filestore, path string) (*dataset.Dataset, error) {
+	// set a timeout to handle long-lived requests when connected to IPFS.
+	// if we don't have the dataset locally, IPFS will reach out onto the d.web to
+	// attempt to resolve previous hashes. capping the duration  to 700 MS yeilds
+	// quick results.
+	// TODO (b5) - The proper way to solve this is to feed a local-only IPFS store
+	// to this entire function, or have a mechanism for specifying that a fetch
+	// must be local
+	ctx, cancel := context.WithTimeout(ctx, OpenFileTimeoutDuration)
+	defer cancel()
+
 	ds, err := LoadDatasetRefs(ctx, store, path)
 	if err != nil {
 		log.Debug(err.Error())
@@ -604,6 +623,16 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 			delete(nextObject, "scriptPath")
 		}
 	}
+	if prevReadme, ok := prevData["readme"]; ok {
+		if prevObject, ok := prevReadme.(map[string]interface{}); ok {
+			delete(prevObject, "scriptPath")
+		}
+	}
+	if nextReadme, ok := nextData["readme"]; ok {
+		if nextObject, ok := nextReadme.(map[string]interface{}); ok {
+			delete(nextObject, "scriptPath")
+		}
+	}
 
 	prevChecksum := ""
 	nextChecksum := ""
@@ -761,7 +790,7 @@ func WriteDataset(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset
 			adder.AddFile(ctx, rmFile)
 		} else if readmeScript != nil {
 			// add the readmeScript
-			rmFile := qfs.NewMemfileReader(readmeScriptFilename, readmeScript)
+			rmFile := qfs.NewMemfileReader(PackageFileReadmeScript.String(), readmeScript)
 			defer rmFile.Close()
 			fileTasks++
 			adder.AddFile(ctx, rmFile)
@@ -883,11 +912,11 @@ func WriteDataset(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset
 				adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileViz.String(), vizdata))
 			case PackageFileRenderedReadme.String():
 				ds.Readme.RenderedPath = ao.Path
-				vsFile := qfs.NewMemfileReader(readmeScriptFilename, ds.Readme.ScriptFile())
+				vsFile := qfs.NewMemfileReader(PackageFileReadmeScript.String(), ds.Readme.ScriptFile())
 				defer vsFile.Close()
 				fileTasks++
 				adder.AddFile(ctx, vsFile)
-			case readmeScriptFilename:
+			case PackageFileReadmeScript.String():
 				ds.Readme.ScriptPath = ao.Path
 				readmeData, err := json.Marshal(ds.Readme)
 				if err != nil {
