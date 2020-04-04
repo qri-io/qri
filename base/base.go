@@ -28,7 +28,18 @@
 package base
 
 import (
+	"time"
+
 	golog "github.com/ipfs/go-log"
 )
 
-var log = golog.Logger("base")
+var (
+	log = golog.Logger("base")
+	// OpenFileTimeoutDuration determines the maximium amount of time to wait for
+	// a Filestore to open a file. Some filestores (like IPFS) fallback to a
+	// network request when it can't find a file locally. Setting a short timeout
+	// prevents waiting for a slow network response, at the expense of leaving
+	// files unresolved.
+	// TODO (b5) - allow -1 duration as a sentinel value for no timeout
+	OpenFileTimeoutDuration = time.Millisecond * 250
+)

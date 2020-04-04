@@ -2,7 +2,6 @@ package base
 
 import (
 	"context"
-	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
@@ -76,14 +75,6 @@ func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref reporef.Dataset
 	if err := repo.CanonicalizeDatasetRef(r, &ref); err != nil {
 		return nil, err
 	}
-
-	// TODO (b5) - this is a horrible hack to handle long-lived requests when connected to IPFS
-	// if we don't have the dataset locally, this process will take longer than 700 mill, because it'll
-	// reach out onto the d.web to attempt to resolve previous hashes. capping the duration
-	// yeilds quick results. The proper way to solve this is to feed a local-only IPFS store to
-	// this entire function
-	ctx, cancel := context.WithTimeout(ctx, time.Millisecond*700)
-	defer cancel()
 
 	versions := make(chan reporef.DatasetRef)
 	done := make(chan struct{})

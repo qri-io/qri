@@ -12,7 +12,7 @@ const (
 	// vizsScriptFilename is the name transform scripts will be written to
 	vizScriptFilename = "viz_script"
 	// readmeScriptFilename is the name of the readme file that will be written to
-	readmeScriptFilename = "readme_script"
+	readmeScriptFilename = "readme.json"
 )
 
 // PackageFile specifies the different types of files that are
@@ -53,8 +53,10 @@ const (
 	PackageFileViz
 	// PackageFileRenderedViz is the rendered visualization of the dataset
 	PackageFileRenderedViz
-	// PackageFileReadme is the raw readme of the dataset
+	// PackageFileReadme connects readme data to the dataset package
 	PackageFileReadme
+	// PackageFileReadmeScript is the raw readme of the dataset
+	PackageFileReadmeScript
 	// PackageFileRenderedReadme is the rendered readme of the dataset
 	PackageFileRenderedReadme
 )
@@ -72,7 +74,8 @@ var filenames = map[PackageFile]string{
 	PackageFileMeta:              "meta.json",
 	PackageFileViz:               "viz.json",
 	PackageFileRenderedViz:       "index.html",
-	PackageFileReadme:            "readme.md",
+	PackageFileReadme:            "readme.json",
+	PackageFileReadmeScript:      "readme.md",
 	PackageFileRenderedReadme:    "readme.html",
 }
 

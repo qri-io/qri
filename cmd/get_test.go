@@ -81,9 +81,9 @@ commit:
   timestamp: "2001-01-01T01:05:01.000000001Z"
   title: body changed by 54%
 name: my_ds
-path: /ipfs/Qmbyggdcy4N55FFcmBu4HpDXeJQksktonP6he9wUfShmc6
+path: /ipfs/QmPnfCL3X8z2Jqv9ZJUqvWpy2JFJpQJkapLfjXhXzoWiFR
 peername: test_peer
-previousPath: /ipfs/QmQwrGtU5ct8N6pLFPvHkvziybahRGfiCHw6kpBB1owg4R
+previousPath: /ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n
 qri: ds:0
 structure:
   checksum: QmSa4i985cF3dxNHxD5mSN7c6q1eYa83uNo1pLRmPZgTsa
@@ -105,11 +105,6 @@ structure:
         type: integer
       type: array
     type: array
-viz:
-  format: html
-  qri: vz:0
-  renderedPath: /ipfs/QmYonnXgeckkXMvL47hvKJLAbwozYqELpZdoj5RaasL3QQ
-  scriptPath: /ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor
 
 `
 	prevHeadRepo = `bodyPath: /ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn
@@ -123,7 +118,7 @@ commit:
   timestamp: "2001-01-01T01:02:01.000000001Z"
   title: created dataset
 name: my_ds
-path: /ipfs/QmQwrGtU5ct8N6pLFPvHkvziybahRGfiCHw6kpBB1owg4R
+path: /ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n
 peername: test_peer
 qri: ds:0
 structure:
@@ -146,11 +141,6 @@ structure:
         type: integer
       type: array
     type: array
-viz:
-  format: html
-  qri: vz:0
-  renderedPath: /ipfs/QmYonnXgeckkXMvL47hvKJLAbwozYqELpZdoj5RaasL3QQ
-  scriptPath: /ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor
 
 `
 	currBodyRepo = `movie_title,duration

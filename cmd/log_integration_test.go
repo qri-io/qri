@@ -21,7 +21,7 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := run.GetCommandOutput()
-	expect := `1   Commit:  /ipfs/QmUZ5CjiQ7hgAk9oRRQmwsUXrpm71Xg2DXpZNVTcpWxf9E
+	expect := `1   Commit:  /ipfs/QmRyXnBUvGGFcdCebrwby4NWak7RvLrqciC9tstdVFZb1Z
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    79 B
@@ -45,7 +45,7 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmbZbGWMoc8oNgy9r718eH1nJJZjXCRHKHgF1J58F3cEQg
+	expect = `1   Commit:  /ipfs/QmduBA2otXgFpfiySh6fboBb3R6sfqGCAJN1snbsYu67ZM
     Date:    Sun Dec 31 20:05:01 EST 2000
     Storage: local
     Size:    137 B
@@ -55,7 +55,7 @@ func TestLogAndDeletes(t *testing.T) {
     	added row 2
     	added row 3
 
-2   Commit:  /ipfs/QmUZ5CjiQ7hgAk9oRRQmwsUXrpm71Xg2DXpZNVTcpWxf9E
+2   Commit:  /ipfs/QmRyXnBUvGGFcdCebrwby4NWak7RvLrqciC9tstdVFZb1Z
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    79 B
@@ -79,7 +79,7 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmUZ5CjiQ7hgAk9oRRQmwsUXrpm71Xg2DXpZNVTcpWxf9E
+	expect = `1   Commit:  /ipfs/QmRyXnBUvGGFcdCebrwby4NWak7RvLrqciC9tstdVFZb1Z
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    79 B
@@ -113,7 +113,7 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmdV1msRdqijFjSTd47XKyykj6q28cghVq98KA7SZtJwww
+	expect = `1   Commit:  /ipfs/Qmf5DDCr8yPv4f149suQcdrC5ePJdzddbDi1hCLrfMnme7
     Date:    Sun Dec 31 20:07:01 EST 2000
     Storage: local
     Size:    224 B

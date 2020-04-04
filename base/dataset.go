@@ -2,6 +2,7 @@ package base
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -35,27 +36,40 @@ func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) 
 			return
 		}
 	}
+
 	if ds.Readme != nil && ds.Readme.ScriptFile() == nil {
-		if err = ds.Readme.OpenScriptFile(ctx, fsys); err != nil {
-			log.Debug(err)
-			return
+		readmeTimeoutCtx, cancel := context.WithTimeout(ctx, OpenFileTimeoutDuration)
+		defer cancel()
+
+		if err = ds.Readme.OpenScriptFile(readmeTimeoutCtx, fsys); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				err = nil
+			} else if strings.Contains(err.Error(), "not found") {
+				log.Debug("skipping not-found readme script")
+				err = nil
+			} else {
+				log.Debug(err)
+				return err
+			}
 		}
 	}
 
-	// TODO (b5) - this is an error sometimes caused by failing to properly pin the
-	// rendered file. this'll really trip up if we're online, b/c ipfs will hang
-	// forever looking for the missing render dag :(
-	// if ds.Viz != nil && ds.Viz.RenderedFile() == nil {
-	// 	if err = ds.Viz.OpenRenderedFile(ctx, fsys); err != nil {
-	// 		if strings.Contains(err.Error(), "not found") {
-	// 			log.Debug("skipping not-found viz script")
-	// 			err = nil
-	// 		} else {
-	// 			log.Debug(err)
-	// 			return
-	// 		}
-	// 	}
-	// }
+	if ds.Viz != nil && ds.Viz.RenderedFile() == nil {
+		vizRenderedTimeoutCtx, cancel := context.WithTimeout(ctx, OpenFileTimeoutDuration)
+		defer cancel()
+
+		if err = ds.Viz.OpenRenderedFile(vizRenderedTimeoutCtx, fsys); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				err = nil
+			} else if strings.Contains(err.Error(), "not found") {
+				log.Debug("skipping not-found viz script")
+				err = nil
+			} else {
+				log.Debug(err)
+				return
+			}
+		}
+	}
 	return
 }
 

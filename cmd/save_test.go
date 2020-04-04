@@ -215,32 +215,32 @@ func TestSaveBasicCommands(t *testing.T) {
 		{
 			"dataset file infer name",
 			"qri save --file dataset.yaml",
-			"dataset saved: test_peer/ten_movies@/ipfs/QmdYaCFsHcGiGcTG3vy2TRrDAoJ2iXyskq4gqmcfipQp9d\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer/ten_movies@/ipfs/QmNc4pW4ArpAGzHEskkKRw2eZpyRrGmqLJogEjdQxtSM1E\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"dataset file me ref",
 			"qri save --file dataset.yaml me/my_dataset",
-			"dataset saved: test_peer/my_dataset@/ipfs/Qmf8BV8oXo9rPmZHeo6j1BSjHFb77DEc6mNzkyXQ8wnuAK\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmNc4pW4ArpAGzHEskkKRw2eZpyRrGmqLJogEjdQxtSM1E\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"dataset file explicit ref",
 			"qri save --file dataset.yaml test_peer/my_dataset",
-			"dataset saved: test_peer/my_dataset@/ipfs/QmeoNwgqDN133m5MZeTDt8b3W4sQQLZgDx2EkPiyxB62jY\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmZEE5Zji74qtBnXZ2ay42bB3BVjjnWMj6qW4n2XmducS9\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"body file infer name",
 			"qri save --body body_ten.csv",
-			"dataset saved: test_peer/body_tencsv@/ipfs/QmPA1xnbpqGzYoZNz26PcyVCgvBgWsi7hPFNvwcbamriBm\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer/body_tencsv@/ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"body file me ref",
 			"qri save --body body_ten.csv me/my_dataset",
-			"dataset saved: test_peer/my_dataset@/ipfs/QmTNy5ZpjdaLLqWBuuX9GhjdoxgHdGksyhV4VFQNtXTcHu\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"body file explicit ref",
 			"qri save --body body_ten.csv test_peer/my_dataset",
-			"dataset saved: test_peer/my_dataset@/ipfs/Qmc1JR3G3hbRdgLdPzcV7991L7LVFDH5rgaPFY9RGtoqTs\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmNqeQBtcdJkkEnmU3ru5fjH6AxN5t2gSTkKtU1GSuR1cG\nthis dataset has 1 validation errors\n",
 		},
 		// TODO(dustmop): It's intended that a user can save a dataset with a structure but no
 		// body. At some point that functionality broke, because there was no test for it. Fix that
@@ -320,7 +320,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save a dataset with an inferred name.
 	output := run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json")
 	actual := parseDatasetRefFromOutput(output)
-	expect := "dataset saved: test_peer/body_fourjson@/ipfs/QmWS1sZzkpdUiuX17b6FZEqJQGLtuxbiHg3QKtymH4dpxL\n"
+	expect := "dataset saved: test_peer/body_fourjson@/ipfs/QmSe14k77ZmXkda9enmhaeZB56WCsT4XmQUhvL23NSJ6hF\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -338,7 +338,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save but ensure a new dataset is created.
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/body_fourjson_1@/ipfs/QmUVzyXdUzaDa43UNXNoA4bnV1UmvmF8TQkrYUL57uRVUt\n"
+	expect = "dataset saved: test_peer/body_fourjson_1@/ipfs/QmcarKJswb6R72vL7uLbZhGTU65ULF3pWMrSbxSkWZMYz8\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -346,7 +346,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save once again.
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/body_fourjson_2@/ipfs/QmagSArPqsugSno5nZAz14ndeamU8CjT97rukPCYjsuTZ8\n"
+	expect = "dataset saved: test_peer/body_fourjson_2@/ipfs/QmUszGEm3HvKBzqrRtiZFALPMK5MyiGNPFbDcptKRoa8ds\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -354,7 +354,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save a dataset whose body filename starts with a number
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/2018_winners.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/winnerscsv@/ipfs/Qmf9yTULephFi5j8eejVLokG3c5icaY2BNJKoZiX4LRPyY\n"
+	expect = "dataset saved: test_peer/winnerscsv@/ipfs/Qme2Tpd57zL5FCysEZpoYqjCoV3gcPKm6qXgHjFaf3z7ek\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -362,7 +362,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save a dataset whose body filename is non-alphabetic
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/2015-09-16--2016-09-30.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/dataset_09_16_2016_09_30csv@/ipfs/QmTbL4rDZMSC5TNoYsbwoAUihPy9RRPTWE4zGjRepUgiGZ\n"
+	expect = "dataset saved: test_peer/dataset_09_16_2016_09_30csv@/ipfs/Qma7NXBdQDsG6Xca5uRycsqEaUkEHCXpAeU9HWqzuwzWEu\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -397,7 +397,7 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
      bodySize      = 79
      bodyRows      = 2
      commitTime    = 978310921
-     headRef       = /ipfs/QmdCjShoT9bKFjAMJ7dvdrHY476qPTouBmDs94RxMKyjms
+     headRef       = /ipfs/QmRyXnBUvGGFcdCebrwby4NWak7RvLrqciC9tstdVFZb1Z
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
@@ -430,7 +430,7 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
      bodySize      = 137
      bodyRows      = 4
      commitTime    = 978311161
-     headRef       = /ipfs/QmSHzQVuWnBpapv4LVvfYqfQhJT8VTQ4dzPaxJvPGoUrwx
+     headRef       = /ipfs/QmNcKPuewBkrErp3fgC3vTjksfbCV5xRX719xiLReonJME
   1) initID        = vkys37xzcxpmw5zexzhyhpok3whl2vfeep2tyeegwnm2cxrr3umq
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 1
@@ -439,7 +439,7 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
      bodySize      = 79
      bodyRows      = 2
      commitTime    = 978310921
-     headRef       = /ipfs/QmdCjShoT9bKFjAMJ7dvdrHY476qPTouBmDs94RxMKyjms
+     headRef       = /ipfs/QmRyXnBUvGGFcdCebrwby4NWak7RvLrqciC9tstdVFZb1Z
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
@@ -478,7 +478,7 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
      bodySize      = 79
      bodyRows      = 2
      commitTime    = 978310921
-     headRef       = /ipfs/QmdCjShoT9bKFjAMJ7dvdrHY476qPTouBmDs94RxMKyjms
+     headRef       = /ipfs/QmRyXnBUvGGFcdCebrwby4NWak7RvLrqciC9tstdVFZb1Z
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
@@ -510,7 +510,7 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
      bodySize      = 137
      bodyRows      = 4
      commitTime    = 978311161
-     headRef       = /ipfs/QmZa3VTH759etCwCgWymbgtbmoSnpRb955iWwv7uwWwCyJ
+     headRef       = /ipfs/QmRNYmgFzqiFc9mY26n9SE4sXsE8tZqohHppnK2nWDNvVP
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
@@ -592,14 +592,14 @@ func TestSaveLargeBodyIsSame(t *testing.T) {
 	run.MustExec(t, "qri save --body testdata/movies/body_twenty.csv test_peer/my_ds")
 
 	output := run.MustExec(t, "qri log test_peer/my_ds")
-	expect = `1   Commit:  /ipfs/QmYi3KLDXFjjx8j29E7Y2gBXf71efcUZVvBCfsw4nriRwZ
+	expect = `1   Commit:  /ipfs/QmdYBHJLF2u1PCR79r39xX2nCQTsoGLLPPh8isyhdsCtPN
     Date:    Sun Dec 31 20:05:01 EST 2000
     Storage: local
     Size:    532 B
 
     body changed
 
-2   Commit:  /ipfs/QmeDzJEv6mHkQ42NXVLUNRmDsoWFkePovmCydts9M5Age9
+2   Commit:  /ipfs/QmNqeQBtcdJkkEnmU3ru5fjH6AxN5t2gSTkKtU1GSuR1cG
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    224 B
