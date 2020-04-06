@@ -70,7 +70,7 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 			return err
 		}
 	} else if !QRIRepoInitialized(qriPath) {
-		return fmt.Errorf("no qri repo exists")
+		return fmt.Errorf("no qri repo exists\nhave you run 'qri setup'")
 	}
 
 	if err = f.Init(); err != nil {
@@ -87,7 +87,7 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf("%s, is `qri connect` already running?", err)
 	}
 	if n == nil {
-		return fmt.Errorf("Cannot serve without a node (`qri connect` already running?)")
+		return fmt.Errorf("Cannot serve without a node (`qri connect` or Qri Desktop already running?)")
 	}
 
 	o.inst = f.Instance()
