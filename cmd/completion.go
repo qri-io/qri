@@ -81,9 +81,8 @@ __qri_parse_list()
 
 __qri_parse_search()
 {
-	echo 'test'
     local qri_output out
-    if qri_output=$(qri search $1 --format=simple --no-prompt --no-color 2>/dev/null); then
+    if qri_output=$(qri search $cur --format=simple --no-prompt --no-color 2>/dev/null); then
         out=($(echo "${qri_output}"))
         COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
     fi
