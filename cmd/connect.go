@@ -5,7 +5,9 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/api"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -70,7 +72,7 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 			return err
 		}
 	} else if !QRIRepoInitialized(qriPath) {
-		return fmt.Errorf("no qri repo exists\nhave you run 'qri setup'")
+		return errors.New(repo.ErrNoRepo, "no qri repo exists\nhave you run 'qri setup'?")
 	}
 
 	if err = f.Init(); err != nil {
