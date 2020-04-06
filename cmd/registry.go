@@ -203,6 +203,7 @@ func (o *RegistryOptions) Signup() error {
 	if err := o.RegistryClientMethods.CreateProfile(p, &ok); err != nil {
 		return err
 	}
+	printSuccess(o.ErrOut, "user %s created on registry, connected local key", o.Username)
 	return nil
 }
 
