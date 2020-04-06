@@ -59,9 +59,11 @@ commit message and title to the save.`,
 	}
 
 	cmd.Flags().StringSliceVarP(&o.FilePaths, "file", "f", nil, "dataset or component file (yaml or json)")
+	cmd.MarkFlagFilename("file", "yaml", "yml", "json")
 	cmd.Flags().StringVarP(&o.Title, "title", "t", "", "title of commit message for save")
 	cmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message for save")
 	cmd.Flags().StringVarP(&o.BodyPath, "body", "", "", "path to file or url of data to add as dataset contents")
+	cmd.MarkFlagFilename("body")
 	cmd.Flags().StringVarP(&o.Recall, "recall", "", "", "restore revisions from dataset history")
 	// cmd.Flags().BoolVarP(&o.ShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")

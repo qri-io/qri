@@ -38,6 +38,7 @@ To export to a specific directory, use the --output flag.`,
 	}
 
 	cmd.Flags().StringVarP(&o.Output, "output", "o", "", "path to write to, default is current directory")
+	cmd.MarkFlagFilename("output")
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "format for the exported dataset, such as native, json, xlsx. default: json")
 	cmd.Flags().BoolVarP(&o.Zipped, "zip", "z", false, "export as a zip file")
 

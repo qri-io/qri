@@ -37,6 +37,7 @@ https://github.com/qri-io/qri/issues`,
 				setNoPrompt(noPrompt)
 			}
 		},
+		BashCompletionFunction: bashCompletionFunc,
 	}
 
 	qriPath, ipfsPath := pf()
@@ -51,6 +52,7 @@ https://github.com/qri-io/qri/issues`,
 
 	cmd.AddCommand(
 		NewAddCommand(opt, ioStreams),
+		NewAutocompleteCommand(opt, ioStreams),
 		NewCheckoutCommand(opt, ioStreams),
 		NewConfigCommand(opt, ioStreams),
 		NewConnectCommand(opt, ioStreams),
