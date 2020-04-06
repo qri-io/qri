@@ -14,19 +14,25 @@ func NewAutocompleteCommand(_ Factory, ioStreams ioes.IOStreams) *cobra.Command 
 	o := &AutocompleteOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "completion [bash|zsh]",
-		Short: "Generates shell completion scripts",
-		Long: `To load completion run
+		Short: "generate shell auto-completion scripts",
+		Long: `Completion generates auto-completion scripts for Bash or Zsh
+which you can then source in your terminal or save to your profile to have it
+run on each terminal session.`,
+		Example: `  # load auto-completion for a single session
+  $ source <(qri completion [bash|zsh])
 
-source <(qri completion [bash|zsh])
+  #configure your bash/zsh shell to load completions by adding to your bashrc/zshrc:
+  # ~/.bashrc or ~/.zshrc
 
-To configure your bash/zsh shell to load completions for each session add to your bashrc/zshrc
+  $ source <(qri completion [bash|zsh])
 
-# ~/.bashrc or ~/.zshrc
-source <(qri completion [bash|zsh])
-
-Alternatively you can pipe the output to a local script and
-reference that as the source for faster loading
+  # alternatively you can pipe the output to a local script and
+  # reference that as the source for faster loading.
 `,
+		Annotations: map[string]string{
+			"group": "other",
+		},
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return o.Run(cmd, args)
 		},
