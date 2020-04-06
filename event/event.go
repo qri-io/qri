@@ -153,6 +153,8 @@ func (b *bus) Subscribe(topics ...Topic) <-chan Event {
 
 // Unsubscribe cleans up a channel that no longer need to receive events
 func (b *bus) Unsubscribe(unsub <-chan Event) {
+	b.lk.Lock()
+	defer b.lk.Unlock()
 	for topic, channels := range b.subs {
 		var replace dataChannels
 		for i, ch := range channels {
@@ -168,6 +170,8 @@ func (b *bus) Unsubscribe(unsub <-chan Event) {
 
 // NumSubscribers returns the number of subscribers to the bus's events
 func (b *bus) NumSubscribers() int {
+	b.lk.Lock()
+	defer b.lk.Unlock()
 	total := 0
 	for _, channels := range b.subs {
 		total += len(channels)
