@@ -54,7 +54,7 @@ require (
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
 	github.com/qri-io/qfs v0.1.1-0.20200207165332-a6a7b98f0fa0
-	github.com/qri-io/starlib v0.4.2-0.20191025202035-0f16a7d50967
+	github.com/qri-io/starlib v0.4.2-0.20200406084526-0e4566b610a1
 	github.com/qri-io/varName v0.1.0
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.0.0
@@ -62,10 +62,10 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/theckman/go-flock v0.7.1
 	github.com/ugorji/go/codec v1.1.7
-	go.starlark.net v0.0.0-20190528202925-30ae18b8564f
+	go.starlark.net v0.0.0-20200330013621-be5394c419b6
 	golang.org/x/crypto v0.0.0-20190926180335-cea2066c6411
-	golang.org/x/sys v0.0.0-20190926180325-855e68c8590b
+	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
 	gonum.org/v1/gonum v0.6.0
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.8
 	nhooyr.io/websocket v1.7.4
 )
