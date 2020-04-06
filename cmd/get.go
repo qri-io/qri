@@ -131,7 +131,7 @@ func (o *GetOptions) Run() (err error) {
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
 	p := lib.GetParams{
-		Ref:          o.Refs.Ref(),
+		Refstr:       o.Refs.Ref(),
 		Selector:     o.Selector,
 		Format:       o.Format,
 		FormatConfig: fc,

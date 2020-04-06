@@ -35,6 +35,16 @@ func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string)
 		return nil, nil, "", fmt.Errorf("peername required to prepare dataset")
 	}
 
+	// TODO(dustmop): We should not be calling CanonicalizeDatasetRef here. It's already been
+	// called up in lib, which means that we've thrown information away. Furthermore, we
+	// should be relying on stable identifiers this low down the stack. Instead, pass the initID
+	// down to this function. Also pass down a Resolver interface, and use that to look up the
+	// previous version.
+	// If we're using a dscache, we can use the future codepath:
+	//   rsolv.GetInfo(initID)
+	// otherwise, use the old technique of resolving a dataset ref:
+	//   rsolv.GetInfoByDsref(ref)
+
 	// Determine if the save is creating a new dataset or updating an existing dataset by
 	// seeing if the name can canonicalize to a repo that we know about
 	lookup := &reporef.DatasetRef{Name: name, Peername: peername}

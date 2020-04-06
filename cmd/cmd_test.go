@@ -704,3 +704,30 @@ func TestRenameAfterRegistration(t *testing.T) {
 	}
 
 }
+
+// Test that list can format output as json
+func TestListFormatJson(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "list_format_json")
+	defer run.Delete()
+
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/my_ds")
+
+	// Verify the references in json format
+	output := run.MustExec(t, "qri list --format json")
+	expect := `[
+  {
+    "username": "test_peer",
+    "profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+    "name": "my_ds",
+    "path": "/ipfs/QmQwrGtU5ct8N6pLFPvHkvziybahRGfiCHw6kpBB1owg4R",
+    "bodySize": 224,
+    "bodyRows": 8,
+    "bodyFromat": "csv",
+    "numErrors": 1,
+    "commitTime": "2001-01-01T01:02:01.000000001Z"
+  }
+]`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+}

@@ -11,7 +11,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
+	"github.com/qri-io/qri/dscache/dscachefb"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
@@ -31,6 +31,7 @@ type Dscache struct {
 	Buffer              []byte
 	CreateNewEnabled    bool
 	ProfileIDToUsername map[string]string
+	DefaultUsername     string
 }
 
 // NewDscache will construct a dscache from the given filename, or will construct an empty dscache
@@ -51,6 +52,7 @@ func NewDscache(ctx context.Context, fsys qfs.Filesystem, book *logbook.Book, fi
 	}
 	if book != nil {
 		book.Observe(cache.update)
+		cache.DefaultUsername = book.AuthorName()
 	}
 	return &cache
 }
@@ -169,6 +171,36 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 		})
 	}
 	return refs, nil
+}
+
+// LookupByName looks up a dataset by dsref and returns the latest VersionInfo if found
+func (d *Dscache) LookupByName(ref dsref.Ref) (*dsref.VersionInfo, error) {
+	// Convert the username into a profileID
+	for i := 0; i < d.Root.UsersLength(); i++ {
+		userAssoc := dscachefb.UserAssoc{}
+		d.Root.Users(&userAssoc, i)
+		username := userAssoc.Username()
+		profileID := userAssoc.ProfileID()
+		if ref.Username == string(username) {
+			// TODO(dustmop): Switch off of profileID to a stable ID (that handle key rotations)
+			// based upon the Logbook creation of a user's profile.
+			ref.ProfileID = string(profileID)
+			break
+		}
+	}
+	if ref.ProfileID == "" {
+		return nil, fmt.Errorf("unknown username %q", ref.Username)
+	}
+	// Lookup the info, given the profileID/dsname
+	for i := 0; i < d.Root.RefsLength(); i++ {
+		r := dscachefb.RefEntryInfo{}
+		d.Root.Refs(&r, i)
+		if string(r.ProfileID()) == ref.ProfileID && string(r.PrettyName()) == ref.Name {
+			info := convertEntryToVersionInfo(&r)
+			return &info, nil
+		}
+	}
+	return nil, fmt.Errorf("dataset ref not found %s/%s", ref.Username, ref.Name)
 }
 
 func (d *Dscache) update(act *logbook.Action) {

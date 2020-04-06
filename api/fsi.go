@@ -165,7 +165,7 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 		// Get code taken
 		// taken from ./root.go
 		gp := lib.GetParams{
-			Ref: name,
+			Refstr: name,
 		}
 		res := lib.GetResult{}
 		err := h.dsm.Get(&gp, &res)
@@ -188,8 +188,8 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 			ProfileID: profile.IDB58DecodeOrEmpty(res.Dataset.ProfileID),
 			Name:      res.Dataset.Name,
 			Path:      res.Dataset.Path,
-			FSIPath:   res.Ref.FSIPath,
-			Published: res.Ref.Published,
+			FSIPath:   res.FSIPath,
+			Published: res.Published,
 			Dataset:   res.Dataset,
 		}
 

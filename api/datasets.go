@@ -282,7 +282,7 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 // otherwise, resolve the peername and proceed as normal
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.GetParams{
-		Ref: HTTPPathToQriPath(r.URL.Path),
+		Refstr: HTTPPathToQriPath(r.URL.Path),
 	}
 	res := lib.GetResult{}
 	err := h.Get(&p, &res)
@@ -306,8 +306,8 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		ProfileID: profile.IDB58DecodeOrEmpty(res.Dataset.ProfileID),
 		Name:      res.Dataset.Name,
 		Path:      res.Dataset.Path,
-		FSIPath:   res.Ref.FSIPath,
-		Published: res.Ref.Published,
+		FSIPath:   res.FSIPath,
+		Published: res.Published,
 		Dataset:   res.Dataset,
 	}
 	util.WriteResponse(w, ref)
@@ -582,7 +582,7 @@ func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.Get
 	}
 
 	p := &lib.GetParams{
-		Ref:      path,
+		Refstr:   path,
 		Format:   format,
 		Selector: "body",
 		Limit:    listParams.Limit,
@@ -659,7 +659,7 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h DatasetHandlers) statsHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.GetParams{
-		Ref:      HTTPPathToQriPath(r.URL.Path[len("/stats/"):]),
+		Refstr:   HTTPPathToQriPath(r.URL.Path[len("/stats/"):]),
 		Selector: "stats",
 	}
 	res := lib.GetResult{}
