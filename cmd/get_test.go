@@ -373,4 +373,3 @@ func TestGetDatasetCheckedOutUsingDscache(t *testing.T) {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 }
-

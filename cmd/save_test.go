@@ -612,3 +612,35 @@ func TestSaveLargeBodyIsSame(t *testing.T) {
 	}
 
 }
+
+func TestSaveTwiceWithTransform(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_twice_with_xform")
+	defer run.Delete()
+
+	// Save a first version with a normal body
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+
+	// Save a second version with a transform
+	run.MustExec(t, "qri save --file testdata/movies/tf_one_movie.star test_peer/my_ds")
+
+	// Get the saved transform, make sure it matches the source file
+	output := run.MustExec(t, "qri get transform.script test_peer/my_ds")
+	golden, _ := ioutil.ReadFile("testdata/movies/tf_one_movie.star")
+	expect := strings.TrimSpace(string(golden))
+	actual := strings.TrimSpace(output)
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
+// TODO(dustmop): Test that if the result has a different shape than the previous version,
+// the error message should be reasonable and understandable
+//func TestSaveWithBadShape(t *testing.T) {
+//	run := NewTestRunner(t, "test_peer", "qri_test_save_with_xform")
+//	defer run.Delete()
+//
+//	// Save a first version with a normal body
+//	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+//	// Save with a transform that results in a different shape (non tabular)
+//	run.MustExec(t, "qri save --file testdata/movies/tf_123.star test_peer/my_ds")
+//}

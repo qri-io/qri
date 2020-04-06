@@ -541,19 +541,31 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 	// TODO(dustmop): Would be better to get a line-by-line diff
 	if prev.Transform != nil && prev.Transform.ScriptPath != "" {
 		err := prev.Transform.OpenScriptFile(ctx, store)
-		if err == nil {
+		if err != nil {
+			log.Error("prev.Transform.ScriptPath %q open err: %s", prev.Transform.ScriptPath, err)
+		} else {
 			tfFile := prev.Transform.ScriptFile()
-			prev.Transform.ScriptBytes, _ = ioutil.ReadAll(tfFile)
+			prev.Transform.ScriptBytes, err = ioutil.ReadAll(tfFile)
+			if err != nil {
+				log.Error("prev.Transform.ScriptPath %q read err: %s", prev.Transform.ScriptPath, err)
+			}
 		}
 	}
 	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
 		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
 		// local here. Is there some way to have a cafs store that works with both?
 		err := ds.Transform.OpenScriptFile(ctx, localfs.NewFS())
-		if err == nil {
+		if err != nil {
+			log.Error("ds.Transform.ScriptPath %q open err: %s", ds.Transform.ScriptPath, err)
+		} else {
 			tfFile := ds.Transform.ScriptFile()
-			ds.Transform.ScriptBytes, _ = ioutil.ReadAll(tfFile)
+			ds.Transform.ScriptBytes, err = ioutil.ReadAll(tfFile)
+			if err != nil {
+				log.Error("ds.Transform.ScriptPath %q read err: %s", ds.Transform.ScriptPath, err)
+			}
 		}
+		// Reopen the transform file so that WriteDataset will be able to write it to the store.
+		_ = ds.Transform.OpenScriptFile(ctx, localfs.NewFS())
 	}
 
 	var prevData map[string]interface{}
