@@ -30,6 +30,8 @@ var (
 	ErrPeerIDRequired = fmt.Errorf("repo: peerID is required")
 	// ErrPeernameRequired is for when a peername is missing-but-expected
 	ErrPeernameRequired = fmt.Errorf("repo: peername is required")
+	// ErrNoRepo is for when a repo is missing-but-expected
+	ErrNoRepo = fmt.Errorf("repo: no repo found")
 	// ErrNameRequired is for when a name is missing-but-expected
 	ErrNameRequired = fmt.Errorf("repo: name is required")
 	// ErrPathRequired is for when a path is missing-but-expected
