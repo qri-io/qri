@@ -3,14 +3,12 @@ package loader
 import (
 	"context"
 	"fmt"
-	"time"
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dscache"
-	"github.com/qri-io/qri/dscache/dscachefb"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/resolver"
@@ -63,9 +61,9 @@ func (dr *DatasetResolver) LoadDsref(ctx context.Context, refstr string) (*datas
 	}
 
 	// Resolve username to profileID, lookup dataset by profileID + prettyName
-	info, err := lookupByName(dr.Dscache, ref)
+	info, err := dr.Dscache.LookupByName(ref)
 	if err != nil {
-		return nil, "", ref, nil, err
+		return nil, "", ref, nil, fmt.Errorf("%w: %s", resolver.ErrCannotResolveName, err)
 	}
 
 	// Found a versionInfo, fill in ref.
@@ -93,52 +91,4 @@ func (dr *DatasetResolver) LoadDsref(ctx context.Context, refstr string) (*datas
 	ds.Name = ref.Name
 	ds.Peername = ref.Username
 	return ds, info.InitID, ref, info, err
-}
-
-func lookupByName(dc *dscache.Dscache, ref dsref.Ref) (*dsref.VersionInfo, error) {
-	// Convert the username into a profileID
-	for i := 0; i < dc.Root.UsersLength(); i++ {
-		userAssoc := dscachefb.UserAssoc{}
-		dc.Root.Users(&userAssoc, i)
-		username := userAssoc.Username()
-		profileID := userAssoc.ProfileID()
-		if ref.Username == string(username) {
-			ref.ProfileID = string(profileID)
-			break
-		}
-	}
-	if ref.ProfileID == "" {
-		return nil, fmt.Errorf("unknown username %q", ref.Username)
-	}
-	// Lookup the info, given the profileID/dsname
-	for i := 0; i < dc.Root.RefsLength(); i++ {
-		r := dscachefb.RefEntryInfo{}
-		dc.Root.Refs(&r, i)
-		if string(r.ProfileID()) == ref.ProfileID && string(r.PrettyName()) == ref.Name {
-			info := convertEntryToVersionInfo(&r)
-			return &info, nil
-		}
-	}
-	return nil, fmt.Errorf("dataset ref not found %s/%s", ref.Username, ref.Name)
-}
-
-// copied from dscache/dscache.go
-func convertEntryToVersionInfo(r *dscachefb.RefEntryInfo) dsref.VersionInfo {
-	return dsref.VersionInfo{
-		InitID:        string(r.InitID()),
-		ProfileID:     string(r.ProfileID()),
-		Name:          string(r.PrettyName()),
-		Path:          string(r.HeadRef()),
-		Published:     r.Published(),
-		Foreign:       r.Foreign(),
-		MetaTitle:     string(r.MetaTitle()),
-		ThemeList:     string(r.ThemeList()),
-		BodySize:      int(r.BodySize()),
-		BodyRows:      int(r.BodyRows()),
-		BodyFormat:    string(r.BodyFormat()),
-		NumErrors:     int(r.NumErrors()),
-		CommitTime:    time.Unix(r.CommitTime(), 0),
-		NumVersions:   int(r.NumVersions()),
-		FSIPath:       string(r.FsiPath()),
-	}
 }

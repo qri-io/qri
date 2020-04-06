@@ -9,10 +9,10 @@ import (
 func TestMemResolver(t *testing.T) {
 	m := NewMemResolver()
 	m.Put(dsref.VersionInfo{
-		InitID: "myInitID",
+		InitID:   "myInitID",
 		Username: "test_peer",
-		Name: "my_ds",
-		Path: "/ipfs/QmeXaMpLe",
+		Name:     "my_ds",
+		Path:     "/ipfs/QmeXaMpLe",
 	})
 	expectPath := "/ipfs/QmeXaMpLe"
 

@@ -6,6 +6,8 @@ import (
 	"github.com/qri-io/qri/dsref"
 )
 
+var _ Resolver = (*MemResolver)(nil)
+
 // MemResolver holds maps that can do a cheap version of dataset resolution, for tests
 type MemResolver struct {
 	RefMap map[string]string

@@ -173,6 +173,36 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	return refs, nil
 }
 
+// LookupByName looks up a dataset by dsref and returns the latest VersionInfo if found
+func (d *Dscache) LookupByName(ref dsref.Ref) (*dsref.VersionInfo, error) {
+	// Convert the username into a profileID
+	for i := 0; i < d.Root.UsersLength(); i++ {
+		userAssoc := dscachefb.UserAssoc{}
+		d.Root.Users(&userAssoc, i)
+		username := userAssoc.Username()
+		profileID := userAssoc.ProfileID()
+		if ref.Username == string(username) {
+			// TODO(dustmop): Switch off of profileID to a stable ID (that handle key rotations)
+			// based upon the Logbook creation of a user's profile.
+			ref.ProfileID = string(profileID)
+			break
+		}
+	}
+	if ref.ProfileID == "" {
+		return nil, fmt.Errorf("unknown username %q", ref.Username)
+	}
+	// Lookup the info, given the profileID/dsname
+	for i := 0; i < d.Root.RefsLength(); i++ {
+		r := dscachefb.RefEntryInfo{}
+		d.Root.Refs(&r, i)
+		if string(r.ProfileID()) == ref.ProfileID && string(r.PrettyName()) == ref.Name {
+			info := convertEntryToVersionInfo(&r)
+			return &info, nil
+		}
+	}
+	return nil, fmt.Errorf("dataset ref not found %s/%s", ref.Username, ref.Name)
+}
+
 func (d *Dscache) update(act *logbook.Action) {
 	switch act.Type {
 	case logbook.ActionDatasetNameInit:
@@ -274,7 +304,6 @@ func (d *Dscache) updateMoveCursor(act *logbook.Action) error {
 	return d.save()
 }
 
-// copied to dscache/loader/loader.go
 func convertEntryToVersionInfo(r *dscachefb.RefEntryInfo) dsref.VersionInfo {
 	return dsref.VersionInfo{
 		InitID:      string(r.InitID()),

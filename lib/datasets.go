@@ -28,8 +28,8 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/resolver/loader"
 	reporef "github.com/qri-io/qri/repo/ref"
+	"github.com/qri-io/qri/resolver/loader"
 )
 
 // DatasetRequests encapsulates business logic for working with Datasets on Qri
