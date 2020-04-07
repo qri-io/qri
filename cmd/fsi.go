@@ -13,8 +13,9 @@ import (
 func NewFSICommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &FSIOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "workdir",
-		Short: "file system integration tools",
+		Use:     "workdir",
+		Aliases: []string{"fsi"},
+		Short:   "file system integration tools",
 		Annotations: map[string]string{
 			"group": "workdir",
 		},
@@ -24,7 +25,7 @@ func NewFSICommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Use:   "link DATASET PATH",
 		Short: "link a dataset to a directory on disk",
 		Example: `  # Link a dataset to the current working directory:
-  $ qri fsi link peername/dataset .`,
+  $ qri workdir link peername/dataset .`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
