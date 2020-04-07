@@ -38,7 +38,6 @@ require (
 	github.com/libp2p/go-libp2p-core v0.2.3
 	github.com/libp2p/go-libp2p-peerstore v0.1.3
 	github.com/libp2p/go-libp2p-swarm v0.2.2
-	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.2
