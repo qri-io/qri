@@ -1,3 +1,106 @@
+<a name="0.9.7"></a>
+# [0.9.7](https://github.com/qri-io/qri/compare/v0.9.6...v0.9.7) (2020-04-07)
+
+aka `midnight_blue_sloughi`
+
+Qri CLI v0.9.7 is **huge**. This release adds SQL support, turning Qri into an ever-growing database of open datasets.
+
+If that wasn't enough, we've added tab completion, nicer automatic commit messages, unified our command descriptions, and fixed a whole slew of bugs!
+
+## 📊 Run SQL on datasets
+
+Exprimental support for SQL is here! Landing this feature brings qri full circle to the [original whitepaper](http://qri.io/papers/deterministic-querying) we published in 2017. 
+
+We want to live in a world where you can `SELECT * FROM any_qri_dataset`, and we're delighted to say that day is here. 
+
+We have plans to improve & build upon this crucial feature, and are marking it as experimental while we flesh out our SQL implemetation. We'll drop the "experimental" flag when we support a healthy subset of the SQL spec.
+
+We've been talking about SQL a bunch in our community calls:
+* [🎦 introducing SQL support](https://youtu.be/_kvwuZbnyV4?t=2030) 
+* [🎦 qri as a global SQL database](https://youtu.be/U6FoBaO0tYM?t=1612)
+* [🎦 SQL errors & prepping datasets for querying](https://youtu.be/D5zUIS_v0iY?t=242)
+
+
+## 🚗🏁 Autocomplete 
+
+The name says it all. after following the instructions on `qri generate --help`, type `qri get`, then press tab, and _voilá_, your list of datasets appears for the choosing. This makes working with datasets much easier, requiring you to remember and type less. [🎦 Here's](https://youtu.be/ROkxdM2pRgY?t=145) a demo from our community call.
+
+
+## 🤝📓 Friendlier Automatic Commit Messages
+
+For a long time Qri has automatically generated commit messages for you if one isn't suppied by analyzing what's changed between versions. This release makes titles that look like this:
+
+```
+updated structure, viz, and transform
+```
+
+and adds detailed messages that look like this:
+```
+structure:
+    updated schema.items.items.63.title
+viz:
+    updated scriptPath
+transform:
+    updated resources./ipfs/QmfQu6qBS3iJEE3ohUnhejb7vh5KwcS5j4pvNxZMi717pU.path
+    added scriptBytes
+    updated syntaxVersion
+```
+
+These automatic messages form a nice textual description of what's changed from version to version. Qri will automatically add these if you don't provide `--title` and/or `--message` values to `qri save`.
+
+## 📙 Uniform CLI help
+
+Finally, a big shout out to one of our biggest open source contributions to date! @Mr0Grog not only contributed a massive cleanup of our command line help text, they also wrote a [style guide](https://github.com/qri-io/qri/blob/master/DEVELOPERS.md#cli-help-style) based on the existing help text for others to follow in the future!
+
+### Bug Fixes
+
+* **base:** permission for files generated on init ([14816f2](https://github.com/qri-io/qri/commit/14816f2))
+* **cmd:** added the email flag to 'registry prove' as it required ([#1200](https://github.com/qri-io/qri/issues/1200)) ([996f3de](https://github.com/qri-io/qri/commit/996f3de))
+* **cmd:** autocomplete failed to handle search ([#1257](https://github.com/qri-io/qri/issues/1257)) ([e48001d](https://github.com/qri-io/qri/commit/e48001d))
+* **cmd:** pass node when not making online request for peers ([#1234](https://github.com/qri-io/qri/issues/1234)) ([2cc7aff](https://github.com/qri-io/qri/commit/2cc7aff))
+* **cmd:** propperly utilize --no-color and --no-prompt ([ff5bdeb](https://github.com/qri-io/qri/commit/ff5bdeb))
+* **cmd:** qri list should match against peername and dataset name ([eb38505](https://github.com/qri-io/qri/commit/eb38505))
+* **cmd:** restrict number of args in fsi commands ([4c8e42c](https://github.com/qri-io/qri/commit/4c8e42c))
+* **cmd:** signup should provide feedback on success ([855ff8f](https://github.com/qri-io/qri/commit/855ff8f))
+* **cmd:** stats command works with an FSI directory ([f6696c1](https://github.com/qri-io/qri/commit/f6696c1)), closes [#1186](https://github.com/qri-io/qri/issues/1186)
+* **dry-run:** dry-runs must never add to the refstore ([d1b71c2](https://github.com/qri-io/qri/commit/d1b71c2))
+* **dsfs:** fix dag structure, defend against bad DAGs ([73d0f98](https://github.com/qri-io/qri/commit/73d0f98))
+* **export:** export even if dag contains missing viz referernce ([44c696d](https://github.com/qri-io/qri/commit/44c696d)), closes [#1161](https://github.com/qri-io/qri/issues/1161)
+* **fetch:** fetch should return DatasetLogItems ([#1221](https://github.com/qri-io/qri/issues/1221)) ([842aef5](https://github.com/qri-io/qri/commit/842aef5))
+* **fsi:** qri remove --all --force should not fail on low value files ([#1203](https://github.com/qri-io/qri/issues/1203)) ([398e0ac](https://github.com/qri-io/qri/commit/398e0ac))
+* **get:** Get with a path will ignore fsi, to get old versions ([2125edd](https://github.com/qri-io/qri/commit/2125edd))
+* **profileID:** Properly decode example profileID for tests that use it ([4f55c6c](https://github.com/qri-io/qri/commit/4f55c6c))
+* **registry:** Prompt for password without echoing it to terminal ([3906b49](https://github.com/qri-io/qri/commit/3906b49))
+* **rpc:** registered json.RawMessage for gob encoding ([#1232](https://github.com/qri-io/qri/issues/1232)) ([0832292](https://github.com/qri-io/qri/commit/0832292))
+* **save:** Cannot save new datasets if name contains upper-case characters ([ff68b40](https://github.com/qri-io/qri/commit/ff68b40))
+* **save:** If body is too large to diff, compare checksums ([37dc5c7](https://github.com/qri-io/qri/commit/37dc5c7))
+* **save:** Infered name must start with a letter ([86ddca3](https://github.com/qri-io/qri/commit/86ddca3))
+* **search:** change type from interface to dataset so rpc can serialize ([#1226](https://github.com/qri-io/qri/issues/1226)) ([ebadaec](https://github.com/qri-io/qri/commit/ebadaec))
+* **startf:** script print statements print to stderr ([3b3d6b8](https://github.com/qri-io/qri/commit/3b3d6b8))
+* **transform:** Re-open transform after friendly, so it writes to cafs ([6f30ae5](https://github.com/qri-io/qri/commit/6f30ae5))
+* **unlink:** Fsi unlink handles more edge-cases, acts more sane. ([945b853](https://github.com/qri-io/qri/commit/945b853))
+* **update:** Change default port for update service ([6500a91](https://github.com/qri-io/qri/commit/6500a91))
+* **watchfs:** Methods need a mutex to avoid concurrent writes ([2cebeff](https://github.com/qri-io/qri/commit/2cebeff))
+* **whatchanged:** Hide command so it doesn't show up in help ([2ea1441](https://github.com/qri-io/qri/commit/2ea1441))
+
+
+### Features
+
+* **api:** add SQL endpoint ([4f5be38](https://github.com/qri-io/qri/commit/4f5be38))
+* **cmd:** added command to generate basic cmd autocompletion scripts ([#1240](https://github.com/qri-io/qri/issues/1240)) ([0845289](https://github.com/qri-io/qri/commit/0845289))
+* **cmd:** remove `--blank` option from `export` ([47f8c70](https://github.com/qri-io/qri/commit/47f8c70))
+* **dscache:** Dscache can be used for get command ([144ad50](https://github.com/qri-io/qri/commit/144ad50))
+* **save:** Friendly commit messages by analyzing head, body, and transform ([eb91b27](https://github.com/qri-io/qri/commit/eb91b27))
+* **showcommit:** Split cmd status-at-version into showcommit. ([9dd444e](https://github.com/qri-io/qri/commit/9dd444e))
+* **sql:** run SQL SELECT queries on datasets ([7a6d8ae](https://github.com/qri-io/qri/commit/7a6d8ae))
+
+
+### BREAKING CHANGES
+
+* **cmd:** `qri export --blank` has been removed. (You can still `qri export peer/some_dataset`.)
+
+
+
 # [v0.9.6](https://github.com/qri-io/qri/compare/v0.9.5...v0.9.6) (2020-03-05)
 
 This patch release fixes a number of small bugs, mainly in support of our Desktop app, and continues infrastructural improvements in preparation for larger feature releases. These include: our improved diff experience, significantly better filesystem integration, and a new method of dataset name resolution that better handles changes across a peer network.
