@@ -17,7 +17,7 @@ require (
 	github.com/beme/abide v0.0.0-20181227202223-4c487ef9d895
 	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe
 	github.com/dustin/go-humanize v1.0.0
-	github.com/fatih/color v1.7.0
+	github.com/fatih/color v1.9.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/flock v0.7.1 // indirect
@@ -38,6 +38,7 @@ require (
 	github.com/libp2p/go-libp2p-core v0.2.3
 	github.com/libp2p/go-libp2p-peerstore v0.1.3
 	github.com/libp2p/go-libp2p-swarm v0.2.2
+	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.2
@@ -50,7 +51,7 @@ require (
 	github.com/qri-io/dataset v0.1.5-0.20200324184139-108a69072ede
 	github.com/qri-io/deepdiff v0.1.1-0.20200305020550-8173efebcaa1
 	github.com/qri-io/doggos v0.1.0
-	github.com/qri-io/ioes v0.1.0
+	github.com/qri-io/ioes v0.1.1-0.20200407033451-28794e5a4c83
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
 	github.com/qri-io/qfs v0.1.1-0.20200207165332-a6a7b98f0fa0
