@@ -41,7 +41,7 @@ not ` + "`structure.json`" + `)`,
   # Reset the structure.json file to a specific version:
   $ qri restore /ipfs/QmU1grTDSM375BvdNirYLgLTgNkUHPss3FnGxkHHVXwQmk structure`,
 		Annotations: map[string]string{
-			"group": "dataset",
+			"group": "workdir",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {

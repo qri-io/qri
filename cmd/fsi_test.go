@@ -32,7 +32,7 @@ func TestFSILinkingCommands(t *testing.T) {
 	}
 
 	// Unlink the dataset
-	if err := runner.ExecCommand("qri fsi unlink me/save_and_unlink"); err != nil {
+	if err := runner.ExecCommand("qri workdir unlink me/save_and_unlink"); err != nil {
 		t.Errorf("unlinking dataset: %s", err.Error())
 	}
 
@@ -46,12 +46,12 @@ func TestFSILinkingCommands(t *testing.T) {
 	// TODO (b5) - get output of qri list, confirm dataset is unlinked
 
 	// Link *must* specify the directory to link to
-	if err := runner.ExecCommand("qri fsi link me/save_and_unlink"); err == nil {
+	if err := runner.ExecCommand("qri workdir link me/save_and_unlink"); err == nil {
 		t.Error("`qri fsi link` did not get an explicit directory, but did not fail")
 	}
 
 	// Link the dataset to the pwd
-	if err := runner.ExecCommand("qri fsi link me/save_and_unlink ."); err != nil {
+	if err := runner.ExecCommand("qri workdir link me/save_and_unlink ."); err != nil {
 		t.Errorf("unlinking dataset: %s", err.Error())
 	}
 

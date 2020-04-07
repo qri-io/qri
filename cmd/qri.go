@@ -20,12 +20,8 @@ func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGene
 	cmd := &cobra.Command{
 		Use:   "qri",
 		Short: "qri GDVCS CLI",
-		Long: `qri ("query") is a global dataset version control system 
-on the distributed web.
-
-https://qri.io
-
-Feedback, questions, bug reports, and contributions are welcome!
+		Long: `qri ("query") is a set of tools for building & sharing datasets: https://qri.io
+Feedback, questions, bug reports, and contributions are welcome! 
 https://github.com/qri-io/qri/issues`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			noColor, err := cmd.Flags().GetBool("no-color")
