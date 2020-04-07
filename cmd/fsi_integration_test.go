@@ -1411,7 +1411,7 @@ func TestUnlinkBasic(t *testing.T) {
 	run.MustExec(t, "qri save")
 
 	// Unlink the dataset
-	output := run.MustExec(t, "qri fsi unlink me/unlink_me")
+	output := run.MustExec(t, "qri workdir unlink me/unlink_me")
 	if output != "unlinked: test_peer/unlink_me\n" {
 		t.Errorf("expected output mismatch, got %q", output)
 	}
@@ -1450,7 +1450,7 @@ func TestUnlinkMissingLinkFile(t *testing.T) {
 	}
 
 	// Unlink the dataset
-	output := run.MustExec(t, "qri fsi unlink me/unlink_me")
+	output := run.MustExec(t, "qri workdir unlink me/unlink_me")
 	if output != "unlinked: test_peer/unlink_me\n" {
 		t.Errorf("expected output mismatch, got %q", output)
 	}
@@ -1481,7 +1481,7 @@ func TestUnlinkNoHistory(t *testing.T) {
 	run.MustExec(t, "qri init --name unlink_me --format csv")
 
 	// Unlink the dataset
-	output := run.MustExec(t, "qri fsi unlink me/unlink_me")
+	output := run.MustExec(t, "qri workdir unlink me/unlink_me")
 	if output != "unlinked: test_peer/unlink_me\n" {
 		t.Errorf("expected output mismatch, got %q", output)
 	}
@@ -1512,7 +1512,7 @@ func TestUnlinkImplicitRef(t *testing.T) {
 	run.MustExec(t, "qri save")
 
 	// Unlink the dataset
-	output := run.MustExecCombinedOutErr(t, "qri fsi unlink")
+	output := run.MustExecCombinedOutErr(t, "qri workdir unlink")
 	expect := `for linked dataset [test_peer/unlink_me]
 
 unlinked: test_peer/unlink_me
@@ -1554,7 +1554,7 @@ func TestUnlinkLinkFileButNoFSIPath(t *testing.T) {
 	run.ClearFSIPath(t, "me/unlink_me")
 
 	// Unlink the dataset
-	output := run.MustExecCombinedOutErr(t, "qri fsi unlink me/unlink_me")
+	output := run.MustExecCombinedOutErr(t, "qri workdir unlink me/unlink_me")
 	if output != "me/unlink_me is not linked to a directory\n" {
 		t.Errorf("expected output mismatch, got %q", output)
 	}
@@ -1592,7 +1592,7 @@ func TestUnlinkLinkFileWithNoFSIPathUsingImplicit(t *testing.T) {
 	run.ClearFSIPath(t, "me/unlink_me")
 
 	// Unlink the dataset
-	output := run.MustExecCombinedOutErr(t, "qri fsi unlink")
+	output := run.MustExecCombinedOutErr(t, "qri workdir unlink")
 	if output != `for linked dataset [test_peer/unlink_me]
 
 unlinked: test_peer/unlink_me
@@ -1630,7 +1630,7 @@ func TestUnlinkDirectoryButRefNotFound(t *testing.T) {
 	run.MustExec(t, "qri save")
 
 	// Unlink the dataset
-	output := run.MustExecCombinedOutErr(t, "qri fsi unlink me/not_found")
+	output := run.MustExecCombinedOutErr(t, "qri workdir unlink me/not_found")
 	if output != "repo: not found\n" {
 		t.Errorf("expected output mismatch, got %q", output)
 	}

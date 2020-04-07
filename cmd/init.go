@@ -22,7 +22,7 @@ func NewInitCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 directory, and creates starter files for the dataset's components.`,
 		Example: ``,
 		Annotations: map[string]string{
-			"group": "dataset",
+			"group": "workdir",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {

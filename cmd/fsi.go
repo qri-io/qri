@@ -13,9 +13,11 @@ import (
 func NewFSICommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &FSIOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:    "fsi",
-		Hidden: true,
-		Short:  "file system integration tools",
+		Use:   "workdir",
+		Short: "file system integration tools",
+		Annotations: map[string]string{
+			"group": "workdir",
+		},
 	}
 
 	link := &cobra.Command{

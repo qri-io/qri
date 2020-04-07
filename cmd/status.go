@@ -34,7 +34,7 @@ a commit alongside a dataset like:
   # List what changed in the latest commit of the working directory:
   $ qri status $(cat .qri-ref)`,
 		Annotations: map[string]string{
-			"group": "dataset",
+			"group": "workdir",
 		},
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
