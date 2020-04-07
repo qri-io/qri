@@ -13,9 +13,11 @@ func NewSQLCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &SQLOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "sql QUERY",
-		Short: "run a SQL query on local dataset(s)",
+		Short: "experimental: run a SQL query on local dataset(s)",
 		Long: `sql runs Structured Query Language (SQL) commands, using local datasets 
 as tables.
+
+This feature is experimental, and uses an incomplete SQL implementation
 
 The qri sql command differs from classic relational databases like MySQL or
 PostgreSQL in a few ways:
