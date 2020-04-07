@@ -50,7 +50,7 @@ require (
 	github.com/qri-io/dataset v0.1.5-0.20200324184139-108a69072ede
 	github.com/qri-io/deepdiff v0.1.1-0.20200305020550-8173efebcaa1
 	github.com/qri-io/doggos v0.1.0
-	github.com/qri-io/ioes v0.1.1-0.20200407033451-28794e5a4c83
+	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
 	github.com/qri-io/qfs v0.1.1-0.20200207165332-a6a7b98f0fa0
