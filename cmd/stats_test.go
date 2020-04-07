@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestStatsComplete(t *testing.T) {
@@ -19,7 +21,7 @@ func TestStatsComplete(t *testing.T) {
 		args        []string
 		err         string
 	}{
-		{"no args", []string{}, "need a dataset reference, eg: me/dataset_name"},
+		{"no args", []string{}, "repo: empty dataset reference"},
 	}
 
 	for i, c := range badCases {
@@ -133,5 +135,29 @@ func TestStatsRun(t *testing.T) {
 			t.Errorf("%d. case '%s', unexpected error: %s ", i, c.description, err)
 			continue
 		}
+	}
+}
+
+func TestStatsFSI(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_stats_fsi")
+	defer run.Delete()
+
+	run.CreateAndChdirToWorkDir("stats_fsi")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name move_dir --format csv")
+	// Save the new dataset.
+	run.MustExec(t, "qri save")
+
+	output := run.MustExecCombinedOutErr(t, "qri stats")
+
+	expect := `for linked dataset [test_peer/move_dir]
+
+[{"count":2,"maxLength":4,"minLength":3,"type":"string","unique":2},{"count":2,"maxLength":4,"minLength":3,"type":"string","unique":2},{"count":2,"histogram":{"bins":[3,3.4,3.8,4.2,4.6,5,5.4,5.800000000000001,6.2,6.6,7],"frequencies":[1,0,0,0,0,0,0,1,0,0]},"max":6,"mean":4.5,"median":4.5,"min":3,"type":"numeric"}]
+
+`
+
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
 	}
 }

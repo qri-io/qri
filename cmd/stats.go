@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -51,10 +49,6 @@ type StatsOptions struct {
 func (o *StatsOptions) Complete(f Factory, args []string) (err error) {
 	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
 		return
-	}
-
-	if len(args) < 1 {
-		return fmt.Errorf("need a dataset reference, eg: me/dataset_name")
 	}
 
 	o.Refs, err = GetCurrentRefSelect(f, args, 1, nil)
