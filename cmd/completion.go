@@ -7,11 +7,13 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/spf13/cobra"
+	"github.com/qri-io/qri/lib"
 )
 
 // NewAutocompleteCommand creates a new `qri complete` cobra command that prints autocomplete scripts
-func NewAutocompleteCommand(_ Factory, ioStreams ioes.IOStreams) *cobra.Command {
+func NewAutocompleteCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &AutocompleteOptions{IOStreams: ioStreams}
+	cfgOpt := ConfigOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "completion [bash|zsh]",
 		Short: "generate shell auto-completion scripts",
@@ -39,7 +41,51 @@ run on each terminal session.`,
 		ValidArgs: []string{"bash", "zsh"},
 	}
 
+	configCompletion := &cobra.Command{
+		Use:   "config [FIELD]",
+		Short: "get configuration keys",
+		Long: `'qri completion config' is a util function for auto-completion of config keys, ignores private data`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := cfgOpt.CompleteConfig(f); err != nil {
+				return err
+			}
+			return cfgOpt.GetConfig(args)
+		},
+	}
+
+	cmd.AddCommand(configCompletion)
+
 	return cmd
+}
+
+// Complete adds any missing configuration that can only be added just before calling Run
+func (o *ConfigOptions) CompleteConfig(f Factory) (err error) {
+	o.inst = f.Instance()
+	o.ConfigMethods, err = f.ConfigMethods()
+	if err != nil {
+		return
+	}
+
+	o.ProfileMethods, err = f.ProfileMethods()
+	return
+}
+
+// Get a configuration option
+func (o *ConfigOptions) GetConfig(args []string) (err error) {
+	params := &lib.GetConfigParams{}
+	if len(args) == 1 {
+		params.Field = args[0]
+	}
+
+	var data []byte
+
+	if err = o.ConfigMethods.GetConfigKeys(params, &data); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(o.Out, string(data))
+	return
 }
 
 // AutocompleteOptions encapsulates completion options
@@ -88,6 +134,15 @@ __qri_parse_search()
     fi
 }
 
+__qri_parse_config()
+{
+    local qri_output out
+    if qri_output=$(qri completion config $cur --no-prompt --no-color 2>/dev/null); then
+        out=($(echo "${qri_output}"))
+        COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
+    fi
+}
+
 __qri_get_datasets()
 {
     __qri_parse_list
@@ -104,6 +159,14 @@ __qri_get_search()
     fi
 }
 
+__qri_get_config()
+{
+    __qri_parse_config
+    if [[ $? -eq 0 ]]; then
+        return 0
+    fi
+}
+
 __qri_custom_func() {
     case ${last_command} in
         qri_checkout | qri_export | qri_get | qri_log | qri_logbook | qri_publish | qri_remove | qri_rename | qri_render | qri_save | qri_stats | qri_use | qri_validate | qri_whatchanged)
@@ -112,6 +175,10 @@ __qri_custom_func() {
             ;;
         qri_add | qri_fetch | qri_search)
         	__qri_get_search
+        	return
+        	;;
+        qri_config_get | qri_config_set)
+        	__qri_get_config
         	return
         	;;
         *)
