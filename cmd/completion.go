@@ -6,9 +6,9 @@ import (
 	"io"
 
 	"github.com/qri-io/ioes"
-	"github.com/spf13/cobra"
-	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/base/component"
+	"github.com/qri-io/qri/lib"
+	"github.com/spf13/cobra"
 )
 
 // NewAutocompleteCommand creates a new `qri complete` cobra command that prints autocomplete scripts
@@ -43,11 +43,11 @@ run on each terminal session.`,
 	}
 
 	configCompletion := &cobra.Command{
-		Use:   "config [FIELD]",
+		Use:    "config [FIELD]",
 		Hidden: true,
-		Short: "get configuration keys",
-		Long: `'qri completion config' is a util function for auto-completion of config keys, ignores private data`,
-		Args: cobra.MaximumNArgs(1),
+		Short:  "get configuration keys",
+		Long:   `'qri completion config' is a util function for auto-completion of config keys, ignores private data`,
+		Args:   cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cfgOpt.CompleteConfig(f); err != nil {
 				return err
@@ -57,11 +57,11 @@ run on each terminal session.`,
 	}
 
 	structureCompletion := &cobra.Command{
-		Use:   "structure [FIELD]",
-		Hidden: true,
-		Short: "get structure keys",
-		Long: `'qri completion structure' is a util function for auto-completion of structure keys`,
-		Args: cobra.MaximumNArgs(1),
+		Use:       "structure [FIELD]",
+		Hidden:    true,
+		Short:     "get structure keys",
+		Long:      `'qri completion structure' is a util function for auto-completion of structure keys`,
+		Args:      cobra.MaximumNArgs(1),
 		ValidArgs: component.DatasetFields,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			for _, structureArg := range component.DatasetFields {
@@ -77,7 +77,7 @@ run on each terminal session.`,
 	return cmd
 }
 
-// Complete adds any missing configuration that can only be added just before calling Run
+// CompleteConfig adds any missing configuration that can only be added just before calling GetConfig
 func (o *ConfigOptions) CompleteConfig(f Factory) (err error) {
 	o.inst = f.Instance()
 	o.ConfigMethods, err = f.ConfigMethods()
@@ -89,7 +89,7 @@ func (o *ConfigOptions) CompleteConfig(f Factory) (err error) {
 	return
 }
 
-// Get a configuration option
+// GetConfig gets configuration keys based on a partial key supplied
 func (o *ConfigOptions) GetConfig(args []string) (err error) {
 	params := &lib.GetConfigParams{}
 	if len(args) == 1 {

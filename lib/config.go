@@ -1,9 +1,9 @@
 package lib
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"bytes"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -76,7 +76,7 @@ func (m *ConfigMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
 	return nil
 }
 
-// GetConfigKeys returns the Config key fields, or sub keys of the specified 
+// GetConfigKeys returns the Config key fields, or sub keys of the specified
 // fields of the Config, as a slice of bytes to be used for auto completion
 func (m *ConfigMethods) GetConfigKeys(p *GetConfigParams, res *[]byte) (err error) {
 	if m.inst.rpc != nil {
@@ -126,30 +126,29 @@ func parseKeys(cfg interface{}, prefix, parentKey string) ([]byte, error) {
 	if parseErr != nil {
 		return nil, parseErr
 	}
-	
+
 	cfgMap := map[string]interface{}{}
 	parseErr = json.Unmarshal(cfgBytes, &cfgMap)
 	if parseErr != nil {
 		return nil, parseErr
 	}
-	
+
 	buff := bytes.Buffer{}
-	for s, _ := range cfgMap {
-  		if prefix != "" && !strings.HasPrefix(s, prefix) {
+	for s := range cfgMap {
+		if prefix != "" && !strings.HasPrefix(s, prefix) {
 			continue
-        }
-        if parentKey != "" {
+		}
+		if parentKey != "" {
 			buff.WriteString(parentKey)
 			buff.WriteString(".")
 		}
 		buff.WriteString(s)
-    	buff.WriteString("\n")
-    }
-    if len(buff.Bytes()) > 0 {
-    	return buff.Bytes(), nil
-    } else {
-    	return nil, fmt.Errorf("error getting %s from config", prefix)
-    }
+		buff.WriteString("\n")
+	}
+	if len(buff.Bytes()) > 0 {
+		return buff.Bytes(), nil
+	}
+	return nil, fmt.Errorf("error getting %s from config", prefix)
 }
 
 // SetConfig validates, updates and saves the config
