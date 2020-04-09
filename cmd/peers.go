@@ -84,6 +84,7 @@ connected, use the ` + "`--cached`" + ` flag.`,
 
 	list.Flags().BoolVarP(&o.Cached, "cached", "c", false, "show peers that aren't online, but previously seen")
 	list.Flags().StringVarP(&o.Network, "network", "n", "", "specify network to show peers from (qri|ipfs) (defaults to qri)")
+	list.Flags().StringVarP(&o.Format, "format", "", "", "output format. formats: simple")
 	// TODO (ramfox): when we determine the best way to order and paginate peers, restore!
 	// list.Flags().IntVar(&o.PageSize, "page-size", 200, "max page size number of peers to show, default 200")
 	// list.Flags().IntVar(&o.Page, "page", 1, "page number of peers, default 1")
@@ -210,23 +211,17 @@ func (o *PeersOptions) List() (err error) {
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
 
-	var items []fmt.Stringer
+	res := []*config.ProfilePod{}
 
 	if o.Network == "ipfs" {
-		res := []string{}
 		limit := page.Limit()
-		if err := o.PeerRequests.ConnectedIPFSPeers(&limit, &res); err != nil {
+		if err := o.PeerRequests.ConnectedQriProfiles(&limit, &res); err != nil {
 			return err
-		}
-
-		items = make([]fmt.Stringer, len(res))
-		for i, p := range res {
-			items[i] = stringer(p)
 		}
 	} else {
 		// if we don't have an RPC client, assume we're not connected
 		if !o.UsingRPC && !o.Cached {
-			printInfo(o.Out, "qri not connected, listing cached peers")
+			printInfo(o.ErrOut, "qri not connected, listing cached peers")
 			o.Cached = true
 		}
 
@@ -235,18 +230,23 @@ func (o *PeersOptions) List() (err error) {
 			Offset: page.Offset(),
 			Cached: o.Cached,
 		}
-		res := []*config.ProfilePod{}
 		if err = o.PeerRequests.List(p, &res); err != nil {
 			return err
 		}
-
-		items = make([]fmt.Stringer, len(res))
-		for i, p := range res {
-			items[i] = peerStringer(*p)
-		}
 	}
 
-	printItems(o.Out, items, page.Offset())
+	items := make([]fmt.Stringer, len(res))
+	peerNames := make([]string, len(res))
+	for i, p := range res {
+		items[i] = peerStringer(*p)
+		peerNames[i] = p.Peername
+	}
+
+	if o.Format == "simple" {
+		printlnStringItems(o.Out, peerNames)
+	} else {
+		printItems(o.Out, items, page.Offset())
+	}
 	return
 }
 

@@ -57,6 +57,7 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	cmd.Flags().BoolVarP(&o.Published, "published", "p", false, "list only published datasets")
 	cmd.Flags().BoolVarP(&o.ShowNumVersions, "num-versions", "n", false, "show number of versions")
 	cmd.Flags().StringVar(&o.Peername, "peer", "", "peer whose datasets to list")
+	cmd.MarkFlagCustom("peer", "__qri_get_peer_flag_suggestions")
 	cmd.Flags().BoolVarP(&o.Raw, "raw", "r", false, "to show raw references")
 	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "experimental: build and use dscache to list")
 

@@ -134,6 +134,8 @@ func (o *AutocompleteOptions) Run(cmd *cobra.Command, args []string) (err error)
 
 const (
 	bashCompletionFunc = `
+# arg completions
+
 __qri_parse_list()
 {
     local qri_output out
@@ -168,6 +170,16 @@ __qri_parse_structure_args()
 {
     local qri_output out
     if qri_output=$(qri completion structure --no-prompt --no-color 2>/dev/null); then
+        echo "${qri_output}"
+        return 1
+    fi
+    return 0
+}
+
+__qri_parse_peers()
+{
+    local qri_output out
+    if qri_output=$(qri peers list --format=simple --no-prompt --no-color 2>/dev/null); then
         echo "${qri_output}"
         return 1
     fi
@@ -212,9 +224,20 @@ __qri_custom_func() {
         	__qri_suggest_completion "${completions}"
         	return
         	;;
+        qri_peers_info | qri_peers_connect | qri_peers_disconnect)
+            __qri_suggest_completion "$(__qri_parse_peers)"
+            return
+            ;;
         *)
             ;;
     esac
+}
+
+# flag completions
+
+__qri_get_peer_flag_suggestions()
+{
+	__qri_suggest_completion "$(__qri_parse_peers)"
 }
 `
 
