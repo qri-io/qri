@@ -207,7 +207,7 @@ __qri_suggest_completion()
 __qri_custom_func() {
     local out
     case ${last_command} in
-        qri_checkout | qri_export | qri_log | qri_logbook | qri_publish | qri_remove | qri_rename | qri_render | qri_save | qri_stats | qri_use | qri_validate | qri_whatchanged)
+        qri_checkout | qri_export | qri_log | qri_logbook | qri_publish | qri_remove | qri_rename | qri_render | qri_save | qri_stats | qri_use | qri_validate | qri_whatchanged | qri_workdir_link | qri_workdir_unlink)
             __qri_suggest_completion "$(__qri_parse_list)"
             return
             ;;
