@@ -197,6 +197,11 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	}
 	log.Debugf("Checkout loaded dataset %q", ref)
 
+	// Fail early if link already exists
+	if _, err := m.inst.fsi.HasLink(p.Ref); err != nil {
+		return err
+	}
+
 	// Create a directory.
 	if err := os.Mkdir(p.Dir, os.ModePerm); err != nil {
 		log.Debugf("Checkout, Mkdir failed, error: %s", ref)
