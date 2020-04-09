@@ -2,6 +2,8 @@ package base
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
@@ -13,6 +15,12 @@ import (
 
 // DatasetLogItem aliases the type from logbook
 type DatasetLogItem = logbook.DatasetLogItem
+
+// TimeoutDuration is the duration allowed for a datasetLog lookup before it times out
+const TimeoutDuration = 100 * time.Millisecond
+
+// ErrDatasetLogTimeout is an error for when getting the datasetLog times out
+var ErrDatasetLogTimeout = fmt.Errorf("datasetLog: timeout")
 
 // DatasetLog fetches the change version history of a dataset
 func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit, offset int, loadDatasets bool) ([]DatasetLogItem, error) {
@@ -76,17 +84,20 @@ func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref reporef.Dataset
 		return nil, err
 	}
 
+	timeoutCtx, cancel := context.WithTimeout(ctx, TimeoutDuration)
+	defer cancel()
+
 	versions := make(chan reporef.DatasetRef)
 	done := make(chan struct{})
 	go func() {
 		for {
 			var ds *dataset.Dataset
 			if loadDatasets {
-				if ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path); err != nil {
+				if ds, err = dsfs.LoadDataset(timeoutCtx, r.Store(), ref.Path); err != nil {
 					return
 				}
 			} else {
-				if ds, err = dsfs.LoadDatasetRefs(ctx, r.Store(), ref.Path); err != nil {
+				if ds, err = dsfs.LoadDatasetRefs(timeoutCtx, r.Store(), ref.Path); err != nil {
 					return
 				}
 			}
@@ -114,9 +125,10 @@ func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref reporef.Dataset
 			rlog = append(rlog, ref)
 		case <-done:
 			return rlog, nil
+		case <-timeoutCtx.Done():
+			return rlog, ErrDatasetLogTimeout
 		case <-ctx.Done():
-			// TODO (b5) - ths is technially a failure, handle it!
-			return rlog, nil
+			return rlog, ErrDatasetLogTimeout
 		}
 	}
 }
