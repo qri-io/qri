@@ -99,32 +99,18 @@ func (fsi *FSI) LinkedRefs(offset, limit int) ([]reporef.DatasetRef, error) {
 	return refs, nil
 }
 
-// HasLink checks if a refString already has an existing link on the file system
-func (fsi *FSI) HasLink(refStr string) (hasLink bool, err error) {
-	ref, err := repo.ParseDatasetRef(refStr)
-	if err != nil {
-		return false, err
-	}
-	err = repo.CanonicalizeDatasetRef(fsi.repo, &ref)
-	if err != nil && err != repo.ErrNotFound && err != repo.ErrNoHistory {
-		return false, err
-	}
-
-	return fsi.RefHasLink(ref)
-}
-
-// RefHasLink checks if a ref already has an existing link on the file system
-func (fsi *FSI) RefHasLink(ref reporef.DatasetRef) (hasLink bool, err error) {
-	if stored, err := fsi.repo.GetRef(ref); err == nil {
+// EnsureRefNotLinked checks if a ref already has an existing link on the file system
+func (fsi *FSI) EnsureRefNotLinked(ref *reporef.DatasetRef) error {
+	if stored, err := fsi.repo.GetRef(*ref); err == nil {
 		if stored.FSIPath != "" {
 			// There is already a link for this dataset, see if that link still exists.
 			targetPath := filepath.Join(stored.FSIPath, QriRefFilename)
 			if _, err := os.Stat(targetPath); err == nil {
-				return true, fmt.Errorf("'%s' is already linked to %s", ref.AliasString(), stored.FSIPath)
+				return fmt.Errorf("'%s' is already linked to %s", ref.AliasString(), stored.FSIPath)
 			}
 		}
 	}
-	return false, nil
+	return nil
 }
 
 // CreateLink links a working directory to a dataset. Returns the reference alias, and a
@@ -141,7 +127,9 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 		return ref.String(), rollback, err
 	}
 
-	if _, err := fsi.RefHasLink(ref); err != nil {
+	// todo(arqu): should utilize rollback as other operations bellow
+	// can fail too
+	if err := fsi.EnsureRefNotLinked(&ref); err != nil {
 		return "", rollback, err
 	}
 
