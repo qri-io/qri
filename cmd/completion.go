@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/spf13/cobra"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/base/component"
 )
 
 // NewAutocompleteCommand creates a new `qri complete` cobra command that prints autocomplete scripts
@@ -43,6 +44,7 @@ run on each terminal session.`,
 
 	configCompletion := &cobra.Command{
 		Use:   "config [FIELD]",
+		Hidden: true,
 		Short: "get configuration keys",
 		Long: `'qri completion config' is a util function for auto-completion of config keys, ignores private data`,
 		Args: cobra.MaximumNArgs(1),
@@ -54,7 +56,23 @@ run on each terminal session.`,
 		},
 	}
 
+	structureCompletion := &cobra.Command{
+		Use:   "structure [FIELD]",
+		Hidden: true,
+		Short: "get structure keys",
+		Long: `'qri completion structure' is a util function for auto-completion of structure keys`,
+		Args: cobra.MaximumNArgs(1),
+		ValidArgs: component.DatasetFields,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			for _, structureArg := range component.DatasetFields {
+				fmt.Fprintln(ioStreams.Out, structureArg)
+			}
+			return nil
+		},
+	}
+
 	cmd.AddCommand(configCompletion)
+	cmd.AddCommand(structureCompletion)
 
 	return cmd
 }
@@ -120,65 +138,78 @@ __qri_parse_list()
 {
     local qri_output out
     if qri_output=$(qri list --format=simple --no-prompt --no-color 2>/dev/null); then
-        out=($(echo "${qri_output}"))
-        COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
+        echo "${qri_output}"
+        return 1
     fi
+    return 0
 }
 
 __qri_parse_search()
 {
     local qri_output out
     if qri_output=$(qri search $cur --format=simple --no-prompt --no-color 2>/dev/null); then
-        out=($(echo "${qri_output}"))
-        COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
+        echo "${qri_output}"
+        return 1
     fi
+    return 0
 }
 
 __qri_parse_config()
 {
     local qri_output out
     if qri_output=$(qri completion config $cur --no-prompt --no-color 2>/dev/null); then
-        out=($(echo "${qri_output}"))
-        COMPREPLY=( $( compgen -W "${out[*]}" -- "$cur" ) )
+        echo "${qri_output}"
+        return 1
     fi
+    return 0
 }
 
-__qri_get_datasets()
+__qri_parse_structure_args()
 {
-    __qri_parse_list
-    if [[ $? -eq 0 ]]; then
-        return 0
+    local qri_output out
+    if qri_output=$(qri completion structure --no-prompt --no-color 2>/dev/null); then
+        echo "${qri_output}"
+        return 1
     fi
+    return 0
 }
 
-__qri_get_search()
+__qri_join_completions()
 {
-    __qri_parse_search
-    if [[ $? -eq 0 ]]; then
-        return 0
-    fi
+    local q1=($1)
+    local q2=($2)
+    echo "${q1[*]} ${q2[*]}"
+    return 1
 }
 
-__qri_get_config()
+__qri_suggest_completion()
 {
-    __qri_parse_config
-    if [[ $? -eq 0 ]]; then
+	local res=($1)
+    if test -z "${res}"; then
         return 0
     fi
+    COMPREPLY=( $( compgen -W "${res[*]}" -- "$cur" ) )
+    return 1
 }
 
 __qri_custom_func() {
+    local out
     case ${last_command} in
-        qri_checkout | qri_export | qri_get | qri_log | qri_logbook | qri_publish | qri_remove | qri_rename | qri_render | qri_save | qri_stats | qri_use | qri_validate | qri_whatchanged)
-            __qri_get_datasets
+        qri_checkout | qri_export | qri_log | qri_logbook | qri_publish | qri_remove | qri_rename | qri_render | qri_save | qri_stats | qri_use | qri_validate | qri_whatchanged)
+            __qri_suggest_completion "$(__qri_parse_list)"
             return
             ;;
         qri_add | qri_fetch | qri_search)
-        	__qri_get_search
+        	__qri_suggest_completion "$(__qri_parse_search)"
         	return
         	;;
         qri_config_get | qri_config_set)
-        	__qri_get_config
+        	__qri_suggest_completion "$(__qri_parse_config)"
+        	return
+        	;;
+        qri_get)
+            local completions=$(__qri_join_completions "$(__qri_parse_structure_args)" "$(__qri_parse_list)")
+        	__qri_suggest_completion "${completions}"
         	return
         	;;
         *)
