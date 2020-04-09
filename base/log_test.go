@@ -135,6 +135,37 @@ func TestDatasetLogForeign(t *testing.T) {
 	}
 }
 
+func TestDatasetLogForeignTimeout(t *testing.T) {
+	ctx := context.Background()
+	mr := newTestRepo(t).(*repo.MemRepo)
+
+	// Test peer
+	username := "test_peer"
+	otherPeerInfo := testPeers.GetTestPeerInfo(1)
+	datasetRef := reporef.DatasetRef{
+		Peername:  username,
+		ProfileID: profile.IDFromPeerID(otherPeerInfo.PeerID),
+		Name:      "foreign_ds",
+		Path:      "/mem/notLocalPath",
+	}
+
+	// Add a reference to the repo which uses a path not in our filestore
+	err := mr.PutRef(datasetRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Get a dataset log, which should timeout with an error
+	_, err = DatasetLog(ctx, mr, datasetRef, -1, 0, true)
+	if err == nil {
+		t.Fatal("expected lookup for foreign log to fail")
+	}
+	expectErr := `datasetLog: timeout`
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch, expected %s, got %s", expectErr, err)
+	}
+}
+
 func TestDatasetLogFromHistory(t *testing.T) {
 	ctx := context.Background()
 	r := newTestRepo(t)
