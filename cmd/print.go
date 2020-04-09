@@ -168,7 +168,7 @@ func confirm(w io.Writer, r io.Reader, message string, def bool) bool {
 		return def
 	}
 	input = strings.TrimSpace(strings.ToLower(input))
-	return (input == "y" || input == "yes") == def
+	return (input == "y" || input == "yes")
 }
 
 func usingRPCError(cmdName string) error {

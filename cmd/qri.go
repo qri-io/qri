@@ -144,7 +144,9 @@ func (o *QriOptions) Init() (err error) {
 		setNoPrompt(o.NoPrompt)
 		log.Debugf("running cmd %q", os.Args)
 	}
-	return nil
+	// o.initialized.Do(initBody)
+	initBody()
+	return
 }
 
 // Instance returns the instance this options is using
