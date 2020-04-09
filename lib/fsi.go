@@ -183,6 +183,11 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 
 	log.Debugf("Checkout for ref %q", ref)
 
+	// Fail early if link already exists
+	if err := m.inst.fsi.EnsureRefNotLinked(ref); err != nil {
+		return err
+	}
+
 	// Load dataset that is being checked out.
 	ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
 	if err != nil {
@@ -196,11 +201,6 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 		return
 	}
 	log.Debugf("Checkout loaded dataset %q", ref)
-
-	// Fail early if link already exists
-	if _, err := m.inst.fsi.HasLink(p.Ref); err != nil {
-		return err
-	}
 
 	// Create a directory.
 	if err := os.Mkdir(p.Dir, os.ModePerm); err != nil {

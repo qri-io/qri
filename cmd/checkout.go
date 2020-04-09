@@ -24,7 +24,7 @@ func NewCheckoutCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Annotations: map[string]string{
 			"group": "workdir",
 		},
-		Args: cobra.ExactArgs(1),
+		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -43,6 +43,8 @@ type CheckoutOptions struct {
 	Refs *RefSelect
 
 	FSIMethods *lib.FSIMethods
+
+	Dir string
 }
 
 // Complete configures the checkout command
@@ -55,6 +57,12 @@ func (o *CheckoutOptions) Complete(f Factory, args []string) (err error) {
 	o.Refs, err = GetCurrentRefSelect(f, args, 1, o.FSIMethods)
 	if err != nil {
 		return err
+	}
+
+	if len(args) == 2 {
+		o.Dir = args[1]
+	} else {
+		o.Dir = ""
 	}
 
 	return nil
@@ -72,17 +80,19 @@ func (o *CheckoutOptions) Run() (err error) {
 	if pos == -1 {
 		return fmt.Errorf("expect '/' in dataset ref")
 	}
-	folderName := varName.CreateVarNameFromString(ref[pos+1:])
+	if o.Dir == "" {
+		o.Dir = varName.CreateVarNameFromString(ref[pos+1:])
+	}
 
-	if err = qfs.AbsPath(&folderName); err != nil {
+	if err = qfs.AbsPath(&o.Dir); err != nil {
 		return err
 	}
 
 	var res string
-	err = o.FSIMethods.Checkout(&lib.CheckoutParams{Dir: folderName, Ref: ref}, &res)
+	err = o.FSIMethods.Checkout(&lib.CheckoutParams{Dir: o.Dir, Ref: ref}, &res)
 	if err != nil {
 		return err
 	}
-	printSuccess(o.Out, "created and linked working directory %s for existing dataset", folderName)
+	printSuccess(o.Out, "created and linked working directory %s for existing dataset", o.Dir)
 	return nil
 }
