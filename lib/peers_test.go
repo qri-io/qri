@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/httpfs"
@@ -148,7 +149,7 @@ func TestGetReferences(t *testing.T) {
 		refCount int
 		err      string
 	}{
-		{PeerRefsParams{}, 0, "error decoding peer Id: input isn't valid multihash"},
+		{PeerRefsParams{}, 0, "error decoding peer Id: failed to parse peer ID: cid too short"},
 		{PeerRefsParams{PeerID: "QmY1PxkV9t9RoBwtXHfue1Qf6iYob19nL6rDHuXxooAVZa"}, 0, "not connected to p2p network"},
 	}
 
@@ -181,38 +182,39 @@ func TestPeerConnectionsParamsPod(t *testing.T) {
 		t.Error("expected NetworkID to be set")
 	}
 
-	ma := "/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"
-	if p := NewPeerConnectionParamsPod(ma); p.Multiaddr != ma {
-		t.Error("expected Multiaddr to be set")
+	ma := "/ip4/130.211.198.23/tcp/4001/p2p/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"
+	p := NewPeerConnectionParamsPod(ma)
+	if diff := cmp.Diff(ma, p.Multiaddr); diff != "" {
+		t.Errorf("multiaddress mismatch (-want +got):\n%s", diff)
 	}
 
 	if p := NewPeerConnectionParamsPod("QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"); p.ProfileID != "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb" {
 		t.Error("expected ProfileID to be set")
 	}
 
-	p := PeerConnectionParamsPod{NetworkID: "/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
+	p = &PeerConnectionParamsPod{NetworkID: "/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
 	if _, err := p.Decode(); err != nil {
 		t.Error(err.Error())
 	}
-	p = PeerConnectionParamsPod{NetworkID: "/ipfs/QmNX"}
+	p = &PeerConnectionParamsPod{NetworkID: "/ipfs/QmNX"}
 	if _, err := p.Decode(); err == nil {
 		t.Error("expected invalid decode to error")
 	}
 
-	p = PeerConnectionParamsPod{ProfileID: "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
+	p = &PeerConnectionParamsPod{ProfileID: "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
 	if _, err := p.Decode(); err != nil {
 		t.Error(err.Error())
 	}
-	p = PeerConnectionParamsPod{ProfileID: "21hub2dj23"}
+	p = &PeerConnectionParamsPod{ProfileID: "21hub2dj23"}
 	if _, err := p.Decode(); err == nil {
 		t.Error("expected invalid decode to error")
 	}
 
-	p = PeerConnectionParamsPod{Multiaddr: "/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
+	p = &PeerConnectionParamsPod{Multiaddr: "/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
 	if _, err := p.Decode(); err != nil {
 		t.Error(err.Error())
 	}
-	p = PeerConnectionParamsPod{Multiaddr: "nhuh"}
+	p = &PeerConnectionParamsPod{Multiaddr: "nhuh"}
 	if _, err := p.Decode(); err == nil {
 		t.Error("expected invalid decode to error")
 	}

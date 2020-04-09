@@ -153,7 +153,8 @@ func (o *QriOptions) Init() (err error) {
 		o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
 		log.Debugf("running cmd %q", os.Args)
 	}
-	o.initialized.Do(initBody)
+	// o.initialized.Do(initBody)
+	initBody()
 	return
 }
 

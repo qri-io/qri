@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/qri-io/ioes"
+	qipfs "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/api"
-	"github.com/qri-io/qri/errors"
+	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -72,11 +74,28 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 			return err
 		}
 	} else if !QRIRepoInitialized(qriPath) {
-		return errors.New(repo.ErrNoRepo, "no qri repo exists\nhave you run 'qri setup'?")
+		return qerr.New(repo.ErrNoRepo, "no qri repo exists\nhave you run 'qri setup'?")
 	}
 
 	if err = f.Init(); err != nil {
-		return err
+		if errors.Is(err, qipfs.ErrNeedMigration) {
+			err = nil
+			msg := `
+Your IPFS repo needs updating before qri can start. 
+Run migration now?`
+			if !confirm(o.Out, o.In, msg, false) {
+				return qerr.New(qipfs.ErrNeedMigration, `connect cancelled, requires migration.`)
+			}
+
+			if err = qipfs.Migrate(); err != nil {
+				return err
+			}
+			if err = f.Init(); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	// This fails whenever `qri connect` runs but another instance of `qri connect` is already

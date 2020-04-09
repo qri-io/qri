@@ -3,6 +3,7 @@ package buildrepo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,9 +19,10 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
+	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/fs"
+	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -129,7 +131,13 @@ func NewCAFSStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore
 			},
 			ipfs.OptsFromMap(cfg.Store.Options),
 		}
-		return ipfs.NewFilestore(fsOpts...)
+		store, err = ipfs.NewFilestore(fsOpts...)
+		if errors.Is(err, ipfs.ErrNeedMigration) {
+			err = qerr.New(err, `Your IPFS repo needs an update.
+Run 'qri connect' to begin the migration process.`)
+		}
+
+		return store, err
 	case "ipfs_http":
 		urli, ok := cfg.Store.Options["url"]
 		if !ok {

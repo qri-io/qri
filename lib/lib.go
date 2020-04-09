@@ -352,8 +352,8 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		inst.store = o.store
 	} else if inst.store == nil {
 		if inst.store, err = buildrepo.NewCAFSStore(ctx, cfg); err != nil {
-			log.Error("intializing store:", err.Error())
-			return nil, fmt.Errorf("newStore: %s", err)
+			log.Debugf("intializing store: %s", err.Error())
+			return nil, fmt.Errorf("initializing store: %w", err)
 		}
 	}
 
@@ -361,22 +361,22 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		inst.qfs = o.qfs
 	} else if inst.qfs == nil {
 		if inst.qfs, err = buildrepo.NewFilesystem(cfg, inst.store); err != nil {
-			log.Error("intializing filesystem:", err.Error())
-			return nil, fmt.Errorf("newFilesystem: %s", err)
+			log.Debugf("intializing filesystem:", err.Error())
+			return nil, fmt.Errorf("initializing filesystem: %w", err)
 		}
 	}
 
 	if inst.logbook == nil {
 		inst.logbook, err = newLogbook(inst.qfs, cfg, inst.repoPath)
 		if err != nil {
-			return nil, fmt.Errorf("newLogbook: %w", err)
+			return nil, fmt.Errorf("intializing logbook: %w", err)
 		}
 	}
 
 	if inst.dscache == nil {
 		inst.dscache, err = newDscache(ctx, inst.qfs, inst.logbook, cfg, inst.repoPath)
 		if err != nil {
-			return nil, fmt.Errorf("newDsache: %w", err)
+			return nil, fmt.Errorf("intializing dscache: %w", err)
 		}
 	}
 
@@ -389,7 +389,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	} else if inst.repo == nil {
 		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.qfs, inst.logbook, inst.dscache); err != nil {
 			log.Error("intializing repo:", err.Error())
-			return nil, fmt.Errorf("newRepo: %s", err)
+			return nil, fmt.Errorf("initializing repo: %w", err)
 		}
 	}
 
@@ -410,7 +410,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	if inst.node == nil {
 		if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P); err != nil {
-			log.Error("intializing p2p:", err.Error())
+			log.Error("intializing p2p: %s", err.Error())
 			return
 		}
 	}
