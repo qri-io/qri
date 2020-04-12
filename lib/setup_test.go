@@ -16,13 +16,10 @@ func TestSetupTeardown(t *testing.T) {
 
 	path := filepath.Join(os.TempDir(), "test_lib_setup_teardown")
 	cfg1 := config.DefaultConfigForTesting()
-	cfg1.Profile = nil
-	cfg1.Registry = nil
 	params := SetupParams{
-		RepoPath:       path,
-		ConfigFilepath: filepath.Join(path, "config.yml"),
-		Config:         cfg1,
-		Generator:      repotest.NewTestCrypto(),
+		RepoPath:  path,
+		Config:    cfg1,
+		Generator: repotest.NewTestCrypto(),
 	}
 	if err := Setup(params); err == nil {
 		t.Errorf("expected invalid cfg to fail")
@@ -56,9 +53,8 @@ func TestSetupTeardown(t *testing.T) {
 	// })
 
 	err := Teardown(TeardownParams{
-		Config:         params.Config,
-		ConfigFilepath: params.ConfigFilepath,
-		RepoPath:       path,
+		Config:   params.Config,
+		RepoPath: path,
 	})
 
 	if err != nil {
