@@ -206,7 +206,20 @@ func (n *QriNode) startOnlineServices(ctx context.Context) error {
 		}
 	}()
 
-	return n.StartDiscovery(bsPeers)
+	// Check our existing peerstore for any potential friends
+	go n.DiscoverPeerstoreQriPeers(n.host.Peerstore())
+	// Boostrap off of default addresses
+	go n.Bootstrap(n.cfg.QriBootstrapAddrs, bsPeers)
+	// Bootstrap to IPFS network if this node is using an IPFS fs
+	go n.BootstrapIPFS()
+
+	// we don't want to fail completely if discovery services like mdns aren't
+	// supported. Otherwise routers with mdns turned off would break p2p entirely
+	if err := n.startDiscovery(); err != nil {
+		log.Errorf("couldn't start discovery: %s", err)
+	}
+
+	return nil
 }
 
 // GoOffline shuts down this peer
