@@ -13,6 +13,7 @@ func DefaultConfigForTesting() *Config {
 	cfg.Profile.Peername = "default_profile_for_testing"
 	cfg.Profile.PrivKey = info.EncodedPrivKey
 	cfg.Profile.ID = info.EncodedPeerID
+	cfg.CLI.ColorizeOutput = false
 	return cfg
 }
 
