@@ -244,3 +244,49 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) dsref.Ref {
 	}
 	return ref
 }
+
+func TestInstanceEventSubscription(t *testing.T) {
+	// TODO (b5) - can't use testrunner for this test because event busses aren't
+	// wired up correctly in the test runner constructor. The proper fix is to have
+	// testrunner build it's instance using NewInstance
+	ctx, done := context.WithTimeout(context.Background(), time.Millisecond*250)
+	defer done()
+
+	tmpDir, err := ioutil.TempDir("", "event_sub_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	cfg := config.DefaultConfigForTesting()
+	cfg.Repo.Type = "mem"
+	// remove default ipfs fs, not needed for this test
+	cfg.Filesystems = []qfs.Config{{Type: "mem"}}
+
+	eventCh := make(chan event.Type, 1)
+	expect := event.ETP2PGoneOnline
+	eventHandler := func(_ context.Context, t event.Type, payload interface{}) error {
+		eventCh <- t
+		return nil
+	}
+
+	inst, err := NewInstance(ctx, tmpDir,
+		OptConfig(cfg),
+		// remove logbook, not needed for this test
+		OptLogbook(&logbook.Book{}),
+		OptEventHandler(eventHandler, expect),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go inst.Node().GoOnline(ctx)
+	select {
+	case evt := <-eventCh:
+		if evt != expect {
+			t.Errorf("received event mismatch. expected: %q, got: %q", expect, evt)
+		}
+	case <-ctx.Done():
+		t.Error("expected event before context deadline, got none")
+	}
+}

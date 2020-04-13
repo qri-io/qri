@@ -16,21 +16,17 @@ func TestSetupTeardown(t *testing.T) {
 
 	path := filepath.Join(os.TempDir(), "test_lib_setup_teardown")
 	cfg1 := config.DefaultConfigForTesting()
+	cfg1.Repo.Type = "mem"
 	params := SetupParams{
-		RepoPath:  path,
-		Config:    cfg1,
-		Generator: repotest.NewTestCrypto(),
+		RepoPath:            path,
+		Config:              config.DefaultConfigForTesting(),
+		Generator:           repotest.NewTestCrypto(),
+		SetupIPFS:           true,
+		SetupIPFSConfigData: ipfsCfg,
+		Register:            true,
 	}
-	if err := Setup(params); err == nil {
-		t.Errorf("expected invalid cfg to fail")
-	}
-
-	params.Config = config.DefaultConfigForTesting()
 	params.Config.Profile.Peername = "hallo"
 	params.Config.Registry.Location = registryServer.URL
-	params.SetupIPFS = true
-	params.SetupIPFSConfigData = ipfsCfg
-	params.Register = true
 	if err := Setup(params); err != nil {
 		t.Error(err.Error())
 	}

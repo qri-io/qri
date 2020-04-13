@@ -32,8 +32,5 @@ const (
 
 func init() {
 	// golog.SetLogLevel("qrip2p", "debug")
-
-	// ipfs core includes a client version. seems like a good idea.
-	// TODO - understand where & how client versions are used
 	identify.ClientVersion = QriServiceTag
 }
