@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/repo/profile"
-
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // MtQriPeers is a request to get a list of known qri peers
@@ -29,7 +28,6 @@ type QriPeer struct {
 // and sets a priority in the host Connection Manager if the connection is upgraded
 func (n *QriNode) UpgradeToQriConnection(pinfo peer.AddrInfo) error {
 	// bail early if we have seen this peer before
-	// OKAY
 	pid := pinfo.ID
 	log.Debugf("%s, attempting to upgrading %s to qri connection", n.ID, pid)
 	if _support, err := n.host.Peerstore().Get(pid, qriSupportKey); err == nil {
@@ -130,7 +128,6 @@ func (n *QriNode) RequestNewPeers(ctx context.Context, peers []QriPeer) {
 	}
 
 	for _, p := range newPeers {
-		// TODO -
 		ID, err := peer.IDB58Decode(strings.TrimPrefix(p.PeerID, "/ipfs/"))
 		if err != nil {
 			continue

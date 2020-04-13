@@ -11,7 +11,15 @@ import (
 	"github.com/qri-io/qri/version"
 )
 
-var log = golog.Logger("qrip2p")
+var (
+	log = golog.Logger("qrip2p")
+	// QriServiceTag marks the type & version of the qri service
+	QriServiceTag = fmt.Sprintf("qri/%s", version.String)
+	// ErrNotConnected is for a missing required network connection
+	ErrNotConnected = fmt.Errorf("no p2p connection")
+	// ErrQriProtocolNotSupported is returned when a connection can't be upgraded
+	ErrQriProtocolNotSupported = fmt.Errorf("peer doesn't support the qri protocol")
+)
 
 const (
 	// QriProtocolID is the top level Protocol Identifier
@@ -22,9 +30,6 @@ const (
 	qriSupportKey = "qri-support"
 )
 
-// QriServiceTag tags the type & version of the qri service
-var QriServiceTag = fmt.Sprintf("qri/%s", version.String)
-
 func init() {
 	// golog.SetLogLevel("qrip2p", "debug")
 
@@ -32,9 +37,3 @@ func init() {
 	// TODO - understand where & how client versions are used
 	identify.ClientVersion = QriServiceTag
 }
-
-// ErrNotConnected is for a missing required network connection
-var ErrNotConnected = fmt.Errorf("no p2p connection")
-
-// ErrQriProtocolNotSupported is returned when a connection can't be upgraded
-var ErrQriProtocolNotSupported = fmt.Errorf("peer doesn't support the qri protocol")

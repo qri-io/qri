@@ -8,13 +8,6 @@ import (
 )
 
 func TestListPeers(t *testing.T) {
-	// node := newTestNode(t)
-
-	// _, err := ListPeers(node, 10, 0, false)
-	// if err != nil {
-	// 	t.Error(err.Error())
-	// }
-
 	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 6)

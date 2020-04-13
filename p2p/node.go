@@ -77,10 +77,6 @@ type QriNode struct {
 	// local http handlers/websockets/stdio, but these streams are meant for
 	// local feedback as opposed to p2p connections
 	LocalStreams ioes.IOStreams
-
-	// TODO - waiting on next IPFS release
-	// autoNAT service
-	// autonat *autonat.AutoNATService
 }
 
 // Assert that conversions needed by the tests are valid.

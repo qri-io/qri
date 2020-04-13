@@ -95,14 +95,6 @@ func (n *QriNode) handleConnected(ws *WrappedStream, msg Message) (hangup bool) 
 		return
 	}
 
-	// forward this message to all connected peers except the sender
-	// TODO - this is causing concurrent iteration & write to the repo profile store. Fix
-	// pids := peerDifference(n.ConnectedQriPeerIDs(), []peer.ID{pinfo.ID})
-	// if err := n.SendMessage(msg, nil, pids...); err != nil {
-	// 	log.Debug(err.Error())
-	// 	return
-	// }
-
 	// store that we've seen this message, cleaning up after a while
 	n.msgState.Store(msg.ID, true)
 	go func(id string) {

@@ -5,12 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	// "time"
-
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
-
-	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 // MtProfile is a peer info message
@@ -67,8 +64,6 @@ func (n *QriNode) RequestProfile(ctx context.Context, pid peer.ID) (*profile.Pro
 }
 
 func (n *QriNode) handleProfile(ws *WrappedStream, msg Message) (hangup bool) {
-	// hangup = false
-
 	switch msg.Header("phase") {
 	case "request":
 
