@@ -150,7 +150,7 @@ func TestInitBadName(t *testing.T) {
 	_ = run.CreateAndChdirToWorkDir("invalid_dataset_name")
 
 	// Init with an invalid dataset name
-	err := run.ExecCommand("qri init --name invalid-dataset-name --format csv")
+	err := run.ExecCommand("qri init --name invalid=dataset=name --format csv")
 	if err == nil {
 		t.Fatal("expected error trying to init, did not get an error")
 	}
