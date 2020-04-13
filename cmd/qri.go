@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/rpc"
 	"os"
+	"runtime"
 	"sync"
 
 	"github.com/qri-io/ioes"
@@ -17,6 +18,10 @@ import (
 
 // NewQriCommand represents the base command when called without any subcommands
 func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *cobra.Command {
+
+	qriPath, ipfsPath := pf()
+	opt := NewQriOptions(ctx, qriPath, ipfsPath, generator, ioStreams)
+
 	cmd := &cobra.Command{
 		Use:   "qri",
 		Short: "qri GDVCS CLI",
@@ -24,10 +29,22 @@ func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGene
 Feedback, questions, bug reports, and contributions are welcome! 
 https://github.com/qri-io/qri/issues`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			noColor, err := cmd.Flags().GetBool("no-color")
-			if err == nil && noColor {
-				setNoColor(noColor)
+			shouldColorOutput := false
+			cfg := opt.Instance().Config()
+			if cfg != nil && cfg.CLI != nil {
+				shouldColorOutput = cfg.CLI.ColorizeOutput
 			}
+			// todo(arqu): have a config var to indicate force override for windows
+			if runtime.GOOS == "windows" {
+				shouldColorOutput = false
+			}
+			if cmd.Flags().Changed("no-color") {
+				noColor, err := cmd.Flags().GetBool("no-color")
+				if err == nil {
+					shouldColorOutput = !noColor
+				}
+			}
+			setNoColor(!shouldColorOutput)
 			noPrompt, err := cmd.Flags().GetBool("no-prompt")
 			if err == nil && noPrompt {
 				setNoPrompt(noPrompt)
@@ -35,9 +52,6 @@ https://github.com/qri-io/qri/issues`,
 		},
 		BashCompletionFunction: bashCompletionFunc,
 	}
-
-	qriPath, ipfsPath := pf()
-	opt := NewQriOptions(ctx, qriPath, ipfsPath, generator, ioStreams)
 
 	cmd.SetUsageTemplate(rootUsageTemplate)
 	cmd.PersistentFlags().BoolVarP(&opt.NoPrompt, "no-prompt", "", false, "disable all interactive prompts")
