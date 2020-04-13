@@ -15,6 +15,8 @@ func TestParse(t *testing.T) {
 		{"right hand side", "@QmFirst/ipfs/QmSecond", Ref{ProfileID: "QmFirst", Path: "/ipfs/QmSecond"}},
 		{"just path", "@/ipfs/QmSecond", Ref{Path: "/ipfs/QmSecond"}},
 		{"long name", "peer/some_name@/map/QmXATayrFgsS3tpCi2ykfpNJ8uiCWT74dttnvJvVo1J7Rn", Ref{Username: "peer", Name: "some_name", Path: "/map/QmXATayrFgsS3tpCi2ykfpNJ8uiCWT74dttnvJvVo1J7Rn"}},
+		{"name-has-dash", "abc/my-dataset", Ref{Username: "abc", Name: "my-dataset"}},
+		{"dash-in-username", "some-user/my_dataset", Ref{Username: "some-user", Name: "my_dataset"}},
 	}
 	for i, c := range goodCases {
 		ref, err := Parse(c.text)
@@ -41,6 +43,8 @@ func TestParse(t *testing.T) {
 		{"local filename", "foo.json", "parsing ref, unexpected character at position 0: 'f'"},
 		{"absolute filepath", "/usr/local/bin/file.cbor", "parsing ref, unexpected character at position 0: '/'"},
 		{"absolute dirname", "/usr/local/bin", "parsing ref, unexpected character at position 0: '/'"},
+		{"dot in dataset", "abc/data.set", "parsing ref, unexpected character at position 8: '.'"},
+		{"equals in dataset", "abc/my=ds", "parsing ref, unexpected character at position 6: '='"},
 	}
 	for i, c := range badCases {
 		_, err := Parse(c.text)

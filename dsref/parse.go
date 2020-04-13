@@ -31,8 +31,8 @@ import (
 //     /ipfs/QmSome1Commit2Hash3
 
 const (
-	alphaNumeric       = `[a-zA-Z]\w*`
-	alphaNumericDsname = `[a-zA-Z]\w{0,143}`
+	alphaNumeric       = `[a-zA-Z][\w-]*`
+	alphaNumericDsname = `[a-zA-Z][\w-]{0,143}`
 	b58Id              = `Qm[0-9a-zA-Z]{0,44}`
 )
 
