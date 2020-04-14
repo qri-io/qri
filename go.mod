@@ -59,7 +59,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.0.0
 	github.com/sirupsen/logrus v1.2.0
-	github.com/spf13/cobra v0.0.5
+	github.com/spf13/cobra v1.0.0
 	github.com/theckman/go-flock v0.7.1
 	github.com/ugorji/go/codec v1.1.7
 	go.starlark.net v0.0.0-20200330013621-be5394c419b6

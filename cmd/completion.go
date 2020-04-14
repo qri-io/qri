@@ -16,18 +16,18 @@ func NewAutocompleteCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command 
 	o := &AutocompleteOptions{IOStreams: ioStreams}
 	cfgOpt := ConfigOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "completion [bash|zsh]",
+		Use:   "completion [bash|zsh|fish]",
 		Short: "generate shell auto-completion scripts",
-		Long: `Completion generates auto-completion scripts for Bash or Zsh
+		Long: `Completion generates auto-completion scripts for Bash, Zsh or Fish
 which you can then source in your terminal or save to your profile to have it
 run on each terminal session.`,
 		Example: `  # load auto-completion for a single session
-  $ source <(qri completion [bash|zsh])
+  $ source <(qri completion [bash|zsh|fish])
 
   #configure your bash/zsh shell to load completions by adding to your bashrc/zshrc:
   # ~/.bashrc or ~/.zshrc
 
-  $ source <(qri completion [bash|zsh])
+  $ source <(qri completion [bash|zsh|fish])
 
   # alternatively you can pipe the output to a local script and
   # reference that as the source for faster loading.
@@ -39,7 +39,7 @@ run on each terminal session.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return o.Run(cmd, args)
 		},
-		ValidArgs: []string{"bash", "zsh"},
+		ValidArgs: []string{"bash", "zsh", "fish"},
 	}
 
 	configCompletion := &cobra.Command{
@@ -128,6 +128,9 @@ func (o *AutocompleteOptions) Run(cmd *cobra.Command, args []string) (err error)
 		io.WriteString(o.Out, zshHead)
 		o.Out.Write(zshBody.Bytes())
 		io.WriteString(o.Out, zshTail)
+	}
+	if args[0] == "fish" {
+		cmd.Parent().GenFishCompletion(o.Out, false)
 	}
 	return nil
 }
