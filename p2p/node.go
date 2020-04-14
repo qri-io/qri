@@ -70,7 +70,8 @@ type QriNode struct {
 	receivers []chan Message
 
 	// pub is the event publisher on which to publish p2p events
-	pub event.Publisher
+	pub     event.Publisher
+	notifee *net.NotifyBundle
 
 	// node keeps a set of IOStreams for "node local" io, often to the
 	// command line, to give feedback to the user. These may be piped to
@@ -110,6 +111,9 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (node *Qr
 		LocalStreams: ioes.NewDiscardIOStreams(),
 	}
 	node.handlers = MakeHandlers(node)
+	node.notifee = &net.NotifyBundle{
+		ConnectedF: node.connected,
+	}
 
 	return node, nil
 }
@@ -168,6 +172,8 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	// the distributed web that this node supports Qri. for more info on
 	// multistreams  check github.com/multformats/go-multistream
 	n.host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
+	// register ourselves as a notifee on connected
+	n.host.Network().Notify(n.notifee)
 
 	p, err := n.Repo.Profile()
 	if err != nil {
@@ -377,6 +383,16 @@ func (n *QriNode) SendMessage(ctx context.Context, msg Message, replies chan Mes
 	}
 
 	return nil
+}
+
+// connected is called when a connection opened via the network notifee bundle
+func (n *QriNode) connected(_ net.Network, conn net.Conn) {
+	log.Debugf("connected to peer: %s", conn.RemotePeer())
+	pi := n.Host().Peerstore().PeerInfo(conn.RemotePeer())
+	// NOTE: intentionally not logging this error. it'll be *very* noisy in
+	// production, and qri is often launched with --log-all, which prints debug
+	// level logging
+	n.UpgradeToQriConnection(pi)
 }
 
 // QriStreamHandler is the handler we register with the multistream muxer
