@@ -39,7 +39,7 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan peer.Addr
 
 // BootstrapIPFS connects this node to standard ipfs nodes for file exchange
 func (n *QriNode) BootstrapIPFS() {
-	if node, err := n.ipfsNode(); err == nil {
+	if node, err := n.IPFS(); err == nil {
 		if err := node.Bootstrap(bootstrap.DefaultBootstrapConfig); err != nil {
 			log.Errorf("IPFS bootsrap error: %s", err.Error())
 		}

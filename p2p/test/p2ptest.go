@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/ipfs/go-cid"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -25,7 +26,7 @@ import (
 // TestablePeerNode is used by tests only. Implemented by QriNode
 type TestablePeerNode interface {
 	Host() host.Host
-	SimplePeerInfo() peer.AddrInfo
+	SimpleAddrInfo() peer.AddrInfo
 	UpgradeToQriConnection(peer.AddrInfo) error
 	GoOnline(ctx context.Context) error
 }
@@ -157,7 +158,7 @@ func ConnectNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	for i, s1 := range nodes {
 		for _, s2 := range nodes[i+1:] {
 			wg.Add(1)
-			if err := connect(s1, s2.SimplePeerInfo()); err != nil {
+			if err := connect(s1, s2.SimpleAddrInfo()); err != nil {
 				return err
 			}
 		}
@@ -182,12 +183,13 @@ func ConnectQriNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	for i, s1 := range nodes {
 		for _, s2 := range nodes[i+1:] {
 			wgConnect.Add(1)
-			if err := connect(s1, s2.SimplePeerInfo()); err != nil {
+			if err := connect(s1, s2.SimpleAddrInfo()); err != nil {
 				return err
 			}
 		}
 	}
 	wgConnect.Wait()
+	time.Sleep(time.Millisecond * 300)
 	// previously, we had UpgradeToQriConnection running in separate threads
 	// much like we did with the basic connection
 	// however, UpgradeToQriConnection asks for and sends profile information
@@ -195,12 +197,12 @@ func ConnectQriNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	// we would be writing to and requesting a profile at the same time.
 	for _, s1 := range nodes {
 		for _, s2 := range nodes {
-			pinfo := s2.SimplePeerInfo()
-			if s1.SimplePeerInfo().ID == pinfo.ID {
+			pinfo := s2.SimpleAddrInfo()
+			if s1.SimpleAddrInfo().ID == pinfo.ID {
 				continue
 			}
 			if err := s1.UpgradeToQriConnection(pinfo); err != nil {
-				return fmt.Errorf("%s error upgrading connection to %s: %s", s1.SimplePeerInfo().ID, pinfo.ID, err)
+				return fmt.Errorf("%s error upgrading connection to %s: %s", s1.SimpleAddrInfo().ID, pinfo.ID, err)
 			}
 		}
 	}

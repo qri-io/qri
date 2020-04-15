@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
@@ -64,7 +65,9 @@ func (n *QriNode) UpgradeToQriConnection(pinfo peer.AddrInfo) error {
 	// tag the connection as more important in the conn manager:
 	n.host.ConnManager().TagPeer(pid, qriSupportKey, qriSupportValue)
 
-	ctx := context.TODO()
+	ctx, done := context.WithTimeout(context.Background(), time.Second*20)
+	defer done()
+
 	pro, err := n.RequestProfile(ctx, pid)
 	if err != nil {
 		log.Debug(err.Error())
@@ -132,7 +135,7 @@ func (n *QriNode) RequestNewPeers(ctx context.Context, peers []QriPeer) {
 	}
 
 	for _, p := range newPeers {
-		ID, err := peer.IDB58Decode(strings.TrimPrefix(p.PeerID, "/ipfs/"))
+		ID, err := peer.IDB58Decode(strings.TrimPrefix(strings.TrimPrefix(p.PeerID, "/ipfs/"), "/p2p/"))
 		if err != nil {
 			continue
 		}

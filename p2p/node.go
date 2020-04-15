@@ -28,9 +28,6 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// ErrNoQriNode indicates a qri node doesn't exist
-var ErrNoQriNode = fmt.Errorf("p2p: no qri node")
-
 // QriNode encapsulates a qri peer-2-peer node
 type QriNode struct {
 	// ID is the node's identifier both locally & on the network
@@ -63,11 +60,11 @@ type QriNode struct {
 
 	// msgState keeps a "scratch pad" of message IDS & timeouts
 	msgState *sync.Map
-	// msgChan provides a channel of received messages for others to tune into
-	msgChan chan Message
 	// receivers is a list of anyone who wants to be notifed on new
 	// message arrival
 	receivers []chan Message
+	// publish events coming from p2p land
+	pub event.Publisher
 
 	// pub is the event publisher on which to publish p2p events
 	pub     event.Publisher
@@ -104,7 +101,6 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (node *Qr
 		cfg:      p2pconf,
 		Repo:     r,
 		msgState: &sync.Map{},
-		msgChan:  make(chan Message),
 		pub:      pub,
 		// Make sure we always have proper IOStreams, this can be set
 		// later
@@ -112,7 +108,8 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (node *Qr
 	}
 	node.handlers = MakeHandlers(node)
 	node.notifee = &net.NotifyBundle{
-		ConnectedF: node.connected,
+		ConnectedF:    node.connected,
+		DisconnectedF: node.disconnected,
 	}
 
 	return node, nil
@@ -123,28 +120,23 @@ func (n *QriNode) Host() host.Host {
 	return n.host
 }
 
-// setHost replaces the current host with the given host
-// should only ever be called in GoOnline, when we already have a node
-// but have not created a host yet
-func (n *QriNode) setHost(h host.Host) {
-	n.host = h
-}
-
 // GoOnline puts QriNode on the distributed web, ensuring there's an active peer-2-peer host
 // participating in a peer-2-peer network, and kicks off requests to connect to known bootstrap
 // peers that support the QriProtocol
 func (n *QriNode) GoOnline(ctx context.Context) (err error) {
+	log.Debugf("going online")
 	if !n.cfg.Enabled {
 		return fmt.Errorf("p2p connection is disabled")
 	}
-
 	if n.Online {
 		return nil
 	}
+
 	// If the underlying content-addressed-filestore is an ipfs
 	// node, it has built-in p2p, overlay the qri protocol
 	// on the ipfs node's p2p connections.
 	if ipfsfs, ok := n.Repo.Store().(*qipfs.Filestore); ok {
+		log.Debugf("using IPFS p2p Host")
 		if !ipfsfs.Online() {
 			if err := ipfsfs.GoOnline(ctx); err != nil {
 				return err
@@ -160,10 +152,18 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 			n.Discovery = ipfsnode.Discovery
 		}
 	} else if n.host == nil {
+		log.Debugf("creating p2p Host")
 		ps := pstoremem.NewPeerstore()
 		n.host, err = makeBasicHost(ctx, ps, n.cfg)
 		if err != nil {
 			return fmt.Errorf("error creating host: %s", err.Error())
+		}
+
+		// we need to BYO discovery service when working without IPFS
+		if err := n.setupDiscovery(ctx); err != nil {
+			// we don't want to fail completely if discovery services like mdns aren't
+			// supported. Otherwise routers with mdns turned off would break p2p entirely
+			log.Errorf("couldn't start discovery: %s", err)
 		}
 	}
 
@@ -188,7 +188,6 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	}
 
 	n.Online = true
-	go n.echoMessages()
 	n.pub.Publish(ctx, event.ETP2PGoneOnline, n.EncapsulatedAddresses())
 
 	return n.startOnlineServices(ctx)
@@ -200,6 +199,7 @@ func (n *QriNode) startOnlineServices(ctx context.Context) error {
 	if !n.Online {
 		return nil
 	}
+	log.Debugf("starting online services")
 
 	bsPeers := make(chan peer.AddrInfo, len(n.cfg.BootstrapAddrs))
 
@@ -212,18 +212,10 @@ func (n *QriNode) startOnlineServices(ctx context.Context) error {
 		}
 	}()
 
-	// Check our existing peerstore for any potential friends
-	go n.DiscoverPeerstoreQriPeers(n.host.Peerstore())
 	// Boostrap off of default addresses
 	go n.Bootstrap(n.cfg.QriBootstrapAddrs, bsPeers)
 	// Bootstrap to IPFS network if this node is using an IPFS fs
 	go n.BootstrapIPFS()
-
-	// we don't want to fail completely if discovery services like mdns aren't
-	// supported. Otherwise routers with mdns turned off would break p2p entirely
-	if err := n.startDiscovery(); err != nil {
-		log.Errorf("couldn't start discovery: %s", err)
-	}
 
 	return nil
 }
@@ -244,33 +236,25 @@ func (n *QriNode) ReceiveMessages() chan Message {
 	return r
 }
 
-func (n *QriNode) echoMessages() {
-	for {
-		msg := <-n.msgChan
-		for _, r := range n.receivers {
-			r <- msg
-		}
+func (n *QriNode) writeToReceivers(msg Message) {
+	for _, r := range n.receivers {
+		r <- msg
 	}
-}
-
-// ipfsNode returns the internal IPFS node
-func (n *QriNode) ipfsNode() (*core.IpfsNode, error) {
-	if ipfsfs, ok := n.Repo.Store().(*qipfs.Filestore); ok {
-		return ipfsfs.Node(), nil
-	}
-	return nil, fmt.Errorf("not using IPFS")
 }
 
 // IPFS exposes the core.IPFS node if one exists.
 // This is currently required by things like remoteClient in other packages,
 // which don't work properly with the CoreAPI implementation
 func (n *QriNode) IPFS() (*core.IpfsNode, error) {
-	return n.ipfsNode()
+	if ipfsfs, ok := n.Repo.Store().(*qipfs.Filestore); ok {
+		return ipfsfs.Node(), nil
+	}
+	return nil, fmt.Errorf("not using IPFS")
 }
 
 // GetIPFSNamesys returns a namesystem from IPFS
 func (n *QriNode) GetIPFSNamesys() (namesys.NameSystem, error) {
-	ipfsn, err := n.ipfsNode()
+	ipfsn, err := n.IPFS()
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +291,7 @@ func (n *QriNode) ListenAddresses() ([]string, error) {
 // EncapsulatedAddresses returns a slice of full multaddrs for this node
 func (n *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 	// Build host multiaddress
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", n.host.ID().Pretty()))
+	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", n.host.ID().Pretty()))
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil
@@ -341,7 +325,6 @@ func makeBasicHost(ctx context.Context, ps peerstore.Peerstore, p2pconf *config.
 		libp2p.Identity(pk),
 		libp2p.Peerstore(ps),
 		libp2p.EnableRelay(circuit.OptHop),
-		// libp2p.Routing
 	}
 
 	// Let's talk about these options a bit. Most of the time, we will never
@@ -389,10 +372,26 @@ func (n *QriNode) SendMessage(ctx context.Context, msg Message, replies chan Mes
 func (n *QriNode) connected(_ net.Network, conn net.Conn) {
 	log.Debugf("connected to peer: %s", conn.RemotePeer())
 	pi := n.Host().Peerstore().PeerInfo(conn.RemotePeer())
+	n.pub.Publish(event.ETP2PPeerConnected, pi)
+
+	// TODO (b5) - this connected hook is the only thing we have to do a qri
+	// protocol upgrade, and often fires *before* protocol support negotiation
+	// has begun, causing all sorts of meyham as we ask the host to detect support
+	// for the qri protocol for us. Adding an arbitrary delay improves that chances
+	// that protocol negotiation has already been accomplished
+	// This will be removed very soon, once we upgrade our IPFS & libp2p
+	// dependencies
+	time.Sleep(time.Millisecond * 200)
 	// NOTE: intentionally not logging this error. it'll be *very* noisy in
 	// production, and qri is often launched with --log-all, which prints debug
 	// level logging
-	n.UpgradeToQriConnection(pi)
+	_ = n.UpgradeToQriConnection(pi)
+}
+
+func (n *QriNode) disconnected(_ net.Network, conn net.Conn) {
+	log.Debugf("disconnected from peer: %s", conn.RemotePeer())
+	pi := n.Host().Peerstore().PeerInfo(conn.RemotePeer())
+	n.pub.Publish(event.ETP2PPeerDisconnected, pi)
 }
 
 // QriStreamHandler is the handler we register with the multistream muxer
@@ -421,15 +420,15 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 		if replies != nil {
 			go func() { replies <- msg }()
 		}
-		go func() {
-			n.msgChan <- msg
-		}()
 
 		handler, ok := n.handlers[msg.Type]
 		if !ok {
 			log.Infof("peer %s sent unrecognized message type '%s', hanging up", n.ID, msg.Type)
 			break
 		}
+
+		n.pub.Publish(event.ETP2PMessageReceived, msg)
+		go n.writeToReceivers(msg)
 
 		if hangup := handler(ws, msg); hangup {
 			break
@@ -449,8 +448,8 @@ func (n *QriNode) Addrs() peerstore.AddrBook {
 	return n.host.Peerstore()
 }
 
-// SimplePeerInfo returns a PeerInfo with just the ID and Addresses.
-func (n *QriNode) SimplePeerInfo() peer.AddrInfo {
+// SimpleAddrInfo returns a PeerInfo with just the ID and Addresses.
+func (n *QriNode) SimpleAddrInfo() peer.AddrInfo {
 	return peer.AddrInfo{
 		ID:    n.host.ID(),
 		Addrs: n.host.Addrs(),

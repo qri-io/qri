@@ -37,7 +37,8 @@ func TestSharePeers(t *testing.T) {
 
 	go func() {
 		for range nasma.ReceiveMessages() {
-			if len(nasma.ConnectedPeers()) == len(group) {
+			t.Logf("connected to peer. %d/%d", len(nasma.ConnectedPeers()), len(group))
+			if len(nasma.ConnectedPeers()) >= len(group) {
 				done <- true
 			}
 		}

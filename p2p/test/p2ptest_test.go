@@ -26,9 +26,9 @@ func TestConnectNodes(t *testing.T) {
 
 	for _, node := range testNodes {
 		// test that each conn has a connection to at least one peer id
-		pid := node.SimplePeerInfo().ID
+		pid := node.SimpleAddrInfo().ID
 		for _, rnode := range testNodes {
-			rpid := rnode.SimplePeerInfo().ID
+			rpid := rnode.SimpleAddrInfo().ID
 			// dont need to check for connections to self
 			if pid == rpid {
 				continue
@@ -83,9 +83,9 @@ func TestConnectQriNodes(t *testing.T) {
 
 	for _, node := range testNodes {
 		// test that each conn has a connection to at least one peer id
-		pid := node.SimplePeerInfo().ID
+		pid := node.SimpleAddrInfo().ID
 		for _, rnode := range testNodes {
-			rpid := rnode.SimplePeerInfo().ID
+			rpid := rnode.SimpleAddrInfo().ID
 			// dont need to check for connections to self
 			if pid == rpid {
 				continue

@@ -69,6 +69,8 @@ func TestNodeEvents(t *testing.T) {
 			event.ETP2PQriPeerConnected,
 			// TODO (b5) - this event currently isn't emitted
 			// event.ETP2PQriPeerDisconnected,
+			event.ETP2PPeerConnected,
+			event.ETP2PPeerDisconnected,
 		}
 	)
 

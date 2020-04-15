@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	golog "github.com/ipfs/go-log"
-
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 	"github.com/qri-io/qri/version"
@@ -19,6 +18,8 @@ var (
 	ErrNotConnected = fmt.Errorf("no p2p connection")
 	// ErrQriProtocolNotSupported is returned when a connection can't be upgraded
 	ErrQriProtocolNotSupported = fmt.Errorf("peer doesn't support the qri protocol")
+	// ErrNoQriNode indicates a qri node doesn't exist
+	ErrNoQriNode = fmt.Errorf("p2p: no qri node")
 )
 
 const (

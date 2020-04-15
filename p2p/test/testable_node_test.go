@@ -39,8 +39,8 @@ func (n *TestableNode) Host() host.Host {
 	return n.host
 }
 
-// SimplePeerInfo returns the PeerInfo of the TestableNode
-func (n *TestableNode) SimplePeerInfo() peer.AddrInfo {
+// SimpleAddrInfo returns the PeerInfo of the TestableNode
+func (n *TestableNode) SimpleAddrInfo() peer.AddrInfo {
 	return peer.AddrInfo{
 		ID:    n.host.ID(),
 		Addrs: n.host.Addrs(),

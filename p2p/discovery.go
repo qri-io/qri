@@ -5,47 +5,37 @@ import (
 	"time"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	peerstore "github.com/libp2p/go-libp2p-core/peerstore"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 )
 
-// startDiscovery initiates local peer discovery, allocating a discovery service
-// if one doesn't exist, then registering to be notified on peer discovery
-func (n *QriNode) startDiscovery() error {
-	if n.Discovery == nil {
-		service, err := discovery.NewMdnsService(context.Background(), n.host, time.Second*5, QriServiceTag)
-		if err != nil {
-			return err
-		}
-		n.Discovery = service
-	}
+const (
+	discoveryConnTimeout = time.Second * 30
+	discoveryInterval    = time.Second * 5
+)
 
+// setupDiscovery initiates local peer discovery, allocating a discovery service
+// if one doesn't exist, then registering to be notified on peer discovery
+func (n *QriNode) setupDiscovery(ctx context.Context) error {
+	var err error
+	if n.Discovery, err = discovery.NewMdnsService(ctx, n.host, discoveryInterval, discovery.ServiceTag); err != nil {
+		return err
+	}
 	// Registering will call n.HandlePeerFound when peers are discovered
 	n.Discovery.RegisterNotifee(n)
 	return nil
 }
 
-// HandlePeerFound deals with the discovery of a peer that may or may not support
-// the qri protocol
+// HandlePeerFound deals with the discovery of a peer that may or may not
+// support the qri protocol
 func (n *QriNode) HandlePeerFound(pinfo peer.AddrInfo) {
 	log.Debugf("found peer %s", pinfo.ID)
-	err := n.UpgradeToQriConnection(pinfo)
-	if err != nil && err != ErrQriProtocolNotSupported {
-		log.Error(err)
-	}
-}
-
-// DiscoverPeerstoreQriPeers handles the case where a store has seen peers that
-// support the qri protocol, but we haven't added them to our own peers list
-func (n *QriNode) DiscoverPeerstoreQriPeers(store peerstore.Peerstore) {
-	for _, pid := range store.Peers() {
-		if _, err := n.host.Peerstore().Get(pid, qriSupportKey); err == peerstore.ErrNotFound {
-			if supports, err := n.supportsQriProtocol(pid); err == nil && supports {
-				// TODO - slow this down plz
-				if err := n.UpgradeToQriConnection(store.PeerInfo(pid)); err != nil {
-					log.Debug(err.Error())
-				}
-			}
-		}
+	time.Sleep(time.Millisecond * 250)
+	if len(n.Host().Network().ConnsToPeer(pinfo.ID)) == 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), discoveryConnTimeout)
+		defer cancel()
+		// attempt to connect to anyone we find.
+		// TODO (b5) - This might be redundant, but might not be if we're using our
+		// own p2p host (as opposed to an IPFS node Host)
+		n.Host().Connect(ctx, pinfo)
 	}
 }

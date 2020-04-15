@@ -10,6 +10,7 @@ import (
 )
 
 func TestRequestDatasetInfo(t *testing.T) {
+	t.Skip("TODO (b5) - this test is too flaky.")
 	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestDirNetwork(ctx, factory)
