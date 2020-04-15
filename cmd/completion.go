@@ -22,12 +22,13 @@ func NewAutocompleteCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command 
 which you can then source in your terminal or save to your profile to have it
 run on each terminal session.`,
 		Example: `  # load auto-completion for a single session
-  $ source <(qri completion [bash|zsh|fish])
+  $ source <(qri completion [bash|zsh])
+  # or
+  $ source (qri completion fish)
 
-  #configure your bash/zsh shell to load completions by adding to your bashrc/zshrc:
+  # configure your bash/zsh shell to load completions by adding the above to your bashrc/zshrc
   # ~/.bashrc or ~/.zshrc
-
-  $ source <(qri completion [bash|zsh|fish])
+  # or for fish put the output in ~/.config/fish/completions
 
   # alternatively you can pipe the output to a local script and
   # reference that as the source for faster loading.
