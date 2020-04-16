@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/base/component"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 )
 
@@ -154,7 +155,7 @@ func TestInitBadName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error trying to init, did not get an error")
 	}
-	expect := `dataset name must start with a letter, and only contain letters, numbers, and underscore. Maximum length is 144 characters`
+	expect := dsref.ErrDescribeValidName.Error()
 	if err.Error() != expect {
 		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
 	}

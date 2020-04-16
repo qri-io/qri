@@ -21,6 +21,7 @@ func DefaultConfigForTesting() *Config {
 func DefaultProfileForTesting() *ProfilePod {
 	info := test.GetTestPeerInfo(0)
 	pro := DefaultProfile()
+	pro.Peername = "default_profile_for_testing"
 	pro.PrivKey = info.EncodedPrivKey
 	pro.ID = info.EncodedPeerID
 	return pro

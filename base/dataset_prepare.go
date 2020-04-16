@@ -5,7 +5,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"unicode"
+	"path/filepath"
+	"strings"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
@@ -16,7 +17,6 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
-	"github.com/qri-io/varName"
 )
 
 // PrepareDatasetSave prepares a set of changes for submission to SaveDataset
@@ -81,11 +81,9 @@ func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string)
 // MaybeInferName infer a name for the dataset if none is set
 func MaybeInferName(ds *dataset.Dataset) bool {
 	if ds.Name == "" {
-		ds.Name = varName.CreateVarNameFromString(ds.BodyFile().FileName())
-		first := []rune(ds.Name)[0]
-		if !unicode.IsLower(first) {
-			ds.Name = "dataset_" + ds.Name
-		}
+		filename := ds.BodyFile().FileName()
+		basename := strings.TrimSuffix(filename, filepath.Ext(filename))
+		ds.Name = dsref.GenerateName(basename, "dataset_")
 		return true
 	}
 	return false

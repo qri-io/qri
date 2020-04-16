@@ -6,8 +6,8 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/varName"
 	"github.com/spf13/cobra"
 )
 
@@ -81,7 +81,10 @@ func (o *CheckoutOptions) Run() (err error) {
 		return fmt.Errorf("expect '/' in dataset ref")
 	}
 	if o.Dir == "" {
-		o.Dir = varName.CreateVarNameFromString(ref[pos+1:])
+		// Dataset names should always be safe to use for directories, since they use a small
+		// subset of characters. However, it's possible the user has bad data in their repo, so
+		// generate a name just to be safe.
+		o.Dir = dsref.GenerateName(ref[pos+1:], "")
 	}
 
 	if err = qfs.AbsPath(&o.Dir); err != nil {

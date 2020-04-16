@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qri/dsref"
 )
 
 // ProfilePod is serializable plain-old-data that configures a qri profile
@@ -61,6 +62,10 @@ func DefaultProfile() *ProfilePod {
 
 // Validate validates all fields of profile returning all errors found.
 func (p ProfilePod) Validate() error {
+	if err := dsref.EnsureValidUsername(p.Peername); err != nil {
+		return err
+	}
+
 	schema := jsonschema.Must(`{
     "$schema": "http://json-schema.org/draft-06/schema#",
     "title": "Profile",

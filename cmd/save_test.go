@@ -230,7 +230,7 @@ func TestSaveBasicCommands(t *testing.T) {
 		{
 			"body file infer name",
 			"qri save --body body_ten.csv",
-			"dataset saved: test_peer/body_tencsv@/ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer/body_ten@/ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"body file me ref",
@@ -320,7 +320,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save a dataset with an inferred name.
 	output := run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json")
 	actual := parseDatasetRefFromOutput(output)
-	expect := "dataset saved: test_peer/body_fourjson@/ipfs/QmSe14k77ZmXkda9enmhaeZB56WCsT4XmQUhvL23NSJ6hF\n"
+	expect := "dataset saved: test_peer/body_four@/ipfs/QmSe14k77ZmXkda9enmhaeZB56WCsT4XmQUhvL23NSJ6hF\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -338,7 +338,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save but ensure a new dataset is created.
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/body_fourjson_1@/ipfs/QmcarKJswb6R72vL7uLbZhGTU65ULF3pWMrSbxSkWZMYz8\n"
+	expect = "dataset saved: test_peer/body_four_1@/ipfs/QmcarKJswb6R72vL7uLbZhGTU65ULF3pWMrSbxSkWZMYz8\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -346,7 +346,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save once again.
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/body_fourjson_2@/ipfs/QmUszGEm3HvKBzqrRtiZFALPMK5MyiGNPFbDcptKRoa8ds\n"
+	expect = "dataset saved: test_peer/body_four_2@/ipfs/QmUszGEm3HvKBzqrRtiZFALPMK5MyiGNPFbDcptKRoa8ds\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -354,7 +354,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save a dataset whose body filename starts with a number
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/2018_winners.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/winnerscsv@/ipfs/Qme2Tpd57zL5FCysEZpoYqjCoV3gcPKm6qXgHjFaf3z7ek\n"
+	expect = "dataset saved: test_peer/dataset_2018_winners@/ipfs/Qme2Tpd57zL5FCysEZpoYqjCoV3gcPKm6qXgHjFaf3z7ek\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -362,7 +362,23 @@ func TestSaveInferName(t *testing.T) {
 	// Save a dataset whose body filename is non-alphabetic
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/2015-09-16--2016-09-30.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/dataset_09_16_2016_09_30csv@/ipfs/Qma7NXBdQDsG6Xca5uRycsqEaUkEHCXpAeU9HWqzuwzWEu\n"
+	expect = "dataset saved: test_peer/dataset_2015-09-16--2016-09-30@/ipfs/Qma7NXBdQDsG6Xca5uRycsqEaUkEHCXpAeU9HWqzuwzWEu\n"
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+
+	// Save using a CamelCased body filename
+	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/TenMoviesAndLengths.csv")
+	actual = parseDatasetRefFromOutput(output)
+	expect = "dataset saved: test_peer/ten_movies_and_lengths@/ipfs/QmUtR8XS6HF3m5KgoBLq9Mx73SSb64D36hH5NL8wL8Ux4L\nthis dataset has 1 validation errors\n"
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+
+	// Save using a body filename that contains unicode
+	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/pira\u00f1a_data.csv")
+	actual = parseDatasetRefFromOutput(output)
+	expect = "dataset saved: test_peer/pirana_data@/ipfs/QmbK3Lfk566wFKtDThu6nA99jxgwFLUo9LN8rV7X5cTE1R\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}

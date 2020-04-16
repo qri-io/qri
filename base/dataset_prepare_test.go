@@ -79,7 +79,7 @@ func TestMaybeInferName(t *testing.T) {
 	if !inferred {
 		t.Errorf("expected name to be inferred")
 	}
-	expectName := "gabba_gabba_heycsv"
+	expectName := "gabba_gabba_hey"
 	if expectName != ds.Name {
 		t.Errorf("inferred name mismatch. expected: '%s', got: '%s'", expectName, ds.Name)
 	}

@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/qri-io/qri/dsref"
 )
 
 func TestProfileValidate(t *testing.T) {
@@ -86,5 +88,21 @@ func TestProfileSetField(t *testing.T) {
 	}
 	if !reflect.DeepEqual(p, expect) {
 		t.Errorf("ProfilePod SetField email again, structs are not equal: \nactual: %v, \nexpect: %v", p, expect)
+	}
+}
+
+func TestBadPeername(t *testing.T) {
+	pro := ProfilePod{
+		Type:     "peer",
+		Peername: "bad=name",
+	}
+
+	err := pro.Validate()
+	if err == nil {
+		t.Fatal("expected error, did not get one")
+	}
+	expectErr := dsref.ErrDescribeValidUsername.Error()
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err.Error())
 	}
 }

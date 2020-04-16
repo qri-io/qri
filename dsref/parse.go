@@ -50,10 +50,14 @@ var (
 	ErrNotHumanFriendly = fmt.Errorf("ref can only have username/name")
 	// ErrBadCaseName is the error when a bad case is used in the dataset name
 	ErrBadCaseName = fmt.Errorf("dataset name may not contain any upper-case letters")
+	// ErrBadCaseUsername is for when a username contains upper-case letters
+	ErrBadCaseUsername = fmt.Errorf("username may not contain any upper-case letters")
 	// ErrBadCaseShouldRename is the error when a dataset should be renamed to not use upper case letters
 	ErrBadCaseShouldRename = fmt.Errorf("dataset name should not contain any upper-case letters, rename it to only use lower-case letters, numbers, and underscores")
 	// ErrDescribeValidName is an error describing a valid dataset name
-	ErrDescribeValidName = fmt.Errorf("dataset name must start with a letter, and only contain letters, numbers, and underscore. Maximum length is 144 characters")
+	ErrDescribeValidName = fmt.Errorf("dataset name must start with a lower-case letter, and only contain lower-case letters, numbers, dashes, and underscore. Maximum length is 144 characters")
+	// ErrDescribeValidUsername describes valid username
+	ErrDescribeValidUsername = fmt.Errorf("username must start with a lower-case letter, and only contain lower-case letters, numbers, dashes, and underscores")
 )
 
 // Parse a reference from a string
@@ -152,6 +156,35 @@ func IsRefString(text string) bool {
 // IsValidName returns whether the dataset name is valid
 func IsValidName(text string) bool {
 	return dsNameCheck.Match([]byte(text))
+}
+
+// EnsureValidName returns nil if the name is valid, and an error otherwise
+func EnsureValidName(text string) error {
+	if !dsNameCheck.Match([]byte(text)) {
+		return ErrDescribeValidName
+	}
+
+	// Dataset names are not supposed to contain upper-case characters. For now, return an error
+	// but also the reference; callers should display a warning, but continue to work for now.
+	for _, r := range text {
+		if unicode.IsUpper(r) {
+			return ErrBadCaseName
+		}
+	}
+
+	return nil
+}
+
+// EnsureValidUsername is the same as EnsureValidName but returns a different error
+func EnsureValidUsername(text string) error {
+	err := EnsureValidName(text)
+	if err == ErrDescribeValidName {
+		return ErrDescribeValidUsername
+	}
+	if err == ErrBadCaseName {
+		return ErrBadCaseUsername
+	}
+	return err
 }
 
 func parseHumanFriendly(text string) (string, Ref, error) {
