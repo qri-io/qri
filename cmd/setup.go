@@ -210,7 +210,7 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		}
 		break
 	}
-	return f.Init()
+	return nil
 }
 
 // CreateAndDisplayDoggo creates and display a doggo name

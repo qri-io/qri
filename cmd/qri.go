@@ -30,9 +30,12 @@ Feedback, questions, bug reports, and contributions are welcome!
 https://github.com/qri-io/qri/issues`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			shouldColorOutput := false
-			cfg := opt.Instance().Config()
-			if cfg != nil && cfg.CLI != nil {
-				shouldColorOutput = cfg.CLI.ColorizeOutput
+			inst := opt.Instance()
+			if inst != nil {
+				cfg := inst.Config()
+				if cfg != nil && cfg.CLI != nil {
+					shouldColorOutput = cfg.CLI.ColorizeOutput
+				}
 			}
 			// todo(arqu): have a config var to indicate force override for windows
 			if runtime.GOOS == "windows" {
@@ -128,6 +131,7 @@ type QriOptions struct {
 
 	inst        *lib.Instance
 	initialized sync.Once
+	initErr     error
 }
 
 // NewQriOptions creates an options object
@@ -142,7 +146,7 @@ func NewQriOptions(ctx context.Context, qriPath, ipfsPath string, generator gen.
 }
 
 // Init will initialize the internal state
-func (o *QriOptions) Init() (err error) {
+func (o *QriOptions) Init() error {
 	initBody := func() {
 		opts := []lib.Option{
 			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
@@ -150,11 +154,11 @@ func (o *QriOptions) Init() (err error) {
 			lib.OptCheckConfigMigrations(""),
 			lib.OptSetLogAll(o.LogAll),
 		}
-		o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
+		o.inst, o.initErr = lib.NewInstance(o.ctx, o.RepoPath, opts...)
 		log.Debugf("running cmd %q", os.Args)
 	}
 	o.initialized.Do(initBody)
-	return
+	return o.initErr
 }
 
 // Instance returns the instance this options is using
