@@ -169,7 +169,7 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) reporef.DatasetRef {
 	ds.Name = tc.Name
 	ds.BodyBytes = tc.Body
 
-	ref, err := base.SaveDataset(ctx, node.Repo, devNull, ds, nil, nil, base.SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err := base.SaveDataset(ctx, node.Repo, devNull, ds, nil, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -186,7 +186,7 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) reporef.DatasetRef 
 	ds.Name = tc.Name
 	ds.Transform.ScriptPath = "testdata/now_tf/transform.star"
 
-	ref, err := base.SaveDataset(ctx, node.Repo, devNull, ds, nil, nil, base.SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err := base.SaveDataset(ctx, node.Repo, devNull, ds, nil, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

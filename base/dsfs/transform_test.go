@@ -45,7 +45,7 @@ func TestLoadTransformScript(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	path, err := CreateDataset(ctx, store, tc.Input, nil, privKey, true, false, true)
+	path, err := CreateDataset(ctx, store, tc.Input, nil, privKey, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -64,7 +64,7 @@ func TestLoadTransformScript(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	tc.Input.Transform.ScriptPath = transformPath
-	path, err = CreateDataset(ctx, store, tc.Input, nil, privKey, true, false, true)
+	path, err = CreateDataset(ctx, store, tc.Input, nil, privKey, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

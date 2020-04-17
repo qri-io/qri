@@ -17,20 +17,11 @@ import (
 	"github.com/qri-io/qri/startf"
 )
 
-// SaveDatasetSwitches provides toggleable flags to SaveDataset that control
-// save behaviour
-type SaveDatasetSwitches struct {
-	Replace             bool
-	DryRun              bool
-	Pin                 bool
-	ConvertFormatToPrev bool
-	Force               bool
-	ShouldRender        bool
-	NewName             bool
-}
+// SaveSwitches is an alias for the switches that control how saves happen
+type SaveSwitches = dsfs.SaveSwitches
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveDatasetSwitches) (ref reporef.DatasetRef, err error) {
+func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
 	var (
 		prevPath string
 		pro      *profile.Profile
@@ -152,12 +143,12 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 	// let's make history, if it exists
 	changes.PreviousPath = prevPath
 
-	return CreateDataset(ctx, r, str, changes, prev, sw.DryRun, sw.Pin, sw.Force, sw.ShouldRender)
+	return CreateDataset(ctx, r, str, changes, prev, sw)
 }
 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating all
 // references within the repo if successful
-func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin, force, shouldRender bool) (ref reporef.DatasetRef, err error) {
+func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
 	var (
 		pro     *profile.Profile
 		path    string
@@ -175,7 +166,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		return
 	}
 
-	if path, err = dsfs.CreateDataset(ctx, r.Store(), ds, dsPrev, r.PrivateKey(), pin, force, shouldRender); err != nil {
+	if path, err = dsfs.CreateDataset(ctx, r.Store(), ds, dsPrev, r.PrivateKey(), sw); err != nil {
 		log.Debugf("dsfs.CreateDataset: %s", err)
 		return
 	}
@@ -199,7 +190,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		Path:      path,
 	}
 
-	if !dryRun {
+	if !sw.DryRun {
 		if err = r.PutRef(ref); err != nil {
 			log.Debugf("r.PutRef: %s", err)
 			return

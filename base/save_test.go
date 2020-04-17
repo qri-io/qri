@@ -26,7 +26,7 @@ func TestSaveDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
-	ref, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveDatasetSwitches{DryRun: true, ShouldRender: true})
+	ref, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{DryRun: true, ShouldRender: true})
 	if err != nil {
 		t.Errorf("dry run error: %s", err.Error())
 	}
@@ -49,7 +49,7 @@ func TestSaveDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// test save
-	ref, err = SaveDataset(ctx, r, devNull, ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err = SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,7 +78,7 @@ func TestSaveDataset(t *testing.T) {
 	ds.Transform.OpenScriptFile(ctx, nil)
 
 	// dryrun should work
-	ref, err = SaveDataset(ctx, r, devNull, ds, secrets, nil, SaveDatasetSwitches{DryRun: true, ShouldRender: true})
+	ref, err = SaveDataset(ctx, r, devNull, ds, secrets, nil, SaveSwitches{DryRun: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestSaveDataset(t *testing.T) {
 	ds.Transform.OpenScriptFile(ctx, nil)
 
 	// test save with transform
-	ref, err = SaveDataset(ctx, r, devNull, ds, secrets, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err = SaveDataset(ctx, r, devNull, ds, secrets, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func TestSaveDataset(t *testing.T) {
 		},
 	}
 
-	ref, err = SaveDataset(ctx, r, devNull, ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err = SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -151,7 +151,7 @@ func TestSaveDataset(t *testing.T) {
 		t.Error(err)
 	}
 
-	ref, err = SaveDataset(ctx, r, devNull, ds, secrets, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err = SaveDataset(ctx, r, devNull, ds, secrets, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -173,7 +173,7 @@ func TestSaveDatasetWithoutStructureOrBody(t *testing.T) {
 		},
 	}
 
-	_, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveDatasetSwitches{ShouldRender: true})
+	_, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{ShouldRender: true})
 	expect := "creating a new dataset requires a structure or a body"
 	if err == nil || err.Error() != expect {
 		t.Errorf("expected error, but got %s", err.Error())
@@ -195,7 +195,7 @@ func TestSaveDatasetReplace(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// test save
-	_, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveDatasetSwitches{Pin: true})
+	_, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{Pin: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -207,7 +207,7 @@ func TestSaveDatasetReplace(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte(`{"foo":"bar"}`)))
 
-	ref, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveDatasetSwitches{Replace: true, Pin: true})
+	ref, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{Replace: true, Pin: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -241,11 +241,11 @@ func TestCreateDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
-	if _, err := CreateDataset(ctx, r, streams, &dataset.Dataset{}, &dataset.Dataset{}, false, true, false, true); err == nil {
+	if _, err := CreateDataset(ctx, r, streams, &dataset.Dataset{}, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected bad dataset to error")
 	}
 
-	ref, err := CreateDataset(ctx, r, streams, ds, &dataset.Dataset{}, false, true, false, true)
+	ref, err := CreateDataset(ctx, r, streams, ds, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -263,7 +263,7 @@ func TestCreateDataset(t *testing.T) {
 
 	prev := ref.Dataset
 
-	ref, err = CreateDataset(ctx, r, streams, ds, prev, false, true, false, true)
+	ref, err = CreateDataset(ctx, r, streams, ds, prev, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -279,12 +279,12 @@ func TestCreateDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 	prev = ref.Dataset
 
-	if ref, err = CreateDataset(ctx, r, streams, ds, prev, false, true, false, true); err == nil {
+	if ref, err = CreateDataset(ctx, r, streams, ds, prev, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected unchanged dataset with no force flag to error")
 	}
 
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
-	if ref, err = CreateDataset(ctx, r, streams, ds, prev, false, true, true, true); err != nil {
+	if ref, err = CreateDataset(ctx, r, streams, ds, prev, SaveSwitches{ForceIfNoChanges: true, Pin: true, ShouldRender: true}); err != nil {
 		t.Errorf("unexpected force-save error: %s", err)
 	}
 }

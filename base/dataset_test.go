@@ -109,7 +109,7 @@ func TestDatasetPinning(t *testing.T) {
 		return
 	}
 
-	ref2, err := CreateDataset(ctx, r, devNull, tc.Input, nil, false, false, false, true)
+	ref2, err := CreateDataset(ctx, r, devNull, tc.Input, nil, SaveSwitches{ShouldRender: true})
 	if err != nil {
 		t.Error(err.Error())
 		return

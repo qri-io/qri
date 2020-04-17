@@ -19,16 +19,8 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// PrepareDatasetSave prepares a set of changes for submission to SaveDataset
-// prev is the previous dataset, if it exists
-// body is the previous dataset body, if it exists
-// mutable is the previous dataset, but without the commit and transform, making it
-// sutable for mutation/combination with any potential changes requested by the user
-// we do not error if the dataset is not found in the repo, instead we return all
-// empty values
-// TODO (b5): input parameters here assume the store can properly resolve the previous dataset path
-// through canonicalization (looking the name up in the repo). The value given by the input dataset
-// document may differ, and we should probably respect that value if it does
+// PrepareDatasetSave prepares a save by loading the previous commit, opening the body file,
+// and constructing a mutable version that has no transform or commit.
 func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string) (prev, mutable *dataset.Dataset, prevPath string, err error) {
 	// Though a name is not required (it may be inferred), a peername must be set
 	if peername == "" {
