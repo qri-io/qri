@@ -65,6 +65,7 @@ require (
 	go.starlark.net v0.0.0-20200330013621-be5394c419b6
 	golang.org/x/crypto v0.0.0-20190926180335-cea2066c6411
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
+	golang.org/x/text v0.3.2
 	gonum.org/v1/gonum v0.6.0
 	gopkg.in/yaml.v2 v2.2.8
 	nhooyr.io/websocket v1.7.4

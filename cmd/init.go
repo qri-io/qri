@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/varName"
 	"github.com/spf13/cobra"
 )
 
@@ -75,11 +75,16 @@ func (o *InitOptions) Run() (err error) {
 	if o.Name == "" {
 		var suggestedName string
 		if o.Mkdir == "" {
-			suggestedName = varName.CreateVarNameFromString(filepath.Base(pwd))
+			suggestedName = dsref.GenerateName(filepath.Base(pwd), "dataset_")
 		} else {
-			suggestedName = varName.CreateVarNameFromString(o.Mkdir)
+			suggestedName = dsref.GenerateName(o.Mkdir, "dataset_")
 		}
 		o.Name = inputText(o.ErrOut, o.In, "Name of new dataset", suggestedName)
+	}
+
+	// If user inputted there own dataset name, make sure it's valid.
+	if err := dsref.EnsureValidName(o.Name); err != nil {
+		return err
 	}
 
 	// If --source-body-path flag is set, use that to figure out the format

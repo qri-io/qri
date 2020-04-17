@@ -629,7 +629,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		err string
 	}{
 		{&RenameParams{}, "current name is required to rename a dataset"},
-		{&RenameParams{Current: dsref.Ref{Username: "peer", Name: "movies"}, Next: dsref.Ref{Username: "peer", Name: "new movies"}}, "dataset name must start with a letter, and only contain letters, numbers, and underscore. Maximum length is 144 characters"},
+		{&RenameParams{Current: dsref.Ref{Username: "peer", Name: "movies"}, Next: dsref.Ref{Username: "peer", Name: "new movies"}}, dsref.ErrDescribeValidName.Error()},
 		{&RenameParams{Current: dsref.Ref{Username: "peer", Name: "cities"}, Next: dsref.Ref{Username: "peer", Name: "sitemap"}}, "dataset 'peer/sitemap' already exists"},
 	}
 

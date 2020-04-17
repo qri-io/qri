@@ -188,7 +188,7 @@ func TestSaveWithInferredNewName(t *testing.T) {
 	h.SaveHandler(w, req)
 	bodyText := resultText(w)
 	// Name is inferred from the body path
-	expectText := `"name":"datacsv"`
+	expectText := `"name":"data"`
 	if !strings.Contains(bodyText, expectText) {
 		t.Errorf("expected, body response to contain %q, not found. got %q", expectText, bodyText)
 	}
@@ -199,7 +199,7 @@ func TestSaveWithInferredNewName(t *testing.T) {
 	h.SaveHandler(w, req)
 	bodyText = resultText(w)
 	// Name is guaranteed to be unique
-	expectText = `"name":"datacsv_1"`
+	expectText = `"name":"data_1"`
 	if !strings.Contains(bodyText, expectText) {
 		t.Errorf("expected, body response to contain %q, not found. got %q", expectText, bodyText)
 	}

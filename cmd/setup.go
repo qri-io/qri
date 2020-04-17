@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/doggos"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo/gen"
@@ -172,6 +173,10 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		cfg.Profile.Peername = o.Peername
 	} else if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !o.Anonymous {
 		cfg.Profile.Peername = inputText(o.Out, o.In, "choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
+	}
+
+	if err := dsref.EnsureValidUsername(cfg.Profile.Peername); err != nil {
+		return err
 	}
 
 	if o.Registry == "none" {
