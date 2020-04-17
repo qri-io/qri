@@ -21,12 +21,12 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := run.GetCommandOutput()
-	expect := `1   Commit:  /ipfs/QmRyXnBUvGGFcdCebrwby4NWak7RvLrqciC9tstdVFZb1Z
+	expect := `1   Commit:  /ipfs/QmQUBYGKBJGp1R5tCURnMJL6Bb7v1v3N32gpkqci6VcM98
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    79 B
 
-    created dataset
+    created dataset from body_two.json
 
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -45,7 +45,7 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmduBA2otXgFpfiySh6fboBb3R6sfqGCAJN1snbsYu67ZM
+	expect = `1   Commit:  /ipfs/QmQJX35zUadkoXjTW3uBksyWgiNKvziVpUsVmxi5nJjDqk
     Date:    Sun Dec 31 20:05:01 EST 2000
     Storage: local
     Size:    137 B
@@ -55,12 +55,12 @@ func TestLogAndDeletes(t *testing.T) {
     	added row 2
     	added row 3
 
-2   Commit:  /ipfs/QmRyXnBUvGGFcdCebrwby4NWak7RvLrqciC9tstdVFZb1Z
+2   Commit:  /ipfs/QmQUBYGKBJGp1R5tCURnMJL6Bb7v1v3N32gpkqci6VcM98
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    79 B
 
-    created dataset
+    created dataset from body_two.json
 
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -79,12 +79,12 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmRyXnBUvGGFcdCebrwby4NWak7RvLrqciC9tstdVFZb1Z
+	expect = `1   Commit:  /ipfs/QmQUBYGKBJGp1R5tCURnMJL6Bb7v1v3N32gpkqci6VcM98
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    79 B
 
-    created dataset
+    created dataset from body_two.json
 
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -113,12 +113,12 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/Qmf5DDCr8yPv4f149suQcdrC5ePJdzddbDi1hCLrfMnme7
+	expect = `1   Commit:  /ipfs/QmZKQ8WF6RbwQ1K3kvjT3BpxRPfNsphGE9165bm56crzxF
     Date:    Sun Dec 31 20:07:01 EST 2000
     Storage: local
     Size:    224 B
 
-    created dataset
+    created dataset from body_ten.csv
 
 `
 	if diff := cmpTextLines(expect, output); diff != "" {

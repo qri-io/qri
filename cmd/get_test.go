@@ -81,9 +81,9 @@ commit:
   timestamp: "2001-01-01T01:05:01.000000001Z"
   title: body changed by 54%
 name: my_ds
-path: /ipfs/QmPnfCL3X8z2Jqv9ZJUqvWpy2JFJpQJkapLfjXhXzoWiFR
+path: /ipfs/QmUJXnzYfYjXLxxLLvaK6BDrSenQGUsaxHF7Skw7WDLZGT
 peername: test_peer
-previousPath: /ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n
+previousPath: /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
 qri: ds:0
 structure:
   checksum: QmSa4i985cF3dxNHxD5mSN7c6q1eYa83uNo1pLRmPZgTsa
@@ -111,14 +111,14 @@ structure:
 commit:
   author:
     id: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
-  message: created dataset
-  path: /ipfs/QmNodcAnA9NXfU32NxRWRY1yUXeyNem4R9FMcchtgBtob1
+  message: created dataset from body_ten.csv
+  path: /ipfs/QmTPieEVLviZbkiAKiPm5gzeEcovWRJ9mK2f6FHQ8sH82a
   qri: cm:0
   signature: njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==
   timestamp: "2001-01-01T01:02:01.000000001Z"
-  title: created dataset
+  title: created dataset from body_ten.csv
 name: my_ds
-path: /ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n
+path: /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
 peername: test_peer
 qri: ds:0
 structure:

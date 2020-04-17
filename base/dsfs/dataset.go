@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -223,19 +224,21 @@ func DerefDatasetCommit(ctx context.Context, store cafs.Filestore, ds *dataset.D
 // SaveSwitches represents options for saving a dataset
 type SaveSwitches struct {
 	// Replace is whether the save is a full replacement or a set of patches to previous
-	Replace             bool
+	Replace bool
 	// DryRun is whether the save should not be written to the refstore for real
-	DryRun              bool
+	DryRun bool
 	// Pin is whether the dataset should be pinned
-	Pin                 bool
+	Pin bool
 	// ConvertFormatToPrev is whether the body should be converted to match the previous format
 	ConvertFormatToPrev bool
 	// ForceIfNoChanges is whether the save should be forced even if no changes are detected
-	ForceIfNoChanges    bool
+	ForceIfNoChanges bool
 	// ShouldRender is deprecated, controls whether viz should be rendered
-	ShouldRender        bool
+	ShouldRender bool
 	// NewName is whether a new dataset should be created, guaranteeing there's no previous version
-	NewName             bool
+	NewName bool
+	// FileHint is a hint for what file is used for creating this dataset
+	FileHint string
 }
 
 // CreateDataset places a dataset into the store.
@@ -390,7 +393,7 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 		bodyAct = BodyTooBig
 	}
 
-	if err = generateCommit(store, dsPrev, ds, privKey, bodyAct, sw.ForceIfNoChanges); err != nil {
+	if err = generateCommit(store, dsPrev, ds, privKey, bodyAct, sw.FileHint, sw.ForceIfNoChanges); err != nil {
 		return err
 	}
 
@@ -410,11 +413,18 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 }
 
 // generateCommit creates the commit title, message, timestamp, etc
-func generateCommit(store cafs.Filestore, prev, ds *dataset.Dataset, privKey crypto.PrivKey, bodyAct BodyAction, forceIfNoChanges bool) error {
+func generateCommit(store cafs.Filestore, prev, ds *dataset.Dataset, privKey crypto.PrivKey, bodyAct BodyAction, fileHint string, forceIfNoChanges bool) error {
 	shortTitle, longMessage, err := generateCommitDescriptions(store, prev, ds, bodyAct, forceIfNoChanges)
 	if err != nil {
 		log.Debug(fmt.Errorf("error saving: %s", err))
 		return fmt.Errorf("error saving: %s", err)
+	}
+
+	if shortTitle == defaultCreatedDescription && fileHint != "" {
+		shortTitle = shortTitle + " from " + filepath.Base(fileHint)
+	}
+	if longMessage == defaultCreatedDescription && fileHint != "" {
+		longMessage = longMessage + " from " + filepath.Base(fileHint)
 	}
 
 	if ds.Commit.Title == "" {
@@ -549,10 +559,12 @@ func setChecksumAndLength(ds *dataset.Dataset, data qfs.File, buf *bytes.Buffer,
 	done <- nil
 }
 
+const defaultCreatedDescription = "created dataset"
+
 // returns a commit message based on the diff of the two datasets
 func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset, bodyAct BodyAction, forceIfNoChanges bool) (short, long string, err error) {
 	if prev == nil || prev.IsEmpty() {
-		return "created dataset", "created dataset", nil
+		return defaultCreatedDescription, defaultCreatedDescription, nil
 	}
 
 	ctx := context.TODO()
