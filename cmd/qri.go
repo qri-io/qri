@@ -6,7 +6,6 @@ import (
 	"net/rpc"
 	"os"
 	"runtime"
-	"sync"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
@@ -29,29 +28,6 @@ func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGene
 Feedback, questions, bug reports, and contributions are welcome! 
 https://github.com/qri-io/qri/issues`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			shouldColorOutput := false
-			inst := opt.Instance()
-			if inst != nil {
-				cfg := inst.Config()
-				if cfg != nil && cfg.CLI != nil {
-					shouldColorOutput = cfg.CLI.ColorizeOutput
-				}
-			}
-			// todo(arqu): have a config var to indicate force override for windows
-			if runtime.GOOS == "windows" {
-				shouldColorOutput = false
-			}
-			if cmd.Flags().Changed("no-color") {
-				noColor, err := cmd.Flags().GetBool("no-color")
-				if err == nil {
-					shouldColorOutput = !noColor
-				}
-			}
-			setNoColor(!shouldColorOutput)
-			noPrompt, err := cmd.Flags().GetBool("no-prompt")
-			if err == nil && noPrompt {
-				setNoPrompt(noPrompt)
-			}
 		},
 		BashCompletionFunction: bashCompletionFunc,
 	}
@@ -128,10 +104,8 @@ type QriOptions struct {
 	ConfigPath string
 	// Whether to log all activity by enabling logging for all packages
 	LogAll bool
-
+	// inst is the Instance that holds state needed by qri's methods
 	inst        *lib.Instance
-	initialized sync.Once
-	initErr     error
 }
 
 // NewQriOptions creates an options object
@@ -146,19 +120,33 @@ func NewQriOptions(ctx context.Context, qriPath, ipfsPath string, generator gen.
 }
 
 // Init will initialize the internal state
-func (o *QriOptions) Init() error {
-	initBody := func() {
+func (o *QriOptions) Init() (err error) {
+	if o.inst == nil {
 		opts := []lib.Option{
 			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
 			lib.OptSetIPFSPath(o.IpfsPath),
 			lib.OptCheckConfigMigrations(""),
 			lib.OptSetLogAll(o.LogAll),
 		}
-		o.inst, o.initErr = lib.NewInstance(o.ctx, o.RepoPath, opts...)
+		o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
+		if err != nil {
+			return err
+		}
+		// Handle color and prompt flags which apply to every command
+		shouldColorOutput := !o.NoColor
+		cfg := o.inst.Config()
+		if cfg != nil && cfg.CLI != nil {
+			shouldColorOutput = cfg.CLI.ColorizeOutput
+		}
+		// todo(arqu): have a config var to indicate force override for windows
+		if runtime.GOOS == "windows" {
+			shouldColorOutput = false
+		}
+		setNoColor(!shouldColorOutput)
+		setNoPrompt(o.NoPrompt)
 		log.Debugf("running cmd %q", os.Args)
 	}
-	o.initialized.Do(initBody)
-	return o.initErr
+	return nil
 }
 
 // Instance returns the instance this options is using
