@@ -495,7 +495,7 @@ func (run *TestRunner) AddDatasetToRefstore(ctx context.Context, t *testing.T, r
 	str := ioes.NewStdIOStreams()
 	secrets := make(map[string]string)
 	scriptOut := &bytes.Buffer{}
-	sw := base.SaveDatasetSwitches{}
+	sw := base.SaveSwitches{}
 
 	_, err = base.SaveDataset(ctx, r, str, ds, secrets, scriptOut, sw)
 	if err != nil {

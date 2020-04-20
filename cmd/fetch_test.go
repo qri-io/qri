@@ -30,7 +30,7 @@ func TestFetchCommand(t *testing.T) {
 
 	// Get the log, should have two versions.
 	actual := a.MustExec(t, "qri log peer_a/test_movies")
-	expect := `1   Commit:  /ipfs/QmX3MtEVFdJMfAFaHvUsf6BVMS2m4Qw1huXUf1Gi3DPyUc
+	expect := `1   Commit:  /ipfs/Qmde2e5etUdVtBzHdvnsPXU4mFmy3yepw72rWz3CQ8JQ3v
     Date:    Sun Dec 31 20:05:01 EST 2000
     Storage: local
     Size:    720 B
@@ -39,12 +39,12 @@ func TestFetchCommand(t *testing.T) {
     body:
     	changed by 70%
 
-2   Commit:  /ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n
+2   Commit:  /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    224 B
 
-    created dataset
+    created dataset from body_ten.csv
 
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -108,19 +108,19 @@ func TestFetchCommand(t *testing.T) {
 
 	// Have peer B fetch from peer A, output correlates to the log from peer A earlier
 	actual = b.MustExec(t, "qri fetch peer_a/test_movies --remote a_node")
-	expect = `1   Commit:  /ipfs/QmX3MtEVFdJMfAFaHvUsf6BVMS2m4Qw1huXUf1Gi3DPyUc
+	expect = `1   Commit:  /ipfs/Qmde2e5etUdVtBzHdvnsPXU4mFmy3yepw72rWz3CQ8JQ3v
     Date:    Sun Dec 31 20:05:01 EST 2000
     Storage: remote
     Size:    720 B
 
     body changed by 70%
 
-2   Commit:  /ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n
+2   Commit:  /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: remote
     Size:    224 B
 
-    created dataset
+    created dataset from body_ten.csv
 
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -164,7 +164,7 @@ func TestFetchCommand(t *testing.T) {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
 	actualBody = string(fixTs.ReplaceAll([]byte(actualBody), []byte(`"commitTime":"timeStampHere"`)))
-	expectBody := `{"data":[{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/QmX3MtEVFdJMfAFaHvUsf6BVMS2m4Qw1huXUf1Gi3DPyUc","bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%","commitMessage":"body:\n\tchanged by 70%"},{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n","bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset","commitMessage":"created dataset"}],"meta":{"code":200},"pagination":{"nextUrl":"/history/peer_a/test_movies?page=2"}}`
+	expectBody := `{"data":[{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/Qmde2e5etUdVtBzHdvnsPXU4mFmy3yepw72rWz3CQ8JQ3v","bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%","commitMessage":"body:\n\tchanged by 70%"},{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z","bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset from body_ten.csv","commitMessage":"created dataset from body_ten.csv"}],"meta":{"code":200},"pagination":{"nextUrl":"/history/peer_a/test_movies?page=2"}}`
 	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
 		t.Errorf("body mismatch (-want +got):%s\n", diff)
 	}
@@ -183,7 +183,7 @@ func TestFetchCommand(t *testing.T) {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
 	actualBody = string(fixTs.ReplaceAll([]byte(actualBody), []byte(`"commitTime":"timeStampHere"`)))
-	expectBody = `{"data":[{"username":"peer_a","name":"test_movies","path":"/ipfs/QmX3MtEVFdJMfAFaHvUsf6BVMS2m4Qw1huXUf1Gi3DPyUc","foreign":true,"bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%"},{"username":"peer_a","name":"test_movies","path":"/ipfs/QmQ8xUVwptw46kxxNBAw974LZsY58kCWorCbF7Bf2n2D5n","foreign":true,"bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset"}],"meta":{"code":200}}`
+	expectBody = `{"data":[{"username":"peer_a","name":"test_movies","path":"/ipfs/Qmde2e5etUdVtBzHdvnsPXU4mFmy3yepw72rWz3CQ8JQ3v","foreign":true,"bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%"},{"username":"peer_a","name":"test_movies","path":"/ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z","foreign":true,"bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset from body_ten.csv"}],"meta":{"code":200}}`
 	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
 		t.Errorf("body mismatch (-want +got):%s\n", diff)
 	}

@@ -129,7 +129,7 @@ func TestCreateDataset(t *testing.T) {
 	info := testPeers.GetTestPeerInfo(10)
 	privKey := info.PrivKey
 
-	_, err := CreateDataset(ctx, store, nil, nil, nil, false, false, true)
+	_, err := CreateDataset(ctx, store, nil, nil, nil, SaveSwitches{ShouldRender: true})
 	if err == nil {
 		t.Errorf("expected call without prvate key to error")
 		return
@@ -177,7 +177,7 @@ func TestCreateDataset(t *testing.T) {
 			continue
 		}
 
-		path, err := CreateDataset(ctx, store, tc.Input, c.prev, privKey, false, false, true)
+		path, err := CreateDataset(ctx, store, tc.Input, c.prev, privKey, SaveSwitches{ShouldRender: true})
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("%s: error mismatch. expected: '%s', got: '%s'", tc.Name, c.err, err)
 			continue
@@ -229,7 +229,7 @@ func TestCreateDataset(t *testing.T) {
 		t.Errorf("case nil body and previous body files, error reading data file: %s", err.Error())
 	}
 	expectedErr := "bodyfile or previous bodyfile needed"
-	_, err = CreateDataset(ctx, store, ds, nil, privKey, false, false, true)
+	_, err = CreateDataset(ctx, store, ds, nil, privKey, SaveSwitches{ShouldRender: true})
 	if err.Error() != expectedErr {
 		t.Errorf("case nil body and previous body files, error mismatch: expected '%s', got '%s'", expectedErr, err.Error())
 	}
@@ -248,7 +248,7 @@ func TestCreateDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.csv", bodyBytes))
 
-	_, err = CreateDataset(ctx, store, ds, dsPrev, privKey, false, false, true)
+	_, err = CreateDataset(ctx, store, ds, dsPrev, privKey, SaveSwitches{ShouldRender: true})
 	if err != nil && err.Error() != expectedErr {
 		t.Errorf("case no changes in dataset, error mismatch: expected '%s', got '%s'", expectedErr, err.Error())
 	} else if err == nil {
@@ -305,7 +305,7 @@ func TestCreateDatasetBodyTooLarge(t *testing.T) {
 	}
 	nextDs.SetBodyFile(qfs.NewMemfileBytes(testBodyPath, testBodyBytes))
 
-	path, err := CreateDataset(ctx, store, &nextDs, &prevDs, privKey, false, false, true)
+	path, err := CreateDataset(ctx, store, &nextDs, &prevDs, privKey, SaveSwitches{ShouldRender: true})
 	if err != nil {
 		t.Fatalf("CreateDataset: %s", err)
 	}

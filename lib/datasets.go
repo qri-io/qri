@@ -609,12 +609,18 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	// TODO (b5) - this should be integrated into base.SaveDataset
 	fsiPath := datasetRef.FSIPath
 
-	switches := base.SaveDatasetSwitches{
+	fileHint := p.BodyPath
+	if len(p.FilePaths) > 0 {
+		fileHint = p.FilePaths[0]
+	}
+
+	switches := base.SaveSwitches{
+		FileHint:            fileHint,
 		Replace:             p.Replace,
 		DryRun:              p.DryRun,
 		Pin:                 true,
 		ConvertFormatToPrev: p.ConvertFormatToPrev,
-		Force:               p.Force,
+		ForceIfNoChanges:    p.Force,
 		ShouldRender:        p.ShouldRender,
 		NewName:             p.NewName,
 	}

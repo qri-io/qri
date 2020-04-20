@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -220,48 +221,69 @@ func DerefDatasetCommit(ctx context.Context, store cafs.Filestore, ds *dataset.D
 	return nil
 }
 
-// CreateDataset places a new dataset in the store. Admittedly, this isn't a simple process.
-// Store is where we're going to
-// Dataset to be saved
-// Pin the dataset if the underlying store supports the pinning interface
-// All streaming files (Body, Transform Script, Viz Script) Must be Resolved before calling if data their data is to be saved
-func CreateDataset(ctx context.Context, store cafs.Filestore, ds, dsPrev *dataset.Dataset, pk crypto.PrivKey, pin, forceIfNoChanges, shouldRender bool) (path string, err error) {
+// SaveSwitches represents options for saving a dataset
+type SaveSwitches struct {
+	// Replace is whether the save is a full replacement or a set of patches to previous
+	Replace bool
+	// DryRun is whether the save should not be written to the refstore for real
+	DryRun bool
+	// Pin is whether the dataset should be pinned
+	Pin bool
+	// ConvertFormatToPrev is whether the body should be converted to match the previous format
+	ConvertFormatToPrev bool
+	// ForceIfNoChanges is whether the save should be forced even if no changes are detected
+	ForceIfNoChanges bool
+	// ShouldRender is deprecated, controls whether viz should be rendered
+	ShouldRender bool
+	// NewName is whether a new dataset should be created, guaranteeing there's no previous version
+	NewName bool
+	// FileHint is a hint for what file is used for creating this dataset
+	FileHint string
+}
 
+// CreateDataset places a dataset into the store.
+// Store is where we're going to store the data
+// Dataset to be saved
+// Prev is the previous version or nil if there isn't one
+// Pk is the private key for cryptographically signing
+// Sw is switches that control how the save happens
+// Returns the immutable path if no error
+func CreateDataset(ctx context.Context, store cafs.Filestore, ds, dsPrev *dataset.Dataset, pk crypto.PrivKey, sw SaveSwitches) (string, error) {
 	if pk == nil {
-		err = fmt.Errorf("private key is required to create a dataset")
-		return
+		return "", fmt.Errorf("private key is required to create a dataset")
 	}
-	if err = DerefDataset(ctx, store, ds); err != nil {
+	if err := DerefDataset(ctx, store, ds); err != nil {
 		log.Debug(err.Error())
-		return
+		return "", err
 	}
-	if err = validate.Dataset(ds); err != nil {
+	if err := validate.Dataset(ds); err != nil {
 		log.Debug(err.Error())
-		return
+		return "", err
 	}
 
 	if dsPrev != nil && !dsPrev.IsEmpty() {
-		if err = DerefDataset(ctx, store, dsPrev); err != nil {
+		if err := DerefDataset(ctx, store, dsPrev); err != nil {
 			log.Debug(err.Error())
-			return
+			return "", err
 		}
-		if err = validate.Dataset(dsPrev); err != nil {
+		if err := validate.Dataset(dsPrev); err != nil {
 			log.Debug(err.Error())
-			return
+			return "", err
 		}
 	}
-	err = prepareDataset(store, ds, dsPrev, pk, forceIfNoChanges, shouldRender)
+	err := prepareDataset(store, ds, dsPrev, pk, sw)
 	if err != nil {
 		log.Debug(err.Error())
-		return
+		return "", err
 	}
 
-	path, err = WriteDataset(ctx, store, ds, pin)
+	path, err := WriteDataset(ctx, store, ds, sw.Pin)
 	if err != nil {
 		log.Debug(err.Error())
-		err = fmt.Errorf("error writing dataset: %s", err.Error())
+		err := fmt.Errorf("error writing dataset: %s", err.Error())
+		return "", err
 	}
-	return
+	return path, nil
 }
 
 // Timestamp is an function for getting commit timestamps
@@ -284,7 +306,7 @@ const (
 
 // prepareDataset modifies a dataset in preparation for adding to a dsfs
 // it returns a new data file for use in WriteDataset
-func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey crypto.PrivKey, forceIfNoChanges, shouldRender bool) error {
+func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey crypto.PrivKey, sw SaveSwitches) error {
 	var (
 		err error
 		// lock for parallel edits to ds pointer
@@ -371,13 +393,13 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 		bodyAct = BodyTooBig
 	}
 
-	if err = generateCommit(store, dsPrev, ds, privKey, bodyAct, forceIfNoChanges); err != nil {
+	if err = generateCommit(store, dsPrev, ds, privKey, bodyAct, sw.FileHint, sw.ForceIfNoChanges); err != nil {
 		return err
 	}
 
 	ds.SetBodyFile(qfs.NewMemfileBytes("body."+ds.Structure.Format, buf.Bytes()))
 
-	if shouldRender && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
+	if sw.ShouldRender && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
 		// render the viz
 		renderedFile, err := dsviz.Render(ds)
 		if err != nil {
@@ -391,11 +413,18 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 }
 
 // generateCommit creates the commit title, message, timestamp, etc
-func generateCommit(store cafs.Filestore, prev, ds *dataset.Dataset, privKey crypto.PrivKey, bodyAct BodyAction, forceIfNoChanges bool) error {
+func generateCommit(store cafs.Filestore, prev, ds *dataset.Dataset, privKey crypto.PrivKey, bodyAct BodyAction, fileHint string, forceIfNoChanges bool) error {
 	shortTitle, longMessage, err := generateCommitDescriptions(store, prev, ds, bodyAct, forceIfNoChanges)
 	if err != nil {
 		log.Debug(fmt.Errorf("error saving: %s", err))
 		return fmt.Errorf("error saving: %s", err)
+	}
+
+	if shortTitle == defaultCreatedDescription && fileHint != "" {
+		shortTitle = shortTitle + " from " + filepath.Base(fileHint)
+	}
+	if longMessage == defaultCreatedDescription && fileHint != "" {
+		longMessage = longMessage + " from " + filepath.Base(fileHint)
 	}
 
 	if ds.Commit.Title == "" {
@@ -530,10 +559,12 @@ func setChecksumAndLength(ds *dataset.Dataset, data qfs.File, buf *bytes.Buffer,
 	done <- nil
 }
 
+const defaultCreatedDescription = "created dataset"
+
 // returns a commit message based on the diff of the two datasets
 func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset, bodyAct BodyAction, forceIfNoChanges bool) (short, long string, err error) {
 	if prev == nil || prev.IsEmpty() {
-		return "created dataset", "created dataset", nil
+		return defaultCreatedDescription, defaultCreatedDescription, nil
 	}
 
 	ctx := context.TODO()

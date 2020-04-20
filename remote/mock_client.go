@@ -69,7 +69,8 @@ func (c *MockClient) AddDataset(ctx context.Context, ref *reporef.DatasetRef, re
 	_ = ds.OpenBodyFile(ctx, nil)
 
 	// Store with dsfs
-	path, err := dsfs.CreateDataset(ctx, c.node.Repo.Store(), &ds, nil, c.node.Repo.PrivateKey(), false, false, false)
+	sw := dsfs.SaveSwitches{}
+	path, err := dsfs.CreateDataset(ctx, c.node.Repo.Store(), &ds, nil, c.node.Repo.PrivateKey(), sw)
 	if err != nil {
 		return err
 	}
