@@ -1,3 +1,38 @@
+<a name="0.9.8"></a>
+# [0.9.8](https://github.com/qri-io/qri/compare/v0.9.7...v0.9.8) (2020-04-20)
+
+0.9.8 is a quick patch release to fix export for a few users who have been having trouble getting certain datasets out of qri.
+
+### Fixed Export
+This patch release fixes a problem that was causing some datasets to not export properly while running `qri connect`.
+
+### Naming rules
+This patch also clarifies what characters are allowed in a dataset name and a peername. From now on a legal dataset name and username must:
+* consist of only lowercase letters, numbers 0-9, the hyphen "-", and the underscore "_".
+* start with a letter
+
+Length limits vary between usernames and dataset names, but qri now enforces these rules more consistently. Existing dataset names that violate these rules will continue to work, but will be forced to rename in a future version. New datasets with names that don't match these rules cannot be created.
+
+### Bug Fixes
+
+* **checkout:** checkout fails early if link exists ([b8f697f](https://github.com/qri-io/qri/commit/b8f697f))
+* **cmd:** checkout supports specifying a directory ([3406c8a](https://github.com/qri-io/qri/commit/3406c8a))
+* **cmd:** completion supports config, structure and peer args, added workdir ([#1268](https://github.com/qri-io/qri/issues/1268)) ([ef62c71](https://github.com/qri-io/qri/commit/ef62c71))
+* **cmd:** tty should auto disable color for windows ([abf678d](https://github.com/qri-io/qri/commit/abf678d))
+* **export:** handle ok-case of bad viz while connected ([1bb2463](https://github.com/qri-io/qri/commit/1bb2463))
+* **log:** Timeout log retrieval so it won't hang ([14d885a](https://github.com/qri-io/qri/commit/14d885a))
+* **parse:** Allow hyphens in usernames and dataset names ([c3b616a](https://github.com/qri-io/qri/commit/c3b616a))
+* **setup:** Detect colors during init, which fixes setup ([278241c](https://github.com/qri-io/qri/commit/278241c))
+* **setup:** Don't crash when running `qri setup` ([e0202f4](https://github.com/qri-io/qri/commit/e0202f4))
+
+
+### Features
+
+* **name:** Generate valid dataset names, use in multiple places ([45502dc](https://github.com/qri-io/qri/commit/45502dc))
+* **save:** File hint, from --file or --body flags, informs commit message ([10403f5](https://github.com/qri-io/qri/commit/10403f5))
+
+
+
 <a name="0.9.7"></a>
 # [0.9.7](https://github.com/qri-io/qri/compare/v0.9.6...v0.9.7) (2020-04-07)
 
