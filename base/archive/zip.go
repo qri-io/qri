@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -95,7 +96,11 @@ func WriteZip(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, fo
 
 		if ds.Viz.RenderedPath != "" {
 			if err = maybeWriteRenderedViz(ctx, store, zw, ds.Viz.RenderedPath); err != nil {
-				return err
+				if errors.Is(err, context.DeadlineExceeded) {
+					err = nil
+				} else {
+					return err
+				}
 			}
 		}
 	}
