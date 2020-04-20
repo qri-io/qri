@@ -29,13 +29,7 @@ func (n *QriNode) setupDiscovery(ctx context.Context) error {
 // support the qri protocol
 func (n *QriNode) HandlePeerFound(pinfo peer.AddrInfo) {
 	log.Debugf("found peer %s", pinfo.ID)
-	time.Sleep(time.Millisecond * 250)
-	if len(n.Host().Network().ConnsToPeer(pinfo.ID)) == 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), discoveryConnTimeout)
-		defer cancel()
-		// attempt to connect to anyone we find.
-		// TODO (b5) - This might be redundant, but might not be if we're using our
-		// own p2p host (as opposed to an IPFS node Host)
-		n.Host().Connect(ctx, pinfo)
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), discoveryConnTimeout)
+	defer cancel()
+	n.Host().Connect(ctx, pinfo)
 }

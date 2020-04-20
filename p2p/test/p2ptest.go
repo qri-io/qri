@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/ipfs/go-cid"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -27,7 +26,6 @@ import (
 type TestablePeerNode interface {
 	Host() host.Host
 	SimpleAddrInfo() peer.AddrInfo
-	UpgradeToQriConnection(peer.AddrInfo) error
 	GoOnline(ctx context.Context) error
 }
 
@@ -189,24 +187,6 @@ func ConnectQriNodes(ctx context.Context, nodes []TestablePeerNode) error {
 		}
 	}
 	wgConnect.Wait()
-	time.Sleep(time.Millisecond * 300)
-	// previously, we had UpgradeToQriConnection running in separate threads
-	// much like we did with the basic connection
-	// however, UpgradeToQriConnection asks for and sends profile information
-	// from it's various peers. We were running into a race condition where
-	// we would be writing to and requesting a profile at the same time.
-	for _, s1 := range nodes {
-		for _, s2 := range nodes {
-			pinfo := s2.SimpleAddrInfo()
-			if s1.SimpleAddrInfo().ID == pinfo.ID {
-				continue
-			}
-			if err := s1.UpgradeToQriConnection(pinfo); err != nil {
-				return fmt.Errorf("%s error upgrading connection to %s: %s", s1.SimpleAddrInfo().ID, pinfo.ID, err)
-			}
-		}
-	}
-
 	return nil
 }
 

@@ -47,43 +47,6 @@ func (n *TestableNode) SimpleAddrInfo() peer.AddrInfo {
 	}
 }
 
-// UpgradeToQriConnection upgrades the connection from a basic connection
-// to a Qri connection
-func (n *TestableNode) UpgradeToQriConnection(pinfo peer.AddrInfo) error {
-	// bail early if we have seen this peer before
-	if _, err := n.Host().Peerstore().Get(pinfo.ID, TestQriSupportKey); err == nil {
-		return nil
-	}
-
-	// check if this connection supports the qri protocol
-	protos, err := n.Host().Peerstore().SupportsProtocols(pinfo.ID, string(TestQriProtocolID))
-	if err != nil {
-		fmt.Printf("error getting protocols from peerstore: %s", err)
-	}
-
-	support := true
-
-	if len(protos) == 0 {
-		support = false
-	}
-
-	// mark whether or not this connection supports the qri protocol:
-	if err := n.Host().Peerstore().Put(pinfo.ID, string(TestQriSupportKey), support); err != nil {
-		fmt.Printf("error setting qri support flag: %s\n", err)
-		return err
-	}
-	// if it does support the qri protocol
-	// - request profile
-	// - request profiles
-	// - tag as qri connection
-	if !support {
-		return ErrTestQriProtocolNotSupported
-	}
-
-	n.Host().ConnManager().TagPeer(pinfo.ID, TestQriConnManagerTag, TestQriConnManagerValue)
-	return nil
-}
-
 func (n *TestableNode) TestStreamHandler(s net.Stream) {
 	fmt.Println("stream handler called")
 }

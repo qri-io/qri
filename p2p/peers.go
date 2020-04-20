@@ -3,7 +3,6 @@ package p2p
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
@@ -185,10 +184,11 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 		return nil, fmt.Errorf("host connect %s failure: %s", pinfo.ID.Pretty(), err)
 	}
 
-	time.Sleep(time.Millisecond * 10)
-	if err := n.UpgradeToQriConnection(pinfo); err != nil {
-		// TODO: if the err is ErrQriProtocolNotSupported, let the user know the
-		// connection has been established, but that the Qri Protocol is not supported
+	// do an explicit connection upgrade. We're assmun
+	if err := n.upgradeToQriConnection(pinfo.ID); err != nil {
+		if err == ErrQriProtocolNotSupported {
+			return nil, fmt.Errorf("upgrading p2p connection to a qri connection: %w", err)
+		}
 		return nil, err
 	}
 

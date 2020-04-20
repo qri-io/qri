@@ -31,6 +31,7 @@ func DefaultProfileForTesting() *ProfilePod {
 func DefaultP2PForTesting() *P2P {
 	info := test.GetTestPeerInfo(0)
 	p := DefaultP2P()
+	p.BootstrapAddrs = nil
 	p.PrivKey = info.EncodedPrivKey
 	p.PeerID = info.EncodedPeerID
 	return p

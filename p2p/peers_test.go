@@ -31,10 +31,10 @@ func TestConnectedQriProfiles(t *testing.T) {
 	nodes := asQriNodes(testPeers)
 
 	pros := nodes[0].ConnectedQriProfiles()
-	if len(pros) != len(nodes)-1 {
+	if len(pros) != len(nodes) {
 		t.Log(nodes[0].host.Network().Conns())
 		t.Log(pros)
-		t.Errorf("wrong number of connected profiles. expected: %d, got: %d", len(nodes)-1, len(pros))
+		t.Errorf("wrong number of connected profiles. expected: %d, got: %d", len(nodes), len(pros))
 		return
 	}
 

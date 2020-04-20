@@ -25,11 +25,7 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan peer.Addr
 		go func(p peer.AddrInfo) {
 			log.Debugf("boostrapping to: %s", p.ID.Pretty())
 			if err := n.host.Connect(context.Background(), p); err == nil {
-				if err = n.UpgradeToQriConnection(p); err != nil && err != ErrQriProtocolNotSupported {
-					log.Errorf("error adding peer: %s", err.Error())
-				} else {
-					boostrapPeers <- p
-				}
+				boostrapPeers <- p
 			} else {
 				log.Infof("error connecting to host: %s", err.Error())
 			}

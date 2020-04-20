@@ -174,6 +174,9 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	n.host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
 	// register ourselves as a notifee on connected
 	n.host.Network().Notify(n.notifee)
+	if err := n.libp2pSubscribe(); err != nil {
+		return err
+	}
 
 	p, err := n.Repo.Profile()
 	if err != nil {
@@ -373,19 +376,6 @@ func (n *QriNode) connected(_ net.Network, conn net.Conn) {
 	log.Debugf("connected to peer: %s", conn.RemotePeer())
 	pi := n.Host().Peerstore().PeerInfo(conn.RemotePeer())
 	n.pub.Publish(event.ETP2PPeerConnected, pi)
-
-	// TODO (b5) - this connected hook is the only thing we have to do a qri
-	// protocol upgrade, and often fires *before* protocol support negotiation
-	// has begun, causing all sorts of meyham as we ask the host to detect support
-	// for the qri protocol for us. Adding an arbitrary delay improves that chances
-	// that protocol negotiation has already been accomplished
-	// This will be removed very soon, once we upgrade our IPFS & libp2p
-	// dependencies
-	time.Sleep(time.Millisecond * 200)
-	// NOTE: intentionally not logging this error. it'll be *very* noisy in
-	// production, and qri is often launched with --log-all, which prints debug
-	// level logging
-	_ = n.UpgradeToQriConnection(pi)
 }
 
 func (n *QriNode) disconnected(_ net.Network, conn net.Conn) {
@@ -398,6 +388,28 @@ func (n *QriNode) disconnected(_ net.Network, conn net.Conn) {
 func (n *QriNode) QriStreamHandler(s net.Stream) {
 	// defer s.Close()
 	n.handleStream(WrapStream(s), nil)
+}
+
+func (n *QriNode) libp2pSubscribe() error {
+	// TODO (b5) - use this once we upgrade IPFS & libp2p deps
+	// host := n.host
+	// sub, err := host.EventBus().Subscribe(
+	// 	// new(libp2pevent.EvtPeerIdentificationCompleted),
+	// 	libp2peventbus.BufSize(1024),
+	// )
+	// if err != nil {
+	// 	return fmt.Errorf("failed to subscribe to identify notifications: %w", err)
+	// }
+	// go func() {
+	// 	defer sub.Close()
+	// 	for e := range sub.Out() {
+	// 		switch e := e.(type) {
+	// 		case libp2pevent.EvtPeerIdentificationCompleted:
+	// 			n.upgradeToQriConnection(e.Peer)
+	// 		}
+	// 	}
+	// }()
+	return nil
 }
 
 // handleStream is a for loop which receives and handles messages
