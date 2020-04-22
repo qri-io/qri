@@ -118,8 +118,8 @@ func TestGenerateNameCutoffWord(t *testing.T) {
 	NameMaxLength = 18
 
 	cases := []struct {
-		input       string
-		expect      string
+		input  string
+		expect string
 	}{
 		{
 			"the quick brown fox jumped",

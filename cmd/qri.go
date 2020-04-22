@@ -105,7 +105,7 @@ type QriOptions struct {
 	// Whether to log all activity by enabling logging for all packages
 	LogAll bool
 	// inst is the Instance that holds state needed by qri's methods
-	inst        *lib.Instance
+	inst *lib.Instance
 }
 
 // NewQriOptions creates an options object
