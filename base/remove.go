@@ -66,29 +66,36 @@ func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, histor
 // the most recent version
 // when n == -1, remove all versions
 // does not remove the dataset reference
-func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, n int) (dsref.Ref, error) {
+func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, n int) (*dsref.VersionInfo, error) {
 	var err error
 	if r == nil {
-		return curr, fmt.Errorf("need a repo")
+		return nil, fmt.Errorf("need a repo")
 	}
 	if curr.Path == "" {
-		return curr, fmt.Errorf("need a dataset reference with a path")
+		return nil, fmt.Errorf("need a dataset reference with a path")
 	}
 
 	if n < -1 {
-		return curr, fmt.Errorf("invalid 'n', n should be n >= 0 or n == -1 to indicate removing all versions")
+		return nil, fmt.Errorf("invalid 'n', n should be n >= 0 or n == -1 to indicate removing all versions")
 	}
 
 	// load previous dataset into prev
 	ds, err := dsfs.LoadDatasetRefs(ctx, r.Store(), curr.Path)
 	if err != nil {
-		return curr, err
+		return nil, err
 	}
 
 	// Set a timeout for looking up the previous dataset versions.
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 100*time.Millisecond)
 	defer timeoutCancel()
 
+	// Copy the dsref, modify it as we step back through the dataset's history.
+	dest := dsref.Ref{
+		Username:  curr.Username,
+		ProfileID: curr.ProfileID,
+		Name:      curr.Name,
+		Path:      curr.Path,
+	}
 	i := n
 
 	for i != 0 {
@@ -97,13 +104,13 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 		i--
 		// unpin dataset, ignoring "not pinned" errors
 		datasetRef := reporef.DatasetRef{
-			Peername:  curr.Username,
-			Name:      curr.Name,
-			Path:      curr.Path,
-			ProfileID: profile.IDB58DecodeOrEmpty(curr.ProfileID),
+			Peername:  dest.Username,
+			Name:      dest.Name,
+			Path:      dest.Path,
+			ProfileID: profile.IDB58DecodeOrEmpty(dest.ProfileID),
 		}
 		if err = UnpinDataset(ctx, r, datasetRef); err != nil && !strings.Contains(err.Error(), "not pinned") {
-			return curr, err
+			return nil, err
 		}
 		// if no previous path, break
 		if ds.PreviousPath == "" {
@@ -117,7 +124,7 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 		// if we don't have all previous versions, we probably don't have them pinned.
 		// TODO(dlong): If IPFS gains the ability to ask "do I have these blocks locally", use
 		// that instead of the network-aware LoadDatasetRefs.
-		next, err := dsfs.LoadDatasetRefs(timeoutCtx, r.Store(), ds.PreviousPath)
+		loadedPrev, err := dsfs.LoadDatasetRefs(timeoutCtx, r.Store(), ds.PreviousPath)
 		if err != nil {
 			// Note: We want delete to succeed even if datasets are remote, so we don't fail on
 			// this error, and break early instead.
@@ -130,16 +137,21 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 			log.Debugf("error fetching previous: %s", err)
 			break
 		}
-		curr.Path = next.Path
-		ds = next
+		dest.Path = loadedPrev.Path
+		ds = loadedPrev
 	}
 
-	err = r.Logbook().WriteVersionDelete(ctx, curr, n)
+	info, err := RewindDatasetRef(ctx, r, curr, dest)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.Logbook().WriteVersionDelete(ctx, dest, n)
 	if err == logbook.ErrNoLogbook {
 		err = nil
 	}
 
-	return curr, nil
+	return info, nil
 }
 
 // This is inefficient and not great style, use it here just as a convenience.
@@ -148,4 +160,74 @@ func appendString(first, second string) string {
 		return second
 	}
 	return fmt.Sprintf("%s, %s", first, second)
+}
+
+// RewindDatasetRef changes a dsref in the repository refstore, by setting the path back to
+// an older value, and returns a versionInfo describing the resulting dataset reference.
+func RewindDatasetRef(ctx context.Context, r repo.Repo, curr, next dsref.Ref) (*dsref.VersionInfo, error) {
+	if !dsref.IsValidName(next.Name) {
+		return nil, dsref.ErrDescribeValidName
+	}
+	if curr.Username != next.Username || curr.ProfileID != next.ProfileID {
+		return nil, fmt.Errorf("cannot change username or profileID of a dataset")
+	}
+	if curr.Name != next.Name {
+		return nil, fmt.Errorf("cannot rewind dataset ref with a different name")
+	}
+
+	currProfileID, err := profile.IDB58Decode(curr.ProfileID)
+	if err != nil {
+		if curr.ProfileID == "" {
+			currProfileID = profile.IDRawByteString("")
+		} else {
+			return nil, err
+		}
+	}
+
+	nextProfileID, err := profile.IDB58Decode(next.ProfileID)
+	if err != nil {
+		if next.ProfileID == "" {
+			nextProfileID = profile.IDRawByteString("")
+		} else {
+			return nil, err
+		}
+	}
+
+	currRef := reporef.DatasetRef{
+		Peername:  curr.Username,
+		ProfileID: currProfileID,
+		Name:      curr.Name,
+		Path:      curr.Path,
+	}
+	nextRef := reporef.DatasetRef{
+		Peername:  next.Username,
+		ProfileID: nextProfileID,
+		Name:      next.Name,
+		Path:      next.Path,
+	}
+
+	// Both references need to canonicalize
+	if err := repo.CanonicalizeDatasetRef(r, &currRef); err != nil && err != repo.ErrNoHistory {
+		log.Debug(err.Error())
+		return nil, fmt.Errorf("error with existing reference: %s", err.Error())
+	}
+	if err := repo.CanonicalizeDatasetRef(r, &nextRef); err != nil && err != repo.ErrNoHistory {
+		log.Debug(err.Error())
+		return nil, fmt.Errorf("error with target reference: %s", err.Error())
+	}
+
+	if err := r.DeleteRef(currRef); err != nil {
+		return nil, err
+	}
+	if err := r.PutRef(nextRef); err != nil {
+		return nil, err
+	}
+
+	return &dsref.VersionInfo{
+		Username:  nextRef.Peername,
+		ProfileID: nextRef.ProfileID.String(),
+		Name:      nextRef.Name,
+		Path:      nextRef.Path,
+		FSIPath:   nextRef.FSIPath,
+	}, nil
 }
