@@ -239,6 +239,8 @@ type SaveSwitches struct {
 	NewName bool
 	// FileHint is a hint for what file is used for creating this dataset
 	FileHint string
+	// Drop is a string of components to remove before saving
+	Drop string
 }
 
 // CreateDataset places a dataset into the store.

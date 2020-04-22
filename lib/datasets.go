@@ -430,6 +430,8 @@ type SaveParams struct {
 	ConvertFormatToPrev bool
 	// string of references to recall before saving
 	Recall string
+	// string of references to delete before saving
+	Drop string
 	// force a new commit, even if no changes are detected
 	Force bool
 	// save a rendered version of the template along with the dataset
@@ -583,7 +585,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	if p.BodyPath == "" && ds.Name == "" {
 		return fmt.Errorf("name or bodypath is required")
 	}
-	if !p.Force &&
+	if !p.Force && p.Drop == "" &&
 		ds.BodyPath == "" &&
 		ds.Body == nil &&
 		ds.BodyBytes == nil &&
@@ -623,6 +625,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 		ForceIfNoChanges:    p.Force,
 		ShouldRender:        p.ShouldRender,
 		NewName:             p.NewName,
+		Drop:                p.Drop,
 	}
 	datasetRef, err = base.SaveDataset(ctx, r.node.Repo, r.node.LocalStreams, ds, p.Secrets, p.ScriptOutput, switches)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -161,6 +162,11 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		return
 	}
 
+	if err = Drop(ds, sw.Drop); err != nil {
+		log.Debugf("dropping components: %s", err)
+		return ref, err
+	}
+
 	if err = ValidateDataset(ds); err != nil {
 		log.Debugf("ValidateDataset: %s", err)
 		return
@@ -239,4 +245,44 @@ func GenerateAvailableName(r repo.Repo, peername, prefix string) string {
 			return tryName
 		}
 	}
+}
+
+// Drop sets named components to nil
+func Drop(ds *dataset.Dataset, revStr string) error {
+	if revStr == "" {
+		return nil
+	}
+
+	revs, err := dsref.ParseRevs(revStr)
+	if err != nil {
+		return err
+	}
+
+	for _, rev := range revs {
+		if rev.Gen != 1 {
+			return fmt.Errorf("cannot drop specific generations")
+		}
+		switch rev.Field {
+		case "md":
+			ds.Meta = nil
+		case "vz":
+			ds.Viz = nil
+		case "tf":
+			ds.Transform = nil
+		case "st":
+			ds.Structure = nil
+		case "bd":
+			ds.Body = nil
+		case "rd":
+			if ds.Viz != nil {
+				ds.Viz.RenderedPath = ""
+			}
+		case "rm":
+			ds.Readme = nil
+		default:
+			return fmt.Errorf("cannot drop component: %q", rev.Field)
+		}
+	}
+
+	return nil
 }
