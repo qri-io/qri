@@ -430,7 +430,7 @@ type SaveParams struct {
 	ConvertFormatToPrev bool
 	// string of references to recall before saving
 	Recall string
-	// string of references to delete before saving
+	// comma separated list of component names to delete before saving
 	Drop string
 	// force a new commit, even if no changes are detected
 	Force bool
@@ -610,6 +610,10 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 
 	// TODO (b5) - this should be integrated into base.SaveDataset
 	fsiPath := datasetRef.FSIPath
+
+	if fsiPath != "" && p.Drop != "" {
+		return errors.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
+	}
 
 	fileHint := p.BodyPath
 	if len(p.FilePaths) > 0 {

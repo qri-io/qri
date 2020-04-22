@@ -625,6 +625,21 @@ fix these problems before saving this dataset
 	}
 }
 
+func TestFSISaveDeniesDrop(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_fsi_save_denies_drop_flag")
+	defer run.Delete()
+
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/ten_movies")
+	run.ChdirToRoot()
+	run.MustExec(t, "qri checkout me/ten_movies")
+	run.ChdirToWorkDir("ten_movies")
+	got := run.ExecCommandCombinedOutErr("qri save --drop md")
+	expect := "cannot drop while FSI-linked"
+	if diff := cmp.Diff(expect, got.Error()); diff != "" {
+		t.Errorf("response mismatch. (-want +got):\n%s", diff)
+	}
+}
+
 // Test what changed command
 func TestWhatChanged(t *testing.T) {
 	run := NewFSITestRunner(t, "qri_test_status_at_version")
