@@ -75,6 +75,7 @@ commit message and title to the save.`,
 	cmd.Flags().BoolVar(&o.NoRender, "no-render", false, "don't store a rendered version of the the vizualization ")
 	cmd.Flags().BoolVarP(&o.NewName, "new", "n", false, "save a new dataset only, using an available name")
 	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "experimental: build and use dscache if none exists")
+	cmd.Flags().StringVar(&o.Drop, "drop", "", "comma-separated list of components to remove")
 
 	return cmd
 }
@@ -87,6 +88,7 @@ type SaveOptions struct {
 	FilePaths []string
 	BodyPath  string
 	Recall    string
+	Drop      string
 
 	Title   string
 	Message string
@@ -159,6 +161,7 @@ func (o *SaveOptions) Run() (err error) {
 		Publish:             o.Publish,
 		DryRun:              o.DryRun,
 		Recall:              o.Recall,
+		Drop:                o.Drop,
 		ConvertFormatToPrev: o.KeepFormat,
 		Force:               o.Force,
 		ReturnBody:          o.DryRun,
