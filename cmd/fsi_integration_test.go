@@ -1651,6 +1651,64 @@ func TestUnlinkDirectoryButRefNotFound(t *testing.T) {
 	}
 }
 
+// Test that saving with readme changes work correctly
+func TestSaveWithReadmeChange(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_save_readme_change")
+	defer run.Delete()
+
+	_ = run.CreateAndChdirToWorkDir("readme_change")
+
+	// Init as a linked directory, save default dataset.
+	run.MustExec(t, "qri init --name readme_change --format csv")
+	run.MustExec(t, "qri save")
+
+	// Write a readme and save
+	run.MustWriteFile(t, "readme.md", `# Title\n\ncontent\n`)
+	output := run.MustExecCombinedOutErr(t, "qri save")
+	if !strings.Contains(output, "dataset saved") {
+		t.Errorf("expected save to succeed, creating the second commit")
+	}
+
+	output = run.MustExecCombinedOutErr(t, "qri status")
+	if diff := cmpTextLines(cleanStatusMessage("test_peer/readme_change"), output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// Write a second readme and save
+	run.MustWriteFile(t, "readme.md", `# Title\n\nmore content\n`)
+	output = run.MustExecCombinedOutErr(t, "qri save")
+	if !strings.Contains(output, "dataset saved") {
+		t.Errorf("expected save to succeed, creating the second commit")
+	}
+
+	output = run.MustExecCombinedOutErr(t, "qri status")
+	if diff := cmpTextLines(cleanStatusMessage("test_peer/readme_change"), output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// Write a third readme and save
+	run.MustWriteFile(t, "readme.md", `# Title\n\neven more content\n`)
+	output = run.MustExecCombinedOutErr(t, "qri save")
+	if !strings.Contains(output, "dataset saved") {
+		t.Errorf("expected save to succeed, creating the second commit")
+	}
+
+	output = run.MustExecCombinedOutErr(t, "qri status")
+	if diff := cmpTextLines(cleanStatusMessage("test_peer/readme_change"), output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// Should fail because there's no changes
+	err := run.ExecCommand("qri save")
+	if err == nil {
+		t.Fatal("expected error trying to save, did not get an error")
+	}
+	expect := "error saving: no changes"
+	if err.Error() != expect {
+		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	}
+}
+
 func parseRefFromSave(output string) string {
 	pos := strings.Index(output, "saved: ")
 	if pos == -1 {

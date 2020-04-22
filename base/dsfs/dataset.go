@@ -618,6 +618,37 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 		_ = ds.Transform.OpenScriptFile(ctx, localfs.NewFS())
 	}
 
+	// Read the readme files to see if they changed.
+	// TODO(dustmop): Would be better to get a line-by-line diff
+	if prev.Readme != nil && prev.Readme.ScriptPath != "" {
+		err := prev.Readme.OpenScriptFile(ctx, store)
+		if err != nil {
+			log.Error("prev.Readme.ScriptPath %q open err: %s", prev.Readme.ScriptPath, err)
+		} else {
+			tfFile := prev.Readme.ScriptFile()
+			prev.Readme.ScriptBytes, err = ioutil.ReadAll(tfFile)
+			if err != nil {
+				log.Error("prev.Readme.ScriptPath %q read err: %s", prev.Readme.ScriptPath, err)
+			}
+		}
+	}
+	if ds.Readme != nil && ds.Readme.ScriptPath != "" {
+		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
+		// local here. Is there some way to have a cafs store that works with both?
+		err := ds.Readme.OpenScriptFile(ctx, localfs.NewFS())
+		if err != nil {
+			log.Error("ds.Readme.ScriptPath %q open err: %s", ds.Readme.ScriptPath, err)
+		} else {
+			tfFile := ds.Readme.ScriptFile()
+			ds.Readme.ScriptBytes, err = ioutil.ReadAll(tfFile)
+			if err != nil {
+				log.Error("ds.Readme.ScriptPath %q read err: %s", ds.Readme.ScriptPath, err)
+			}
+		}
+		// Reopen the readme file so that WriteDataset will be able to write it to the store.
+		_ = ds.Readme.OpenScriptFile(ctx, localfs.NewFS())
+	}
+
 	var prevData map[string]interface{}
 	prevData, err = toqtype.StructToMap(prev)
 	if err != nil {

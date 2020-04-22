@@ -698,3 +698,29 @@ func TestSaveTwiceWithTransform(t *testing.T) {
 //	// Save with a transform that results in a different shape (non tabular)
 //	run.MustExec(t, "qri save --file testdata/movies/tf_123.star test_peer/my_ds")
 //}
+
+// Test that saving with only a readme change will succeed
+func TestSaveWithReadmeFiles(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_save_readme_files")
+	defer run.Delete()
+
+	err := run.ExecCommand("qri save --body testdata/movies/body_ten.csv me/with_readme")
+	if err != nil {
+		t.Errorf("expected save to succeed, got %s", err)
+	}
+
+	err = run.ExecCommand("qri save --file testdata/movies/about_movies.md me/with_readme")
+	if err != nil {
+		t.Errorf("expected save to succeed, got %s", err)
+	}
+
+	err = run.ExecCommand("qri save --file testdata/movies/more_movies.md me/with_readme")
+	if err != nil {
+		t.Errorf("expected save to succeed, got %s", err)
+	}
+
+	err = run.ExecCommand("qri save --file testdata/movies/even_more_movies.md me/with_readme")
+	if err != nil {
+		t.Errorf("expected save to succeed, got %s", err)
+	}
+}
