@@ -422,6 +422,15 @@ func TestSaveFilenameUsedForCommitMessage(t *testing.T) {
 	}
 }
 
+func TestSaveDrop(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_drop")
+	defer run.Delete()
+
+	run.MustExec(t, "qri save --body testdata/movies/body_two.json me/drop_stuff")
+	run.MustExec(t, "qri save --file testdata/movies/tf_123.star me/drop_stuff")
+	run.MustExec(t, "qri save --drop tf me/drop_stuff")
+}
+
 func TestSaveDscacheFirstCommit(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_dscache_first")
 	defer run.Delete()

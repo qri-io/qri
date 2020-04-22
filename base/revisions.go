@@ -2,6 +2,7 @@ package base
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
@@ -120,4 +121,40 @@ func sel(r *dsref.Rev, ds, res *dataset.Dataset) bool {
 	}
 
 	return r.Gen == 0
+}
+
+// Drop sets named components to nil from a revision string
+func Drop(ds *dataset.Dataset, revStr string) error {
+	if revStr == "" {
+		return nil
+	}
+
+	revs, err := dsref.ParseRevs(revStr)
+	if err != nil {
+		return err
+	}
+
+	for _, rev := range revs {
+		if rev.Gen != 1 {
+			return fmt.Errorf("cannot drop specific generations")
+		}
+		switch rev.Field {
+		case "md":
+			ds.Meta = nil
+		case "vz":
+			ds.Viz = nil
+		case "tf":
+			ds.Transform = nil
+		case "st":
+			ds.Structure = nil
+		case "bd":
+			ds.Body = nil
+		case "rm":
+			ds.Readme = nil
+		default:
+			return fmt.Errorf("cannot drop component: %q", rev.Field)
+		}
+	}
+
+	return nil
 }

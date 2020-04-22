@@ -166,7 +166,7 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 	}
 }
 
-func TestDatasetRequestsSaveRecall(t *testing.T) {
+func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 	node := newTestQriNode(t)
 	ref := addNowTransformDataset(t, node)
 	r := NewDatasetRequests(node, nil)
@@ -204,6 +204,25 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 	}
 	if res.Dataset.Transform == nil {
 		t.Error("expected transform to exist on recalled save")
+	}
+
+	err = r.Save(&SaveParams{
+		Ref:  ref.AliasString(),
+		Drop: "wut",
+	}, res)
+	if err == nil {
+		t.Fatal("expected bad recall to error")
+	}
+
+	err = r.Save(&SaveParams{
+		Ref:  ref.AliasString(),
+		Drop: "tf",
+	}, res)
+	if err != nil {
+		t.Fatal("expected bad recall to error")
+	}
+	if res.Dataset.Transform != nil {
+		t.Error("expected transform be nil")
 	}
 }
 

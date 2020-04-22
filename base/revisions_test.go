@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -68,5 +70,50 @@ func TestLoadRevisions(t *testing.T) {
 		if err := dataset.CompareDatasets(c.ds, got); err != nil {
 			t.Errorf("case %d result mismatch: %s", i, err)
 		}
+	}
+}
+
+func TestDrop(t *testing.T) {
+	good := []struct {
+		str string
+		ds  *dataset.Dataset
+	}{
+		{"md,st,bd,tf,rm,vz", &dataset.Dataset{}},
+
+		{"md", &dataset.Dataset{Meta: &dataset.Meta{}}},
+		{"meta", &dataset.Dataset{Meta: &dataset.Meta{}}},
+		{"st", &dataset.Dataset{Structure: &dataset.Structure{}}},
+		{"structure", &dataset.Dataset{Structure: &dataset.Structure{}}},
+	}
+
+	expect := &dataset.Dataset{}
+	for _, c := range good {
+		t.Run(c.str, func(t *testing.T) {
+			if err := Drop(c.ds, c.str); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(expect, c.ds, cmpopts.IgnoreUnexported(dataset.Dataset{})); diff != "" {
+				t.Errorf("result mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+
+	bad := []struct {
+		str, err string
+	}{
+		{"ds", `cannot drop component: "ds"`},
+		{"snarfar", `unrecognized revision field: snarfar`},
+	}
+
+	for _, c := range bad {
+		t.Run(c.str, func(t *testing.T) {
+			err := Drop(&dataset.Dataset{}, c.str)
+			if err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+			if diff := cmp.Diff(c.err, err.Error(), cmpopts.IgnoreUnexported(dataset.Dataset{})); diff != "" {
+				t.Errorf("result mismatch (-want +got):\n%s", diff)
+			}
+		})
 	}
 }

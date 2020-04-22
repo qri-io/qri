@@ -455,6 +455,8 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		ShouldRender: !(r.FormValue("no_render") == "true"),
 		NewName:      r.FormValue("new") == "true",
 		BodyPath:     r.FormValue("bodypath"),
+		Recall:       r.FormValue("recall"),
+		Drop:         r.FormValue("drop"),
 
 		ConvertFormatToPrev: true,
 		ScriptOutput:        scriptOutput,
