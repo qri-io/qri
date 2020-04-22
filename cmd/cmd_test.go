@@ -13,7 +13,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/startf"
 )
 
 func init() {
@@ -313,13 +312,6 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_save_file_transform")
 	defer run.Delete()
 
-	// TODO(dlong): Move into TestRunner, use this everywhere.
-	prevXformVer := startf.Version
-	startf.Version = "test_version"
-	defer func() {
-		startf.Version = prevXformVer
-	}()
-
 	// Save a version, then save another with a transform
 	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
 	run.MustExec(t, "qri save --file=testdata/movies/tf.star me/test_ds")
@@ -367,13 +359,6 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 
 	run := NewTestRunner(t, "test_peer", "qri_test_save_file_transform")
 	defer run.Delete()
-
-	// TODO(dlong): Move into TestRunner, use this everywhere.
-	prevXformVer := startf.Version
-	startf.Version = "test_version"
-	defer func() {
-		startf.Version = prevXformVer
-	}()
 
 	// Save a version, then save another with three components at once
 	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")

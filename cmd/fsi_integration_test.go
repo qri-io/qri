@@ -1423,7 +1423,7 @@ func TestUnlinkBasic(t *testing.T) {
 	}
 
 	// Verify that reference in refstore does not have FSIPath
-	vinfo := run.LookupVersionInfo("me/unlink_me")
+	vinfo := run.LookupVersionInfo(t, "me/unlink_me")
 	if vinfo == nil {
 		t.Fatal("not found: me/unlink_me")
 	}
@@ -1462,7 +1462,7 @@ func TestUnlinkMissingLinkFile(t *testing.T) {
 	}
 
 	// Verify that reference in refstore does not have FSIPath
-	vinfo := run.LookupVersionInfo("me/unlink_me")
+	vinfo := run.LookupVersionInfo(t, "me/unlink_me")
 	if vinfo == nil {
 		t.Fatal("not found: me/unlink_me")
 	}
@@ -1493,7 +1493,7 @@ func TestUnlinkNoHistory(t *testing.T) {
 	}
 
 	// Verify that reference hsa been removed from refstore
-	vinfo := run.LookupVersionInfo("me/unlink_me")
+	vinfo := run.LookupVersionInfo(t, "me/unlink_me")
 	if vinfo != nil {
 		t.Errorf("dataset should have been removed from refstore")
 	}
@@ -1528,7 +1528,7 @@ unlinked: test_peer/unlink_me
 	}
 
 	// Verify that reference in refstore does not have FSIPath
-	vinfo := run.LookupVersionInfo("me/unlink_me")
+	vinfo := run.LookupVersionInfo(t, "me/unlink_me")
 	if vinfo == nil {
 		t.Fatal("not found: me/unlink_me")
 	}
@@ -1566,7 +1566,7 @@ func TestUnlinkLinkFileButNoFSIPath(t *testing.T) {
 	}
 
 	// Verify that reference in refstore does not have FSIPath
-	vinfo := run.LookupVersionInfo("me/unlink_me")
+	vinfo := run.LookupVersionInfo(t, "me/unlink_me")
 	if vinfo == nil {
 		t.Fatal("not found: me/unlink_me")
 	}
@@ -1607,7 +1607,7 @@ unlinked: test_peer/unlink_me
 	}
 
 	// Verify that reference in refstore does not have FSIPath
-	vinfo := run.LookupVersionInfo("me/unlink_me")
+	vinfo := run.LookupVersionInfo(t, "me/unlink_me")
 	if vinfo == nil {
 		t.Fatal("not found: me/unlink_me")
 	}
@@ -1642,7 +1642,7 @@ func TestUnlinkDirectoryButRefNotFound(t *testing.T) {
 	}
 
 	// Verify that reference in refstore still has FSIPath
-	vinfo := run.LookupVersionInfo("me/unlink_me")
+	vinfo := run.LookupVersionInfo(t, "me/unlink_me")
 	if vinfo == nil {
 		t.Fatal("not found: me/unlink_me")
 	}

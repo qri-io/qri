@@ -264,7 +264,7 @@ func (run *TestRunner) FileExists(file string) bool {
 }
 
 // LookupVersionInfo returns a versionInfo for the ref, or nil if not found
-func (run *TestRunner) LookupVersionInfo(refStr string) *dsref.VersionInfo {
+func (run *TestRunner) LookupVersionInfo(t *testing.T, refStr string) *dsref.VersionInfo {
 	// TODO(dustmop): Could directly parse reporef.DatasetRef instead, but we should transition
 	// to dsref's data structures where possible. This will make it easier to switch to dscache
 	// once it exists.
@@ -273,16 +273,10 @@ func (run *TestRunner) LookupVersionInfo(refStr string) *dsref.VersionInfo {
 		return nil
 	}
 	datasetRef := reporef.RefFromDsref(dr)
-	// TODO(dustmop): Work-around for https://github.com/qri-io/qri/issues/1209
-	// Would rather do `run.RepoRoot.Repo()` but that doesn't work.
-	ctx := context.Background()
-	inst, err := lib.NewInstance(
-		ctx,
-		run.RepoRoot.QriPath,
-		lib.OptStdIOStreams(),
-		lib.OptSetIPFSPath(run.RepoRoot.IPFSPath),
-	)
-	r := inst.Repo()
+	r, err := run.RepoRoot.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
 	err = repo.CanonicalizeDatasetRef(r, &datasetRef)
 	if err != nil {
 		return nil
@@ -298,16 +292,10 @@ func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
 		t.Fatal(err)
 	}
 	datasetRef := reporef.RefFromDsref(dr)
-	// TODO(dustmop): Work-around for https://github.com/qri-io/qri/issues/1209
-	// Would rather do `run.RepoRoot.Repo()` but that doesn't work.
-	ctx := context.Background()
-	inst, err := lib.NewInstance(
-		ctx,
-		run.RepoRoot.QriPath,
-		lib.OptStdIOStreams(),
-		lib.OptSetIPFSPath(run.RepoRoot.IPFSPath),
-	)
-	r := inst.Repo()
+	r, err := run.RepoRoot.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
 	err = repo.CanonicalizeDatasetRef(r, &datasetRef)
 	if err != nil {
 		t.Fatal(err)
@@ -469,29 +457,10 @@ func (run *TestRunner) AddDatasetToRefstore(ctx context.Context, t *testing.T, r
 	ds.Peername = ref.Username
 	ds.Name = ref.Name
 
-	inst, err := lib.NewInstance(ctx, run.RepoRoot.QriPath)
-	// NOTE(dustmop): There's a bug with TestRepo that I don't understand completely. The commands
-	// are run using a different refstore than the refstore returned by accessing the fields of the
-	// TestRepo directly. The command runner constructs a repo and then refstore which has a path
-	// similar to "/var/folders/tmpDir/T/qri_save_bad_case1234" with "qri" and "ipfs" directories
-	// within. However, trying to directly access the Repo object from TestRepo will return a
-	// refstore with the path "/var/folders/tmpDir/T/qri_save_bad_case1234" as the *qri repository*.
-	//
-	// So doing:
-	//   run.RepoRoot.Repo()
-	// gives a refstore that saves to:
-	//   "/var/folders/tmpDir/T/qri_save_bad_case1234/refs.fbs"
-	// While the commandRunner is using:
-	//   "/var/folders/tmpDir/T/qri_save_bad_case1234/qri/refs.fbs"
-	//
-	// We work around this by constructing a lib.Instance, which uses the PathFactory to get the
-	// qri subfolder and correctly use the refstore at:
-	//   "/var/folders/tmpDir/T/qri_save_bad_case1234/qri/refs.fbs"
-	//
-	// This is probably the same bug that is handled in repo/buildrepo/build.go with a hack that
-	// appends "/qri" to the repoPath.
-	r := inst.Repo()
-
+	r, err := run.RepoRoot.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
 	str := ioes.NewStdIOStreams()
 	secrets := make(map[string]string)
 	scriptOut := &bytes.Buffer{}

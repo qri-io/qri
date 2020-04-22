@@ -476,15 +476,15 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
  Dscache.Users:
   0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID        = zasmtvpvvddt536qmjtf4qdxszlpfcc6bqvmiemsmocaj4e74eiq
+  0) initID        = wkr66hbcqitgufnn7sp4iablkvogdwiqcin3pzugdb2fnngmct4q
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 1
      cursorIndex   = 1
      prettyName    = another_ds
      bodySize      = 137
      bodyRows      = 4
-     commitTime    = 978311161
-     headRef       = /ipfs/QmUNS2ef3x6gQHG9LYgWN5F77V1uLvgcooYVSg6sUSokoT
+     commitTime    = 978311101
+     headRef       = /ipfs/QmdsFMZ7brMdEEfzpWzQSLYWyCLHDgNm722TPAPWEW5KnJ
   1) initID        = vkys37xzcxpmw5zexzhyhpok3whl2vfeep2tyeegwnm2cxrr3umq
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 1
@@ -551,7 +551,6 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 
 	// Dscache should now have one reference. Now topIndex is 2 because there is another "commit".
 	actual = cache.VerboseString(false)
-	// TODO(dlong): bodySize, bodyRows, commitTime should all be filled in
 	expect = `Dscache:
  Dscache.Users:
   0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
@@ -563,8 +562,8 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
      prettyName    = movie_ds
      bodySize      = 137
      bodyRows      = 4
-     commitTime    = 978311161
-     headRef       = /ipfs/QmX2mvSMqK1g8dCXJBZ44CrMUWysXwzjinCSFaPPp4MbfF
+     commitTime    = 978311101
+     headRef       = /ipfs/QmQJX35zUadkoXjTW3uBksyWgiNKvziVpUsVmxi5nJjDqk
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
