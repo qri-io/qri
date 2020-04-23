@@ -157,7 +157,68 @@ func TestStatsFSI(t *testing.T) {
 
 `
 
-	if diff := cmp.Diff(expect, output); diff != "" {
-		t.Errorf("output mismatch (-want +got):\n%s", diff)
-	}
+    if diff := cmp.Diff(expect, output); diff != "" {
+        t.Errorf("output mismatch (-want +got):\n%s", diff)
+    }
+
+    output = run.MustExecCombinedOutErr(t, "qri stats --pretty")
+
+    expect = `for linked dataset [test_peer/move_dir]
+
+[
+  {
+    "count": 2,
+    "maxLength": 4,
+    "minLength": 3,
+    "type": "string",
+    "unique": 2
+  },
+  {
+    "count": 2,
+    "maxLength": 4,
+    "minLength": 3,
+    "type": "string",
+    "unique": 2
+  },
+  {
+    "count": 2,
+    "histogram": {
+      "bins": [
+        3,
+        3.4,
+        3.8,
+        4.2,
+        4.6,
+        5,
+        5.4,
+        5.800000000000001,
+        6.2,
+        6.6,
+        7
+      ],
+      "frequencies": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ]
+    },
+    "max": 6,
+    "mean": 4.5,
+    "median": 4.5,
+    "min": 3,
+    "type": "numeric"
+  }
+]
+`
+
+    if diff := cmp.Diff(expect, output); diff != "" {
+        t.Errorf("output mismatch (-want +got):\n%s", diff)
+    }
 }

@@ -1,6 +1,10 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -30,7 +34,7 @@ func NewStatsCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&o.Pretty, "pretty", "p", true, "clear the current selection")
+	cmd.Flags().BoolVarP(&o.Pretty, "pretty", "p", false, "whether to print output with indentation")
 
 	return cmd
 }
@@ -73,7 +77,19 @@ func (o *StatsOptions) Run() (err error) {
 		return err
 	}
 
-	r.StatsBytes = append(r.StatsBytes, byte('\n'))
-	printInfo(o.Out, string(r.StatsBytes))
+	var buffer []byte
+	if !o.Pretty {
+		buffer = append(r.StatsBytes, byte('\n'))
+	} else {
+		// stats is already in JSON format, so just needs pretty printing
+		buf := new(bytes.Buffer)
+		err = json.Indent(buf, []byte(r.StatsBytes), "", "  ")
+		if err != nil {
+			return fmt.Errorf("err encoding stats: %s", err)
+		}
+		buffer = buf.Bytes()
+	}
+
+	printInfo(o.Out, string(buffer))
 	return nil
 }
