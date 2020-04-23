@@ -156,7 +156,7 @@ func newLogbook(fs qfs.Filesystem, pro *profile.Profile, repoPath string) (book 
 func newDscache(ctx context.Context, fs qfs.Filesystem, book *logbook.Book, repoPath string) (*dscache.Dscache, error) {
 	// This seems to be a bug, the repoPath does not end in "qri" in some tests.
 	if !strings.HasSuffix(repoPath, "qri") {
-		repoPath = repoPath + "/qri"
+		return nil, fmt.Errorf("invalid repo path")
 	}
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
 	return dscache.NewDscache(ctx, fs, book, dscachePath), nil

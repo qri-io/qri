@@ -87,7 +87,7 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 func (r *TempRepo) Repo() (repo.Repo, error) {
 	if r.repo == nil {
 		var err error
-		if r.repo, err = buildrepo.New(context.TODO(), r.RootPath, r.cfg); err != nil {
+		if r.repo, err = buildrepo.New(context.TODO(), r.QriPath, r.cfg); err != nil {
 			return nil, err
 		}
 	}
