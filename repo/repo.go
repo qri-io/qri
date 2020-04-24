@@ -85,6 +85,8 @@ type Repo interface {
 	// A repository must maintain profile information about encountered peers.
 	// Decsisions regarding retentaion of peers is left to the the implementation
 	Profiles() profile.Store
+
+	ReplaceContent(replace RefList) error
 }
 
 // QFSSetter sets a qfs.Filesystem

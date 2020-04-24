@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
@@ -149,8 +151,44 @@ func (rs *Refstore) jsonRefs() (repo.RefList, error) {
 	return refs, err
 }
 
+func (rs *Refstore) backup() error {
+	oldPath := rs.basepath.filepath(rs.file)
+	ext := filepath.Ext(oldPath)
+	if ext != ".fbs" {
+		return fmt.Errorf("expected refs to end in .fbs extension")
+	}
+
+	newPath := ""
+	oldBase := strings.TrimSuffix(oldPath, ext)
+	i := 1
+	for {
+		newPath = fmt.Sprintf("%s_%d%s", oldBase, i, ext)
+		if _, err := os.Stat(newPath); os.IsNotExist(err) {
+			break
+		}
+		i += 1
+	}
+
+	copyFile(oldPath, newPath)
+	fmt.Printf("backed up to %q\n", newPath)
+
+	return nil
+}
+
 func (rs *Refstore) save(refs repo.RefList) error {
 	sort.Sort(refs)
 	path := rs.basepath.filepath(rs.file)
 	return ioutil.WriteFile(path, repo.FlatbufferBytes(refs), os.ModePerm)
+}
+
+func copyFile(src, dst string) error {
+	content, err := ioutil.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(dst, content, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }

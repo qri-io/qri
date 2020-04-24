@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -127,4 +128,110 @@ func (r *LogRequests) PlainLogs(p *PlainLogsParams, res *PlainLogs) (err error) 
 	ctx := context.TODO()
 	*res, err = r.node.Repo.Logbook().PlainLogs(ctx)
 	return err
+}
+
+//////////////////////////////////////////////////////////////////////
+
+// ReconstructRefsFromLogs
+func (r *LogRequests) ReconstructRefsFromLogs(in *bool, out *bool) (err error) {
+	if r.cli != nil {
+		return checkRPCError(r.cli.Call("LogRequests.ReconstructRefsFromLogs", in, out))
+	}
+	ctx := context.TODO()
+	plain, err := r.node.Repo.Logbook().PlainLogs(ctx)
+	if err != nil {
+		return err
+	}
+
+	refEntries := []reporef.DatasetRef{}
+
+	for _, userLog := range plain {
+		username, profileID := processUserLogOps(userLog.Ops)
+		pid, err := profile.IDB58Decode(profileID)
+		if err != nil {
+			log.Errorf("decoding error: %s, input was %s", err, profileID)
+			continue
+		}
+
+		refsLogs := userLog.Logs
+		for _, dsLog := range refsLogs {
+
+			datasetInfo := processDatasetLog(dsLog.Ops, dsLog.Logs)
+			if datasetInfo == nil {
+				// Dataset was deleted, don't add to refs
+				continue
+			}
+
+			refEntries = append(refEntries, reporef.DatasetRef{
+				Peername:  username,
+				ProfileID: pid,
+				Name:      datasetInfo.Name,
+				Path:      datasetInfo.Path,
+				Published: datasetInfo.Published,
+			})
+		}
+	}
+
+	err = r.node.Repo.ReplaceContent(refEntries)
+	if err != nil {
+		return err
+	}
+
+/*
+func (rs *Refstore) save(refs repo.RefList) error {
+	sort.Sort(refs)
+	path := rs.basepath.filepath(rs.file)
+	return ioutil.WriteFile(path, repo.FlatbufferBytes(refs), os.ModePerm)
+}
+*/
+
+	return nil
+}
+
+func processUserLogOps(ops []logbook.PlainOp) (string, string) {
+	username := ""
+	profileID := ""
+	for _, op := range ops {
+		username = op.Name
+		if len(op.AuthorID) == 46 {
+			profileID = op.AuthorID
+		}
+	}
+	return username, profileID
+}
+
+type datasetInfo struct {
+	Name      string
+	Path      string
+	Published bool
+}
+
+func processDatasetLog(ops []logbook.PlainOp, logs []logbook.PlainLog) *datasetInfo {
+	datasetType := ""
+	datasetName := ""
+	for k, op := range ops {
+		if op.Type == "init" || op.Type == "remove" {
+			datasetName = op.Name
+			datasetType = op.Type
+		} else {
+			fmt.Printf("*** UNKNOWN DATASET OP %d: %s\n", k, op.Type)
+		}
+	}
+	// Dataset deleted, return nil
+	if datasetType == "remove" {
+		return nil
+	}
+
+	if len(logs) != 1 {
+		fmt.Printf("*** ONLY EXPECTED 1 LOG FOR SINGLE BRANCH\n")
+	}
+	branchLog := logs[0]
+	pathRef := ""
+	for _, op := range branchLog.Ops {
+		pathRef = op.Ref
+	}
+	if len(branchLog.Logs) != 0 {
+		fmt.Printf("*** EXPECTED BRANCH TO NOT HAVE LOGS\n")
+	}
+	return &datasetInfo{Name: datasetName, Path: pathRef, Published: false}
 }

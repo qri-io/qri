@@ -125,6 +125,9 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
+			if o.Reconstruct {
+				return o.ReconstructRefsFromLogs()
+			}
 			if o.Raw {
 				return o.RawLogs()
 			}
@@ -136,6 +139,7 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
 	cmd.Flags().BoolVar(&o.Raw, "raw", false, "full logbook in raw JSON format. overrides all other flags")
+	cmd.Flags().BoolVar(&o.Reconstruct, "reconstruct-refs", false, "")
 
 	return cmd
 }
@@ -144,17 +148,21 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 type LogbookOptions struct {
 	ioes.IOStreams
 
-	PageSize int
-	Page     int
-	Refs     *RefSelect
-	Raw      bool
+	PageSize    int
+	Page        int
+	Refs        *RefSelect
+	Raw         bool
+	Reconstruct bool
 
 	LogRequests *lib.LogRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
-	if o.Raw {
+	if o.Reconstruct {
+		o.LogRequests, err = f.LogRequests()
+		return nil
+	} else if o.Raw {
 		if len(args) != 0 {
 			return fmt.Errorf("can't use dataset reference. the raw flag shows the entire logbook")
 		}
@@ -214,5 +222,13 @@ func (o *LogbookOptions) RawLogs() error {
 	}
 
 	printToPager(o.Out, bytes.NewBuffer(data))
+	return nil
+}
+
+func (o *LogbookOptions) ReconstructRefsFromLogs() error {
+	var in, out bool
+	if err := o.LogRequests.ReconstructRefsFromLogs(&in, &out); err != nil {
+		return err
+	}
 	return nil
 }

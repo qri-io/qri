@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"fmt"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset/dsgraph"
@@ -112,4 +113,8 @@ func (r *MemRepo) SetProfile(p *profile.Profile) error {
 // Profiles gives this repo's Peer interface implementation
 func (r *MemRepo) Profiles() profile.Store {
 	return r.profiles
+}
+
+func (r* MemRepo) ReplaceContent(replace RefList) error {
+	return fmt.Errorf("MemRepo.ReplaceContent: not implemented")
 }

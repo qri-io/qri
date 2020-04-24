@@ -134,3 +134,18 @@ func (r *Repo) Profiles() profile.Store {
 func (r *Repo) Destroy() error {
 	return os.RemoveAll(string(r.basepath))
 }
+
+func (r *Repo) ReplaceContent(replace repo.RefList) error {
+	rrs := r.Refstore
+	rs := rrs.(Refstore)
+	err := rs.backup()
+	if err != nil {
+		return err
+	}
+	err = rs.save(replace)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Successfully reconstructed refs from logbook\n")
+	return nil
+}
