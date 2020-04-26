@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook/oplog"
+	"github.com/qri-io/qri/resolve"
 )
 
 func Example() {
@@ -227,6 +228,57 @@ func TestNilCallable(t *testing.T) {
 	}
 	if err = book.WriteVersionSave(ctx, initID, nil); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.ResolveRef(ctx, nil); err != resolve.ErrCannotResolveName {
+		t.Errorf("expected '%s', got: %v", resolve.ErrCannotResolveName, err)
+	}
+}
+
+func TestResolveRef(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	if err := (*Book)(nil).ResolveRef(tr.Ctx, nil); err != resolve.ErrCannotResolveName {
+		t.Errorf("book ResolveRef must be nil-callable. expected: %q, got %v", resolve.ErrCannotResolveName, err)
+	}
+
+	if err := tr.Book.ResolveRef(tr.Ctx, &dsref.Ref{Username: "username", Name: "does_not_exist"}); err != resolve.ErrCannotResolveName {
+		t.Errorf("expeted standard error resolving nonexistent ref: %q, got: %q", resolve.ErrCannotResolveName, err)
+	}
+
+	tr.WriteWorldBankExample(t)
+
+	resolveMe := dsref.Ref{
+		Username: tr.WorldBankRef().Username,
+		Name:     tr.WorldBankRef().Name,
+	}
+
+	if err := tr.Book.ResolveRef(tr.Ctx, &resolveMe); err != nil {
+		t.Error(err)
+	}
+
+	expect := dsref.Ref{
+		Username: tr.WorldBankRef().Username,
+		Name:     tr.WorldBankRef().Name,
+		Path:     "QmHashOfVersion3",
+		ID:       tr.WorldBankID(),
+	}
+
+	if diff := cmp.Diff(expect, resolveMe); diff != "" {
+		t.Errorf("result mismatch. (-want +got):\n%s", diff)
+	}
+
+	resolveMe = dsref.Ref{
+		Username: "me",
+		Name:     tr.WorldBankRef().Name,
+	}
+
+	if err := tr.Book.ResolveRef(tr.Ctx, &resolveMe); err != nil {
+		t.Error(err)
+	}
+
+	if diff := cmp.Diff(expect, resolveMe); diff != "" {
+		t.Errorf("'me' shortcut result mismatch. (-want +got):\n%s", diff)
 	}
 }
 
@@ -843,7 +895,11 @@ func (tr *testRunner) WorldBankRef() dsref.Ref {
 	return dsref.Ref{Username: tr.Username, Name: "world_bank_population"}
 }
 
-func (tr *testRunner) WriteWorldBankExample(t *testing.T) string {
+func (tr *testRunner) WorldBankID() string {
+	return "crwd4wku64be6uxu3wbfqj7z65vtps4jt5ayx5dpjq4e2k72ks7q"
+}
+
+func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
 	book := tr.Book
 	name := "world_bank_population"
 

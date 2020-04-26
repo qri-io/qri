@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 
 	golog "github.com/ipfs/go-log"
@@ -11,6 +12,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -58,6 +60,7 @@ type Repo interface {
 	// All repositories wraps a content-addressed filestore as the cannonical
 	// record of this repository's data. Store gives direct access to the
 	// cafs.Filestore instance any given repo is using.
+	// TODO (b5) - deprecate store in favour of the Filesystem interface
 	Store() cafs.Filestore
 
 	// Filesystem is currently a read-only source of Filesystem-like data
@@ -66,6 +69,11 @@ type Repo interface {
 	// the long term-plan is to merge Filestore & Store
 	Filesystem() qfs.Filesystem
 
+	// A Repo can resolve dataset references it knows about locally from its
+	// Refstore
+	// NOTE (b5): this implementation will be dropped when the Refstore interface
+	// is removed from the repo, delegating local ref resolution to dscache
+	ResolveRef(ctx context.Context, ref *dsref.Ref) error
 	// All Repos must keep a Refstore, defining a store of known datasets
 	// NOTE(dlong): Refstore is going away soon, everything is going to move to Dscache
 	Refstore

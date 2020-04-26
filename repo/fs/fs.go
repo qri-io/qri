@@ -2,6 +2,7 @@
 package fsrepo
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -11,9 +12,12 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
+	"github.com/qri-io/qri/resolve"
 )
 
 var log = golog.Logger("fsrepo")
@@ -77,6 +81,35 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, cach
 	}
 
 	return r, nil
+}
+
+// ResolveRef implements the resolve.RefResolver interface
+func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
+	if r == nil {
+		return resolve.ErrCannotResolveName
+	}
+
+	if ref.Username == "me" {
+		ref.Username = r.profile.Peername
+	}
+
+	match, err := r.GetRef(reporef.RefFromDsref(*ref))
+	if err != nil {
+		return resolve.ErrCannotResolveName
+	}
+
+	// TODO (b5) - repo doens't store IDs yet, breaking the assertion that ResolveRef
+	// will set the ID of a dataset. Need to fix that before we can ship this
+
+	if ref.Path == "" {
+		if match.FSIPath != "" {
+			ref.Path = fmt.Sprintf("/fsi%s", match.FSIPath)
+		} else {
+			ref.Path = match.Path
+		}
+	}
+
+	return nil
 }
 
 // Path returns the path to the root of the repo directory

@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
+	"github.com/qri-io/qri/resolve"
 )
 
 var (
@@ -175,6 +176,37 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 		})
 	}
 	return refs, nil
+}
+
+// ResolveRef finds the identifier for a dataset reference
+// implements resolve.RefResolver interface
+func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
+	// NOTE: isEmpty is nil-callable
+	if d.IsEmpty() {
+		return resolve.ErrCannotResolveName
+	}
+
+	// Handle the "me" convenience shortcut
+	if ref.Username == "me" && d.DefaultUsername != "" {
+		ref.Username = d.DefaultUsername
+	}
+
+	vi, err := d.LookupByName(*ref)
+	if err != nil {
+		return resolve.ErrCannotResolveName
+	}
+
+	ref.InitID = vi.InitID
+	if ref.Path == "" {
+		// empty paths with an FSI link default to their FSI path
+		if vi.FSIPath != "" {
+			ref.Path = fmt.Sprintf("/fsi%s", vi.FSIPath)
+		} else {
+			ref.Path = vi.Path
+		}
+	}
+
+	return nil
 }
 
 // LookupByName looks up a dataset by dsref and returns the latest VersionInfo if found

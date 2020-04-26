@@ -2,15 +2,19 @@ package repo
 
 import (
 	"context"
+	"fmt"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
+	"github.com/qri-io/qri/resolve"
 )
 
 // MemRepo is an in-memory implementation of the Repo interface
@@ -52,6 +56,35 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, p
 		profile:     p,
 		profiles:    ps,
 	}, nil
+}
+
+// ResolveRef implements the resolve.RefResolver interface
+func (r *MemRepo) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
+	if r == nil {
+		return resolve.ErrCannotResolveName
+	}
+
+	if ref.Username == "me" {
+		ref.Username = r.profile.Peername
+	}
+
+	match, err := r.GetRef(reporef.RefFromDsref(*ref))
+	if err != nil {
+		return resolve.ErrCannotResolveName
+	}
+
+	// TODO (b5) - repo doens't store IDs yet, breaking the assertion that ResolveRef
+	// will set the ID of a dataset. Need to fix that before we can ship this
+
+	if ref.Path == "" {
+		if match.FSIPath != "" {
+			ref.Path = fmt.Sprintf("/fsi%s", match.FSIPath)
+		} else {
+			ref.Path = match.Path
+		}
+	}
+
+	return nil
 }
 
 // Store returns the underlying cafs.Filestore for this repo

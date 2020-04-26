@@ -11,14 +11,14 @@ import (
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
-	"github.com/qri-io/qri/resolver"
+	"github.com/qri-io/qri/resolve"
 )
 
 var (
 	log = golog.Logger("loader")
 )
 
-var _ resolver.Resolver = (*DatasetResolver)(nil)
+var _ resolve.Resolver = (*DatasetResolver)(nil)
 
 // DatasetResolver is a high-level component that can resolve dataset references
 type DatasetResolver struct {
@@ -63,7 +63,7 @@ func (dr *DatasetResolver) LoadDsref(ctx context.Context, refstr string) (*datas
 	// Resolve username to profileID, lookup dataset by profileID + prettyName
 	info, err := dr.Dscache.LookupByName(ref)
 	if err != nil {
-		return nil, "", ref, nil, fmt.Errorf("%w: %s", resolver.ErrCannotResolveName, err)
+		return nil, "", ref, nil, fmt.Errorf("%w: %s", resolve.ErrCannotResolveName, err)
 	}
 
 	// Found a versionInfo, fill in ref.

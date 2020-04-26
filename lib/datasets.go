@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/rpc"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,21 +25,17 @@ import (
 	"github.com/qri-io/qri/base/fill"
 	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/errors"
+	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/fsi/linkfile"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
-	"github.com/qri-io/qri/resolver/loader"
+	"github.com/qri-io/qri/resolve"
 )
 
 // DatasetMethods encapsulates business logic for working with Datasets on Qri
 type DatasetMethods struct {
-	// TODO (b5) - remove cli & node fields in favour of inst accessors:
-	cli  *rpc.Client
-	node *p2p.QriNode
 	inst *Instance
 }
 
@@ -234,56 +230,22 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 	}
 	ctx := context.TODO()
 
-	// Check if the dataset ref uses bad-case characters, show a warning.
-	dr, err := dsref.Parse(p.Refstr)
-	if err == dsref.ErrBadCaseName {
-		log.Error(dsref.ErrBadCaseShouldRename)
-	}
-
 	var ds *dataset.Dataset
-	c := m.inst.dscache
-
-	if c.IsEmpty() {
-		// The old lookup path, using repo and refstore
-		ref, err := base.ToDatasetRef(p.Refstr, m.inst.repo, true)
-		if err != nil {
-			log.Debugf("Get dataset, base.ToDatasetRef %q failed, error: %s", p.Refstr, err)
-			return err
-		}
-
-		if dr.Path == "" && ref.FSIPath != "" {
-			if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
-				log.Debugf("Get dataset, fsi.ReadDir %q failed, error: %s", ref.FSIPath, err)
-				return fmt.Errorf("loading linked dataset: %s", err)
-			}
-		} else {
-			ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
-			if err != nil {
-				log.Debugf("Get dataset, dsfs.LoadDataset %q failed, error: %s", ref, err)
-				return fmt.Errorf("loading dataset: %s", err)
-			}
-		}
-		r := reporef.ConvertToDsref(*ref)
-		ds.Name = ref.Name
-		ds.Peername = ref.Peername
-		res.Ref = &r
-		res.Dataset = ds
-		res.FSIPath = ref.FSIPath
-		res.Published = ref.Published
-	} else {
-		// New lookup path, using dscache and resolver
-		rsolv := loader.NewDatasetResolver(c, m.inst.repo.Store())
-		loadedDs, initID, ref, info, err := rsolv.LoadDsref(ctx, p.Refstr)
-		if err != nil {
-			return fmt.Errorf("loading dataset: %s", err)
-		}
-		ds = loadedDs
-		res.Ref = &ref
-		res.Dataset = ds
-		res.FSIPath = info.FSIPath
-		res.Published = info.Published
-		_ = initID
+	ref, err := m.inst.ParseAndResolveRef(ctx, p.Refstr)
+	if err != nil {
+		return err
 	}
+	ds, err = m.inst.loadDataset(ctx, ref)
+	if err != nil {
+		return err
+	}
+
+	res.Ref = &ref
+	res.Dataset = ds
+	// TODO (b5) - FSIPath is determined differently now: by checking .Path for
+	// an /fsi prefix
+	// TODO (b5) - Published field is longer set as part of Reference Resolution
+	// getting publication status should be delegated to a new function
 
 	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
@@ -339,11 +301,11 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 			return err
 		}
 
-		if dr.Path == "" && res.FSIPath != "" {
+		if strings.HasPrefix(ref.Path, "/fsi") {
 			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
 			// but no structure, which should infer a schema in order to read the body. Once that
 			// works we can remove the fsi.GetBody call and just use base.ReadBody.
-			res.Bytes, err = fsi.GetBody(res.FSIPath, df, p.FormatConfig, p.Offset, p.Limit, p.All)
+			res.Bytes, err = fsi.GetBody(strings.TrimPrefix(ref.Path, "/fsi"), df, p.FormatConfig, p.Offset, p.Limit, p.All)
 			if err != nil {
 				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
 				return err
@@ -659,7 +621,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 	fsiPath := datasetRef.FSIPath
 
 	if fsiPath != "" && p.Drop != "" {
-		return errors.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
+		return qrierr.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
 	}
 
 	fileHint := p.BodyPath
@@ -747,7 +709,7 @@ func (m *DatasetMethods) nameIsInUse(ref dsref.Ref) bool {
 	}
 	res := GetResult{}
 	err := m.Get(&param, &res)
-	if err == repo.ErrNotFound {
+	if errors.Is(err, resolve.ErrCannotResolveName) {
 		return false
 	}
 	if err != nil {
@@ -1089,7 +1051,7 @@ func (m *DatasetMethods) Validate(p *ValidateDatasetParams, valerrs *[]jsonschem
 
 	// TODO: restore validating data from a URL
 	// if p.URL != "" && ref.IsEmpty() && o.Schema == nil {
-	//   return (errors.New(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
+	//   return (qrierr.New(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
 	// }
 
 	// Schema can come from either schema.json or structure.json, or the dataset itself.
@@ -1097,7 +1059,7 @@ func (m *DatasetMethods) Validate(p *ValidateDatasetParams, valerrs *[]jsonschem
 	schemaFlagType := ""
 	schemaFilename := ""
 	if p.SchemaFilename != "" && p.StructureFilename != "" {
-		return errors.New(ErrBadArgs, "cannot provide both --schema and --structure flags")
+		return qrierr.New(ErrBadArgs, "cannot provide both --schema and --structure flags")
 	} else if p.SchemaFilename != "" {
 		schemaFlagType = "schema"
 		schemaFilename = p.SchemaFilename
@@ -1107,7 +1069,7 @@ func (m *DatasetMethods) Validate(p *ValidateDatasetParams, valerrs *[]jsonschem
 	}
 
 	if p.Ref == "" && (p.BodyFilename == "" || schemaFlagType == "") {
-		return errors.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
+		return qrierr.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)

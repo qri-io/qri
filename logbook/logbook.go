@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
+	"github.com/qri-io/qri/resolve"
 )
 
 var (
@@ -206,6 +207,57 @@ func (book *Book) RenameAuthor() error {
 // DeleteAuthor removes an author, used on teardown
 func (book *Book) DeleteAuthor() error {
 	return fmt.Errorf("not finished")
+}
+
+// ResolveRef finds the identifier & head path for a dataset reference
+// implements resolve.NameResolver interface
+func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
+	if book == nil {
+		return resolve.ErrCannotResolveName
+	}
+
+	// Handle the "me" convenience shortcut
+	if ref.Username == "me" {
+		ref.Username = book.authorName
+	}
+
+	log, err := book.DatasetRef(ctx, *ref)
+	if err != nil {
+		return resolve.ErrCannotResolveName
+	}
+	ref.InitID = log.ID()
+
+	if ref.Path == "" {
+		br, err := book.BranchRef(ctx, *ref)
+		if err != nil {
+			return err
+		}
+		ref.Path = book.latestSavePath(br)
+	}
+
+	return nil
+}
+
+func (book *Book) latestSavePath(branchLog *oplog.Log) string {
+	removes := 0
+
+	for i := len(branchLog.Ops) - 1; i >= 0; i-- {
+		op := branchLog.Ops[i]
+		if op.Model == CommitModel {
+			switch op.Type {
+			case oplog.OpTypeRemove:
+				removes += int(op.Size)
+			case oplog.OpTypeInit, oplog.OpTypeAmend:
+				if removes > 0 {
+					removes--
+				}
+				if removes == 0 {
+					return op.Ref
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // save writes the book to book.fsLocation

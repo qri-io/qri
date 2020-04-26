@@ -416,6 +416,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
 
 	ref, err := mr.GetRef(reporef.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
@@ -444,7 +445,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 		expect      string
 	}{
 		{"invalid peer name",
-			&GetParams{Refstr: "peer/ABC@abc"}, "'peer/ABC@abc' is not a valid dataset reference"},
+			&GetParams{Refstr: "peer/ABC@abc"}, `"peer/ABC@abc" is not a valid dataset reference: parsing ref, unexpected character at position 8: '@'`},
 
 		{"peername without path",
 			&GetParams{Refstr: "peer/movies"},
@@ -485,7 +486,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 			&GetParams{Refstr: "peer/movies", Selector: "body", Format: "json"}, "[]"},
 
 		{"dataset empty",
-			&GetParams{Refstr: "", Selector: "body", Format: "json"}, "repo: empty dataset reference"},
+			&GetParams{Refstr: "", Selector: "body", Format: "json"}, `"" is not a valid dataset reference: empty reference`},
 
 		{"body as csv",
 			&GetParams{Refstr: "peer/movies", Selector: "body", Format: "csv"}, "title,duration\n"},
@@ -520,22 +521,23 @@ func TestDatasetRequestsGet(t *testing.T) {
 			bodyToPrettyString(moviesBody[:3])},
 	}
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
-	m := NewDatasetMethods(inst)
+	dsm := NewDatasetMethods(inst)
 	for _, c := range cases {
-		got := &GetResult{}
-		err := m.Get(c.params, got)
-		if err != nil {
-			if err.Error() != c.expect {
-				t.Errorf("case \"%s\": error mismatch: expected: %s, got: %s", c.description, c.expect, err)
+		t.Run(c.description, func(t *testing.T) {
+			got := &GetResult{}
+			err := dsm.Get(c.params, got)
+			if err != nil {
+				if err.Error() != c.expect {
+					t.Errorf("error mismatch: expected: %s, got: %s", c.expect, err)
+				}
+				return
 			}
-			continue
-		}
 
-		result := string(got.Bytes)
-		if result != c.expect {
-			t.Errorf("case \"%s\": failed, expected:\n\"%s\", got:\n\"%s\"", c.description, c.expect, result)
-		}
+			result := string(got.Bytes)
+			if result != c.expect {
+				t.Errorf("result mismatch expected:\n%q, got:\n%q", c.expect, result)
+			}
+		})
 	}
 }
 

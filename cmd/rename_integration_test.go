@@ -37,7 +37,7 @@ func TestRenameNoHistory(t *testing.T) {
 	if err == nil {
 		t.Error("expected error, did not get one")
 	}
-	expect = "repo: not found"
+	expect = "cannot resolve name"
 	if err.Error() != expect {
 		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
 	}
