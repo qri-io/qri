@@ -151,9 +151,9 @@ func (t TestFactory) ConfigMethods() (*lib.ConfigMethods, error) {
 	return lib.NewConfigMethods(t.inst), nil
 }
 
-// DatasetRequests generates a lib.DatasetRequests from internal state
-func (t TestFactory) DatasetRequests() (*lib.DatasetRequests, error) {
-	return lib.NewDatasetRequestsInstance(t.inst), nil
+// DatasetMethods generates a lib.DatasetMethods from internal state
+func (t TestFactory) DatasetMethods() (*lib.DatasetMethods, error) {
+	return lib.NewDatasetMethods(t.inst), nil
 }
 
 // RemoteRequests generates a lib.RemoteRequests from internal state

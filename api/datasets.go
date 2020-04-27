@@ -25,7 +25,7 @@ import (
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
 type DatasetHandlers struct {
-	lib.DatasetRequests
+	lib.DatasetMethods
 	node     *p2p.QriNode
 	repo     repo.Repo
 	ReadOnly bool
@@ -33,8 +33,8 @@ type DatasetHandlers struct {
 
 // NewDatasetHandlers allocates a DatasetHandlers pointer
 func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
-	req := lib.NewDatasetRequestsInstance(inst)
-	h := DatasetHandlers{*req, inst.Node(), inst.Node().Repo, readOnly}
+	dsm := lib.NewDatasetMethods(inst)
+	h := DatasetHandlers{*dsm, inst.Node(), inst.Node().Repo, readOnly}
 	return &h
 }
 

@@ -32,9 +32,8 @@ import (
 	"github.com/qri-io/qri/resolver/loader"
 )
 
-// DatasetRequests encapsulates business logic for working with Datasets on Qri
-// TODO (b5): switch to using an Instance instead of separate fields
-type DatasetRequests struct {
+// DatasetMethods encapsulates business logic for working with Datasets on Qri
+type DatasetMethods struct {
 	// TODO (b5) - remove cli & node fields in favour of inst accessors:
 	cli  *rpc.Client
 	node *p2p.QriNode
@@ -42,34 +41,20 @@ type DatasetRequests struct {
 }
 
 // CoreRequestsName implements the Requets interface
-func (DatasetRequests) CoreRequestsName() string { return "datasets" }
+func (DatasetMethods) CoreRequestsName() string { return "datasets" }
 
-// NewDatasetRequests creates a DatasetRequests pointer from either a repo
-// or an rpc.Client
-//
-// Deprecated. use NewDatasetRequestsInstance
-func NewDatasetRequests(node *p2p.QriNode, cli *rpc.Client) *DatasetRequests {
-	return &DatasetRequests{
-		node: node,
-		cli:  cli,
-	}
-}
-
-// NewDatasetRequestsInstance creates a DatasetRequests pointer from a qri
-// instance
-func NewDatasetRequestsInstance(inst *Instance) *DatasetRequests {
-	return &DatasetRequests{
-		node: inst.Node(),
-		cli:  inst.RPC(),
+// NewDatasetMethods creates a DatasetMethods pointer from a qri instance
+func NewDatasetMethods(inst *Instance) *DatasetMethods {
+	return &DatasetMethods{
 		inst: inst,
 	}
 }
 
 // List gets the reflist for either the local repo or a peer
-func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
-	if r.cli != nil {
+func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
+	if m.inst.rpc != nil {
 		p.RPC = true
-		return checkRPCError(r.cli.Call("DatasetRequests.List", p, res))
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.List", p, res))
 	}
 	ctx := context.TODO()
 
@@ -88,21 +73,21 @@ func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		Peername:  p.Peername,
 		ProfileID: p.ProfileID,
 	}
-	if err := repo.CanonicalizeProfile(r.node.Repo, ref); err != nil {
+	if err := repo.CanonicalizeProfile(m.inst.repo, ref); err != nil {
 		return fmt.Errorf("error canonicalizing peer: %s", err.Error())
 	}
 
-	pro, err := r.node.Repo.Profile()
+	pro, err := m.inst.repo.Profile()
 	if err != nil {
 		return err
 	}
 
 	var refs []reporef.DatasetRef
 	if p.UseDscache {
-		c := r.node.Repo.Dscache()
+		c := m.inst.dscache
 		if c.IsEmpty() {
 			log.Infof("building dscache from repo's logbook, profile, and dsref")
-			built, err := build.DscacheFromRepo(ctx, r.node.Repo)
+			built, err := build.DscacheFromRepo(ctx, m.inst.repo)
 			if err != nil {
 				return err
 			}
@@ -139,10 +124,10 @@ func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		}
 		// TODO(dlong): Filtered by p.Published flag
 	} else if ref.Peername == "" || pro.Peername == ref.Peername {
-		refs, err = base.ListDatasets(ctx, r.node.Repo, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
+		refs, err = base.ListDatasets(ctx, m.inst.repo, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
 	} else {
 
-		refs, err = r.inst.RemoteClient().ListDatasets(ctx, ref, p.Term, p.Offset, p.Limit)
+		refs, err = m.inst.remoteClient.ListDatasets(ctx, ref, p.Term, p.Offset, p.Limit)
 	}
 	if err != nil {
 		return err
@@ -159,12 +144,12 @@ func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
 				if os.IsNotExist(err) {
 					ref.FSIPath = ""
 					if ref.Path == "" {
-						if err = r.node.Repo.DeleteRef(ref); err != nil {
+						if err = m.inst.repo.DeleteRef(ref); err != nil {
 							log.Debugf("cannot delete ref for %q, err: %s", ref, err)
 						}
 						continue
 					}
-					if err = r.node.Repo.PutRef(ref); err != nil {
+					if err = m.inst.repo.PutRef(ref); err != nil {
 						log.Debugf("cannot put ref for %q, err: %s", ref, err)
 					}
 				}
@@ -184,20 +169,22 @@ func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
 }
 
 // ListRawRefs gets the list of raw references as string
-func (r *DatasetRequests) ListRawRefs(p *ListParams, text *string) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.ListRawRefs", p, text))
+func (m *DatasetMethods) ListRawRefs(p *ListParams, text *string) error {
+	var err error
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.ListRawRefs", p, text))
 	}
 	ctx := context.TODO()
 	if p.UseDscache {
-		c := r.node.Repo.Dscache()
+		c := m.inst.dscache
 		if c == nil || c.IsEmpty() {
 			return fmt.Errorf("repo: dscache not found")
 		}
 		*text = c.VerboseString(true)
 		return nil
 	}
-	*text, err = base.RawDatasetRefs(ctx, r.node.Repo)
+
+	*text, err = base.RawDatasetRefs(ctx, m.inst.repo)
 	return err
 }
 
@@ -232,9 +219,9 @@ type GetResult struct {
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
 // with the generated stats.
-func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.Get", p, res))
+func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Get", p, res))
 	}
 	ctx := context.TODO()
 
@@ -245,11 +232,11 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	}
 
 	var ds *dataset.Dataset
-	c := r.node.Repo.Dscache()
+	c := m.inst.dscache
 
 	if c.IsEmpty() {
 		// The old lookup path, using repo and refstore
-		ref, err := base.ToDatasetRef(p.Refstr, r.node.Repo, true)
+		ref, err := base.ToDatasetRef(p.Refstr, m.inst.repo, true)
 		if err != nil {
 			log.Debugf("Get dataset, base.ToDatasetRef %q failed, error: %s", p.Refstr, err)
 			return err
@@ -261,7 +248,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 				return fmt.Errorf("loading linked dataset: %s", err)
 			}
 		} else {
-			ds, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path)
+			ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
 			if err != nil {
 				log.Debugf("Get dataset, dsfs.LoadDataset %q failed, error: %s", ref, err)
 				return fmt.Errorf("loading dataset: %s", err)
@@ -276,7 +263,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		res.Published = ref.Published
 	} else {
 		// New lookup path, using dscache and resolver
-		rsolv := loader.NewDatasetResolver(c, r.node.Repo.Store())
+		rsolv := loader.NewDatasetResolver(c, m.inst.repo.Store())
 		loadedDs, initID, ref, info, err := rsolv.LoadDsref(ctx, p.Refstr)
 		if err != nil {
 			return fmt.Errorf("loading dataset: %s", err)
@@ -289,7 +276,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		_ = initID
 	}
 
-	if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
+	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
 		return err
 	}
@@ -331,11 +318,11 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 			Dataset: res.Dataset,
 		}
 		statsRes := &StatsResponse{}
-		if err := r.Stats(statsParams, statsRes); err != nil {
+		if err = m.Stats(statsParams, statsRes); err != nil {
 			return err
 		}
 		res.Bytes = statsRes.StatsBytes
-		return
+		return nil
 	} else {
 		var value interface{}
 		if p.Selector == "" {
@@ -462,10 +449,10 @@ func (p *SaveParams) AbsolutizePaths() error {
 }
 
 // Save adds a history entry, updating a dataset
-func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err error) {
-	if r.cli != nil {
+func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
+	if m.inst.rpc != nil {
 		p.ScriptOutput = nil
-		return checkRPCError(r.cli.Call("DatasetRequests.Save", p, res))
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Save", p, res))
 	}
 	ctx := context.TODO()
 
@@ -476,7 +463,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	ref, err := dsref.ParseHumanFriendly(p.Ref)
 	if err == dsref.ErrBadCaseName {
 		// If dataset name is using bad-case characters, and is not yet in use, fail with error.
-		if !r.nameIsInUse(ref) {
+		if !m.nameIsInUse(ref) {
 			return err
 		}
 		// If dataset name already exists, just log a warning and then continue.
@@ -491,7 +478,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	// Validate that username is our own, it's not valid to try to save a dataset with someone
 	// else's username. Without this check, base will replace the username with our own regardless,
 	// it's better to have an error to display, rather than silently ignore it.
-	pro, err := r.node.Repo.Profile()
+	pro, err := m.inst.repo.Profile()
 	if err != nil {
 		return err
 	}
@@ -513,7 +500,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	// logbook immediately. Regardless, stop using the dsref after this point.
 
 	// Check if the dataset has an FSIPath, which requires a different save codepath.
-	err = repo.CanonicalizeDatasetRef(r.node.Repo, &datasetRef)
+	err = repo.CanonicalizeDatasetRef(m.inst.repo, &datasetRef)
 	// Ignore errors that happen when saving a new dataset for the first time
 	if err == repo.ErrNotFound || err == repo.ErrEmptyRef {
 		// do nothing
@@ -564,7 +551,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 			// ProfileID: ds.ProfileID,
 			Path: ds.Path,
 		}
-		recall, err := base.Recall(ctx, r.node.Repo, p.Recall, datasetRef)
+		recall, err := base.Recall(ctx, m.inst.repo, p.Recall, datasetRef)
 		if err != nil {
 			return err
 		}
@@ -597,14 +584,14 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 		return fmt.Errorf("no changes to save")
 	}
 
-	if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
+	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 		log.Debugf("open ds error: %s", err.Error())
-		return
+		return err
 	}
 
 	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
 	if p.UseDscache && !p.DryRun {
-		c := r.node.Repo.Dscache()
+		c := m.inst.dscache
 		c.CreateNewEnabled = true
 	}
 
@@ -631,7 +618,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 		NewName:             p.NewName,
 		Drop:                p.Drop,
 	}
-	datasetRef, err = base.SaveDataset(ctx, r.node.Repo, r.node.LocalStreams, ds, p.Secrets, p.ScriptOutput, switches)
+	datasetRef, err = base.SaveDataset(ctx, m.inst.repo, m.inst.node.LocalStreams, ds, p.Secrets, p.ScriptOutput, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
@@ -640,7 +627,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	// TODO (b5) - this should be integrated into base.SaveDataset
 	if fsiPath != "" && !p.DryRun {
 		datasetRef.FSIPath = fsiPath
-		if err = r.node.Repo.PutRef(datasetRef); err != nil {
+		if err = m.inst.repo.PutRef(datasetRef); err != nil {
 			return err
 		}
 	}
@@ -656,7 +643,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 			return fmt.Errorf("can't use publish & dry-run together")
 		}
 		var publishedRef reporef.DatasetRef
-		err = r.SetPublishStatus(&SetPublishStatusParams{
+		err = m.SetPublishStatus(&SetPublishStatusParams{
 			Ref:           datasetRef.String(),
 			PublishStatus: true,
 			// UpdateRegistry:    true,
@@ -673,7 +660,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	if fsiPath != "" && !p.DryRun {
 		// Need to pass filesystem here so that we can read the README component and write it
 		// properly back to disk.
-		fsi.WriteComponents(res.Dataset, datasetRef.FSIPath, r.inst.node.Repo.Filesystem())
+		fsi.WriteComponents(res.Dataset, datasetRef.FSIPath, m.inst.repo.Filesystem())
 	}
 	return nil
 }
@@ -682,12 +669,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 // before running Save. However, we need to check for now until we solve the problem of
 // dataset names existing with bad-case characters.
 // See this issue: https://github.com/qri-io/qri/issues/1132
-func (r *DatasetRequests) nameIsInUse(ref dsref.Ref) bool {
+func (m *DatasetMethods) nameIsInUse(ref dsref.Ref) bool {
 	param := GetParams{
 		Refstr: ref.Alias(),
 	}
 	res := GetResult{}
-	err := r.Get(&param, &res)
+	err := m.Get(&param, &res)
 	if err == repo.ErrNotFound {
 		return false
 	}
@@ -709,26 +696,26 @@ type SetPublishStatusParams struct {
 }
 
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
-func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedRef *reporef.DatasetRef) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.SetPublishStatus", p, publishedRef))
+func (m *DatasetMethods) SetPublishStatus(p *SetPublishStatusParams, publishedRef *reporef.DatasetRef) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.SetPublishStatus", p, publishedRef))
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
 	if err != nil {
 		return err
 	}
-	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
 		return err
 	}
 
 	ref.Published = p.PublishStatus
-	if err = base.SetPublishStatus(r.node.Repo, &ref, ref.Published); err != nil {
+	if err = base.SetPublishStatus(m.inst.repo, &ref, ref.Published); err != nil {
 		return err
 	}
 
 	*publishedRef = ref
-	return
+	return nil
 }
 
 // RenameParams defines parameters for Dataset renaming
@@ -737,9 +724,9 @@ type RenameParams struct {
 }
 
 // Rename changes a user's given name for a dataset
-func (r *DatasetRequests) Rename(p *RenameParams, res *dsref.VersionInfo) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.Rename", p, res))
+func (m *DatasetMethods) Rename(p *RenameParams, res *dsref.VersionInfo) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Rename", p, res))
 	}
 	ctx := context.TODO()
 
@@ -748,14 +735,14 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *dsref.VersionInfo) (err e
 	}
 
 	// Update the reference stored in the repo
-	info, err := base.ModifyDatasetRef(ctx, r.node.Repo, p.Current, p.Next)
+	info, err := base.ModifyDatasetRef(ctx, m.inst.repo, p.Current, p.Next)
 	if err != nil {
 		return err
 	}
 
 	// If the dataset is linked to a working directory, update the ref
 	if info.FSIPath != "" {
-		if err = r.inst.fsi.ModifyLinkReference(info.FSIPath, info.Alias()); err != nil {
+		if err = m.inst.fsi.ModifyLinkReference(info.FSIPath, info.Alias()); err != nil {
 			return err
 		}
 	}
@@ -772,7 +759,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *dsref.VersionInfo) (err e
 		Path:      info.Path,
 	}
 
-	if err = base.ReadDataset(ctx, r.node.Repo, &readRef); err != nil && err != repo.ErrNoHistory {
+	if err = base.ReadDataset(ctx, m.inst.repo, &readRef); err != nil && err != repo.ErrNoHistory {
 		log.Debug(err.Error())
 		return err
 	}
@@ -800,9 +787,9 @@ type RemoveResponse struct {
 var ErrCantRemoveDirectoryDirty = fmt.Errorf("cannot remove files while working directory is dirty")
 
 // Remove a dataset entirely or remove a certain number of revisions
-func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.Remove", p, res))
+func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Remove", p, res))
 	}
 	ctx := context.TODO()
 
@@ -821,10 +808,10 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		return err
 	}
 
-	if canonErr := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
+	if canonErr := repo.CanonicalizeDatasetRef(m.inst.repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
 		log.Debugf("Remove, repo.CanonicalizeDatasetRef failed, error: %s", canonErr)
 		if p.Force {
-			didRemove, _ := base.RemoveEntireDataset(ctx, r.node.Repo, reporef.ConvertToDsref(ref), []DatasetLogItem{})
+			didRemove, _ := base.RemoveEntireDataset(ctx, m.inst.repo, reporef.ConvertToDsref(ref), []DatasetLogItem{})
 			if didRemove != "" {
 				log.Debugf("Remove cleaned up data found in %s", didRemove)
 				res.Message = didRemove
@@ -840,7 +827,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		if !(p.KeepFiles || p.Force) {
 			// Make sure that status is clean, otherwise, refuse to remove any revisions.
 			// Setting either --keep-files or --force will skip this check.
-			wdErr := r.inst.fsi.IsWorkingDirectoryClean(ctx, ref.FSIPath)
+			wdErr := m.inst.fsi.IsWorkingDirectoryClean(ctx, ref.FSIPath)
 			if wdErr != nil {
 				if wdErr == fsi.ErrWorkingDirectoryDirty {
 					log.Debugf("Remove, IsWorkingDirectoryDirty")
@@ -864,7 +851,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	// Get the revisions that will be deleted.
-	history, err := base.DatasetLog(ctx, r.node.Repo, ref, p.Revision.Gen+1, 0, false)
+	history, err := base.DatasetLog(ctx, m.inst.repo, ref, p.Revision.Gen+1, 0, false)
 	if err == nil && p.Revision.Gen >= len(history) {
 		// If the number of revisions to delete is greater than or equal to the amount in history,
 		// treat this operation as deleting everything.
@@ -884,14 +871,14 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		// removing all revisions of a dataset must unlink it
 		if ref.FSIPath != "" {
 			dr := reporef.ConvertToDsref(ref)
-			if err := r.inst.fsi.Unlink(ref.FSIPath, dr); err == nil {
+			if err := m.inst.fsi.Unlink(ref.FSIPath, dr); err == nil {
 				res.Unlinked = true
 			} else {
 				log.Errorf("during Remove, dataset did not unlink: %s", err)
 			}
 		}
 
-		didRemove, _ := base.RemoveEntireDataset(ctx, r.inst.Repo(), reporef.ConvertToDsref(ref), history)
+		didRemove, _ := base.RemoveEntireDataset(ctx, m.inst.repo, reporef.ConvertToDsref(ref), history)
 		res.NumDeleted = dsref.AllGenerations
 		res.Message = didRemove
 
@@ -900,9 +887,9 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 			fsi.DeleteComponentFiles(ref.FSIPath)
 			var err error
 			if p.Force {
-				err = r.inst.fsi.RemoveAll(ref.FSIPath)
+				err = m.inst.fsi.RemoveAll(ref.FSIPath)
 			} else {
-				err = r.inst.fsi.Remove(ref.FSIPath)
+				err = m.inst.fsi.Remove(ref.FSIPath)
 			}
 			if err != nil {
 				if strings.Contains(err.Error(), "no such file or directory") {
@@ -922,12 +909,12 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		hist := history[p.Revision.Gen]
 		next := hist.SimpleRef()
 
-		info, err := base.ModifyDatasetRef(ctx, r.node.Repo, reporef.ConvertToDsref(ref), next)
+		info, err := base.ModifyDatasetRef(ctx, m.inst.repo, reporef.ConvertToDsref(ref), next)
 		if err != nil {
 			log.Debugf("Remove, base.ModifyDatasetRef failed, error: %s", err)
 			return err
 		}
-		newHead, err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), reporef.ConvertToDsref(ref), p.Revision.Gen)
+		newHead, err := base.RemoveNVersionsFromStore(ctx, m.inst.repo, reporef.ConvertToDsref(ref), p.Revision.Gen)
 		if err != nil {
 			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
 			return err
@@ -936,14 +923,14 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 
 		if info.FSIPath != "" && !p.KeepFiles {
 			// Load dataset version that is at head after newer versions are removed
-			ds, err := dsfs.LoadDataset(ctx, r.inst.Repo().Store(), newHead.Path)
+			ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), newHead.Path)
 			if err != nil {
 				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
 				return err
 			}
 			ds.Name = newHead.Name
 			ds.Peername = newHead.Username
-			if err = base.OpenDataset(ctx, r.inst.Repo().Filesystem(), ds); err != nil {
+			if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 				log.Debugf("Remove, base.OpenDataset failed, error: %s", err)
 				return err
 			}
@@ -958,7 +945,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 			}
 
 			// Update the files in the working directory
-			fsi.WriteComponents(ds, info.FSIPath, r.inst.node.Repo.Filesystem())
+			fsi.WriteComponents(ds, info.FSIPath, m.inst.repo.Filesystem())
 		}
 	}
 	log.Debugf("Remove finished")
@@ -974,13 +961,13 @@ type AddParams struct {
 }
 
 // Add adds an existing dataset to a peer's repository
-func (r *DatasetRequests) Add(p *AddParams, res *reporef.DatasetRef) (err error) {
-	if err = qfs.AbsPath(&p.LinkDir); err != nil {
-		return
+func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
+	if err := qfs.AbsPath(&p.LinkDir); err != nil {
+		return err
 	}
 
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.Add", p, res))
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Add", p, res))
 	}
 	ctx := context.TODO()
 
@@ -989,16 +976,16 @@ func (r *DatasetRequests) Add(p *AddParams, res *reporef.DatasetRef) (err error)
 		return err
 	}
 
-	if p.RemoteAddr == "" && r.inst != nil && r.inst.cfg.Registry != nil {
-		p.RemoteAddr = r.inst.cfg.Registry.Location
+	if p.RemoteAddr == "" && m.inst != nil && m.inst.cfg.Registry != nil {
+		p.RemoteAddr = m.inst.cfg.Registry.Location
 	}
 
-	mergeLogsError := r.inst.RemoteClient().CloneLogs(ctx, reporef.ConvertToDsref(ref), p.RemoteAddr)
+	mergeLogsError := m.inst.remoteClient.CloneLogs(ctx, reporef.ConvertToDsref(ref), p.RemoteAddr)
 	if p.LogsOnly {
 		return mergeLogsError
 	}
 
-	if err = r.inst.RemoteClient().AddDataset(ctx, &ref, p.RemoteAddr); err != nil {
+	if err = m.inst.remoteClient.AddDataset(ctx, &ref, p.RemoteAddr); err != nil {
 		return err
 	}
 
@@ -1009,7 +996,7 @@ func (r *DatasetRequests) Add(p *AddParams, res *reporef.DatasetRef) (err error)
 			Ref: ref.String(),
 			Dir: p.LinkDir,
 		}
-		m := NewFSIMethods(r.inst)
+		m := NewFSIMethods(m.inst)
 		checkoutRes := ""
 		if err = m.Checkout(checkoutp, &checkoutRes); err != nil {
 			return err
@@ -1030,9 +1017,9 @@ type ValidateDatasetParams struct {
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
-func (r *DatasetRequests) Validate(p *ValidateDatasetParams, valerrs *[]jsonschema.ValError) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.Validate", p, valerrs))
+func (m *DatasetMethods) Validate(p *ValidateDatasetParams, valerrs *[]jsonschema.ValError) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Validate", p, valerrs))
 	}
 	ctx := context.TODO()
 
@@ -1063,7 +1050,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, valerrs *[]jsonsche
 	if err != nil && err != repo.ErrEmptyRef {
 		return err
 	}
-	err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref)
+	err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref)
 	if err != nil && err != repo.ErrEmptyRef {
 		if err == repo.ErrNotFound {
 			return fmt.Errorf("cannot find dataset: %s", ref)
@@ -1082,11 +1069,11 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, valerrs *[]jsonsche
 				return fmt.Errorf("loading linked dataset: %s", err)
 			}
 		} else {
-			if ds, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path); err != nil {
+			if ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path); err != nil {
 				return fmt.Errorf("loading dataset: %s", err)
 			}
 		}
-		if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
+		if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 			return err
 		}
 	}
@@ -1144,14 +1131,14 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, valerrs *[]jsonsche
 		}
 	}
 
-	*valerrs, err = base.Validate(ctx, r.node.Repo, body, st)
-	return
+	*valerrs, err = base.Validate(ctx, m.inst.repo, body, st)
+	return err
 }
 
 // Manifest generates a manifest for a dataset path
-func (r *DatasetRequests) Manifest(refstr *string, m *dag.Manifest) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.Manifest", refstr, m))
+func (m *DatasetMethods) Manifest(refstr *string, mfst *dag.Manifest) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Manifest", refstr, mfst))
 	}
 	ctx := context.TODO()
 
@@ -1159,33 +1146,33 @@ func (r *DatasetRequests) Manifest(refstr *string, m *dag.Manifest) (err error) 
 	if err != nil {
 		return err
 	}
-	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
-		return
+	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
+		return err
 	}
 
 	var mf *dag.Manifest
-	mf, err = r.node.NewManifest(ctx, ref.Path)
+	mf, err = m.inst.node.NewManifest(ctx, ref.Path)
 	if err != nil {
-		return
+		return err
 	}
-	*m = *mf
-	return
+	*mfst = *mf
+	return nil
 }
 
 // ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
-func (r *DatasetRequests) ManifestMissing(a, b *dag.Manifest) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.Manifest", a, b))
+func (m *DatasetMethods) ManifestMissing(a, b *dag.Manifest) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Manifest", a, b))
 	}
 	ctx := context.TODO()
 
 	var mf *dag.Manifest
-	mf, err = r.node.MissingManifest(ctx, a)
+	mf, err := m.inst.node.MissingManifest(ctx, a)
 	if err != nil {
-		return
+		return err
 	}
 	*b = *mf
-	return
+	return nil
 }
 
 // DAGInfoParams defines parameters for the DAGInfo method
@@ -1194,9 +1181,9 @@ type DAGInfoParams struct {
 }
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
-func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.DAGInfo", s, i))
+func (m *DatasetMethods) DAGInfo(s *DAGInfoParams, i *dag.Info) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.DAGInfo", s, i))
 	}
 	ctx := context.TODO()
 
@@ -1204,17 +1191,17 @@ func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
 	if err != nil {
 		return err
 	}
-	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
-		return
+	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
+		return err
 	}
 
 	var info *dag.Info
-	info, err = r.node.NewDAGInfo(ctx, ref.Path, s.Label)
+	info, err = m.inst.node.NewDAGInfo(ctx, ref.Path, s.Label)
 	if err != nil {
-		return
+		return err
 	}
 	*i = *info
-	return
+	return err
 }
 
 // StatsParams defines the params for a Stats request
@@ -1232,24 +1219,25 @@ type StatsResponse struct {
 }
 
 // Stats generates stats for a dataset
-func (r *DatasetRequests) Stats(p *StatsParams, res *StatsResponse) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.Stats", p, res))
+func (m *DatasetMethods) Stats(p *StatsParams, res *StatsResponse) error {
+	var err error
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Stats", p, res))
 	}
 	ctx := context.TODO()
 	if p.Dataset == nil {
 		ref := &reporef.DatasetRef{}
-		ref, err = base.ToDatasetRef(p.Ref, r.node.Repo, false)
+		ref, err := base.ToDatasetRef(p.Ref, m.inst.repo, false)
 		if err != nil {
 			return err
 		}
-		p.Dataset, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path)
+		p.Dataset, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
 		if err != nil {
 			return fmt.Errorf("loading dataset: %s", err)
 		}
 
-		if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), p.Dataset); err != nil {
-			return
+		if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), p.Dataset); err != nil {
+			return err
 		}
 	}
 	if p.Dataset.Structure == nil || p.Dataset.Structure.IsEmpty() {
@@ -1262,11 +1250,11 @@ func (r *DatasetRequests) Stats(p *StatsParams, res *StatsResponse) (err error) 
 		// TODO (ramfox): this feels gross, but since we consume the reader when
 		// detecting the schema, we need to open up the file again, since we don't
 		// have the option to seek back to the front
-		if err = p.Dataset.OpenBodyFile(ctx, r.node.Repo.Filesystem()); err != nil {
+		if err = p.Dataset.OpenBodyFile(ctx, m.inst.repo.Filesystem()); err != nil {
 			return err
 		}
 	}
-	reader, err := r.inst.stats.JSON(ctx, p.Dataset)
+	reader, err := m.inst.stats.JSON(ctx, p.Dataset)
 	if err != nil {
 		return err
 	}

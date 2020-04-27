@@ -49,8 +49,8 @@ func TestValidateComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.DatasetRequests == nil {
-			t.Errorf("case %d, opt.DatasetRequests not set.", i)
+		if opt.DatasetMethods == nil {
+			t.Errorf("case %d, opt.DatasetMethods not set.", i)
 			run.IOReset()
 			continue
 		}
@@ -91,19 +91,19 @@ func TestValidateRun(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		dsr, err := f.DatasetRequests()
+		dsm, err := f.DatasetMethods()
 		if err != nil {
 			t.Errorf("case %d, error creating dataset request: %s", i, err)
 			continue
 		}
 
 		opt := &ValidateOptions{
-			IOStreams:       run.Streams,
-			Refs:            NewExplicitRefSelect(c.ref),
-			BodyFilepath:    c.bodyFilePath,
-			SchemaFilepath:  c.schemaFilePath,
-			URL:             c.url,
-			DatasetRequests: dsr,
+			IOStreams:      run.Streams,
+			Refs:           NewExplicitRefSelect(c.ref),
+			BodyFilepath:   c.bodyFilePath,
+			SchemaFilepath: c.schemaFilePath,
+			URL:            c.url,
+			DatasetMethods: dsm,
 		}
 
 		err = opt.Run()

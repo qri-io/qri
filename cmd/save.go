@@ -104,13 +104,13 @@ type SaveOptions struct {
 	NewName        bool
 	UseDscache     bool
 
-	DatasetRequests *lib.DatasetRequests
-	FSIMethods      *lib.FSIMethods
+	DatasetMethods *lib.DatasetMethods
+	FSIMethods     *lib.FSIMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
 		return
 	}
 
@@ -188,7 +188,7 @@ continue?`, true) {
 	}
 
 	res := &reporef.DatasetRef{}
-	if err = o.DatasetRequests.Save(p, res); err != nil {
+	if err = o.DatasetMethods.Save(p, res); err != nil {
 		return err
 	}
 

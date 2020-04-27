@@ -35,7 +35,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 
 	p := &ListParams{}
 	refs := ""
-	if err := NewDatasetRequestsInstance(tr.RegistryInst).ListRawRefs(p, &refs); err != nil {
+	if err := NewDatasetMethods(tr.RegistryInst).ListRawRefs(p, &refs); err != nil {
 		t.Fatal(err)
 	}
 	t.Log(refs)
@@ -67,7 +67,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	PublishToRegistry(t, nasim, ref.AliasString())
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
-	dsm := NewDatasetRequestsInstance(hinshun)
+	dsm := NewDatasetMethods(hinshun)
 	res := &reporef.DatasetRef{}
 	if err := dsm.Add(&AddParams{LogsOnly: true, Ref: ref.String()}, res); err != nil {
 		t.Errorf("cloning logs: %s", err)
@@ -230,7 +230,7 @@ func AssertLogsEqual(a, b *Instance, ref *reporef.DatasetRef) error {
 
 func InitWorldBankDataset(t *testing.T, inst *Instance) *reporef.DatasetRef {
 	res := &reporef.DatasetRef{}
-	err := NewDatasetRequestsInstance(inst).Save(&SaveParams{
+	err := NewDatasetMethods(inst).Save(&SaveParams{
 		Publish: true,
 		Ref:     "me/world_bank_population",
 		Dataset: &dataset.Dataset{
@@ -256,7 +256,7 @@ d,e,f,false,3`),
 
 func Commit2WorldBank(t *testing.T, inst *Instance) *reporef.DatasetRef {
 	res := &reporef.DatasetRef{}
-	err := NewDatasetRequestsInstance(inst).Save(&SaveParams{
+	err := NewDatasetMethods(inst).Save(&SaveParams{
 		Publish: true,
 		Ref:     "me/world_bank_population",
 		Dataset: &dataset.Dataset{
@@ -301,7 +301,7 @@ func SearchFor(t *testing.T, inst *Instance, term string) []SearchResult {
 
 func Clone(t *testing.T, inst *Instance, refstr string) *reporef.DatasetRef {
 	res := &reporef.DatasetRef{}
-	if err := NewDatasetRequestsInstance(inst).Add(&AddParams{Ref: refstr}, res); err != nil {
+	if err := NewDatasetMethods(inst).Add(&AddParams{Ref: refstr}, res); err != nil {
 		t.Fatalf("cloning dataset %s: %s", refstr, err)
 	}
 	return res

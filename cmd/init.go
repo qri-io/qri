@@ -48,13 +48,13 @@ type InitOptions struct {
 	SourceBodyPath string
 	Mkdir          string
 
-	DatasetRequests *lib.DatasetRequests
-	FSIMethods      *lib.FSIMethods
+	DatasetMethods *lib.DatasetMethods
+	FSIMethods     *lib.FSIMethods
 }
 
 // Complete completes a dataset reference
 func (o *InitOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
 		return err
 	}
 	o.FSIMethods, err = f.FSIMethods()

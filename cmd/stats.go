@@ -46,12 +46,12 @@ type StatsOptions struct {
 	Refs   *RefSelect
 	Pretty bool
 
-	DatasetRequests *lib.DatasetRequests
+	DatasetMethods *lib.DatasetMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *StatsOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
 		return
 	}
 
@@ -73,7 +73,7 @@ func (o *StatsOptions) Run() (err error) {
 
 	p := &lib.StatsParams{Ref: o.Refs.Ref()}
 	r := &lib.StatsResponse{}
-	if err = o.DatasetRequests.Stats(p, r); err != nil {
+	if err = o.DatasetMethods.Stats(p, r); err != nil {
 		return err
 	}
 

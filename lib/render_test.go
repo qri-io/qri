@@ -123,7 +123,7 @@ func TestRenderRequestsRender(t *testing.T) {
 type renderTestRunner struct {
 	Node        *p2p.QriNode
 	Repo        repo.Repo
-	DatasetReqs *DatasetRequests
+	DatasetReqs *DatasetMethods
 	RenderReqs  *RenderRequests
 	Context     context.Context
 	ContextDone func()
@@ -150,7 +150,8 @@ func newRenderTestRunner(t *testing.T, testName string) *renderTestRunner {
 	if err != nil {
 		panic(err)
 	}
-	r.DatasetReqs = NewDatasetRequests(r.Node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), r.Node)
+	r.DatasetReqs = NewDatasetMethods(inst)
 	r.RenderReqs = NewRenderRequests(r.Repo, nil)
 
 	return &r

@@ -46,21 +46,22 @@ type DiffResponse struct {
 }
 
 // Diff computes the diff of two datasets
-func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
+func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) error {
+	var err error
 	// absolutize any local paths before a possible trip over RPC to another local process
 	if !dsref.IsRefString(p.LeftPath) {
 		if err = qfs.AbsPath(&p.LeftPath); err != nil {
-			return
+			return err
 		}
 	}
 	if !dsref.IsRefString(p.RightPath) {
 		if err = qfs.AbsPath(&p.RightPath); err != nil {
-			return
+			return err
 		}
 	}
 
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("DatasetRequests.Diff", p, res))
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("DatasetRequests.Diff", p, res))
 	}
 	ctx := context.TODO()
 
@@ -103,14 +104,14 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	if err != nil {
 		return err
 	}
-	err = repo.CanonicalizeDatasetRef(r.inst.node.Repo, &ref)
+	err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref)
 	if err != nil {
 		if err == repo.ErrNoHistory {
 			return fmt.Errorf("dataset has no versions, nothing to diff against")
 		}
 		return err
 	}
-	ds, err := dsfs.LoadDataset(ctx, r.inst.node.Repo.Store(), ref.Path)
+	ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
 	if err != nil {
 		return err
 	}
@@ -120,12 +121,12 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 			return fmt.Errorf("dataset has only one version, nothing to diff against")
 		}
 		ref.Path = prev
-		ds, err = dsfs.LoadDataset(ctx, r.inst.node.Repo.Store(), ref.Path)
+		ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
 		if err != nil {
 			return err
 		}
 	}
-	leftComp := component.ConvertDatasetToComponents(ds, r.inst.node.Repo.Filesystem())
+	leftComp := component.ConvertDatasetToComponents(ds, m.inst.repo.Filesystem())
 
 	// Right side of diff
 	var rightComp component.Component
@@ -135,7 +136,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 		if err != nil {
 			return err
 		}
-		err = component.ExpandListedComponents(rightComp, r.inst.node.Repo.Filesystem())
+		err = component.ExpandListedComponents(rightComp, m.inst.repo.Filesystem())
 		if err != nil {
 			return err
 		}
@@ -151,15 +152,15 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 		if err != nil {
 			return err
 		}
-		err = repo.CanonicalizeDatasetRef(r.inst.node.Repo, &ref)
+		err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref)
 		if err != nil && err != repo.ErrNoHistory {
 			return err
 		}
-		ds, err := dsfs.LoadDataset(ctx, r.inst.node.Repo.Store(), ref.Path)
+		ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
 		if err != nil {
 			return err
 		}
-		rightComp = component.ConvertDatasetToComponents(ds, r.inst.node.Repo.Filesystem())
+		rightComp = component.ConvertDatasetToComponents(ds, m.inst.repo.Filesystem())
 	}
 
 	// If in an FSI linked working directory, drop derived values, since the user is not

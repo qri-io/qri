@@ -69,14 +69,14 @@ type PublishOptions struct {
 	NoPin      bool
 	RemoteName string
 
-	DatasetRequests *lib.DatasetRequests
-	RemoteMethods   *lib.RemoteMethods
+	DatasetMethods *lib.DatasetMethods
+	RemoteMethods  *lib.RemoteMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *PublishOptions) Complete(f Factory, args []string) (err error) {
 
-	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
 		return err
 	}
 

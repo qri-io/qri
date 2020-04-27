@@ -131,7 +131,7 @@ func TestUpdateServiceStart(t *testing.T) {
 
 func TestDatasetMethodsRun(t *testing.T) {
 	node := newTestQriNode(t)
-	inst := &Instance{node: node}
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
 
 	m := NewUpdateMethods(inst)
 	res := &reporef.DatasetRef{}
@@ -152,7 +152,7 @@ func TestDatasetMethodsRun(t *testing.T) {
 		os.RemoveAll(metaPath)
 	}()
 
-	dsm := NewDatasetRequests(inst.node, nil)
+	dsm := NewDatasetMethods(inst)
 	// run a manual save to lose the transform
 	err := dsm.Save(&SaveParams{
 		Ref:       res.AliasString(),

@@ -383,6 +383,6 @@ func (m *UpdateMethods) runDatasetUpdate(ctx context.Context, p *SaveParams, res
 		p.Recall = "tf"
 	}
 
-	dsr := NewDatasetRequestsInstance(m.inst)
+	dsr := NewDatasetMethods(m.inst)
 	return dsr.Save(p, res)
 }
