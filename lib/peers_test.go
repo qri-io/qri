@@ -14,11 +14,12 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
-	testrepo "github.com/qri-io/qri/repo/test"
 )
 
 func TestPeerRequestsListNoConnection(t *testing.T) {
-	req := NewPeerRequests(nil, nil)
+	node := newTestQriNode(t)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	req := NewPeerMethods(inst)
 	p := PeerListParams{}
 	got := []*config.ProfilePod{}
 	err := req.List(&p, &got)
@@ -35,24 +36,19 @@ func TestPeerRequestsList(t *testing.T) {
 		res []*profile.Profile
 		err string
 	}{
-		{&PeerListParams{}, nil, ""},
+		{&PeerListParams{}, nil, "error: not connected, run `qri connect` in another window"},
 		// {&ListParams{Data: badDataFile}, nil, "error determining dataset schema: no file extension provided"},
 		// {&ListParams{DataFilename: badDataFile.FileName(), Data: badDataFile}, nil, "error determining dataset schema: EOF"},
 		// {&ListParams{DataFilename: jobsByAutomationFile.FileName(), Data: jobsByAutomationFile}, nil, ""},
 		// TODO - need a test that confirms that this node's identity is never present in peers list
 	}
 
-	mr, err := testrepo.NewTestRepo()
-	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
-	}
-
-	// TODO - need to upgrade this to include a mock node
-	req := NewPeerRequests(&p2p.QriNode{Repo: mr}, nil)
+	node := newTestQriNode(t)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []*config.ProfilePod{}
-		err := req.List(c.p, &got)
+		err := m.List(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -72,10 +68,11 @@ func TestConnectedQriProfiles(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	req := NewPeerRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []*config.ProfilePod{}
-		err := req.ConnectedQriProfiles(&c.limit, &got)
+		err := m.ConnectedQriProfiles(&c.limit, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -98,10 +95,11 @@ func TestConnectedIPFSPeers(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	req := NewPeerRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []string{}
-		err := req.ConnectedIPFSPeers(&c.limit, &got)
+		err := m.ConnectedIPFSPeers(&c.limit, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -125,10 +123,11 @@ func TestInfo(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	req := NewPeerRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := config.ProfilePod{}
-		err := req.Info(&c.p, &got)
+		err := m.Info(&c.p, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -157,10 +156,11 @@ func TestGetReferences(t *testing.T) {
 		t.Errorf("error creating qri node: %s", err)
 		return
 	}
-	req := NewPeerRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []reporef.DatasetRef{}
-		err := req.GetReferences(&c.p, &got)
+		err := m.GetReferences(&c.p, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue

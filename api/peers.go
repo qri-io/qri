@@ -7,20 +7,19 @@ import (
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo/profile"
 )
 
 // PeerHandlers wraps a requests struct to interface with http.HandlerFunc
 type PeerHandlers struct {
-	lib.PeerRequests
+	lib.PeerMethods
 	ReadOnly bool
 }
 
 // NewPeerHandlers allocates a PeerHandlers pointer
-func NewPeerHandlers(node *p2p.QriNode, readOnly bool) *PeerHandlers {
-	req := lib.NewPeerRequests(node, nil)
-	h := PeerHandlers{*req, readOnly}
+func NewPeerHandlers(inst *lib.Instance, readOnly bool) *PeerHandlers {
+	m := lib.NewPeerMethods(inst)
+	h := PeerHandlers{*m, readOnly}
 	return &h
 }
 

@@ -74,7 +74,7 @@ func Receivers(inst *Instance) []Methods {
 		NewRemoteMethods(inst),
 		NewLogRequests(node, nil),
 		NewExportRequests(node, nil),
-		NewPeerRequests(node, nil),
+		NewPeerMethods(inst),
 		NewProfileMethods(inst),
 		NewConfigMethods(inst),
 		NewSearchMethods(inst),

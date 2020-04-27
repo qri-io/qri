@@ -31,13 +31,15 @@ type Factory interface {
 	RemoteMethods() (*lib.RemoteMethods, error)
 	RegistryClientMethods() (*lib.RegistryClientMethods, error)
 	LogRequests() (*lib.LogRequests, error)
-	ExportRequests() (*lib.ExportRequests, error)
-	PeerRequests() (*lib.PeerRequests, error)
+	PeerMethods() (*lib.PeerMethods, error)
 	ProfileMethods() (*lib.ProfileMethods, error)
 	SearchMethods() (*lib.SearchMethods, error)
 	SQLMethods() (*lib.SQLMethods, error)
-	RenderRequests() (*lib.RenderRequests, error)
 	FSIMethods() (*lib.FSIMethods, error)
+
+	// TODO (b5) - these should be deprecated:
+	ExportRequests() (*lib.ExportRequests, error)
+	RenderRequests() (*lib.RenderRequests, error)
 }
 
 // PathFactory is a function that returns paths to qri & ipfs repos
