@@ -35,6 +35,7 @@ directory, and creates starter files for the dataset's components.`,
 	cmd.Flags().StringVar(&o.Name, "name", "", "name of the dataset")
 	cmd.Flags().StringVar(&o.Format, "format", "", "format of dataset")
 	cmd.Flags().StringVar(&o.SourceBodyPath, "source-body-path", "", "path to the body file")
+	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "experimental: build and use dscache if none exists")
 
 	return cmd
 }
@@ -47,6 +48,7 @@ type InitOptions struct {
 	Format         string
 	SourceBodyPath string
 	Mkdir          string
+	UseDscache     bool
 
 	DatasetRequests *lib.DatasetRequests
 	FSIMethods      *lib.FSIMethods
@@ -70,16 +72,24 @@ func (o *InitOptions) Run() (err error) {
 	if err != nil {
 		return err
 	}
+	targetDir := pwd
+	if o.Mkdir != "" {
+		targetDir = o.Mkdir
+	}
+
+	// First, check if the directory can be init'd, before prompting for any input
+	canInitParams := lib.InitFSIDatasetParams{
+		Dir:            targetDir,
+		SourceBodyPath: o.SourceBodyPath,
+	}
+	if err = o.FSIMethods.CanInitDatasetWorkDir(&canInitParams, nil); err != nil {
+		return err
+	}
 
 	// Suggestion for the dataset name defaults to directory it is being linked into
 	if o.Name == "" {
-		var suggestedName string
-		if o.Mkdir == "" {
-			suggestedName = dsref.GenerateName(filepath.Base(pwd), "dataset_")
-		} else {
-			suggestedName = dsref.GenerateName(o.Mkdir, "dataset_")
-		}
-		o.Name = inputText(o.ErrOut, o.In, "Name of new dataset", suggestedName)
+		suggestedName := dsref.GenerateName(targetDir, "dataset_")
+		o.Name = inputText(o.Out, o.In, "Name of new dataset", suggestedName)
 	}
 
 	// If user inputted there own dataset name, make sure it's valid.
@@ -97,7 +107,7 @@ func (o *InitOptions) Run() (err error) {
 	}
 
 	if o.Format == "" {
-		o.Format = inputText(o.ErrOut, o.In, "Format of dataset, csv or json", "csv")
+		o.Format = inputText(o.Out, o.In, "Format of dataset, csv or json", "csv")
 	}
 
 	p := &lib.InitFSIDatasetParams{
@@ -106,6 +116,7 @@ func (o *InitOptions) Run() (err error) {
 		Format:         o.Format,
 		Name:           o.Name,
 		SourceBodyPath: o.SourceBodyPath,
+		UseDscache:     o.UseDscache,
 	}
 	var name string
 	if err = o.FSIMethods.InitDataset(p, &name); err != nil {

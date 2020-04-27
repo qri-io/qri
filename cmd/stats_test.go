@@ -157,13 +157,13 @@ func TestStatsFSI(t *testing.T) {
 
 `
 
-    if diff := cmp.Diff(expect, output); diff != "" {
-        t.Errorf("output mismatch (-want +got):\n%s", diff)
-    }
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
 
-    output = run.MustExecCombinedOutErr(t, "qri stats --pretty")
+	output = run.MustExecCombinedOutErr(t, "qri stats --pretty")
 
-    expect = `for linked dataset [test_peer/move_dir]
+	expect = `for linked dataset [test_peer/move_dir]
 
 [
   {
@@ -218,7 +218,7 @@ func TestStatsFSI(t *testing.T) {
 ]
 `
 
-    if diff := cmp.Diff(expect, output); diff != "" {
-        t.Errorf("output mismatch (-want +got):\n%s", diff)
-    }
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
 }

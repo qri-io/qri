@@ -427,8 +427,33 @@ func TestSaveDrop(t *testing.T) {
 	defer run.Delete()
 
 	run.MustExec(t, "qri save --body testdata/movies/body_two.json me/drop_stuff")
-	run.MustExec(t, "qri save --file testdata/movies/tf_123.star me/drop_stuff")
-	run.MustExec(t, "qri save --drop tf me/drop_stuff")
+	run.MustExec(t, "qri save --file testdata/movies/meta_override.yaml me/drop_stuff")
+	run.MustExec(t, "qri save --drop md me/drop_stuff")
+
+	// Check that the meta is gone.
+	output := run.MustExec(t, "qri get meta me/drop_stuff")
+	expect := "null\n\n"
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
+func TestSaveFilenameMeta(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_filename_meta")
+	defer run.Delete()
+
+	// Save a dataset with a bodyfile.
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv me/my_ds")
+
+	// Save to add meta. This meta.json file does not have a "md:0" key, but the filename is name
+	// to understand that it is a meta component.
+	run.MustExec(t, "qri save --file testdata/detect/meta.json me/my_ds")
+
+	expect := "This is dataset title\n\n"
+	output := run.MustExec(t, fmt.Sprintf("qri get meta.title me/my_ds"))
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
 }
 
 func TestSaveDscacheFirstCommit(t *testing.T) {

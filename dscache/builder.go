@@ -31,7 +31,7 @@ func (b *Builder) AddUser(username, profileID string) {
 
 // AddDsVersionInfo adds a versionInfo to the dscache
 func (b *Builder) AddDsVersionInfo(ver dsref.VersionInfo) {
-	b.AddDsVersionInfoWithIndexes(ver, -1, -1)
+	b.AddDsVersionInfoWithIndexes(ver, 0, 0)
 }
 
 // AddDsVersionInfoWithIndexes adds a versionInfo with indexes to the dscache

@@ -20,8 +20,12 @@ import (
 
 var (
 	log = golog.Logger("dscache")
+	// lengthOfProfileID is the expected length of a valid profileID
+	lengthOfProfileID = 46
 	// ErrNoDscache is returned when methods are called on a non-existant Dscache
 	ErrNoDscache = fmt.Errorf("dscache: does not exist")
+	// ErrInvalidProfileID is returned when an invalid profileID is given to dscache
+	ErrInvalidProfileID = fmt.Errorf("invalid profileID")
 )
 
 // Dscache represents an in-memory serialized dscache flatbuffer
@@ -203,6 +207,10 @@ func (d *Dscache) LookupByName(ref dsref.Ref) (*dsref.VersionInfo, error) {
 	return nil, fmt.Errorf("dataset ref not found %s/%s", ref.Username, ref.Name)
 }
 
+func (d *Dscache) validateProfileID(profileID string) bool {
+	return len(profileID) == lengthOfProfileID
+}
+
 func (d *Dscache) update(act *logbook.Action) {
 	switch act.Type {
 	case logbook.ActionDatasetNameInit:
@@ -223,6 +231,11 @@ func (d *Dscache) updateInitDataset(act *logbook.Action) error {
 		if !d.CreateNewEnabled {
 			return nil
 		}
+
+		if !d.validateProfileID(act.ProfileID) {
+			return ErrInvalidProfileID
+		}
+
 		builder := NewBuilder()
 		builder.AddUser(act.Username, act.ProfileID)
 		builder.AddDsVersionInfo(dsref.VersionInfo{
