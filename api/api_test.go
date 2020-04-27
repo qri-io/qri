@@ -144,7 +144,7 @@ func confirmQriNotRunning() error {
 func TestServerRoutes(t *testing.T) {
 	run := NewAPITestRunner(t)
 
-	h := NewRootHandler(NewDatasetHandlers(run.Inst, false), NewPeerHandlers(run.Node, false))
+	h := NewRootHandler(NewDatasetHandlers(run.Inst, false), NewPeerHandlers(run.Inst, false))
 	rootCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},

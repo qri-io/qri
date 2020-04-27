@@ -243,7 +243,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/profile/photo", s.middleware(proh.ProfilePhotoHandler))
 	m.Handle("/profile/poster", s.middleware(proh.PosterHandler))
 
-	ph := NewPeerHandlers(node, cfg.API.ReadOnly)
+	ph := NewPeerHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))

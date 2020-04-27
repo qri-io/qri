@@ -8,7 +8,7 @@ func TestPeerHandlers(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	h := NewPeerHandlers(node, false)
+	h := NewPeerHandlers(newTestInstanceWithProfileFromNode(node), false)
 
 	connectionsCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

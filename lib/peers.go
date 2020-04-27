@@ -3,7 +3,6 @@ package lib
 import (
 	"context"
 	"fmt"
-	"net/rpc"
 	"strings"
 
 	"github.com/qri-io/qri/config"
@@ -16,24 +15,19 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// PeerRequests encapsulates business logic for methods
-// relating to peer-to-peer interaction
-// TODO (b5): switch to using an Instance instead of separate fields
-type PeerRequests struct {
-	qriNode *p2p.QriNode
-	cli     *rpc.Client
+// PeerMethods extends a lib.Instance with business logic for peer-to-peer
+// interaction
+type PeerMethods struct {
+	inst *Instance
 }
 
 // CoreRequestsName implements the Requets interface
-func (d PeerRequests) CoreRequestsName() string { return "peers" }
+func (m PeerMethods) CoreRequestsName() string { return "peers" }
 
-// NewPeerRequests creates a PeerRequests pointer from either a
-// qri Node or an rpc.Client
-func NewPeerRequests(node *p2p.QriNode, cli *rpc.Client) *PeerRequests {
-
-	return &PeerRequests{
-		qriNode: node,
-		cli:     cli,
+// NewPeerMethods creates a p2p Methods pointer
+func NewPeerMethods(inst *Instance) *PeerMethods {
+	return &PeerMethods{
+		inst: inst,
 	}
 }
 
@@ -46,11 +40,11 @@ type PeerListParams struct {
 }
 
 // List lists Peers on the qri network
-func (d *PeerRequests) List(p *PeerListParams, res *[]*config.ProfilePod) (err error) {
-	if d.cli != nil {
-		return checkRPCError(d.cli.Call("PeerRequests.List", p, res))
+func (m *PeerMethods) List(p *PeerListParams, res *[]*config.ProfilePod) (err error) {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("PeerRequests.List", p, res))
 	}
-	if d.qriNode == nil {
+	if m.inst.node == nil || !m.inst.node.Online {
 		return fmt.Errorf("error: not connected, run `qri connect` in another window")
 	}
 
@@ -58,28 +52,28 @@ func (d *PeerRequests) List(p *PeerListParams, res *[]*config.ProfilePod) (err e
 		p.Limit = DefaultPageSize
 	}
 
-	*res, err = p2p.ListPeers(d.qriNode, p.Limit, p.Offset, !p.Cached)
+	*res, err = p2p.ListPeers(m.inst.node, p.Limit, p.Offset, !p.Cached)
 	return err
 }
 
 // ConnectedIPFSPeers lists PeerID's we're currently connected to. If running
 // IPFS this will also return connected IPFS nodes
-func (d *PeerRequests) ConnectedIPFSPeers(limit *int, peers *[]string) error {
-	if d.cli != nil {
-		return checkRPCError(d.cli.Call("PeerRequests.ConnectedIPFSPeers", limit, peers))
+func (m *PeerMethods) ConnectedIPFSPeers(limit *int, peers *[]string) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("PeerRequests.ConnectedIPFSPeers", limit, peers))
 	}
 
-	*peers = d.qriNode.ConnectedPeers()
+	*peers = m.inst.node.ConnectedPeers()
 	return nil
 }
 
 // ConnectedQriProfiles lists profiles we're currently connected to
-func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*config.ProfilePod) (err error) {
-	if d.cli != nil {
-		return checkRPCError(d.cli.Call("PeerRequests.ConnectedQriProfiles", limit, peers))
+func (m *PeerMethods) ConnectedQriProfiles(limit *int, peers *[]*config.ProfilePod) (err error) {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("PeerRequests.ConnectedQriProfiles", limit, peers))
 	}
 
-	connected := d.qriNode.ConnectedQriProfiles()
+	connected := m.inst.node.ConnectedQriProfiles()
 
 	build := make([]*config.ProfilePod, intMin(len(connected), *limit))
 	for _, p := range connected {
@@ -151,17 +145,18 @@ func (p PeerConnectionParamsPod) Decode() (cp p2p.PeerConnectionParams, err erro
 }
 
 // ConnectToPeer attempts to create a connection with a peer for a given peer.ID
-func (d *PeerRequests) ConnectToPeer(p *PeerConnectionParamsPod, res *config.ProfilePod) error {
-	if d.cli != nil {
-		return checkRPCError(d.cli.Call("PeerRequests.ConnectToPeer", p, res))
+func (m *PeerMethods) ConnectToPeer(p *PeerConnectionParamsPod, res *config.ProfilePod) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("PeerRequests.ConnectToPeer", p, res))
 	}
+	ctx := context.TODO()
 
 	pcp, err := p.Decode()
 	if err != nil {
 		return err
 	}
 
-	prof, err := d.qriNode.ConnectToPeer(context.Background(), pcp)
+	prof, err := m.inst.node.ConnectToPeer(ctx, pcp)
 	if err != nil {
 		return err
 	}
@@ -176,17 +171,18 @@ func (d *PeerRequests) ConnectToPeer(p *PeerConnectionParamsPod, res *config.Pro
 }
 
 // DisconnectFromPeer explicitly closes a peer connection
-func (d *PeerRequests) DisconnectFromPeer(p *PeerConnectionParamsPod, res *bool) error {
-	if d.cli != nil {
-		return checkRPCError(d.cli.Call("PeerRequests.DisconnectFromPeer", p, res))
+func (m *PeerMethods) DisconnectFromPeer(p *PeerConnectionParamsPod, res *bool) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("PeerRequests.DisconnectFromPeer", p, res))
 	}
+	ctx := context.TODO()
 
 	pcp, err := p.Decode()
 	if err != nil {
 		return err
 	}
 
-	if err := d.qriNode.DisconnectFromPeer(context.Background(), pcp); err != nil {
+	if err := m.inst.node.DisconnectFromPeer(ctx, pcp); err != nil {
 		return err
 	}
 
@@ -203,13 +199,13 @@ type PeerInfoParams struct {
 }
 
 // Info shows peer profile details
-func (d *PeerRequests) Info(p *PeerInfoParams, res *config.ProfilePod) error {
-	if d.cli != nil {
-		return checkRPCError(d.cli.Call("PeerRequests.Info", p, res))
+func (m *PeerMethods) Info(p *PeerInfoParams, res *config.ProfilePod) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("PeerRequests.Info", p, res))
 	}
 
 	// TODO: Move most / all of this to p2p package, perhaps.
-	r := d.qriNode.Repo
+	r := m.inst.repo
 
 	profiles, err := r.Profiles().List()
 	if err != nil {
@@ -221,7 +217,7 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *config.ProfilePod) error {
 		if pro.ID == p.ProfileID || pro.Peername == p.Peername {
 			if p.Verbose && len(pro.PeerIDs) > 0 {
 				// TODO - grab more than just the first peerID
-				pinfo := d.qriNode.PeerInfo(pro.PeerIDs[0])
+				pinfo := m.inst.node.PeerInfo(pro.PeerIDs[0])
 				pro.NetworkAddrs = pinfo.Addrs
 			}
 
@@ -231,14 +227,14 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *config.ProfilePod) error {
 			}
 			*res = *prof
 
-			connected := d.qriNode.ConnectedQriProfiles()
+			connected := m.inst.node.ConnectedQriProfiles()
 
 			// If the requested profileID is in the list of connected peers, set Online flag.
 			if _, ok := connected[pro.ID]; ok {
 				res.Online = true
 			}
 			// If the requested profileID is myself and I'm Online, set Online flag.
-			if peer.ID(pro.ID) == d.qriNode.ID && d.qriNode.Online {
+			if peer.ID(pro.ID) == m.inst.node.ID && m.inst.node.Online {
 				res.Online = true
 			}
 			return nil
@@ -257,9 +253,9 @@ type PeerRefsParams struct {
 }
 
 // GetReferences lists a peer's named datasets
-func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]reporef.DatasetRef) error {
-	if d.cli != nil {
-		return checkRPCError(d.cli.Call("PeerRequests.GetReferences", p, res))
+func (m *PeerMethods) GetReferences(p *PeerRefsParams, res *[]reporef.DatasetRef) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("PeerRequests.GetReferences", p, res))
 	}
 	ctx := context.TODO()
 
@@ -268,12 +264,7 @@ func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]reporef.DatasetRe
 		return fmt.Errorf("error decoding peer Id: %s", err.Error())
 	}
 
-	// profile, err := d.qriNode.Repo.Profiles().GetProfile(id)
-	// if err != nil || profile == nil {
-	// 	return err
-	// }
-
-	refs, err := d.qriNode.RequestDatasetsList(ctx, id, p2p.DatasetsListParams{
+	refs, err := m.inst.node.RequestDatasetsList(ctx, id, p2p.DatasetsListParams{
 		Limit:  p.Limit,
 		Offset: p.Offset,
 	})

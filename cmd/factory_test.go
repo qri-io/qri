@@ -177,8 +177,8 @@ func (t TestFactory) ExportRequests() (*lib.ExportRequests, error) {
 }
 
 // PeerRequests generates a lib.PeerRequests from internal state
-func (t TestFactory) PeerRequests() (*lib.PeerRequests, error) {
-	return lib.NewPeerRequests(t.node, t.rpc), nil
+func (t TestFactory) PeerMethods() (*lib.PeerMethods, error) {
+	return lib.NewPeerMethods(t.inst), nil
 }
 
 // ProfileMethods generates a lib.ProfileMethods from internal state

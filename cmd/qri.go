@@ -236,12 +236,12 @@ func (o *QriOptions) ExportRequests() (*lib.ExportRequests, error) {
 	return lib.NewExportRequests(o.inst.Node(), o.inst.RPC()), nil
 }
 
-// PeerRequests generates a lib.PeerRequests from internal state
-func (o *QriOptions) PeerRequests() (*lib.PeerRequests, error) {
+// PeerMethods generates a lib.PeerMethods from internal state
+func (o *QriOptions) PeerMethods() (*lib.PeerMethods, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
-	return lib.NewPeerRequests(o.inst.Node(), o.inst.RPC()), nil
+	return lib.NewPeerMethods(o.inst), nil
 }
 
 // ProfileMethods generates a lib.ProfileMethods from internal state

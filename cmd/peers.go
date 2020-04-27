@@ -159,7 +159,7 @@ type PeersOptions struct {
 	Page     int
 
 	UsingRPC     bool
-	PeerRequests *lib.PeerRequests
+	PeerRequests *lib.PeerMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -168,7 +168,7 @@ func (o *PeersOptions) Complete(f Factory, args []string) (err error) {
 		o.Peername = args[0]
 	}
 	o.UsingRPC = f.RPC() != nil
-	o.PeerRequests, err = f.PeerRequests()
+	o.PeerRequests, err = f.PeerMethods()
 	return
 }
 
