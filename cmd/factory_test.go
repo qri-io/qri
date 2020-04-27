@@ -166,9 +166,9 @@ func (t TestFactory) RegistryClientMethods() (*lib.RegistryClientMethods, error)
 	return lib.NewRegistryClientMethods(t.inst), nil
 }
 
-// LogRequests generates a lib.LogRequests from internal state
-func (t TestFactory) LogRequests() (*lib.LogRequests, error) {
-	return lib.NewLogRequests(t.node, t.rpc), nil
+// LogMethods generates a lib.LogMethods from internal state
+func (t TestFactory) LogMethods() (*lib.LogMethods, error) {
+	return lib.NewLogMethods(t.inst), nil
 }
 
 // ExportRequests generates a lib.ExportRequests from internal state

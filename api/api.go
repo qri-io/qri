@@ -301,7 +301,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/render", s.middleware(renderh.RenderHandler))
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))
 
-	lh := NewLogHandlers(node)
+	lh := NewLogHandlers(s.Instance)
 	m.Handle("/history/", s.middleware(lh.LogHandler))
 
 	rch := NewRegistryClientHandlers(s.Instance, cfg.API.ReadOnly)

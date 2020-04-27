@@ -7,19 +7,18 @@ import (
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
-// LogHandlers wraps a LogRequests with http.HandlerFuncs
+// LogHandlers wraps a LogMethods with http.HandlerFuncs
 type LogHandlers struct {
-	lib.LogRequests
+	lib.LogMethods
 }
 
 // NewLogHandlers allocates a LogHandlers pointer
-func NewLogHandlers(n *p2p.QriNode) *LogHandlers {
-	req := lib.NewLogRequests(n, nil)
-	h := LogHandlers{*req}
+func NewLogHandlers(inst *lib.Instance) *LogHandlers {
+	m := lib.NewLogMethods(inst)
+	h := LogHandlers{*m}
 	return &h
 }
 

@@ -231,7 +231,7 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("api response (-want +got):\n%s", diff)
 	}
 
-	logHandler := NewLogHandlers(run.Node)
+	logHandler := NewLogHandlers(run.Inst)
 
 	expectNoHistoryBody := `{
   "meta": {

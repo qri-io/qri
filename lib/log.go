@@ -3,35 +3,27 @@ package lib
 import (
 	"context"
 	"fmt"
-	"net/rpc"
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// LogRequests encapsulates business logic for the log
-// of changes to datasets, think "git log"
-// TODO (b5): switch to using an Instance instead of separate fields
-type LogRequests struct {
-	node *p2p.QriNode
-	cli  *rpc.Client
+// LogMethods extends a lib.Instance with business logic for working with lists
+// of dataset versions. think "git log".
+type LogMethods struct {
+	inst *Instance
 }
 
 // CoreRequestsName implements the Requets interface
-func (r LogRequests) CoreRequestsName() string { return "log" }
+func (m LogMethods) CoreRequestsName() string { return "log" }
 
-// NewLogRequests creates a LogRequests pointer from either a repo
+// NewLogMethods creates a LogMethods pointer from either a repo
 // or an rpc.Client
-func NewLogRequests(node *p2p.QriNode, cli *rpc.Client) *LogRequests {
-	if node != nil && cli != nil {
-		panic(fmt.Errorf("both node and client supplied to NewLogRequests"))
-	}
-	return &LogRequests{
-		node: node,
-		cli:  cli,
+func NewLogMethods(inst *Instance) *LogMethods {
+	return &LogMethods{
+		inst: inst,
 	}
 }
 
@@ -46,9 +38,9 @@ type LogParams struct {
 type DatasetLogItem = logbook.DatasetLogItem
 
 // Log returns the history of changes for a given dataset
-func (r *LogRequests) Log(params *LogParams, res *[]DatasetLogItem) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("LogRequests.Log", params, res))
+func (m *LogMethods) Log(params *LogParams, res *[]DatasetLogItem) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("LogMethods.Log", params, res))
 	}
 	ctx := context.TODO()
 
@@ -62,7 +54,7 @@ func (r *LogRequests) Log(params *LogParams, res *[]DatasetLogItem) (err error) 
 	// we only canonicalize the profile here, full dataset canonicalization
 	// currently relies on repo's refstore, and the logbook may be a superset
 	// of the refstore
-	if err = repo.CanonicalizeProfile(r.node.Repo, &ref); err != nil {
+	if err = repo.CanonicalizeProfile(m.inst.repo, &ref); err != nil {
 		return err
 	}
 
@@ -75,8 +67,8 @@ func (r *LogRequests) Log(params *LogParams, res *[]DatasetLogItem) (err error) 
 		params.Offset = 0
 	}
 
-	*res, err = base.DatasetLog(ctx, r.node.Repo, ref, params.Limit, params.Offset, true)
-	return
+	*res, err = base.DatasetLog(ctx, m.inst.repo, ref, params.Limit, params.Offset, true)
+	return err
 }
 
 // RefListParams encapsulates parameters for requests to a single reference
@@ -92,9 +84,9 @@ type RefListParams struct {
 type LogEntry = logbook.LogEntry
 
 // Logbook lists log entries for actions taken on a given dataset
-func (r *LogRequests) Logbook(p *RefListParams, res *[]LogEntry) error {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("LogRequests.Logbook", p, res))
+func (m *LogMethods) Logbook(p *RefListParams, res *[]LogEntry) error {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("LogMethods.Logbook", p, res))
 	}
 	ctx := context.TODO()
 
@@ -102,11 +94,11 @@ func (r *LogRequests) Logbook(p *RefListParams, res *[]LogEntry) error {
 	if err != nil {
 		return err
 	}
-	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
 		return err
 	}
 
-	book := r.node.Repo.Logbook()
+	book := m.inst.repo.Logbook()
 	*res, err = book.LogEntries(ctx, reporef.ConvertToDsref(ref), p.Offset, p.Limit)
 	return err
 }
@@ -120,11 +112,12 @@ type PlainLogsParams struct {
 type PlainLogs = []logbook.PlainLog
 
 // PlainLogs encodes the full logbook as human-oriented json
-func (r *LogRequests) PlainLogs(p *PlainLogsParams, res *PlainLogs) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("LogRequests.PlainLogs", p, res))
+func (m *LogMethods) PlainLogs(p *PlainLogsParams, res *PlainLogs) error {
+	var err error
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("LogMethods.PlainLogs", p, res))
 	}
 	ctx := context.TODO()
-	*res, err = r.node.Repo.Logbook().PlainLogs(ctx)
+	*res, err = m.inst.repo.Logbook().PlainLogs(ctx)
 	return err
 }

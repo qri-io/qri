@@ -61,10 +61,11 @@ func TestHistoryRequestsLog(t *testing.T) {
 			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 6, Limit: 3}}, nil, "repo: no history"},
 	}
 
-	req := NewLogRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewLogMethods(inst)
 	for _, c := range cases {
 		got := []DatasetLogItem{}
-		err := req.Log(c.p, &got)
+		err := m.Log(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)
@@ -100,14 +101,15 @@ func TestHistoryRequestsLogEntries(t *testing.T) {
 	}
 
 	firstRef := refs[0].String()
-	req := NewLogRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewLogMethods(inst)
 
-	if err = req.Logbook(&RefListParams{}, nil); err == nil {
+	if err = m.Logbook(&RefListParams{}, nil); err == nil {
 		t.Errorf("expected empty reference param to error")
 	}
 
 	res := []LogEntry{}
-	if err = req.Logbook(&RefListParams{Ref: firstRef, Limit: 30}, &res); err != nil {
+	if err = m.Logbook(&RefListParams{Ref: firstRef, Limit: 30}, &res); err != nil {
 		t.Fatal(err)
 	}
 

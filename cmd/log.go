@@ -58,7 +58,7 @@ type LogOptions struct {
 	Page     int
 	Refs     *RefSelect
 
-	LogRequests *lib.LogRequests
+	LogMethods *lib.LogMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -66,7 +66,7 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
 		return err
 	}
-	o.LogRequests, err = f.LogRequests()
+	o.LogMethods, err = f.LogMethods()
 	return
 }
 
@@ -89,7 +89,7 @@ func (o *LogOptions) Run() error {
 	}
 
 	refs := []DatasetLogItem{}
-	if err := o.LogRequests.Log(p, &refs); err != nil {
+	if err := o.LogMethods.Log(p, &refs); err != nil {
 		if err == repo.ErrEmptyRef {
 			return errors.New(err, "please provide a dataset reference")
 		}
@@ -149,7 +149,7 @@ type LogbookOptions struct {
 	Refs     *RefSelect
 	Raw      bool
 
-	LogRequests *lib.LogRequests
+	LogMethods *lib.LogMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -164,7 +164,7 @@ func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
 		}
 	}
 
-	o.LogRequests, err = f.LogRequests()
+	o.LogMethods, err = f.LogMethods()
 	return
 }
 
@@ -182,7 +182,7 @@ func (o *LogbookOptions) Logbook() error {
 	}
 
 	res := []lib.LogEntry{}
-	if err := o.LogRequests.Logbook(p, &res); err != nil {
+	if err := o.LogMethods.Logbook(p, &res); err != nil {
 		if err == repo.ErrEmptyRef {
 			return errors.New(err, "please provide a dataset reference")
 		}
@@ -204,7 +204,7 @@ func (o *LogbookOptions) Logbook() error {
 // RawLogs executes the rawlogs variant of the logbook command
 func (o *LogbookOptions) RawLogs() error {
 	res := lib.PlainLogs{}
-	if err := o.LogRequests.PlainLogs(&lib.PlainLogsParams{}, &res); err != nil {
+	if err := o.LogMethods.PlainLogs(&lib.PlainLogsParams{}, &res); err != nil {
 		return err
 	}
 
