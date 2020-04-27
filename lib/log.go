@@ -54,7 +54,7 @@ func (m *LogMethods) Log(params *LogParams, res *[]DatasetLogItem) error {
 	// we only canonicalize the profile here, full dataset canonicalization
 	// currently relies on repo's refstore, and the logbook may be a superset
 	// of the refstore
-	if err = repo.CanonicalizeProfile(m.inst.repo, &ref); err != nil {
+	if err = repo.CanonicalizeProfile(m.inst.node.Repo, &ref); err != nil {
 		return err
 	}
 
@@ -67,7 +67,7 @@ func (m *LogMethods) Log(params *LogParams, res *[]DatasetLogItem) error {
 		params.Offset = 0
 	}
 
-	*res, err = base.DatasetLog(ctx, m.inst.repo, ref, params.Limit, params.Offset, true)
+	*res, err = base.DatasetLog(ctx, m.inst.node.Repo, ref, params.Limit, params.Offset, true)
 	return err
 }
 
@@ -94,11 +94,11 @@ func (m *LogMethods) Logbook(p *RefListParams, res *[]LogEntry) error {
 	if err != nil {
 		return err
 	}
-	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
+	if err = repo.CanonicalizeDatasetRef(m.inst.node.Repo, &ref); err != nil {
 		return err
 	}
 
-	book := m.inst.repo.Logbook()
+	book := m.inst.node.Repo.Logbook()
 	*res, err = book.LogEntries(ctx, reporef.ConvertToDsref(ref), p.Offset, p.Limit)
 	return err
 }

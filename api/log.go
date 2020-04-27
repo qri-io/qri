@@ -12,13 +12,19 @@ import (
 
 // LogHandlers wraps a LogMethods with http.HandlerFuncs
 type LogHandlers struct {
-	lib.LogMethods
+	lm       lib.LogMethods
+	rm       lib.RemoteMethods
+	readOnly bool
 }
 
 // NewLogHandlers allocates a LogHandlers pointer
 func NewLogHandlers(inst *lib.Instance) *LogHandlers {
-	m := lib.NewLogMethods(inst)
-	h := LogHandlers{*m}
+	req := lib.NewLogMethods(inst)
+	rem := lib.NewRemoteMethods(inst)
+	h := LogHandlers{
+		lm: *req,
+		rm: *rem,
+	}
 	return &h
 }
 
@@ -52,21 +58,48 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	lp := lib.ListParamsFromRequest(r)
 	lp.Peername = args.Peername
 
-	params := &lib.LogParams{
-		Ref:        args.String(),
-		ListParams: lp,
+	local := r.FormValue("local") == "true"
+	remoteName := r.FormValue("remote")
+
+	if local && remoteName != "" {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("cannot use the 'local' and 'remote' params at the same time"))
+		return
 	}
 
 	res := []DatasetLogItem{}
-	if err := h.Log(params, &res); err != nil {
-		if err == repo.ErrNoHistory {
-			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
+	if remoteName == "" {
+		params := &lib.LogParams{
+			Ref:        args.String(),
+			ListParams: lp,
+		}
+		if err := h.lm.Log(params, &res); err != nil {
+			if err == repo.ErrNoHistory {
+				util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
+				return
+			}
+			if err != repo.ErrNotFound {
+				util.WriteErrResponse(w, http.StatusInternalServerError, err)
+				return
+			}
+			if local && err == repo.ErrNotFound {
+				util.WriteErrResponse(w, http.StatusInternalServerError, err)
+				return
+			}
+		} else {
+			if err := util.WritePageResponse(w, res, r, params.Page()); err != nil {
+				log.Infof("error list dataset history response: %s", err.Error())
+			}
 			return
 		}
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+	}
+	p := &lib.FetchParams{
+		Ref:        args.String(),
+		RemoteName: remoteName,
+	}
+	if err := h.rm.Fetch(p, &res); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	if err := util.WritePageResponse(w, res, r, params.Page()); err != nil {
-		log.Infof("error list dataset history response: %s", err.Error())
-	}
+
+	util.WritePageResponse(w, res, r, lp.Page())
 }

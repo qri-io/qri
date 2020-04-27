@@ -87,12 +87,12 @@ func TestFetchCommand(t *testing.T) {
 	defer httpServer.Close()
 
 	// Construct a second peer B.
-	b := NewTestRunner(t, "peer_b", "qri_test_fetch_b")
+	b := NewTestRunnerWithTempRegistry(t, "peer_b", "qri_test_fetch_b")
 	defer b.Delete()
 
 	// Expect an error when trying to list an unavailable dataset
 	err = b.ExecCommand("qri log peer_b/test_movies")
-	expectErr := `repo: not found`
+	expectErr := `log: not found`
 	if err == nil {
 		t.Fatal("expected fetch on non-existant log to error")
 	}
@@ -107,7 +107,7 @@ func TestFetchCommand(t *testing.T) {
 	b.MustExec(t, cfgCmdText)
 
 	// Have peer B fetch from peer A, output correlates to the log from peer A earlier
-	actual = b.MustExec(t, "qri fetch peer_a/test_movies --remote a_node")
+	actual = b.MustExec(t, "qri log peer_a/test_movies --remote a_node")
 	expect = `1   Commit:  /ipfs/Qmde2e5etUdVtBzHdvnsPXU4mFmy3yepw72rWz3CQ8JQ3v
     Date:    Sun Dec 31 20:05:01 EST 2000
     Storage: remote
