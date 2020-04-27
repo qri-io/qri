@@ -64,8 +64,8 @@ func TestStatsComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.DatasetRequests == nil {
-			t.Errorf("%d. case %s, opt.DatasetRequests not set.", i, c.description)
+		if opt.DatasetMethods == nil {
+			t.Errorf("%d. case %s, opt.DatasetMethods not set.", i, c.description)
 			run.IOReset()
 			continue
 		}
@@ -82,7 +82,7 @@ func TestStatsRun(t *testing.T) {
 		t.Fatalf("error creating new test factory: %s", err)
 	}
 
-	dsr, err := f.DatasetRequests()
+	dsm, err := f.DatasetMethods()
 	if err != nil {
 		t.Fatalf("error creating dataset request: %s", err)
 	}
@@ -99,9 +99,9 @@ func TestStatsRun(t *testing.T) {
 		run.IOReset()
 
 		opt := &StatsOptions{
-			IOStreams:       run.Streams,
-			Refs:            NewExplicitRefSelect(c.ref),
-			DatasetRequests: dsr,
+			IOStreams:      run.Streams,
+			Refs:           NewExplicitRefSelect(c.ref),
+			DatasetMethods: dsm,
 		}
 
 		if err = opt.Run(); err.Error() != c.err {
@@ -126,9 +126,9 @@ func TestStatsRun(t *testing.T) {
 		run.IOReset()
 
 		opt := &StatsOptions{
-			IOStreams:       run.Streams,
-			Refs:            NewExplicitRefSelect(c.ref),
-			DatasetRequests: dsr,
+			IOStreams:      run.Streams,
+			Refs:           NewExplicitRefSelect(c.ref),
+			DatasetMethods: dsm,
 		}
 
 		if err = opt.Run(); err != nil {
@@ -157,13 +157,13 @@ func TestStatsFSI(t *testing.T) {
 
 `
 
-    if diff := cmp.Diff(expect, output); diff != "" {
-        t.Errorf("output mismatch (-want +got):\n%s", diff)
-    }
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
 
-    output = run.MustExecCombinedOutErr(t, "qri stats --pretty")
+	output = run.MustExecCombinedOutErr(t, "qri stats --pretty")
 
-    expect = `for linked dataset [test_peer/move_dir]
+	expect = `for linked dataset [test_peer/move_dir]
 
 [
   {
@@ -218,7 +218,7 @@ func TestStatsFSI(t *testing.T) {
 ]
 `
 
-    if diff := cmp.Diff(expect, output); diff != "" {
-        t.Errorf("output mismatch (-want +got):\n%s", diff)
-    }
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
 }

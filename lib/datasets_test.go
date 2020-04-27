@@ -71,10 +71,11 @@ func TestDatasetRequestsSave(t *testing.T) {
 		os.RemoveAll(citiesMetaTwoPath)
 	}()
 
-	req := NewDatasetRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewDatasetMethods(inst)
 
 	privateErrMsg := "option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates"
-	if err := req.Save(&SaveParams{Private: true}, nil); err == nil {
+	if err := m.Save(&SaveParams{Private: true}, nil); err == nil {
 		t.Errorf("expected datset to error")
 	} else if err.Error() != privateErrMsg {
 		t.Errorf("private flag error mismatch: expected: '%s', got: '%s'", privateErrMsg, err.Error())
@@ -92,7 +93,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 
 	for i, c := range good {
 		got := &reporef.DatasetRef{}
-		err := req.Save(&c.params, got)
+		err := m.Save(&c.params, got)
 		if err != nil {
 			t.Errorf("case %d: '%s' unexpected error: %s", i, c.description, err.Error())
 			continue
@@ -127,7 +128,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 
 	for i, c := range bad {
 		got := &reporef.DatasetRef{}
-		err := req.Save(&c.params, got)
+		err := m.Save(&c.params, got)
 		if err == nil {
 			t.Errorf("case %d: '%s' returned no error", i, c.description)
 		}
@@ -151,14 +152,15 @@ func tempDatasetFile(t *testing.T, fileName string, ds *dataset.Dataset) (path s
 func TestDatasetRequestsForceSave(t *testing.T) {
 	node := newTestQriNode(t)
 	ref := addCitiesDataset(t, node)
-	r := NewDatasetRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewDatasetMethods(inst)
 
 	res := &reporef.DatasetRef{}
-	if err := r.Save(&SaveParams{Ref: ref.AliasString()}, res); err == nil {
+	if err := m.Save(&SaveParams{Ref: ref.AliasString()}, res); err == nil {
 		t.Error("expected empty save without force flag to error")
 	}
 
-	if err := r.Save(&SaveParams{
+	if err := m.Save(&SaveParams{
 		Ref:   ref.AliasString(),
 		Force: true,
 	}, res); err != nil {
@@ -169,7 +171,8 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 	node := newTestQriNode(t)
 	ref := addNowTransformDataset(t, node)
-	r := NewDatasetRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewDatasetMethods(inst)
 
 	metaOnePath := tempDatasetFile(t, "*-meta.json", &dataset.Dataset{Meta: &dataset.Meta{Title: "an updated title"}})
 	metaTwoPath := tempDatasetFile(t, "*-meta-2.json", &dataset.Dataset{Meta: &dataset.Meta{Title: "new title!"}})
@@ -179,7 +182,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 	}()
 
 	res := &reporef.DatasetRef{}
-	err := r.Save(&SaveParams{
+	err := m.Save(&SaveParams{
 		Ref:        ref.AliasString(),
 		FilePaths:  []string{metaOnePath},
 		ReturnBody: true}, res)
@@ -187,7 +190,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	err = r.Save(&SaveParams{
+	err = m.Save(&SaveParams{
 		Ref:       ref.AliasString(),
 		FilePaths: []string{metaOnePath},
 		Recall:    "wut"}, res)
@@ -195,7 +198,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 		t.Fatal("expected bad recall to error")
 	}
 
-	err = r.Save(&SaveParams{
+	err = m.Save(&SaveParams{
 		Ref:       ref.AliasString(),
 		FilePaths: []string{metaTwoPath},
 		Recall:    "tf"}, res)
@@ -206,7 +209,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 		t.Error("expected transform to exist on recalled save")
 	}
 
-	err = r.Save(&SaveParams{
+	err = m.Save(&SaveParams{
 		Ref:  ref.AliasString(),
 		Drop: "wut",
 	}, res)
@@ -214,7 +217,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 		t.Fatal("expected bad recall to error")
 	}
 
-	err = r.Save(&SaveParams{
+	err = m.Save(&SaveParams{
 		Ref:  ref.AliasString(),
 		Drop: "tf",
 	}, res)
@@ -235,12 +238,13 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	req := NewDatasetRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewDatasetMethods(inst)
 
 	res := reporef.DatasetRef{}
 	// TODO (b5): import.zip has a ref.txt file that specifies test_user/test_repo as the dataset name,
 	// save now requires a string reference. we need to pick a behaviour here & write a test that enforces it
-	err = req.Save(&SaveParams{Ref: "me/huh", FilePaths: []string{"testdata/import.zip"}}, &res)
+	err = m.Save(&SaveParams{Ref: "me/huh", FilePaths: []string{"testdata/import.zip"}}, &res)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -309,10 +313,10 @@ func TestDatasetRequestsList(t *testing.T) {
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*dsref.VersionInfo{cities, counter, movies}, ""},
 	}
 
-	req := NewDatasetRequestsInstance(inst)
+	m := NewDatasetMethods(inst)
 	for _, c := range cases {
 		got := []dsref.VersionInfo{}
-		err := req.List(c.p, &got)
+		err := m.List(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)
@@ -379,10 +383,11 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 		go func(node *p2p.QriNode) {
 			defer wg.Done()
 
-			dsr := NewDatasetRequests(node, nil)
+			inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+			m := NewDatasetMethods(inst)
 			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
 			var res []dsref.VersionInfo
-			err := dsr.List(p, &res)
+			err := m.List(p, &res)
 			if err != nil {
 				t.Errorf("error listing dataset: %s", err.Error())
 			}
@@ -515,10 +520,11 @@ func TestDatasetRequestsGet(t *testing.T) {
 			bodyToPrettyString(moviesBody[:3])},
 	}
 
-	req := NewDatasetRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewDatasetMethods(inst)
 	for _, c := range cases {
 		got := &GetResult{}
-		err := req.Get(c.params, got)
+		err := m.Get(c.params, got)
 		if err != nil {
 			if err.Error() != c.expect {
 				t.Errorf("case \"%s\": error mismatch: expected: %s, got: %s", c.description, c.expect, err)
@@ -615,9 +621,10 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			name := datasets[index]
 			ref := reporef.DatasetRef{Peername: profile.Peername, Name: name}
 
-			dsr := NewDatasetRequests(node, nil)
+			inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+			m := NewDatasetMethods(inst)
 			got := &GetResult{}
-			err = dsr.Get(&GetParams{Refstr: ref.String()}, got)
+			err = m.Get(&GetParams{Refstr: ref.String()}, got)
 			if err != nil {
 				t.Errorf("error listing dataset for %s: %s", ref.Name, err.Error())
 			}
@@ -652,10 +659,11 @@ func TestDatasetRequestsRename(t *testing.T) {
 		{&RenameParams{Current: dsref.Ref{Username: "peer", Name: "cities"}, Next: dsref.Ref{Username: "peer", Name: "sitemap"}}, "dataset 'peer/sitemap' already exists"},
 	}
 
-	req := NewDatasetRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		got := &dsref.VersionInfo{}
-		err := req.Rename(c.p, got)
+		err := m.Rename(c.p, got)
 
 		if err == nil {
 			t.Errorf("case %d didn't error. expected: %s", i, c.err)
@@ -679,7 +687,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 	}
 
 	res := &dsref.VersionInfo{}
-	if err := req.Rename(p, res); err != nil {
+	if err := m.Rename(p, res); err != nil {
 		t.Errorf("unexpected error renaming: %s", err)
 	}
 
@@ -710,10 +718,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 
 	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
-
-	// TODO (b5) - dataset requests require an instance to delete properly
-	// we should do the "DatasetMethods" refactor ASAP
-	req := NewDatasetRequestsInstance(inst)
+	dsm := NewDatasetMethods(inst)
 	allRevs := dsref.Rev{Field: "ds", Gen: -1}
 
 	// we need some fsi stuff to fully test remove
@@ -749,7 +754,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 
 	// add a commit to craigslist
 	saveRes := &reporef.DatasetRef{}
-	if err := req.Save(&SaveParams{Ref: "peer/craigslist", Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh word"}}}, saveRes); err != nil {
+	if err := dsm.Save(&SaveParams{Ref: "peer/craigslist", Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh word"}}}, saveRes); err != nil {
 		t.Fatal(err)
 	}
 
@@ -776,7 +781,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	for i, c := range badCases {
 		t.Run(fmt.Sprintf("bad_case_%s", c.err), func(t *testing.T) {
 			res := RemoveResponse{}
-			err := req.Remove(&c.params, &res)
+			err := dsm.Remove(&c.params, &res)
 
 			if err == nil {
 				t.Errorf("case %d: expected error. got nil", i)
@@ -805,7 +810,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	for _, c := range goodCases {
 		t.Run(fmt.Sprintf("good_case_%s", c.description), func(t *testing.T) {
 			res := RemoveResponse{}
-			err := req.Remove(&c.params, &res)
+			err := dsm.Remove(&c.params, &res)
 
 			if err != nil {
 				t.Errorf("unexpected error: %s", err)
@@ -840,10 +845,11 @@ func TestDatasetRequestsAdd(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	req := NewDatasetRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewDatasetMethods(inst)
 	for i, c := range cases {
 		got := &reporef.DatasetRef{}
-		err := req.Add(c.p, got)
+		err := m.Add(c.p, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -905,10 +911,11 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 				}
 
 				// Build requests for peer1 to peer2.
-				dsr := NewDatasetRequests(p0, nil)
+				inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), p0)
+				dsm := NewDatasetMethods(inst)
 				got := &reporef.DatasetRef{}
 
-				err := dsr.Add(p, got)
+				err := dsm.Add(p, got)
 				if err != nil {
 					pro1, _ := p0.Repo.Profile()
 					pro2, _ := p1.Repo.Profile()
@@ -975,10 +982,11 @@ Pirates of the Caribbean: At World's End ,foo
 		t.Fatal(err.Error())
 	}
 
-	req := NewDatasetRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewDatasetMethods(inst)
 	for i, c := range cases {
 		got := []jsonschema.ValError{}
-		err := req.Validate(&c.p, &got)
+		err := m.Validate(&c.p, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err.Error())
 			continue
@@ -1003,7 +1011,7 @@ func TestDatasetRequestsStats(t *testing.T) {
 	}
 
 	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
-	req := NewDatasetRequestsInstance(inst)
+	m := NewDatasetMethods(inst)
 
 	badCases := []struct {
 		description string
@@ -1015,7 +1023,7 @@ func TestDatasetRequestsStats(t *testing.T) {
 	}
 	for i, c := range badCases {
 		res := &StatsResponse{}
-		err := req.Stats(&StatsParams{Ref: c.ref}, res)
+		err := m.Stats(&StatsParams{Ref: c.ref}, res)
 		if c.expectedErr != err.Error() {
 			t.Errorf("%d. case %s: error mismatch, expected: '%s', got: '%s'", i, c.description, c.expectedErr, err.Error())
 		}
@@ -1033,7 +1041,7 @@ func TestDatasetRequestsStats(t *testing.T) {
 	}
 	for i, c := range goodCases {
 		res := &StatsResponse{}
-		err := req.Stats(&StatsParams{Ref: c.ref}, res)
+		err := m.Stats(&StatsParams{Ref: c.ref}, res)
 		if err != nil {
 			t.Errorf("%d. case %s: unexpected error: '%s'", i, c.description, err.Error())
 			continue
@@ -1073,10 +1081,11 @@ func TestListRawRefs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	req := NewDatasetRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	m := NewDatasetMethods(inst)
 
 	var text string
-	if err := req.ListRawRefs(&ListParams{}, &text); err != nil {
+	if err := m.ListRawRefs(&ListParams{}, &text); err != nil {
 		t.Fatal(err)
 	}
 	expect := `0 Peername:  peer

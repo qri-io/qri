@@ -158,7 +158,7 @@ func (h *RemoteClientHandlers) listPublishedHandler(w http.ResponseWriter, r *ht
 	args.OrderBy = "created"
 	args.Published = true
 
-	dsm := lib.NewDatasetRequestsInstance(h.inst)
+	dsm := lib.NewDatasetMethods(h.inst)
 
 	res := []dsref.VersionInfo{}
 	if err := dsm.List(&args, &res); err != nil {

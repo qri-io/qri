@@ -27,7 +27,7 @@ type Factory interface {
 	ConnectionNode() (*p2p.QriNode, error)
 
 	ConfigMethods() (*lib.ConfigMethods, error)
-	DatasetRequests() (*lib.DatasetRequests, error)
+	DatasetMethods() (*lib.DatasetMethods, error)
 	RemoteMethods() (*lib.RemoteMethods, error)
 	RegistryClientMethods() (*lib.RegistryClientMethods, error)
 	LogMethods() (*lib.LogMethods, error)

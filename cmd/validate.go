@@ -90,12 +90,12 @@ type ValidateOptions struct {
 	StructureFilepath string
 	URL               string
 
-	DatasetRequests *lib.DatasetRequests
+	DatasetMethods *lib.DatasetMethods
 }
 
 // Complete adds any configuration that can only be added just before calling Run
 func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
 		return
 	}
 
@@ -127,7 +127,7 @@ func (o *ValidateOptions) Run() (err error) {
 	}
 
 	res := []jsonschema.ValError{}
-	if err = o.DatasetRequests.Validate(p, &res); err != nil {
+	if err = o.DatasetMethods.Validate(p, &res); err != nil {
 		return err
 	}
 

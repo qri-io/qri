@@ -68,12 +68,12 @@ type RemoveOptions struct {
 	KeepFiles     bool
 	Force         bool
 
-	DatasetRequests *lib.DatasetRequests
+	DatasetMethods *lib.DatasetMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
 		return err
 	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, -1, nil); err != nil {
@@ -124,7 +124,7 @@ func (o *RemoveOptions) Run() (err error) {
 	}
 
 	res := lib.RemoveResponse{}
-	if err = o.DatasetRequests.Remove(&params, &res); err != nil {
+	if err = o.DatasetMethods.Remove(&params, &res); err != nil {
 		if err == repo.ErrNotFound {
 			return errors.New(err, fmt.Sprintf("could not find dataset '%s'", o.Refs.Ref()))
 		}

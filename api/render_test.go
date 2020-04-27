@@ -27,7 +27,7 @@ func TestRenderReadmeHandler(t *testing.T) {
 
 	inst := newTestInstanceWithProfileFromNode(node)
 	h := NewRenderHandlers(inst.Repo())
-	dr := lib.NewDatasetRequests(node, nil)
+	dsm := lib.NewDatasetMethods(inst)
 
 	// TODO(dlong): Copied from fsi_test, refactor into a common utility
 	saveParams := lib.SaveParams{
@@ -43,7 +43,7 @@ func TestRenderReadmeHandler(t *testing.T) {
 		BodyPath: "testdata/cities/data.csv",
 	}
 	res := reporef.DatasetRef{}
-	if err := dr.Save(&saveParams, &res); err != nil {
+	if err := dsm.Save(&saveParams, &res); err != nil {
 		t.Fatal(err)
 	}
 

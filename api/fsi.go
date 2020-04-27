@@ -18,7 +18,7 @@ import (
 // FSIHandlers connects HTTP requests to the FSI subsystem
 type FSIHandlers struct {
 	lib.FSIMethods
-	dsm      *lib.DatasetRequests
+	dsm      *lib.DatasetMethods
 	ReadOnly bool
 }
 
@@ -26,7 +26,7 @@ type FSIHandlers struct {
 func NewFSIHandlers(inst *lib.Instance, readOnly bool) FSIHandlers {
 	return FSIHandlers{
 		FSIMethods: *lib.NewFSIMethods(inst),
-		dsm:        lib.NewDatasetRequests(inst.Node(), nil),
+		dsm:        lib.NewDatasetMethods(inst),
 		ReadOnly:   readOnly,
 	}
 }

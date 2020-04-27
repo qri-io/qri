@@ -72,7 +72,7 @@ type DiffOptions struct {
 	Format   string
 	Summary  bool
 
-	DatasetRequests *lib.DatasetRequests
+	DatasetMethods *lib.DatasetMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -83,7 +83,7 @@ func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
 			args = args[1:]
 		}
 	}
-	o.DatasetRequests, err = f.DatasetRequests()
+	o.DatasetMethods, err = f.DatasetMethods()
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func (o *DiffOptions) Run() (err error) {
 	}
 
 	res := &lib.DiffResponse{}
-	if err = o.DatasetRequests.Diff(p, res); err != nil {
+	if err = o.DatasetMethods.Diff(p, res); err != nil {
 		return err
 	}
 

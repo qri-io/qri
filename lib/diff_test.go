@@ -11,7 +11,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
-	req := NewDatasetRequestsInstance(tr.Instance)
+	req := NewDatasetMethods(tr.Instance)
 	jobsOnePath := tr.writeFile(t, "jobs_by_automation_1.csv", jobsByAutomationData1)
 	jobsTwoPath := tr.writeFile(t, "jobs_by_automation_2.csv", jobsByAutomationData2)
 

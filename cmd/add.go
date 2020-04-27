@@ -42,14 +42,14 @@ the name of the peer that originally added the dataset. You must have
 // AddOptions encapsulates state for the add command
 type AddOptions struct {
 	ioes.IOStreams
-	LinkDir         string
-	LogsOnly        bool
-	DatasetRequests *lib.DatasetRequests
+	LinkDir        string
+	LogsOnly       bool
+	DatasetMethods *lib.DatasetMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *AddOptions) Complete(f Factory) (err error) {
-	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
 		return
 	}
 	return nil
@@ -75,7 +75,7 @@ func (o *AddOptions) Run(args []string) error {
 		}
 
 		res := reporef.DatasetRef{}
-		if err := o.DatasetRequests.Add(p, &res); err != nil {
+		if err := o.DatasetMethods.Add(p, &res); err != nil {
 			return err
 		}
 

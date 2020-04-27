@@ -69,7 +69,7 @@ func Receivers(inst *Instance) []Methods {
 	r := inst.Repo()
 
 	return []Methods{
-		NewDatasetRequestsInstance(inst),
+		NewDatasetMethods(inst),
 		NewRegistryClientMethods(inst),
 		NewRemoteMethods(inst),
 		NewLogMethods(inst),

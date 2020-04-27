@@ -99,7 +99,7 @@ type DAGOptions struct {
 	File       string
 	Label      string
 
-	DatasetRequests *lib.DatasetRequests
+	DatasetMethods *lib.DatasetMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -111,7 +111,7 @@ func (o *DAGOptions) Complete(f Factory, args []string, parseLabel bool) (err er
 		}
 	}
 	o.Refs = args
-	o.DatasetRequests, err = f.DatasetRequests()
+	o.DatasetMethods, err = f.DatasetMethods()
 	return
 }
 
@@ -119,7 +119,7 @@ func (o *DAGOptions) Complete(f Factory, args []string, parseLabel bool) (err er
 func (o *DAGOptions) Get() (err error) {
 	mf := &dag.Manifest{}
 	for _, refstr := range o.Refs {
-		if err = o.DatasetRequests.Manifest(&refstr, mf); err != nil {
+		if err = o.DatasetMethods.Manifest(&refstr, mf); err != nil {
 			return err
 		}
 
@@ -175,7 +175,7 @@ func (o *DAGOptions) Missing() error {
 	}
 
 	mf := &dag.Manifest{}
-	if err = o.DatasetRequests.ManifestMissing(in, mf); err != nil {
+	if err = o.DatasetMethods.ManifestMissing(in, mf); err != nil {
 		return err
 	}
 
@@ -212,7 +212,7 @@ func (o *DAGOptions) Info() (err error) {
 
 	for _, refstr := range o.Refs {
 		s := &lib.DAGInfoParams{RefStr: refstr, Label: o.Label}
-		if err = o.DatasetRequests.DAGInfo(s, info); err != nil {
+		if err = o.DatasetMethods.DAGInfo(s, info); err != nil {
 			return err
 		}
 

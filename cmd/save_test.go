@@ -57,8 +57,8 @@ func TestSaveComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.DatasetRequests == nil {
-			t.Errorf("case %d, opt.DatasetRequests not set.", i)
+		if opt.DatasetMethods == nil {
+			t.Errorf("case %d, opt.DatasetMethods not set.", i)
 			run.IOReset()
 			continue
 		}
@@ -140,7 +140,7 @@ func TestSaveRun(t *testing.T) {
 
 	for _, c := range cases {
 		run.IOReset()
-		dsr, err := f.DatasetRequests()
+		dsm, err := f.DatasetMethods()
 		if err != nil {
 			t.Errorf("case \"%s\", error creating dataset request: %s", c.description, err)
 			continue
@@ -152,16 +152,16 @@ func TestSaveRun(t *testing.T) {
 		}
 
 		opt := &SaveOptions{
-			IOStreams:       run.Streams,
-			Refs:            NewExplicitRefSelect(c.ref),
-			FilePaths:       pathList,
-			BodyPath:        c.bodypath,
-			Title:           c.title,
-			Message:         c.message,
-			Publish:         c.publish,
-			DryRun:          c.dryrun,
-			NoRender:        c.noRender,
-			DatasetRequests: dsr,
+			IOStreams:      run.Streams,
+			Refs:           NewExplicitRefSelect(c.ref),
+			FilePaths:      pathList,
+			BodyPath:       c.bodypath,
+			Title:          c.title,
+			Message:        c.message,
+			Publish:        c.publish,
+			DryRun:         c.dryrun,
+			NoRender:       c.noRender,
+			DatasetMethods: dsm,
 		}
 
 		err = opt.Run()

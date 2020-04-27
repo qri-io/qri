@@ -272,7 +272,7 @@ func TestFSIWrite(t *testing.T) {
 	// already exists.
 	_ = os.RemoveAll(workDir)
 
-	dr := lib.NewDatasetRequests(node, nil)
+	dsm := lib.NewDatasetMethods(inst)
 	fsiHandler := NewFSIHandlers(inst, false)
 
 	// Save version 1
@@ -286,7 +286,7 @@ func TestFSIWrite(t *testing.T) {
 		BodyPath: "testdata/cities/data.csv",
 	}
 	res := reporef.DatasetRef{}
-	if err := dr.Save(&saveParams, &res); err != nil {
+	if err := dsm.Save(&saveParams, &res); err != nil {
 		t.Fatal(err)
 	}
 
@@ -357,7 +357,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 	// already exists.
 	_ = os.RemoveAll(workDir)
 
-	dr := lib.NewDatasetRequests(node, nil)
+	dsm := lib.NewDatasetMethods(inst)
 
 	// Save version 1
 	saveParams := lib.SaveParams{
@@ -370,7 +370,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 		BodyPath: "testdata/cities/data.csv",
 	}
 	res := reporef.DatasetRef{}
-	if err := dr.Save(&saveParams, &res); err != nil {
+	if err := dsm.Save(&saveParams, &res); err != nil {
 		t.Fatal(err)
 	}
 
@@ -388,7 +388,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 			},
 		},
 	}
-	if err := dr.Save(&saveParams, &res); err != nil {
+	if err := dsm.Save(&saveParams, &res); err != nil {
 		t.Fatal(err)
 	}
 

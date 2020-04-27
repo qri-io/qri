@@ -196,12 +196,12 @@ func (o *QriOptions) ConnectionNode() (*p2p.QriNode, error) {
 	return o.inst.Node(), nil
 }
 
-// DatasetRequests generates a lib.DatasetRequests from internal state
-func (o *QriOptions) DatasetRequests() (*lib.DatasetRequests, error) {
+// DatasetMethods generates a lib.DatasetMethods from internal state
+func (o *QriOptions) DatasetMethods() (*lib.DatasetMethods, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
-	return lib.NewDatasetRequestsInstance(o.inst), nil
+	return lib.NewDatasetMethods(o.inst), nil
 }
 
 // RemoteMethods generates a lib.RemoteMethods from internal state

@@ -73,12 +73,12 @@ type GetOptions struct {
 	Pretty    bool
 	HasPretty bool
 
-	DatasetRequests *lib.DatasetRequests
+	DatasetMethods *lib.DatasetMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *GetOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
 		return
 	}
 
@@ -140,7 +140,7 @@ func (o *GetOptions) Run() (err error) {
 		All:          o.All,
 	}
 	res := lib.GetResult{}
-	if err = o.DatasetRequests.Get(&p, &res); err != nil {
+	if err = o.DatasetMethods.Get(&p, &res); err != nil {
 		return err
 	}
 
