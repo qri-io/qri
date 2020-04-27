@@ -220,12 +220,12 @@ func (o *QriOptions) RegistryClientMethods() (*lib.RegistryClientMethods, error)
 	return lib.NewRegistryClientMethods(o.inst), nil
 }
 
-// LogRequests generates a lib.LogRequests from internal state
-func (o *QriOptions) LogRequests() (*lib.LogRequests, error) {
+// LogMethods generates a lib.LogMethods from internal state
+func (o *QriOptions) LogMethods() (*lib.LogMethods, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
-	return lib.NewLogRequests(o.inst.Node(), o.inst.RPC()), nil
+	return lib.NewLogMethods(o.inst), nil
 }
 
 // ExportRequests generates a lib.ExportRequests from internal state

@@ -26,7 +26,8 @@ func TestHistoryHandlers(t *testing.T) {
 		t.Fatalf("error writing dataset update: %s", err.Error())
 	}
 
-	h := NewLogHandlers(node)
+	inst := newTestInstanceWithProfileFromNode(node)
+	h := NewLogHandlers(inst)
 
 	logCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

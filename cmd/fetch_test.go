@@ -152,7 +152,7 @@ func TestFetchCommand(t *testing.T) {
 	// Validate the outputs of history and fetch
 	//
 
-	logHandler := api.NewLogHandlers(remoteServer.Node())
+	logHandler := api.NewLogHandlers(remoteServer.Instance)
 
 	// Validates output of history for a remote dataset
 	actualStatusCode, actualBody := APICall(
