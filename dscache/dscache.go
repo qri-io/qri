@@ -179,10 +179,10 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 
 // ResolveRef finds the identifier for a dataset reference
 // implements dsref.RefResolver interface
-func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
+func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	// NOTE: isEmpty is nil-callable
 	if d.IsEmpty() {
-		return dsref.ErrNotFound
+		return "", dsref.ErrNotFound
 	}
 
 	// Handle the "me" convenience shortcut
@@ -192,7 +192,7 @@ func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 
 	vi, err := d.LookupByName(*ref)
 	if err != nil {
-		return dsref.ErrNotFound
+		return "", dsref.ErrNotFound
 	}
 
 	ref.InitID = vi.InitID
@@ -205,7 +205,7 @@ func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 		}
 	}
 
-	return nil
+	return "", nil
 }
 
 // LookupByName looks up a dataset by dsref and returns the latest VersionInfo if found

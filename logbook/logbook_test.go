@@ -228,7 +228,7 @@ func TestNilCallable(t *testing.T) {
 	if err = book.WriteVersionSave(ctx, initID, nil); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.ResolveRef(ctx, nil); err != dsref.ErrNotFound {
+	if _, err = book.ResolveRef(ctx, nil); err != dsref.ErrNotFound {
 		t.Errorf("expected '%s', got: %v", dsref.ErrNotFound, err)
 	}
 }
@@ -237,11 +237,11 @@ func TestResolveRef(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
-	if err := (*Book)(nil).ResolveRef(tr.Ctx, nil); err != dsref.ErrNotFound {
+	if _, err := (*Book)(nil).ResolveRef(tr.Ctx, nil); err != dsref.ErrNotFound {
 		t.Errorf("book ResolveRef must be nil-callable. expected: %q, got %v", dsref.ErrNotFound, err)
 	}
 
-	if err := tr.Book.ResolveRef(tr.Ctx, &dsref.Ref{Username: "username", Name: "does_not_exist"}); err != dsref.ErrNotFound {
+	if _, err := tr.Book.ResolveRef(tr.Ctx, &dsref.Ref{Username: "username", Name: "does_not_exist"}); err != dsref.ErrNotFound {
 		t.Errorf("expeted standard error resolving nonexistent ref: %q, got: %q", dsref.ErrNotFound, err)
 	}
 
@@ -252,8 +252,16 @@ func TestResolveRef(t *testing.T) {
 		Name:     tr.WorldBankRef().Name,
 	}
 
-	if err := tr.Book.ResolveRef(tr.Ctx, &resolveMe); err != nil {
+	source, err := tr.Book.ResolveRef(tr.Ctx, &resolveMe)
+	if err != nil {
 		t.Error(err)
+	}
+
+	// logbook resolves locally, expect the empty string
+	expectSource := ""
+
+	if diff := cmp.Diff(expectSource, source); diff != "" {
+		t.Errorf("source mismatch (-want +got):\n%s", diff)
 	}
 
 	expect := dsref.Ref{
@@ -272,7 +280,7 @@ func TestResolveRef(t *testing.T) {
 		Name:     tr.WorldBankRef().Name,
 	}
 
-	if err := tr.Book.ResolveRef(tr.Ctx, &resolveMe); err != nil {
+	if _, err := tr.Book.ResolveRef(tr.Ctx, &resolveMe); err != nil {
 		t.Error(err)
 	}
 

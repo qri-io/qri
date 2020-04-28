@@ -58,9 +58,9 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, p
 }
 
 // ResolveRef implements the dsref.RefResolver interface
-func (r *MemRepo) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
+func (r *MemRepo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	if r == nil {
-		return dsref.ErrNotFound
+		return "", dsref.ErrNotFound
 	}
 
 	if ref.Username == "me" {
@@ -69,7 +69,7 @@ func (r *MemRepo) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 
 	match, err := r.GetRef(reporef.RefFromDsref(*ref))
 	if err != nil {
-		return dsref.ErrNotFound
+		return "", dsref.ErrNotFound
 	}
 
 	// TODO (b5) - repo doens't store IDs yet, breaking the assertion that ResolveRef
@@ -83,7 +83,7 @@ func (r *MemRepo) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 		}
 	}
 
-	return nil
+	return "", nil
 }
 
 // Store returns the underlying cafs.Filestore for this repo

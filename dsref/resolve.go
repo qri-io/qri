@@ -16,7 +16,10 @@ var (
 type RefResolver interface {
 	// ResolveRef uses ref as an outParam, setting ref.ID and ref.Path on success
 	// some implementations of name resolution may make network calls
-	ResolveRef(ctx context.Context, ref *Ref) error
+	// the returned "source" value should be either an empty string, indicating
+	// the source was resolved locally, or the multiaddress of the network
+	// address that performed the resolution
+	ResolveRef(ctx context.Context, ref *Ref) (source string, err error)
 }
 
 // MemResolver holds maps that can do a cheap version of dataset resolution,
@@ -57,9 +60,9 @@ func (m *MemResolver) GetInfo(initID string) *VersionInfo {
 
 // ResolveRef finds the identifier & head path for a dataset reference
 // implements resolve.NameResolver interface
-func (m *MemResolver) ResolveRef(ctx context.Context, ref *Ref) error {
+func (m *MemResolver) ResolveRef(ctx context.Context, ref *Ref) (string, error) {
 	if m == nil {
-		return ErrNotFound
+		return "", ErrNotFound
 	}
 
 	// Handle the "me" convenience shortcut
@@ -70,7 +73,7 @@ func (m *MemResolver) ResolveRef(ctx context.Context, ref *Ref) error {
 	id := m.RefMap[ref.Alias()]
 	resolved, ok := m.IDMap[id]
 	if !ok {
-		return ErrNotFound
+		return "", ErrNotFound
 	}
 
 	ref.InitID = id
@@ -78,5 +81,5 @@ func (m *MemResolver) ResolveRef(ctx context.Context, ref *Ref) error {
 		ref.Path = resolved.Path
 	}
 
-	return nil
+	return "", nil
 }

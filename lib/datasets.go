@@ -230,7 +230,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 	ctx := context.TODO()
 
 	var ds *dataset.Dataset
-	ref, err := m.inst.ParseAndResolveRef(ctx, p.Refstr)
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Refstr)
 	if err != nil {
 		return err
 	}

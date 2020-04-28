@@ -210,9 +210,9 @@ func (book *Book) DeleteAuthor() error {
 
 // ResolveRef finds the identifier & head path for a dataset reference
 // implements resolve.NameResolver interface
-func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
+func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	if book == nil {
-		return dsref.ErrNotFound
+		return "", dsref.ErrNotFound
 	}
 
 	// Handle the "me" convenience shortcut
@@ -222,19 +222,19 @@ func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 
 	log, err := book.DatasetRef(ctx, *ref)
 	if err != nil {
-		return dsref.ErrNotFound
+		return "", dsref.ErrNotFound
 	}
 	ref.InitID = log.ID()
 
 	if ref.Path == "" {
 		br, err := book.BranchRef(ctx, *ref)
 		if err != nil {
-			return err
+			return "", err
 		}
 		ref.Path = book.latestSavePath(br)
 	}
 
-	return nil
+	return "", nil
 }
 
 func (book *Book) latestSavePath(branchLog *oplog.Log) string {

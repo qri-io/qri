@@ -16,7 +16,7 @@ import (
 var _ dsref.RefResolver = (*Instance)(nil)
 
 // ParseAndResolveRef combines reference parsing and resolution
-func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr string) (dsref.Ref, error) {
+func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr string) (dsref.Ref, string, error) {
 	ref, err := dsref.Parse(refStr)
 
 	// bad case references are allowed-but-warned for backwards compatibility
@@ -24,17 +24,17 @@ func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr string) (ds
 		log.Error(dsref.ErrBadCaseShouldRename)
 		err = nil
 	} else if err != nil {
-		return ref, fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
+		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
 	}
 
-	err = inst.ResolveRef(ctx, &ref)
-	return ref, err
+	source, err := inst.ResolveRef(ctx, &ref)
+	return ref, source, err
 }
 
 // ResolveRef finds the identifier for a dataset reference
-func (inst *Instance) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
+func (inst *Instance) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	if inst == nil {
-		return dsref.ErrNotFound
+		return "", dsref.ErrNotFound
 	}
 
 	resolvers := []dsref.RefResolver{
@@ -49,17 +49,17 @@ func (inst *Instance) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 	}
 
 	for _, r := range resolvers {
-		err := r.ResolveRef(ctx, ref)
+		source, err := r.ResolveRef(ctx, ref)
 		if err == nil {
-			return nil
+			return source, nil
 		} else if errors.Is(err, dsref.ErrNotFound) {
 			continue
 		}
 
-		return err
+		return source, err
 	}
 
-	return dsref.ErrNotFound
+	return "", dsref.ErrNotFound
 }
 
 // TODO (b5) - this needs to move down into base, replacing base.LoadDataset with

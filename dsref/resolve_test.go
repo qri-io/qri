@@ -17,11 +17,11 @@ func TestMemResolver(t *testing.T) {
 		Path:     "/ipfs/QmeXaMpLe",
 	})
 
-	if err := (*MemResolver)(nil).ResolveRef(ctx, nil); err != ErrNotFound {
+	if _, err := (*MemResolver)(nil).ResolveRef(ctx, nil); err != ErrNotFound {
 		t.Errorf("book ResolveRef must be nil-callable. expected: %q, got %v", ErrNotFound, err)
 	}
 
-	if err := m.ResolveRef(ctx, &Ref{Username: "username", Name: "does_not_exist"}); err != ErrNotFound {
+	if _, err := m.ResolveRef(ctx, &Ref{Username: "username", Name: "does_not_exist"}); err != ErrNotFound {
 		t.Errorf("expeted standard error resolving nonexistent ref: %q, got: %q", ErrNotFound, err)
 	}
 
@@ -30,8 +30,15 @@ func TestMemResolver(t *testing.T) {
 		Name:     "my_ds",
 	}
 
-	if err := m.ResolveRef(ctx, &resolveMe); err != nil {
+	source, err := m.ResolveRef(ctx, &resolveMe)
+	if err != nil {
 		t.Error(err)
+	}
+	// source should be local, return the empty string
+	expectSource := ""
+
+	if diff := cmp.Diff(expectSource, source); diff != "" {
+		t.Errorf("result source mismatch (-want +got):\n%s", diff)
 	}
 
 	expect := Ref{
@@ -50,7 +57,7 @@ func TestMemResolver(t *testing.T) {
 		Name:     "my_ds",
 	}
 
-	if err := m.ResolveRef(ctx, &resolveMe); err != nil {
+	if _, err := m.ResolveRef(ctx, &resolveMe); err != nil {
 		t.Error(err)
 	}
 
@@ -71,7 +78,7 @@ func TestMemResolver(t *testing.T) {
 		ID:       "myInitID",
 	}
 
-	if err := m.ResolveRef(ctx, &resolveMe); err != nil {
+	if _, err := m.ResolveRef(ctx, &resolveMe); err != nil {
 		t.Error(err)
 	}
 

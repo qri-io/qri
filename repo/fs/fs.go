@@ -83,9 +83,9 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, cach
 }
 
 // ResolveRef implements the dsref.RefResolver interface
-func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
+func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	if r == nil {
-		return dsref.ErrNotFound
+		return "", dsref.ErrNotFound
 	}
 
 	if ref.Username == "me" {
@@ -94,7 +94,7 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 
 	match, err := r.GetRef(reporef.RefFromDsref(*ref))
 	if err != nil {
-		return dsref.ErrNotFound
+		return "", dsref.ErrNotFound
 	}
 
 	// TODO (b5) - repo doens't store IDs, breaking the assertion that ResolveRef
@@ -108,7 +108,7 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 		}
 	}
 
-	return nil
+	return "", nil
 }
 
 // Path returns the path to the root of the repo directory
