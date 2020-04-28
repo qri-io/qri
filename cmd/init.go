@@ -88,7 +88,9 @@ func (o *InitOptions) Run() (err error) {
 
 	// Suggestion for the dataset name defaults to directory it is being linked into
 	if o.Name == "" {
-		suggestedName := dsref.GenerateName(targetDir, "dataset_")
+		// TODO(dustmop): Currently all tests that call `init` use the --name flag. Add a test
+		// that receives stdin and checks what is written to stdout.
+		suggestedName := dsref.GenerateName(filepath.Base(targetDir), "dataset_")
 		o.Name = inputText(o.Out, o.In, "Name of new dataset", suggestedName)
 	}
 
