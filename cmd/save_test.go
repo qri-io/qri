@@ -604,6 +604,165 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 	}
 }
 
+func TestSaveDscacheThenRemoveAll(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_dscache_remove")
+	defer run.Delete()
+
+	// Save a dataset with one version.
+	run.MustExec(t, "qri save --body testdata/movies/body_two.json me/movie_ds")
+
+	// Save another dataset.
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv me/another_ds")
+
+	// List with the --use-dscache flag, which builds the dscache from the logbook.
+	run.MustExec(t, "qri list --use-dscache")
+
+	// Access the dscache
+	repo, err := run.RepoRoot.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache := repo.Dscache()
+
+	// Dscache should have two references, one for each save operation.
+	actual := cache.VerboseString(false)
+	expect := `Dscache:
+ Dscache.Users:
+  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+ Dscache.Refs:
+  0) initID        = wkr66hbcqitgufnn7sp4iablkvogdwiqcin3pzugdb2fnngmct4q
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 1
+     cursorIndex   = 1
+     prettyName    = another_ds
+     bodySize      = 224
+     bodyRows      = 8
+     commitTime    = 978311101
+     numErrors     = 1
+     headRef       = /ipfs/QmPkT97iEFn7JQaoqdWsheuYcL4fh8adyG7gdC88sPrcds
+  1) initID        = vkys37xzcxpmw5zexzhyhpok3whl2vfeep2tyeegwnm2cxrr3umq
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 1
+     cursorIndex   = 1
+     prettyName    = movie_ds
+     bodySize      = 79
+     bodyRows      = 2
+     commitTime    = 978310921
+     headRef       = /ipfs/QmQUBYGKBJGp1R5tCURnMJL6Bb7v1v3N32gpkqci6VcM98
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+
+	// Remove one of those datasets.
+	run.MustExec(t, "qri remove --all me/another_ds")
+
+	// Because this test is using a memrepo, but the command runner instantiates its own repo
+	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
+	// same filename.
+	fs := localfs.NewFS()
+	cacheFilename := cache.Filename
+	ctx := context.Background()
+	cache = dscache.NewDscache(ctx, fs, nil, cacheFilename)
+
+	// Dscache should now have one reference.
+	actual = cache.VerboseString(false)
+	expect = `Dscache:
+ Dscache.Users:
+  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+ Dscache.Refs:
+  0) initID        = vkys37xzcxpmw5zexzhyhpok3whl2vfeep2tyeegwnm2cxrr3umq
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 1
+     cursorIndex   = 1
+     prettyName    = movie_ds
+     bodySize      = 79
+     bodyRows      = 2
+     commitTime    = 978310921
+     headRef       = /ipfs/QmQUBYGKBJGp1R5tCURnMJL6Bb7v1v3N32gpkqci6VcM98
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
+func TestSaveDscacheThenRemoveVersions(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_dscache_remove")
+	defer run.Delete()
+
+	// Save a dataset with one version.
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv me/movie_ds")
+
+	// Save another version.
+	run.MustExec(t, "qri save --body testdata/movies/body_twenty.csv me/movie_ds")
+
+	// Save yet another version.
+	run.MustExec(t, "qri save --body testdata/movies/body_thirty.csv me/movie_ds")
+
+	// List with the --use-dscache flag, which builds the dscache from the logbook.
+	run.MustExec(t, "qri list --use-dscache")
+
+	// Access the dscache
+	repo, err := run.RepoRoot.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache := repo.Dscache()
+
+	// Dscache should have one reference. It has three commits.
+	actual := cache.VerboseString(false)
+	expect := `Dscache:
+ Dscache.Users:
+  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+ Dscache.Refs:
+  0) initID        = vkys37xzcxpmw5zexzhyhpok3whl2vfeep2tyeegwnm2cxrr3umq
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 3
+     cursorIndex   = 3
+     prettyName    = movie_ds
+     bodySize      = 720
+     bodyRows      = 28
+     commitTime    = 978311161
+     numErrors     = 1
+     headRef       = /ipfs/QmQmCH7vaUTwijpErVKtqcPbu1PKW89aRCx8DJQaQjhYnB
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+
+	// Remove one of those commits, keeping 1.
+	run.MustExec(t, "qri remove --revisions=1 me/movie_ds")
+
+	// Because this test is using a memrepo, but the command runner instantiates its own repo
+	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
+	// same filename.
+	fs := localfs.NewFS()
+	cacheFilename := cache.Filename
+	ctx := context.Background()
+	cache = dscache.NewDscache(ctx, fs, nil, cacheFilename)
+
+	// Dscache should now have one reference.
+	actual = cache.VerboseString(false)
+	expect = `Dscache:
+ Dscache.Users:
+  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+ Dscache.Refs:
+  0) initID        = vkys37xzcxpmw5zexzhyhpok3whl2vfeep2tyeegwnm2cxrr3umq
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 2
+     cursorIndex   = 2
+     prettyName    = movie_ds
+     bodySize      = 224
+     bodyRows      = 28
+     commitTime    = 978310921
+     numErrors     = 1
+     headRef       = /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
 func TestSaveBadCaseCantBeUsedForNewDatasets(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_save_bad_case")
 	defer run.Delete()

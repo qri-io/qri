@@ -217,10 +217,16 @@ func (d *Dscache) update(act *logbook.Action) {
 		if err := d.updateInitDataset(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
-	case logbook.ActionDatasetChange:
-		if err := d.updateMoveCursor(act); err != nil && err != ErrNoDscache {
+	case logbook.ActionDatasetCommitChange:
+		if err := d.updateChangeCursor(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
+	case logbook.ActionDatasetDeleteAll:
+		if err := d.updateDeleteDataset(act); err != nil && err != ErrNoDscache {
+			log.Error(err)
+		}
+	case logbook.ActionDatasetRename:
+		// TODO(dustmop): Handle renames
 	}
 }
 
@@ -271,8 +277,8 @@ func (d *Dscache) updateInitDataset(act *logbook.Action) error {
 	return nil
 }
 
-// Update modifies the dscache according to the provided action.
-func (d *Dscache) updateMoveCursor(act *logbook.Action) error {
+// Copy the entire dscache, except for the matching entry, rebuild that one to modify it
+func (d *Dscache) updateChangeCursor(act *logbook.Action) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
@@ -282,13 +288,15 @@ func (d *Dscache) updateMoveCursor(act *logbook.Action) error {
 	users := d.copyUserAssociationList(builder)
 	refs := d.copyReferenceListWithReplacement(
 		builder,
+		// Function to match the entry we're looking to replace
 		func(r *dscachefb.RefEntryInfo) bool {
 			return string(r.InitID()) == act.InitID
 		},
+		// Function to replace the matching entry
 		func(refStartMutationFunc func(builder *flatbuffers.Builder)) {
 			var metaTitle flatbuffers.UOffsetT
-			if act.Dataset != nil && act.Dataset.Meta != nil {
-				metaTitle = builder.CreateString(act.Dataset.Meta.Title)
+			if act.Info != nil {
+				metaTitle = builder.CreateString(act.Info.MetaTitle)
 			}
 			hashRef := builder.CreateString(string(act.HeadRef))
 			// Start building a ref object, by mutating an existing ref object.
@@ -296,20 +304,39 @@ func (d *Dscache) updateMoveCursor(act *logbook.Action) error {
 			// Add only the fields we want to change.
 			dscachefb.RefEntryInfoAddTopIndex(builder, int32(act.TopIndex))
 			dscachefb.RefEntryInfoAddCursorIndex(builder, int32(act.TopIndex))
-			if act.Dataset != nil && act.Dataset.Meta != nil {
+			if act.Info != nil {
 				dscachefb.RefEntryInfoAddMetaTitle(builder, metaTitle)
-			}
-			if act.Dataset != nil && act.Dataset.Commit != nil {
-				dscachefb.RefEntryInfoAddCommitTime(builder, act.Dataset.Commit.Timestamp.Unix())
-			}
-			if act.Dataset != nil && act.Dataset.Structure != nil {
-				dscachefb.RefEntryInfoAddBodySize(builder, int64(act.Dataset.Structure.Length))
-				dscachefb.RefEntryInfoAddBodyRows(builder, int32(act.Dataset.Structure.Entries))
-				dscachefb.RefEntryInfoAddNumErrors(builder, int32(act.Dataset.Structure.ErrCount))
+				dscachefb.RefEntryInfoAddCommitTime(builder, act.Info.CommitTime.Unix())
+				dscachefb.RefEntryInfoAddBodySize(builder, int64(act.Info.BodySize))
+				dscachefb.RefEntryInfoAddBodyRows(builder, int32(act.Info.BodyRows))
+				dscachefb.RefEntryInfoAddNumErrors(builder, int32(act.Info.NumErrors))
 			}
 			dscachefb.RefEntryInfoAddHeadRef(builder, hashRef)
 			// Don't call RefEntryInfoEnd, that is handled by copyReferenceListWithReplacement
 		},
+	)
+	root, serialized := d.finishBuilding(builder, users, refs)
+	d.Root = root
+	d.Buffer = serialized
+	return d.save()
+}
+
+// Copy the entire dscache, except leave out the matching entry.
+func (d *Dscache) updateDeleteDataset(act *logbook.Action) error {
+	if d.IsEmpty() {
+		return ErrNoDscache
+	}
+	// Flatbuffers for go do not allow mutation (for complex types like strings). So we construct
+	// a new flatbuffer entirely, copying the old one while omitting the entry we want to remove.
+	builder := flatbuffers.NewBuilder(0)
+	users := d.copyUserAssociationList(builder)
+	refs := d.copyReferenceListWithReplacement(
+		builder,
+		func(r *dscachefb.RefEntryInfo) bool {
+			return string(r.InitID()) == act.InitID
+		},
+		// Pass a nil function, so the matching entry is not replaced, it is omitted
+		nil,
 	)
 	root, serialized := d.finishBuilding(builder, users, refs)
 	d.Root = root

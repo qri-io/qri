@@ -735,7 +735,7 @@ func (m *DatasetMethods) Rename(p *RenameParams, res *dsref.VersionInfo) error {
 	}
 
 	// Update the reference stored in the repo
-	info, err := base.ModifyDatasetRef(ctx, m.inst.repo, p.Current, p.Next)
+	info, err := base.RenameDatasetRef(ctx, m.inst.repo, p.Current, p.Next)
 	if err != nil {
 		return err
 	}
@@ -906,15 +906,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 		}
 	} else if len(history) > 0 {
 		// Delete the specific number of revisions.
-		hist := history[p.Revision.Gen]
-		next := hist.SimpleRef()
-
-		info, err := base.ModifyDatasetRef(ctx, m.inst.repo, reporef.ConvertToDsref(ref), next)
-		if err != nil {
-			log.Debugf("Remove, base.ModifyDatasetRef failed, error: %s", err)
-			return err
-		}
-		newHead, err := base.RemoveNVersionsFromStore(ctx, m.inst.repo, reporef.ConvertToDsref(ref), p.Revision.Gen)
+		info, err := base.RemoveNVersionsFromStore(ctx, m.inst.repo, reporef.ConvertToDsref(ref), p.Revision.Gen)
 		if err != nil {
 			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
 			return err
@@ -923,13 +915,13 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 
 		if info.FSIPath != "" && !p.KeepFiles {
 			// Load dataset version that is at head after newer versions are removed
-			ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), newHead.Path)
+			ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), info.Path)
 			if err != nil {
 				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
 				return err
 			}
-			ds.Name = newHead.Name
-			ds.Peername = newHead.Username
+			ds.Name = info.Name
+			ds.Peername = info.Username
 			if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 				log.Debugf("Remove, base.OpenDataset failed, error: %s", err)
 				return err

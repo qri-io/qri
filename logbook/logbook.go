@@ -357,17 +357,24 @@ func (book *Book) WriteDatasetRename(ctx context.Context, ref dsref.Ref, newName
 	}
 	log.Debugf("WriteDatasetRename: '%s' -> '%s'", ref.Alias(), newName)
 
-	l, err := book.DatasetRef(ctx, ref)
+	dsLog, err := book.DatasetRef(ctx, ref)
 	if err != nil {
 		return err
 	}
 
-	l.Append(oplog.Op{
+	dsLog.Append(oplog.Op{
 		Type:      oplog.OpTypeAmend,
 		Model:     DatasetModel,
 		Name:      newName,
 		Timestamp: NewTimestamp(),
 	})
+	if book.listener != nil {
+		book.listener(&Action{
+			Type:       ActionDatasetRename,
+			InitID:     dsLog.ID(),
+			PrettyName: newName,
+		})
+	}
 	return book.save(ctx)
 }
 
@@ -378,16 +385,22 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, ref dsref.Ref) error {
 	}
 	log.Debugf("WriteDatasetDelete: '%s'", ref)
 
-	l, err := book.DatasetRef(ctx, ref)
+	dsLog, err := book.DatasetRef(ctx, ref)
 	if err != nil {
 		return err
 	}
 
-	l.Append(oplog.Op{
+	dsLog.Append(oplog.Op{
 		Type:      oplog.OpTypeRemove,
 		Model:     DatasetModel,
 		Timestamp: NewTimestamp(),
 	})
+	if book.listener != nil {
+		book.listener(&Action{
+			Type:   ActionDatasetDeleteAll,
+			InitID: dsLog.ID(),
+		})
+	}
 
 	return book.save(ctx)
 }
@@ -420,7 +433,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 			return err
 		}
 	}
-	datasetLog, err := book.DatasetRef(ctx, ref)
+	dsLog, err := book.DatasetRef(ctx, ref)
 	if err != nil {
 		return err
 	}
@@ -433,14 +446,15 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 	}
 	// Index of the branch's top is one less than the length
 	topIndex := len(branchLog.Ops) - 1
+	info := dsref.ConvertDatasetToVersionInfo(ds)
 
 	if book.listener != nil {
 		book.listener(&Action{
-			Type:     ActionDatasetChange,
-			InitID:   datasetLog.ID(),
+			Type:     ActionDatasetCommitChange,
+			InitID:   dsLog.ID(),
 			TopIndex: topIndex,
 			HeadRef:  ds.Path,
-			Dataset:  ds,
+			Info:     &info,
 		})
 	}
 	return nil
@@ -499,17 +513,37 @@ func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisio
 	}
 	log.Debugf("WriteVersionDelete: %s, revisions: %d", ref, revisions)
 
-	l, err := book.BranchRef(ctx, ref)
+	branchLog, err := book.BranchRef(ctx, ref)
+	if err != nil {
+		return err
+	}
+	dsLog, err := book.DatasetRef(ctx, ref)
 	if err != nil {
 		return err
 	}
 
-	l.Append(oplog.Op{
+	branchLog.Append(oplog.Op{
 		Type:  oplog.OpTypeRemove,
 		Model: CommitModel,
 		Size:  int64(revisions),
 		// TODO (b5) - finish
 	})
+
+	// Calculate the commits after collapsing deletions found at the tail of history (most recent).
+	items := branchToLogItems(branchLog, ref, 0, -1, false)
+
+	if len(items) > 0 {
+		lastItem := items[len(items)-1]
+		if book.listener != nil {
+			book.listener(&Action{
+				Type:     ActionDatasetCommitChange,
+				InitID:   dsLog.ID(),
+				TopIndex: len(items),
+				HeadRef:  lastItem.Path,
+				Info:     &lastItem.VersionInfo,
+			})
+		}
+	}
 
 	return book.save(ctx)
 }
@@ -813,20 +847,27 @@ func itemFromOp(ref dsref.Ref, op oplog.Op) DatasetLogItem {
 	}
 }
 
-// Items plays a set of operations for a given log, producing a State struct
-// that describes the current state of a dataset
+// Items collapses the history of a dataset branch into linear log items
 func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int) ([]DatasetLogItem, error) {
-	l, err := book.BranchRef(ctx, ref)
+	branchLog, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
 
-	return Items(l, ref, offset, limit), nil
+	return branchToLogItems(branchLog, ref, offset, limit, true), nil
 }
 
-// Items interprets a dataset oplog into a commit history
-func Items(l *oplog.Log, ref dsref.Ref, offset, limit int) []DatasetLogItem {
+// ConvertLogsToItems collapses the history of a dataset branch into linear log items
+func ConvertLogsToItems(l *oplog.Log, ref dsref.Ref) []DatasetLogItem {
+	return branchToLogItems(l, ref, 0, -1, true)
+}
+
+// Items collapses the history of a dataset branch into linear log items
+// If collapseAllDeletes is true, all delete operations will remove the refs before them. Otherwise,
+// only refs at the end of history will be removed in this manner.
+func branchToLogItems(l *oplog.Log, ref dsref.Ref, offset, limit int, collapseAllDeletes bool) []DatasetLogItem {
 	refs := []DatasetLogItem{}
+	deleteAtEnd := 0
 	for _, op := range l.Ops {
 		switch op.Model {
 		case CommitModel:
@@ -834,9 +875,14 @@ func Items(l *oplog.Log, ref dsref.Ref, offset, limit int) []DatasetLogItem {
 			case oplog.OpTypeInit:
 				refs = append(refs, itemFromOp(ref, op))
 			case oplog.OpTypeAmend:
+				deleteAtEnd = 0
 				refs[len(refs)-1] = itemFromOp(ref, op)
 			case oplog.OpTypeRemove:
-				refs = refs[:len(refs)-int(op.Size)]
+				if collapseAllDeletes {
+					refs = refs[:len(refs)-int(op.Size)]
+				} else {
+					deleteAtEnd += int(op.Size)
+				}
 			}
 		case PublicationModel:
 			switch op.Type {
@@ -849,6 +895,14 @@ func Items(l *oplog.Log, ref dsref.Ref, offset, limit int) []DatasetLogItem {
 					refs[len(refs)-i].Published = false
 				}
 			}
+		}
+	}
+
+	if deleteAtEnd > 0 {
+		if deleteAtEnd < len(refs) {
+			refs = refs[:len(refs)-deleteAtEnd]
+		} else {
+			refs = []DatasetLogItem{}
 		}
 	}
 

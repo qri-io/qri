@@ -79,7 +79,7 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]DatasetLogItem) error {
 		}
 	}
 
-	items := logbook.Items(logs, reporef.ConvertToDsref(ref), 0, -1)
+	items := logbook.ConvertLogsToItems(logs, reporef.ConvertToDsref(ref))
 	log.Debugf("found %d items: %v", len(items), items)
 	if len(items) == 0 {
 		return repo.ErrNoHistory

@@ -22,6 +22,8 @@ func (d *Dscache) copyUserAssociationList(builder *flatbuffers.Builder) flatbuff
 	return builder.EndVector(len(userList))
 }
 
+// For each entry in the dscache, copy it to the builder, unless it matches according to our
+// findMatchFunc, in which case, replace it by calling replaceRefFunc.
 func (d *Dscache) copyReferenceListWithReplacement(
 	builder *flatbuffers.Builder,
 	findMatchFunc func(*dscachefb.RefEntryInfo) bool,
@@ -41,9 +43,11 @@ func (d *Dscache) copyReferenceListWithReplacement(
 			startRefBuildFunc := func(_ *flatbuffers.Builder) {
 				d.copyReference(builder, &r)
 			}
-			replaceRefFunc(startRefBuildFunc)
-			ref := dscachefb.RefEntryInfoEnd(builder)
-			refList = append(refList, ref)
+			if replaceRefFunc != nil {
+				replaceRefFunc(startRefBuildFunc)
+				ref := dscachefb.RefEntryInfoEnd(builder)
+				refList = append(refList, ref)
+			}
 			continue
 		}
 		d.copyReference(builder, &r)
