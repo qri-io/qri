@@ -22,7 +22,6 @@ import (
 	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
-	"github.com/qri-io/qri/resolve"
 )
 
 var (
@@ -213,7 +212,7 @@ func (book *Book) DeleteAuthor() error {
 // implements resolve.NameResolver interface
 func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 	if book == nil {
-		return resolve.ErrCannotResolveName
+		return dsref.ErrNotFound
 	}
 
 	// Handle the "me" convenience shortcut
@@ -223,7 +222,7 @@ func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 
 	log, err := book.DatasetRef(ctx, *ref)
 	if err != nil {
-		return resolve.ErrCannotResolveName
+		return dsref.ErrNotFound
 	}
 	ref.InitID = log.ID()
 

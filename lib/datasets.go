@@ -31,7 +31,6 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
-	"github.com/qri-io/qri/resolve"
 )
 
 // DatasetMethods encapsulates business logic for working with Datasets on Qri
@@ -709,7 +708,7 @@ func (m *DatasetMethods) nameIsInUse(ref dsref.Ref) bool {
 	}
 	res := GetResult{}
 	err := m.Get(&param, &res)
-	if errors.Is(err, resolve.ErrCannotResolveName) {
+	if errors.Is(err, dsref.ErrNotFound) {
 		return false
 	}
 	if err != nil {

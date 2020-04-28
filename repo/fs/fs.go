@@ -17,7 +17,6 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
-	"github.com/qri-io/qri/resolve"
 )
 
 var log = golog.Logger("fsrepo")
@@ -83,10 +82,10 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, cach
 	return r, nil
 }
 
-// ResolveRef implements the resolve.RefResolver interface
+// ResolveRef implements the dsref.RefResolver interface
 func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 	if r == nil {
-		return resolve.ErrCannotResolveName
+		return dsref.ErrNotFound
 	}
 
 	if ref.Username == "me" {
@@ -95,10 +94,10 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 
 	match, err := r.GetRef(reporef.RefFromDsref(*ref))
 	if err != nil {
-		return resolve.ErrCannotResolveName
+		return dsref.ErrNotFound
 	}
 
-	// TODO (b5) - repo doens't store IDs yet, breaking the assertion that ResolveRef
+	// TODO (b5) - repo doens't store IDs, breaking the assertion that ResolveRef
 	// will set the ID of a dataset. Need to fix that before we can ship this
 
 	if ref.Path == "" {

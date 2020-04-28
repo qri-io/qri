@@ -10,11 +10,10 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
-	"github.com/qri-io/qri/resolve"
 )
 
 // assert at compile time that instance is a RefResolver
-var _ resolve.RefResolver = (*Instance)(nil)
+var _ dsref.RefResolver = (*Instance)(nil)
 
 // ParseAndResolveRef combines reference parsing and resolution
 func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr string) (dsref.Ref, error) {
@@ -35,10 +34,10 @@ func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr string) (ds
 // ResolveRef finds the identifier for a dataset reference
 func (inst *Instance) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 	if inst == nil {
-		return resolve.ErrCannotResolveName
+		return dsref.ErrNotFound
 	}
 
-	resolvers := []resolve.RefResolver{
+	resolvers := []dsref.RefResolver{
 		// local resolution
 		inst.dscache,
 		inst.repo,
@@ -53,14 +52,14 @@ func (inst *Instance) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 		err := r.ResolveRef(ctx, ref)
 		if err == nil {
 			return nil
-		} else if errors.Is(err, resolve.ErrCannotResolveName) {
+		} else if errors.Is(err, dsref.ErrNotFound) {
 			continue
 		}
 
 		return err
 	}
 
-	return resolve.ErrCannotResolveName
+	return dsref.ErrNotFound
 }
 
 // TODO (b5) - this needs to move down into base, replacing base.LoadDataset with

@@ -16,7 +16,6 @@ import (
 	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
-	"github.com/qri-io/qri/resolve"
 )
 
 var (
@@ -179,11 +178,11 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 }
 
 // ResolveRef finds the identifier for a dataset reference
-// implements resolve.RefResolver interface
+// implements dsref.RefResolver interface
 func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 	// NOTE: isEmpty is nil-callable
 	if d.IsEmpty() {
-		return resolve.ErrCannotResolveName
+		return dsref.ErrNotFound
 	}
 
 	// Handle the "me" convenience shortcut
@@ -193,7 +192,7 @@ func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) error {
 
 	vi, err := d.LookupByName(*ref)
 	if err != nil {
-		return resolve.ErrCannotResolveName
+		return dsref.ErrNotFound
 	}
 
 	ref.InitID = vi.InitID
