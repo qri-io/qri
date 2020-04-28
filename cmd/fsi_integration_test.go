@@ -255,6 +255,47 @@ func TestInitExplicitDirectory(t *testing.T) {
 	}
 }
 
+// Test init command can build dscache
+func TestInitDscache(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_init_dscache")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("init_dscache")
+
+	run.MustExec(t, "qri init --name init_dscache --format csv --use-dscache")
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+
+	// Access the dscache
+	repo, err := run.RepoRoot.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache := repo.Dscache()
+
+	// Dscache should have one reference. It has topIndex 0 because there there is only "init".
+	actual := cache.VerboseString(false)
+	expect := `Dscache:
+ Dscache.Users:
+  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+ Dscache.Refs:
+  0) initID        = hlrkcslkt6q37sgc356x4oy4farbcwz35tgprvhzphptjsblgkpa
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 0
+     cursorIndex   = 0
+     prettyName    = init_dscache
+     commitTime    = -62135596800
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
 // Test that status cannot accept a dataset reference
 func TestStatusCannotUseRef(t *testing.T) {
 	run := NewFSITestRunner(t, "qri_test_fsi_repo")
@@ -342,6 +383,32 @@ func TestInitWithJsonSourceBodyPath(t *testing.T) {
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
 	expectContents := []string{".qri-ref", "body.json", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+}
+
+// Test that init can use a source-body-path named "body.csv" without error
+func TestInitSourceBodyFileNamedBody(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_init_named_body")
+	defer run.Delete()
+
+	sourceFile, err := filepath.Abs("testdata/movies/body_ten.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	workDir := run.CreateAndChdirToWorkDir("init-named-body")
+
+	// Copy to current dir body.csv
+	copyFile(t, sourceFile, "body.csv")
+
+	// Init as a linked directory.
+	run.MustExec(t, fmt.Sprintf("qri init --name init-named-body --source-body-path body.csv"))
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
 	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
@@ -1289,9 +1356,9 @@ func TestInitSourceBodyPathDoesNotExist(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error trying to init, did not get an error")
 	}
-	expect := `open not_found.json: no such file or directory`
-	if err.Error() != expect {
-		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	expectContains := `not_found.json: no such file or directory`
+	if !strings.Contains(err.Error(), expectContains) {
+		t.Errorf("error mismatch, expect: %s, got: %s", expectContains, err.Error())
 	}
 
 	// Verify the directory contains no files, since it rolled back.

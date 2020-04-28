@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/base/dsfs"
@@ -348,12 +349,29 @@ type InitFSIDatasetParams = fsi.InitParams
 
 // InitDataset creates a new dataset and FSI link
 func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, name *string) (err error) {
+	if err = qfs.AbsPath(&p.SourceBodyPath); err != nil {
+		return err
+	}
+
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("FSIMethods.InitDataset", p, name))
 	}
 
+	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
+	if p.UseDscache {
+		c := m.inst.Repo().Dscache()
+		c.CreateNewEnabled = true
+	}
+
 	*name, err = m.inst.fsi.InitDataset(*p)
 	return err
+}
+
+// CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not
+func (m *FSIMethods) CanInitDatasetWorkDir(p *InitFSIDatasetParams, ok *bool) error {
+	dir := p.Dir
+	sourceBodyPath := p.SourceBodyPath
+	return m.inst.fsi.CanInitDatasetWorkDir(dir, sourceBodyPath)
 }
 
 // EnsureParams holds values for EnsureRef call

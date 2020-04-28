@@ -35,6 +35,17 @@ func TestReadDatasetFiles(t *testing.T) {
 			},
 		},
 
+		{"meta.json has no component key",
+			[]string{
+				"testdata/detect/meta.json",
+			},
+			&dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title: "This is dataset title",
+				},
+			},
+		},
+
 		{"structure.json, meta.json component files",
 			[]string{
 				"testdata/component_files/structure.json",

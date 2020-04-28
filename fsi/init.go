@@ -22,6 +22,7 @@ type InitParams struct {
 	Format         string
 	Mkdir          string
 	SourceBodyPath string
+	UseDscache     bool
 }
 
 func concatFunc(f1, f2 func()) func() {
@@ -91,7 +92,10 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		}
 	}
 
-	if err = canInitDir(targetPath); err != nil {
+	// Make sure we're not going to overwrite any files in the directory being initialized.
+	// Pass the sourceBodyPath, because it's okay if this file already exists, as long as its
+	// being used to create the body.
+	if err = fsi.CanInitDatasetWorkDir(targetPath, p.SourceBodyPath); err != nil {
 		return "", err
 	}
 
@@ -206,25 +210,39 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 	return name, nil
 }
 
-func canInitDir(dir string) error {
+// CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not
+func (fsi *FSI) CanInitDatasetWorkDir(dir, sourceBodyPath string) error {
+	// Get the source-body-path relative to the directory that we're initializing.
+	relBodyPath := sourceBodyPath
+	if strings.HasPrefix(relBodyPath, dir) {
+		relBodyPath = strings.TrimPrefix(relBodyPath, dir)
+		// Removing the directory may leave a leading slash, if the dirname did not end in a slash.
+		if strings.HasPrefix(relBodyPath, "/") {
+			relBodyPath = strings.TrimPrefix(relBodyPath, "/")
+		}
+	}
+
+	// Check if .qri-ref link file already exists.
 	if _, err := os.Stat(filepath.Join(dir, QriRefFilename)); !os.IsNotExist(err) {
 		return fmt.Errorf("working directory is already linked, .qri-ref exists")
 	}
+	// Check if other component files exist. If sourceBodyPath is provided, it's not an error
+	// if its filename exists.
 	if _, err := os.Stat(filepath.Join(dir, "meta.json")); !os.IsNotExist(err) {
-		// TODO(dlong): Instead, import the meta.json file for the new dataset
 		return fmt.Errorf("cannot initialize new dataset, meta.json exists")
 	}
 	if _, err := os.Stat(filepath.Join(dir, "structure.json")); !os.IsNotExist(err) {
-		// TODO(dlong): Instead, import the structure.json file for the new dataset
-		return fmt.Errorf("cannot initialize new dataset, schema.json exists")
+		return fmt.Errorf("cannot initialize new dataset, structure.json exists")
 	}
 	if _, err := os.Stat(filepath.Join(dir, "body.csv")); !os.IsNotExist(err) {
-		// TODO(dlong): Instead, import the body.csv file for the new dataset
-		return fmt.Errorf("cannot initialize new dataset, body.csv exists")
+		if relBodyPath != "body.csv" {
+			return fmt.Errorf("cannot initialize new dataset, body.csv exists")
+		}
 	}
 	if _, err := os.Stat(filepath.Join(dir, "body.json")); !os.IsNotExist(err) {
-		// TODO(dlong): Instead, import the body.json file for the new dataset
-		return fmt.Errorf("cannot initialize new dataset, body.json exists")
+		if relBodyPath != "body.json" {
+			return fmt.Errorf("cannot initialize new dataset, body.json exists")
+		}
 	}
 
 	return nil

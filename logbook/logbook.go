@@ -286,7 +286,18 @@ func (book *Book) WriteDatasetInit(ctx context.Context, name string) error {
 		return fmt.Errorf("logbook: dataset named '%s' already exists", name)
 	}
 
-	book.initName(ctx, book.AuthorID(), book.AuthorName(), name)
+	// Get the profileID of the user, which is stored as the authorID field in the root oplog
+	// for this user's logbook.
+	profileID := ""
+	nameLog := book.authorLog(ctx)
+	if len(nameLog.Ops) > 0 {
+		profileID = nameLog.Ops[0].AuthorID
+	}
+	if len(profileID) != 46 {
+		return fmt.Errorf("invalid profileID during WriteVersionInit, len = %d", len(profileID))
+	}
+
+	book.initName(ctx, profileID, book.AuthorName(), name)
 	return book.save(ctx)
 }
 
@@ -315,6 +326,8 @@ func (book Book) initName(ctx context.Context, profileID, username, name string)
 	nameLog.AddChild(dsLog)
 
 	if book.listener != nil {
+		// TODO(dlong): Perhaps in the future, pass the authorID (hash of the author creation
+		// block) to the dscache, use that instead-of or in-addition-to the profileID.
 		book.listener(&Action{
 			Type:       ActionDatasetNameInit,
 			InitID:     dsLog.ID(),
@@ -381,7 +394,7 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, ref dsref.Ref) error {
 
 // WriteVersionSave adds an operation to a log marking the creation of a
 // dataset version. Book will copy details from the provided dataset pointer
-// TODO(dlong): Ideally, a method like this would take an initID to refer to
+// TODO(dustomp): Ideally, a method like this would take an initID to refer to
 // the dataset we're saving, and the logbook.Log that we're appending to. This
 // would make sense as we have to assume that the reference has already been
 // resolved for the dataset we're saving (or, Init has already been called for
@@ -398,6 +411,9 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 	branchLog, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		if err == oplog.ErrNotFound {
+			// TODO(dustmop): Move this call outside of Save, require that callers
+			// use InitDataset first to get an initID, then use that value to refer
+			// to the log they want to write a save to.
 			branchLog = book.initName(ctx, ds.ProfileID, ref.Username, ref.Name)
 			err = nil
 		} else {

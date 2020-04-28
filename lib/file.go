@@ -147,27 +147,42 @@ func readSingleFile(path string) (*dataset.Dataset, string, error) {
 func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *dataset.Dataset) (string, error) {
 	var target interface{}
 	target = ds
-	kind := "ds"
+	kind := ""
 
+	// Look for the component key in the file.
 	if kindStr, ok := fields["qri"].(string); ok && len(kindStr) >= 2 {
-		switch kindStr[:2] {
-		case "rm":
-			ds.Readme = &dataset.Readme{}
-			target = ds.Readme
-			kind = "rm"
-		case "md":
-			ds.Meta = &dataset.Meta{}
-			target = ds.Meta
+		kind = kindStr[:2]
+	}
+	// If no key found, see if the path matches one of the recognized component filenames
+	if kind == "" {
+		basename := filepath.Base(path)
+		basename = strings.TrimSuffix(basename, filepath.Ext(basename))
+		switch basename {
+		case "meta":
 			kind = "md"
-		case "cm":
-			ds.Commit = &dataset.Commit{}
-			target = ds.Commit
-			kind = "cm"
-		case "st":
-			ds.Structure = &dataset.Structure{}
-			target = ds.Structure
+		case "structure":
 			kind = "st"
 		}
+	}
+
+	switch kind {
+	case "", "ds":
+		// nothing to do, default case is the Dataset itself
+		kind = "ds"
+	case "rm":
+		ds.Readme = &dataset.Readme{}
+		target = ds.Readme
+	case "md":
+		ds.Meta = &dataset.Meta{}
+		target = ds.Meta
+	case "cm":
+		ds.Commit = &dataset.Commit{}
+		target = ds.Commit
+	case "st":
+		ds.Structure = &dataset.Structure{}
+		target = ds.Structure
+	default:
+		return "", fmt.Errorf("unknown component key %q", kind)
 	}
 
 	if err := fill.Struct(fields, target); err != nil {
