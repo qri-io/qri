@@ -118,7 +118,6 @@ func RenameDatasetRef(ctx context.Context, r repo.Repo, curr, next dsref.Ref) (*
 		Path:      next.Path,
 	}
 
-
 	// Renaming the pretty name of a dataset
 	if currRef.Path != "" || nextRef.Path != "" || currRef.ProfileID != "" || nextRef.ProfileID != "" {
 		return nil, fmt.Errorf("can only rename using references that are human-friendly")
