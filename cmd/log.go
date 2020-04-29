@@ -144,7 +144,26 @@ func (o *LogOptions) Run() error {
 		if err := o.RemoteMethods.Fetch(&p, &refs); err != nil {
 			return err
 		}
-		makeItemsAndPrint(refs, o.Out, page)
+		lp := lib.ListParams{
+			Limit:  page.Limit(),
+			Offset: page.Offset(),
+		}
+		if lp.Limit <= 0 {
+			lp.Limit = 25
+		}
+		// ensure valid offset value
+		if lp.Offset < 0 {
+			lp.Offset = 0
+		}
+		if len(refs) < lp.Offset {
+			makeItemsAndPrint(refs[0:0], o.Out, page)
+			return nil
+		}
+		if len(refs) < lp.Offset+lp.Limit {
+			makeItemsAndPrint(refs[lp.Offset:], o.Out, page)
+			return nil
+		}
+		makeItemsAndPrint(refs[lp.Offset:lp.Offset+lp.Limit], o.Out, page)
 	}
 	return nil
 }

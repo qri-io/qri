@@ -6,10 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"regexp"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -147,19 +144,21 @@ func TestFetchCommand(t *testing.T) {
 		lib.OptStdIOStreams(),
 		lib.OptSetIPFSPath(b.RepoRoot.IPFSPath),
 	)
+	localLogHandler := api.NewLogHandlers(localInst)
 
 	//
 	// Validate the outputs of history and fetch
 	//
 
-	logHandler := api.NewLogHandlers(remoteServer.Instance)
+	remoteLogHandler := api.NewLogHandlers(remoteServer.Instance)
 
-	// Validates output of history for a remote dataset
+	// Validates output of history for a remote dataset getting history for a
+	// dataset in its own namespace in its own repo
 	actualStatusCode, actualBody := APICall(
 		"GET",
 		"/history/peer_a/test_movies",
 		nil,
-		logHandler.LogHandler)
+		remoteLogHandler.LogHandler)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
@@ -169,21 +168,19 @@ func TestFetchCommand(t *testing.T) {
 		t.Errorf("body mismatch (-want +got):%s\n", diff)
 	}
 
-	remClientHandler := api.NewRemoteClientHandlers(localInst, false)
-
-	// Validates output of fetch for a remote dataset
+	// Validates output of fetching from a remote for a remote dataset
 	actualStatusCode, actualBody = APICall(
-		"POST",
-		"/fetch/peer_a/test_movies",
+		"GET",
+		"/history/peer_a/test_movies",
 		map[string]string{
 			"remote": "a_node",
 		},
-		remClientHandler.NewFetchHandler("/fetch"))
+		localLogHandler.LogHandler)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
 	actualBody = string(fixTs.ReplaceAll([]byte(actualBody), []byte(`"commitTime":"timeStampHere"`)))
-	expectBody = `{"data":[{"username":"peer_a","name":"test_movies","path":"/ipfs/Qmde2e5etUdVtBzHdvnsPXU4mFmy3yepw72rWz3CQ8JQ3v","foreign":true,"bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%"},{"username":"peer_a","name":"test_movies","path":"/ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z","foreign":true,"bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset from body_ten.csv"}],"meta":{"code":200}}`
+	expectBody = `{"data":[{"username":"peer_a","name":"test_movies","path":"/ipfs/Qmde2e5etUdVtBzHdvnsPXU4mFmy3yepw72rWz3CQ8JQ3v","foreign":true,"bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%"},{"username":"peer_a","name":"test_movies","path":"/ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z","foreign":true,"bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset from body_ten.csv"}],"meta":{"code":200},"pagination":{"nextUrl":"/history/peer_a/test_movies?page=2\u0026remote=a_node"}}`
 	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
 		t.Errorf("body mismatch (-want +got):%s\n", diff)
 	}
@@ -191,17 +188,19 @@ func TestFetchCommand(t *testing.T) {
 
 // APICall calls the api and returns the status code and body
 func APICall(method, reqURL string, params map[string]string, hf http.HandlerFunc) (int, string) {
-	// Add parameters from map
-	reqParams := url.Values{}
+	req := httptest.NewRequest(method, reqURL, nil)
+
+	// add parameters from map
 	if params != nil {
+		q := req.URL.Query()
 		for key := range params {
-			reqParams.Set(key, params[key])
+			q.Add(key, params[key])
 		}
+		req.URL.RawQuery = q.Encode()
 	}
-	req := httptest.NewRequest(method, reqURL, strings.NewReader(reqParams.Encode()))
+
 	// Set form-encoded header so server will find the parameters
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Content-Length", strconv.Itoa(len(reqParams.Encode())))
 	w := httptest.NewRecorder()
 	hf(w, req)
 	res := w.Result()

@@ -97,9 +97,26 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 		RemoteName: remoteName,
 	}
 	if err := h.rm.Fetch(p, &res); err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	util.WritePageResponse(w, res, r, lp.Page())
+	// ensure valid limit value
+	if lp.Limit <= 0 {
+		lp.Limit = 25
+	}
+	// ensure valid offset value
+	if lp.Offset < 0 {
+		lp.Offset = 0
+	}
+	if len(res) < lp.Offset {
+		util.WritePageResponse(w, res[0:0], r, lp.Page())
+		return
+	}
+	if len(res) < lp.Offset+lp.Limit {
+		util.WritePageResponse(w, res[lp.Offset:], r, lp.Page())
+		return
+	}
+
+	util.WritePageResponse(w, res[lp.Offset:lp.Offset+lp.Limit], r, lp.Page())
 }
