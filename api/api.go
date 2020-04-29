@@ -275,7 +275,6 @@ func NewServerRoutes(s Server) *http.ServeMux {
 
 	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/publish/", s.middleware(remClientH.PublishHandler))
-	m.Handle("/fetch/", s.middleware(remClientH.NewFetchHandler("/fetch")))
 	m.Handle("/feeds", s.middleware(remClientH.FeedsHandler))
 	m.Handle("/preview/", s.middleware(remClientH.DatasetPreviewHandler))
 

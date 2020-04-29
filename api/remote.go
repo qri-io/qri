@@ -26,34 +26,6 @@ func NewRemoteClientHandlers(inst *lib.Instance, readOnly bool) *RemoteClientHan
 	}
 }
 
-// NewFetchHandler returns an HTTP handler for fetching details from a remote
-func (h *RemoteClientHandlers) NewFetchHandler(prefix string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if h.readOnly {
-			readOnlyResponse(w, prefix)
-			return
-		}
-
-		ref, err := DatasetRefFromPath(r.URL.Path[len(prefix):])
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		p := &lib.FetchParams{
-			Ref:        ref.String(),
-			RemoteName: r.FormValue("remote"),
-		}
-		res := []DatasetLogItem{}
-		if err := h.Fetch(p, &res); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		util.WriteResponse(w, res)
-	}
-}
-
 // PublishHandler facilitates requests to publish or unpublish
 // from the local node to a remote
 func (h *RemoteClientHandlers) PublishHandler(w http.ResponseWriter, r *http.Request) {
