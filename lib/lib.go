@@ -36,8 +36,6 @@ import (
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/stats"
-	"github.com/qri-io/qri/update"
-	"github.com/qri-io/qri/update/cron"
 	"github.com/qri-io/qri/watchfs"
 )
 
@@ -80,7 +78,6 @@ func Receivers(inst *Instance) []Methods {
 		NewSearchMethods(inst),
 		NewSQLMethods(inst),
 		NewRenderRequests(r, nil),
-		NewUpdateMethods(inst),
 		NewFSIMethods(inst),
 	}
 }
@@ -331,11 +328,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		log.Debugf("--log-all set: turning on logging for all activity")
 	}
 
-	if inst.cron, err = newCron(cfg, inst.repoPath); err != nil {
-		log.Error("initializing cron:", err.Error())
-		return nil, fmt.Errorf("newCron: %s", err)
-	}
-
 	// check if we're operating over RPC
 	if cfg.RPC.Enabled {
 		addr := fmt.Sprintf(":%d", cfg.RPC.Port)
@@ -539,38 +531,6 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 	}
 }
 
-func newCron(cfg *config.Config, repoPath string) (cron.Scheduler, error) {
-	updateCfg := cfg.Update
-	if updateCfg == nil {
-		updateCfg = config.DefaultUpdate()
-	}
-
-	cli := cron.HTTPClient{Addr: updateCfg.Address}
-	if err := cli.Ping(); err == nil {
-		return cli, nil
-	}
-
-	path, err := update.Path(repoPath)
-	if err != nil {
-		return nil, err
-	}
-
-	var jobStore, logStore cron.JobStore
-	switch updateCfg.Type {
-	case "fs":
-		jobStore = cron.NewFlatbufferJobStore(filepath.Join(path, "jobs.qfb"))
-		logStore = cron.NewFlatbufferJobStore(filepath.Join(path, "logs.qfb"))
-	case "mem":
-		jobStore = &cron.MemJobStore{}
-		logStore = &cron.MemJobStore{}
-	default:
-		return nil, fmt.Errorf("unknown cron type: %s", updateCfg.Type)
-	}
-
-	svc := cron.NewCron(jobStore, logStore, update.Factory)
-	return svc, nil
-}
-
 // NewInstanceFromConfigAndNode is a temporary solution to create an instance from an
 // already-allocated QriNode & configuration
 // don't write new code that relies on this, instead create a configuration
@@ -620,7 +580,6 @@ type Instance struct {
 	node    *p2p.QriNode
 
 	qfs          qfs.Filesystem
-	cron         cron.Scheduler
 	fsi          *fsi.FSI
 	remote       *remote.Remote
 	remoteClient remote.Client

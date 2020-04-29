@@ -41,16 +41,6 @@ func confirmQriNotRunning() error {
 	return nil
 }
 
-func confirmUpdateServiceNotRunning() error {
-	l, err := net.Listen("tcp", config.DefaultUpdateAddress)
-	if err != nil {
-		return fmt.Errorf("it looks like a qri update service is already running on port %d, please close before running tests", config.DefaultAPIPort)
-	}
-
-	l.Close()
-	return nil
-}
-
 const moviesCSVData = `movie_title,duration
 Avatar,178
 Pirates of the Caribbean: At World's End,169
