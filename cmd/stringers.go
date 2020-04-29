@@ -12,7 +12,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	reporef "github.com/qri-io/qri/repo/ref"
-	"github.com/qri-io/qri/update/cron"
 )
 
 type peerStringer config.ProfilePod
@@ -209,51 +208,6 @@ func (l logStringer) String() string {
 		fmt.Fprintf(w, "    %s\n", dsr.Dataset.Commit.Message)
 	}
 
-	fmt.Fprintf(w, "\n")
-	return w.String()
-}
-
-type jobStringer cron.Job
-
-// String assumes Name, Type, Periodicity, and PrevRunStart are present
-func (j jobStringer) String() string {
-	w := &bytes.Buffer{}
-	name := color.New(color.Bold).SprintFunc()
-	t := j.Periodicity.After(j.PrevRunStart)
-	relTime := humanize.RelTime(time.Now().In(time.UTC), t, "", "")
-	fmt.Fprintf(w, "%s\nin %sat %s | %s\n", name(j.Name), relTime, t.In(StringerLocation).Format(time.Kitchen), j.Type)
-	if j.RepoPath != "" {
-		fmt.Fprintf(w, "\nrepo: %s\n", j.RepoPath)
-	}
-	fmt.Fprintf(w, "\n")
-	return w.String()
-}
-
-type finishedJobStringer cron.Job
-
-// String assumes Name, Type, PrevRunStart and ExitStatus are present
-func (j finishedJobStringer) String() string {
-	w := &bytes.Buffer{}
-	name := color.New(color.Bold, color.FgGreen).SprintFunc()
-	msg := ""
-	if j.RunError != "" {
-		msg = oneLiner(j.RunError, 40)
-		name = color.New(color.Bold, color.FgRed).SprintFunc()
-		if j.RunError == "no changes to save" {
-			name = color.New(color.Bold, color.Faint).SprintFunc()
-		}
-	} else {
-		if j.Type == cron.JTDataset {
-			msg = "dataset updated"
-		} else if j.Type == cron.JTShellScript {
-			msg = "script ran successfully"
-		}
-	}
-
-	fmt.Fprintf(w, "%s\n%s | %s\n", name(j.Name), humanize.Time(j.PrevRunStart), msg)
-	if j.RepoPath != "" {
-		fmt.Fprintf(w, "\nrepo: %s\n", j.RepoPath)
-	}
 	fmt.Fprintf(w, "\n")
 	return w.String()
 }

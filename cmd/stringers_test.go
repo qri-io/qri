@@ -1,14 +1,11 @@
 package cmd
 
 import (
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/iso8601"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/lib"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -156,40 +153,6 @@ func TestLogStringer(t *testing.T) {
 		logStr := logStringer(*c.log).String()
 		if c.expect != logStr {
 			t.Errorf("case '%s', expected: '%s', got'%s'", c.description, c.expect, logStr)
-		}
-	}
-}
-
-func TestJobStringer(t *testing.T) {
-	// NB: JobStringer is tough to write tests for at the moment
-	// thanks to printing in local timezones
-	// TODO (b5) - look into setting local timezone for this test
-
-	setNoColor(false)
-	time := time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC)
-	p, err := iso8601.ParseRepeatingInterval("R/P1D")
-	if err != nil {
-		t.Error(err)
-	}
-
-	cases := []struct {
-		description string
-		job         *lib.Job
-		contains    string
-	}{
-		{"JobStringer - all fields",
-			&lib.Job{
-				Name:         "Job",
-				Type:         "dataset",
-				Periodicity:  p,
-				PrevRunStart: time,
-			}, "\u001b[1mJob\u001b[0m\n",
-		},
-	}
-	for _, c := range cases {
-		jobStr := jobStringer(*c.job).String()
-		if !strings.Contains(jobStr, c.contains) {
-			t.Errorf("case '%s', expected '%s' to contain string: '%s'", c.description, jobStr, c.contains)
 		}
 	}
 }
