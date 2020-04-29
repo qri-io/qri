@@ -12,8 +12,8 @@ var (
 	ErrNotFound = errors.New("reference not found")
 )
 
-// RefResolver finds the identifier and HEAD path for a dataset reference
-type RefResolver interface {
+// Resolver finds the identifier and HEAD path for a dataset reference
+type Resolver interface {
 	// ResolveRef uses ref as an outParam, setting ref.ID and ref.Path on success
 	// some implementations of name resolution may make network calls
 	// the returned "source" value should be either an empty string, indicating
@@ -30,8 +30,8 @@ type MemResolver struct {
 	IDMap    map[string]VersionInfo
 }
 
-// assert at compile time that MemResolver is a RefResolver
-var _ RefResolver = (*MemResolver)(nil)
+// assert at compile time that MemResolver is a Resolver
+var _ Resolver = (*MemResolver)(nil)
 
 // NewMemResolver returns a new MemResolver
 func NewMemResolver(username string) *MemResolver {

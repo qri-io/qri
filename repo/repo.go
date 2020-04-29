@@ -72,7 +72,7 @@ type Repo interface {
 	// Refstore
 	// NOTE (b5): this implementation will be dropped when the Refstore interface
 	// is removed from the repo, delegating local ref resolution to dscache
-	dsref.RefResolver
+	dsref.Resolver
 	// All Repos must keep a Refstore, defining a store of known datasets
 	// NOTE(dlong): Refstore is going away soon, everything is going to move to Dscache
 	Refstore

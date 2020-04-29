@@ -178,7 +178,7 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 }
 
 // ResolveRef finds the identifier for a dataset reference
-// implements dsref.RefResolver interface
+// implements dsref.Resolver interface
 func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	// NOTE: isEmpty is nil-callable
 	if d.IsEmpty() {

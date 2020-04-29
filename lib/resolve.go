@@ -7,13 +7,14 @@ import (
 	"strings"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 )
 
-// assert at compile time that instance is a RefResolver
-var _ dsref.RefResolver = (*Instance)(nil)
+// assert at compile time that instance is a Resolver
+var _ dsref.Resolver = (*Instance)(nil)
 
 // ParseAndResolveRef combines reference parsing and resolution
 func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr string) (dsref.Ref, string, error) {
@@ -37,7 +38,7 @@ func (inst *Instance) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, e
 		return "", dsref.ErrNotFound
 	}
 
-	resolvers := []dsref.RefResolver{
+	resolvers := []dsref.Resolver{
 		// local resolution
 		inst.dscache,
 		inst.repo,
@@ -62,6 +63,7 @@ func (inst *Instance) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, e
 	return "", dsref.ErrNotFound
 }
 
+// loadDataset fetches, derefences and opens a dataset from a reference
 // TODO (b5) - this needs to move down into base, replacing base.LoadDataset with
 // a version that can load paths with a /fsi prefix, but before that can happen
 // base needs to be able to import FSI. Currently FSI imports base, and doesn't
@@ -87,5 +89,11 @@ func (inst *Instance) loadDataset(ctx context.Context, ref dsref.Ref) (*dataset.
 	// Set transient info on the returned dataset
 	ds.Name = ref.Name
 	ds.Peername = ref.Username
+
+	if err = base.OpenDataset(ctx, inst.repo.Filesystem(), ds); err != nil {
+		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
+		return nil, err
+	}
+
 	return ds, nil
 }
