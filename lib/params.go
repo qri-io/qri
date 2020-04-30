@@ -62,12 +62,6 @@ func ListParamsFromRequest(r *http.Request) ListParams {
 	return NewListParams(r.FormValue("orderBy"), page, pageSize)
 }
 
-// HasListParamsFromRequest returns true if either "page" or "pageSize" exist as form values
-// on an http.Request pointer
-func HasListParamsFromRequest(r *http.Request) bool {
-	return r.FormValue("page") != "" || r.FormValue("pageSize") != ""
-}
-
 // Page converts a ListParams struct to a util.Page struct
 func (lp ListParams) Page() util.Page {
 	var number, size int

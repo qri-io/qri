@@ -160,6 +160,7 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 
 			receiver, r, err := lsync.get(r.Context(), sender, reporef.ConvertToDsref(ref))
 			if err != nil {
+				// TODO (ramfox): implement a robust error response strategy
 				if errors.Is(err, logbook.ErrNotFound) {
 					w.WriteHeader(http.StatusNotFound)
 					w.Write([]byte(err.Error()))
