@@ -3,6 +3,7 @@ package logsync
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,6 +12,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/identity"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -158,6 +160,12 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 
 			receiver, r, err := lsync.get(r.Context(), sender, reporef.ConvertToDsref(ref))
 			if err != nil {
+				// TODO (ramfox): implement a robust error response strategy
+				if errors.Is(err, logbook.ErrNotFound) {
+					w.WriteHeader(http.StatusNotFound)
+					w.Write([]byte(err.Error()))
+					return
+				}
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(err.Error()))
 				return

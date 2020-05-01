@@ -34,9 +34,9 @@ func TestHistoryHandlers(t *testing.T) {
 		{"OPTIONS", "/", nil},
 		// TODO (b5) - these currently break in CI b/c of timzone mismatching
 		// we need to get timezones fixed for logbook
-		// {"GET", "/history/me/cities", nil},
-		// {"GET", "/history/me/cities/at/map/QmZrmGvTPMCkJYfqaagFZBUWuX5bkqSXu179eNnFfhCKze", nil},
-		// {"GET", "/history/at/map/QmZrmGvTPMCkJYfqaagFZBUWuX5bkqSXu179eNnFfhCKze", nil},
+		// {"GET", "/history/me/cities?local=true", nil},
+		// {"GET", "/history/me/cities/at/map/QmZrmGvTPMCkJYfqaagFZBUWuX5bkqSXu179eNnFfhCKze?local=true", nil},
+		// {"GET", "/history/at/map/QmZrmGvTPMCkJYfqaagFZBUWuX5bkqSXu179eNnFfhCKze?local=true", nil},
 		// {"DELETE", "/", nil},
 	}
 	runHandlerTestCases(t, "log", h.LogHandler, logCases, true)
