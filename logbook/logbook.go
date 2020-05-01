@@ -54,8 +54,6 @@ const (
 	PublicationModel
 	// ACLModel is the enum for a acl model
 	ACLModel
-	// CronJobModel is the enum for a cron-job model
-	CronJobModel
 )
 
 // DefaultBranchName is the default name all branch-level logbook data is read
@@ -78,8 +76,6 @@ func ModelString(m uint32) string {
 		return "publication"
 	case ACLModel:
 		return "acl"
-	case CronJobModel:
-		return "cronJob"
 	default:
 		return ""
 	}
@@ -252,17 +248,23 @@ func (book *Book) load(ctx context.Context) error {
 }
 
 // WriteAuthorRename adds an operation updating the author's username
-func (book *Book) WriteAuthorRename(ctx context.Context, name string) error {
+func (book *Book) WriteAuthorRename(ctx context.Context, newName string) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
+	if !dsref.IsValidName(newName) {
+		return fmt.Errorf("logbook: author name %q invalid", newName)
+	}
 
-	l := book.authorLog(ctx)
-	l.Append(oplog.Op{
+	authorLog, err := book.authorLog(ctx)
+	if err != nil {
+		return err
+	}
+	authorLog.Append(oplog.Op{
 		Type:      oplog.OpTypeAmend,
 		Model:     AuthorModel,
 		AuthorID:  book.AuthorID(),
-		Name:      name,
+		Name:      newName,
 		Timestamp: NewTimestamp(),
 	})
 
@@ -270,45 +272,37 @@ func (book *Book) WriteAuthorRename(ctx context.Context, name string) error {
 		return err
 	}
 
-	book.authorName = name
+	book.authorName = newName
 	return nil
 }
 
 // WriteDatasetInit initializes a new dataset name within the author's namespace
-func (book *Book) WriteDatasetInit(ctx context.Context, name string) error {
+func (book *Book) WriteDatasetInit(ctx context.Context, dsName string) (string, error) {
 	if book == nil {
-		return ErrNoLogbook
+		return "", ErrNoLogbook
 	}
-	if name == "" {
-		return fmt.Errorf("logbook: name is required to initialize a dataset")
+	if dsName == "" {
+		return "", fmt.Errorf("logbook: name is required to initialize a dataset")
 	}
-	if _, err := book.DatasetRef(ctx, dsref.Ref{Username: book.AuthorName(), Name: name}); err == nil {
-		return fmt.Errorf("logbook: dataset named '%s' already exists", name)
+	if !dsref.IsValidName(dsName) {
+		return "", fmt.Errorf("logbook: dataset name %q invalid", dsName)
 	}
-
-	// Get the profileID of the user, which is stored as the authorID field in the root oplog
-	// for this user's logbook.
-	profileID := ""
-	nameLog := book.authorLog(ctx)
-	if len(nameLog.Ops) > 0 {
-		profileID = nameLog.Ops[0].AuthorID
-	}
-	if len(profileID) != 46 {
-		return fmt.Errorf("invalid profileID during WriteVersionInit, len = %d", len(profileID))
+	if _, err := book.DatasetRef(ctx, dsref.Ref{Username: book.AuthorName(), Name: dsName}); err == nil {
+		return "", fmt.Errorf("logbook: dataset named %q already exists", dsName)
 	}
 
-	book.initName(ctx, profileID, book.AuthorName(), name)
-	return book.save(ctx)
-}
+	authorLog, err := book.authorLog(ctx)
+	if err != nil {
+		return "", err
+	}
+	profileID := authorLog.ProfileID()
 
-func (book Book) initName(ctx context.Context, profileID, username, name string) *oplog.Log {
-
-	log.Debugf("initializing name: '%s'", name)
+	log.Debugf("initializing name: '%s'", dsName)
 	dsLog := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     DatasetModel,
 		AuthorID:  book.AuthorID(),
-		Name:      name,
+		Name:      dsName,
 		Timestamp: NewTimestamp(),
 	})
 
@@ -322,42 +316,37 @@ func (book Book) initName(ctx context.Context, profileID, username, name string)
 
 	dsLog.AddChild(branch)
 
-	nameLog := book.authorLog(ctx)
-	nameLog.AddChild(dsLog)
+	authorLog.AddChild(dsLog)
+
+	initID := dsLog.ID()
 
 	if book.listener != nil {
 		// TODO(dlong): Perhaps in the future, pass the authorID (hash of the author creation
 		// block) to the dscache, use that instead-of or in-addition-to the profileID.
 		book.listener(&Action{
 			Type:       ActionDatasetNameInit,
-			InitID:     dsLog.ID(),
-			Username:   username,
+			InitID:     initID,
+			Username:   book.AuthorName(),
 			ProfileID:  profileID,
-			PrettyName: name,
+			PrettyName: dsName,
 		})
 	}
 
-	return branch
-}
-
-func (book Book) authorLog(ctx context.Context) *oplog.Log {
-	authorLog, err := book.store.Log(ctx, book.authorID)
-	if err != nil {
-		// this should never happen in practice
-		// TODO (b5): create an author namespace on the spot if this happens
-		panic(err)
-	}
-	return authorLog
+	return initID, book.save(ctx)
 }
 
 // WriteDatasetRename marks renaming a dataset
-func (book *Book) WriteDatasetRename(ctx context.Context, ref dsref.Ref, newName string) error {
+func (book *Book) WriteDatasetRename(ctx context.Context, initID string, newName string) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
-	log.Debugf("WriteDatasetRename: '%s' -> '%s'", ref.Alias(), newName)
+	if !dsref.IsValidName(newName) {
+		return fmt.Errorf("logbook: new dataset name %q invalid", newName)
+	}
 
-	dsLog, err := book.DatasetRef(ctx, ref)
+	log.Debugf("WriteDatasetRename: '%s' -> '%s'", initID, newName)
+
+	dsLog, err := book.datasetLog(initID)
 	if err != nil {
 		return err
 	}
@@ -371,21 +360,72 @@ func (book *Book) WriteDatasetRename(ctx context.Context, ref dsref.Ref, newName
 	if book.listener != nil {
 		book.listener(&Action{
 			Type:       ActionDatasetRename,
-			InitID:     dsLog.ID(),
+			InitID:     initID,
 			PrettyName: newName,
 		})
 	}
 	return book.save(ctx)
 }
 
+// RefToInitID converts a dsref to an initID by iterating the entire logbook looking for a match.
+// TODO(dustmop): Don't depend on this function permanently, use a higher level resolver and
+// convert all callers of this function to use that resolver's initID instead of converting a
+// dsref yet again.
+func (book *Book) RefToInitID(ref dsref.Ref) (string, error) {
+	if book == nil {
+		return "", ErrNoLogbook
+	}
+
+	// RetrieveRef is inefficient, iterates the top two levels of the logbook.
+	// Runs in O(M*N) where M = number of users, N = number of datasets per user.
+	dsLog, err := book.store.RetrieveRef(ref.Username, ref.Name)
+	if err != nil {
+		if err == oplog.ErrNotFound {
+			return "", ErrNotFound
+		}
+		return "", err
+	}
+	return dsLog.ID(), nil
+}
+
+// Return a strongly typed AuthorLog, top level of the logbook.
+func (book Book) authorLog(ctx context.Context) (*AuthorLog, error) {
+	lg, err := book.store.Log(ctx, book.authorID)
+	if err != nil {
+		return nil, err
+	}
+	return &AuthorLog{l: lg}, nil
+}
+
+// Return a strongly typed DatasetLog. Uses DatasetModel model.
+func (book *Book) datasetLog(initID string) (*DatasetLog, error) {
+	lg, err := book.store.RetrieveByInitID(initID)
+	if err != nil {
+		return nil, err
+	}
+	return &DatasetLog{l: lg}, nil
+}
+
+// Return a strongly typed BranchLog
+func (book *Book) branchLog(initID string) (*BranchLog, error) {
+	lg, err := book.store.RetrieveByInitID(initID)
+	if err != nil {
+		return nil, err
+	}
+	if len(lg.Logs) != 1 {
+		return nil, fmt.Errorf("expected dataset to have 1 branch, has %d", len(lg.Logs))
+	}
+	return &BranchLog{l: lg.Logs[0]}, nil
+}
+
 // WriteDatasetDelete closes a dataset, marking it as deleted
-func (book *Book) WriteDatasetDelete(ctx context.Context, ref dsref.Ref) error {
+func (book *Book) WriteDatasetDelete(ctx context.Context, initID string) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
-	log.Debugf("WriteDatasetDelete: '%s'", ref)
+	log.Debugf("WriteDatasetDelete: '%s'", initID)
 
-	dsLog, err := book.DatasetRef(ctx, ref)
+	dsLog, err := book.datasetLog(initID)
 	if err != nil {
 		return err
 	}
@@ -398,7 +438,7 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, ref dsref.Ref) error {
 	if book.listener != nil {
 		book.listener(&Action{
 			Type:   ActionDatasetDeleteAll,
-			InitID: dsLog.ID(),
+			InitID: initID,
 		})
 	}
 
@@ -407,60 +447,39 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, ref dsref.Ref) error {
 
 // WriteVersionSave adds an operation to a log marking the creation of a
 // dataset version. Book will copy details from the provided dataset pointer
-// TODO(dustomp): Ideally, a method like this would take an initID to refer to
-// the dataset we're saving, and the logbook.Log that we're appending to. This
-// would make sense as we have to assume that the reference has already been
-// resolved for the dataset we're saving (or, Init has already been called for
-// the dataset we're newly creating). Doing so would move us closer to the
-// world were references are only used in the porcelain of qri, and stable ids
-// like initID would only be used in the plumbling.
-func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) error {
+func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *dataset.Dataset) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
 
-	ref := refFromDataset(ds)
-	log.Debugf("WriteVersionSave: %s", ref)
-	branchLog, err := book.BranchRef(ctx, ref)
-	if err != nil {
-		if err == oplog.ErrNotFound {
-			// TODO(dustmop): Move this call outside of Save, require that callers
-			// use InitDataset first to get an initID, then use that value to refer
-			// to the log they want to write a save to.
-			branchLog = book.initName(ctx, ds.ProfileID, ref.Username, ref.Name)
-			err = nil
-		} else {
-			return err
-		}
-	}
-	dsLog, err := book.DatasetRef(ctx, ref)
+	log.Debugf("WriteVersionSave: %s", initID)
+	branchLog, err := book.branchLog(initID)
 	if err != nil {
 		return err
 	}
 
-	book.appendVersionSave(branchLog, ds)
+	topIndex := book.appendVersionSave(branchLog, ds)
 	// TODO(dlong): Think about how to handle a failure exactly here, what needs to be rolled back?
 	err = book.save(ctx)
 	if err != nil {
 		return err
 	}
-	// Index of the branch's top is one less than the length
-	topIndex := len(branchLog.Ops) - 1
+
 	info := dsref.ConvertDatasetToVersionInfo(ds)
 
 	if book.listener != nil {
 		book.listener(&Action{
 			Type:     ActionDatasetCommitChange,
-			InitID:   dsLog.ID(),
+			InitID:   initID,
 			TopIndex: topIndex,
-			HeadRef:  ds.Path,
+			HeadRef:  info.Path,
 			Info:     &info,
 		})
 	}
 	return nil
 }
 
-func (book *Book) appendVersionSave(l *oplog.Log, ds *dataset.Dataset) {
+func (book *Book) appendVersionSave(blog *BranchLog, ds *dataset.Dataset) int {
 	op := oplog.Op{
 		Type:  oplog.OpTypeInit,
 		Model: CommitModel,
@@ -475,23 +494,25 @@ func (book *Book) appendVersionSave(l *oplog.Log, ds *dataset.Dataset) {
 		op.Size = int64(ds.Structure.Length)
 	}
 
-	l.Append(op)
+	blog.Append(op)
+
+	return blog.Size() - 1
 }
 
-// WriteVersionAmend adds an operation to a log amending a dataset version
-func (book *Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) error {
+// WriteVersionAmend adds an operation to a log when a dataset amends a commit
+// TODO(dustmop): Currently unused by codebase, only called in tests.
+func (book *Book) WriteVersionAmend(ctx context.Context, initID string, ds *dataset.Dataset) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
-	ref := refFromDataset(ds)
-	log.Debugf("WriteVersionAmend: '%s'", ref)
+	log.Debugf("WriteVersionAmend: '%s'", initID)
 
-	l, err := book.BranchRef(ctx, ref)
+	branchLog, err := book.branchLog(initID)
 	if err != nil {
 		return err
 	}
 
-	l.Append(oplog.Op{
+	branchLog.Append(oplog.Op{
 		Type:  oplog.OpTypeAmend,
 		Model: CommitModel,
 		Ref:   ds.Path,
@@ -507,17 +528,13 @@ func (book *Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) er
 // WriteVersionDelete adds an operation to a log marking a number of sequential
 // versions from HEAD as deleted. Because logs are append-only, deletes are
 // recorded as "tombstone" operations that mark removal.
-func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisions int) error {
+func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisions int) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
-	log.Debugf("WriteVersionDelete: %s, revisions: %d", ref, revisions)
+	log.Debugf("WriteVersionDelete: %s, revisions: %d", initID, revisions)
 
-	branchLog, err := book.BranchRef(ctx, ref)
-	if err != nil {
-		return err
-	}
-	dsLog, err := book.DatasetRef(ctx, ref)
+	branchLog, err := book.branchLog(initID)
 	if err != nil {
 		return err
 	}
@@ -530,14 +547,14 @@ func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisio
 	})
 
 	// Calculate the commits after collapsing deletions found at the tail of history (most recent).
-	items := branchToLogItems(branchLog, ref, 0, -1, false)
+	items := branchToLogItems(branchLog, dsref.Ref{}, 0, -1, false)
 
 	if len(items) > 0 {
 		lastItem := items[len(items)-1]
 		if book.listener != nil {
 			book.listener(&Action{
 				Type:     ActionDatasetCommitChange,
-				InitID:   dsLog.ID(),
+				InitID:   initID,
 				TopIndex: len(items),
 				HeadRef:  lastItem.Path,
 				Info:     &lastItem.VersionInfo,
@@ -550,18 +567,18 @@ func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisio
 
 // WritePublish adds an operation to a log marking the publication of a number
 // of versions to one or more destinations
-func (book *Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int, destinations ...string) error {
+func (book *Book) WritePublish(ctx context.Context, initID string, revisions int, destinations ...string) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
-	log.Debugf("WritePublish: %s, revisions: %d, destinations: %v", ref, revisions, destinations)
+	log.Debugf("WritePublish: %s, revisions: %d, destinations: %v", initID, revisions, destinations)
 
-	l, err := book.BranchRef(ctx, ref)
+	branchLog, err := book.branchLog(initID)
 	if err != nil {
 		return err
 	}
 
-	l.Append(oplog.Op{
+	branchLog.Append(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     PublicationModel,
 		Size:      int64(revisions),
@@ -574,44 +591,23 @@ func (book *Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int
 
 // WriteUnpublish adds an operation to a log marking an unpublish request for a
 // count of sequential versions from HEAD
-func (book *Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions int, destinations ...string) error {
+// TODO(dustmop): Currently unused by codebase, only called in tests.
+func (book *Book) WriteUnpublish(ctx context.Context, initID string, revisions int, destinations ...string) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
-	log.Debugf("WriteUnpublish: %s, revisions: %d, destinations: %v", ref, revisions, destinations)
+	log.Debugf("WriteUnpublish: %s, revisions: %d, destinations: %v", initID, revisions, destinations)
 
-	l, err := book.BranchRef(ctx, ref)
+	branchLog, err := book.branchLog(initID)
 	if err != nil {
 		return err
 	}
 
-	l.Append(oplog.Op{
+	branchLog.Append(oplog.Op{
 		Type:      oplog.OpTypeRemove,
 		Model:     PublicationModel,
 		Size:      int64(revisions),
 		Relations: destinations,
-		// TODO (b5) - finish
-	})
-
-	return book.save(ctx)
-}
-
-// WriteCronJobRan adds an operation to a log marking the execution of a cronjob
-func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.Ref) error {
-	if book == nil {
-		return ErrNoLogbook
-	}
-	log.Debugf("WriteCronJobRan: %s, number: %d", ref, number)
-
-	l, err := book.BranchRef(ctx, ref)
-	if err != nil {
-		return err
-	}
-
-	l.Append(oplog.Op{
-		Type:  oplog.OpTypeInit,
-		Model: CronJobModel,
-		Size:  int64(number),
 		// TODO (b5) - finish
 	})
 
@@ -818,18 +814,23 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, histor
 		return ErrNoLogbook
 	}
 
-	branchLog, err := book.BranchRef(ctx, ref)
-	if err == nil {
+	if _, err := book.RefToInitID(ref); err == nil {
 		// if the log already exists, it will either as-or-more rich than this log,
 		// refuse to overwrite
 		return ErrLogTooShort
 	}
 
-	branchLog = book.initName(ctx, ref.ProfileID, ref.Username, ref.Name)
+	initID, err := book.WriteDatasetInit(ctx, ref.Name)
+	if err != nil {
+		return err
+	}
+	branchLog, err := book.branchLog(initID)
+	if err != nil {
+		return err
+	}
 	for _, ds := range history {
 		book.appendVersionSave(branchLog, ds)
 	}
-
 	return book.save(ctx)
 }
 
@@ -849,7 +850,11 @@ func itemFromOp(ref dsref.Ref, op oplog.Op) DatasetLogItem {
 
 // Items collapses the history of a dataset branch into linear log items
 func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int) ([]DatasetLogItem, error) {
-	branchLog, err := book.BranchRef(ctx, ref)
+	initID, err := book.RefToInitID(dsref.Ref{Username: ref.Username, Name: ref.Name})
+	if err != nil {
+		return nil, err
+	}
+	branchLog, err := book.branchLog(initID)
 	if err != nil {
 		return nil, err
 	}
@@ -859,16 +864,16 @@ func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int) ([
 
 // ConvertLogsToItems collapses the history of a dataset branch into linear log items
 func ConvertLogsToItems(l *oplog.Log, ref dsref.Ref) []DatasetLogItem {
-	return branchToLogItems(l, ref, 0, -1, true)
+	return branchToLogItems(branchLogFromRawLog(l), ref, 0, -1, true)
 }
 
 // Items collapses the history of a dataset branch into linear log items
 // If collapseAllDeletes is true, all delete operations will remove the refs before them. Otherwise,
 // only refs at the end of history will be removed in this manner.
-func branchToLogItems(l *oplog.Log, ref dsref.Ref, offset, limit int, collapseAllDeletes bool) []DatasetLogItem {
+func branchToLogItems(blog *BranchLog, ref dsref.Ref, offset, limit int, collapseAllDeletes bool) []DatasetLogItem {
 	refs := []DatasetLogItem{}
 	deleteAtEnd := 0
-	for _, op := range l.Ops {
+	for _, op := range blog.Ops() {
 		switch op.Model {
 		case CommitModel:
 			switch op.Type {
@@ -968,7 +973,6 @@ var actionStrings = map[uint32][3]string{
 	CommitModel:      [3]string{"save commit", "amend commit", "remove commit"},
 	PublicationModel: [3]string{"publish", "", "unpublish"},
 	ACLModel:         [3]string{"update access", "update access", "remove all access"},
-	CronJobModel:     [3]string{"ran update", "", ""},
 }
 
 func logEntryFromOp(author string, op oplog.Op) LogEntry {

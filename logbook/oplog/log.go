@@ -75,6 +75,12 @@ type Logstore interface {
 	// use Logstore.Children or Logstore.Descendants to populate missing children
 	HeadRef(ctx context.Context, names ...string) (*Log, error)
 
+	// RetrieveRef returns the log that matches the username and dataset name
+	RetrieveRef(username, dsName string) (*Log, error)
+
+	// RetrieveByInitID returns the log that matches the initID
+	RetrieveByInitID(initID string) (*Log, error)
+
 	// get a log according to it's ID string
 	// Log must return ErrNotFound if the ID does not exist
 	//
@@ -213,6 +219,28 @@ func (j *Journal) HeadRef(_ context.Context, names ...string) (*Log, error) {
 	for _, log := range j.logs {
 		if log.Name() == names[0] && !log.Removed() {
 			return log.HeadRef(names[1:]...)
+		}
+	}
+	return nil, ErrNotFound
+}
+
+// RetrieveRef takes a username and name and returns the log that matches
+func (j *Journal) RetrieveRef(username, dsName string) (*Log, error) {
+	for _, log := range j.logs {
+		if log.Name() == username && !log.Removed() {
+			return log.HeadRef(dsName)
+		}
+	}
+	return nil, ErrNotFound
+}
+
+// RetrieveByInitID finds the dataset level log which matches the initID
+func (j *Journal) RetrieveByInitID(initID string) (*Log, error) {
+	for _, userLog := range j.logs {
+		for _, datasetLog := range userLog.Logs {
+			if datasetLog.ID() == initID {
+				return datasetLog, nil
+			}
 		}
 	}
 	return nil, ErrNotFound

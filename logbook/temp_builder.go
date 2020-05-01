@@ -34,31 +34,30 @@ func NewLogbookTempBuilder(t *testing.T, privKey crypto.PrivKey, username string
 }
 
 // DatasetInit initializes a new dataset and return a reference to it
-func (b *BookBuilder) DatasetInit(ctx context.Context, t *testing.T, dsname string) dsref.Ref {
-	if err := b.Book.WriteDatasetInit(ctx, dsname); err != nil {
+func (b *BookBuilder) DatasetInit(ctx context.Context, t *testing.T, dsname string) string {
+	initID, err := b.Book.WriteDatasetInit(ctx, dsname)
+	if err != nil {
 		t.Fatal(err)
 	}
 	b.Dsrefs[dsname] = make([]string, 0)
-	return dsref.Ref{Username: b.AuthorName, Name: dsname}
+	return initID
 }
 
 // DatasetRename changes the name of a dataset
-func (b *BookBuilder) DatasetRename(ctx context.Context, t *testing.T, ref dsref.Ref, newName string) dsref.Ref {
-	b.ensureAuthorAllowed(t, ref.Username)
-	if err := b.Book.WriteDatasetRename(ctx, ref, newName); err != nil {
+func (b *BookBuilder) DatasetRename(ctx context.Context, t *testing.T, initID, newName string) dsref.Ref {
+	if err := b.Book.WriteDatasetRename(ctx, initID, newName); err != nil {
 		t.Fatal(err)
 	}
-	b.Dsrefs[newName] = b.Dsrefs[ref.Name]
-	delete(b.Dsrefs, ref.Name)
+	ref := dsref.Ref{}
 	return dsref.Ref{Username: b.AuthorName, Name: newName, Path: ref.Path}
 }
 
 // DatasetDelete deletes a dataset
-func (b *BookBuilder) DatasetDelete(ctx context.Context, t *testing.T, ref dsref.Ref) {
-	b.ensureAuthorAllowed(t, ref.Username)
-	if err := b.Book.WriteDatasetDelete(ctx, ref); err != nil {
+func (b *BookBuilder) DatasetDelete(ctx context.Context, t *testing.T, initID string) {
+	if err := b.Book.WriteDatasetDelete(ctx, initID); err != nil {
 		t.Fatal(err)
 	}
+	ref := dsref.Ref{}
 	delete(b.Dsrefs, ref.Name)
 }
 
@@ -71,8 +70,8 @@ func (b *BookBuilder) AddForeign(ctx context.Context, t *testing.T, log *oplog.L
 }
 
 // Commit adds a commit to a dataset
-func (b *BookBuilder) Commit(ctx context.Context, t *testing.T, ref dsref.Ref, title, ipfsHash string) dsref.Ref {
-	b.ensureAuthorAllowed(t, ref.Username)
+func (b *BookBuilder) Commit(ctx context.Context, t *testing.T, initID, title, ipfsHash string) dsref.Ref {
+	ref := dsref.Ref{}
 	ds := dataset.Dataset{
 		Peername: ref.Username,
 		Name:     ref.Name,
@@ -83,7 +82,7 @@ func (b *BookBuilder) Commit(ctx context.Context, t *testing.T, ref dsref.Ref, t
 		Path:         ipfsHash,
 		PreviousPath: ref.Path,
 	}
-	if err := b.Book.WriteVersionSave(ctx, &ds); err != nil {
+	if err := b.Book.WriteVersionSave(ctx, initID, &ds); err != nil {
 		t.Fatal(err)
 	}
 	b.Dsrefs[ref.Name] = append(b.Dsrefs[ref.Name], ipfsHash)
@@ -91,9 +90,9 @@ func (b *BookBuilder) Commit(ctx context.Context, t *testing.T, ref dsref.Ref, t
 }
 
 // Delete removes some number of commits from a dataset
-func (b *BookBuilder) Delete(ctx context.Context, t *testing.T, ref dsref.Ref, num int) dsref.Ref {
-	b.ensureAuthorAllowed(t, ref.Username)
-	if err := b.Book.WriteVersionDelete(ctx, ref, num); err != nil {
+func (b *BookBuilder) Delete(ctx context.Context, t *testing.T, initID string, num int) dsref.Ref {
+	ref := dsref.Ref{}
+	if err := b.Book.WriteVersionDelete(ctx, initID, num); err != nil {
 		t.Fatal(err)
 	}
 	prevRefs := b.Dsrefs[ref.Name]
@@ -101,12 +100,6 @@ func (b *BookBuilder) Delete(ctx context.Context, t *testing.T, ref dsref.Ref, n
 	b.Dsrefs[ref.Name] = nextRefs
 	lastRef := nextRefs[len(nextRefs)-1]
 	return dsref.Ref{Username: ref.Username, Name: ref.Name, Path: lastRef}
-}
-
-func (b *BookBuilder) ensureAuthorAllowed(t *testing.T, peername string) {
-	if peername != b.AuthorName {
-		t.Fatalf("cannot rename dataset of %s, book owned by %s", peername, b.AuthorName)
-	}
 }
 
 // Logbook returns the built logbook

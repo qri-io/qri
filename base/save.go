@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -205,7 +206,19 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		ds.Peername = pro.Peername
 		ds.Path = path
 
-		err := r.Logbook().WriteVersionSave(ctx, ds)
+		// TODO(dustmop): When we switch to initIDs, use the initID passed to this function,
+		// retrieved from the top-level resolver.
+		// Whether there is a previous version is equivalent to whether we have an initID coming
+		// into this function.
+		initID, err := r.Logbook().RefToInitID(dsref.Ref{Username: ds.Peername, Name: ds.Name})
+		if err == logbook.ErrNotFound {
+			// If dataset does not exist yet, initialize with the given name
+			initID, err = r.Logbook().WriteDatasetInit(ctx, ds.Name)
+			if err != nil {
+				return ref, err
+			}
+		}
+		err = r.Logbook().WriteVersionSave(ctx, initID, ds)
 		if err != nil && err != logbook.ErrNoLogbook {
 			return ref, err
 		}

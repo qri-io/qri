@@ -251,8 +251,6 @@ func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) er
 		}
 	}
 
-	// TODO(dlong): logbook is not being updated here
-
 	// remove all the versions of this dataset from the store
 	if _, err := base.RemoveNVersionsFromStore(ctx, r.node.Repo, reporef.ConvertToDsref(ref), -1); err != nil {
 		return err

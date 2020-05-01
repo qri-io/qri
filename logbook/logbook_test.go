@@ -52,7 +52,8 @@ func Example() {
 	// log under the logbook author's namespace with the given name, and an opset
 	// that tracks operations by this author within that new namespace.
 	// The entire logbook is persisted to the filestore after each operation
-	if err := book.WriteDatasetInit(ctx, "world_bank_population"); err != nil {
+	initID, err := book.WriteDatasetInit(ctx, "world_bank_population")
+	if err != nil {
 		panic(err)
 	}
 
@@ -73,7 +74,7 @@ func Example() {
 
 	// create a log record of the version of a dataset. In practice this'll be
 	// part of the overall save routine that created the above ds variable
-	if err := book.WriteVersionSave(ctx, ds); err != nil {
+	if err := book.WriteVersionSave(ctx, initID, ds); err != nil {
 		panic(err)
 	}
 
@@ -93,7 +94,7 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if err := book.WriteVersionSave(ctx, ds2); err != nil {
+	if err := book.WriteVersionSave(ctx, initID, ds2); err != nil {
 		panic(err)
 	}
 
@@ -107,7 +108,7 @@ func Example() {
 	// published two consecutive revisions from head: the latest version, and the
 	// one before it. "registry.qri.cloud" indicates we published to a single
 	// destination with that name.
-	if err := book.WritePublish(ctx, ref, 2, "registry.qri.cloud"); err != nil {
+	if err := book.WritePublish(ctx, initID, 2, "registry.qri.cloud"); err != nil {
 		panic(err)
 	}
 
@@ -115,7 +116,7 @@ func Example() {
 	// VersionDelete accepts an argument of number of versions back from HEAD
 	// more complex deletes that remove pieces of history may require either
 	// composing multiple log operations
-	book.WriteVersionDelete(ctx, ref, 1)
+	book.WriteVersionDelete(ctx, initID, 1)
 
 	// create another version
 	ds3 := &dataset.Dataset{
@@ -136,7 +137,7 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if err := book.WriteVersionSave(ctx, ds3); err != nil {
+	if err := book.WriteVersionSave(ctx, initID, ds3); err != nil {
 		panic(err)
 	}
 
@@ -182,9 +183,10 @@ func TestNewJournal(t *testing.T) {
 
 func TestNilCallable(t *testing.T) {
 	var (
-		book *Book
-		ctx  = context.Background()
-		err  error
+		book   *Book
+		initID = ""
+		ctx    = context.Background()
+		err    error
 	)
 
 	if _, err = book.ActivePeerID(ctx); err != ErrNoLogbook {
@@ -199,34 +201,31 @@ func TestNilCallable(t *testing.T) {
 	if err = book.ConstructDatasetLog(ctx, dsref.Ref{}, nil); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteCronJobRan(ctx, 0, dsref.Ref{}); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
-	}
 	if err = book.WriteAuthorRename(ctx, ""); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteDatasetInit(ctx, ""); err != ErrNoLogbook {
+	if _, err = book.WriteDatasetInit(ctx, ""); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteDatasetRename(ctx, dsref.Ref{}, ""); err != ErrNoLogbook {
+	if err = book.WriteDatasetRename(ctx, initID, ""); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteDatasetDelete(ctx, dsref.Ref{}); err != ErrNoLogbook {
+	if err = book.WriteDatasetDelete(ctx, initID); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WritePublish(ctx, dsref.Ref{}, 0); err != ErrNoLogbook {
+	if err = book.WritePublish(ctx, initID, 0); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteUnpublish(ctx, dsref.Ref{}, 0); err != ErrNoLogbook {
+	if err = book.WriteUnpublish(ctx, initID, 0); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteVersionAmend(ctx, nil); err != ErrNoLogbook {
+	if err = book.WriteVersionAmend(ctx, initID, nil); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteVersionDelete(ctx, dsref.Ref{}, 0); err != ErrNoLogbook {
+	if err = book.WriteVersionDelete(ctx, initID, 0); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteVersionSave(ctx, nil); err != ErrNoLogbook {
+	if err = book.WriteVersionSave(ctx, initID, nil); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
 }
@@ -355,71 +354,79 @@ func TestDatasetLogNaming(t *testing.T) {
 	defer cleanup()
 	var err error
 
-	if err = tr.Book.WriteDatasetInit(tr.Ctx, ""); err == nil {
+	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, ""); err == nil {
 		t.Errorf("expected initializing with an empty name to error")
 	}
-	if err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err != nil {
-		t.Errorf("unexpected error writing valid dataset name: %s", err)
+	firstInitID, err := tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes")
+	if err != nil {
+		t.Fatalf("unexpected error writing valid dataset name: %s", err)
 	}
-	if err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err == nil {
+	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err == nil {
 		t.Error("expected initializing a name that already exists to error")
 	}
-	if err = tr.Book.WriteDatasetRename(tr.Ctx, dsref.Ref{Username: tr.Book.AuthorName(), Name: "airport_codes"}, "iata_airport_codes"); err != nil {
+	if err = tr.Book.WriteDatasetRename(tr.Ctx, firstInitID, "iata_airport_codes"); err != nil {
 		t.Errorf("unexpected error renaming dataset: %s", err)
 	}
-	if err = tr.Book.WriteDatasetDelete(tr.Ctx, dsref.Ref{Username: tr.Book.AuthorName(), Name: "airport_codes"}); err == nil {
-		t.Error("expected deleting updated name to error")
+	if _, err = tr.Book.RefToInitID(dsref.Ref{Username: "test_peer", Name: "airport_codes"}); err == nil {
+		t.Error("expected finding the original name to error")
 	}
-	if err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err != nil {
-		t.Errorf("unexpected error writing recently freed-up dataset name: %s", err)
+	// Init another dataset with the old name, which is now available due to rename.
+	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err != nil {
+		t.Fatalf("unexpected error writing recently freed-up dataset name: %s", err)
 	}
-	if err = tr.Book.WriteDatasetDelete(tr.Ctx, dsref.Ref{Username: tr.Book.AuthorName(), Name: "iata_airport_codes"}); err != nil {
-		t.Errorf("unexpected error deleting active dataset name: %s", err)
+	if err = tr.Book.WriteDatasetDelete(tr.Ctx, firstInitID); err != nil {
+		t.Errorf("unexpected error deleting first dataset: %s", err)
 	}
-	if err = tr.Book.WriteDatasetInit(tr.Ctx, "iata_airport_codes"); err != nil {
+	_, err = tr.Book.WriteDatasetInit(tr.Ctx, "iata_airport_codes")
+	if err != nil {
 		t.Errorf("expected initializing new name with deleted dataset to not error: %s", err)
 	}
+
+	const (
+		profileID = "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"
+		authorID  = "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q"
+	)
 
 	expect := []PlainLog{
 		{
 			Ops: []PlainOp{
-				{Type: "init", Model: "user", Name: "test_author", AuthorID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Timestamp: mustTime("1999-12-31T19:00:00-05:00")},
+				{Type: "init", Model: "user", Name: "test_author", AuthorID: profileID, Timestamp: mustTime("1999-12-31T19:00:00-05:00")},
 			},
 			Logs: []PlainLog{
 				{
 					Ops: []PlainOp{
-						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:01:00-05:00")},
+						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:01:00-05:00")},
 						{Type: "amend", Model: "dataset", Name: "iata_airport_codes", Timestamp: mustTime("1999-12-31T19:03:00-05:00")},
 						{Type: "remove", Model: "dataset", Timestamp: mustTime("1999-12-31T19:06:00-05:00")},
 					},
 					Logs: []PlainLog{
 						{
 							Ops: []PlainOp{
-								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:02:00-05:00")},
+								{Type: "init", Model: "branch", Name: "main", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:02:00-05:00")},
 							},
 						},
 					},
 				},
 				{
 					Ops: []PlainOp{
-						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:04:00-05:00")},
+						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:04:00-05:00")},
 					},
 					Logs: []PlainLog{
 						{
 							Ops: []PlainOp{
-								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:05:00-05:00")},
+								{Type: "init", Model: "branch", Name: "main", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:05:00-05:00")},
 							},
 						},
 					},
 				},
 				{
 					Ops: []PlainOp{
-						{Type: "init", Model: "dataset", Name: "iata_airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:07:00-05:00")},
+						{Type: "init", Model: "dataset", Name: "iata_airport_codes", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:07:00-05:00")},
 					},
 					Logs: []PlainLog{
 						{
 							Ops: []PlainOp{
-								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:08:00-05:00")},
+								{Type: "init", Model: "branch", Name: "main", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:08:00-05:00")},
 							},
 						},
 					},
@@ -648,7 +655,6 @@ func TestRenameDataset(t *testing.T) {
 	expect := []string{
 		"12:02AM\ttest_author\tinit branch\tmain",
 		"12:00AM\ttest_author\tsave commit\tinitial commit",
-		"12:00AM\ttest_author\tran update\t",
 		"12:00AM\ttest_author\tsave commit\tadded meta info",
 	}
 
@@ -661,8 +667,8 @@ func TestItems(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
-	tr.WriteWorldBankExample(t)
-	tr.WriteMoreWorldBankCommits(t)
+	initID := tr.WriteWorldBankExample(t)
+	tr.WriteMoreWorldBankCommits(t, initID)
 	book := tr.Book
 
 	items, err := book.Items(tr.Ctx, tr.WorldBankRef(), 0, 10)
@@ -837,11 +843,12 @@ func (tr *testRunner) WorldBankRef() dsref.Ref {
 	return dsref.Ref{Username: tr.Username, Name: "world_bank_population"}
 }
 
-func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
+func (tr *testRunner) WriteWorldBankExample(t *testing.T) string {
 	book := tr.Book
 	name := "world_bank_population"
 
-	if err := book.WriteDatasetInit(tr.Ctx, name); err != nil {
+	initID, err := book.WriteDatasetInit(tr.Ctx, name)
+	if err != nil {
 		panic(err)
 	}
 
@@ -858,7 +865,7 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
 		PreviousPath: "",
 	}
 
-	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
 		panic(err)
 	}
 
@@ -870,32 +877,33 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
 	ds.Path = "QmHashOfVersion2"
 	ds.PreviousPath = "QmHashOfVersion1"
 
-	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
 		t.Fatal(err)
 	}
 
-	ref := dsref.Ref{Username: tr.Username, Name: name}
-	if err := book.WritePublish(tr.Ctx, ref, 2, "registry.qri.cloud"); err != nil {
+	if err := book.WritePublish(tr.Ctx, initID, 2, "registry.qri.cloud"); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := book.WriteUnpublish(tr.Ctx, ref, 2, "registry.qri.cloud"); err != nil {
+	if err := book.WriteUnpublish(tr.Ctx, initID, 2, "registry.qri.cloud"); err != nil {
 		t.Fatal(err)
 	}
 
-	book.WriteVersionDelete(tr.Ctx, ref, 1)
+	book.WriteVersionDelete(tr.Ctx, initID, 1)
 
 	ds.Commit.Timestamp = time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC)
 	ds.Commit.Title = "added meta info"
 	ds.Path = "QmHashOfVersion3"
 	ds.PreviousPath = "QmHashOfVersion1"
 
-	if err := book.WriteVersionAmend(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionAmend(tr.Ctx, initID, ds); err != nil {
 		t.Fatal(err)
 	}
+
+	return initID
 }
 
-func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T) {
+func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T, initID string) {
 	book := tr.Book
 	name := "world_bank_population"
 	ds := &dataset.Dataset{
@@ -909,7 +917,7 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T) {
 		PreviousPath: "QmHashOfVersion3",
 	}
 
-	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
 		panic(err)
 	}
 
@@ -924,7 +932,7 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T) {
 		PreviousPath: "QmHashOfVersion4",
 	}
 
-	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
 		panic(err)
 	}
 }
@@ -942,7 +950,8 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 	name := "dataset"
 	rename := "renamed_dataset"
 
-	if err := book.WriteDatasetInit(tr.Ctx, name); err != nil {
+	initID, err := book.WriteDatasetInit(tr.Ctx, name)
+	if err != nil {
 		panic(err)
 	}
 
@@ -959,7 +968,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 		PreviousPath: "",
 	}
 
-	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
 		panic(err)
 	}
 
@@ -968,17 +977,11 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 	ds.Path = "QmHashOfVersion2"
 	ds.PreviousPath = "QmHashOfVersion1"
 
-	// pretend we ran a cron job that created this version
-	ref := dsref.Ref{Username: book.AuthorName(), Name: name}
-	if err := book.WriteCronJobRan(tr.Ctx, 1, ref); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := book.WriteDatasetRename(tr.Ctx, ref, rename); err != nil {
+	if err := book.WriteDatasetRename(tr.Ctx, initID, rename); err != nil {
 		t.Fatal(err)
 	}
 }

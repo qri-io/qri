@@ -197,7 +197,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		}
 	}
 
-	if err = fsi.repo.Logbook().WriteDatasetInit(context.TODO(), ref.Name); err != nil {
+	if _, err = fsi.repo.Logbook().WriteDatasetInit(context.TODO(), ref.Name); err != nil {
 		if err == logbook.ErrNoLogbook {
 			rollback = func() {}
 			return name, nil

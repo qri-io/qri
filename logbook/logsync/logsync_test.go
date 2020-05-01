@@ -415,7 +415,8 @@ func newTestbook(username string, pk crypto.PrivKey) (*logbook.Book, error) {
 
 func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, err error) {
 	name := "nasdaq"
-	if err = book.WriteDatasetInit(ctx, name); err != nil {
+	initID, err := book.WriteDatasetInit(ctx, name)
+	if err != nil {
 		return ref, err
 	}
 
@@ -430,14 +431,14 @@ func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, er
 		PreviousPath: "",
 	}
 
-	if err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "v1"
 	ds.PreviousPath = "v0"
 
-	if err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
 		return ref, err
 	}
 
@@ -449,7 +450,8 @@ func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, er
 
 func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, err error) {
 	name := "world_bank_population"
-	if err = book.WriteDatasetInit(ctx, name); err != nil {
+	initID, err := book.WriteDatasetInit(ctx, name)
+	if err != nil {
 		return ref, err
 	}
 
@@ -464,21 +466,21 @@ func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref,
 		PreviousPath: "",
 	}
 
-	if err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "v1"
 	ds.PreviousPath = "v0"
 
-	if err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "v2"
 	ds.PreviousPath = "v1"
 
-	if err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
 		return ref, err
 	}
 
