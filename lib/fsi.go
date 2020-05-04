@@ -348,13 +348,13 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 type InitFSIDatasetParams = fsi.InitParams
 
 // InitDataset creates a new dataset and FSI link
-func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, name *string) (err error) {
+func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, refstr *string) (err error) {
 	if err = qfs.AbsPath(&p.SourceBodyPath); err != nil {
 		return err
 	}
 
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("FSIMethods.InitDataset", p, name))
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.InitDataset", p, refstr))
 	}
 
 	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
@@ -363,7 +363,7 @@ func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, name *string) (err err
 		c.CreateNewEnabled = true
 	}
 
-	*name, err = m.inst.fsi.InitDataset(*p)
+	*refstr, err = m.inst.fsi.InitDataset(*p)
 	return err
 }
 

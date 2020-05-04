@@ -120,11 +120,11 @@ func (o *InitOptions) Run() (err error) {
 		SourceBodyPath: o.SourceBodyPath,
 		UseDscache:     o.UseDscache,
 	}
-	var name string
-	if err = o.FSIMethods.InitDataset(p, &name); err != nil {
+	var refstr string
+	if err = o.FSIMethods.InitDataset(p, &refstr); err != nil {
 		return err
 	}
 
-	printSuccess(o.Out, "initialized working directory for new dataset %s", name)
+	printSuccess(o.Out, "initialized working directory for new dataset %s", refstr)
 	return nil
 }

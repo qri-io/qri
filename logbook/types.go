@@ -4,31 +4,31 @@ import (
 	"github.com/qri-io/qri/logbook/oplog"
 )
 
-// AuthorLog is the top-level log representing the book author
-type AuthorLog struct {
+// UserLog is the top-level log representing users that make datasets
+type UserLog struct {
 	l *oplog.Log
 }
 
 // TODO(dustmop): Consider changing the "Append" methods to type-safe methods that are specific
 // to each log level, which accept individual parameters instead of type-unsafe Op values.
 
-// Append adds an op to the AuthorLog
-func (alog *AuthorLog) Append(op oplog.Op) {
+// Append adds an op to the UserLog
+func (alog *UserLog) Append(op oplog.Op) {
 	if op.Model != AuthorModel {
-		log.Errorf("cannot Append, incorrect model %d for AuthorLog", op.Model)
+		log.Errorf("cannot Append, incorrect model %d for UserLog", op.Model)
 		return
 	}
 	alog.l.Append(op)
 }
 
-// ProfileID returns the profileID for the author
-func (alog *AuthorLog) ProfileID() string {
+// ProfileID returns the profileID for the user
+func (alog *UserLog) ProfileID() string {
 	return alog.l.Ops[0].AuthorID
 }
 
 // AddChild adds a child log
 // TODO(dustmop): Change this parameter to be a DatasetLog
-func (alog *AuthorLog) AddChild(l *oplog.Log) {
+func (alog *UserLog) AddChild(l *oplog.Log) {
 	alog.l.AddChild(l)
 }
 

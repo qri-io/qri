@@ -170,7 +170,7 @@ func (book *Book) ActivePeerID(ctx context.Context) (id string, err error) {
 		return "", ErrNoLogbook
 	}
 
-	lg, err := book.store.Log(ctx, book.authorID)
+	lg, err := book.store.Get(ctx, book.authorID)
 	if err != nil {
 		panic(err)
 	}
@@ -346,7 +346,7 @@ func (book *Book) WriteDatasetRename(ctx context.Context, initID string, newName
 
 	log.Debugf("WriteDatasetRename: '%s' -> '%s'", initID, newName)
 
-	dsLog, err := book.datasetLog(initID)
+	dsLog, err := book.datasetLog(ctx, initID)
 	if err != nil {
 		return err
 	}
@@ -368,6 +368,8 @@ func (book *Book) WriteDatasetRename(ctx context.Context, initID string, newName
 }
 
 // RefToInitID converts a dsref to an initID by iterating the entire logbook looking for a match.
+// This function is inefficient, iterating the entire set of operations in a log. Replacing this
+// function call with mechanisms in dscache will fix this problem.
 // TODO(dustmop): Don't depend on this function permanently, use a higher level resolver and
 // convert all callers of this function to use that resolver's initID instead of converting a
 // dsref yet again.
@@ -376,9 +378,12 @@ func (book *Book) RefToInitID(ref dsref.Ref) (string, error) {
 		return "", ErrNoLogbook
 	}
 
-	// RetrieveRef is inefficient, iterates the top two levels of the logbook.
+	// NOTE: Bad to retrieve the background context here, but HeadRef just ignores it anyway.
+	ctx := context.Background()
+
+	// HeadRef is inefficient, iterates the top two levels of the logbook.
 	// Runs in O(M*N) where M = number of users, N = number of datasets per user.
-	dsLog, err := book.store.RetrieveRef(ref.Username, ref.Name)
+	dsLog, err := book.store.HeadRef(ctx, ref.Username, ref.Name)
 	if err != nil {
 		if err == oplog.ErrNotFound {
 			return "", ErrNotFound
@@ -388,18 +393,23 @@ func (book *Book) RefToInitID(ref dsref.Ref) (string, error) {
 	return dsLog.ID(), nil
 }
 
-// Return a strongly typed AuthorLog, top level of the logbook.
-func (book Book) authorLog(ctx context.Context) (*AuthorLog, error) {
-	lg, err := book.store.Log(ctx, book.authorID)
+// Return a strongly typed UserLog for the given profileID. Top level of the logbook.
+func (book Book) userLog(ctx context.Context, profileID string) (*UserLog, error) {
+	return nil, fmt.Errorf("TODO(dustmop): Not Implemented")
+}
+
+// Return a strongly typed UserLog for the author of the logbook.
+func (book Book) authorLog(ctx context.Context) (*UserLog, error) {
+	lg, err := book.store.Get(ctx, book.authorID)
 	if err != nil {
 		return nil, err
 	}
-	return &AuthorLog{l: lg}, nil
+	return &UserLog{l: lg}, nil
 }
 
 // Return a strongly typed DatasetLog. Uses DatasetModel model.
-func (book *Book) datasetLog(initID string) (*DatasetLog, error) {
-	lg, err := book.store.RetrieveByInitID(initID)
+func (book *Book) datasetLog(ctx context.Context, initID string) (*DatasetLog, error) {
+	lg, err := book.store.Get(ctx, initID)
 	if err != nil {
 		return nil, err
 	}
@@ -407,8 +417,8 @@ func (book *Book) datasetLog(initID string) (*DatasetLog, error) {
 }
 
 // Return a strongly typed BranchLog
-func (book *Book) branchLog(initID string) (*BranchLog, error) {
-	lg, err := book.store.RetrieveByInitID(initID)
+func (book *Book) branchLog(ctx context.Context, initID string) (*BranchLog, error) {
+	lg, err := book.store.Get(ctx, initID)
 	if err != nil {
 		return nil, err
 	}
@@ -425,7 +435,7 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, initID string) error {
 	}
 	log.Debugf("WriteDatasetDelete: '%s'", initID)
 
-	dsLog, err := book.datasetLog(initID)
+	dsLog, err := book.datasetLog(ctx, initID)
 	if err != nil {
 		return err
 	}
@@ -453,7 +463,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *datas
 	}
 
 	log.Debugf("WriteVersionSave: %s", initID)
-	branchLog, err := book.branchLog(initID)
+	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
 		return err
 	}
@@ -507,7 +517,7 @@ func (book *Book) WriteVersionAmend(ctx context.Context, initID string, ds *data
 	}
 	log.Debugf("WriteVersionAmend: '%s'", initID)
 
-	branchLog, err := book.branchLog(initID)
+	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
 		return err
 	}
@@ -534,7 +544,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisio
 	}
 	log.Debugf("WriteVersionDelete: %s, revisions: %d", initID, revisions)
 
-	branchLog, err := book.branchLog(initID)
+	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
 		return err
 	}
@@ -573,7 +583,7 @@ func (book *Book) WritePublish(ctx context.Context, initID string, revisions int
 	}
 	log.Debugf("WritePublish: %s, revisions: %d, destinations: %v", initID, revisions, destinations)
 
-	branchLog, err := book.branchLog(initID)
+	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
 		return err
 	}
@@ -598,7 +608,7 @@ func (book *Book) WriteUnpublish(ctx context.Context, initID string, revisions i
 	}
 	log.Debugf("WriteUnpublish: %s, revisions: %d, destinations: %v", initID, revisions, destinations)
 
-	branchLog, err := book.branchLog(initID)
+	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
 		return err
 	}
@@ -626,7 +636,7 @@ func (book Book) ListAllLogs(ctx context.Context) ([]*oplog.Log, error) {
 
 // Log gets a log for a given ID
 func (book Book) Log(ctx context.Context, id string) (*oplog.Log, error) {
-	return book.store.Log(ctx, id)
+	return book.store.Get(ctx, id)
 }
 
 // UserDatasetRef gets a user's log and a dataset reference, the returned log
@@ -675,6 +685,9 @@ func (book Book) UserDatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log,
 //
 // currently all logs are hardcoded to only accept one branch name. This
 // function will always return a single branch
+//
+// TODO(dustmop): Do not add new callers to this, transition away (preferring datasetLog instead),
+// and delete it.
 func (book Book) DatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, error) {
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: ref.Username is required")
@@ -691,6 +704,9 @@ func (book Book) DatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, err
 //
 // currently all logs are hardcoded to only accept one branch name. This
 // function always returns
+//
+// TODO(dustmop): Do not add new callers to this, transition away (preferring branchLog instead),
+// and delete it.
 func (book Book) BranchRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, error) {
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: ref.Username is required")
@@ -824,7 +840,7 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, histor
 	if err != nil {
 		return err
 	}
-	branchLog, err := book.branchLog(initID)
+	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
 		return err
 	}
@@ -854,7 +870,7 @@ func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int) ([
 	if err != nil {
 		return nil, err
 	}
-	branchLog, err := book.branchLog(initID)
+	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
 		return nil, err
 	}

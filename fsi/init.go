@@ -38,7 +38,7 @@ var PrepareToWrite = func(comp component.Component) {
 }
 
 // InitDataset creates a new dataset
-func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
+func (fsi *FSI) InitDataset(p InitParams) (refstr string, err error) {
 	// Create a rollback handler
 	rollback := func() {
 		log.Debug("did rollback InitDataset due to error")
@@ -99,13 +99,13 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return "", err
 	}
 
-	ref := &reporef.DatasetRef{Peername: "me", Name: p.Name}
+	datasetRef := reporef.DatasetRef{Peername: "me", Name: p.Name}
 
 	// Validate dataset name. The `init` command must only be used for creating new datasets.
 	// Make sure a dataset with this name does not exist in your repo.
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, ref); err == nil {
+	if err = repo.CanonicalizeDatasetRef(fsi.repo, &datasetRef); err == nil {
 		// TODO(dlong): Tell user to use `checkout` if the dataset already exists in their repo?
-		return "", fmt.Errorf("a dataset with the name %s already exists in your repo", ref)
+		return "", fmt.Errorf("a dataset with the name %s already exists in your repo", datasetRef)
 	}
 
 	// Derive format from --source-body-path if provided.
@@ -123,8 +123,8 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 
 	// Create the link file, containing the dataset reference.
 	var undo func()
-	if name, undo, err = fsi.CreateLink(targetPath, ref.AliasString()); err != nil {
-		return name, err
+	if refstr, undo, err = fsi.CreateLink(targetPath, datasetRef.AliasString()); err != nil {
+		return refstr, err
 	}
 	// If future steps fail, rollback the link creation.
 	rollback = concatFunc(undo, rollback)
@@ -197,17 +197,22 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		}
 	}
 
-	if _, err = fsi.repo.Logbook().WriteDatasetInit(context.TODO(), ref.Name); err != nil {
+	initID, err := fsi.repo.Logbook().WriteDatasetInit(context.TODO(), datasetRef.Name)
+	if err != nil {
 		if err == logbook.ErrNoLogbook {
 			rollback = func() {}
-			return name, nil
+			return refstr, nil
 		}
-		return name, err
+		return refstr, err
 	}
+
+	// TODO(dustmop): Add initID to dsref.Ref, change the return value of this function to be
+	// a dsref.Ref instead.
+	_ = initID
 
 	// Success, no need to rollback.
 	rollback = nil
-	return name, nil
+	return refstr, nil
 }
 
 // CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not
