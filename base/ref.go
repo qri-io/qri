@@ -142,11 +142,17 @@ func RenameDatasetRef(ctx context.Context, r repo.Repo, curr, next dsref.Ref) (*
 	nextRef.FSIPath = currRef.FSIPath
 
 	// Copy data back to the dsref after canonicalization.
-	// TODO(dlong): Once we fully convert to dsref this will be unnecessary
+	// TODO(dustmop): Once we fully convert to dsref this will be unnecessary
 	curr.Username = currRef.Peername
 	curr.ProfileID = currRef.ProfileID.String()
 
-	err = r.Logbook().WriteDatasetRename(ctx, curr, nextRef.Name)
+	// TODO(dustmop): When we switch to initIDs, use the initID passed to this function, retrieved
+	// from the top-level resolver.
+	initID, err := r.Logbook().RefToInitID(curr)
+	if err != nil && err != logbook.ErrNoLogbook {
+		return nil, err
+	}
+	err = r.Logbook().WriteDatasetRename(ctx, initID, nextRef.Name)
 	if err != nil && err != logbook.ErrNoLogbook {
 		return nil, err
 	}

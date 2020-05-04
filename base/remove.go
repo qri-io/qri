@@ -35,7 +35,14 @@ func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, histor
 	}
 	// Write the deletion to the logbook.
 	book := r.Logbook()
-	if err := book.WriteDatasetDelete(ctx, ref); err == nil {
+	// TODO(dustmop): When we switch to initIDs, use the initID passed to this function, retrieved
+	// from the top-level resolver.
+	initID, err := book.RefToInitID(ref)
+	if err != nil && err != logbook.ErrNoLogbook {
+		log.Debugf("Remove, logbook.RefToInitID failed, error: %s", err)
+		removeErr = err
+	}
+	if err := book.WriteDatasetDelete(ctx, initID); err == nil {
 		didRemove = appendString(didRemove, "logbook")
 	} else {
 		// If the logbook is missing, it's not an error worth stopping for, since we're
@@ -146,7 +153,15 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 		return nil, err
 	}
 
-	err = r.Logbook().WriteVersionDelete(ctx, dest, n)
+	// TODO(dustmop): When we switch to initIDs, use the initID passed to this function, retrieved
+	// from the top-level resolver.
+	initID, err := r.Logbook().RefToInitID(curr)
+	if err == logbook.ErrNoLogbook || err == logbook.ErrNotFound {
+		// If logbook doesn't exist or doesn't know about this dataset, it's not an error, since
+		// we're just trying to remove it. Return successfully.
+		return info, nil
+	}
+	err = r.Logbook().WriteVersionDelete(ctx, initID, n)
 	if err == logbook.ErrNoLogbook {
 		err = nil
 	}

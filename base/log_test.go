@@ -79,14 +79,14 @@ func TestDatasetLogForeign(t *testing.T) {
 	theirRefStr := "them/foreign"
 	otherPeerInfo := testPeers.GetTestPeerInfo(1)
 	foreignBuilder := logbook.NewLogbookTempBuilder(t, otherPeerInfo.PrivKey, "them", fs, theirBookPath)
-	foreignBuilder.DatasetInit(ctx, t, theirRefStr)
 	ref, err := dsref.Parse(theirRefStr)
 	if err != nil {
 		t.Fatal(err)
 	}
+	initID := foreignBuilder.DatasetInit(ctx, t, ref.Name)
 	// NOTE: Need to assign ProfileID because nothing is resolving the username
 	ref.ProfileID = otherPeerInfo.EncodedPeerID
-	foreignBuilder.Commit(ctx, t, ref, "their commit", "QmExample")
+	foreignBuilder.Commit(ctx, t, initID, "their commit", "QmExample")
 	foreignBook := foreignBuilder.Logbook()
 	foreignLog, err := foreignBook.UserDatasetRef(ctx, ref)
 	if err != nil {

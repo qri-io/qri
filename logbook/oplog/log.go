@@ -81,7 +81,7 @@ type Logstore interface {
 	// Log MAY return children of a log. If the returned log.Log value is
 	// populated, it MUST contain all children of the log.
 	// use Logstore.Children or Logstore.Descendants to populate missing children
-	Log(ctx context.Context, id string) (*Log, error)
+	Get(ctx context.Context, id string) (*Log, error)
 
 	// get the immediate descendants of a log, using the given log as an outparam.
 	// Children must only mutate Logs field of the passed-in log pointer
@@ -128,7 +128,7 @@ func (j *Journal) ID() string {
 
 // SetID assigns the book identifier
 func (j *Journal) SetID(ctx context.Context, id string) error {
-	if _, err := j.Log(ctx, id); err != nil {
+	if _, err := j.Get(ctx, id); err != nil {
 		return err
 	}
 
@@ -142,7 +142,7 @@ func (j *Journal) MergeLog(ctx context.Context, l *Log) error {
 		return fmt.Errorf("oplog: log ID cannot be empty")
 	}
 
-	found, err := j.Log(ctx, l.ID())
+	found, err := j.Get(ctx, l.ID())
 	if err != nil {
 		if err == ErrNotFound {
 			j.logs = append(j.logs, l)
@@ -191,8 +191,8 @@ func (j *Journal) RemoveLog(ctx context.Context, names ...string) error {
 	return ErrNotFound
 }
 
-// Log fetches a log for a given ID
-func (j *Journal) Log(_ context.Context, id string) (*Log, error) {
+// Get fetches a log for a given ID
+func (j *Journal) Get(_ context.Context, id string) (*Log, error) {
 	for _, lg := range j.logs {
 		if l, err := lg.Log(id); err == nil {
 			return l, nil
@@ -247,7 +247,7 @@ func (j *Journal) Children(ctx context.Context, l *Log) error {
 // Descendants gets all descentants of a log & assigns the results to the given
 // Log parameter, setting only the Logs field
 func (j *Journal) Descendants(ctx context.Context, l *Log) error {
-	got, err := j.Log(ctx, l.ID())
+	got, err := j.Get(ctx, l.ID())
 	if err != nil {
 		return err
 	}

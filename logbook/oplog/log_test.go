@@ -87,7 +87,7 @@ func TestJournalMerge(t *testing.T) {
 		t.Errorf("top level log length shouldn't change after merging a child log. expected: %d, got: %d", expectLen, gotLen)
 	}
 
-	got, err := tr.Journal.Log(ctx, a.ID())
+	got, err := tr.Journal.Get(ctx, a.ID())
 	if err != nil {
 		t.Error(err)
 	}
@@ -226,13 +226,13 @@ func TestLogGetID(t *testing.T) {
 	tr.AddAuthorLogTree(t)
 	ctx := tr.Ctx
 
-	got, err := tr.Journal.Log(ctx, "nonsense")
+	got, err := tr.Journal.Get(ctx, "nonsense")
 	if err != ErrNotFound {
 		t.Errorf("expected not-found error for missing ID. got: %s", err)
 	}
 
 	root := tr.Journal.logs[0]
-	got, err = tr.Journal.Log(ctx, root.ID())
+	got, err = tr.Journal.Get(ctx, root.ID())
 	if err != nil {
 		t.Errorf("unexpected error fetching root ID: %s", err)
 	} else if !got.Head().Equal(root.Head()) {
@@ -240,7 +240,7 @@ func TestLogGetID(t *testing.T) {
 	}
 
 	child := root.Logs[0]
-	got, err = tr.Journal.Log(ctx, child.ID())
+	got, err = tr.Journal.Get(ctx, child.ID())
 	if err != nil {
 		t.Errorf("unexpected error fetching child ID: %s", err)
 	}
