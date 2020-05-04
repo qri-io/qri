@@ -32,8 +32,15 @@ func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) 
 	}
 	if ds.Viz != nil && ds.Viz.ScriptFile() == nil {
 		if err = ds.Viz.OpenScriptFile(ctx, fsys); err != nil {
-			log.Debug(err)
-			return
+			// NOTE: Quick fix to avoid "merkledag: not found" errors that happen for new users.
+			// Many datasets have default viz that point to an ipfs path that cloud will deliver,
+			// but the pointed at ipfs file does not exist on the user's machine.
+			if isMerkleDagError(err) {
+				err = nil
+			} else {
+				log.Debug(err)
+				return
+			}
 		}
 	}
 
@@ -71,6 +78,10 @@ func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) 
 		}
 	}
 	return
+}
+
+func isMerkleDagError(err error) bool {
+	return err.Error() == "merkledag: not found"
 }
 
 // CloseDataset ensures all open dataset files are closed
