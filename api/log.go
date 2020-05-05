@@ -60,14 +60,15 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 
 	local := r.FormValue("local") == "true"
 	remoteName := r.FormValue("remote")
+	pull := r.FormValue("pull") == "true"
 
-	if local && remoteName != "" {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("cannot use the 'local' and 'remote' params at the same time"))
+	if local && (remoteName != "" || pull) {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("cannot use the 'local' param with either the 'remote' or 'pull' params"))
 		return
 	}
 
 	res := []DatasetLogItem{}
-	if remoteName == "" {
+	if remoteName == "" && !pull {
 		params := &lib.LogParams{
 			Ref:        args.String(),
 			ListParams: lp,

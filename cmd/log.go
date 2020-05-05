@@ -58,7 +58,8 @@ on the network at a remote.
 	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
 	cmd.Flags().StringVarP(&o.RemoteName, "remote", "", "", "name of remote to fetch from, disables local actions. `registry` will search the default qri registry")
-	cmd.Flags().BoolVarP(&o.Local, "local", "", false, "only fetch local logs, disables network actions")
+	cmd.Flags().BoolVarP(&o.Local, "local", "l", false, "only fetch local logs, disables network actions")
+	cmd.Flags().BoolVarP(&o.Pull, "pull", "p", false, "fetch the latest logs from the network")
 
 	return cmd
 }
@@ -71,6 +72,7 @@ type LogOptions struct {
 	Page     int
 	Refs     *RefSelect
 	Local    bool
+	Pull     bool
 
 	// remote fetching specific flags
 	RemoteName string
@@ -84,8 +86,8 @@ type LogOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *LogOptions) Complete(f Factory, args []string) (err error) {
-	if o.Local && o.RemoteName != "" {
-		return errors.New(err, "cannot use 'local' and 'remote' flags at the same time")
+	if o.Local && (o.RemoteName != "" || o.Pull) {
+		return errors.New(err, "cannot use 'local' flag with either the 'remote' or 'pull' flags")
 	}
 
 	if o.Refs, err = GetCurrentRefSelect(f, args, -1, nil); err != nil {
@@ -113,7 +115,7 @@ func (o *LogOptions) Run() error {
 
 	ref := o.Refs.RefList()[0]
 	refs := []DatasetLogItem{}
-	if o.RemoteName == "" {
+	if o.RemoteName == "" && !o.Pull {
 		p := &lib.LogParams{
 			Ref: ref,
 			ListParams: lib.ListParams{
@@ -139,7 +141,7 @@ func (o *LogOptions) Run() error {
 
 	// TODO(ramfox): currently, at the lib level, the empty string indicates that we
 	// should be fetching from the registry by default.
-	if (o.RemoteName == "registry") {
+	if o.RemoteName == "registry" {
 		o.RemoteName = ""
 	}
 
