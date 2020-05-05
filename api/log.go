@@ -92,6 +92,13 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	// TODO(ramfox): currently, at the lib level, the empty string indicates that we
+	// should be fetching from the registry by default.
+	if remoteName == "registry" {
+		remoteName = ""
+	}
+
 	p := &lib.FetchParams{
 		Ref:        args.String(),
 		RemoteName: remoteName,

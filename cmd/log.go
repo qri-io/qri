@@ -57,7 +57,7 @@ on the network at a remote.
 	// cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
 	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
-	cmd.Flags().StringVarP(&o.RemoteName, "remote", "", "", "name of remote to fetch to")
+	cmd.Flags().StringVarP(&o.RemoteName, "remote", "", "", "name of remote to fetch from, disables local actions. `registry` will search the default qri registry")
 	cmd.Flags().BoolVarP(&o.Local, "local", "", false, "only fetch local logs, disables network actions")
 
 	return cmd
@@ -135,6 +135,12 @@ func (o *LogOptions) Run() error {
 			makeItemsAndPrint(refs, o.Out, page)
 			return nil
 		}
+	}
+
+	// TODO(ramfox): currently, at the lib level, the empty string indicates that we
+	// should be fetching from the registry by default.
+	if (o.RemoteName == "registry") {
+		o.RemoteName = ""
 	}
 
 	p := lib.FetchParams{
