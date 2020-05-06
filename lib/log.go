@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -31,7 +32,9 @@ func NewLogMethods(inst *Instance) *LogMethods {
 type LogParams struct {
 	ListParams
 	// Reference to data to fetch history for
-	Ref string
+	Ref    string
+	Pull   bool
+	Remote string
 }
 
 // DatasetLogItem is a line item in a dataset logbook
@@ -44,20 +47,6 @@ func (m *LogMethods) Log(params *LogParams, res *[]DatasetLogItem) error {
 	}
 	ctx := context.TODO()
 
-	if params.Ref == "" {
-		return repo.ErrEmptyRef
-	}
-	ref, err := repo.ParseDatasetRef(params.Ref)
-	if err != nil {
-		return fmt.Errorf("'%s' is not a valid dataset reference", params.Ref)
-	}
-	// we only canonicalize the profile here, full dataset canonicalization
-	// currently relies on repo's refstore, and the logbook may be a superset
-	// of the refstore
-	if err = repo.CanonicalizeProfile(m.inst.node.Repo, &ref); err != nil {
-		return err
-	}
-
 	// ensure valid limit value
 	if params.Limit <= 0 {
 		params.Limit = 25
@@ -67,8 +56,70 @@ func (m *LogMethods) Log(params *LogParams, res *[]DatasetLogItem) error {
 		params.Offset = 0
 	}
 
-	*res, err = base.DatasetLog(ctx, m.inst.node.Repo, ref, params.Limit, params.Offset, true)
-	return err
+	if params.Pull {
+		switch params.Remote {
+		case "":
+			params.Remote = "network"
+		case "local":
+			return fmt.Errorf("cannot pull with only local source")
+		}
+	}
+
+	ref, source, err := m.inst.ParseAndResolveRef(ctx, params.Ref, params.Remote)
+	if err != nil {
+		return err
+	}
+
+	if source == "" {
+		// local resolution
+		*res, err = base.DatasetLog(ctx, m.inst.repo, reporef.RefFromDsref(ref), params.Limit, params.Offset, true)
+		return err
+	}
+
+	logs, err := m.inst.remoteClient.FetchLogs(ctx, ref, source)
+	if err != nil {
+		return err
+	}
+
+	// TODO (b5) - FetchLogs currently returns oplogs arranged in user > dataset > branch
+	// hierarchy, and we need to descend to the branch oplog to get commit history
+	// info. It might be nicer if FetchLogs instead returned the branch oplog, but
+	// with .Parent() fields loaded & connected
+	if len(logs.Logs) > 0 {
+		logs = logs.Logs[0]
+		if len(logs.Logs) > 0 {
+			logs = logs.Logs[0]
+		}
+	}
+
+	items := logbook.ConvertLogsToItems(logs, ref)
+	log.Debugf("found %d items: %v", len(items), items)
+	if len(items) == 0 {
+		return repo.ErrNoHistory
+	}
+
+	for i, item := range items {
+		local, hasErr := m.inst.Repo().Store().Has(ctx, item.Path)
+		if hasErr != nil {
+			continue
+		}
+		items[i].Foreign = !local
+
+		if local {
+			if ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), item.Path); err == nil {
+				if ds.Commit != nil {
+					items[i].CommitMessage = ds.Commit.Message
+				}
+			}
+		}
+	}
+
+	// TODO (b5) - store logs on pull
+	// if params.Pull {
+	// }
+
+	*res = items
+	return nil
 }
 
 // RefListParams encapsulates parameters for requests to a single reference
