@@ -65,11 +65,6 @@ func (m *MemResolver) ResolveRef(ctx context.Context, ref *Ref) (string, error) 
 		return "", ErrNotFound
 	}
 
-	// Handle the "me" convenience shortcut
-	if ref.Username == "me" {
-		ref.Username = m.Username
-	}
-
 	id := m.RefMap[ref.Alias()]
 	resolved, ok := m.IDMap[id]
 	if !ok {
@@ -82,4 +77,61 @@ func (m *MemResolver) ResolveRef(ctx context.Context, ref *Ref) (string, error) 
 	}
 
 	return "", nil
+}
+
+type parallelResolver []Resolver
+
+func (rs parallelResolver) ResolveRef(ctx context.Context, ref *Ref) (string, error) {
+	responses := make(chan struct {
+		Ref    Ref
+		Source string
+	})
+	errs := make(chan error)
+
+	run := func(ctx context.Context, r Resolver) {
+		if r == nil {
+			errs <- ErrNotFound
+			return
+		}
+
+		cpy := ref.Copy()
+		source, err := r.ResolveRef(ctx, &cpy)
+		if err != nil {
+			errs <- err
+			return
+		}
+
+		responses <- struct {
+			Ref    Ref
+			Source string
+		}{cpy, source}
+	}
+
+	attempts := len(rs)
+	for _, r := range rs {
+		go run(ctx, r)
+	}
+
+	for {
+		select {
+		case res := <-responses:
+			*ref = res.Ref
+			return res.Source, nil
+		case err := <-errs:
+			attempts--
+			if !errors.Is(err, ErrNotFound) {
+				return "", err
+			} else if attempts == 0 {
+				return "", ErrNotFound
+			}
+		case <-ctx.Done():
+			return "", ctx.Err()
+		}
+	}
+}
+
+// ParallelResolver composes multiple resolvers into one resolver that runs
+// in parallel when called, returning the first valid response
+func ParallelResolver(resolvers ...Resolver) Resolver {
+	return parallelResolver(resolvers)
 }

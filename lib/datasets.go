@@ -185,13 +185,12 @@ func (m *DatasetMethods) ListRawRefs(p *ListParams, text *string) error {
 // GetParams defines parameters for looking up the head or body of a dataset
 type GetParams struct {
 	// Refstr to get, representing a dataset ref to be parsed
-	Refstr string
+	Refstr   string
+	Selector string
 
 	// read from a filesystem link instead of stored version
 	Format       string
 	FormatConfig dataset.FormatConfig
-
-	Selector string
 
 	Limit, Offset int
 	All           bool
@@ -200,6 +199,7 @@ type GetParams struct {
 	Outfile string
 	// whether to generate a filename from the dataset name instead
 	GenFilename bool
+	Remote      string
 }
 
 // GetResult combines data with it's hashed path
@@ -230,7 +230,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 	ctx := context.TODO()
 
 	var ds *dataset.Dataset
-	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Refstr)
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Refstr, p.Remote)
 	if err != nil {
 		return err
 	}

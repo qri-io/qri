@@ -274,19 +274,6 @@ func TestResolveRef(t *testing.T) {
 	if diff := cmp.Diff(expect, resolveMe); diff != "" {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
-
-	resolveMe = dsref.Ref{
-		Username: "me",
-		Name:     tr.WorldBankRef().Name,
-	}
-
-	if _, err := tr.Book.ResolveRef(tr.Ctx, &resolveMe); err != nil {
-		t.Error(err)
-	}
-
-	if diff := cmp.Diff(expect, resolveMe); diff != "" {
-		t.Errorf("'me' shortcut result mismatch. (-want +got):\n%s", diff)
-	}
 }
 
 func TestBookLogEntries(t *testing.T) {

@@ -215,11 +215,6 @@ func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 		return "", dsref.ErrNotFound
 	}
 
-	// Handle the "me" convenience shortcut
-	if ref.Username == "me" {
-		ref.Username = book.authorName
-	}
-
 	log, err := book.DatasetRef(ctx, *ref)
 	if err != nil {
 		return "", dsref.ErrNotFound

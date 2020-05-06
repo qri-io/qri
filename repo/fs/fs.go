@@ -88,10 +88,6 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 		return "", dsref.ErrNotFound
 	}
 
-	if ref.Username == "me" {
-		ref.Username = r.profile.Peername
-	}
-
 	match, err := r.GetRef(reporef.RefFromDsref(*ref))
 	if err != nil {
 		return "", dsref.ErrNotFound

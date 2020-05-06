@@ -13,11 +13,8 @@ import (
 	"github.com/qri-io/qri/fsi"
 )
 
-// assert at compile time that instance is a Resolver
-var _ dsref.Resolver = (*Instance)(nil)
-
 // ParseAndResolveRef combines reference parsing and resolution
-func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr string) (dsref.Ref, string, error) {
+func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
 	ref, err := dsref.Parse(refStr)
 
 	// bad case references are allowed-but-warned for backwards compatibility
@@ -28,39 +25,81 @@ func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr string) (ds
 		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
 	}
 
-	source, err := inst.ResolveRef(ctx, &ref)
-	return ref, source, err
+	resolvedSource, err := inst.ResolveReference(ctx, &ref, source)
+	return ref, resolvedSource, err
 }
 
-// ResolveRef finds the identifier for a dataset reference
-func (inst *Instance) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
+// ResolveReference finds the identifier & HEAD path for a dataset reference.
+// the source parameter determines which subsystems of Qri to use when
+func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, source string) (string, error) {
 	if inst == nil {
 		return "", dsref.ErrNotFound
 	}
 
-	resolvers := []dsref.Resolver{
-		// local resolution
-		inst.dscache,
-		inst.repo,
-		inst.logbook,
-
-		// network resolution
-		// inst.registry,
-		// inst.QriNode
+	// Handle the "me" convenience shortcut
+	if ref.Username == "me" {
+		// TODO (b5) - this should be reading from a better place, and erroring if
+		// a canonical profile cannot be found for whatever reason
+		ref.Username = inst.cfg.Profile.Peername
 	}
 
-	for _, r := range resolvers {
-		source, err := r.ResolveRef(ctx, ref)
-		if err == nil {
-			return source, nil
-		} else if errors.Is(err, dsref.ErrNotFound) {
-			continue
+	resolvers, err := inst.resolveSources(source)
+	if err != nil {
+		return "", err
+	}
+
+	for _, resolver := range resolvers {
+		resolvedSource, err := resolver.ResolveRef(ctx, ref)
+		if err != nil {
+			if errors.Is(err, dsref.ErrNotFound) {
+				continue
+			} else {
+				return "", err
+			}
 		}
 
-		return source, err
+		return resolvedSource, nil
 	}
 
 	return "", dsref.ErrNotFound
+}
+
+func (inst *Instance) resolveSources(source string) ([]dsref.Resolver, error) {
+	switch source {
+	case "":
+		return []dsref.Resolver{
+			inst.dscache,
+			inst.repo,
+			dsref.ParallelResolver(
+				inst.logbook,
+				// inst.registry,
+				// inst.node,
+			),
+		}, nil
+	case "local":
+		return []dsref.Resolver{
+			inst.dscache,
+			inst.repo,
+			inst.logbook,
+		}, nil
+	case "network":
+		return nil, fmt.Errorf("network resolution not finished")
+		// return dsref.ParallelResolver(
+		// 	inst.registry,
+		// 	// inst.node,
+		// ), nil
+	case "registry":
+		return nil, fmt.Errorf("network resolution not finished")
+		// return []dsref.Resolver{inst.registry}, nil
+	case "p2p":
+		return nil, fmt.Errorf("p2p network cannot be used to resolve references")
+	}
+
+	// TODO (b5) - sources could be one of:
+	// * configured remote name
+	// * peername
+	// * peer multiaddress
+	return nil, fmt.Errorf("unknown source: %q", source)
 }
 
 // loadDataset fetches, derefences and opens a dataset from a reference
