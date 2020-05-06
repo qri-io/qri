@@ -83,14 +83,14 @@ func (inst *Instance) resolveSources(source string) ([]dsref.Resolver, error) {
 			inst.logbook,
 		}, nil
 	case "network":
-		return nil, fmt.Errorf("network resolution not finished")
-		// return dsref.ParallelResolver(
-		// 	inst.registry,
-		// 	// inst.node,
-		// ), nil
+		return []dsref.Resolver{
+			dsref.ParallelResolver(
+				inst.registry,
+				// inst.node,
+			),
+		}, nil
 	case "registry":
-		return nil, fmt.Errorf("network resolution not finished")
-		// return []dsref.Resolver{inst.registry}, nil
+		return []dsref.Resolver{inst.registry}, nil
 	case "p2p":
 		return nil, fmt.Errorf("p2p network cannot be used to resolve references")
 	}
