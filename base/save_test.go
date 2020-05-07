@@ -230,8 +230,9 @@ func TestCreateDataset(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	dsName := "foo"
 	ds := &dataset.Dataset{
-		Name:   "foo",
+		Name:   dsName,
 		Meta:   &dataset.Meta{Title: "test"},
 		Commit: &dataset.Commit{Title: "hello"},
 		Structure: &dataset.Structure{
@@ -257,6 +258,9 @@ func TestCreateDataset(t *testing.T) {
 		t.Errorf("ref length mismatch. expected 1, got: %d", len(refs))
 	}
 
+	// Need to reset because CreateDataset clears the name before writing to ipfs. Remove the
+	// reliance on CreateDataset needing the ds.Name field.
+	ds.Name = dsName
 	ds.Meta.Title = "an update"
 	ds.PreviousPath = ref.Path
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
@@ -275,6 +279,9 @@ func TestCreateDataset(t *testing.T) {
 		t.Errorf("ref length mismatch. expected 1, got: %d", len(refs))
 	}
 
+	// Need to reset because CreateDataset clears the name before writing to ipfs. Remove the
+	// reliance on CreateDataset needing the ds.Name field.
+	ds.Name = dsName
 	ds.PreviousPath = ref.Path
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 	prev = ref.Dataset

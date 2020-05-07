@@ -19,23 +19,13 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// PrepareDatasetSave prepares a save by loading the previous commit, opening the body file,
+// PrepareHeadDatasetVersion prepares to save by loading the head commit, opening the body file,
 // and constructing a mutable version that has no transform or commit.
-func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string) (prev, mutable *dataset.Dataset, prevPath string, err error) {
-	// Though a name is not required (it may be inferred), a peername must be set
-	if peername == "" {
-		return nil, nil, "", fmt.Errorf("peername required to prepare dataset")
-	}
-
+func PrepareHeadDatasetVersion(ctx context.Context, r repo.Repo, peername, name string) (curr, mutable *dataset.Dataset, currPath string, err error) {
 	// TODO(dustmop): We should not be calling CanonicalizeDatasetRef here. It's already been
 	// called up in lib, which means that we've thrown information away. Furthermore, we
-	// should be relying on stable identifiers this low down the stack. Instead, pass the initID
-	// down to this function. Also pass down a Resolver interface, and use that to look up the
-	// previous version.
-	// If we're using a dscache, we can use the future codepath:
-	//   rsolv.GetInfo(initID)
-	// otherwise, use the old technique of resolving a dataset ref:
-	//   rsolv.GetInfoByDsref(ref)
+	// should be relying on stable identifiers this low down the stack. Instead, load the dataset
+	// head (if it exists) by using the initID, and pass it into base.Save.
 
 	// Determine if the save is creating a new dataset or updating an existing dataset by
 	// seeing if the name can canonicalize to a repo that we know about
@@ -44,26 +34,30 @@ func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string)
 		return &dataset.Dataset{}, &dataset.Dataset{}, "", nil
 	}
 
-	prevPath = lookup.Path
-	log.Debugf("loading prevPath: %s. lookup result: %v", prevPath, lookup)
+	currPath = lookup.Path
+	log.Debugf("loading currPath: %s. lookup result: %v", currPath, lookup)
 
-	if prev, err = dsfs.LoadDataset(ctx, r.Store(), prevPath); err != nil {
+	if curr, err = dsfs.LoadDataset(ctx, r.Store(), currPath); err != nil {
 		return
 	}
-	if prev.BodyPath != "" {
+	if curr.BodyPath != "" {
 		var body qfs.File
-		body, err = dsfs.LoadBody(ctx, r.Store(), prev)
+		body, err = dsfs.LoadBody(ctx, r.Store(), curr)
 		if err != nil {
 			return
 		}
-		prev.SetBodyFile(body)
+		curr.SetBodyFile(body)
 	}
 
-	if mutable, err = dsfs.LoadDataset(ctx, r.Store(), prevPath); err != nil {
+	// Load a mutable copy of the dataset because most of the save path assuming we are doing
+	// a patch update to the current head, and not a full replacement.
+	if mutable, err = dsfs.LoadDataset(ctx, r.Store(), currPath); err != nil {
 		return
 	}
 
-	// remove the Transform & previous commit
+	// TODO(dustmop): Stop removing the transform once we move to apply, and untangle the
+	// save command from applying a transform.
+	// remove the Transform & commit
 	// transform & commit must be created from scratch with each new version
 	mutable.Transform = nil
 	mutable.Commit = nil
@@ -71,14 +65,13 @@ func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string)
 }
 
 // MaybeInferName infer a name for the dataset if none is set
-func MaybeInferName(ds *dataset.Dataset) bool {
+func MaybeInferName(ds *dataset.Dataset) string {
 	if ds.Name == "" {
 		filename := ds.BodyFile().FileName()
 		basename := strings.TrimSuffix(filename, filepath.Ext(filename))
-		ds.Name = dsref.GenerateName(basename, "dataset_")
-		return true
+		return dsref.GenerateName(basename, "dataset_")
 	}
-	return false
+	return ""
 }
 
 // InferValues populates any missing fields that must exist to create a snapshot

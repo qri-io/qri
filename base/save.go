@@ -28,17 +28,24 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 		pro      *profile.Profile
 	)
 
-	// TODO(dlong): Set this in the caller, return err if no peername, add test for it
-	// Actually, is it possible to save a dataset using any peername other than "me" or
-	// the user's own username? Should we just get the current user's name from the
-	// profile, and (within `base`) disallow "me" entirely?
-	if changes.Peername == "" {
-		changes.Peername = "me"
+	// TODO(dustmop): In a future change, move everything related to naming (from here until the
+	// sw.DryRun check) up into a higher function. This function should take an initID instead,
+	// and should not inspect changes.Peername or changes.Name at all.
+	// All that logbook needs to create an initID is a dataset name, so naming must move up in
+	// order to have accomplish this goal.
+
+	if pro, err = r.Profile(); err != nil {
+		return
+	}
+	peername := pro.Peername
+	dsName := changes.Name
+
+	inferredName := MaybeInferName(changes)
+	if inferredName != "" {
+		dsName = inferredName
 	}
 
-	isInferredName := MaybeInferName(changes)
-
-	prev, mutable, prevPath, err := PrepareDatasetSave(ctx, r, changes.Peername, changes.Name)
+	prev, mutable, prevPath, err := PrepareHeadDatasetVersion(ctx, r, peername, dsName)
 	if err != nil {
 		log.Errorf("preparing dataset: %s", err)
 		return
@@ -46,12 +53,12 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 
 	if prevPath != "" {
 		log.Debugf("loading previous path: %s", prevPath)
-		if sw.NewName && isInferredName {
+		if sw.NewName && inferredName != "" {
 			// Using --new flag, name was inferred, but it's already in use. Because the --new
 			// flag was given, user is requesting we invent a unique name. Increment a counter
 			// on the name until we find something that's available.
-			changes.Name = GenerateAvailableName(r, changes.Peername, changes.Name)
-			prev, mutable, prevPath, err = PrepareDatasetSave(ctx, r, changes.Peername, changes.Name)
+			dsName = GenerateAvailableName(r, peername, dsName)
+			prev, mutable, prevPath, err = PrepareHeadDatasetVersion(ctx, r, peername, dsName)
 			if err != nil {
 				return
 			}
@@ -60,7 +67,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 			// This is an error.
 			// TODO(dlong): Add a test for this case.
 			return ref, fmt.Errorf("dataset name has a previous version, cannot make new dataset")
-		} else if isInferredName {
+		} else if inferredName != "" {
 			// Name was inferred, and has previous version. Unclear if the user meant to create
 			// a brand new dataset or if they wanted to add a new version to the existing dataset.
 			// Raise an error recommending one of these course of actions.
@@ -68,9 +75,8 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 		}
 	}
 
-	if pro, err = r.Profile(); err != nil {
-		return
-	}
+	// TODO(dustmop): In a future change, move code related to transform higher up, as we
+	// untangle transform from save, and use apply instead.
 
 	if sw.DryRun {
 		str.PrintErr("🏃🏽‍♀️ dry run\n")
@@ -135,15 +141,11 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 		return
 	}
 
-	// TODO(dlong): Remove this, stop generating a default viz.
-	// add a default viz if one is needed
-	if sw.ShouldRender {
-		// MaybeAddDefaultViz(changes)
-	}
-
 	// let's make history, if it exists
 	changes.PreviousPath = prevPath
 
+	// TODO(dustmop): Remove the need to assign this. See inside of CreateDataset for details
+	changes.Name = dsName
 	return CreateDataset(ctx, r, str, changes, prev, sw)
 }
 
@@ -161,12 +163,19 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		log.Debugf("getting repo profile: %s", err)
 		return
 	}
-
+	// TODO(dustmop): Remove the dependence on the ds having an assigned Name. It is only
+	// needed for updating the refstore. Either pass in the reference needed to update the refstore,
+	// or move the refstore update out of this function.
+	dsName := ds.Name
+	if dsName == "" {
+		return ref, fmt.Errorf("cannot create dataset without a name")
+	}
 	if err = Drop(ds, sw.Drop); err != nil {
 		log.Debugf("dropping components: %s", err)
 		return ref, err
 	}
 
+	// TODO(dustmop): ValidateDataset relies upon having ds.Name set. Remove that assumption.
 	if err = ValidateDataset(ds); err != nil {
 		log.Debugf("ValidateDataset: %s", err)
 		return
@@ -180,7 +189,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		prev := reporef.DatasetRef{
 			ProfileID: pro.ID,
 			Peername:  pro.Peername,
-			Name:      ds.Name,
+			Name:      dsName,
 			Path:      ds.PreviousPath,
 		}
 
@@ -189,10 +198,12 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		_ = r.DeleteRef(prev)
 	}
 
+	// TODO(dustmop): Reference is created here in order to update refstore. As we move to initID
+	// and dscache, this will no longer be necessary, updating logbook will be enough.
 	ref = reporef.DatasetRef{
 		ProfileID: pro.ID,
 		Peername:  pro.Peername,
-		Name:      ds.Name,
+		Name:      dsName,
 		Path:      path,
 	}
 
@@ -202,22 +213,22 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 			return
 		}
 
-		ds.ProfileID = pro.ID.String()
-		ds.Peername = pro.Peername
-		ds.Path = path
-
 		// TODO(dustmop): When we switch to initIDs, use the initID passed to this function,
 		// retrieved from the top-level resolver.
 		// Whether there is a previous version is equivalent to whether we have an initID coming
 		// into this function.
-		initID, err := r.Logbook().RefToInitID(dsref.Ref{Username: ds.Peername, Name: ds.Name})
+		initID, err := r.Logbook().RefToInitID(dsref.Ref{Username: pro.Peername, Name: dsName})
 		if err == logbook.ErrNotFound {
 			// If dataset does not exist yet, initialize with the given name
-			initID, err = r.Logbook().WriteDatasetInit(ctx, ds.Name)
+			initID, err = r.Logbook().WriteDatasetInit(ctx, dsName)
 			if err != nil {
 				return ref, err
 			}
 		}
+		// TODO(dustmop): Not checking the error return from RefToInitID. That function should
+		// return an error if the dataset name is an empty string, but this breaks lots of tests,
+		// because many tests rely on sending datasets with empty names.
+
 		err = r.Logbook().WriteVersionSave(ctx, initID, ds)
 		if err != nil && err != logbook.ErrNoLogbook {
 			return ref, err

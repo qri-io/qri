@@ -214,7 +214,7 @@ func TestSaveThenOverrideMetaComponent(t *testing.T) {
 	actual := run.DatasetMarshalJSON(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with the meta replaced by meta_override.yaml.
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title","path":"/ipfs/QmNXFe16gtuauonvyZMLRc412bR6obpq27LKKdPFzSe9FV","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"meta updated title"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmVNWUzEWmCN4fnedTgBL1smjyjk5N5qFYTU1eLhfXAr5e","peername":"me","previousPath":"/ipfs/QmdAUD4QA5ALCNcimo236cF4VzTE5vFT5rQTmhm5F3V7oc","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title","path":"/ipfs/QmNXFe16gtuauonvyZMLRc412bR6obpq27LKKdPFzSe9FV","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"meta updated title"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmXQsnFQ1GjR9opSFCsWwowFLWoBBypj4H3MTigkCDEAD2","previousPath":"/ipfs/QmVWhAmaNkPoTmm8AcPcPcj4BA1Edpe2bN7j1ms9oMYpq7","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -238,7 +238,7 @@ func TestSaveWithBodyThenAddMetaComponent(t *testing.T) {
 	actual := run.DatasetMarshalJSON(t, dsPath)
 
 	// This version has a commit message about the meta being added
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta added","path":"/ipfs/QmP6DX3RBb6Nqcmyt5jz3YUhXvJ4931rwG2BPNE1KZibHZ","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"meta added"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmUzaqwiMFz5jBLV2E6ZjDKsCYY92mMaZ4ahJbm29Srxkk","peername":"me","previousPath":"/ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta added","path":"/ipfs/QmP6DX3RBb6Nqcmyt5jz3YUhXvJ4931rwG2BPNE1KZibHZ","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"meta added"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmcoPxrTSTckK1x5UGPnFk9XzBQGFL99cQvpHxKEc5uwbY","previousPath":"/ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -262,7 +262,7 @@ func TestSaveWithBodyThenAddMetaAndSmallBodyChange(t *testing.T) {
 	actual := run.DatasetMarshalJSON(t, dsPath)
 
 	// This version has a commit message about the meta being added and body changing
-	expect := `{"bodyPath":"/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta added\nbody:\n\tchanged by 54%","path":"/ipfs/QmZy4BMhRizbAmQwP3ibHJLiasq31cVV9UKyAMxJNZ2cG7","qri":"cm:0","signature":"K/01QGH9pPdWigsVON/0INfeWWpoeN6ad97bBSpuRC050dyOP/086eHz19lWX6wZ0T0lFvViCEsq3XsOGrQ4a+BFxS5ut661uQxuuIE+40VsJ42XOGj1j1Y0XKl2bACGXV5MT0cpMYgrHBV2kgr/aliAi0SgW5ZbFukAR2Vnvjn37zTwLtVarTq1zFOOKuaLD3maJ4+5rgVEFErJCORxrCmQhiJt3hqwVzf0+kG65Y81iY6qnqiYjf94LgKFH8Nmq0Y7bdG02stxHtVtLMvea3nO8B/tNITgS1NolflAgIaJc6ylU4TNb1Z2Q3L63P6fRUf39E8cLD8631o6jWkWew==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"updated meta and body"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmUBv1kPEBgTdQER7iGDby8BazQBjeoE2Wkj1j26Ny7Xuf","peername":"me","previousPath":"/ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z","qri":"ds:0","structure":{"checksum":"QmSa4i985cF3dxNHxD5mSN7c6q1eYa83uNo1pLRmPZgTsa","depth":2,"errCount":1,"entries":18,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":532,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
+	expect := `{"bodyPath":"/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta added\nbody:\n\tchanged by 54%","path":"/ipfs/QmZy4BMhRizbAmQwP3ibHJLiasq31cVV9UKyAMxJNZ2cG7","qri":"cm:0","signature":"K/01QGH9pPdWigsVON/0INfeWWpoeN6ad97bBSpuRC050dyOP/086eHz19lWX6wZ0T0lFvViCEsq3XsOGrQ4a+BFxS5ut661uQxuuIE+40VsJ42XOGj1j1Y0XKl2bACGXV5MT0cpMYgrHBV2kgr/aliAi0SgW5ZbFukAR2Vnvjn37zTwLtVarTq1zFOOKuaLD3maJ4+5rgVEFErJCORxrCmQhiJt3hqwVzf0+kG65Y81iY6qnqiYjf94LgKFH8Nmq0Y7bdG02stxHtVtLMvea3nO8B/tNITgS1NolflAgIaJc6ylU4TNb1Z2Q3L63P6fRUf39E8cLD8631o6jWkWew==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"updated meta and body"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/Qmed74bdPxXeTNXAcAWqs31AV67PpYfdNULqe7Q9qyYf1a","previousPath":"/ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT","qri":"ds:0","structure":{"checksum":"QmSa4i985cF3dxNHxD5mSN7c6q1eYa83uNo1pLRmPZgTsa","depth":2,"errCount":1,"entries":18,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":532,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -287,7 +287,7 @@ func TestSaveTwoComponents(t *testing.T) {
 
 	// This dataset is ds_ten.yaml, with the meta replaced by meta_override ("different title") and
 	// the structure replaced by structure_override (lazyQuotes: false && title: "name").
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.lazyQuotes\n\tupdated schema.items.items.0.title","path":"/ipfs/QmX6K7j2NYQB6YSTQZtJ7GQjwFCPZCN5W9iKXMnmqehsx2","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"updated meta and structure"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmU2sXzxbPGX6Gv58cV1H9NwKZmoiF1ezxvMMtaDRd2uXE","peername":"me","previousPath":"/ipfs/QmdAUD4QA5ALCNcimo236cF4VzTE5vFT5rQTmhm5F3V7oc","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":false},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"duration","type":"integer"}]},"type":"array"}}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.lazyQuotes\n\tupdated schema.items.items.0.title","path":"/ipfs/QmX6K7j2NYQB6YSTQZtJ7GQjwFCPZCN5W9iKXMnmqehsx2","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"updated meta and structure"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmPXHp8iaNMjBagDPfE63ePKvd15s5vQ1kx682peu3EQFQ","previousPath":"/ipfs/QmVWhAmaNkPoTmm8AcPcPcj4BA1Edpe2bN7j1ms9oMYpq7","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":false},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"duration","type":"integer"}]},"type":"array"}}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -311,7 +311,7 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 	actual := run.DatasetMarshalJSON(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added transform section
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"transform added","path":"/ipfs/QmUZ5V3GZtjFCVW2hhWhXHgNKqBfzxjtfvtUtoYx5PoCwd","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"transform added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmcEZBD7Rs2GcVF8VXJzhVNGzzVRp7AUU2N1fj8n4GZFyF","peername":"me","previousPath":"/ipfs/QmdAUD4QA5ALCNcimo236cF4VzTE5vFT5rQTmhm5F3V7oc","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"transform added","path":"/ipfs/QmUZ5V3GZtjFCVW2hhWhXHgNKqBfzxjtfvtUtoYx5PoCwd","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"transform added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmYjyBj3RgwExtSqpooa34Q4dhL5d5qpikAwua9Nwh5cM2","previousPath":"/ipfs/QmVWhAmaNkPoTmm8AcPcPcj4BA1Edpe2bN7j1ms9oMYpq7","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -335,7 +335,7 @@ func TestSaveThenOverrideViz(t *testing.T) {
 	actual := run.DatasetMarshalJSON(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added viz section
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"viz added","path":"/ipfs/QmQxPLd2pydgqodkWsA5pxoAUtyHh2PVssRWbwBcdht6qf","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"viz added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmbP8i2omwduskYPA96yGaK3AV3ezPZyjra3Z5yfLGhWsE","peername":"me","previousPath":"/ipfs/QmdAUD4QA5ALCNcimo236cF4VzTE5vFT5rQTmhm5F3V7oc","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"viz added","path":"/ipfs/QmQxPLd2pydgqodkWsA5pxoAUtyHh2PVssRWbwBcdht6qf","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"viz added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmcWKMwztpRpgZ6U1nxuzns7hteys7AGdG7JtTtEueo5wQ","previousPath":"/ipfs/QmVWhAmaNkPoTmm8AcPcPcj4BA1Edpe2bN7j1ms9oMYpq7","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -359,7 +359,7 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 	actual := run.DatasetMarshalJSON(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added meta component, and transform, and viz
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nviz added\ntransform added","path":"/ipfs/QmRf9DLATmYMnQw1ZyJWrj7RutTs9iWVbWnFScAaNqQY1z","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"updated meta, viz, and transform"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmRvpcKiaHgeT3asawTEPVLriRuQRNT2q8uMCBGQwJCB4G","peername":"me","previousPath":"/ipfs/QmdAUD4QA5ALCNcimo236cF4VzTE5vFT5rQTmhm5F3V7oc","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nviz added\ntransform added","path":"/ipfs/QmRf9DLATmYMnQw1ZyJWrj7RutTs9iWVbWnFScAaNqQY1z","qri":"cm:0","signature":"m1bUTtNnrbAtn6zv0eXjJmXN6a4yOAhPhvg5B+lccir/A0TrCuW1zTx17gEtcZ0OHEYh5mhGrJZjmj6F0Vb9qI4fE7kct3SmahokWarhgszOGvAr5Y35IXkkGXDrOM3VzUWRVjMNTajufvaTxpJr/eyPpBWhsxXz8G8cUa9DT2Xwimy0vA278WukIOdVAcQI0E4n8lwz88e5wWu/TQkkn0SD7tB7KiH/PmO6EDPlXtHwFsPkwKoMkSJFjFAoM95qgv+SQQnVsBKIJ87P6G5/v5o16luR3bL+VZlDrk325ib/Fzb0XB3Qe5OpuTUpwI8Br8XvbbwlM52bNq+EUR7QgQ==","timestamp":"2001-01-01T01:05:01.000000001Z","title":"updated meta, viz, and transform"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmNkukWiNVFx7oEAJAbeEWtfnL9WB8HroDyAQpf5uUPERc","previousPath":"/ipfs/QmVWhAmaNkPoTmm8AcPcPcj4BA1Edpe2bN7j1ms9oMYpq7","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -477,7 +477,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
 	}
 
 	output := run.MustExec(t, "qri log me/test_ds")
-	expect := `1   Commit:  /ipfs/QmbBtUoSkRVzw3MDGSPbUg1MZ4mHbYygcmk2K1QH5SzJZ2
+	expect := `1   Commit:  /ipfs/QmWHcfntsRd7Wtown4XVgX2LqWDun21hmoJYeboL8cNpHa
     Date:    Sun Dec 31 20:05:01 EST 2000
     Storage: local
     Size:    7 B
@@ -486,7 +486,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
     transform:
     	updated scriptBytes
 
-2   Commit:  /ipfs/QmTp9QnubfWfMMKANPBadW2H7wN55Gx1TzvPChtVtsqAxj
+2   Commit:  /ipfs/QmVwsDpfgDr7cBGsNCLVNWBCKoQFtvYwCi8yRhy34C6qxk
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    7 B
@@ -616,7 +616,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 	expect := `0 Peername:  test_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      first_name
-  Path:      /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
+  Path:      /ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT
   FSIPath:   
   Published: false
 
@@ -637,7 +637,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 	expect = `0 Peername:  real_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      first_name
-  Path:      /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
+  Path:      /ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT
   FSIPath:   
   Published: false
 
@@ -653,7 +653,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 	expect = `0 Peername:  real_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      second_name
-  Path:      /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
+  Path:      /ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT
   FSIPath:   
   Published: false
 
@@ -669,7 +669,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 	expect = `0 Peername:  real_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      third_name
-  Path:      /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
+  Path:      /ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT
   FSIPath:   
   Published: false
 
@@ -694,7 +694,7 @@ func TestListFormatJson(t *testing.T) {
     "username": "test_peer",
     "profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
     "name": "my_ds",
-    "path": "/ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z",
+    "path": "/ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT",
     "bodySize": 224,
     "bodyRows": 8,
     "bodyFromat": "csv",

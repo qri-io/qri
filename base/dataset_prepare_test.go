@@ -15,7 +15,7 @@ func TestPrepareDatasetSave(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	prev, mutable, prevPath, err := PrepareDatasetSave(ctx, r, ref.Peername, ref.Name)
+	prev, mutable, prevPath, err := PrepareHeadDatasetVersion(ctx, r, ref.Peername, ref.Name)
 	if err != nil {
 		t.Errorf("case cities dataset error: %s ", err.Error())
 	}
@@ -38,7 +38,7 @@ func TestPrepareDatasetSave(t *testing.T) {
 		t.Errorf("case cities dataset: previous path should not be empty")
 	}
 
-	prev, mutable, prevPath, err = PrepareDatasetSave(ctx, r, "me", "non-existent")
+	prev, mutable, prevPath, err = PrepareHeadDatasetVersion(ctx, r, "me", "non-existent")
 	if err != nil {
 		t.Errorf("case non-existant previous dataset error: %s ", err.Error())
 	}
@@ -76,12 +76,12 @@ func TestMaybeInferName(t *testing.T) {
 	ds := &dataset.Dataset{}
 	ds.SetBodyFile(qfs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v")))
 	inferred := MaybeInferName(ds)
-	if !inferred {
+	if inferred == "" {
 		t.Errorf("expected name to be inferred")
 	}
 	expectName := "gabba_gabba_hey"
-	if expectName != ds.Name {
-		t.Errorf("inferred name mismatch. expected: '%s', got: '%s'", expectName, ds.Name)
+	if expectName != inferred {
+		t.Errorf("inferred name mismatch. expected: '%s', got: '%s'", expectName, inferred)
 	}
 }
 
