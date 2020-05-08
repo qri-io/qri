@@ -81,9 +81,9 @@ commit:
   timestamp: "2001-01-01T01:05:01.000000001Z"
   title: body changed by 54%
 name: my_ds
-path: /ipfs/QmUJXnzYfYjXLxxLLvaK6BDrSenQGUsaxHF7Skw7WDLZGT
+path: /ipfs/Qmdh52cqJSAFGMdwBP1csnWDMDeirUSFTVagiEXmX2Xtqd
 peername: test_peer
-previousPath: /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
+previousPath: /ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT
 qri: ds:0
 structure:
   checksum: QmSa4i985cF3dxNHxD5mSN7c6q1eYa83uNo1pLRmPZgTsa
@@ -118,7 +118,7 @@ commit:
   timestamp: "2001-01-01T01:02:01.000000001Z"
   title: created dataset from body_ten.csv
 name: my_ds
-path: /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
+path: /ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT
 peername: test_peer
 qri: ds:0
 structure:

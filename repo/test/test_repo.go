@@ -205,6 +205,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	if err != nil {
 		return
 	}
+	dsName := ds.Name
 
 	userSet.Assign(ds)
 
@@ -222,7 +223,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 		prev := reporef.DatasetRef{
 			ProfileID: pro.ID,
 			Peername:  pro.Peername,
-			Name:      ds.Name,
+			Name:      dsName,
 			Path:      ds.PreviousPath,
 		}
 
@@ -233,7 +234,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	ref = reporef.DatasetRef{
 		ProfileID: pro.ID,
 		Peername:  pro.Peername,
-		Name:      ds.Name,
+		Name:      dsName,
 		Path:      path,
 	}
 
@@ -249,10 +250,10 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	// TODO(dustmop): When we switch to initIDs, use the standard resolver instead of logbook.
 	// Whether there is a previous version is equivalent to whether we have an initID coming
 	// into this function.
-	initID, err := r.Logbook().RefToInitID(dsref.Ref{Username: ds.Peername, Name: ds.Name})
+	initID, err := r.Logbook().RefToInitID(dsref.Ref{Username: ds.Peername, Name: dsName})
 	if err == logbook.ErrNotFound {
 		// If dataset does not exist yet, initialize with the given name
-		initID, err = r.Logbook().WriteDatasetInit(ctx, ds.Name)
+		initID, err = r.Logbook().WriteDatasetInit(ctx, dsName)
 		if err != nil {
 			return ref, err
 		}

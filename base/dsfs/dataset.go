@@ -803,7 +803,8 @@ func WriteDataset(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset
 	if ds == nil || ds.IsEmpty() {
 		return "", fmt.Errorf("cannot save empty dataset")
 	}
-	name := ds.Name // preserve name for body file
+	ds.Peername = ""
+	ds.Name = ""
 	bodyFile := ds.BodyFile()
 	fileTasks := 0
 	addedDataset := false
@@ -1018,15 +1019,17 @@ func WriteDataset(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset
 	if err != nil {
 		return path, err
 	}
+
 	// TODO (b5): currently we're loading to keep the ds pointer hydrated post-write
 	// we should remove that assumption, allowing callers to skip this load step, which may
 	// be unnecessary
+	// TODO(dustmop): This is necessary because ds doesn't have all fields in Structure and Commit.
+	// Try if there's another way to set these instead of requiring a full call to LoadDataset.
 	var loaded *dataset.Dataset
 	loaded, err = LoadDataset(ctx, store, path)
 	if err != nil {
 		return "", err
 	}
-	loaded.Name = name
 	*ds = *loaded
 	return path, nil
 }

@@ -34,7 +34,7 @@ func TestAddAndListRefs(t *testing.T) {
 	expect := `0 Peername:  test_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      my_dataset
-  Path:      /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
+  Path:      /ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT
   FSIPath:   
   Published: false
 
@@ -56,7 +56,7 @@ func TestAddAndListRefs(t *testing.T) {
 1 Peername:  test_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      my_dataset
-  Path:      /ipfs/QmXte9h1Ztm1nyd4G1CUjWnkL82T2eY7qomMfY4LUXsn3Z
+  Path:      /ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT
   FSIPath:   
   Published: false
 
