@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/base/fill"
 	"github.com/qri-io/qri/dscache/build"
@@ -201,6 +202,9 @@ type GetParams struct {
 
 	Limit, Offset int
 	All           bool
+
+	Outfile     string
+	GenFilename bool
 }
 
 // GetResult combines data with it's hashed path
@@ -208,6 +212,7 @@ type GetResult struct {
 	Ref       *dsref.Ref       `json:"ref"`
 	Dataset   *dataset.Dataset `json:"data"`
 	Bytes     []byte           `json:"bytes"`
+	Message   string           `json:"message"`
 	FSIPath   string           `json:"fsipath"`
 	Published bool             `json:"published"`
 }
@@ -281,6 +286,30 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		return err
 	}
 
+	if p.Format == "zip" {
+		if p.Outfile == "" && p.GenFilename {
+			p.Outfile = fmt.Sprintf("%s.zip", ds.Name)
+		}
+		// TODO(dustmop): Abs to handle rpc
+		zipFile, err := os.Create(p.Outfile)
+		if err != nil {
+			return err
+		}
+		// TODO(dustmop): remove index.html, viz.html
+		// TODO(dustmop): include readme.md
+		// TODO(dustmop): don't ouptut dataset.json, use individual file components
+		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
+		// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
+		// necessary until dscache is in use.
+		initID, err := m.inst.repo.Logbook().RefToInitID(currRef)
+		if err != nil {
+			return err
+		}
+		err = archive.WriteZip(ctx, m.inst.repo.Store(), ds, "json", initID, currRef, zipFile)
+		res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
+		return err
+	}
+
 	if p.Selector == "body" {
 		// `qri get body` loads the body
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
@@ -301,18 +330,21 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
 				return err
 			}
-		} else {
-			res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
-			if err != nil {
-				log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
-				return err
-			}
+			return m.maybeWriteOutfile(p, res)
 		}
-		return nil
+		res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
+		if err != nil {
+			log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
+			return err
+		}
+		return m.maybeWriteOutfile(p, res)
 	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
 		// Fields that have qfs.File types should be read and returned
 		res.Bytes, err = ioutil.ReadAll(scriptFile)
-		return err
+		if err != nil {
+			return err
+		}
+		return m.maybeWriteOutfile(p, res)
 	} else if p.Selector == "stats" {
 		statsParams := &StatsParams{
 			Dataset: res.Dataset,
@@ -322,41 +354,51 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 			return err
 		}
 		res.Bytes = statsRes.StatsBytes
-		return nil
-	} else {
-		var value interface{}
-		if p.Selector == "" {
-			// `qri get` without a selector loads only the dataset head
-			value = res.Dataset
-		} else {
-			// `qri get <selector>` loads only the applicable component / field
-			value, err = base.ApplyPath(res.Dataset, p.Selector)
-			if err != nil {
-				return err
-			}
-		}
-		switch p.Format {
-		case "json":
-			// Pretty defaults to true for the dataset head, unless explicitly set in the config.
-			pretty := true
-			if p.FormatConfig != nil {
-				pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
-				if ok {
-					pretty = pvalue
-				}
-			}
-			if pretty {
-				res.Bytes, err = json.MarshalIndent(value, "", " ")
-			} else {
-				res.Bytes, err = json.Marshal(value)
-			}
-		case "yaml", "":
-			res.Bytes, err = yaml.Marshal(value)
-		default:
-			return fmt.Errorf("unknown format: \"%s\"", p.Format)
-		}
-		return err
+		return m.maybeWriteOutfile(p, res)
 	}
+	var value interface{}
+	if p.Selector == "" {
+		// `qri get` without a selector loads only the dataset head
+		value = res.Dataset
+	} else {
+		// `qri get <selector>` loads only the applicable component / field
+		value, err = base.ApplyPath(res.Dataset, p.Selector)
+		if err != nil {
+			return err
+		}
+	}
+	switch p.Format {
+	case "json":
+		// Pretty defaults to true for the dataset head, unless explicitly set in the config.
+		pretty := true
+		if p.FormatConfig != nil {
+			pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
+			if ok {
+				pretty = pvalue
+			}
+		}
+		if pretty {
+			res.Bytes, err = json.MarshalIndent(value, "", " ")
+		} else {
+			res.Bytes, err = json.Marshal(value)
+		}
+	case "yaml", "":
+		res.Bytes, err = yaml.Marshal(value)
+	default:
+		return fmt.Errorf("unknown format: \"%s\"", p.Format)
+	}
+	return m.maybeWriteOutfile(p, res)
+}
+
+func (m *DatasetMethods) maybeWriteOutfile(p *GetParams, res *GetResult) error {
+	if p.Outfile != "" {
+		err := ioutil.WriteFile(p.Outfile, res.Bytes, 0644)
+		if err != nil {
+			return err
+		}
+		res.Bytes = []byte{}
+	}
+	return nil
 }
 
 func scriptFileSelection(ds *dataset.Dataset, selector string) (qfs.File, bool) {

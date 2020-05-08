@@ -20,6 +20,7 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/dsref"
 )
 
 var log = logger.Logger("archive")
@@ -186,7 +187,12 @@ func Export(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, refS
 		return fileWritten, w.Close()
 
 	case "zip":
-		if err = WriteZip(ctx, store, ds, "json", refStr, writer); err != nil {
+		ref, err := dsref.Parse(refStr)
+		if err != nil {
+			return "", err
+		}
+		blankInitID := ""
+		if err = WriteZip(ctx, store, ds, "json", blankInitID, ref, writer); err != nil {
 			return "", err
 		}
 
