@@ -12,7 +12,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 )
+
+var blankInitID = ""
 
 func TestWriteZip(t *testing.T) {
 	ctx := context.Background()
@@ -29,7 +32,8 @@ func TestWriteZip(t *testing.T) {
 	}
 
 	buf := &bytes.Buffer{}
-	if err = WriteZip(ctx, store, ds, "yaml", "peer/ref@a/ipfs/b", buf); err != nil {
+	err = WriteZip(ctx, store, ds, "yaml", blankInitID, dsref.MustParse("peer/ref@/ipfs/Qmb"), buf)
+	if err != nil {
 		t.Errorf("error writing zip archive: %s", err.Error())
 		return
 	}
@@ -76,7 +80,8 @@ func TestWriteZipFullDataset(t *testing.T) {
 	}
 
 	buf := &bytes.Buffer{}
-	if err = WriteZip(ctx, store, ds, "json", "peer/ref@a/ipfs/b", buf); err != nil {
+	err = WriteZip(ctx, store, ds, "json", blankInitID, dsref.MustParse("peer/ref@/ipfs/Qmb"), buf)
+	if err != nil {
 		t.Errorf("error writing zip archive: %s", err.Error())
 		return
 	}

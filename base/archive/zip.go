@@ -16,10 +16,11 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 )
 
 // WriteZip generates a zip archive of a dataset and writes it to w
-func WriteZip(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, format string, ref string, w io.Writer) error {
+func WriteZip(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, format, initID string, ref dsref.Ref, w io.Writer) error {
 	zw := zip.NewWriter(w)
 
 	// Dataset header, contains meta, structure, and commit
@@ -56,7 +57,8 @@ func WriteZip(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, fo
 	if err != nil {
 		return err
 	}
-	_, err = io.WriteString(target, ref)
+	refContents := fmt.Sprintf("%s/%s=%s@%s", ref.Username, ref.Name, initID, ds.Path)
+	_, err = io.WriteString(target, refContents)
 	if err != nil {
 		return err
 	}
