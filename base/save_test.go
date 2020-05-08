@@ -10,161 +10,47 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestSaveDataset(t *testing.T) {
-	ctx := context.Background()
-	r := newTestRepo(t)
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	// TODO(dustmop): Dry run will go away soon, once apply exists
 
 	// test Dry run
-	ds := &dataset.Dataset{
-		Name:      "dry_run_test",
-		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
-		Meta: &dataset.Meta{
-			Title: "test title",
-		},
-	}
+	ds := run.BuildDataset("dry_run_test", "json")
+	ds.Meta = &dataset.Meta{Title: "test title"}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
-	ref, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{DryRun: true, ShouldRender: true})
+	ref, err := run.SaveDatasetDryRun(ds)
 	if err != nil {
-		t.Errorf("dry run error: %s", err.Error())
+		t.Error(err)
 	}
-	if ref.AliasString() != "peer/dry_run_test" {
-		t.Errorf("ref alias mismatch. expected: '%s' got: '%s'", "peer/dry_run_test", ref.AliasString())
+	if ref.Alias() != "peer/dry_run_test" {
+		t.Errorf("ref alias mismatch. expected: '%s' got: '%s'",
+			"peer/dry_run_test", ref.Alias())
 	}
 
-	ds = &dataset.Dataset{
-		Peername: ref.Peername,
-		Name:     "test_save",
-		Commit: &dataset.Commit{
-			Title:   "initial commit",
-			Message: "manually create a baseline dataset",
-		},
-		Meta: &dataset.Meta{
-			Title: "another test dataset",
-		},
-		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
-	}
+	ds = run.BuildDataset("test_save", "json")
+	ds.Commit = &dataset.Commit{Title: "initial commit", Message: "manually create a dataset"}
+	ds.Meta = &dataset.Meta{Title: "another test dataset"}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// test save
-	ref, err = SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{Pin: true, ShouldRender: true})
-	if err != nil {
-		t.Error(err)
-	}
-	secrets := map[string]string{
-		"bar": "secret",
-	}
-
-	ds = &dataset.Dataset{
-		Peername: ref.Peername,
-		Name:     ref.Name,
-		Commit: &dataset.Commit{
-			Title:   "add transform script",
-			Message: "adding an append-only transform script",
-		},
-		Transform: &dataset.Transform{
-			Syntax: "starlark",
-			Config: map[string]interface{}{
-				"foo": "config",
-			},
-			ScriptBytes: []byte(`def transform(ds,ctx): 
-  ctx.get_config("foo")
-  ctx.get_secret("bar")
-  ds.set_body(["hey"])`),
-		},
-	}
-	ds.Transform.OpenScriptFile(ctx, nil)
-
-	// dryrun should work
-	ref, err = SaveDataset(ctx, r, devNull, ds, secrets, nil, SaveSwitches{DryRun: true, ShouldRender: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ds = &dataset.Dataset{
-		Peername: ref.Peername,
-		Name:     ref.Name,
-		Commit: &dataset.Commit{
-			Title:   "add transform script",
-			Message: "adding an append-only transform script",
-		},
-		Transform: &dataset.Transform{
-			Syntax: "starlark",
-			Config: map[string]interface{}{
-				"foo": "config",
-			},
-			ScriptBytes: []byte(`def transform(ds,ctx): 
-  ctx.get_config("foo")
-  ctx.get_secret("bar")
-  ds.set_body(["hey"])`),
-		},
-	}
-	ds.Transform.OpenScriptFile(ctx, nil)
-
-	// test save with transform
-	ref, err = SaveDataset(ctx, r, devNull, ds, secrets, nil, SaveSwitches{Pin: true, ShouldRender: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// save new manual changes
-	ds = &dataset.Dataset{
-		Peername: ref.Peername,
-		Name:     ref.Name,
-		Commit: &dataset.Commit{
-			Title:   "update meta",
-			Message: "manual change that'll negate previous transform",
-		},
-		Meta: &dataset.Meta{
-			Title:       "updated title",
-			Description: "updated description",
-		},
-	}
-
-	ref, err = SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err = run.SaveDataset(ds)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if ref.Dataset.Transform != nil {
-		t.Error("expected manual save to remove transform")
-	}
-
-	// recall previous transform
-	tfds, err := Recall(ctx, r, "tf", ref)
-	if err != nil {
-		t.Error(err)
-	}
-
-	ds = &dataset.Dataset{
-		Peername: ref.Peername,
-		Name:     ref.Name,
-		Commit: &dataset.Commit{
-			Title:   "re-run transform",
-			Message: "recall transform & re-run it",
-		},
-		Transform: tfds.Transform,
-	}
-	if err := ds.Transform.OpenScriptFile(ctx, r.Filesystem()); err != nil {
-		t.Error(err)
-	}
-
-	ref, err = SaveDataset(ctx, r, devNull, ds, secrets, nil, SaveSwitches{Pin: true, ShouldRender: true})
-	if err != nil {
-		t.Error(err)
-	}
-	if ref.Dataset == nil {
-		t.Error("expected dataset pointer to exist")
-	} else if ref.Dataset.Transform == nil {
-		t.Error("expected recalled transform to be present")
-	}
+	// TODO(dustmop): Add tests for `qri save --apply` once transform is removed from the save
+	// path and replaced with apply.
 }
 
 func TestSaveDatasetWithoutStructureOrBody(t *testing.T) {
-	ctx := context.Background()
-	r := newTestRepo(t)
+	run := newTestRunner(t)
+	defer run.Delete()
 
 	ds := &dataset.Dataset{
 		Name: "no_st_or_body_test",
@@ -173,7 +59,7 @@ func TestSaveDatasetWithoutStructureOrBody(t *testing.T) {
 		},
 	}
 
-	_, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{ShouldRender: true})
+	_, err := run.SaveDataset(ds)
 	expect := "creating a new dataset requires a structure or a body"
 	if err == nil || err.Error() != expect {
 		t.Errorf("expected error, but got %s", err.Error())
@@ -181,42 +67,33 @@ func TestSaveDatasetWithoutStructureOrBody(t *testing.T) {
 }
 
 func TestSaveDatasetReplace(t *testing.T) {
-	ctx := context.Background()
-	r := newTestRepo(t)
+	run := newTestRunner(t)
+	defer run.Delete()
 
-	ds := &dataset.Dataset{
-		Peername: "me",
-		Name:     "test_save",
-		Meta: &dataset.Meta{
-			Title: "another test dataset",
-		},
-		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
-	}
+	ds := run.BuildDataset("test_save", "json")
+	ds.Meta = &dataset.Meta{Title: "another test dataset"}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// test save
-	_, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{Pin: true})
+	ref, err := run.SaveDataset(ds)
 	if err != nil {
 		t.Error(err)
 	}
 
-	ds = &dataset.Dataset{
-		Peername:  "me",
-		Name:      "test_save",
-		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "object"}},
-	}
-	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte(`{"foo":"bar"}`)))
+	ds = run.BuildDataset("test_save", "json")
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte(`["foo","bar"]`)))
 
-	ref, err := SaveDataset(ctx, r, devNull, ds, nil, nil, SaveSwitches{Replace: true, Pin: true})
+	ref, err = run.SaveDatasetReplace(ds)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := ReadDataset(ctx, r, &ref); err != nil {
+	datasetRef := reporef.RefFromDsref(ref)
+	if err := ReadDataset(run.Context, run.Repo, &datasetRef); err != nil {
 		t.Error(err)
 	}
 
-	if ref.Dataset.Meta != nil {
+	if datasetRef.Dataset.Meta != nil {
 		t.Error("expected overwritten meta to be nil")
 	}
 }

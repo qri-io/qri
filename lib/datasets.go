@@ -607,6 +607,18 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		fileHint = p.FilePaths[0]
 	}
 
+	// Determine dataset name (inferring one for a blank name), and lookup the initID for that
+	// name. Also get the path if the dataset has an existing version.
+	dsName, initID, headPath, err := base.DatasetNameAndStableIdentifers(ctx, m.inst.repo, pro.Peername, ds.Name, ds, p.NewName)
+	if err != nil {
+		return err
+	}
+	// TODO(dustmop): This is needed temporarily, as base.CreateDataset needs the name field in
+	// order to update the refstore. dsfs will clear this field before the dataset is written to
+	// IPFS. Once everything switches to logbook and dscache, this field assignment will no longer
+	// be needed.
+	ds.Name = dsName
+
 	switches := base.SaveSwitches{
 		FileHint:            fileHint,
 		Replace:             p.Replace,
@@ -618,7 +630,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		NewName:             p.NewName,
 		Drop:                p.Drop,
 	}
-	datasetRef, err = base.SaveDataset(ctx, m.inst.repo, m.inst.node.LocalStreams, ds, p.Secrets, p.ScriptOutput, switches)
+	datasetRef, err = base.SaveDataset(ctx, m.inst.repo, m.inst.node.LocalStreams, initID, headPath, ds, p.Secrets, p.ScriptOutput, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err

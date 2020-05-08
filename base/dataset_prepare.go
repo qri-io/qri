@@ -133,10 +133,6 @@ func InferValues(pro *profile.Profile, ds *dataset.Dataset) error {
 
 // ValidateDataset checks that a dataset is semantically valid
 func ValidateDataset(ds *dataset.Dataset) (err error) {
-	if !dsref.IsValidName(ds.Name) {
-		return fmt.Errorf("invalid name: %s", dsref.ErrDescribeValidName)
-	}
-
 	// Ensure that dataset structure is valid
 	if err = validate.Dataset(ds); err != nil {
 		log.Debug(err.Error())

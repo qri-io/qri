@@ -462,12 +462,22 @@ func (run *TestRunner) AddDatasetToRefstore(ctx context.Context, t *testing.T, r
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Reserve the name in the logbook, which provides an initID
+	initID, err := r.Logbook().WriteDatasetInit(ctx, ds.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// No existing commit
+	emptyHeadRef := ""
+
 	str := ioes.NewStdIOStreams()
 	secrets := make(map[string]string)
 	scriptOut := &bytes.Buffer{}
 	sw := base.SaveSwitches{}
 
-	_, err = base.SaveDataset(ctx, r, str, ds, secrets, scriptOut, sw)
+	_, err = base.SaveDataset(ctx, r, str, initID, emptyHeadRef, ds, secrets, scriptOut, sw)
 	if err != nil {
 		t.Fatal(err)
 	}
