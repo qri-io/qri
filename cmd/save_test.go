@@ -188,6 +188,52 @@ func TestSaveRun(t *testing.T) {
 	}
 }
 
+func TestSaveState(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_state")
+	defer run.Delete()
+
+	// Save a csv file
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+
+	// Read dataset from IPFS and compare it to the expected value
+	dsPath := run.GetPathForDataset(t, 0)
+	actual := run.DatasetMarshalJSON(t, dsPath)
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"created dataset from body_ten.csv","path":"/ipfs/QmTPieEVLviZbkiAKiPm5gzeEcovWRJ9mK2f6FHQ8sH82a","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"created dataset from body_ten.csv"},"path":"/ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("dataset (-want +got):\n%s", diff)
+	}
+
+	// Read data and compare it
+	actual = run.ReadBodyFromIPFS(t, dsPath+"/body.csv")
+	expect = `movie_title,duration
+Avatar ,178
+Pirates of the Caribbean: At World's End ,169
+Spectre ,148
+The Dark Knight Rises ,164
+Star Wars: Episode VII - The Force Awakens             ,
+John Carter ,132
+Spider-Man 3 ,156
+Tangled ,100
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("body (-want +got):\n%s", diff)
+	}
+
+	// Check the log matches what is expected
+	actual = run.MustExec(t, "qri log test_peer/my_ds")
+	expect = `1   Commit:  /ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT
+    Date:    Sun Dec 31 20:02:01 EST 2000
+    Storage: local
+    Size:    224 B
+
+    created dataset from body_ten.csv
+
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("log (-want +got):\n%s", diff)
+	}
+}
+
 func TestSaveBasicCommands(t *testing.T) {
 	pwd, err := os.Getwd()
 	if err != nil {
