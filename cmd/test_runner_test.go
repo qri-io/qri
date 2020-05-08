@@ -117,18 +117,19 @@ func newTestRunnerFromRoot(root *repotest.TempRepo) *TestRunner {
 
 	// To keep hashes consistent, artificially specify the timestamp by overriding
 	// the dsfs.Timestamp func
-	counter := 0
+	dsfsCounter := 0
 	run.DsfsTsFunc = dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time {
-		counter++
-		return time.Date(2001, 01, 01, 01, counter, 01, 01, time.UTC)
+		dsfsCounter++
+		return time.Date(2001, 01, 01, 01, dsfsCounter, 01, 01, time.UTC)
 	}
 
 	// Do the same for logbook.NewTimestamp
+	bookCounter := 0
 	run.LogbookTsFunc = logbook.NewTimestamp
 	logbook.NewTimestamp = func() int64 {
-		counter++
-		return time.Date(2001, 01, 01, 01, counter, 01, 01, time.UTC).Unix()
+		bookCounter++
+		return time.Date(2001, 01, 01, 01, bookCounter, 01, 01, time.UTC).Unix()
 	}
 
 	// Set IOStreams

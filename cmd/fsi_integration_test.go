@@ -1404,7 +1404,7 @@ func TestMoveWorkingDirectory(t *testing.T) {
 	expect := `0 Peername:  test_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      move_dir
-  Path:      /ipfs/QmUrLpEytW8uRb2okzUj9BvXKjEKQ8tBdYfGNAk9SpffR2
+  Path:      /ipfs/QmRqiBr4Ubomaikg19VohhTvngqCkVMyPYhpWmHFYCSY9S
   FSIPath:   /tmp/new_name_dir
   Published: false
 
@@ -1442,7 +1442,7 @@ func TestRemoveWorkingDirectory(t *testing.T) {
 	expect := `0 Peername:  test_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      remove_dir
-  Path:      /ipfs/QmUrLpEytW8uRb2okzUj9BvXKjEKQ8tBdYfGNAk9SpffR2
+  Path:      /ipfs/QmRqiBr4Ubomaikg19VohhTvngqCkVMyPYhpWmHFYCSY9S
   FSIPath:   
   Published: false
 
