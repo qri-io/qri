@@ -13,6 +13,9 @@ func RunMigrations(streams ioes.IOStreams, cfg *config.Config) (migrated bool, e
 		if err := ZeroToOne(cfg); err != nil {
 			return false, err
 		}
+		if err := OneToTwo(cfg); err != nil {
+			return false, err
+		}
 		streams.PrintErr("done!\n")
 		return true, nil
 	}
@@ -50,6 +53,11 @@ func ZeroToOne(cfg *config.Config) error {
 
 	cfg.Revision = 1
 	return nil
+}
+
+//  OneToTwo migrates a configuration from Revision One to Revision 2
+func OneToTwo(cfg *config.Config) error {
+  return nil
 }
 
 func delIdx(i int, sl []string) []string {
