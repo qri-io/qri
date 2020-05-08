@@ -14,16 +14,16 @@ require (
 	github.com/google/go-cmp v0.4.0
 	github.com/ipfs/go-cid v0.0.5
 	github.com/ipfs/go-datastore v0.4.4
-	github.com/ipfs/go-ipfs v0.5.0-rc2
-	github.com/ipfs/go-ipfs-config v0.5.2
+	github.com/ipfs/go-ipfs v0.5.0
+	github.com/ipfs/go-ipfs-config v0.5.3
 	github.com/ipfs/go-ipld-format v0.2.0
-	github.com/ipfs/go-log v1.0.3
-	github.com/ipfs/interface-go-ipfs-core v0.2.6
+	github.com/ipfs/go-log v1.0.4
+	github.com/ipfs/interface-go-ipfs-core v0.2.7
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
-	github.com/libp2p/go-libp2p v0.8.0
-	github.com/libp2p/go-libp2p-circuit v0.2.1
+	github.com/libp2p/go-libp2p v0.8.3
+	github.com/libp2p/go-libp2p-circuit v0.2.2
 	github.com/libp2p/go-libp2p-connmgr v0.2.1
-	github.com/libp2p/go-libp2p-core v0.5.1
+	github.com/libp2p/go-libp2p-core v0.5.2
 	github.com/libp2p/go-libp2p-peerstore v0.2.3
 	github.com/libp2p/go-libp2p-swarm v0.2.3
 	github.com/microcosm-cc/bluemonday v1.0.2
@@ -34,25 +34,25 @@ require (
 	github.com/multiformats/go-multihash v0.0.13
 	github.com/pkg/errors v0.9.1
 	github.com/qri-io/apiutil v0.1.0
-	github.com/qri-io/dag v0.2.1-0.20200415221947-eaeedb41dfbb
+	github.com/qri-io/dag v0.2.1-0.20200429122408-58ef1943d04b
 	github.com/qri-io/dataset v0.1.5-0.20200324184139-108a69072ede
 	github.com/qri-io/deepdiff v0.1.1-0.20200305020550-8173efebcaa1
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
-	github.com/qri-io/qfs v0.1.1-0.20200415221810-2c2d00500f88
+	github.com/qri-io/qfs v0.1.1-0.20200506162053-e0bf31254872
 	github.com/qri-io/starlib v0.4.2-0.20200406084526-0e4566b610a1
 	github.com/qri-io/varName v0.1.0
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.0.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/cobra v0.0.5
+	github.com/spf13/cobra v1.0.0
 	github.com/theckman/go-flock v0.7.1
 	github.com/ugorji/go/codec v1.1.7
 	go.starlark.net v0.0.0-20200330013621-be5394c419b6
-	golang.org/x/crypto v0.0.0-20200406173513-056763e48d71
-	golang.org/x/sys v0.0.0-20200408040146-ea54a3c99b9b
+	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
+	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4
 	gonum.org/v1/gonum v0.6.0
 	gopkg.in/yaml.v2 v2.2.8
 	nhooyr.io/websocket v1.7.4
