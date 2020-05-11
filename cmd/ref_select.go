@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
@@ -50,13 +51,8 @@ func NewListOfRefSelects(refs []string) *RefSelect {
 }
 
 // NewLinkedDirectoryRefSelect returns a single reference implied by a linked directory
-func NewLinkedDirectoryRefSelect(ref, dir string) *RefSelect {
-	// Remove the path from the reference, want just peername/ds_name
-	pos := strings.Index(ref, "@")
-	if pos != -1 {
-		ref = ref[:pos]
-	}
-	return &RefSelect{kind: "for linked", refs: []string{ref}, dir: dir}
+func NewLinkedDirectoryRefSelect(ref dsref.Ref, dir string) *RefSelect {
+	return &RefSelect{kind: "for linked", refs: []string{ref.Human()}, dir: dir}
 }
 
 // NewUsingRefSelect returns a single reference implied by the use command

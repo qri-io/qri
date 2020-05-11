@@ -16,7 +16,12 @@ type Ref struct {
 
 // Alias returns the alias components of a Ref as a string
 func (r Ref) Alias() (s string) {
-	s = r.Username
+	return r.Human()
+}
+
+// Human returns the human-friendly representation of the reference
+func (r Ref) Human() string {
+	s := r.Username
 	if r.Name != "" {
 		s += "/" + r.Name
 	}
