@@ -9,15 +9,17 @@ import (
 )
 
 func TestRenderHandler(t *testing.T) {
-	r, teardown := newTestRepo(t)
+	node, teardown := newTestNode(t)
 	defer teardown()
+
+	inst := newTestInstanceWithProfileFromNode(node)
 
 	cases := []handlerTestCase{
 		{"OPTIONS", "/render", nil},
 		{"GET", "/render/me/movies?viz=true", nil},
 	}
 
-	h := NewRenderHandlers(r)
+	h := NewRenderHandlers(inst)
 	runHandlerTestCases(t, "render", h.RenderHandler, cases, false)
 }
 
@@ -26,7 +28,7 @@ func TestRenderReadmeHandler(t *testing.T) {
 	defer teardown()
 
 	inst := newTestInstanceWithProfileFromNode(node)
-	h := NewRenderHandlers(inst.Repo())
+	h := NewRenderHandlers(inst)
 	dsm := lib.NewDatasetMethods(inst)
 
 	// TODO(dlong): Copied from fsi_test, refactor into a common utility

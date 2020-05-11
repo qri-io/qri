@@ -60,12 +60,12 @@ type RenderOptions struct {
 	UseViz   bool
 	Output   string
 
-	RenderRequests *lib.RenderRequests
+	RenderMethods *lib.RenderMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
-	if o.RenderRequests, err = f.RenderRequests(); err != nil {
+	if o.RenderMethods, err = f.RenderMethods(); err != nil {
 		return err
 	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
@@ -107,7 +107,7 @@ func (o *RenderOptions) RunVizRender() (err error) {
 	}
 
 	res := []byte{}
-	if err := o.RenderRequests.RenderViz(p, &res); err != nil {
+	if err := o.RenderMethods.RenderViz(p, &res); err != nil {
 		if err == repo.ErrEmptyRef {
 			return errors.New(err, "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info")
 		}
@@ -133,7 +133,7 @@ func (o *RenderOptions) RunReadmeRender() error {
 	}
 
 	var res string
-	if err := o.RenderRequests.RenderReadme(p, &res); err != nil {
+	if err := o.RenderMethods.RenderReadme(p, &res); err != nil {
 		return err
 	}
 

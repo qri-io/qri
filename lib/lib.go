@@ -63,22 +63,21 @@ func init() {
 // Receivers returns a slice of CoreRequests that defines the full local
 // API of lib methods
 func Receivers(inst *Instance) []Methods {
-	node := inst.Node()
-	r := inst.Repo()
-
 	return []Methods{
 		NewDatasetMethods(inst),
 		NewRegistryClientMethods(inst),
 		NewRemoteMethods(inst),
 		NewLogMethods(inst),
-		NewExportRequests(node, nil),
 		NewPeerMethods(inst),
 		NewProfileMethods(inst),
 		NewConfigMethods(inst),
 		NewSearchMethods(inst),
 		NewSQLMethods(inst),
-		NewRenderRequests(r, nil),
+		NewRenderMethods(inst),
 		NewFSIMethods(inst),
+
+		// TODO (b5) - deprecate ExportRequests
+		NewExportRequests(inst.Node(), nil),
 	}
 }
 

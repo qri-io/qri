@@ -267,12 +267,12 @@ func (o *QriOptions) SQLMethods() (*lib.SQLMethods, error) {
 	return lib.NewSQLMethods(o.inst), nil
 }
 
-// RenderRequests generates a lib.RenderRequests from internal state
-func (o *QriOptions) RenderRequests() (*lib.RenderRequests, error) {
+// RenderMethods generates a lib.RenderMethods from internal state
+func (o *QriOptions) RenderMethods() (*lib.RenderMethods, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
-	return lib.NewRenderRequests(o.inst.Repo(), o.inst.RPC()), nil
+	return lib.NewRenderMethods(o.inst), nil
 }
 
 // ConfigMethods generates a lib.ConfigMethods from internal state
