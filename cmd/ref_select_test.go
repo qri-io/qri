@@ -5,8 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
 	"testing"
+
+	"github.com/qri-io/qri/dsref"
 )
 
 func TestBasicRefSelect(t *testing.T) {
@@ -70,7 +71,7 @@ func TestBasicRefSelect(t *testing.T) {
 		t.Errorf("expected ref isLinked false, got %t", refs.IsLinked())
 	}
 
-	refs = NewLinkedDirectoryRefSelect("peername/test_ds", "path/to/test_ds")
+	refs = NewLinkedDirectoryRefSelect(dsref.MustParse("peername/test_ds"), "path/to/test_ds")
 	if refs.Ref() != "peername/test_ds" {
 		t.Errorf("expected ref \"peername/test_ds\", got %s", refs.Ref())
 	}

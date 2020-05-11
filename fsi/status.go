@@ -71,19 +71,19 @@ func (fsi *FSI) AliasToLinkedDir(alias string) (string, error) {
 
 // Status compares status of the current working directory against the dataset's last version
 func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, err error) {
-	refStr, ok := GetLinkedFilesysRef(dir)
+	ref, ok := GetLinkedFilesysRef(dir)
 	if !ok {
 		err = fmt.Errorf("not a linked directory")
 		return nil, err
 	}
 
 	var stored *dataset.Dataset
-	ref, err := fsi.getRepoRef(refStr)
-	if ref.Path == "" {
+	datasetRef, err := fsi.getRepoRef(ref.Human())
+	if datasetRef.Path == "" {
 		// no dataset, compare to an empty ds
 		stored = &dataset.Dataset{}
 	} else {
-		if stored, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), ref.Path); err != nil {
+		if stored, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), datasetRef.Path); err != nil {
 			return nil, err
 		}
 	}

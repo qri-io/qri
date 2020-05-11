@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/base/fill"
+	"github.com/qri-io/qri/base/linkfile"
 	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/errors"
@@ -139,20 +140,16 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
 		// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
 		for _, ref := range refs {
-			if ref.FSIPath != "" {
-				target := filepath.Join(ref.FSIPath, fsi.QriRefFilename)
-				_, err := os.Stat(target)
-				if os.IsNotExist(err) {
-					ref.FSIPath = ""
-					if ref.Path == "" {
-						if err = m.inst.repo.DeleteRef(ref); err != nil {
-							log.Debugf("cannot delete ref for %q, err: %s", ref, err)
-						}
-						continue
+			if ref.FSIPath != "" && !linkfile.ExistsInDir(ref.FSIPath) {
+				ref.FSIPath = ""
+				if ref.Path == "" {
+					if err = m.inst.repo.DeleteRef(ref); err != nil {
+						log.Debugf("cannot delete ref for %q, err: %s", ref, err)
 					}
-					if err = m.inst.repo.PutRef(ref); err != nil {
-						log.Debugf("cannot put ref for %q, err: %s", ref, err)
-					}
+					continue
+				}
+				if err = m.inst.repo.PutRef(ref); err != nil {
+					log.Debugf("cannot put ref for %q, err: %s", ref, err)
 				}
 			}
 		}
