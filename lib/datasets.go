@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -186,7 +187,7 @@ func (m *DatasetMethods) ListRawRefs(p *ListParams, text *string) error {
 	return err
 }
 
-// GetParams defines parameters for looking up the body of a dataset
+// GetParams defines parameters for looking up the head or body of a dataset
 type GetParams struct {
 	// Refstr to get, representing a dataset ref to be parsed
 	Refstr string
@@ -200,7 +201,9 @@ type GetParams struct {
 	Limit, Offset int
 	All           bool
 
-	Outfile     string
+	// outfile is a filename to save the dataset to
+	Outfile string
+	// whether to generate a filename from the dataset name instead
 	GenFilename bool
 }
 
@@ -222,6 +225,10 @@ type GetResult struct {
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
 // with the generated stats.
 func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
+	if err := qfs.AbsPath(&p.Outfile); err != nil {
+		return err
+	}
+
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Get", p, res))
 	}
@@ -284,13 +291,21 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 	}
 
 	if p.Format == "zip" {
+		// Only if GenFilename is true, and no output filename is set, generate one from the
+		// dataset name
 		if p.Outfile == "" && p.GenFilename {
 			p.Outfile = fmt.Sprintf("%s.zip", ds.Name)
 		}
-		// TODO(dustmop): Abs to handle rpc
-		zipFile, err := os.Create(p.Outfile)
-		if err != nil {
-			return err
+		var outBuf bytes.Buffer
+		var zipFile io.Writer
+		if p.Outfile == "" {
+			// In this case, write to a buffer, which will be assigned to res.Bytes later on
+			zipFile = &outBuf
+		} else {
+			zipFile, err = os.Create(p.Outfile)
+			if err != nil {
+				return err
+			}
 		}
 		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
 		// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
@@ -300,8 +315,17 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 			return err
 		}
 		err = archive.WriteZip(ctx, m.inst.repo.Store(), ds, "json", initID, currRef, zipFile)
-		res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
-		return err
+		if err != nil {
+			return err
+		}
+		// Handle output. If outfile is empty, return the raw bytes. Otherwise provide a helpful
+		// message for the user
+		if p.Outfile == "" {
+			res.Bytes = outBuf.Bytes()
+		} else {
+			res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
+		}
+		return nil
 	}
 
 	if p.Selector == "body" {
