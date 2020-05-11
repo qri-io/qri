@@ -292,9 +292,6 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		if err != nil {
 			return err
 		}
-		// TODO(dustmop): remove index.html, viz.html
-		// TODO(dustmop): include readme.md
-		// TODO(dustmop): don't ouptut dataset.json, use individual file components
 		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
 		// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
 		// necessary until dscache is in use.

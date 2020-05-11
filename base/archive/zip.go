@@ -5,126 +5,91 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/base/component"
+	"github.com/qri-io/qri/base/linkfile"
 	"github.com/qri-io/qri/dsref"
 )
 
 // WriteZip generates a zip archive of a dataset and writes it to w
 func WriteZip(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, format, initID string, ref dsref.Ref, w io.Writer) error {
 	zw := zip.NewWriter(w)
+	defer zw.Close()
 
-	// Dataset header, contains meta, structure, and commit
-	dsf, err := zw.Create(fmt.Sprintf("dataset.%s", format))
-	if err != nil {
-		log.Debug(err.Error())
-		return err
+	st := ds.Structure
+
+	if ref.Path == "" && ds.Path != "" {
+		ref.Path = ds.Path
 	}
 
-	var dsdata []byte
-	switch format {
-	case "json":
-		dsdata, err = json.MarshalIndent(ds, "", "  ")
-		if err != nil {
-			return err
+	// Iterate the individual components of the dataset
+	dsComp := component.ConvertDatasetToComponents(ds, store)
+	for _, compName := range component.AllSubcomponentNames() {
+		aComp := dsComp.Base().GetSubcomponent(compName)
+		if aComp == nil {
+			continue
 		}
-	case "yaml":
-		dsdata, err = yaml.Marshal(ds)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unknown file format: \"%s\"", format)
-	}
 
-	_, err = dsf.Write(dsdata)
-	if err != nil {
-		log.Debug(err.Error())
-		return err
-	}
-
-	// Reference to dataset, as a string
-	target, err := zw.Create("ref.txt")
-	if err != nil {
-		return err
-	}
-	refContents := fmt.Sprintf("%s/%s=%s@%s", ref.Username, ref.Name, initID, ds.Path)
-	_, err = io.WriteString(target, refContents)
-	if err != nil {
-		return err
-	}
-
-	// Transform script
-	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
-		script, err := store.Get(ctx, ds.Transform.ScriptPath)
+		data, err := aComp.StructuredData()
 		if err != nil {
-			return err
+			log.Error("component %q, geting structured data: %s", compName, err)
+			continue
 		}
-		target, err := zw.Create("transform.star")
-		if err != nil {
-			return err
-		}
-		_, err = io.Copy(target, script)
-		if err != nil {
-			return err
-		}
-	}
 
-	// Viz template
-	if ds.Viz != nil {
-		if ds.Viz.ScriptPath != "" {
-			script, err := store.Get(ctx, ds.Viz.ScriptPath)
+		// Specially serialize the body to a file in the zip
+		if compName == "body" && st != nil {
+			body, err := component.SerializeBody(data, st)
 			if err != nil {
-				return err
+				log.Error("component %q, serializing body: %s", compName, err)
+				continue
 			}
-			target, err := zw.Create("viz.html")
+
+			w, err := zw.Create(fmt.Sprintf("%s.%s", compName, st.Format))
 			if err != nil {
-				return err
+				log.Error("component %q, creating zip writer: %s", compName, err)
+				continue
 			}
-			_, err = io.Copy(target, script)
-			if err != nil {
-				return err
-			}
+
+			w.Write(body)
+			continue
 		}
 
-		if ds.Viz.RenderedPath != "" {
-			if err = maybeWriteRenderedViz(ctx, store, zw, ds.Viz.RenderedPath); err != nil {
-				if errors.Is(err, context.DeadlineExceeded) {
-					err = nil
-				} else {
-					return err
-				}
-			}
+		// TODO(dustmop): The transform component outputs a json file, with a path string
+		// to the transform script in IPFS. Consider if Components should have a
+		// serialize method that gets the script for transform, and maybe the body contents,
+		// but a json struct for everything else. Follow up in another PR.
+
+		// For any other component, serialize it as json in the zip
+		w, err := zw.Create(fmt.Sprintf("%s.json", compName))
+		if err != nil {
+			log.Error("component %q, creating zip writer: %s", compName, err)
+			continue
 		}
+
+		text, err := json.MarshalIndent(data, "", " ")
+		if err != nil {
+			log.Error("component %q, marshalling data: %s", compName, err)
+			continue
+		}
+		w.Write(text)
 	}
 
-	// Body
-	datadst, err := zw.Create(fmt.Sprintf("body.%s", ds.Structure.Format))
+	// Add a linkfile in the zip, which can be used to connect the dataset back to its history
+	w, err := zw.Create(linkfile.RefLinkTextFilename)
 	if err != nil {
-		log.Debug(err.Error())
-		return err
+		log.Error(err)
+	} else {
+		linkfile.WriteRef(w, ref)
 	}
 
-	datasrc, err := dsfs.LoadBody(ctx, store, ds)
-	if err != nil {
-		log.Debug(err.Error())
-		return err
-	}
-
-	if _, err = io.Copy(datadst, datasrc); err != nil {
-		log.Debug(err.Error())
-		return err
-	}
-	return zw.Close()
+	return nil
 }
 
 // TODO (b5) - rendered viz isn't always being properly added to the
