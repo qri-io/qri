@@ -3,7 +3,6 @@ package lib
 import (
 	"context"
 	"fmt"
-	"net/rpc"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
@@ -13,29 +12,22 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// RenderRequests encapsulates business logic for this node's
-// user profile
-// TODO (b5): switch to using an Instance instead of separate fields
-type RenderRequests struct {
-	cli  *rpc.Client
-	repo repo.Repo
+// RenderMethods encapsulates business logic for executing templates, using
+// a dataset as a source
+type RenderMethods struct {
+	inst *Instance
 }
 
-// NewRenderRequests creates a RenderRequests pointer from either a repo
+// NewRenderMethods creates a RenderMethods pointer from either a repo
 // or an rpc.Client
-func NewRenderRequests(r repo.Repo, cli *rpc.Client) *RenderRequests {
-	if r != nil && cli != nil {
-		panic(fmt.Errorf("both repo and client supplied to NewRenderRequests"))
-	}
-
-	return &RenderRequests{
-		cli:  cli,
-		repo: r,
+func NewRenderMethods(inst *Instance) *RenderMethods {
+	return &RenderMethods{
+		inst: inst,
 	}
 }
 
 // CoreRequestsName implements the Requets interface
-func (RenderRequests) CoreRequestsName() string { return "render" }
+func (RenderMethods) CoreRequestsName() string { return "render" }
 
 // RenderParams defines parameters for the Render method
 type RenderParams struct {
@@ -61,9 +53,9 @@ func (p *RenderParams) Validate() error {
 }
 
 // RenderViz renders a viz component as html
-func (r *RenderRequests) RenderViz(p *RenderParams, res *[]byte) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("RenderRequests.RenderViz", p, res))
+func (m *RenderMethods) RenderViz(p *RenderParams, res *[]byte) (err error) {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("RenderMethods.RenderViz", p, res))
 	}
 	ctx := context.TODO()
 
@@ -80,20 +72,20 @@ func (r *RenderRequests) RenderViz(p *RenderParams, res *[]byte) (err error) {
 		return
 	}
 
-	if err = repo.CanonicalizeDatasetRef(r.repo, &ref); err == repo.ErrNotFound {
+	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err == repo.ErrNotFound {
 		return fmt.Errorf("unknown dataset '%s'", ref.AliasString())
 	} else if err != nil {
 		return err
 	}
 
-	*res, err = base.Render(ctx, r.repo, ref, p.Template)
+	*res, err = base.Render(ctx, m.inst.repo, ref, p.Template)
 	return err
 }
 
 // RenderReadme renders the readme into html for the given dataset
-func (r *RenderRequests) RenderReadme(p *RenderParams, res *string) (err error) {
-	if r.cli != nil {
-		return checkRPCError(r.cli.Call("RenderRequests.RenderReadme", p, res))
+func (m *RenderMethods) RenderReadme(p *RenderParams, res *string) (err error) {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("RenderMethods.RenderReadme", p, res))
 	}
 	ctx := context.TODO()
 
@@ -105,7 +97,7 @@ func (r *RenderRequests) RenderReadme(p *RenderParams, res *string) (err error) 
 	if p.Dataset != nil {
 		ds = p.Dataset
 	} else {
-		ref, err := base.ToDatasetRef(p.Ref, r.repo, p.UseFSI)
+		ref, err := base.ToDatasetRef(p.Ref, m.inst.repo, p.UseFSI)
 		if err != nil {
 			return err
 		}
@@ -115,7 +107,7 @@ func (r *RenderRequests) RenderReadme(p *RenderParams, res *string) (err error) 
 				return fmt.Errorf("loading linked dataset: %s", err)
 			}
 		} else {
-			ds, err = dsfs.LoadDataset(ctx, r.repo.Store(), ref.Path)
+			ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
 			if err != nil {
 				return fmt.Errorf("loading dataset: %s", err)
 			}
@@ -126,7 +118,7 @@ func (r *RenderRequests) RenderReadme(p *RenderParams, res *string) (err error) 
 		return fmt.Errorf("no readme to render")
 	}
 
-	if err = ds.Readme.OpenScriptFile(ctx, r.repo.Filesystem()); err != nil {
+	if err = ds.Readme.OpenScriptFile(ctx, m.inst.repo.Filesystem()); err != nil {
 		return err
 	}
 	if ds.Readme.ScriptFile() == nil {

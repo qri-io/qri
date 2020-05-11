@@ -228,7 +228,6 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 // NewServerRoutes returns a Muxer that has all API routes
 func NewServerRoutes(s Server) *http.ServeMux {
-	node := s.Node()
 	cfg := s.Config()
 
 	m := http.NewServeMux()
@@ -286,7 +285,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/restore/", s.middleware(fsih.RestoreHandler("/restore")))
 	m.Handle("/fsi/write/", s.middleware(fsih.WriteHandler("/fsi/write")))
 
-	renderh := NewRenderHandlers(node.Repo)
+	renderh := NewRenderHandlers(s.Instance)
 	m.Handle("/render", s.middleware(renderh.RenderHandler))
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))
 

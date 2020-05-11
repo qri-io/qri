@@ -2,10 +2,6 @@ package lib
 
 import (
 	"context"
-	"net"
-	"net/http"
-	"net/http/httptest"
-	"net/rpc"
 	"testing"
 	"time"
 
@@ -18,39 +14,9 @@ import (
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 	testrepo "github.com/qri-io/qri/repo/test"
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
-func TestNewRenderRequests(t *testing.T) {
-	defer func() {
-		if err := recover(); err == nil {
-			t.Errorf("expected NewRenderRequests to panic")
-		}
-	}()
-
-	tr, err := testrepo.NewTestRepo()
-	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
-	}
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte{}) }))
-	conn, err := net.Dial("tcp", srv.Listener.Addr().String())
-	if err != nil {
-		t.Errorf("error allocating listener: %s", err.Error())
-		return
-	}
-
-	reqs := NewRenderRequests(tr, nil)
-	if reqs.CoreRequestsName() != "render" {
-		t.Errorf("invalid requests name. expected: '%s', got: '%s'", "render", reqs.CoreRequestsName())
-	}
-
-	// this should panic, triggering the defer statement above
-	NewRenderRequests(tr, rpc.NewClient(conn))
-}
-
-func TestRenderRequestsRender(t *testing.T) {
+func TestRenderMethodsRender(t *testing.T) {
 	// set Default Template to something easier to work with, then
 	// cleanup when test completes
 	prevDefaultTemplate := base.DefaultTemplate
@@ -99,35 +65,37 @@ func TestRenderRequestsRender(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
+	node, err := p2p.NewQriNode(tr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
-	reqs := NewRenderRequests(tr, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	rm := NewRenderMethods(inst)
 
 	for i, c := range cases {
 		got := []byte{}
-		err := reqs.RenderViz(c.params, &got)
+		err := rm.RenderViz(c.params, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d %s error mismatch. expected: '%s', got: '%s'", i, c.description, c.err, err)
 			return
 		}
 
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(got), string(c.expect), false)
-		if len(diffs) > 1 {
-			t.Log(dmp.DiffPrettyText(diffs))
-			t.Errorf("case %d %s failed to match.", i, c.description)
+		if diff := cmp.Diff(string(got), string(c.expect)); diff != "" {
+			t.Errorf("case %d result mismatch. (-want +got):\n%s", i, c.description)
 		}
 	}
 }
 
 // renderTestRunner holds state to make it easier to run tests
 type renderTestRunner struct {
-	Node        *p2p.QriNode
-	Repo        repo.Repo
-	DatasetReqs *DatasetMethods
-	RenderReqs  *RenderRequests
-	Context     context.Context
-	ContextDone func()
-	TsFunc      func() time.Time
+	Node          *p2p.QriNode
+	Repo          repo.Repo
+	DatasetReqs   *DatasetMethods
+	RenderMethods *RenderMethods
+	Context       context.Context
+	ContextDone   func()
+	TsFunc        func() time.Time
 }
 
 // newRenderTestRunner returns a test runner for render
@@ -152,7 +120,7 @@ func newRenderTestRunner(t *testing.T, testName string) *renderTestRunner {
 	}
 	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), r.Node)
 	r.DatasetReqs = NewDatasetMethods(inst)
-	r.RenderReqs = NewRenderRequests(r.Repo, nil)
+	r.RenderMethods = NewRenderMethods(inst)
 
 	return &r
 }
@@ -177,7 +145,7 @@ func (r *renderTestRunner) Save(ref string, ds *dataset.Dataset, bodyPath string
 	}
 }
 
-func TestRenderRequestsRenderViz(t *testing.T) {
+func TestRenderMethodsRenderViz(t *testing.T) {
 	runner := newRenderTestRunner(t, "render_viz")
 	defer runner.Delete()
 
@@ -190,7 +158,7 @@ func TestRenderRequestsRenderViz(t *testing.T) {
 		},
 	}
 	var data []byte
-	if err := runner.RenderReqs.RenderViz(&params, &data); err == nil {
+	if err := runner.RenderMethods.RenderViz(&params, &data); err == nil {
 		t.Errorf("expected RenderReadme with both ref & dataset to error")
 	}
 
@@ -201,7 +169,7 @@ func TestRenderRequestsRenderViz(t *testing.T) {
 			},
 		},
 	}
-	if err := runner.RenderReqs.RenderViz(&params, &data); err == nil {
+	if err := runner.RenderMethods.RenderViz(&params, &data); err == nil {
 		t.Errorf("expected attempt to dynamic-render viz to fail")
 	}
 }
@@ -225,7 +193,7 @@ func TestRenderReadme(t *testing.T) {
 		OutFormat: "html",
 	}
 	var text string
-	err := runner.RenderReqs.RenderReadme(&params, &text)
+	err := runner.RenderMethods.RenderReadme(&params, &text)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +210,7 @@ func TestRenderReadme(t *testing.T) {
 			},
 		},
 	}
-	if err = runner.RenderReqs.RenderReadme(&params, &text); err != nil {
+	if err = runner.RenderMethods.RenderReadme(&params, &text); err != nil {
 		t.Errorf("dynamic dataset render error: %s", err)
 	}
 
@@ -258,7 +226,7 @@ func TestRenderReadme(t *testing.T) {
 			},
 		},
 	}
-	if err = runner.RenderReqs.RenderReadme(&params, &text); err == nil {
+	if err = runner.RenderMethods.RenderReadme(&params, &text); err == nil {
 		t.Errorf("expected RenderReadme with both ref & dataset to error")
 	}
 }

@@ -7,19 +7,17 @@ import (
 	"github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 )
 
 // RenderHandlers wraps a requests struct to interface with http.HandlerFunc
 type RenderHandlers struct {
-	lib.RenderRequests
-	repo repo.Repo
+	lib.RenderMethods
 }
 
 // NewRenderHandlers allocates a RenderHandlers pointer
-func NewRenderHandlers(r repo.Repo) *RenderHandlers {
-	req := lib.NewRenderRequests(r, nil)
-	h := RenderHandlers{*req, r}
+func NewRenderHandlers(inst *lib.Instance) *RenderHandlers {
+	req := lib.NewRenderMethods(inst)
+	h := RenderHandlers{*req}
 	return &h
 }
 

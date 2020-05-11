@@ -36,10 +36,10 @@ type Factory interface {
 	SearchMethods() (*lib.SearchMethods, error)
 	SQLMethods() (*lib.SQLMethods, error)
 	FSIMethods() (*lib.FSIMethods, error)
+	RenderMethods() (*lib.RenderMethods, error)
 
 	// TODO (b5) - these should be deprecated:
 	ExportRequests() (*lib.ExportRequests, error)
-	RenderRequests() (*lib.RenderRequests, error)
 }
 
 // PathFactory is a function that returns paths to qri & ipfs repos
