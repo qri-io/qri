@@ -1,6 +1,6 @@
 // +build !windows
 
-package hiddenfile
+package fsi
 
 import (
 	"fmt"

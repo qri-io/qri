@@ -20,7 +20,6 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/base/component"
-	"github.com/qri-io/qri/base/linkfile"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
@@ -39,7 +38,7 @@ var (
 // GetLinkedFilesysRef returns whether a directory is linked to a dataset in your repo, and
 // a reference to that dataset
 func GetLinkedFilesysRef(dir string) (dsref.Ref, bool) {
-	ref, err := linkfile.Read(filepath.Join(dir, linkfile.RefLinkHiddenFilename))
+	ref, err := ReadLinkfile(filepath.Join(dir, RefLinkHiddenFilename))
 	return ref, err == nil
 }
 
@@ -93,7 +92,7 @@ func (fsi *FSI) LinkedRefs(offset, limit int) ([]reporef.DatasetRef, error) {
 func (fsi *FSI) EnsureRefNotLinked(ref *reporef.DatasetRef) error {
 	if stored, err := fsi.repo.GetRef(*ref); err == nil {
 		// Check if there is already a link for this dataset, and if that link still exists.
-		if stored.FSIPath != "" && linkfile.ExistsInDir(stored.FSIPath) {
+		if stored.FSIPath != "" && LinkfileExistsInDir(stored.FSIPath) {
 			return fmt.Errorf("'%s' is already linked to %s", ref.AliasString(), stored.FSIPath)
 		}
 	}
@@ -137,7 +136,7 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 	ref := reporef.ConvertToDsref(datasetRef)
 	// Remove the path from the reference because linkfile's don't store full paths.
 	ref.Path = ""
-	linkFile, err := linkfile.WriteHiddenInDir(dirPath, ref)
+	linkFile, err := WriteHiddenLinkfileInDir(dirPath, ref)
 	if err != nil {
 		return "", removeRefFunc, err
 	}
@@ -197,7 +196,7 @@ func (fsi *FSI) ModifyLinkReference(dirPath, refStr string) error {
 	ref := reporef.ConvertToDsref(datasetRef)
 	// Remove the path from the reference because linkfile's don't store full paths.
 	ref.Path = ""
-	if _, err = linkfile.WriteHiddenInDir(dirPath, ref); err != nil {
+	if _, err = WriteHiddenLinkfileInDir(dirPath, ref); err != nil {
 		return err
 	}
 	return nil
@@ -206,7 +205,7 @@ func (fsi *FSI) ModifyLinkReference(dirPath, refStr string) error {
 // Unlink removes the link file (.qri-ref) in the directory, and removes the fsi path
 // from the reference in the refstore
 func (fsi *FSI) Unlink(dirPath string, ref dsref.Ref) error {
-	removeErr := os.Remove(filepath.Join(dirPath, linkfile.RefLinkHiddenFilename))
+	removeErr := os.Remove(filepath.Join(dirPath, RefLinkHiddenFilename))
 	if removeErr != nil {
 		log.Debugf("removing link file: %s", removeErr.Error())
 	}

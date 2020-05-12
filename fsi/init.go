@@ -9,7 +9,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/component"
-	"github.com/qri-io/qri/base/linkfile"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
@@ -229,7 +228,7 @@ func (fsi *FSI) CanInitDatasetWorkDir(dir, sourceBodyPath string) error {
 	}
 
 	// Check if .qri-ref link file already exists.
-	if linkfile.ExistsInDir(dir) {
+	if LinkfileExistsInDir(dir) {
 		return fmt.Errorf("working directory is already linked, .qri-ref exists")
 	}
 	// Check if other component files exist. If sourceBodyPath is provided, it's not an error

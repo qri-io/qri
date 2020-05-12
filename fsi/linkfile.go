@@ -1,4 +1,4 @@
-package linkfile
+package fsi
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/qri-io/qri/base/hiddenfile"
 	"github.com/qri-io/qri/dsref"
 )
 
@@ -18,8 +17,8 @@ const RefLinkTextFilename = "qri-ref.txt"
 // RefLinkHiddenFilename is the filename for a hidden reference linkfile
 const RefLinkHiddenFilename = ".qri-ref"
 
-// Read reads a reference from a linkfile with the given filename
-func Read(filename string) (dsref.Ref, error) {
+// ReadLinkfile reads a reference from a linkfile with the given filename
+func ReadLinkfile(filename string) (dsref.Ref, error) {
 	var ref dsref.Ref
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -28,8 +27,8 @@ func Read(filename string) (dsref.Ref, error) {
 	return dsref.Parse(strings.TrimSpace(string(data)))
 }
 
-// ExistsInDir returns whether a linkfile exists in the directory
-func ExistsInDir(dir string) bool {
+// LinkfileExistsInDir returns whether a linkfile exists in the directory
+func LinkfileExistsInDir(dir string) bool {
 	if _, err := os.Stat(filepath.Join(dir, RefLinkTextFilename)); err == nil {
 		return true
 	}
@@ -39,16 +38,16 @@ func ExistsInDir(dir string) bool {
 	return false
 }
 
-// WriteTextInDir writes a reference to a visible linkfile in the given directory
-func WriteTextInDir(dir string, ref dsref.Ref) (string, error) {
+// WriteTextLinkfileInDir writes a reference to a visible linkfile in the given directory
+func WriteTextLinkfileInDir(dir string, ref dsref.Ref) (string, error) {
 	filename := filepath.Join(dir, RefLinkTextFilename)
 	return filename, ioutil.WriteFile(filename, []byte(refText(ref)), 0644)
 }
 
-// WriteHiddenInDir writes a reference to a hidden linkfile in the given directory
-func WriteHiddenInDir(dir string, ref dsref.Ref) (string, error) {
+// WriteHiddenLinkfileInDir writes a reference to a hidden linkfile in the given directory
+func WriteHiddenLinkfileInDir(dir string, ref dsref.Ref) (string, error) {
 	filename := filepath.Join(dir, RefLinkHiddenFilename)
-	return filename, hiddenfile.WriteHiddenFile(filename, refText(ref))
+	return filename, WriteHiddenFile(filename, refText(ref))
 }
 
 // WriteRef writes a reference to the given io.Writer

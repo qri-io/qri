@@ -14,8 +14,8 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/component"
-	"github.com/qri-io/qri/base/linkfile"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/fsi"
 )
 
 // WriteZip generates a zip archive of a dataset and writes it to w
@@ -82,11 +82,11 @@ func WriteZip(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, fo
 	}
 
 	// Add a linkfile in the zip, which can be used to connect the dataset back to its history
-	w, err := zw.Create(linkfile.RefLinkTextFilename)
+	w, err := zw.Create(fsi.RefLinkTextFilename)
 	if err != nil {
 		log.Error(err)
 	} else {
-		linkfile.WriteRef(w, ref)
+		fsi.WriteRef(w, ref)
 	}
 
 	return nil

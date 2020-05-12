@@ -20,7 +20,6 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qri/base/hiddenfile"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
@@ -393,7 +392,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	if inst.repo != nil {
 		// Try to make the repo a hidden directory, but it's okay if we can't. Ignore the error.
-		_ = hiddenfile.SetFileHidden(inst.repoPath)
+		_ = fsi.SetFileHidden(inst.repoPath)
 		inst.fsi = fsi.NewFSI(inst.repo, inst.bus)
 	}
 
@@ -495,7 +494,7 @@ func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Files
 			return nil, err
 		}
 		// Try to make the repo a hidden directory, but it's okay if we can't. Ingore the error.
-		_ = hiddenfile.SetFileHidden(path)
+		_ = fsi.SetFileHidden(path)
 		return repo, nil
 	case "mem":
 		return repo.NewMemRepo(pro, store, fs, profile.NewMemStore())
