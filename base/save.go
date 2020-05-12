@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
+	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -20,6 +21,9 @@ import (
 
 // SaveSwitches is an alias for the switches that control how saves happen
 type SaveSwitches = dsfs.SaveSwitches
+
+// ErrNameTaken is an error for when a name for a new dataset is already being used
+var ErrNameTaken = fmt.Errorf("name already in use")
 
 // SaveDataset saves a version of the dataset for the given initID at the current path
 func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, initID, prevPath string, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
@@ -270,10 +274,12 @@ func DatasetNameExists(r repo.Repo, dsName string) bool {
 	return true
 }
 
-// DatasetNameAndStableIdentifers determines the final name for the dataset, by inferring one if
-// necessary, and returns stable identifiers for the full dataset history, and for the most
-// recent version.
-func DatasetNameAndStableIdentifers(ctx context.Context, r repo.Repo, peername string, dsName string, ds *dataset.Dataset, newName bool) (string, string, string, error) {
+// FinalizeNameAndStableIdentifers determines the final name for the dataset, by inferring one if
+// necessary, and returns a ref with stable identifiers for the full dataset history, and for
+// the most recent version.
+func FinalizeNameAndStableIdentifers(ctx context.Context, r repo.Repo, peername string, dsName string, ds *dataset.Dataset, newName bool) (dsref.Ref, error) {
+	ref := dsref.Ref{}
+
 	inferredName := MaybeInferName(ds)
 	if inferredName != "" {
 		dsName = inferredName
@@ -288,17 +294,17 @@ func DatasetNameAndStableIdentifers(ctx context.Context, r repo.Repo, peername s
 			// Name was explicitly given, with the --new flag, but the name is already in use.
 			// This is an error.
 			// TODO(dlong): Add a test for this case.
-			return "", "", "", fmt.Errorf("dataset name has a previous version, cannot make new dataset")
+			return ref, qerr.New(ErrNameTaken, "dataset name has a previous version, cannot make new dataset")
 		} else if inferredName != "" {
 			// Name was inferred, and has previous version. Unclear if the user meant to create
 			// a brand new dataset or if they wanted to add a new version to the existing dataset.
 			// Raise an error recommending one of these course of actions.
-			return "", "", "", fmt.Errorf("inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference. To create a new dataset, use --new flag")
+			return ref, qerr.New(ErrNameTaken, fmt.Sprintf("inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference \"me/%s\". To create a new dataset, use --new flag", inferredName))
 		}
 	}
 
 	if !dsref.IsValidName(dsName) {
-		return "", "", "", fmt.Errorf("invalid dataset name: %s", dsName)
+		return ref, fmt.Errorf("invalid dataset name: %s", dsName)
 	}
 
 	// Whether there is a previous version is equivalent to whether there is an initID here
@@ -307,20 +313,28 @@ func DatasetNameAndStableIdentifers(ctx context.Context, r repo.Repo, peername s
 		// If dataset does not exist yet, initialize with the given name
 		initID, err = r.Logbook().WriteDatasetInit(ctx, dsName)
 		if err != nil {
-			return "", "", "", err
+			return ref, err
 		}
 	} else if err != nil {
-		return "", "", "", err
+		return ref, err
 	}
+
+	// TODO(dustmop): ProfileID not being set, perhaps could come from Logbook?
+	ref.Username = peername
+	ref.Name = dsName
+	ref.InitID = initID
+	// NOTE: Path may or may not be set, depending on if the dataset exists with history.
 
 	// Get the path for the most recent version of the dataset
 	// TODO(dustmop): Add dscache support
 	lookup := &reporef.DatasetRef{Peername: peername, Name: dsName}
 	err = repo.CanonicalizeDatasetRef(r, lookup)
 	if err == repo.ErrNotFound || err == repo.ErrNoHistory {
-		return dsName, initID, "", nil
+		// Dataset either does not exist yet, or has no history. Not an error.
+		return ref, nil
 	} else if err != nil {
-		return "", "", "", err
+		return ref, err
 	}
-	return dsName, initID, lookup.Path, nil
+	ref.Path = lookup.Path
+	return ref, nil
 }

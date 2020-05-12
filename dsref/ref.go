@@ -2,6 +2,8 @@ package dsref
 
 // Ref is a reference to a dataset
 type Ref struct {
+	// InitIDs is the canonical identifer for a dataset history
+	InitID string `json:"initID,omitempty"`
 	// Username of dataset owner
 	Username string `json:"username,omitempty"`
 	// ProfileID of dataset owner
@@ -38,10 +40,14 @@ func (r Ref) String() (s string) {
 
 // IsEmpty returns whether the reference is empty
 func (r Ref) IsEmpty() bool {
-	return r.Username == "" && r.ProfileID == "" && r.Name == "" && r.Path == ""
+	return r.InitID == "" && r.Username == "" && r.ProfileID == "" && r.Name == "" && r.Path == ""
 }
 
 // Equals returns whether the reference equals another
 func (r Ref) Equals(t Ref) bool {
-	return r.Username == t.Username && r.ProfileID == t.ProfileID && r.Name == t.Name && r.Path == t.Path
+	return r.InitID == t.InitID &&
+		r.Username == t.Username &&
+		r.ProfileID == t.ProfileID &&
+		r.Name == t.Name &&
+		r.Path == t.Path
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -15,7 +16,7 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dscache"
-	"github.com/qri-io/qri/errors"
+	qrierr "github.com/qri-io/qri/errors"
 )
 
 func TestSaveComplete(t *testing.T) {
@@ -91,7 +92,7 @@ func TestSaveValidate(t *testing.T) {
 			continue
 		}
 
-		if libErr, ok := err.(errors.Error); ok {
+		if libErr, ok := err.(qrierr.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
 				continue
@@ -170,7 +171,7 @@ func TestSaveRun(t *testing.T) {
 			continue
 		}
 
-		if libErr, ok := err.(errors.Error); ok {
+		if libErr, ok := err.(qrierr.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case '%s', mismatched user-friendly message. Expected: '%s', Got: '%s'", c.description, c.msg, libErr.Message())
 				continue
@@ -374,11 +375,11 @@ func TestSaveInferName(t *testing.T) {
 
 	// Save again, get an error because the inferred name already exists.
 	err := run.ExecCommand("qri save --body testdata/movies/body_four.json")
-	expectErr := `inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference. To create a new dataset, use --new flag`
+	expectErr := `inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference "me/body_four". To create a new dataset, use --new flag`
 	if err == nil {
 		t.Errorf("error expected, did not get one")
 	}
-	if diff := cmp.Diff(expectErr, err.Error()); diff != "" {
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
 
@@ -961,4 +962,15 @@ func TestSaveWithReadmeFiles(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected save to succeed, got %s", err)
 	}
+}
+
+func errorMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	var qerr qrierr.Error
+	if errors.As(err, &qerr) {
+		return qerr.Message()
+	}
+	return err.Error()
 }
