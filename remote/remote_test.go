@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -205,7 +206,7 @@ func TestFeeds(t *testing.T) {
 			{
 				Username:   "A",
 				Name:       "video_view_stats",
-				Path:       "/ipfs/QmXKGQuHfYAy9SBaMRMvPW74mQXNVmyMmMXBQjTo21G8yQ",
+				Path:       "/ipfs/QmPZ3W5291qJ9mq1fPpTmxfbDMc2ewXKiw2qGXSGBeQtWn",
 				MetaTitle:  "Video View Stats",
 				BodySize:   4,
 				BodyRows:   1,
@@ -215,7 +216,7 @@ func TestFeeds(t *testing.T) {
 			{
 				Username:   "A",
 				Name:       "world_bank_population",
-				Path:       "/ipfs/QmVeWbw4DJQqWjKXohgTu5JdhVniLPiyb6z6m1duwvXdQe",
+				Path:       "/ipfs/Qmb5Qaigk9teHrWSyXf7UxnRH3L28BV6zV1cqaWsLn3z7p",
 				MetaTitle:  "World Bank Population",
 				BodySize:   5,
 				BodyRows:   1,
@@ -315,13 +316,7 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) re
 		},
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[100]")))
-
-	ref, err := base.CreateDataset(ctx, r, ioes.NewDiscardIOStreams(), ds, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return ref
+	return saveDataset(ctx, r, "peer", ds)
 }
 
 func publishRef(t *testing.T, r repo.Repo, ref *reporef.DatasetRef) {
@@ -345,11 +340,27 @@ func writeVideoViewStats(ctx context.Context, t *testing.T, r repo.Repo) reporef
 		},
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[10]")))
+	return saveDataset(ctx, r, "peer", ds)
+}
 
-	ref, err := base.CreateDataset(ctx, r, ioes.NewDiscardIOStreams(), ds, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
-	if err != nil {
-		t.Fatal(err)
+func saveDataset(ctx context.Context, r repo.Repo, peername string, ds *dataset.Dataset) reporef.DatasetRef {
+	devNull := ioes.NewDiscardIOStreams()
+	sw := base.SaveSwitches{}
+	headRef := ""
+	book := r.Logbook()
+	initID, err := book.RefToInitID(dsref.Ref{Username: peername, Name: ds.Name})
+	if err == nil {
+		got, _ := r.GetRef(reporef.DatasetRef{Peername: peername, Name: ds.Name})
+		headRef = got.Path
+	} else if err == logbook.ErrNotFound {
+		initID, err = book.WriteDatasetInit(ctx, ds.Name)
 	}
-
-	return ref
+	if err != nil {
+		panic(err)
+	}
+	datasetRef, err := base.SaveDataset(ctx, r, devNull, initID, headRef, ds, nil, nil, sw)
+	if err != nil {
+		panic(err)
+	}
+	return datasetRef
 }

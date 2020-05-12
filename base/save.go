@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
+	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -21,58 +22,48 @@ import (
 // SaveSwitches is an alias for the switches that control how saves happen
 type SaveSwitches = dsfs.SaveSwitches
 
-// SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
-	var (
-		prevPath string
-		pro      *profile.Profile
-	)
+// ErrNameTaken is an error for when a name for a new dataset is already being used
+var ErrNameTaken = fmt.Errorf("name already in use")
 
-	// TODO(dustmop): In a future change, move everything related to naming (from here until the
-	// sw.DryRun check) up into a higher function. This function should take an initID instead,
-	// and should not inspect changes.Peername or changes.Name at all.
-	// All that logbook needs to create an initID is a dataset name, so naming must move up in
-	// order to have accomplish this goal.
-
+// SaveDataset saves a version of the dataset for the given initID at the current path
+func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, initID, prevPath string, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
+	var pro *profile.Profile
 	if pro, err = r.Profile(); err != nil {
 		return
 	}
-	peername := pro.Peername
-	dsName := changes.Name
 
-	inferredName := MaybeInferName(changes)
-	if inferredName != "" {
-		dsName = inferredName
+	if initID == "" {
+		return ref, fmt.Errorf("SaveDataset requires an initID")
 	}
 
-	prev, mutable, prevPath, err := PrepareHeadDatasetVersion(ctx, r, peername, dsName)
-	if err != nil {
-		log.Errorf("preparing dataset: %s", err)
-		return
-	}
-
+	prev := &dataset.Dataset{}
+	mutable := &dataset.Dataset{}
 	if prevPath != "" {
-		log.Debugf("loading previous path: %s", prevPath)
-		if sw.NewName && inferredName != "" {
-			// Using --new flag, name was inferred, but it's already in use. Because the --new
-			// flag was given, user is requesting we invent a unique name. Increment a counter
-			// on the name until we find something that's available.
-			dsName = GenerateAvailableName(r, peername, dsName)
-			prev, mutable, prevPath, err = PrepareHeadDatasetVersion(ctx, r, peername, dsName)
-			if err != nil {
-				return
-			}
-		} else if sw.NewName {
-			// Name was explicitly given, with the --new flag, but the name is already in use.
-			// This is an error.
-			// TODO(dlong): Add a test for this case.
-			return ref, fmt.Errorf("dataset name has a previous version, cannot make new dataset")
-		} else if inferredName != "" {
-			// Name was inferred, and has previous version. Unclear if the user meant to create
-			// a brand new dataset or if they wanted to add a new version to the existing dataset.
-			// Raise an error recommending one of these course of actions.
-			return ref, fmt.Errorf("inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference. To create a new dataset, use --new flag")
+		// Load the dataset's most recent version, which will become the previous version after
+		// this save operation completes.
+		if prev, err = dsfs.LoadDataset(ctx, r.Store(), prevPath); err != nil {
+			return
 		}
+		if prev.BodyPath != "" {
+			var body qfs.File
+			body, err = dsfs.LoadBody(ctx, r.Store(), prev)
+			if err != nil {
+				return ref, err
+			}
+			prev.SetBodyFile(body)
+		}
+		// Load a mutable copy of the dataset because most of the save path assuming we are doing
+		// a patch update to the current head, and not a full replacement.
+		if mutable, err = dsfs.LoadDataset(ctx, r.Store(), prevPath); err != nil {
+			return ref, err
+		}
+
+		// TODO(dustmop): Stop removing the transform once we move to apply, and untangle the
+		// save command from applying a transform.
+		// remove the Transform & commit
+		// transform & commit must be created from scratch with each new version
+		mutable.Transform = nil
+		mutable.Commit = nil
 	}
 
 	// TODO(dustmop): In a future change, move code related to transform higher up, as we
@@ -113,6 +104,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 		return
 	}
 
+	// Handle a change in structure format.
 	if changes.BodyFile() != nil && prev.Structure != nil && changes.Structure != nil && prev.Structure.Format != changes.Structure.Format {
 		if sw.ConvertFormatToPrev {
 			var f qfs.File
@@ -144,13 +136,24 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 	// let's make history, if it exists
 	changes.PreviousPath = prevPath
 
-	// TODO(dustmop): Remove the need to assign this. See inside of CreateDataset for details
-	changes.Name = dsName
-	return CreateDataset(ctx, r, str, changes, prev, sw)
+	// Write the dataset to storage and get back the new path.
+	// TODO(dustmop): Only return the cafs path, since this function shouldn't know about references
+	ref, err = CreateDataset(ctx, r, str, changes, prev, sw)
+	if err != nil {
+		return ref, err
+	}
+
+	if !sw.DryRun {
+		// Write the save to logbook
+		err = r.Logbook().WriteVersionSave(ctx, initID, changes)
+		if err != nil && err != logbook.ErrNoLogbook {
+			return ref, err
+		}
+	}
+	return ref, err
 }
 
-// CreateDataset uses dsfs to add a dataset to a repo's store, updating all
-// references within the repo if successful
+// CreateDataset uses dsfs to add a dataset to a repo's store, updating the refstore
 func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
 	var (
 		pro     *profile.Profile
@@ -175,7 +178,6 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		return ref, err
 	}
 
-	// TODO(dustmop): ValidateDataset relies upon having ds.Name set. Remove that assumption.
 	if err = ValidateDataset(ds); err != nil {
 		log.Debugf("ValidateDataset: %s", err)
 		return
@@ -212,27 +214,6 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 			log.Debugf("r.PutRef: %s", err)
 			return
 		}
-
-		// TODO(dustmop): When we switch to initIDs, use the initID passed to this function,
-		// retrieved from the top-level resolver.
-		// Whether there is a previous version is equivalent to whether we have an initID coming
-		// into this function.
-		initID, err := r.Logbook().RefToInitID(dsref.Ref{Username: pro.Peername, Name: dsName})
-		if err == logbook.ErrNotFound {
-			// If dataset does not exist yet, initialize with the given name
-			initID, err = r.Logbook().WriteDatasetInit(ctx, dsName)
-			if err != nil {
-				return ref, err
-			}
-		}
-		// TODO(dustmop): Not checking the error return from RefToInitID. That function should
-		// return an error if the dataset name is an empty string, but this breaks lots of tests,
-		// because many tests rely on sending datasets with empty names.
-
-		err = r.Logbook().WriteVersionSave(ctx, initID, ds)
-		if err != nil && err != logbook.ErrNoLogbook {
-			return ref, err
-		}
 	}
 
 	ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path)
@@ -257,7 +238,13 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 }
 
 // GenerateAvailableName creates a name for the dataset that is not currently in use
-func GenerateAvailableName(r repo.Repo, peername, prefix string) string {
+func GenerateAvailableName(r repo.Repo, prefix string) string {
+	pro, err := r.Profile()
+	if err != nil {
+		log.Errorf("couldn't get profile: %s", err)
+		return ""
+	}
+	peername := pro.Peername
 	counter := 0
 	for {
 		counter++
@@ -268,4 +255,86 @@ func GenerateAvailableName(r repo.Repo, peername, prefix string) string {
 			return tryName
 		}
 	}
+}
+
+// DatasetNameExists determines whether the name exists in the repository
+// TODO(dustmop): Add dscache support
+func DatasetNameExists(r repo.Repo, dsName string) bool {
+	pro, err := r.Profile()
+	if err != nil {
+		log.Errorf("couldn't get profile: %s", err)
+		return false
+	}
+	peername := pro.Peername
+	lookup := &reporef.DatasetRef{Name: dsName, Peername: peername}
+	err = repo.CanonicalizeDatasetRef(r, lookup)
+	if err == repo.ErrNotFound {
+		return false
+	}
+	return true
+}
+
+// FinalizeNameAndStableIdentifers determines the final name for the dataset, by inferring one if
+// necessary, and returns a ref with stable identifiers for the full dataset history, and for
+// the most recent version.
+func FinalizeNameAndStableIdentifers(ctx context.Context, r repo.Repo, peername string, dsName string, ds *dataset.Dataset, newName bool) (dsref.Ref, error) {
+	ref := dsref.Ref{}
+
+	inferredName := MaybeInferName(ds)
+	if inferredName != "" {
+		dsName = inferredName
+	}
+	if DatasetNameExists(r, dsName) {
+		if newName && inferredName != "" {
+			// Using --new flag, name was inferred, but it's already in use. Because the --new
+			// flag was given, user is requesting we invent a unique name. Increment a counter
+			// on the name until we find something that's available.
+			dsName = GenerateAvailableName(r, dsName)
+		} else if newName {
+			// Name was explicitly given, with the --new flag, but the name is already in use.
+			// This is an error.
+			// TODO(dlong): Add a test for this case.
+			return ref, qerr.New(ErrNameTaken, "dataset name has a previous version, cannot make new dataset")
+		} else if inferredName != "" {
+			// Name was inferred, and has previous version. Unclear if the user meant to create
+			// a brand new dataset or if they wanted to add a new version to the existing dataset.
+			// Raise an error recommending one of these course of actions.
+			return ref, qerr.New(ErrNameTaken, fmt.Sprintf("inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference \"me/%s\". To create a new dataset, use --new flag", inferredName))
+		}
+	}
+
+	if !dsref.IsValidName(dsName) {
+		return ref, fmt.Errorf("invalid dataset name: %s", dsName)
+	}
+
+	// Whether there is a previous version is equivalent to whether there is an initID here
+	initID, err := r.Logbook().RefToInitID(dsref.Ref{Username: peername, Name: dsName})
+	if err == logbook.ErrNotFound {
+		// If dataset does not exist yet, initialize with the given name
+		initID, err = r.Logbook().WriteDatasetInit(ctx, dsName)
+		if err != nil {
+			return ref, err
+		}
+	} else if err != nil {
+		return ref, err
+	}
+
+	// TODO(dustmop): ProfileID not being set, perhaps could come from Logbook?
+	ref.Username = peername
+	ref.Name = dsName
+	ref.InitID = initID
+	// NOTE: Path may or may not be set, depending on if the dataset exists with history.
+
+	// Get the path for the most recent version of the dataset
+	// TODO(dustmop): Add dscache support
+	lookup := &reporef.DatasetRef{Peername: peername, Name: dsName}
+	err = repo.CanonicalizeDatasetRef(r, lookup)
+	if err == repo.ErrNotFound || err == repo.ErrNoHistory {
+		// Dataset either does not exist yet, or has no history. Not an error.
+		return ref, nil
+	} else if err != nil {
+		return ref, err
+	}
+	ref.Path = lookup.Path
+	return ref, nil
 }

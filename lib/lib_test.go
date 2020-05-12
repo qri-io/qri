@@ -12,6 +12,7 @@ import (
 	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
@@ -19,6 +20,8 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -159,7 +162,7 @@ func TestReceivers(t *testing.T) {
 
 // pulled from base packages
 // TODO - we should probably get a test package going at github.com/qri-io/qri/test
-func addCitiesDataset(t *testing.T, node *p2p.QriNode) reporef.DatasetRef {
+func addCitiesDataset(t *testing.T, node *p2p.QriNode) dsref.Ref {
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("cities"))
 	if err != nil {
@@ -169,14 +172,31 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) reporef.DatasetRef {
 	ds.Name = tc.Name
 	ds.BodyBytes = tc.Body
 
-	ref, err := base.SaveDataset(ctx, node.Repo, devNull, ds, nil, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := saveDataset(ctx, node.Repo, ds, base.SaveSwitches{Pin: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	return ref
 }
 
-func addNowTransformDataset(t *testing.T, node *p2p.QriNode) reporef.DatasetRef {
+func saveDataset(ctx context.Context, r repo.Repo, ds *dataset.Dataset, sw base.SaveSwitches) (dsref.Ref, error) {
+	headRef := ""
+	book := r.Logbook()
+	initID, err := book.RefToInitID(dsref.Ref{Username: "peer", Name: ds.Name})
+	if err == nil {
+		got, _ := r.GetRef(reporef.DatasetRef{Peername: "peer", Name: ds.Name})
+		headRef = got.Path
+	} else if err == logbook.ErrNotFound {
+		initID, err = book.WriteDatasetInit(ctx, ds.Name)
+	}
+	if err != nil {
+		return dsref.Ref{}, err
+	}
+	datasetRef, err := base.SaveDataset(ctx, r, devNull, initID, headRef, ds, nil, nil, sw)
+	return reporef.ConvertToDsref(datasetRef), err
+}
+
+func addNowTransformDataset(t *testing.T, node *p2p.QriNode) dsref.Ref {
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir("testdata/now_tf")
 	if err != nil {
@@ -186,7 +206,7 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) reporef.DatasetRef 
 	ds.Name = tc.Name
 	ds.Transform.ScriptPath = "testdata/now_tf/transform.star"
 
-	ref, err := base.SaveDataset(ctx, node.Repo, devNull, ds, nil, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := saveDataset(ctx, node.Repo, ds, base.SaveSwitches{Pin: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -70,7 +70,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 			{
 				Username:   "A",
 				Name:       "world_bank_population",
-				Path:       "/ipfs/QmVeWbw4DJQqWjKXohgTu5JdhVniLPiyb6z6m1duwvXdQe",
+				Path:       "/ipfs/Qmb5Qaigk9teHrWSyXf7UxnRH3L28BV6zV1cqaWsLn3z7p",
 				MetaTitle:  "World Bank Population",
 				BodySize:   5,
 				BodyRows:   1,
@@ -92,15 +92,16 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 		Body:     []interface{}{float64(100)},
 		BodyPath: "/ipfs/QmWVxUKnBmbiXai1Wgu6SuMzyZwYRqjt5TXL8xxghN5hWL",
 		Commit: &dataset.Commit{
+			Author:    &dataset.User{ID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},
 			Message:   "created dataset",
-			Path:      "/ipfs/QmW27MUFMSvPiE3FpmHhSeBZQEuYAppofudDCLvPXVfSLR",
+			Path:      "/ipfs/QmUzzcVVsc6yDMq6ahAiUyxtnjvyaGkgHBBJSksjwVGVS4",
 			Qri:       "cm:0",
 			Signature: "XLjvPUsiTxtnhkFajlPosxBl+id/tZJB1RWe9BwPpyqg3toIx6qOkhZtXefDh58rX1L0Id1HU0RkVP8sEl0L54d9C4xv25Uzyv3mAvT9VNN5pzblni5TPvU0mHIbawN57hSiywUP3HQLk8VbjRPo6qjpL5DngwvWXe8mAxTPKWwbV9Zx47tJJWImxJC5vLFRUD1KrRarnhYnGRyGaUiOxssaOnzERw49pA/1dDuFCEWghMpARVgWheZCyHN7rVTs+xH8XOTi8/Zz05bKTlpstm57BcCUENKqJgIt7bjsSIh/gHEc+et1A/kO/DBi3vcoKsA1vZI6lFoJzOwlKRKahg==",
 			Title:     "initial commit",
 		},
 		Meta:     &dataset.Meta{Qri: "md:0", Title: "World Bank Population"},
 		Name:     "world_bank_population",
-		Path:     "/ipfs/QmVeWbw4DJQqWjKXohgTu5JdhVniLPiyb6z6m1duwvXdQe",
+		Path:     "/ipfs/Qmb5Qaigk9teHrWSyXf7UxnRH3L28BV6zV1cqaWsLn3z7p",
 		Peername: "A",
 		Qri:      "ds:0",
 		Structure: &dataset.Structure{

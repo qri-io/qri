@@ -156,12 +156,12 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 	m := NewDatasetMethods(inst)
 
 	res := &reporef.DatasetRef{}
-	if err := m.Save(&SaveParams{Ref: ref.AliasString()}, res); err == nil {
+	if err := m.Save(&SaveParams{Ref: ref.Alias()}, res); err == nil {
 		t.Error("expected empty save without force flag to error")
 	}
 
 	if err := m.Save(&SaveParams{
-		Ref:   ref.AliasString(),
+		Ref:   ref.Alias(),
 		Force: true,
 	}, res); err != nil {
 		t.Errorf("expected empty save with flag to not error. got: %s", err.Error())
@@ -183,7 +183,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 
 	res := &reporef.DatasetRef{}
 	err := m.Save(&SaveParams{
-		Ref:        ref.AliasString(),
+		Ref:        ref.Alias(),
 		FilePaths:  []string{metaOnePath},
 		ReturnBody: true}, res)
 	if err != nil {
@@ -191,7 +191,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 	}
 
 	err = m.Save(&SaveParams{
-		Ref:       ref.AliasString(),
+		Ref:       ref.Alias(),
 		FilePaths: []string{metaOnePath},
 		Recall:    "wut"}, res)
 	if err == nil {
@@ -199,7 +199,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 	}
 
 	err = m.Save(&SaveParams{
-		Ref:       ref.AliasString(),
+		Ref:       ref.Alias(),
 		FilePaths: []string{metaTwoPath},
 		Recall:    "tf"}, res)
 	if err != nil {
@@ -210,7 +210,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 	}
 
 	err = m.Save(&SaveParams{
-		Ref:  ref.AliasString(),
+		Ref:  ref.Alias(),
 		Drop: "wut",
 	}, res)
 	if err == nil {
@@ -218,7 +218,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 	}
 
 	err = m.Save(&SaveParams{
-		Ref:  ref.AliasString(),
+		Ref:  ref.Alias(),
 		Drop: "tf",
 	}, res)
 	if err != nil {

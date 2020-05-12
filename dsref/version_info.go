@@ -76,6 +76,7 @@ type VersionInfo struct {
 // SimpleRef returns a simple dsref.Ref
 func (v *VersionInfo) SimpleRef() Ref {
 	return Ref{
+		InitID:    v.InitID,
 		Username:  v.Username,
 		ProfileID: v.ProfileID,
 		Name:      v.Name,
