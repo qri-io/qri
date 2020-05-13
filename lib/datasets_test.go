@@ -931,8 +931,8 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 }
 
 func TestDatasetRequestsValidate(t *testing.T) {
-	run, teardown := newTestRunner(t)
-	defer teardown()
+	run := newTestRunner(t)
+	defer run.Delete()
 
 	movieb := `Avatar ,178
 Pirates of the Caribbean: At World's End ,169
@@ -955,8 +955,8 @@ Pirates of the Caribbean: At World's End ,foo
 	  }
 	}`
 
-	bodyFilename := run.MakeFilename("data.csv")
-	schemaFilename := run.MakeFilename("schema.json")
+	bodyFilename := run.MakeTmpFilename("data.csv")
+	schemaFilename := run.MakeTmpFilename("schema.json")
 	run.MustWriteFile(t, bodyFilename, movieb)
 	run.MustWriteFile(t, schemaFilename, schemaB)
 

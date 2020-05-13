@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
-	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
@@ -18,7 +17,6 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
@@ -29,7 +27,6 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
-	testrepo "github.com/qri-io/qri/repo/test"
 )
 
 // base64-encoded Test Private Key, decoded in init
@@ -211,62 +208,4 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) dsref.Ref {
 		t.Fatal(err.Error())
 	}
 	return ref
-}
-
-type testRunner struct {
-	Ctx      context.Context
-	Profile  *profile.Profile
-	Instance *Instance
-	Dir      string // operating directory for writing files
-}
-
-func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
-	prevTs := dsfs.Timestamp
-	dsfs.Timestamp = func() time.Time { return time.Time{} }
-
-	tmpDir, err := ioutil.TempDir("", "lib_test_runner")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	mr, err := testrepo.NewTestRepo()
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err.Error())
-	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	tr = &testRunner{
-		Ctx: context.Background(),
-		// TODO (b5) - move test profile creation into testRunner constructor
-		Profile:  testPeerProfile,
-		Instance: NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node),
-		Dir:      tmpDir,
-	}
-
-	cleanup = func() {
-		dsfs.Timestamp = prevTs
-		os.RemoveAll(tr.Dir)
-	}
-	return tr, cleanup
-}
-
-func (tr *testRunner) writeFile(t *testing.T, filename, data string) (path string) {
-	path = filepath.Join(tr.Dir, filename)
-	if err := ioutil.WriteFile(path, []byte(data), 0644); err != nil {
-		t.Fatal(err)
-	}
-	return path
-}
-
-func (tr *testRunner) MustWriteFile(t *testing.T, filename, data string) {
-	if err := ioutil.WriteFile(filename, []byte(data), 0644); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func (tr *testRunner) MakeFilename(filename string) (path string) {
-	return filepath.Join(tr.Dir, filename)
 }

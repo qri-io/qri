@@ -1,0 +1,23 @@
+{
+  "qri": "st:0",
+  "format": "csv",
+  "formatConfig": {
+    "headerRow": true,
+    "lazyQuotes": false
+  },
+  "schema": {
+    "type": "array",
+    "items": {
+      "items": [
+        {
+          "title": "title",
+          "type": "string"
+        },
+        {
+          "title": "duration",
+          "type": "integer"
+        }
+      ]
+    }
+  }
+}

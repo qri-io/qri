@@ -340,8 +340,8 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		req = &lib.DiffParams{
-			LeftPath:  r.FormValue("left_path"),
-			RightPath: r.FormValue("right_path"),
+			LeftSide:  r.FormValue("left_path"),
+			RightSide: r.FormValue("right_path"),
 			Selector:  r.FormValue("selector"),
 		}
 	}

@@ -1,0 +1,10 @@
+city,pop,avg_age,in_usa
+toronto,50000000,55.5,false
+new york,8500000,44.4,true
+los angeles,3990000,42.7,true
+dallas,1340000,30,true
+chatham,35000,65.25,true
+mexico city,80000000,28.6,false
+raleigh,250000,50.65,true
+paris,2100000,41.1,false
+london,8900000,36.5,false

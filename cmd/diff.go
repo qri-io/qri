@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"encoding/json"
+	"path/filepath"
+	"strings"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base/component"
@@ -77,11 +79,21 @@ type DiffOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
-	if len(args) > 0 {
-		if component.IsDatasetField.MatchString(args[0]) {
-			o.Selector = args[0]
-			args = args[1:]
-		}
+	if len(args) > 0 && component.IsKnownFilename(args[0], nil) {
+		// Treat a command like `qri diff structure.json` as `qri diff structure`. This mostly
+		// makes sense in the context of FSI.
+		// TODO(dustmop): Consider if we should support this outside of FSI. That is, if a user
+		// has "structure.json" in their current directory (which is not a working directory) and
+		// tries to diff it, that file should be compared to the structure component of the
+		// dataset ref. Currently doesn't happen because we don't support diffing a dataset in
+		// the repository against a local file on disk, but perhaps we should.
+		basename := filepath.Base(args[0])
+		o.Selector = strings.TrimSuffix(basename, filepath.Ext(basename))
+		args = args[1:]
+	}
+	if len(args) > 0 && component.IsDatasetField.MatchString(args[0]) {
+		o.Selector = args[0]
+		args = args[1:]
 	}
 	o.DatasetMethods, err = f.DatasetMethods()
 	if err != nil {
@@ -107,23 +119,22 @@ func (o *DiffOptions) Run() (err error) {
 		// for linked dataset [me/example_ds]
 		//
 		// left = me/example_ds@head   right = me/example_ds@working_dir
-		p.LeftPath = o.Refs.Ref()
+		p.LeftSide = o.Refs.Ref()
 		p.WorkingDir = o.Refs.Dir()
 	} else if len(o.Refs.RefList()) == 1 {
 		// > qri diff me/example_ds
 		//
 		// left = me/example_ds@previous   right = me/example_ds@head
-		p.IsLeftAsPrevious = true
-		p.LeftPath = o.Refs.Ref()
-		p.RightPath = o.Refs.Ref()
+		p.LeftSide = o.Refs.Ref()
+		p.UseLeftPrevVersion = true
 	} else if len(o.Refs.RefList()) == 2 {
 		// > qri diff me/example_ds me/another_ds
 		//
 		// left = me/example_ds@head   right = me/another_ds@head
 		//OR
 		// left = path/to/first.json   right = path/to/second.json
-		p.LeftPath = o.Refs.RefList()[0]
-		p.RightPath = o.Refs.RefList()[1]
+		p.LeftSide = o.Refs.RefList()[0]
+		p.RightSide = o.Refs.RefList()[1]
 	}
 
 	res := &lib.DiffResponse{}

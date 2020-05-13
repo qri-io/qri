@@ -224,6 +224,9 @@ func GetKnownFilenames() map[string][]string {
 
 // IsKnownFilename returns whether the file is a known component filename.
 func IsKnownFilename(fullpath string, known map[string][]string) bool {
+	if known == nil {
+		known = GetKnownFilenames()
+	}
 	basename := filepath.Base(fullpath)
 	ext := filepath.Ext(basename)
 	onlybase := basename[:len(basename)-len(ext)]
