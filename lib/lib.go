@@ -20,13 +20,13 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/fsi/hiddenfile"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry/regclient"
@@ -392,10 +392,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	if inst.repo != nil {
 		// Try to make the repo a hidden directory, but it's okay if we can't. Ignore the error.
-		// TODO (b5) - this can't happen in the buildrepo package due to import cycles. if SetFileHidden
-		// were somewhere else we could move it there
-		_ = base.SetFileHidden(inst.repoPath)
-
+		_ = hiddenfile.SetFileHidden(inst.repoPath)
 		inst.fsi = fsi.NewFSI(inst.repo, inst.bus)
 	}
 
@@ -497,7 +494,7 @@ func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Files
 			return nil, err
 		}
 		// Try to make the repo a hidden directory, but it's okay if we can't. Ingore the error.
-		_ = base.SetFileHidden(path)
+		_ = hiddenfile.SetFileHidden(path)
 		return repo, nil
 	case "mem":
 		return repo.NewMemRepo(pro, store, fs, profile.NewMemStore())

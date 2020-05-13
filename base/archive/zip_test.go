@@ -7,12 +7,16 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 )
+
+var blankInitID = ""
 
 func TestWriteZip(t *testing.T) {
 	ctx := context.Background()
@@ -29,7 +33,8 @@ func TestWriteZip(t *testing.T) {
 	}
 
 	buf := &bytes.Buffer{}
-	if err = WriteZip(ctx, store, ds, "yaml", "peer/ref@a/ipfs/b", buf); err != nil {
+	err = WriteZip(ctx, store, ds, "yaml", blankInitID, dsref.MustParse("peer/ref@/ipfs/Qmb"), buf)
+	if err != nil {
 		t.Errorf("error writing zip archive: %s", err.Error())
 		return
 	}
@@ -69,6 +74,11 @@ func TestWriteZipFullDataset(t *testing.T) {
 		return
 	}
 
+	err = base.OpenDataset(ctx, store, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	_, err = store.Get(ctx, names["transform_script"])
 	if err != nil {
 		t.Errorf("error fetching movies dataset from store: %s", err.Error())
@@ -76,7 +86,8 @@ func TestWriteZipFullDataset(t *testing.T) {
 	}
 
 	buf := &bytes.Buffer{}
-	if err = WriteZip(ctx, store, ds, "json", "peer/ref@a/ipfs/b", buf); err != nil {
+	err = WriteZip(ctx, store, ds, "json", blankInitID, dsref.MustParse("peer/ref@/ipfs/Qmb"), buf)
+	if err != nil {
 		t.Errorf("error writing zip archive: %s", err.Error())
 		return
 	}
@@ -101,34 +112,36 @@ func TestWriteZipFullDataset(t *testing.T) {
 	}
 }
 
-func TestUnzipDatasetBytes(t *testing.T) {
-	path := zipTestdataFile("exported.zip")
-	zipBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
+// TODO(dustmop): Rewrite zip importing
+//func TestUnzipDatasetBytes(t *testing.T) {
+//	path := zipTestdataFile("exported.zip")
+//	zipBytes, err := ioutil.ReadFile(path)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	dsp := &dataset.Dataset{}
+//	if err := UnzipDatasetBytes(zipBytes, dsp); err != nil {
+//		t.Error(err)
+//	}
+//}
+//func TestUnzipDataset(t *testing.T) {
+//	if err := UnzipDataset(bytes.NewReader([]byte{}), 0, &dataset.Dataset{}); err == nil {
+//		t.Error("expected passing bad reader to error")
+//	}
+//
+//	path := zipTestdataFile("exported.zip")
+//	zipBytes, err := ioutil.ReadFile(path)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	dsp := &dataset.Dataset{}
+//	if err := UnzipDataset(bytes.NewReader(zipBytes), int64(len(zipBytes)), dsp); err != nil {
+//		t.Error(err)
+//	}
+//}
 
-	dsp := &dataset.Dataset{}
-	if err := UnzipDatasetBytes(zipBytes, dsp); err != nil {
-		t.Error(err)
-	}
-}
-func TestUnzipDataset(t *testing.T) {
-	if err := UnzipDataset(bytes.NewReader([]byte{}), 0, &dataset.Dataset{}); err == nil {
-		t.Error("expected passing bad reader to error")
-	}
-
-	path := zipTestdataFile("exported.zip")
-	zipBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dsp := &dataset.Dataset{}
-	if err := UnzipDataset(bytes.NewReader(zipBytes), int64(len(zipBytes)), dsp); err != nil {
-		t.Error(err)
-	}
-}
 func TestUnzipGetContents(t *testing.T) {
 	if _, err := UnzipGetContents([]byte{}); err == nil {
 		t.Error("expected passing bad reader to error")
@@ -144,15 +157,19 @@ func TestUnzipGetContents(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	expectLen := 6
-	// files include:
-	// dataset.json
-	// body.csv
-	// index.html
-	// ref.txt
-	// transform.star
-	// viz.html
-	if len(res) != expectLen {
-		t.Errorf("contents length mismatch. expected: %d, got: %d", expectLen, len(res))
+
+	keys := getKeys(res)
+	expectKeys := []string{"body.csv", "qri-ref.txt", "structure.json", "transform.json"}
+	if diff := cmp.Diff(expectKeys, keys); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
+}
+
+func getKeys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }

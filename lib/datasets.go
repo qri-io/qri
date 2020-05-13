@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -19,12 +20,14 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/base/fill"
 	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -138,20 +141,16 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
 		// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
 		for _, ref := range refs {
-			if ref.FSIPath != "" {
-				target := filepath.Join(ref.FSIPath, fsi.QriRefFilename)
-				_, err := os.Stat(target)
-				if os.IsNotExist(err) {
-					ref.FSIPath = ""
-					if ref.Path == "" {
-						if err = m.inst.repo.DeleteRef(ref); err != nil {
-							log.Debugf("cannot delete ref for %q, err: %s", ref, err)
-						}
-						continue
+			if ref.FSIPath != "" && !linkfile.ExistsInDir(ref.FSIPath) {
+				ref.FSIPath = ""
+				if ref.Path == "" {
+					if err = m.inst.repo.DeleteRef(ref); err != nil {
+						log.Debugf("cannot delete ref for %q, err: %s", ref, err)
 					}
-					if err = m.inst.repo.PutRef(ref); err != nil {
-						log.Debugf("cannot put ref for %q, err: %s", ref, err)
-					}
+					continue
+				}
+				if err = m.inst.repo.PutRef(ref); err != nil {
+					log.Debugf("cannot put ref for %q, err: %s", ref, err)
 				}
 			}
 		}
@@ -188,7 +187,7 @@ func (m *DatasetMethods) ListRawRefs(p *ListParams, text *string) error {
 	return err
 }
 
-// GetParams defines parameters for looking up the body of a dataset
+// GetParams defines parameters for looking up the head or body of a dataset
 type GetParams struct {
 	// Refstr to get, representing a dataset ref to be parsed
 	Refstr string
@@ -201,6 +200,11 @@ type GetParams struct {
 
 	Limit, Offset int
 	All           bool
+
+	// outfile is a filename to save the dataset to
+	Outfile string
+	// whether to generate a filename from the dataset name instead
+	GenFilename bool
 }
 
 // GetResult combines data with it's hashed path
@@ -208,6 +212,7 @@ type GetResult struct {
 	Ref       *dsref.Ref       `json:"ref"`
 	Dataset   *dataset.Dataset `json:"data"`
 	Bytes     []byte           `json:"bytes"`
+	Message   string           `json:"message"`
 	FSIPath   string           `json:"fsipath"`
 	Published bool             `json:"published"`
 }
@@ -220,6 +225,10 @@ type GetResult struct {
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
 // with the generated stats.
 func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
+	if err := qfs.AbsPath(&p.Outfile); err != nil {
+		return err
+	}
+
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Get", p, res))
 	}
@@ -281,6 +290,44 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		return err
 	}
 
+	if p.Format == "zip" {
+		// Only if GenFilename is true, and no output filename is set, generate one from the
+		// dataset name
+		if p.Outfile == "" && p.GenFilename {
+			p.Outfile = fmt.Sprintf("%s.zip", ds.Name)
+		}
+		var outBuf bytes.Buffer
+		var zipFile io.Writer
+		if p.Outfile == "" {
+			// In this case, write to a buffer, which will be assigned to res.Bytes later on
+			zipFile = &outBuf
+		} else {
+			zipFile, err = os.Create(p.Outfile)
+			if err != nil {
+				return err
+			}
+		}
+		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
+		// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
+		// necessary until dscache is in use.
+		initID, err := m.inst.repo.Logbook().RefToInitID(currRef)
+		if err != nil {
+			return err
+		}
+		err = archive.WriteZip(ctx, m.inst.repo.Store(), ds, "json", initID, currRef, zipFile)
+		if err != nil {
+			return err
+		}
+		// Handle output. If outfile is empty, return the raw bytes. Otherwise provide a helpful
+		// message for the user
+		if p.Outfile == "" {
+			res.Bytes = outBuf.Bytes()
+		} else {
+			res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
+		}
+		return nil
+	}
+
 	if p.Selector == "body" {
 		// `qri get body` loads the body
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
@@ -301,18 +348,21 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
 				return err
 			}
-		} else {
-			res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
-			if err != nil {
-				log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
-				return err
-			}
+			return m.maybeWriteOutfile(p, res)
 		}
-		return nil
+		res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
+		if err != nil {
+			log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
+			return err
+		}
+		return m.maybeWriteOutfile(p, res)
 	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
 		// Fields that have qfs.File types should be read and returned
 		res.Bytes, err = ioutil.ReadAll(scriptFile)
-		return err
+		if err != nil {
+			return err
+		}
+		return m.maybeWriteOutfile(p, res)
 	} else if p.Selector == "stats" {
 		statsParams := &StatsParams{
 			Dataset: res.Dataset,
@@ -322,41 +372,51 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 			return err
 		}
 		res.Bytes = statsRes.StatsBytes
-		return nil
-	} else {
-		var value interface{}
-		if p.Selector == "" {
-			// `qri get` without a selector loads only the dataset head
-			value = res.Dataset
-		} else {
-			// `qri get <selector>` loads only the applicable component / field
-			value, err = base.ApplyPath(res.Dataset, p.Selector)
-			if err != nil {
-				return err
-			}
-		}
-		switch p.Format {
-		case "json":
-			// Pretty defaults to true for the dataset head, unless explicitly set in the config.
-			pretty := true
-			if p.FormatConfig != nil {
-				pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
-				if ok {
-					pretty = pvalue
-				}
-			}
-			if pretty {
-				res.Bytes, err = json.MarshalIndent(value, "", " ")
-			} else {
-				res.Bytes, err = json.Marshal(value)
-			}
-		case "yaml", "":
-			res.Bytes, err = yaml.Marshal(value)
-		default:
-			return fmt.Errorf("unknown format: \"%s\"", p.Format)
-		}
-		return err
+		return m.maybeWriteOutfile(p, res)
 	}
+	var value interface{}
+	if p.Selector == "" {
+		// `qri get` without a selector loads only the dataset head
+		value = res.Dataset
+	} else {
+		// `qri get <selector>` loads only the applicable component / field
+		value, err = base.ApplyPath(res.Dataset, p.Selector)
+		if err != nil {
+			return err
+		}
+	}
+	switch p.Format {
+	case "json":
+		// Pretty defaults to true for the dataset head, unless explicitly set in the config.
+		pretty := true
+		if p.FormatConfig != nil {
+			pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
+			if ok {
+				pretty = pvalue
+			}
+		}
+		if pretty {
+			res.Bytes, err = json.MarshalIndent(value, "", " ")
+		} else {
+			res.Bytes, err = json.Marshal(value)
+		}
+	case "yaml", "":
+		res.Bytes, err = yaml.Marshal(value)
+	default:
+		return fmt.Errorf("unknown format: \"%s\"", p.Format)
+	}
+	return m.maybeWriteOutfile(p, res)
+}
+
+func (m *DatasetMethods) maybeWriteOutfile(p *GetParams, res *GetResult) error {
+	if p.Outfile != "" {
+		err := ioutil.WriteFile(p.Outfile, res.Bytes, 0644)
+		if err != nil {
+			return err
+		}
+		res.Bytes = []byte{}
+	}
+	return nil
 }
 
 func scriptFileSelection(ds *dataset.Dataset, selector string) (qfs.File, bool) {

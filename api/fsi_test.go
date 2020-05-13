@@ -19,7 +19,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/p2p"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -78,46 +77,6 @@ func TestFSIHandlers(t *testing.T) {
 		{"DELETE", "/", nil},
 	}
 	runHandlerTestCases(t, "checkout", h.CheckoutHandler(""), checkoutCases, true)
-}
-
-type APITestRunner struct {
-	Node         *p2p.QriNode
-	NodeTeardown func()
-	Inst         *lib.Instance
-	TmpDir       string
-	WorkDir      string
-	PrevXformVer string
-}
-
-func NewAPITestRunner(t *testing.T) *APITestRunner {
-	run := APITestRunner{}
-	run.Node, run.NodeTeardown = newTestNode(t)
-	run.Inst = newTestInstanceWithProfileFromNode(run.Node)
-
-	tmpDir, err := ioutil.TempDir("", "api_test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	run.TmpDir = tmpDir
-
-	run.PrevXformVer = APIVersion
-	APIVersion = "test_version"
-
-	return &run
-}
-
-func (r *APITestRunner) Delete() {
-	os.RemoveAll(r.TmpDir)
-	APIVersion = r.PrevXformVer
-	r.NodeTeardown()
-}
-
-func (r *APITestRunner) MustMakeWorkDir(t *testing.T, name string) string {
-	r.WorkDir = filepath.Join(r.TmpDir, name)
-	if err := os.MkdirAll(r.WorkDir, os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
-	return r.WorkDir
 }
 
 // TODO (ramfox): this test should be split for each endpoint:
@@ -274,6 +233,8 @@ func TestFSIWrite(t *testing.T) {
 
 	dsm := lib.NewDatasetMethods(inst)
 	fsiHandler := NewFSIHandlers(inst, false)
+
+	// TODO(dustmop): Use a TestRunner here, and have it call SaveDataset instead.
 
 	// Save version 1
 	saveParams := lib.SaveParams{

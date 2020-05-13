@@ -1,6 +1,6 @@
 // +build !windows
 
-package base
+package hiddenfile
 
 import (
 	"fmt"

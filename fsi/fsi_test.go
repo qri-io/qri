@@ -217,12 +217,12 @@ func TestModifyLinkReference(t *testing.T) {
 	// to the linkfile (.qri-ref). The below call to ModifyLinkReference will modify the linkfile,
 	// but it fails if the ref does not exist in the repo. The relationship between fsi and repo
 	// is not clear and inconsistent.
-	ref, err := base.ToDatasetRef("me/test_ds", fsi.repo, true)
+	datasetRef, err := base.ToDatasetRef("me/test_ds", fsi.repo, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ref.Name = "test_ds_2"
-	err = fsi.repo.PutRef(*ref)
+	datasetRef.Name = "test_ds_2"
+	err = fsi.repo.PutRef(*datasetRef)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,13 +234,13 @@ func TestModifyLinkReference(t *testing.T) {
 	}
 
 	// Verify that the working directory is linked to the expect dataset reference.
-	refStr, ok := GetLinkedFilesysRef(paths.firstDir)
+	ref, ok := GetLinkedFilesysRef(paths.firstDir)
 	if !ok {
 		t.Fatal("expected linked filesys ref, didn't get one")
 	}
 	expect := "peer/test_ds_2"
-	if refStr != expect {
-		t.Errorf("expected %s, got %s", expect, refStr)
+	if ref.Human() != expect {
+		t.Errorf("expected %s, got %s", expect, ref)
 	}
 }
 

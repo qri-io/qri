@@ -281,11 +281,19 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 // if we are in read-only mode, we should error,
 // otherwise, resolve the peername and proceed as normal
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
+	ref, err := dsref.Parse(HTTPPathToQriPath(r.URL.Path))
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	format := r.FormValue("format")
 	p := lib.GetParams{
-		Refstr: HTTPPathToQriPath(r.URL.Path),
+		Refstr: ref.String(),
+		Format: format,
 	}
 	res := lib.GetResult{}
-	err := h.Get(&p, &res)
+	err = h.Get(&p, &res)
 	if err != nil {
 		if err == repo.ErrNoHistory {
 			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
@@ -300,8 +308,17 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle getting a zip file as binary data
+	if format == "zip" {
+		zipFilename := fmt.Sprintf("%s.zip", ref.Name)
+		w.Header().Set("Content-Type", extensionToMimeType(".zip"))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", zipFilename))
+		w.Write(res.Bytes)
+		return
+	}
+
 	// TODO (b5) - remove this. res.Ref should be used instead
-	ref := reporef.DatasetRef{
+	datasetRef := reporef.DatasetRef{
 		Peername:  res.Dataset.Peername,
 		ProfileID: profile.IDB58DecodeOrEmpty(res.Dataset.ProfileID),
 		Name:      res.Dataset.Name,
@@ -310,7 +327,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		Published: res.Published,
 		Dataset:   res.Dataset,
 	}
-	util.WriteResponse(w, ref)
+	util.WriteResponse(w, datasetRef)
 }
 
 func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {

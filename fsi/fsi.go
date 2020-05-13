@@ -13,17 +13,16 @@ package fsi
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -37,20 +36,11 @@ var (
 	ErrNoLink = fmt.Errorf("dataset is not linked to the filesystem")
 )
 
-// QriRefFilename is the name of the file that links a folder to a dataset.
-// The file contains a dataset reference that declares the link
-// ref files are the authoritative definition of weather a folder is linked
-// or not
-const QriRefFilename = ".qri-ref"
-
-// GetLinkedFilesysRef returns whether a directory is linked to a
-// dataset in your repo, and the reference to that dataset.
-func GetLinkedFilesysRef(dir string) (string, bool) {
-	data, err := ioutil.ReadFile(filepath.Join(dir, QriRefFilename))
-	if err == nil {
-		return strings.TrimSpace(string(data)), true
-	}
-	return "", false
+// GetLinkedFilesysRef returns whether a directory is linked to a dataset in your repo, and
+// a reference to that dataset
+func GetLinkedFilesysRef(dir string) (dsref.Ref, bool) {
+	ref, err := linkfile.Read(filepath.Join(dir, linkfile.RefLinkHiddenFilename))
+	return ref, err == nil
 }
 
 // RepoPath returns the standard path to an FSI file for a given file-system
@@ -102,12 +92,9 @@ func (fsi *FSI) LinkedRefs(offset, limit int) ([]reporef.DatasetRef, error) {
 // EnsureRefNotLinked checks if a ref already has an existing link on the file system
 func (fsi *FSI) EnsureRefNotLinked(ref *reporef.DatasetRef) error {
 	if stored, err := fsi.repo.GetRef(*ref); err == nil {
-		if stored.FSIPath != "" {
-			// There is already a link for this dataset, see if that link still exists.
-			targetPath := filepath.Join(stored.FSIPath, QriRefFilename)
-			if _, err := os.Stat(targetPath); err == nil {
-				return fmt.Errorf("'%s' is already linked to %s", ref.AliasString(), stored.FSIPath)
-			}
+		// Check if there is already a link for this dataset, and if that link still exists.
+		if stored.FSIPath != "" && linkfile.ExistsInDir(stored.FSIPath) {
+			return fmt.Errorf("'%s' is already linked to %s", ref.AliasString(), stored.FSIPath)
 		}
 	}
 	return nil
@@ -118,37 +105,40 @@ func (fsi *FSI) EnsureRefNotLinked(ref *reporef.DatasetRef) error {
 func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(), err error) {
 	rollback = func() {}
 
-	ref, err := repo.ParseDatasetRef(refStr)
+	datasetRef, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
 		return "", rollback, err
 	}
-	err = repo.CanonicalizeDatasetRef(fsi.repo, &ref)
+	err = repo.CanonicalizeDatasetRef(fsi.repo, &datasetRef)
 	if err != nil && err != repo.ErrNotFound && err != repo.ErrNoHistory {
-		return ref.String(), rollback, err
+		return datasetRef.String(), rollback, err
 	}
 
 	// todo(arqu): should utilize rollback as other operations bellow
 	// can fail too
-	if err := fsi.EnsureRefNotLinked(&ref); err != nil {
+	if err := fsi.EnsureRefNotLinked(&datasetRef); err != nil {
 		return "", rollback, err
 	}
 
 	// Link the FSIPath to the reference before putting it into the repo
-	log.Debugf("fsi.CreateLink: linking ref=%q, FSIPath=%q", ref, dirPath)
-	ref.FSIPath = dirPath
-	if err = fsi.repo.PutRef(ref); err != nil {
+	log.Debugf("fsi.CreateLink: linking ref=%q, FSIPath=%q", datasetRef, dirPath)
+	datasetRef.FSIPath = dirPath
+	if err = fsi.repo.PutRef(datasetRef); err != nil {
 		return "", rollback, err
 	}
 	// If future steps fail, remove the ref we just put
 	removeRefFunc := func() {
-		log.Debugf("removing repo.ref %q during rollback", ref)
-		if err := fsi.repo.DeleteRef(ref); err != nil {
-			log.Debugf("error while removing repo.ref %q: %s", ref, err)
+		log.Debugf("removing repo.ref %q during rollback", datasetRef)
+		if err := fsi.repo.DeleteRef(datasetRef); err != nil {
+			log.Debugf("error while removing repo.ref %q: %s", datasetRef, err)
 		}
 	}
 
-	linkFile := ""
-	if linkFile, err = writeLinkFile(dirPath, ref.AliasString()); err != nil {
+	ref := reporef.ConvertToDsref(datasetRef)
+	// Remove the path from the reference because linkfile's don't store full paths.
+	ref.Path = ""
+	linkFile, err := linkfile.WriteHiddenInDir(dirPath, ref)
+	if err != nil {
 		return "", removeRefFunc, err
 	}
 	// If future steps fail, remove the link file we just wrote to
@@ -163,11 +153,11 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 	// Send an event to the bus about this checkout
 	fsi.pub.Publish(event.ETFSICreateLinkEvent, event.FSICreateLinkEvent{
 		FSIPath:  dirPath,
-		Username: ref.Peername,
-		Dsname:   ref.Name,
+		Username: datasetRef.Peername,
+		Dsname:   datasetRef.Name,
 	})
 
-	return ref.AliasString(), removeLinkAndRemoveRefFunc, err
+	return datasetRef.AliasString(), removeLinkAndRemoveRefFunc, err
 }
 
 // ModifyLinkDirectory changes the FSIPath in the repo so that it is linked to the directory. Does
@@ -195,16 +185,19 @@ func (fsi *FSI) ModifyLinkDirectory(dirPath, refStr string) error {
 // ModifyLinkReference changes the reference that is in .qri-ref linkfile in the working directory.
 // Does not affect the ref in the repo. Called when a rename command is invoked.
 func (fsi *FSI) ModifyLinkReference(dirPath, refStr string) error {
-	ref, err := repo.ParseDatasetRef(refStr)
+	datasetRef, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
 		return err
 	}
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil && err != repo.ErrNoHistory {
+	if err = repo.CanonicalizeDatasetRef(fsi.repo, &datasetRef); err != nil && err != repo.ErrNoHistory {
 		return err
 	}
 
-	log.Debugf("fsi.ModifyLinkReference: modify linkfile at %q, ref=%q", dirPath, ref)
-	if _, err = writeLinkFile(dirPath, ref.AliasString()); err != nil {
+	log.Debugf("fsi.ModifyLinkReference: modify linkfile at %q, ref=%q", dirPath, datasetRef)
+	ref := reporef.ConvertToDsref(datasetRef)
+	// Remove the path from the reference because linkfile's don't store full paths.
+	ref.Path = ""
+	if _, err = linkfile.WriteHiddenInDir(dirPath, ref); err != nil {
 		return err
 	}
 	return nil
@@ -213,8 +206,9 @@ func (fsi *FSI) ModifyLinkReference(dirPath, refStr string) error {
 // Unlink removes the link file (.qri-ref) in the directory, and removes the fsi path
 // from the reference in the refstore
 func (fsi *FSI) Unlink(dirPath string, ref dsref.Ref) error {
-	if removeLinkErr := removeLinkFile(dirPath); removeLinkErr != nil {
-		log.Debugf("removing link file: %s", removeLinkErr.Error())
+	removeErr := os.Remove(filepath.Join(dirPath, linkfile.RefLinkHiddenFilename))
+	if removeErr != nil {
+		log.Debugf("removing link file: %s", removeErr.Error())
 	}
 
 	// Ref may be empty, which will mean only the link file should be removed
@@ -269,16 +263,6 @@ func (fsi *FSI) getRepoRef(refStr string) (ref reporef.DatasetRef, err error) {
 	}
 
 	return fsi.repo.GetRef(ref)
-}
-
-func writeLinkFile(dir, linkstr string) (string, error) {
-	linkFile := filepath.Join(dir, QriRefFilename)
-	return linkFile, base.WriteHiddenFile(linkFile, linkstr)
-}
-
-func removeLinkFile(dir string) error {
-	dir = filepath.Join(dir, QriRefFilename)
-	return os.Remove(dir)
 }
 
 func isLowValueFile(f os.FileInfo) bool {
