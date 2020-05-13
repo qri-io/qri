@@ -20,9 +20,9 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/base/component"
-	"github.com/qri-io/qri/base/linkfile"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )

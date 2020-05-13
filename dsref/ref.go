@@ -20,6 +20,7 @@ func (r Ref) Alias() (s string) {
 }
 
 // Human returns the human-friendly representation of the reference
+// example: some_user/my_dataset
 func (r Ref) Human() string {
 	s := r.Username
 	if r.Name != "" {

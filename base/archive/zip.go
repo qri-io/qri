@@ -14,8 +14,8 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/component"
-	"github.com/qri-io/qri/base/linkfile"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/fsi/linkfile"
 )
 
 // WriteZip generates a zip archive of a dataset and writes it to w
