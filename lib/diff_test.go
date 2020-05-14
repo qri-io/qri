@@ -8,15 +8,15 @@ import (
 )
 
 func TestDatasetRequestsDiff(t *testing.T) {
-	tr, cleanup := newTestRunner(t)
-	defer cleanup()
+	tr := newTestRunner(t)
+	defer tr.Delete()
 
 	req := NewDatasetMethods(tr.Instance)
-	jobsOnePath := tr.writeFile(t, "jobs_by_automation_1.csv", jobsByAutomationData1)
-	jobsTwoPath := tr.writeFile(t, "jobs_by_automation_2.csv", jobsByAutomationData2)
+	jobsOnePath := tr.MustWriteTmpFile(t, "jobs_by_automation_1.csv", jobsByAutomationData1)
+	jobsTwoPath := tr.MustWriteTmpFile(t, "jobs_by_automation_2.csv", jobsByAutomationData2)
 
-	djsOnePath := tr.writeFile(t, "djs_1.json", `{ "dj dj booth": { "rating": 1, "uses_soundcloud": true } }`)
-	djsTwoPath := tr.writeFile(t, "djs_2.json", `{ "DJ dj booth": { "rating": 1, "uses_soundcloud": true } }`)
+	djsOnePath := tr.MustWriteTmpFile(t, "djs_1.json", `{ "dj dj booth": { "rating": 1, "uses_soundcloud": true } }`)
+	djsTwoPath := tr.MustWriteTmpFile(t, "djs_2.json", `{ "DJ dj booth": { "rating": 1, "uses_soundcloud": true } }`)
 
 	dsRef1 := reporef.DatasetRef{}
 	initParams := &SaveParams{
@@ -79,13 +79,14 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	for i, c := range good {
 		t.Run(c.description, func(t *testing.T) {
 			p := &DiffParams{
-				LeftPath:  c.Left,
-				RightPath: c.Right,
+				LeftSide:  c.Left,
+				RightSide: c.Right,
 				Selector:  c.Selector,
 			}
-			// If test has same two paths, assume we want the previous version compared against head.
-			if p.LeftPath == p.RightPath {
-				p.IsLeftAsPrevious = true
+			// If test has same two paths, we want the previous version compared to head
+			if p.LeftSide == p.RightSide {
+				p.UseLeftPrevVersion = true
+				p.RightSide = ""
 			}
 			res := &DiffResponse{}
 			err := req.Diff(p, res)
@@ -97,9 +98,6 @@ func TestDatasetRequestsDiff(t *testing.T) {
 			if diff := cmp.Diff(c.Stat, res.Stat); diff != "" {
 				t.Errorf("result mismatch (-want +got):\n%s", diff)
 			}
-
-			// dlt, _ := json.MarshalIndent(res.Diff, "", "  ")
-			// t.Logf("%s", dlt)
 
 			if len(res.Diff) != c.DeltaLen {
 				t.Errorf("%d: \"%s\" delta length mismatch. want: %d got: %d", i, c.description, c.DeltaLen, len(res.Diff))
@@ -175,3 +173,188 @@ rank,probability_of_automation,industry_code,job_name
 674,"0.98","53-3031","Driver/Sales Workers"
 673,"0.98","27-4013","Radio Operators"
 `
+
+// Test that we can compare bodies of different dataset revisions.
+func TestDiffPrevRevision(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	// Save three versions, then diff the last head against its previous version
+	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body.csv")
+	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body_more.csv")
+	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body_even_more.csv")
+
+	output, err := run.Diff("me/test_cities", "", "body")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// TODO(dustmop): Come up with a better way to represent this diff, that still looks nice when
+	// compared with cmp.Diff.
+	expect := `{"stat":{"leftNodes":36,"rightNodes":46,"leftWeight":510,"rightWeight":637,"inserts":4,"deletes":2},"diff":[[" ",0,["toronto",50000000,55.5,false]],[" ",1,["new york",8500000,44.4,true]],[" ",2,["los angeles",3990000,42.7,true]],["-",3,["chicago",300000,44.4,true]],["+",3,["dallas",1340000,30,true]],[" ",4,["chatham",35000,65.25,true]],[" ",5,null,[[" ",0,"mexico city"],["-",1,70000000],["+",1,80000000],[" ",2,28.6],[" ",3,false]]],[" ",6,["raleigh",250000,50.65,true]],["+",7,["paris",2100000,41.1,false]],["+",8,["london",8900000,36.5,false]]]}`
+
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// Test that we can compare two different datasets
+func TestDiff(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	// Save a dataset with one version
+	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body.csv")
+
+	// Save a different dataset with one version
+	run.SaveDatasetFromBody(t, "test_more", "testdata/cities_2/body_more.csv")
+
+	// Diff the heads
+	output, err := run.Diff("me/test_cities", "me/test_more", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// TODO(dustmop): Come up with a better way to represent this diff, that still looks nice when
+	// compared with cmp.Diff.
+	// TODO(dustmop): Would be better if Diff only returned the changes, instead of things that
+	// stay the same, since the delta in this case is pretty small.
+	expect := `{"stat":{"leftNodes":40,"rightNodes":40,"leftWeight":2447,"rightWeight":2477,"inserts":9,"deletes":9},"diff":[["-","bodyPath","/map/Qmc7AoCfFVW5xe8qhyjNYewSgBHFubp6yLM3mfBzQp7iTr"],["+","bodyPath","/map/QmYuVj1JvALB9Au5DNcVxGLMcWCDBUfbKCN3QbpvissSC4"],[" ","commit",null,[[" ","author",{"id":"QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"}],["-","message","created dataset from body.csv"],["+","message","created dataset from body_more.csv"],["-","path","/map/Qmdn6131L4BhNPcfsobZdwzoucKGvwcQiH6bn9LSs8Tiq3"],["+","path","/map/Qmd1EtMQTYe5HRNZbfcgfp8rAos8eRuQQXQ8VsyZfRBEGN"],[" ","qri","cm:0"],["-","signature","i2h0nvSCjsXu5iTter4l/Ax3dVC3yvFR1Nff1VkSsI55jAvglOiN4Zr+n7vIe2dvyiWJv0TyTE2K8ZXKNY3lBYeA7P+mS36IxBORxk4FSBuxbuTjRZkEPp+wpCXehO+lEKAlIwzAnKgPtocRr1aVKiVU8osB+FULRSK2A4obscpVmZ00z1E4t7wSvZi/FnvSeNwh3gIrgsbuqwmRArqvyudGAiFzf75Gs7sQEVO/q6oHDld7cMhBvqTChLADOELbM5AlvlvGdOH3XAdzUF/XbIqnMKFZAxBlq/c2lyit4oCUV9+Yy1j8K5B/PhYBWmFjcUwX9vTatjcdGFbAkMb0IQ=="],["+","signature","mylW8R29Bu3fm9KoF0ElW7f/Jm9Lm7EYcyqwKvVWcwcxk2vFJjgOuuK8fSLgfYn8j+nT0hFRz/fimF5YF8nw333GXXXJUH+83hZUKWh9biTdDIRkldZ1wS15ZP821VXRLmGInK8xsJt1xyl7IleNe2s4dcNo4oSWO6LoW1DyVsy4aB9iAaUpJGXgQAiFumLYeCJtU/O7muP6h/JTQEw5O5QRV7ctZAc1rQCjTJ+zDQAy2Kz31nh38xYatoLPjK3WWn1CAa7+9O0cROtbXPcGiVYx+XIxIefpSgr9uGaVCJSRuabfN5j8MGl5x6HR7XjaRFW8APd4wNAhF9GKkjb1gw=="],[" ","timestamp","0001-01-01T00:00:00Z"],["-","title","created dataset from body.csv"],["+","title","created dataset from body_more.csv"]]],["-","path","/map/QmVwjEtrevyHb5JDcsE6Fm9kFJ6D6ewZEAQY4wx52WASzP"],["+","path","/map/QmbpvARqbLEMzuUi5VPyoWPRAFB2CRFYhVCHaEk3BzbYEZ"],[" ","qri","ds:0"],[" ","structure",null,[["-","checksum","Qmc7AoCfFVW5xe8qhyjNYewSgBHFubp6yLM3mfBzQp7iTr"],["+","checksum","QmYuVj1JvALB9Au5DNcVxGLMcWCDBUfbKCN3QbpvissSC4"],[" ","depth",2],["-","entries",5],["+","entries",7],[" ","format","csv"],[" ","formatConfig",{"headerRow":true,"lazyQuotes":true}],["-","length",155],["+","length",217],[" ","qri","st:0"],[" ","schema",{"items":{"items":[{"title":"city","type":"string"},{"title":"pop","type":"integer"},{"title":"avg_age","type":"number"},{"title":"in_usa","type":"boolean"}],"type":"array"},"type":"array"}]]]]}`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+
+	// Diff the bodies
+	output, err = run.Diff("me/test_cities", "me/test_more", "body")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expect = `{"stat":{"leftNodes":26,"rightNodes":36,"leftWeight":344,"rightWeight":510,"inserts":2},"diff":[[" ",0,["toronto",50000000,55.5,false]],[" ",1,["new york",8500000,44.4,true]],["+",2,["los angeles",3990000,42.7,true]],[" ",3,["chicago",300000,44.4,true]],[" ",4,["chatham",35000,65.25,true]],["+",5,["mexico city",70000000,28.6,false]],[" ",6,["raleigh",250000,50.65,true]]]}`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// Test that diffing a dataset with only one version produces an error
+func TestDiffOnlyOneRevision(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body.csv")
+	_, err := run.Diff("me/test_cities", "", "body")
+	if err == nil {
+		t.Fatal("expected error, did not get one")
+	}
+	expect := `dataset has only one version, nothing to diff against`
+	if err.Error() != expect {
+		t.Errorf("expected error: %q, got: %q", expect, err)
+	}
+}
+
+// Test that we can compare csv files
+func TestDiffLocalCsvFiles(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	output, err := run.Diff("testdata/cities_2/body.csv", "testdata/cities_2/body_more.csv", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect := `{"stat":{"leftNodes":26,"rightNodes":36,"leftWeight":344,"rightWeight":510,"inserts":2},"schemaStat":{"leftNodes":5,"rightNodes":5,"leftWeight":41,"rightWeight":41},"schema":[[" ",0,"city"],[" ",1,"pop"],[" ",2,"avg_age"],[" ",3,"in_usa"]],"diff":[[" ",0,["toronto",50000000,55.5,false]],[" ",1,["new york",8500000,44.4,true]],["+",2,["los angeles",3990000,42.7,true]],[" ",3,["chicago",300000,44.4,true]],[" ",4,["chatham",35000,65.25,true]],["+",5,["mexico city",70000000,28.6,false]],[" ",6,["raleigh",250000,50.65,true]]]}`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// Test that we can compare json files
+func TestDiffLocalJsonFiles(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	output, err := run.Diff("../cmd/testdata/movies/body_two.json", "../cmd/testdata/movies/body_four.json", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect := `{"stat":{"leftNodes":7,"rightNodes":13,"leftWeight":161,"rightWeight":267,"inserts":2},"schemaStat":{"leftNodes":2,"rightNodes":2,"leftWeight":11,"rightWeight":11},"schema":[[" ","type","array"]],"diff":[[" ",0,["Avatar",178]],[" ",1,["Pirates of the Caribbean: At World's End",169]],["+",2,["Spectre",148]],["+",3,["The Dark Knight Rises",164]]]}`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestDiffErrors(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	// Save a dataset with one version
+	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body.csv")
+
+	// Save a different dataset with one version
+	run.SaveDatasetFromBody(t, "test_more", "testdata/cities_2/body_more.csv")
+
+	// Error to compare a dataset ref to a file
+	_, err := run.Diff("me/test_cities", "testdata/cities_2/body_even_more.csv", "")
+	expectErr := `cannot compare a file to dataset, must compare similar things`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+
+	// Error to only set left-side
+	_, err = run.DiffWithParams(&DiffParams{
+		LeftSide: "me/test_cities",
+	})
+	expectErr = `invalid parameters to diff`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+
+	// Error to set left-side with both WorkingDir and UseLeftPrevVersion
+	_, err = run.DiffWithParams(&DiffParams{
+		LeftSide:           "me/test_cities",
+		WorkingDir:         "workdir",
+		UseLeftPrevVersion: true,
+	})
+	expectErr = `cannot use both previous version and working directory`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+
+	// Error to set left-side and right-side with WorkingDir
+	_, err = run.DiffWithParams(&DiffParams{
+		LeftSide:   "me/test_cities",
+		RightSide:  "me/test_more",
+		WorkingDir: "workdir",
+	})
+	expectErr = `cannot use working directory when comparing two sources`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+
+	// Error to set left-side and right-side with UseLeftPrevVersion
+	_, err = run.DiffWithParams(&DiffParams{
+		LeftSide:           "me/test_cities",
+		RightSide:          "me/test_more",
+		UseLeftPrevVersion: true,
+	})
+	expectErr = `cannot use previous version when comparing two sources`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+
+	// Error to use a selector for a field that doesn't exist
+	_, err = run.Diff("me/test_cities", "me/test_more", "meta")
+	expectErr = `component "meta" not found`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TODO(dustmop): Test comparing a dataset in FSI, with a modification in the working directory
+// TODO(dustmop): Test comparing a dataset in FSI, using selector
+
+func errorMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}

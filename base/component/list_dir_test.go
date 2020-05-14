@@ -104,3 +104,14 @@ func getComponentNames(comp Component) []string {
 	sort.Strings(names)
 	return names
 }
+
+func TestIsKnownFilenameAllowNil(t *testing.T) {
+	goodFilename := "structure.json"
+	badFilename := "structure.format"
+	if !IsKnownFilename(goodFilename, nil) {
+		t.Errorf("expected goodFilename to be a known filename")
+	}
+	if IsKnownFilename(badFilename, nil) {
+		t.Errorf("expected badFilename to not be a known filename")
+	}
+}

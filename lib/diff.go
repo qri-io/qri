@@ -20,21 +20,19 @@ type Delta = deepdiff.Delta
 // away from packages that depend on lib
 type DiffStat = deepdiff.Stats
 
-// DiffParams defines parameters for diffing two datasets with Diff
+// DiffParams defines parameters for diffing two sources. There are three valid ways to use these
+// parameters: 1) both LeftSide and RightSide set, 2) only LeftSide set with a WorkingDir, 3) only
+// LeftSide set with the UseLeftPrevVersion flag.
 type DiffParams struct {
-	// File path or reference to a dataset
-	LeftPath, RightPath string
-
-	// Which component or part of a dataset to compare
-	Selector string
-
+	// File paths or reference to datasets
+	LeftSide, RightSide string
 	// If not null, the working directory that the diff is using
 	WorkingDir string
 	// Whether to get the previous version of the left parameter
-	IsLeftAsPrevious bool
+	UseLeftPrevVersion bool
 
-	Limit, Offset int
-	All           bool
+	// Which component or part of a dataset to compare
+	Selector string
 }
 
 // DiffResponse is the result of a call to diff
@@ -45,17 +43,32 @@ type DiffResponse struct {
 	Diff       []*Delta  `json:"diff,omitempty"`
 }
 
-// Diff computes the diff of two datasets
-func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) error {
-	var err error
+// DiffMode is one of the methods that diff can perform
+type DiffMode int
+
+const (
+	// InvalidDiffMode is the default diff mode
+	InvalidDiffMode DiffMode = iota
+	// DatasetRefDiffMode will diff two dataset references
+	DatasetRefDiffMode
+	// FilepathDiffMode will diff two files
+	FilepathDiffMode
+	// WorkingDirectoryDiffMode will diff a working directory against its dataset head
+	WorkingDirectoryDiffMode
+	// PrevVersionDiffMode will diff a dataset head against its previous version
+	PrevVersionDiffMode
+)
+
+// Diff computes the diff of two sources
+func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	// absolutize any local paths before a possible trip over RPC to another local process
-	if !dsref.IsRefString(p.LeftPath) {
-		if err = qfs.AbsPath(&p.LeftPath); err != nil {
+	if !dsref.IsRefString(p.LeftSide) {
+		if err = qfs.AbsPath(&p.LeftSide); err != nil {
 			return err
 		}
 	}
-	if !dsref.IsRefString(p.RightPath) {
-		if err = qfs.AbsPath(&p.RightPath); err != nil {
+	if !dsref.IsRefString(p.RightSide) {
+		if err = qfs.AbsPath(&p.RightSide); err != nil {
 			return err
 		}
 	}
@@ -65,17 +78,54 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) error {
 	}
 	ctx := context.TODO()
 
-	if p.LeftPath == "" && p.RightPath == "" {
+	diffMode := InvalidDiffMode
+
+	// Check parameters to make sure they fit one of the three cases that diff allows.
+	if p.LeftSide == "" && p.RightSide == "" {
 		return fmt.Errorf("nothing to diff")
-	} else if !dsref.IsRefString(p.LeftPath) && !dsref.IsRefString(p.RightPath) {
+	} else if p.LeftSide != "" && p.RightSide != "" {
+		// Have two string parameters to compare. Should either both be references, or neither
+		// be references.
+		if dsref.IsRefString(p.LeftSide) && dsref.IsRefString(p.RightSide) {
+			diffMode = DatasetRefDiffMode
+		} else if isFilePath(p.LeftSide) && isFilePath(p.RightSide) {
+			diffMode = FilepathDiffMode
+		} else {
+			return fmt.Errorf("cannot compare a file to dataset, must compare similar things")
+		}
+		// Neither of the flags should be set.
+		if p.WorkingDir != "" {
+			return fmt.Errorf("cannot use working directory when comparing two sources")
+		}
+		if p.UseLeftPrevVersion {
+			return fmt.Errorf("cannot use previous version when comparing two sources")
+		}
+	} else if dsref.IsRefString(p.LeftSide) && p.WorkingDir != "" {
+		// Comparing the contents of a working directory to the dataset it represents
+		// TODO(dustmop): Should verify that the working directory *matches* the dataset
+		if p.UseLeftPrevVersion {
+			return fmt.Errorf("cannot use both previous version and working directory")
+		}
+		diffMode = WorkingDirectoryDiffMode
+	} else if dsref.IsRefString(p.LeftSide) && p.UseLeftPrevVersion {
+		// Comparing a dataset to its previous version
+		if p.WorkingDir != "" {
+			return fmt.Errorf("cannot use both previous version and working directory")
+		}
+		diffMode = PrevVersionDiffMode
+	} else {
+		return fmt.Errorf("invalid parameters to diff")
+	}
+
+	if diffMode == FilepathDiffMode {
 		// Compare body files.
-		leftComp := component.NewBodyComponent(p.LeftPath)
+		leftComp := component.NewBodyComponent(p.LeftSide)
 		leftData, err := leftComp.StructuredData()
 		if err != nil {
 			return err
 		}
 
-		rightComp := component.NewBodyComponent(p.RightPath)
+		rightComp := component.NewBodyComponent(p.RightSide)
 		rightData, err := rightComp.StructuredData()
 		if err != nil {
 			return err
@@ -89,18 +139,10 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) error {
 		dd := deepdiff.New()
 		res.Diff, res.Stat, err = dd.StatDiff(ctx, leftData, rightData)
 		return err
-	} else if dsref.IsRefString(p.LeftPath) && p.RightPath == "" {
-		// Left parameter with a blank right parameter needs either working directory or as-previous
-		if !p.IsLeftAsPrevious && p.WorkingDir == "" {
-			return fmt.Errorf("Cannot compare a reference to a blank parameter")
-		}
-	} else if !dsref.IsRefString(p.LeftPath) || !dsref.IsRefString(p.RightPath) {
-		// Only one is a file path, other is a reference. Cannot compare.
-		return fmt.Errorf("Cannot compare a dataset reference against a body file")
 	}
 
-	// Left side of diff
-	ref, err := repo.ParseDatasetRef(p.LeftPath)
+	// Left side of diff loaded into a component
+	ref, err := repo.ParseDatasetRef(p.LeftSide)
 	if err != nil {
 		return err
 	}
@@ -115,22 +157,11 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) error {
 	if err != nil {
 		return err
 	}
-	if p.IsLeftAsPrevious {
-		prev := ds.PreviousPath
-		if prev == "" {
-			return fmt.Errorf("dataset has only one version, nothing to diff against")
-		}
-		ref.Path = prev
-		ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
-		if err != nil {
-			return err
-		}
-	}
 	leftComp := component.ConvertDatasetToComponents(ds, m.inst.repo.Filesystem())
 
-	// Right side of diff
+	// Right side of diff laoded into a component
 	var rightComp component.Component
-	if p.WorkingDir != "" {
+	if diffMode == WorkingDirectoryDiffMode {
 		// Working directory, read dataset from the current files.
 		rightComp, err = component.ListDirectoryComponents(p.WorkingDir)
 		if err != nil {
@@ -146,9 +177,23 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) error {
 		if err != nil {
 			return err
 		}
-
-	} else {
-		ref, err := repo.ParseDatasetRef(p.RightPath)
+	} else if diffMode == PrevVersionDiffMode {
+		// The head version was already loaded, use that for the right side of the diff
+		rightComp = leftComp
+		// Load previous dataset version for the new left side
+		prev := ds.PreviousPath
+		if prev == "" {
+			return fmt.Errorf("dataset has only one version, nothing to diff against")
+		}
+		ref.Path = prev
+		ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
+		if err != nil {
+			return err
+		}
+		leftComp = component.ConvertDatasetToComponents(ds, m.inst.repo.Filesystem())
+	} else if diffMode == DatasetRefDiffMode {
+		// Load other dataset as the right side
+		ref, err := repo.ParseDatasetRef(p.RightSide)
 		if err != nil {
 			return err
 		}
@@ -164,8 +209,8 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) error {
 	}
 
 	// If in an FSI linked working directory, drop derived values, since the user is not
-	// expected to have those trasient values on their checked out files.
-	if p.WorkingDir != "" {
+	// expected to have those transient values on their checked out files.
+	if diffMode == WorkingDirectoryDiffMode {
 		// TODO(dlong): RemoveSubcomponent removes the component from the map, but not from the
 		// Value. That should be fixed so that component has a more sane API.
 		leftComp.Base().RemoveSubcomponent("commit")
@@ -226,6 +271,9 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) error {
 	}
 	leftComp = leftComp.Base().GetSubcomponent(selector)
 	rightComp = rightComp.Base().GetSubcomponent(selector)
+	if leftComp == nil || rightComp == nil {
+		return fmt.Errorf("component %q not found", selector)
+	}
 
 	leftData, err := leftComp.StructuredData()
 	if err != nil {
@@ -278,4 +326,12 @@ func terribleHackToGetHeaderRow(sch map[string]interface{}) ([]string, error) {
 	}
 	log.Debug("that terrible hack to detect header row & types just failed")
 	return nil, fmt.Errorf("nope")
+}
+
+// assume a non-empty string, which isn't a dataset reference, is a file
+func isFilePath(text string) bool {
+	if text == "" {
+		return false
+	}
+	return !dsref.IsRefString(text)
 }
