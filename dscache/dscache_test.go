@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
+	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -69,4 +70,33 @@ func TestDscacheAssignSaveAndLoad(t *testing.T) {
 	if loadable.Root.RefsLength() != 2 {
 		t.Errorf("expected, 2 refs, got %d refs", loadable.Root.RefsLength())
 	}
+}
+
+func TestResolveRef(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpdir)
+
+	ctx := context.Background()
+	fs := localfs.NewFS()
+	path := filepath.Join(tmpdir, "dscache.qfb")
+	dsc := NewDscache(ctx, fs, nil, path)
+
+	dsrefspec.ResolverSpec(t, dsc, func(r *dsref.Ref) error {
+		builder := NewBuilder()
+		peerInfo := testPeers.GetTestPeerInfo(0)
+		builder.AddUser(r.Username, profile.IDFromPeerID(peerInfo.PeerID).String())
+		builder.AddDsVersionInfo(dsref.VersionInfo{
+			Username:  r.Username,
+			InitID:    r.InitID,
+			Path:      r.Path,
+			ProfileID: profile.IDFromPeerID(peerInfo.PeerID).String(),
+			Name:      r.Name,
+		})
+		cache := builder.Build()
+		dsc.Assign(cache)
+		return nil
+	})
 }

@@ -12,6 +12,8 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
+	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 )
 
@@ -241,39 +243,17 @@ func TestResolveRef(t *testing.T) {
 		t.Errorf("book ResolveRef must be nil-callable. expected: %q, got %v", dsref.ErrNotFound, err)
 	}
 
-	if _, err := tr.Book.ResolveRef(tr.Ctx, &dsref.Ref{Username: "username", Name: "does_not_exist"}); err != dsref.ErrNotFound {
-		t.Errorf("expeted standard error resolving nonexistent ref: %q, got: %q", dsref.ErrNotFound, err)
-	}
+	book := tr.Book
+	dsrefspec.ResolverSpec(t, book, func(r *dsref.Ref) error {
+		pk := testPrivKey2(t)
+		initID, author, log, err := tr.CreateForeignDatasetOplog(pk, *r)
+		r.InitID = initID
 
-	tr.WriteWorldBankExample(t)
-
-	resolveMe := dsref.Ref{
-		Username: tr.WorldBankRef().Username,
-		Name:     tr.WorldBankRef().Name,
-	}
-
-	source, err := tr.Book.ResolveRef(tr.Ctx, &resolveMe)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// logbook resolves locally, expect the empty string
-	expectSource := ""
-
-	if diff := cmp.Diff(expectSource, source); diff != "" {
-		t.Errorf("source mismatch (-want +got):\n%s", diff)
-	}
-
-	expect := dsref.Ref{
-		Username: tr.WorldBankRef().Username,
-		Name:     tr.WorldBankRef().Name,
-		Path:     "QmHashOfVersion3",
-		ID:       tr.WorldBankID(),
-	}
-
-	if diff := cmp.Diff(expect, resolveMe); diff != "" {
-		t.Errorf("result mismatch. (-want +got):\n%s", diff)
-	}
+		if err = book.MergeLog(context.Background(), author, log); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func TestBookLogEntries(t *testing.T) {
@@ -893,7 +873,7 @@ func (tr *testRunner) WorldBankID() string {
 	return "crwd4wku64be6uxu3wbfqj7z65vtps4jt5ayx5dpjq4e2k72ks7q"
 }
 
-func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
+func (tr *testRunner) WriteWorldBankExample(t *testing.T) string {
 	book := tr.Book
 	name := "world_bank_population"
 
@@ -1034,6 +1014,45 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 	if err := book.WriteDatasetRename(tr.Ctx, initID, rename); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// CreateForeignDatasetOplog invents an oplog from a reference and private key,
+// as if another user had cerated a dataset. It returns the initID, author,
+// and signed log
+func (tr *testRunner) CreateForeignDatasetOplog(pk crypto.PrivKey, r dsref.Ref) (string, identity.Author, *oplog.Log, error) {
+	ctx := context.Background()
+	ms := qfs.NewMemFS()
+	foreignBook, err := NewJournal(pk, r.Username, ms, "/mem/logset")
+	if err != nil {
+		return "", nil, nil, err
+	}
+	initID, err := foreignBook.WriteDatasetInit(ctx, r.Name)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	err = foreignBook.WriteVersionSave(ctx, initID, &dataset.Dataset{
+		Peername: r.Username,
+		Name:     r.Name,
+		Commit: &dataset.Commit{
+			Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			Title:     "initial commit",
+		},
+		Path:         r.Path,
+		PreviousPath: "",
+	})
+	if err != nil {
+		return "", nil, nil, err
+	}
+	lg, err := foreignBook.UserDatasetRef(ctx, r)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	if err := lg.Sign(pk); err != nil {
+		return "", nil, nil, err
+	}
+
+	return initID, foreignBook.Author(), lg, err
 }
 
 func testPrivKey(t *testing.T) crypto.PrivKey {

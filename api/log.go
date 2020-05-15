@@ -69,7 +69,7 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	res := []DatasetLogItem{}
 	params := &lib.LogParams{
 		Ref:        args.String(),
-		Remote:     remoteName,
+		Source:     remoteName,
 		Pull:       pull,
 		ListParams: lp,
 	}

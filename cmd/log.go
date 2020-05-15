@@ -113,7 +113,7 @@ func (o *LogOptions) Run() error {
 	p := &lib.LogParams{
 		Ref:    o.Refs.Ref(),
 		Pull:   o.Pull,
-		Remote: o.RemoteName,
+		Source: o.RemoteName,
 		ListParams: lib.ListParams{
 			Limit:  page.Limit(),
 			Offset: page.Offset(),

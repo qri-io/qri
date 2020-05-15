@@ -34,7 +34,7 @@ type LogParams struct {
 	// Reference to data to fetch history for
 	Ref    string
 	Pull   bool
-	Remote string
+	Source string
 }
 
 // DatasetLogItem is a line item in a dataset logbook
@@ -57,15 +57,15 @@ func (m *LogMethods) Log(params *LogParams, res *[]DatasetLogItem) error {
 	}
 
 	if params.Pull {
-		switch params.Remote {
+		switch params.Source {
 		case "":
-			params.Remote = "network"
+			params.Source = "network"
 		case "local":
 			return fmt.Errorf("cannot pull with only local source")
 		}
 	}
 
-	ref, source, err := m.inst.ParseAndResolveRef(ctx, params.Ref, params.Remote)
+	ref, source, err := m.inst.ParseAndResolveRef(ctx, params.Ref, params.Source)
 	if err != nil {
 		return err
 	}

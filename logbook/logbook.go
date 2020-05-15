@@ -215,18 +215,18 @@ func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 		return "", dsref.ErrNotFound
 	}
 
-	log, err := book.DatasetRef(ctx, *ref)
+	initID, err := book.RefToInitID(*ref)
 	if err != nil {
 		return "", dsref.ErrNotFound
 	}
-	ref.InitID = log.ID()
+	ref.InitID = initID
 
 	if ref.Path == "" {
-		br, err := book.BranchRef(ctx, *ref)
+		br, err := book.branchLog(ctx, initID)
 		if err != nil {
 			return "", err
 		}
-		ref.Path = book.latestSavePath(br)
+		ref.Path = book.latestSavePath(br.l)
 	}
 
 	return "", nil

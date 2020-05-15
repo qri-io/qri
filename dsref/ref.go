@@ -2,8 +2,7 @@ package dsref
 
 // Ref is a reference to a dataset
 type Ref struct {
-	// InitID is the canonical identifer for a dataset history, in Qri canonical
-	// IDs are logbook InitIDs
+	// InitID is the canonical identifer for a dataset history
 	InitID string `json:"initID,omitempty"`
 	// Username of dataset owner
 	Username string `json:"username,omitempty"`

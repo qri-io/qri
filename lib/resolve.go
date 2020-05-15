@@ -17,11 +17,7 @@ import (
 func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
 	ref, err := dsref.Parse(refStr)
 
-	// bad case references are allowed-but-warned for backwards compatibility
-	if errors.Is(err, dsref.ErrBadCaseName) {
-		log.Error(dsref.ErrBadCaseShouldRename)
-		err = nil
-	} else if err != nil {
+	if err != nil {
 		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
 	}
 

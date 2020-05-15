@@ -89,7 +89,7 @@ func TestFetchCommand(t *testing.T) {
 
 	// Expect an error when trying to list an unavailable dataset
 	err = b.ExecCommand("qri log peer_b/test_movies")
-	expectErr := `log: not found`
+	expectErr := `reference not found`
 	if err == nil {
 		t.Fatal("expected fetch on non-existant log to error")
 	}

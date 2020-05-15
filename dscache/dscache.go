@@ -180,7 +180,7 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 // ResolveRef finds the identifier for a dataset reference
 // implements dsref.Resolver interface
 func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
-	// NOTE: isEmpty is nil-callable
+	// NOTE: isEmpty is nil-callable. important b/c ResolveRef must be nil-callable
 	if d.IsEmpty() {
 		return "", dsref.ErrNotFound
 	}

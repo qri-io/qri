@@ -300,6 +300,8 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 			return err
 		}
 
+		// TODO (b5) - replace this prefix check with a call to qfs.PathKind when it
+		// supports the fsi prefix
 		if strings.HasPrefix(ref.Path, "/fsi") {
 			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
 			// but no structure, which should infer a schema in order to read the body. Once that
@@ -482,14 +484,14 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 	}
 
 	ref, err := dsref.ParseHumanFriendly(p.Ref)
-	if err == dsref.ErrBadCaseName {
+	if errors.Is(err, dsref.ErrBadCaseName) {
 		// If dataset name is using bad-case characters, and is not yet in use, fail with error.
-		if !m.nameIsInUse(ref) {
+		if !m.nameIsInUse(ctx, ref) {
 			return err
 		}
 		// If dataset name already exists, just log a warning and then continue.
 		log.Error(dsref.ErrBadCaseShouldRename)
-	} else if err == dsref.ErrEmptyRef {
+	} else if errors.Is(err, dsref.ErrEmptyRef) {
 		// Okay if reference is empty. Later code will try to infer the name from other parameters.
 	} else if err != nil {
 		// If some other error happened, return that error.
@@ -702,17 +704,13 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 // before running Save. However, we need to check for now until we solve the problem of
 // dataset names existing with bad-case characters.
 // See this issue: https://github.com/qri-io/qri/issues/1132
-func (m *DatasetMethods) nameIsInUse(ref dsref.Ref) bool {
-	param := GetParams{
-		Refstr: ref.Alias(),
-	}
-	res := GetResult{}
-	err := m.Get(&param, &res)
+func (m *DatasetMethods) nameIsInUse(ctx context.Context, ref dsref.Ref) bool {
+	res := ref.Copy()
+	_, err := m.inst.ResolveReference(ctx, &res, "local")
 	if errors.Is(err, dsref.ErrNotFound) {
 		return false
-	}
-	if err != nil {
-		// TODO(dustmop): Unsure if this is correct. If `Get` hits some other error, we aren't
+	} else if err != nil {
+		// TODO(b5): Unsure if this is correct. If `Get` hits some other error, we aren't
 		// sure if the dataset name is in use. Log the error and assume the dataset does in fact
 		// exist.
 		log.Error(err)
