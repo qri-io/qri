@@ -52,6 +52,10 @@ var _ dsref.Resolver = (*Client)(nil)
 // ResolveRef finds the identifier & HEAD path for a dataset reference
 // implements dsref.Resolver interface
 func (c *Client) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
+	if c == nil {
+		return "", dsref.ErrNotFound
+	}
+
 	// TODO (b5) - for now we're just using "registry" as the returned source value
 	// value should be a /dnsaddr multiaddress
 	addr := "registry"
