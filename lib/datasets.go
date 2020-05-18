@@ -1045,7 +1045,7 @@ type ValidateDatasetParams struct {
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
-func (m *DatasetMethods) Validate(p *ValidateDatasetParams, valerrs *[]jsonschema.ValError) error {
+func (m *DatasetMethods) Validate(p *ValidateDatasetParams, valerrs *[]jsonschema.KeyError) error {
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Validate", p, valerrs))
 	}

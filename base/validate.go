@@ -12,7 +12,7 @@ import (
 )
 
 // Validate checks a dataset body for errors based on the structure's schema
-func Validate(ctx context.Context, r repo.Repo, body qfs.File, st *dataset.Structure) ([]jsonschema.ValError, error) {
+func Validate(ctx context.Context, r repo.Repo, body qfs.File, st *dataset.Structure) ([]jsonschema.KeyError, error) {
 	if body == nil {
 		return nil, fmt.Errorf("body passed to Validate must not be nil")
 	}
@@ -42,5 +42,5 @@ func Validate(ctx context.Context, r repo.Repo, body qfs.File, st *dataset.Struc
 	if err != nil {
 		return nil, err
 	}
-	return jsch.ValidateBytes(data)
+	return jsch.ValidateBytes(ctx, data)
 }

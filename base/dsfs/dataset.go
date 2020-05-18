@@ -342,7 +342,7 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 	hashR, hashW := io.Pipe()
 	done := make(chan error)
 	tasks := 3
-	valChan := make(chan []jsonschema.ValError)
+	valChan := make(chan []jsonschema.KeyError)
 
 	go setErrCount(ds, qfs.NewMemfileReader(bf.FileName(), errR), &mu, done, valChan)
 	go setDepthAndEntryCount(ds, qfs.NewMemfileReader(bf.FileName(), entryR), &mu, done)
@@ -362,7 +362,7 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 	}()
 
 	// Get validation errors because trying to join the main tasks.
-	var validationErrors []jsonschema.ValError
+	var validationErrors []jsonschema.KeyError
 	validationErrors = <-valChan
 
 	// Join the outstanding tasks, wait until all are cmoplete.
@@ -449,7 +449,7 @@ func generateCommit(store cafs.Filestore, prev, ds *dataset.Dataset, privKey cry
 }
 
 // setErrCount consumes sets the ErrCount field of a dataset's Structure
-func setErrCount(ds *dataset.Dataset, data qfs.File, mu *sync.Mutex, done chan error, valChan chan []jsonschema.ValError) {
+func setErrCount(ds *dataset.Dataset, data qfs.File, mu *sync.Mutex, done chan error, valChan chan []jsonschema.KeyError) {
 	defer data.Close()
 
 	er, err := dsio.NewEntryReader(ds.Structure, data)
