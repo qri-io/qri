@@ -1,6 +1,7 @@
 package dsfs
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,7 +13,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/dataset/generate"
+	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
@@ -857,5 +861,150 @@ func TestGetDepth(t *testing.T) {
 		if c.expected != depth {
 			t.Errorf("case %d, depth mismatch, expected %d, got %d", i, c.expected, depth)
 		}
+	}
+}
+
+func GenerateDataset(b *testing.B, sampleSize int, format string) (int, *dataset.Dataset) {
+	ds := &dataset.Dataset{
+		Commit: &dataset.Commit{
+			Timestamp: time.Date(2017, 1, 1, 1, 0, 0, 0, time.UTC),
+			Title:     "initial commit",
+		},
+		Meta: &dataset.Meta{
+			Title: "performance benchmark data",
+		},
+		Structure: &dataset.Structure{
+			Format: format,
+			FormatConfig: map[string]interface{}{
+				"headerRow":  true,
+				"lazyQuotes": true,
+			},
+			Schema: map[string]interface{}{
+				"type": "array",
+				"items": map[string]interface{}{
+					"type": "array",
+					"items": []interface{}{
+						map[string]interface{}{"title": "uuid", "type": "string"},
+						map[string]interface{}{"title": "ingest", "type": "string"},
+						map[string]interface{}{"title": "occurred", "type": "string"},
+						map[string]interface{}{"title": "raw_data", "type": "string"},
+					},
+				},
+			},
+		},
+	}
+
+	gen, err := generate.NewTabularGenerator(ds.Structure)
+	if err != nil {
+		b.Errorf("error creating generator: %s", err.Error())
+	}
+	defer gen.Close()
+
+	bodyBuffer := &bytes.Buffer{}
+	w, err := dsio.NewEntryWriter(ds.Structure, bodyBuffer)
+	if err != nil {
+		b.Fatalf("creating entry writer: %s", err.Error())
+	}
+
+	for i := 0; i < sampleSize; i++ {
+		ent, err := gen.ReadEntry()
+		if err != nil {
+			b.Fatalf("reading generator entry: %s", err.Error())
+		}
+		w.WriteEntry(ent)
+	}
+	if err := w.Close(); err != nil {
+		b.Fatalf("closing writer: %s", err)
+	}
+
+	fileName := fmt.Sprintf("body.%s", ds.Structure.Format)
+	ds.SetBodyFile(qfs.NewMemfileReader(fileName, bodyBuffer))
+
+	return bodyBuffer.Len(), ds
+}
+
+func BenchmarkCreateDatasetCSV(b *testing.B) {
+	// ~1 MB, ~12 MB, ~25 MB, ~50 MB, ~500 MB, ~1GB
+	for _, sampleSize := range []int{10000, 100000, 250000, 500000, 1000000} {
+		ctx := context.Background()
+		store := cafs.NewMapstore()
+		prev := Timestamp
+
+		defer func() { Timestamp = prev }()
+		Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+		// These tests are using hard-coded ids that require this exact peer's private key.
+		info := testPeers.GetTestPeerInfo(10)
+		privKey := info.PrivKey
+
+		b.Run(fmt.Sprintf("sample size %v", sampleSize), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				b.StopTimer()
+
+				_, dataset := GenerateDataset(b, sampleSize, "csv")
+
+				b.StartTimer()
+				_, err := CreateDataset(ctx, store, dataset, nil, privKey, SaveSwitches{ShouldRender: true})
+				if err != nil {
+					b.Errorf("error creating dataset: %s", err.Error())
+				}
+			}
+			b.StopTimer()
+		})
+	}
+}
+
+// validateDataset is a stripped copy of base/dsfs/setErrCount
+func validateDataset(ds *dataset.Dataset, data qfs.File) error {
+	defer data.Close()
+
+	er, err := dsio.NewEntryReader(ds.Structure, data)
+	if err != nil {
+		return err
+	}
+
+	_, err = validate.EntryReader(er)
+
+	return err
+}
+
+func BenchmarkValidateCSV(b *testing.B) {
+	// ~1 MB, ~12 MB, ~25 MB, ~50 MB, ~500 MB, ~1GB
+	for _, sampleSize := range []int{10000, 100000, 250000, 500000, 1000000, 10000000} {
+		b.Run(fmt.Sprintf("sample size %v", sampleSize), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				b.StopTimer()
+				_, dataset := GenerateDataset(b, sampleSize, "csv")
+
+				b.StartTimer()
+				err := validateDataset(dataset, dataset.BodyFile())
+				if err != nil {
+					b.Errorf("error creating dataset: %s", err.Error())
+				}
+			}
+			b.StopTimer()
+		})
+	}
+}
+
+func BenchmarkValidateJSON(b *testing.B) {
+	// ~1 MB, ~12 MB, ~25 MB, ~50 MB, ~500 MB, ~1GB
+	for _, sampleSize := range []int{10000, 100000, 250000, 500000, 1000000, 10000000} {
+		b.Run(fmt.Sprintf("sample size %v", sampleSize), func(b *testing.B) {
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				b.StopTimer()
+				_, dataset := GenerateDataset(b, sampleSize, "json")
+
+				b.StartTimer()
+				err := validateDataset(dataset, dataset.BodyFile())
+				if err != nil {
+					b.Errorf("error creating dataset: %s", err.Error())
+				}
+			}
+			b.StopTimer()
+		})
 	}
 }
