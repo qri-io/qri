@@ -3,6 +3,7 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -167,12 +168,13 @@ func ImmutablePaths() map[string]bool {
 
 // valiate is a helper function that wraps json.Marshal an ValidateBytes
 // it is used by each struct that is in a Config field (eg API, Profile, etc)
-func validate(rs *jsonschema.RootSchema, s interface{}) error {
+func validate(rs *jsonschema.Schema, s interface{}) error {
+	ctx := context.Background()
 	strct, err := json.Marshal(s)
 	if err != nil {
 		return fmt.Errorf("error marshaling profile to json: %s", err)
 	}
-	if errors, err := rs.ValidateBytes(strct); len(errors) > 0 {
+	if errors, err := rs.ValidateBytes(ctx, strct); len(errors) > 0 {
 		return fmt.Errorf("%s", errors[0])
 	} else if err != nil {
 		return err

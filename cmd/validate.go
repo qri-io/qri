@@ -126,7 +126,7 @@ func (o *ValidateOptions) Run() (err error) {
 		StructureFilename: o.StructureFilepath,
 	}
 
-	res := []jsonschema.ValError{}
+	res := []jsonschema.KeyError{}
 	if err = o.DatasetMethods.Validate(p, &res); err != nil {
 		return err
 	}

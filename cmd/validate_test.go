@@ -135,10 +135,10 @@ func TestValidateRun(t *testing.T) {
 	}
 }
 
-var movieOutput = `0: /4/1: "" type should be integer
-1: /199/1: "" type should be integer
-2: /206/1: "" type should be integer
-3: /1510/1: "" type should be integer
+var movieOutput = `0: /4/1: "" type should be integer, got string
+1: /199/1: "" type should be integer, got string
+2: /206/1: "" type should be integer, got string
+3: /1510/1: "" type should be integer, got string
 `
 
 func TestValidateCommandlineFlags(t *testing.T) {
@@ -153,8 +153,8 @@ func TestValidateCommandlineFlags(t *testing.T) {
 	}
 
 	output = run.MustExec(t, "qri validate --body=testdata/movies/body_ten.csv --schema=testdata/movies/schema_only.json")
-	expectContain = `/0/1: "duration" type should be integer
-1: /5/1: "" type should be integer`
+	expectContain = `/0/1: "duration" type should be integer, got string
+1: /5/1: "" type should be integer, got string`
 
 	if !strings.Contains(output, expectContain) {
 		t.Errorf("expected output to contain %q, got %q", expectContain, output)

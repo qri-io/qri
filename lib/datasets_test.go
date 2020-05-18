@@ -987,7 +987,7 @@ Pirates of the Caribbean: At World's End ,foo
 	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 	for i, c := range cases {
-		got := []jsonschema.ValError{}
+		got := []jsonschema.KeyError{}
 		err := m.Validate(&c.p, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err.Error())

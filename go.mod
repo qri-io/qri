@@ -48,15 +48,13 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/dag v0.2.1-0.20200317231253-5cd938b03caf
-	github.com/qri-io/dataset v0.1.5-0.20200520111605-a8aa56636bda
+	github.com/qri-io/dataset v0.1.5-0.20200522001545-71e64ebc31a1
 	github.com/qri-io/deepdiff v0.1.1-0.20200305020550-8173efebcaa1
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
-	github.com/qri-io/iso8601 v0.1.0
-	github.com/qri-io/jsonschema v0.1.1
+	github.com/qri-io/jsonschema v0.2.0
 	github.com/qri-io/qfs v0.1.1-0.20200207165332-a6a7b98f0fa0
 	github.com/qri-io/starlib v0.4.2-0.20200406084526-0e4566b610a1
-	github.com/qri-io/varName v0.1.0
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.0.0
 	github.com/sirupsen/logrus v1.2.0
