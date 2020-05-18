@@ -6,6 +6,8 @@ import (
 
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/identity"
+	"github.com/qri-io/qri/logbook/oplog"
 )
 
 func TestMemResolver(t *testing.T) {
@@ -16,15 +18,13 @@ func TestMemResolver(t *testing.T) {
 		t.Errorf("ResolveRef must be nil-callable. expected: %q, got %v", dsref.ErrNotFound, err)
 	}
 
-	dsrefspec.ResolverSpec(t, m, func(ref *dsref.Ref) error {
-		vi := dsref.VersionInfo{
+	dsrefspec.ResolverSpec(t, m, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+		m.Put(dsref.VersionInfo{
 			InitID:   ref.InitID,
 			Username: ref.Username,
 			Name:     ref.Name,
 			Path:     ref.Path,
-		}
-
-		m.Put(vi)
+		})
 		return nil
 	})
 }

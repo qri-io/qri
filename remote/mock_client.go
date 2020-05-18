@@ -106,6 +106,11 @@ func (c *MockClient) ResolveHeadRef(ctx context.Context, ref *reporef.DatasetRef
 	return ErrNotImplemented
 }
 
+// NewRemoteRefResolver is not implemented
+func (c *MockClient) NewRemoteRefResolver(addr string) dsref.Resolver {
+	return nil
+}
+
 // Feeds is not implemented
 func (c *MockClient) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsref.VersionInfo, error) {
 	return nil, ErrNotImplemented

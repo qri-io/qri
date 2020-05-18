@@ -11,17 +11,25 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/remote"
 )
 
 // ParseAndResolveRef combines reference parsing and resolution
-func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
+func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string, useFSI bool) (dsref.Ref, string, error) {
 	ref, err := dsref.Parse(refStr)
 
 	if err != nil {
 		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
 	}
 
+	explicitPath := ref.Path != ""
 	resolvedSource, err := inst.ResolveReference(ctx, &ref, source)
+	if err != nil {
+		return ref, resolvedSource, err
+	}
+	if !explicitPath && useFSI {
+		_, err = inst.fsi.ResolvedPath(&ref)
+	}
 	return ref, resolvedSource, err
 }
 
@@ -95,7 +103,11 @@ func (inst *Instance) resolveSources(source string) ([]dsref.Resolver, error) {
 	// * configured remote name
 	// * peername
 	// * peer multiaddress
-	return nil, fmt.Errorf("unknown source: %q", source)
+	addr, err := remote.Address(inst.Config(), source)
+	if err != nil {
+		return nil, err
+	}
+	return []dsref.Resolver{inst.remoteClient.NewRemoteRefResolver(addr)}, nil
 }
 
 // loadDataset fetches, derefences and opens a dataset from a reference

@@ -66,6 +66,44 @@ func NewFSI(r repo.Repo, pub event.Publisher) *FSI {
 	return &FSI{repo: r, pub: pub}
 }
 
+// ResolvedPath sets the Path value of a reference to the filesystem
+// integration path if one exists, ignoring any prior Path value, returning true
+// if an FSI path exists.
+// setting an FSI path requires the reference already be resolved by a
+// dsref.Resolver
+func (fsi *FSI) ResolvedPath(ref *dsref.Ref) (bool, error) {
+	if ref.InitID == "" {
+		return false, fmt.Errorf("initID is required")
+	}
+
+	// TODO (b5) - currently causing tests to fail, we should be using dscache
+	// if it exists
+	// if dsc := fsi.repo.Dscache(); dsc != nil {
+	// 	// TODO(b5) - dscache needs a lookup-by-id method
+	// 	vi, err := dsc.LookupByName(*ref)
+	// 	if err != nil {
+	// 		return false, dsref.ErrNotFound
+	// 	}
+	// 	if vi.FSIPath != "" {
+	// 		ref.Path = fmt.Sprintf("/fsi%s", vi.FSIPath)
+	// 		return true, nil
+	// 	}
+	// 	return false, nil
+	// }
+
+	// old method falls back to refstore
+	match, err := fsi.repo.GetRef(reporef.RefFromDsref(*ref))
+	if err != nil {
+		return false, dsref.ErrNotFound
+	}
+
+	if match.FSIPath != "" {
+		ref.Path = fmt.Sprintf("/fsi%s", match.FSIPath)
+		return true, nil
+	}
+	return false, nil
+}
+
 // LinkedRefs returns a list of linked datasets and their connected directories
 func (fsi *FSI) LinkedRefs(offset, limit int) ([]reporef.DatasetRef, error) {
 	// TODO (b5) - figure out a better pagination / querying strategy here

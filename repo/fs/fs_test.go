@@ -12,10 +12,11 @@ import (
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/test/spec"
 )
 
@@ -93,12 +94,7 @@ func TestResolveRef(t *testing.T) {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}
 
-	t.Skip("TODO(b5) - repo is not yet spec-compliant, doesn't hold InitIDs")
-	dsrefspec.ResolverSpec(t, r, func(ref *dsref.Ref) error {
-		// add the ref to the remote node
-		// here we're providing a fake profile ID
-		kopy := ref.Copy()
-		kopy.ProfileID = "QmUsyWYq7zEj9WD4YgS653jeekAesABz4J6Tq2JsNLinan"
-		return r.PutRef(reporef.RefFromDsref(kopy))
+	dsrefspec.ResolverSpec(t, r, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+		return r.Logbook().MergeLog(ctx, author, log)
 	})
 }

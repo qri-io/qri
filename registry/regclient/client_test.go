@@ -10,11 +10,12 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/identity"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver/handlers"
 	"github.com/qri-io/qri/remote"
-	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -29,12 +30,8 @@ func TestResolveRef(t *testing.T) {
 	}
 
 	t.Skip("TODO (b5) - registry is not yet spec-compliant")
-	dsrefspec.ResolverSpec(t, tr.Client, func(r *dsref.Ref) error {
-		// add the ref to the remote node
-		// here we're providing a fake profile ID
-		kopy := r.Copy()
-		kopy.ProfileID = "QmUsyWYq7zEj9WD4YgS653jeekAesABz4J6Tq2JsNLinan"
-		return tr.Reg.Remote.Node().Repo.PutRef(reporef.RefFromDsref(kopy))
+	dsrefspec.ResolverSpec(t, tr.Client, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+		return tr.Reg.Remote.Node().Repo.Logbook().MergeLog(ctx, author, log)
 	})
 }
 

@@ -65,7 +65,7 @@ func (m *LogMethods) Log(params *LogParams, res *[]DatasetLogItem) error {
 		}
 	}
 
-	ref, source, err := m.inst.ParseAndResolveRef(ctx, params.Ref, params.Source)
+	ref, source, err := m.inst.ParseAndResolveRef(ctx, params.Ref, params.Source, false)
 	if err != nil {
 		return err
 	}

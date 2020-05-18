@@ -244,6 +244,38 @@ func (c *PeerSyncClient) RemoveDataset(ctx context.Context, ref reporef.DatasetR
 	}
 }
 
+// NewRemoteRefResolver creates a resolver backed by a remote
+func (c *PeerSyncClient) NewRemoteRefResolver(remoteAddr string) dsref.Resolver {
+	return &remoteRefResolver{cli: c, remoteAddr: remoteAddr}
+}
+
+type remoteRefResolver struct {
+	cli        *PeerSyncClient
+	remoteAddr string
+}
+
+// ResolveRef implements the dsref.Resolver interface
+// TODO (b5) - implementation isn't complete, remotes don't complete InitID
+func (rr *remoteRefResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
+	if rr == nil || rr.cli == nil {
+		return rr.remoteAddr, dsref.ErrNotFound
+	}
+
+	repoRef := reporef.RefFromDsref(*ref)
+	if err := rr.cli.ResolveHeadRef(ctx, &repoRef, rr.remoteAddr); err != nil {
+		return rr.remoteAddr, err
+	}
+
+	// TODO (b5) - ResolveHeadRef currently doesn't set InitIDs, so there's nothing
+	// to set here
+
+	if ref.Path == "" && repoRef.Path != "" {
+		ref.Path = repoRef.Path
+	}
+
+	return rr.remoteAddr, nil
+}
+
 // ResolveHeadRef asks a remote to complete a dataset reference, adding the
 // latest-known path value
 func (c *PeerSyncClient) ResolveHeadRef(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error {

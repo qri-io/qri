@@ -1,4 +1,4 @@
-package logbook
+package logbook_test
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/identity"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 )
 
@@ -45,7 +46,7 @@ func Example() {
 	//  * a base path on the filesystem to read & write the logbook to
 	// Initializing a logbook ensures the author has an user opset that matches
 	// their current state. It will error if a stored book can't be decrypted
-	book, err := NewJournal(pk, "b5", fs, "/mem/logset")
+	book, err := logbook.NewJournal(pk, "b5", fs, "/mem/logset")
 	if err != nil {
 		panic(err) // real programs don't panic
 	}
@@ -164,20 +165,20 @@ func TestNewJournal(t *testing.T) {
 	pk := testPrivKey(t)
 	fs := qfs.NewMemFS()
 
-	if _, err := NewJournal(nil, "b5", nil, "/mem/logset"); err == nil {
+	if _, err := logbook.NewJournal(nil, "b5", nil, "/mem/logset"); err == nil {
 		t.Errorf("expected missing private key arg to error")
 	}
-	if _, err := NewJournal(pk, "", nil, "/mem/logset"); err == nil {
+	if _, err := logbook.NewJournal(pk, "", nil, "/mem/logset"); err == nil {
 		t.Errorf("expected missing author arg to error")
 	}
-	if _, err := NewJournal(pk, "b5", nil, "/mem/logset"); err == nil {
+	if _, err := logbook.NewJournal(pk, "b5", nil, "/mem/logset"); err == nil {
 		t.Errorf("expected missing filesystem arg to error")
 	}
-	if _, err := NewJournal(pk, "b5", fs, ""); err == nil {
+	if _, err := logbook.NewJournal(pk, "b5", fs, ""); err == nil {
 		t.Errorf("expected missing location arg to error")
 	}
 
-	_, err := NewJournal(pk, "b5", fs, "/mem/logset")
+	_, err := logbook.NewJournal(pk, "b5", fs, "/mem/logset")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,50 +186,50 @@ func TestNewJournal(t *testing.T) {
 
 func TestNilCallable(t *testing.T) {
 	var (
-		book   *Book
+		book   *logbook.Book
 		initID = ""
 		ctx    = context.Background()
 		err    error
 	)
 
-	if _, err = book.ActivePeerID(ctx); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if _, err = book.ActivePeerID(ctx); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.MergeLog(ctx, nil, &oplog.Log{}); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if err = book.MergeLog(ctx, nil, &oplog.Log{}); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.RemoveLog(ctx, nil, dsref.Ref{}); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if err = book.RemoveLog(ctx, nil, dsref.Ref{}); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.ConstructDatasetLog(ctx, dsref.Ref{}, nil); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if err = book.ConstructDatasetLog(ctx, dsref.Ref{}, nil); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.WriteAuthorRename(ctx, ""); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if err = book.WriteAuthorRename(ctx, ""); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if _, err = book.WriteDatasetInit(ctx, ""); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if _, err = book.WriteDatasetInit(ctx, ""); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.WriteDatasetRename(ctx, initID, ""); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if err = book.WriteDatasetRename(ctx, initID, ""); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.WriteDatasetDelete(ctx, initID); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if err = book.WriteDatasetDelete(ctx, initID); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.WritePublish(ctx, initID, 0); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if err = book.WritePublish(ctx, initID, 0); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.WriteUnpublish(ctx, initID, 0); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if err = book.WriteUnpublish(ctx, initID, 0); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.WriteVersionAmend(ctx, initID, nil); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if err = book.WriteVersionAmend(ctx, initID, nil); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.WriteVersionDelete(ctx, initID, 0); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if err = book.WriteVersionDelete(ctx, initID, 0); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.WriteVersionSave(ctx, initID, nil); err != ErrNoLogbook {
-		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	if err = book.WriteVersionSave(ctx, initID, nil); err != logbook.ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
 	if _, err = book.ResolveRef(ctx, nil); err != dsref.ErrNotFound {
 		t.Errorf("expected '%s', got: %v", dsref.ErrNotFound, err)
@@ -239,20 +240,13 @@ func TestResolveRef(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
-	if _, err := (*Book)(nil).ResolveRef(tr.Ctx, nil); err != dsref.ErrNotFound {
+	if _, err := (*logbook.Book)(nil).ResolveRef(tr.Ctx, nil); err != dsref.ErrNotFound {
 		t.Errorf("book ResolveRef must be nil-callable. expected: %q, got %v", dsref.ErrNotFound, err)
 	}
 
 	book := tr.Book
-	dsrefspec.ResolverSpec(t, book, func(r *dsref.Ref) error {
-		pk := testPrivKey2(t)
-		initID, author, log, err := tr.CreateForeignDatasetOplog(pk, *r)
-		r.InitID = initID
-
-		if err = book.MergeLog(context.Background(), author, log); err != nil {
-			return err
-		}
-		return nil
+	dsrefspec.ResolverSpec(t, book, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+		return book.MergeLog(context.Background(), author, log)
 	})
 }
 
@@ -338,29 +332,33 @@ func TestDsRefAliasForLog(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, err := DsrefAliasForLog(nil); err == nil {
+	if _, err := logbook.DsrefAliasForLog(nil); err == nil {
 		t.Error("expected nil ref to error")
 	}
 
-	wrongModelLog, err := tr.Book.store.HeadRef(tr.Ctx, tr.Username)
+	wrongModelLog, err := tr.Book.UserDatasetRef(tr.Ctx, egRef)
 	if err != nil {
 		t.Fatal(err)
 	}
+	// use dataset oplog instead of user, which is wrong
+	wrongModelLog = wrongModelLog.Logs[0]
 
-	if _, err := DsrefAliasForLog(wrongModelLog); err == nil {
+	if _, err := logbook.DsrefAliasForLog(wrongModelLog); err == nil {
 		t.Error("expected converting log of wrong model to error")
 	}
 
-	ambiguousLog, err := tr.Book.store.HeadRef(tr.Ctx, tr.Username)
+	// TODO(b5) - not sure this is a proper test of ambiguity
+	ambiguousLog, err := tr.Book.UserDatasetRef(tr.Ctx, egRef)
 	if err != nil {
 		t.Fatal(err)
 	}
+	ambiguousLog = ambiguousLog.Logs[0]
 
-	if _, err := DsrefAliasForLog(ambiguousLog); err == nil {
+	if _, err := logbook.DsrefAliasForLog(ambiguousLog); err == nil {
 		t.Error("expected converting ambiguous logs to error")
 	}
 
-	ref, err := DsrefAliasForLog(log)
+	ref, err := logbook.DsrefAliasForLog(log)
 	if err != nil {
 		t.Error(err)
 	}
@@ -413,45 +411,45 @@ func TestDatasetLogNaming(t *testing.T) {
 		authorID  = "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q"
 	)
 
-	expect := []PlainLog{
+	expect := []logbook.PlainLog{
 		{
-			Ops: []PlainOp{
+			Ops: []logbook.PlainOp{
 				{Type: "init", Model: "user", Name: "test_author", AuthorID: profileID, Timestamp: mustTime("1999-12-31T19:00:00-05:00")},
 			},
-			Logs: []PlainLog{
+			Logs: []logbook.PlainLog{
 				{
-					Ops: []PlainOp{
+					Ops: []logbook.PlainOp{
 						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:01:00-05:00")},
 						{Type: "amend", Model: "dataset", Name: "iata_airport_codes", Timestamp: mustTime("1999-12-31T19:03:00-05:00")},
 						{Type: "remove", Model: "dataset", Timestamp: mustTime("1999-12-31T19:06:00-05:00")},
 					},
-					Logs: []PlainLog{
+					Logs: []logbook.PlainLog{
 						{
-							Ops: []PlainOp{
+							Ops: []logbook.PlainOp{
 								{Type: "init", Model: "branch", Name: "main", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:02:00-05:00")},
 							},
 						},
 					},
 				},
 				{
-					Ops: []PlainOp{
+					Ops: []logbook.PlainOp{
 						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:04:00-05:00")},
 					},
-					Logs: []PlainLog{
+					Logs: []logbook.PlainLog{
 						{
-							Ops: []PlainOp{
+							Ops: []logbook.PlainOp{
 								{Type: "init", Model: "branch", Name: "main", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:05:00-05:00")},
 							},
 						},
 					},
 				},
 				{
-					Ops: []PlainOp{
+					Ops: []logbook.PlainOp{
 						{Type: "init", Model: "dataset", Name: "iata_airport_codes", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:07:00-05:00")},
 					},
-					Logs: []PlainLog{
+					Logs: []logbook.PlainLog{
 						{
-							Ops: []PlainOp{
+							Ops: []logbook.PlainOp{
 								{Type: "init", Model: "branch", Name: "main", AuthorID: authorID, Timestamp: mustTime("1999-12-31T19:08:00-05:00")},
 							},
 						},
@@ -488,9 +486,9 @@ func TestBookRawLog(t *testing.T) {
 	// }
 	// t.Logf("%s", string(data))
 
-	expect := []PlainLog{
+	expect := []logbook.PlainLog{
 		{
-			Ops: []PlainOp{
+			Ops: []logbook.PlainOp{
 				{
 					Type:      "init",
 					Model:     "user",
@@ -499,9 +497,9 @@ func TestBookRawLog(t *testing.T) {
 					Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
 				},
 			},
-			Logs: []PlainLog{
-				PlainLog{
-					Ops: []PlainOp{
+			Logs: []logbook.PlainLog{
+				logbook.PlainLog{
+					Ops: []logbook.PlainOp{
 						{
 							Type:      "init",
 							Model:     "dataset",
@@ -510,9 +508,9 @@ func TestBookRawLog(t *testing.T) {
 							Timestamp: mustTime("1999-12-31T19:01:00-05:00"),
 						},
 					},
-					Logs: []PlainLog{
-						PlainLog{
-							Ops: []PlainOp{
+					Logs: []logbook.PlainLog{
+						logbook.PlainLog{
+							Ops: []logbook.PlainOp{
 								{
 									Type:      "init",
 									Model:     "branch",
@@ -596,7 +594,7 @@ func TestLogTransfer(t *testing.T) {
 
 	pk2 := testPrivKey2(t)
 	fs2 := qfs.NewMemFS()
-	book2, err := NewJournal(pk2, "user2", fs2, "/mem/fs2_location")
+	book2, err := logbook.NewJournal(pk2, "user2", fs2, "/mem/fs2_location")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -605,7 +603,7 @@ func TestLogTransfer(t *testing.T) {
 		t.Error("expected Merging unsigned log to fail")
 	}
 
-	if err := log.Sign(tr.Book.pk); err != nil {
+	if err := tr.Book.SignLog(log); err != nil {
 		t.Error(err)
 	}
 
@@ -702,7 +700,7 @@ func TestItems(t *testing.T) {
 		t.Error(err)
 	}
 
-	expect := []DatasetLogItem{
+	expect := []logbook.DatasetLogItem{
 		{
 			VersionInfo: dsref.VersionInfo{
 				Username:   "test_author",
@@ -741,7 +739,7 @@ func TestItems(t *testing.T) {
 		t.Error(err)
 	}
 
-	expect = []DatasetLogItem{
+	expect = []logbook.DatasetLogItem{
 		{
 			VersionInfo: dsref.VersionInfo{
 				Username:   "test_author",
@@ -828,7 +826,7 @@ func mustTime(str string) time.Time {
 type testRunner struct {
 	Ctx      context.Context
 	Username string
-	Book     *Book
+	Book     *logbook.Book
 	Fs       qfs.Filesystem
 	Pk       crypto.PrivKey
 	Tick     int
@@ -839,21 +837,21 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	authorName := "test_author"
 	pk := testPrivKey(t)
 	fs := qfs.NewMemFS()
-	prevTs := NewTimestamp
+	prevTs := logbook.NewTimestamp
 	tr = &testRunner{
 		Ctx:      ctx,
 		Username: authorName,
 	}
-	NewTimestamp = tr.newTimestamp
+	logbook.NewTimestamp = tr.newTimestamp
 
 	var err error
-	tr.Book, err = NewJournal(pk, authorName, fs, "/mem/logset")
+	tr.Book, err = logbook.NewJournal(pk, authorName, fs, "/mem/logset")
 	if err != nil {
 		t.Fatalf("creating book: %s", err.Error())
 	}
 
 	cleanup = func() {
-		NewTimestamp = prevTs
+		logbook.NewTimestamp = prevTs
 	}
 
 	return tr, cleanup
@@ -1014,45 +1012,6 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 	if err := book.WriteDatasetRename(tr.Ctx, initID, rename); err != nil {
 		t.Fatal(err)
 	}
-}
-
-// CreateForeignDatasetOplog invents an oplog from a reference and private key,
-// as if another user had cerated a dataset. It returns the initID, author,
-// and signed log
-func (tr *testRunner) CreateForeignDatasetOplog(pk crypto.PrivKey, r dsref.Ref) (string, identity.Author, *oplog.Log, error) {
-	ctx := context.Background()
-	ms := qfs.NewMemFS()
-	foreignBook, err := NewJournal(pk, r.Username, ms, "/mem/logset")
-	if err != nil {
-		return "", nil, nil, err
-	}
-	initID, err := foreignBook.WriteDatasetInit(ctx, r.Name)
-	if err != nil {
-		return "", nil, nil, err
-	}
-
-	err = foreignBook.WriteVersionSave(ctx, initID, &dataset.Dataset{
-		Peername: r.Username,
-		Name:     r.Name,
-		Commit: &dataset.Commit{
-			Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-			Title:     "initial commit",
-		},
-		Path:         r.Path,
-		PreviousPath: "",
-	})
-	if err != nil {
-		return "", nil, nil, err
-	}
-	lg, err := foreignBook.UserDatasetRef(ctx, r)
-	if err != nil {
-		return "", nil, nil, err
-	}
-	if err := lg.Sign(pk); err != nil {
-		return "", nil, nil, err
-	}
-
-	return initID, foreignBook.Author(), lg, err
 }
 
 func testPrivKey(t *testing.T) crypto.PrivKey {

@@ -8,10 +8,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/identity"
+	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -84,7 +88,7 @@ func TestResolveRef(t *testing.T) {
 	path := filepath.Join(tmpdir, "dscache.qfb")
 	dsc := NewDscache(ctx, fs, nil, path)
 
-	dsrefspec.ResolverSpec(t, dsc, func(r *dsref.Ref) error {
+	dsrefspec.ResolverSpec(t, dsc, func(r dsref.Ref, author identity.Author, log *oplog.Log) error {
 		builder := NewBuilder()
 		peerInfo := testPeers.GetTestPeerInfo(0)
 		builder.AddUser(r.Username, profile.IDFromPeerID(peerInfo.PeerID).String())
@@ -99,4 +103,53 @@ func TestResolveRef(t *testing.T) {
 		dsc.Assign(cache)
 		return nil
 	})
+}
+
+func TestCacheRefConsistency(t *testing.T) {
+	ctx := context.Background()
+
+	fsys := qfs.NewMemFS()
+
+	localUsername := "local_user"
+	localDsName := "local_dataset"
+	book, err := logbook.NewJournal(testPeers.GetTestPeerInfo(0).PrivKey, localUsername, fsys, "/mem/logbook")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dsc := NewDscache(ctx, fsys, book, "")
+
+	_, _, err = dsrefspec.GenerateExampleOplog(ctx, book, localDsName, "/ipfs/QmLocalExample")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ref := dsref.Ref{
+		Username: localUsername,
+		Name:     localDsName,
+	}
+	if err := dsrefspec.ConsistentResolvers(t, ref, dsc, book); err != nil {
+		t.Errorf("creating a dataset must update dscache")
+		t.Errorf("inconsistent resolution between dscache & logbook:\n%s", err)
+	}
+
+	foreignUsername := "ref_consistency_foreign_user"
+	foreignDsName := "example"
+	foreignBook := dsrefspec.ForeignLogbook(t, foreignUsername)
+	_, log, err := dsrefspec.GenerateExampleOplog(ctx, foreignBook, foreignDsName, "/ipfs/QmEXammPlle")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := book.MergeLog(ctx, foreignBook.Author(), log); err != nil {
+		t.Fatal(err)
+	}
+
+	ref = dsref.Ref{
+		Username: localUsername,
+		Name:     localDsName,
+	}
+	if err := dsrefspec.ConsistentResolvers(t, ref, dsc, book); err != nil {
+		t.Errorf("merging a foreign dataset must update dscache")
+		t.Errorf("inconsistent resolution between dscache & logbook:\n%s", err)
+	}
 }

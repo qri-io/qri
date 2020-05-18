@@ -192,12 +192,7 @@ func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 
 	ref.InitID = vi.InitID
 	if ref.Path == "" {
-		// empty paths with an FSI link default to their FSI path
-		if vi.FSIPath != "" {
-			ref.Path = fmt.Sprintf("/fsi%s", vi.FSIPath)
-		} else {
-			ref.Path = vi.Path
-		}
+		ref.Path = vi.Path
 	}
 
 	return "", nil

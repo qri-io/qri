@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
+	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/remote"
@@ -83,6 +84,16 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	Clone(t, hinshun, ref.AliasString())
 
 	// TODO (b5) - assert hinshun has world bank dataset blocks
+
+	// all three should now have the same HEAD reference & InitID
+	dsrefspec.ConsistentResolvers(t, dsref.Ref{
+		Username: ref.Peername,
+		Name:     ref.Name,
+	},
+		nasim.Repo(),
+		hinshun.Repo(),
+		tr.RegistryInst.Repo(),
+	)
 }
 
 type NetworkIntegrationTestRunner struct {

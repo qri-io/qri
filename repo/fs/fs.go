@@ -16,7 +16,6 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 var log = golog.Logger("fsrepo")
@@ -43,8 +42,6 @@ type Repo struct {
 }
 
 // NewRepo creates a new file-based repository
-//
-// Deprecated: use CreateRepo instead
 func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, cache *dscache.Dscache, pro *profile.Profile, base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
@@ -88,23 +85,16 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 		return "", dsref.ErrNotFound
 	}
 
-	match, err := r.GetRef(reporef.RefFromDsref(*ref))
-	if err != nil {
-		return "", dsref.ErrNotFound
+	// TODO (b5) - not totally sure why, but memRepo doesn't seem to be wiring up
+	// dscache correctly in in tests
+	// if r.dscache != nil {
+	// 	return r.dscache.ResolveRef(ctx, ref)
+	// }
+
+	if r.logbook == nil {
+		return "", fmt.Errorf("cannot resolve local references without logbook")
 	}
-
-	// TODO (b5) - repo doens't store IDs, breaking the assertion that ResolveRef
-	// will set the ID of a dataset. Need to fix that before we can ship this
-
-	if ref.Path == "" {
-		if match.FSIPath != "" {
-			ref.Path = fmt.Sprintf("/fsi%s", match.FSIPath)
-		} else {
-			ref.Path = match.Path
-		}
-	}
-
-	return "", nil
+	return r.logbook.ResolveRef(ctx, ref)
 }
 
 // Path returns the path to the root of the repo directory

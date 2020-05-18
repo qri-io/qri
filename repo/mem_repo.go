@@ -13,7 +13,6 @@ import (
 	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // MemRepo is an in-memory implementation of the Repo interface
@@ -32,13 +31,12 @@ type MemRepo struct {
 }
 
 // NewMemRepo creates a new in-memory repository
-// TODO (b5) - need a better mem-repo constructor, we don't need a logbook for
-// all test cases
 func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, ps profile.Store) (*MemRepo, error) {
 	book, err := logbook.NewJournal(p.PrivKey, p.Peername, fsys, "/mem/logbook")
 	if err != nil {
 		return nil, err
 	}
+
 	ctx := context.Background()
 
 	// NOTE: This dscache won't get change notifications from FSI, because it's not constructed
@@ -63,23 +61,16 @@ func (r *MemRepo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 		return "", dsref.ErrNotFound
 	}
 
-	match, err := r.GetRef(reporef.RefFromDsref(*ref))
-	if err != nil {
-		return "", dsref.ErrNotFound
+	// TODO (b5) - not totally sure why, but memRepo doesn't seem to be wiring up
+	// dscache correctly in in tests
+	// if r.dscache != nil {
+	// 	return r.dscache.ResolveRef(ctx, ref)
+	// }
+
+	if r.logbook == nil {
+		return "", fmt.Errorf("cannot resolve local references without logbook")
 	}
-
-	// TODO (b5) - repo doens't store IDs yet, breaking the assertion that ResolveRef
-	// will set the ID of a dataset. Need to fix that before we can ship this
-
-	if ref.Path == "" {
-		if match.FSIPath != "" {
-			ref.Path = fmt.Sprintf("/fsi%s", match.FSIPath)
-		} else {
-			ref.Path = match.Path
-		}
-	}
-
-	return "", nil
+	return r.logbook.ResolveRef(ctx, ref)
 }
 
 // Store returns the underlying cafs.Filestore for this repo

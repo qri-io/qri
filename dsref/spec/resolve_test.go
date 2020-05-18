@@ -50,17 +50,6 @@ func TestResolverConsistency(t *testing.T) {
 		t.Error("expected error, got nil")
 	}
 
-	b.Put(dsref.VersionInfo{
-		InitID:   ref.InitID,
-		Username: ref.Username,
-		Name:     ref.Name,
-		Path:     "/fsi/local/checkout/path",
-	})
-
-	if err := ConsistentResolvers(t, toResolve, a, b); err != nil {
-		t.Error(err)
-	}
-
 	c := dsref.NewMemResolver("c")
 	if err := InconsistentResolvers(t, toResolve, b, c); err != nil {
 		t.Error(err)
