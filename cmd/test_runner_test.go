@@ -249,6 +249,11 @@ func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool)
 	return cmd
 }
 
+// Username returns the test username from the config's profile
+func (run *TestRunner) Username() string {
+	return run.RepoRoot.GetConfig().Profile.Peername
+}
+
 // IOReset resets the io streams
 func (run *TestRunner) IOReset() {
 	run.InStream.Reset()
@@ -409,6 +414,7 @@ func (run *TestRunner) GetCommandErrOutput() string {
 }
 
 func (run *TestRunner) niceifyTempDirs(text string) string {
+	text = strings.Replace(text, run.RepoRoot.RootPath, "/root", -1)
 	realRoot, err := filepath.EvalSymlinks(run.RepoRoot.RootPath)
 	if err == nil {
 		text = strings.Replace(text, realRoot, "/root", -1)

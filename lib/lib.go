@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/dsref/hook"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
@@ -357,17 +358,15 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	if inst.logbook == nil {
-		inst.logbook, err = newLogbook(inst.qfs, cfg, inst.repoPath)
-		if err != nil {
-			return nil, fmt.Errorf("newLogbook: %w", err)
-		}
+	var pro *profile.Profile
+	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
+		return nil, fmt.Errorf("newProfile: %s", err)
 	}
 
-	if inst.dscache == nil {
-		inst.dscache, err = newDscache(ctx, inst.qfs, inst.logbook, cfg, inst.repoPath)
+	if inst.logbook == nil {
+		inst.logbook, err = newLogbook(inst.qfs, cfg, pro, inst.repoPath)
 		if err != nil {
-			return nil, fmt.Errorf("newDsache: %w", err)
+			return nil, fmt.Errorf("newLogbook: %w", err)
 		}
 	}
 
@@ -394,6 +393,13 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		// Try to make the repo a hidden directory, but it's okay if we can't. Ignore the error.
 		_ = hiddenfile.SetFileHidden(inst.repoPath)
 		inst.fsi = fsi.NewFSI(inst.repo, inst.bus)
+	}
+
+	if inst.dscache == nil {
+		inst.dscache, err = newDscache(ctx, inst.qfs, []hook.ChangeNotifier{inst.logbook, inst.fsi}, pro.Peername, inst.repoPath)
+		if err != nil {
+			return nil, fmt.Errorf("newDsache: %w", err)
+		}
 	}
 
 	if inst.node == nil {
@@ -461,20 +467,14 @@ func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client
 	return nil
 }
 
-func newLogbook(fs qfs.Filesystem, cfg *config.Config, repoPath string) (book *logbook.Book, err error) {
-	var pro *profile.Profile
-	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
-		return
-	}
-
+func newLogbook(fs qfs.Filesystem, cfg *config.Config, pro *profile.Profile, repoPath string) (book *logbook.Book, err error) {
 	logbookPath := filepath.Join(repoPath, "logbook.qfb")
-
 	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, logbookPath)
 }
 
-func newDscache(ctx context.Context, fs qfs.Filesystem, book *logbook.Book, cfg *config.Config, repoPath string) (*dscache.Dscache, error) {
+func newDscache(ctx context.Context, fs qfs.Filesystem, hooks []hook.ChangeNotifier, username, repoPath string) (*dscache.Dscache, error) {
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
-	return dscache.NewDscache(ctx, fs, book, dscachePath), nil
+	return dscache.NewDscache(ctx, fs, hooks, username, dscachePath), nil
 }
 
 func newEventBus(ctx context.Context) event.Bus {
@@ -533,26 +533,36 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 // and options that can be fed to NewInstance
 func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instance {
 	ctx, teardown := context.WithCancel(context.Background())
+
+	r := node.Repo
+	pro, err := r.Profile()
+	if err != nil {
+		panic(err)
+	}
+	bus := event.NewBus(ctx)
+	fsint := fsi.NewFSI(r, bus)
+	dc := dscache.NewDscache(ctx, r.Filesystem(), []hook.ChangeNotifier{r.Logbook(), fsint}, pro.Peername, "")
+
 	inst := &Instance{
 		ctx:      ctx,
 		teardown: teardown,
 		cfg:      cfg,
 		node:     node,
+		dscache:  dc,
 		stats:    stats.New(nil),
 	}
 
-	var err error
 	inst.remoteClient, err = remote.NewClient(node)
 	if err != nil {
 		panic(err)
 	}
 
-	if node != nil && node.Repo != nil {
-		inst.repo = node.Repo
-		inst.store = node.Repo.Store()
-		inst.qfs = node.Repo.Filesystem()
-		inst.bus = event.NewBus(ctx)
-		inst.fsi = fsi.NewFSI(inst.repo, inst.bus)
+	if node != nil && r != nil {
+		inst.repo = r
+		inst.store = r.Store()
+		inst.qfs = r.Filesystem()
+		inst.bus = bus
+		inst.fsi = fsint
 	}
 
 	return inst
@@ -671,6 +681,14 @@ func (inst *Instance) RepoPath() string {
 		return ""
 	}
 	return inst.repoPath
+}
+
+// Dscache returns the dscache that the instance has
+func (inst *Instance) Dscache() *dscache.Dscache {
+	if inst == nil {
+		return nil
+	}
+	return inst.dscache
 }
 
 // RPC accesses the instance RPC client if one exists

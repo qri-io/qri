@@ -103,7 +103,7 @@ func TestNoHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if ref != "peer/test_ds" {
+	if ref.Human() != "peer/test_ds" {
 		t.Errorf("expected ref to be \"peer/test_ds\", got \"%s\"", ref)
 	}
 

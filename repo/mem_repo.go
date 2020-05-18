@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/dsref/hook"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -36,13 +37,18 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, p
 		return nil, err
 	}
 	ctx := context.Background()
+
+	// NOTE: This dscache won't get change notifications from FSI, because it's not constructed
+	// with the hook for FSI.
+	cache := dscache.NewDscache(ctx, fsys, []hook.ChangeNotifier{book}, p.Peername, "")
+
 	return &MemRepo{
 		store:       store,
 		filesystem:  fsys,
 		MemRefstore: &MemRefstore{},
 		refCache:    &MemRefstore{},
 		logbook:     book,
-		dscache:     dscache.NewDscache(ctx, fsys, book, ""),
+		dscache:     cache,
 		profile:     p,
 		profiles:    ps,
 	}, nil

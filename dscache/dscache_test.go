@@ -47,21 +47,22 @@ func TestDscacheAssignSaveAndLoad(t *testing.T) {
 	fs := localfs.NewFS()
 
 	peerInfo := testPeers.GetTestPeerInfo(0)
+	peername := "test_user"
 
 	// Construct a dscache, will not save without a filename
 	builder := NewBuilder()
-	builder.AddUser("test_user", profile.IDFromPeerID(peerInfo.PeerID).String())
+	builder.AddUser(peername, profile.IDFromPeerID(peerInfo.PeerID).String())
 	builder.AddDsVersionInfo(dsref.VersionInfo{InitID: "abcd1"})
 	builder.AddDsVersionInfo(dsref.VersionInfo{InitID: "efgh2"})
 	constructed := builder.Build()
 
 	// A dscache that will save when it is assigned
 	dscacheFile := filepath.Join(tmpdir, "dscache.qfb")
-	saveable := NewDscache(ctx, fs, nil, dscacheFile)
+	saveable := NewDscache(ctx, fs, nil, peername, dscacheFile)
 	saveable.Assign(constructed)
 
 	// Load the dscache from its serialized file, verify it has correct data
-	loadable := NewDscache(ctx, fs, nil, dscacheFile)
+	loadable := NewDscache(ctx, fs, nil, peername, dscacheFile)
 	if loadable.Root.UsersLength() != 1 {
 		t.Errorf("expected, 1 user, got %d users", loadable.Root.UsersLength())
 	}

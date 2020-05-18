@@ -137,3 +137,142 @@ func TestFSIMethodsWrite(t *testing.T) {
 		})
 	}
 }
+
+// Test that checkout requires a valid directory
+func TestCheckoutInvalidDirs(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	// Save a dataset with one version.
+	run.MustSaveFromBody(t, "movie_ds", "testdata/cities_2/body.csv")
+
+	run.ChdirToRoot()
+
+	// Checkout fails with a blank directory
+	err := run.Checkout("me/movie_ds", "")
+	if err == nil {
+		t.Fatal("expected error from checkout, did not get one")
+	}
+	expectErr := `need Dir to be a non-empty, absolute path`
+	if diff := cmp.Diff(expectErr, err.Error()); diff != "" {
+		t.Errorf("error mismatch (-want +got):\n%s", diff)
+	}
+
+	// Checkout fails with a relative directory
+	err = run.Checkout("me/movie_ds", "relative/dir/")
+	if err == nil {
+		t.Fatal("expected error from checkout, did not get one")
+	}
+	expectErr = `need Dir to be a non-empty, absolute path`
+	if diff := cmp.Diff(expectErr, err.Error()); diff != "" {
+		t.Errorf("error mismatch (-want +got):\n%s", diff)
+	}
+
+	// Checkout with an absolute path succeeds
+	checkoutPath := filepath.Join(run.TmpDir, "movie_ds")
+	err = run.Checkout("me/movie_ds", checkoutPath)
+	if err != nil {
+		t.Errorf("checkout err: %s", err)
+	}
+}
+
+// Test that FSI checkout modifies dscache if it exists
+func TestDscacheCheckout(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	// Save a dataset with one version.
+	_, err := run.SaveWithParams(&SaveParams{
+		Ref:        "me/cities_ds",
+		BodyPath:   "testdata/cities_2/body.csv",
+		UseDscache: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	run.ChdirToRoot()
+
+	// Checkout the dataset, which should update the dscache
+	checkoutPath := filepath.Join(run.TmpDir, "cities_ds")
+	run.Checkout("me/cities_ds", checkoutPath)
+
+	// Access the dscache
+	cache := run.Instance.Dscache()
+
+	// Dscache should have one entry, with an fsiPath set
+	actual := run.NiceifyTempDirs(cache.VerboseString(false))
+	expect := `Dscache:
+ Dscache.Users:
+  0) user=peer profileID=QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+ Dscache.Refs:
+  0) initID        = vrh4iurbzeyx42trlddzvtoiqevmy2d3mxex4ojd4mxv7cudhlwq
+     profileID     = QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+     topIndex      = 1
+     cursorIndex   = 1
+     prettyName    = cities_ds
+     bodySize      = 155
+     bodyRows      = 5
+     commitTime    = 978310861
+     headRef       = /map/QmPd5jh8ZTFwgbpHaNSu6u2277BKWaiBsqX4uFw7rGWNLu
+     fsiPath       = /tmp/cities_ds
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
+// Test that FSI init modifies dscache if it exists
+func TestDscacheInit(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	// Save a dataset with one version.
+	_, err := run.SaveWithParams(&SaveParams{
+		Ref:        "me/cities_ds",
+		BodyPath:   "testdata/cities_2/body.csv",
+		UseDscache: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	workDir := run.CreateAndChdirToWorkDir("json_body")
+	_ = workDir
+
+	// Init a new dataset, which should update the dscache
+	err = run.Init("me/new_ds", "csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Access the dscache
+	cache := run.Instance.Dscache()
+
+	// Dscache should have two entries, one has a version, the other has an fsiPath
+	actual := run.NiceifyTempDirs(cache.VerboseString(false))
+	expect := `Dscache:
+ Dscache.Users:
+  0) user=peer profileID=QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+ Dscache.Refs:
+  0) initID        = vrh4iurbzeyx42trlddzvtoiqevmy2d3mxex4ojd4mxv7cudhlwq
+     profileID     = QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+     topIndex      = 1
+     cursorIndex   = 1
+     prettyName    = cities_ds
+     bodySize      = 155
+     bodyRows      = 5
+     commitTime    = 978310861
+     headRef       = /map/QmPd5jh8ZTFwgbpHaNSu6u2277BKWaiBsqX4uFw7rGWNLu
+  1) initID        = ekwzgcu4s4o4xchsoip3oa3j45ko5n7pybtizgvsbudojbhxuita
+     profileID     = QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+     topIndex      = 0
+     cursorIndex   = 0
+     prettyName    = new_ds
+     commitTime    = -62135596800
+     fsiPath       = /tmp/json_body
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}

@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/dsref/hook"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
@@ -71,7 +72,7 @@ func New(ctx context.Context, path string, cfg *config.Config) (repo.Repo, error
 			return nil, err
 		}
 
-		cache, err := newDscache(ctx, fs, book, path)
+		cache, err := newDscache(ctx, fs, book, pro.Peername, path)
 		if err != nil {
 			return nil, err
 		}
@@ -153,11 +154,11 @@ func newLogbook(fs qfs.Filesystem, pro *profile.Profile, repoPath string) (book 
 	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, logbookPath)
 }
 
-func newDscache(ctx context.Context, fs qfs.Filesystem, book *logbook.Book, repoPath string) (*dscache.Dscache, error) {
+func newDscache(ctx context.Context, fs qfs.Filesystem, book *logbook.Book, username, repoPath string) (*dscache.Dscache, error) {
 	// This seems to be a bug, the repoPath does not end in "qri" in some tests.
 	if !strings.HasSuffix(repoPath, "qri") {
 		return nil, fmt.Errorf("invalid repo path")
 	}
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
-	return dscache.NewDscache(ctx, fs, book, dscachePath), nil
+	return dscache.NewDscache(ctx, fs, []hook.ChangeNotifier{book}, username, dscachePath), nil
 }

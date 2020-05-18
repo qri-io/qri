@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/dsref/hook"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
@@ -39,7 +40,7 @@ var PrepareToWrite = func(comp component.Component) {
 }
 
 // InitDataset creates a new dataset
-func (fsi *FSI) InitDataset(p InitParams) (refstr string, err error) {
+func (fsi *FSI) InitDataset(p InitParams) (ref dsref.Ref, err error) {
 	// Create a rollback handler
 	rollback := func() {
 		log.Debug("did rollback InitDataset due to error")
@@ -52,16 +53,16 @@ func (fsi *FSI) InitDataset(p InitParams) (refstr string, err error) {
 	}()
 
 	if !dsref.IsValidName(p.Name) {
-		return "", dsref.ErrDescribeValidName
+		return ref, dsref.ErrDescribeValidName
 	}
 	if p.Dir == "" {
-		return "", fmt.Errorf("directory is required to initialize a dataset")
+		return ref, fmt.Errorf("directory is required to initialize a dataset")
 	}
 
 	if fi, err := os.Stat(p.Dir); err != nil {
-		return "", err
+		return ref, err
 	} else if !fi.IsDir() {
-		return "", fmt.Errorf("invalid path to initialize. '%s' is not a directory", p.Dir)
+		return ref, fmt.Errorf("invalid path to initialize. '%s' is not a directory", p.Dir)
 	}
 
 	// Either use an existing directory, or create one at the given directory.
@@ -78,7 +79,7 @@ func (fsi *FSI) InitDataset(p InitParams) (refstr string, err error) {
 				// Not an error if directory already exists
 				err = nil
 			} else {
-				return "", err
+				return ref, err
 			}
 		} else {
 			// If directory was successfully created, add a step to the rollback in case future
@@ -97,7 +98,7 @@ func (fsi *FSI) InitDataset(p InitParams) (refstr string, err error) {
 	// Pass the sourceBodyPath, because it's okay if this file already exists, as long as its
 	// being used to create the body.
 	if err = fsi.CanInitDatasetWorkDir(targetPath, p.SourceBodyPath); err != nil {
-		return "", err
+		return ref, err
 	}
 
 	datasetRef := reporef.DatasetRef{Peername: "me", Name: p.Name}
@@ -106,7 +107,7 @@ func (fsi *FSI) InitDataset(p InitParams) (refstr string, err error) {
 	// Make sure a dataset with this name does not exist in your repo.
 	if err = repo.CanonicalizeDatasetRef(fsi.repo, &datasetRef); err == nil {
 		// TODO(dlong): Tell user to use `checkout` if the dataset already exists in their repo?
-		return "", fmt.Errorf("a dataset with the name %s already exists in your repo", datasetRef)
+		return ref, fmt.Errorf("a dataset with the name %s already exists in your repo", datasetRef)
 	}
 
 	// Derive format from --source-body-path if provided.
@@ -119,13 +120,13 @@ func (fsi *FSI) InitDataset(p InitParams) (refstr string, err error) {
 
 	// Validate dataset format
 	if p.Format != "csv" && p.Format != "json" {
-		return "", fmt.Errorf(`invalid format "%s", only "csv" and "json" accepted`, p.Format)
+		return ref, fmt.Errorf(`invalid format "%s", only "csv" and "json" accepted`, p.Format)
 	}
 
 	// Create the link file, containing the dataset reference.
 	var undo func()
-	if refstr, undo, err = fsi.CreateLink(targetPath, datasetRef.AliasString()); err != nil {
-		return refstr, err
+	if _, undo, err = fsi.CreateLink(targetPath, datasetRef.AliasString()); err != nil {
+		return ref, err
 	}
 	// If future steps fail, rollback the link creation.
 	rollback = concatFunc(undo, rollback)
@@ -143,14 +144,14 @@ func (fsi *FSI) InitDataset(p InitParams) (refstr string, err error) {
 		// Create structure by detecting it from the body.
 		file, err := os.Open(p.SourceBodyPath)
 		if err != nil {
-			return "", err
+			return ref, err
 		}
 		defer file.Close()
 		// TODO(dlong): This should move into `dsio` package.
 		entries, err := component.OpenEntryReader(file, p.Format)
 		if err != nil {
 			log.Errorf("opening entry reader: %s", err)
-			return "", err
+			return ref, err
 		}
 		initDs.Structure = entries.Structure()
 	} else if p.Format == "csv" {
@@ -184,7 +185,7 @@ func (fsi *FSI) InitDataset(p InitParams) (refstr string, err error) {
 			wroteFile, err := aComp.WriteTo(targetPath)
 			if err != nil {
 				log.Errorf("writing component file %s: %s", compName, err)
-				return "", err
+				return ref, err
 			}
 			// If future steps fail, rollback the components that have been written
 			rollback = concatFunc(func() {
@@ -202,18 +203,28 @@ func (fsi *FSI) InitDataset(p InitParams) (refstr string, err error) {
 	if err != nil {
 		if err == logbook.ErrNoLogbook {
 			rollback = func() {}
-			return refstr, nil
+			return ref, nil
 		}
-		return refstr, err
+		return ref, err
 	}
 
-	// TODO(dustmop): Add initID to dsref.Ref, change the return value of this function to be
-	// a dsref.Ref instead.
-	_ = initID
+	if fsi.onChangeHook != nil {
+		fsi.onChangeHook(&hook.DsChange{
+			Type:   hook.DatasetCreateLink,
+			InitID: initID,
+			Dir:    p.Dir,
+		})
+	}
+
+	ref = dsref.Ref{
+		InitID:   initID,
+		Username: datasetRef.Peername,
+		Name:     datasetRef.Name,
+	}
 
 	// Success, no need to rollback.
 	rollback = nil
-	return refstr, nil
+	return ref, nil
 }
 
 // CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not

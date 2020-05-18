@@ -13,7 +13,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dscache/dscachefb"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/dsref/hook"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -40,7 +40,7 @@ type Dscache struct {
 
 // NewDscache will construct a dscache from the given filename, or will construct an empty dscache
 // that will save to the given filename. Using an empty filename will disable loading and saving
-func NewDscache(ctx context.Context, fsys qfs.Filesystem, book *logbook.Book, filename string) *Dscache {
+func NewDscache(ctx context.Context, fsys qfs.Filesystem, hooks []hook.ChangeNotifier, username, filename string) *Dscache {
 	cache := Dscache{Filename: filename}
 	f, err := fsys.Get(ctx, filename)
 	if err == nil {
@@ -54,9 +54,9 @@ func NewDscache(ctx context.Context, fsys qfs.Filesystem, book *logbook.Book, fi
 			cache = Dscache{Filename: filename, Root: root, Buffer: buffer}
 		}
 	}
-	if book != nil {
-		book.Observe(cache.update)
-		cache.DefaultUsername = book.AuthorName()
+	cache.DefaultUsername = username
+	for _, h := range hooks {
+		h.SetChangeHook(cache.update)
 	}
 	return &cache
 }
@@ -211,26 +211,30 @@ func (d *Dscache) validateProfileID(profileID string) bool {
 	return len(profileID) == lengthOfProfileID
 }
 
-func (d *Dscache) update(act *logbook.Action) {
+func (d *Dscache) update(act *hook.DsChange) {
 	switch act.Type {
-	case logbook.ActionDatasetNameInit:
+	case hook.DatasetNameInit:
 		if err := d.updateInitDataset(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
-	case logbook.ActionDatasetCommitChange:
+	case hook.DatasetCommitChange:
 		if err := d.updateChangeCursor(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
-	case logbook.ActionDatasetDeleteAll:
+	case hook.DatasetDeleteAll:
 		if err := d.updateDeleteDataset(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
-	case logbook.ActionDatasetRename:
+	case hook.DatasetRename:
 		// TODO(dustmop): Handle renames
+	case hook.DatasetCreateLink:
+		if err := d.updateCreateLink(act); err != nil && err != ErrNoDscache {
+			log.Error(err)
+		}
 	}
 }
 
-func (d *Dscache) updateInitDataset(act *logbook.Action) error {
+func (d *Dscache) updateInitDataset(act *hook.DsChange) error {
 	if d.IsEmpty() {
 		// Only create a new dscache if that feature is enabled. This way no one is forced to
 		// use dscache without opting in.
@@ -278,7 +282,7 @@ func (d *Dscache) updateInitDataset(act *logbook.Action) error {
 }
 
 // Copy the entire dscache, except for the matching entry, rebuild that one to modify it
-func (d *Dscache) updateChangeCursor(act *logbook.Action) error {
+func (d *Dscache) updateChangeCursor(act *hook.DsChange) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
@@ -322,7 +326,7 @@ func (d *Dscache) updateChangeCursor(act *logbook.Action) error {
 }
 
 // Copy the entire dscache, except leave out the matching entry.
-func (d *Dscache) updateDeleteDataset(act *logbook.Action) error {
+func (d *Dscache) updateDeleteDataset(act *hook.DsChange) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
@@ -337,6 +341,40 @@ func (d *Dscache) updateDeleteDataset(act *logbook.Action) error {
 		},
 		// Pass a nil function, so the matching entry is not replaced, it is omitted
 		nil,
+	)
+	root, serialized := d.finishBuilding(builder, users, refs)
+	d.Root = root
+	d.Buffer = serialized
+	return d.save()
+}
+
+// Copy the entire dscache, except for the matching entry, which is copied then assigned an fsiPath
+func (d *Dscache) updateCreateLink(act *hook.DsChange) error {
+	if d.IsEmpty() {
+		return ErrNoDscache
+	}
+	// Flatbuffers for go do not allow mutation (for complex types like strings). So we construct
+	// a new flatbuffer entirely, copying the old one while replacing the entry we care to change.
+	builder := flatbuffers.NewBuilder(0)
+	users := d.copyUserAssociationList(builder)
+	refs := d.copyReferenceListWithReplacement(
+		builder,
+		// Function to match the entry we're looking to replace
+		func(r *dscachefb.RefEntryInfo) bool {
+			if act.InitID != "" {
+				return string(r.InitID()) == act.InitID
+			}
+			return d.DefaultUsername == act.Username && string(r.PrettyName()) == act.PrettyName
+		},
+		// Function to replace the matching entry
+		func(refStartMutationFunc func(builder *flatbuffers.Builder)) {
+			fsiDir := builder.CreateString(string(act.Dir))
+			// Start building a ref object, by mutating an existing ref object.
+			refStartMutationFunc(builder)
+			// For this kind of update, only the fsiDir is modified
+			dscachefb.RefEntryInfoAddFsiPath(builder, fsiDir)
+			// Don't call RefEntryInfoEnd, that is handled by copyReferenceListWithReplacement
+		},
 	)
 	root, serialized := d.finishBuilding(builder, users, refs)
 	d.Root = root

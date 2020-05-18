@@ -46,13 +46,13 @@ func TestDatasetRequestsDiff(t *testing.T) {
 		{"two fully qualified references",
 			dsRef1.String(), dsRef2.String(),
 			"",
-			&DiffStat{Left: 40, Right: 41, LeftWeight: 2724, RightWeight: 2682, Inserts: 8, Updates: 0, Deletes: 8},
+			&DiffStat{Left: 40, Right: 41, LeftWeight: 2754, RightWeight: 2712, Inserts: 9, Updates: 0, Deletes: 9},
 			8,
 		},
 		{"fill left path from history",
 			dsRef2.AliasString(), dsRef2.AliasString(),
 			"",
-			&DiffStat{Left: 40, Right: 41, LeftWeight: 2724, RightWeight: 2682, Inserts: 8, Updates: 0, Deletes: 8},
+			&DiffStat{Left: 40, Right: 41, LeftWeight: 2754, RightWeight: 2712, Inserts: 9, Updates: 0, Deletes: 9},
 			8,
 		},
 		{"two local file paths",
@@ -180,9 +180,9 @@ func TestDiffPrevRevision(t *testing.T) {
 	defer run.Delete()
 
 	// Save three versions, then diff the last head against its previous version
-	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body.csv")
-	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body_more.csv")
-	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body_even_more.csv")
+	run.MustSaveFromBody(t, "test_cities", "testdata/cities_2/body.csv")
+	run.MustSaveFromBody(t, "test_cities", "testdata/cities_2/body_more.csv")
+	run.MustSaveFromBody(t, "test_cities", "testdata/cities_2/body_even_more.csv")
 
 	output, err := run.Diff("me/test_cities", "", "body")
 	if err != nil {
@@ -204,10 +204,10 @@ func TestDiff(t *testing.T) {
 	defer run.Delete()
 
 	// Save a dataset with one version
-	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body.csv")
+	run.MustSaveFromBody(t, "test_cities", "testdata/cities_2/body.csv")
 
 	// Save a different dataset with one version
-	run.SaveDatasetFromBody(t, "test_more", "testdata/cities_2/body_more.csv")
+	run.MustSaveFromBody(t, "test_more", "testdata/cities_2/body_more.csv")
 
 	// Diff the heads
 	output, err := run.Diff("me/test_cities", "me/test_more", "")
@@ -219,7 +219,7 @@ func TestDiff(t *testing.T) {
 	// compared with cmp.Diff.
 	// TODO(dustmop): Would be better if Diff only returned the changes, instead of things that
 	// stay the same, since the delta in this case is pretty small.
-	expect := `{"stat":{"leftNodes":40,"rightNodes":40,"leftWeight":2447,"rightWeight":2477,"inserts":9,"deletes":9},"diff":[["-","bodyPath","/map/Qmc7AoCfFVW5xe8qhyjNYewSgBHFubp6yLM3mfBzQp7iTr"],["+","bodyPath","/map/QmYuVj1JvALB9Au5DNcVxGLMcWCDBUfbKCN3QbpvissSC4"],[" ","commit",null,[[" ","author",{"id":"QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"}],["-","message","created dataset from body.csv"],["+","message","created dataset from body_more.csv"],["-","path","/map/Qmdn6131L4BhNPcfsobZdwzoucKGvwcQiH6bn9LSs8Tiq3"],["+","path","/map/Qmd1EtMQTYe5HRNZbfcgfp8rAos8eRuQQXQ8VsyZfRBEGN"],[" ","qri","cm:0"],["-","signature","i2h0nvSCjsXu5iTter4l/Ax3dVC3yvFR1Nff1VkSsI55jAvglOiN4Zr+n7vIe2dvyiWJv0TyTE2K8ZXKNY3lBYeA7P+mS36IxBORxk4FSBuxbuTjRZkEPp+wpCXehO+lEKAlIwzAnKgPtocRr1aVKiVU8osB+FULRSK2A4obscpVmZ00z1E4t7wSvZi/FnvSeNwh3gIrgsbuqwmRArqvyudGAiFzf75Gs7sQEVO/q6oHDld7cMhBvqTChLADOELbM5AlvlvGdOH3XAdzUF/XbIqnMKFZAxBlq/c2lyit4oCUV9+Yy1j8K5B/PhYBWmFjcUwX9vTatjcdGFbAkMb0IQ=="],["+","signature","mylW8R29Bu3fm9KoF0ElW7f/Jm9Lm7EYcyqwKvVWcwcxk2vFJjgOuuK8fSLgfYn8j+nT0hFRz/fimF5YF8nw333GXXXJUH+83hZUKWh9biTdDIRkldZ1wS15ZP821VXRLmGInK8xsJt1xyl7IleNe2s4dcNo4oSWO6LoW1DyVsy4aB9iAaUpJGXgQAiFumLYeCJtU/O7muP6h/JTQEw5O5QRV7ctZAc1rQCjTJ+zDQAy2Kz31nh38xYatoLPjK3WWn1CAa7+9O0cROtbXPcGiVYx+XIxIefpSgr9uGaVCJSRuabfN5j8MGl5x6HR7XjaRFW8APd4wNAhF9GKkjb1gw=="],[" ","timestamp","0001-01-01T00:00:00Z"],["-","title","created dataset from body.csv"],["+","title","created dataset from body_more.csv"]]],["-","path","/map/QmVwjEtrevyHb5JDcsE6Fm9kFJ6D6ewZEAQY4wx52WASzP"],["+","path","/map/QmbpvARqbLEMzuUi5VPyoWPRAFB2CRFYhVCHaEk3BzbYEZ"],[" ","qri","ds:0"],[" ","structure",null,[["-","checksum","Qmc7AoCfFVW5xe8qhyjNYewSgBHFubp6yLM3mfBzQp7iTr"],["+","checksum","QmYuVj1JvALB9Au5DNcVxGLMcWCDBUfbKCN3QbpvissSC4"],[" ","depth",2],["-","entries",5],["+","entries",7],[" ","format","csv"],[" ","formatConfig",{"headerRow":true,"lazyQuotes":true}],["-","length",155],["+","length",217],[" ","qri","st:0"],[" ","schema",{"items":{"items":[{"title":"city","type":"string"},{"title":"pop","type":"integer"},{"title":"avg_age","type":"number"},{"title":"in_usa","type":"boolean"}],"type":"array"},"type":"array"}]]]]}`
+	expect := `{"stat":{"leftNodes":40,"rightNodes":40,"leftWeight":2477,"rightWeight":2507,"inserts":10,"deletes":10},"diff":[["-","bodyPath","/map/Qmc7AoCfFVW5xe8qhyjNYewSgBHFubp6yLM3mfBzQp7iTr"],["+","bodyPath","/map/QmYuVj1JvALB9Au5DNcVxGLMcWCDBUfbKCN3QbpvissSC4"],[" ","commit",null,[[" ","author",{"id":"QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"}],["-","message","created dataset from body.csv"],["+","message","created dataset from body_more.csv"],["-","path","/map/QmdPogFjnw6sSyeCZ72waNmEtggG3YgJwDL9n8qktD4f3d"],["+","path","/map/QmRGWDwpR9TN4dRiB9AUEJURb6t8ZET1EuHryrj9FGo7aa"],[" ","qri","cm:0"],["-","signature","lWv0B2quffDZ/PuyH7Mddn0LILORrklUTuV7EtAIN7GYLkN9ES2oxpmIlLVznX44zAGJ3K9NEQ73y+B8grCl52goteTsoGdYwu7e0X6mY4fVH7+1277AOd8172OZI5aS0u8o6/8C/1H9XwJRbKYSaUD1Klffmq3FTcP7yRB3au4WumpN6GjEd9Dgk4pao5iWmw+OpEUf7X9Dk62ZKgk4ohjAMaMgYydi6CxhV9+QnC32QKxQaPZ/yF46Lj4w20DvfONZmoUd4l3ZL+Z4V29o6OGWZ02SAzhAYMf1meJ+Qzy5UHTXiFuHk+wSAGTH9C9Jzr+SV3Qg2uzHg8PK5DOCJg=="],["+","signature","j7MHjITIGpQmlg+4YxISYJ/hxOqfTLvrXiR8ZRQWJF/QhXNWOwalbGXIvv83sMNgTR1qHBif+8D/Y8YS76zaLK7qXKz39AjpCNfEoqZXqkyd8lp1OBNBiuXVYCCPLh2w0tpV0kOMwIZPmKjDRNQwwXxZe3QsHMvFPblEUiivUzYzm1yNmXZagsyD08ZFAG9PyV4O2iMVhNr/u6RuUEi/CRyptUJPYT5BQgSBe3M8Lt2qDjFyFrcblrgNmoHjV+80ZtR5ucUSLbbcWV0uXoqm1CGp/AAZQBDgAmsGxs8j9E1cH7D73iq2Vnw2lrqvPWFjoo6ij6Ve6ylBT4HRk47koQ=="],["-","timestamp","2001-01-01T01:01:01.000000001Z"],["+","timestamp","2001-01-01T01:02:01.000000001Z"],["-","title","created dataset from body.csv"],["+","title","created dataset from body_more.csv"]]],["-","path","/map/QmPd5jh8ZTFwgbpHaNSu6u2277BKWaiBsqX4uFw7rGWNLu"],["+","path","/map/QmRhY6vfQzGpU64A1RUaUj4CVWaHE2FDskNF9sNDn6MRH9"],[" ","qri","ds:0"],[" ","structure",null,[["-","checksum","Qmc7AoCfFVW5xe8qhyjNYewSgBHFubp6yLM3mfBzQp7iTr"],["+","checksum","QmYuVj1JvALB9Au5DNcVxGLMcWCDBUfbKCN3QbpvissSC4"],[" ","depth",2],["-","entries",5],["+","entries",7],[" ","format","csv"],[" ","formatConfig",{"headerRow":true,"lazyQuotes":true}],["-","length",155],["+","length",217],[" ","qri","st:0"],[" ","schema",{"items":{"items":[{"title":"city","type":"string"},{"title":"pop","type":"integer"},{"title":"avg_age","type":"number"},{"title":"in_usa","type":"boolean"}],"type":"array"},"type":"array"}]]]]}`
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("output mismatch (-want +got):\n%s", diff)
 	}
@@ -241,7 +241,7 @@ func TestDiffOnlyOneRevision(t *testing.T) {
 	run := newTestRunner(t)
 	defer run.Delete()
 
-	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body.csv")
+	run.MustSaveFromBody(t, "test_cities", "testdata/cities_2/body.csv")
 	_, err := run.Diff("me/test_cities", "", "body")
 	if err == nil {
 		t.Fatal("expected error, did not get one")
@@ -287,10 +287,10 @@ func TestDiffErrors(t *testing.T) {
 	defer run.Delete()
 
 	// Save a dataset with one version
-	run.SaveDatasetFromBody(t, "test_cities", "testdata/cities_2/body.csv")
+	run.MustSaveFromBody(t, "test_cities", "testdata/cities_2/body.csv")
 
 	// Save a different dataset with one version
-	run.SaveDatasetFromBody(t, "test_more", "testdata/cities_2/body_more.csv")
+	run.MustSaveFromBody(t, "test_more", "testdata/cities_2/body_more.csv")
 
 	// Error to compare a dataset ref to a file
 	_, err := run.Diff("me/test_cities", "testdata/cities_2/body_even_more.csv", "")
