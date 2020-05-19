@@ -19,7 +19,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/dsref/hook"
+	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 )
@@ -93,7 +93,7 @@ type Book struct {
 	fsLocation string
 	fs         qfs.Filesystem
 
-	onChangeHook func(*hook.DsChange)
+	onChangeHook func(hook.DsChange)
 }
 
 // NewBook creates a book with a user-provided logstore
@@ -324,7 +324,7 @@ func (book *Book) WriteDatasetInit(ctx context.Context, dsName string) (string, 
 	if book.onChangeHook != nil {
 		// TODO(dlong): Perhaps in the future, pass the authorID (hash of the author creation
 		// block) to the dscache, use that instead-of or in-addition-to the profileID.
-		book.onChangeHook(&hook.DsChange{
+		book.onChangeHook(hook.DsChange{
 			Type:       hook.DatasetNameInit,
 			InitID:     initID,
 			Username:   book.AuthorName(),
@@ -359,7 +359,7 @@ func (book *Book) WriteDatasetRename(ctx context.Context, initID string, newName
 		Timestamp: NewTimestamp(),
 	})
 	if book.onChangeHook != nil {
-		book.onChangeHook(&hook.DsChange{
+		book.onChangeHook(hook.DsChange{
 			Type:       hook.DatasetRename,
 			InitID:     initID,
 			PrettyName: newName,
@@ -447,7 +447,7 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, initID string) error {
 		Timestamp: NewTimestamp(),
 	})
 	if book.onChangeHook != nil {
-		book.onChangeHook(&hook.DsChange{
+		book.onChangeHook(hook.DsChange{
 			Type:   hook.DatasetDeleteAll,
 			InitID: initID,
 		})
@@ -479,7 +479,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *datas
 	info := dsref.ConvertDatasetToVersionInfo(ds)
 
 	if book.onChangeHook != nil {
-		book.onChangeHook(&hook.DsChange{
+		book.onChangeHook(hook.DsChange{
 			Type:     hook.DatasetCommitChange,
 			InitID:   initID,
 			TopIndex: topIndex,
@@ -563,7 +563,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisio
 	if len(items) > 0 {
 		lastItem := items[len(items)-1]
 		if book.onChangeHook != nil {
-			book.onChangeHook(&hook.DsChange{
+			book.onChangeHook(hook.DsChange{
 				Type:     hook.DatasetCommitChange,
 				InitID:   initID,
 				TopIndex: len(items),
@@ -626,7 +626,7 @@ func (book *Book) WriteUnpublish(ctx context.Context, initID string, revisions i
 }
 
 // SetChangeHook assigns a hook that will be called when a dataset changes
-func (book *Book) SetChangeHook(changeHook func(*hook.DsChange)) {
+func (book *Book) SetChangeHook(changeHook func(hook.DsChange)) {
 	book.onChangeHook = changeHook
 }
 

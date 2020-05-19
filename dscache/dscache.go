@@ -13,7 +13,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dscache/dscachefb"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/dsref/hook"
+	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -211,7 +211,7 @@ func (d *Dscache) validateProfileID(profileID string) bool {
 	return len(profileID) == lengthOfProfileID
 }
 
-func (d *Dscache) update(act *hook.DsChange) {
+func (d *Dscache) update(act hook.DsChange) {
 	switch act.Type {
 	case hook.DatasetNameInit:
 		if err := d.updateInitDataset(act); err != nil && err != ErrNoDscache {
@@ -234,7 +234,7 @@ func (d *Dscache) update(act *hook.DsChange) {
 	}
 }
 
-func (d *Dscache) updateInitDataset(act *hook.DsChange) error {
+func (d *Dscache) updateInitDataset(act hook.DsChange) error {
 	if d.IsEmpty() {
 		// Only create a new dscache if that feature is enabled. This way no one is forced to
 		// use dscache without opting in.
@@ -282,7 +282,7 @@ func (d *Dscache) updateInitDataset(act *hook.DsChange) error {
 }
 
 // Copy the entire dscache, except for the matching entry, rebuild that one to modify it
-func (d *Dscache) updateChangeCursor(act *hook.DsChange) error {
+func (d *Dscache) updateChangeCursor(act hook.DsChange) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
@@ -326,7 +326,7 @@ func (d *Dscache) updateChangeCursor(act *hook.DsChange) error {
 }
 
 // Copy the entire dscache, except leave out the matching entry.
-func (d *Dscache) updateDeleteDataset(act *hook.DsChange) error {
+func (d *Dscache) updateDeleteDataset(act hook.DsChange) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
@@ -349,7 +349,7 @@ func (d *Dscache) updateDeleteDataset(act *hook.DsChange) error {
 }
 
 // Copy the entire dscache, except for the matching entry, which is copied then assigned an fsiPath
-func (d *Dscache) updateCreateLink(act *hook.DsChange) error {
+func (d *Dscache) updateCreateLink(act hook.DsChange) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}

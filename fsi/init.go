@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/dsref/hook"
+	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
@@ -209,7 +209,7 @@ func (fsi *FSI) InitDataset(p InitParams) (ref dsref.Ref, err error) {
 	}
 
 	if fsi.onChangeHook != nil {
-		fsi.onChangeHook(&hook.DsChange{
+		fsi.onChangeHook(hook.DsChange{
 			Type:   hook.DatasetCreateLink,
 			InitID: initID,
 			Dir:    p.Dir,

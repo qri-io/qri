@@ -35,5 +35,5 @@ type DsChange struct {
 
 // ChangeNotifier is something that provides a hook which will be called when a dataset changes
 type ChangeNotifier interface {
-	SetChangeHook(func(change *DsChange))
+	SetChangeHook(func(change DsChange))
 }

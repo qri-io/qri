@@ -18,7 +18,7 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
-	"github.com/qri-io/qri/dsref/hook"
+	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"

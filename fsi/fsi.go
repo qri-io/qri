@@ -21,8 +21,8 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/dsref/hook"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -55,7 +55,7 @@ type FSI struct {
 	// repository for resolving dataset names
 	repo         repo.Repo
 	pub          event.Publisher
-	onChangeHook func(*hook.DsChange)
+	onChangeHook func(hook.DsChange)
 }
 
 // NewFSI creates an FSI instance from a path to a links flatbuffer file
@@ -160,7 +160,7 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 	})
 
 	if fsi.onChangeHook != nil {
-		fsi.onChangeHook(&hook.DsChange{
+		fsi.onChangeHook(hook.DsChange{
 			Type:       hook.DatasetCreateLink,
 			Username:   datasetRef.Peername,
 			PrettyName: datasetRef.Name,
@@ -264,7 +264,7 @@ func (fsi *FSI) RemoveAll(dirPath string) error {
 }
 
 // SetChangeHook assigns a hook that will be called when a dataset changes
-func (fsi *FSI) SetChangeHook(changeHook func(*hook.DsChange)) {
+func (fsi *FSI) SetChangeHook(changeHook func(hook.DsChange)) {
 	fsi.onChangeHook = changeHook
 }
 

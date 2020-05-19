@@ -8,7 +8,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/dscache"
-	"github.com/qri-io/qri/dsref/hook"
+	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 )
