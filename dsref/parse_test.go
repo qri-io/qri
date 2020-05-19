@@ -34,16 +34,16 @@ func TestParseFull(t *testing.T) {
 		text        string
 		expectErr   string
 	}{
-		{"missing at", "/ipfs/QmThis", "unexpected char at position 0: '/'"},
+		{"missing at", "/ipfs/QmThis", "unexpected character at position 0: '/'"},
 		{"invalid base58", "@/ipfs/QmOne", "path contains invalid base58 characters"},
 		{"no slash", "foo", "need username separated by '/' from dataset name"},
-		{"http url", "https://apple.com", "unexpected char at position 5: ':'"},
-		{"domain name", "apple.com", "unexpected char at position 5: '.'"},
-		{"local filename", "foo.json", "unexpected char at position 3: '.'"},
-		{"absolute filepath", "/usr/local/bin/file.cbor", "unexpected char at position 0: '/'"},
-		{"absolute dirname", "/usr/local/bin", "unexpected char at position 0: '/'"},
-		{"dot in dataset", "abc/data.set", "unexpected char at position 8: '.'"},
-		{"equals in dataset", "abc/my+ds", "unexpected char at position 6: '+'"},
+		{"http url", "https://apple.com", "unexpected character at position 5: ':'"},
+		{"domain name", "apple.com", "unexpected character at position 5: '.'"},
+		{"local filename", "foo.json", "unexpected character at position 3: '.'"},
+		{"absolute filepath", "/usr/local/bin/file.cbor", "unexpected character at position 0: '/'"},
+		{"absolute dirname", "/usr/local/bin", "unexpected character at position 0: '/'"},
+		{"dot in dataset", "abc/data.set", "unexpected character at position 8: '.'"},
+		{"equals in dataset", "abc/my+ds", "unexpected character at position 6: '+'"},
 	}
 	for i, c := range badCases {
 		_, err := Parse(c.text)
@@ -93,7 +93,7 @@ func TestParseHumanFriendly(t *testing.T) {
 		{"only name", "my_dataset", "need username separated by '/' from dataset name"},
 		{"right hand side", "@QmFirst/ipfs/QmSecond", ErrNotHumanFriendly.Error()},
 		{"just path", "@/ipfs/QmSecond", ErrNotHumanFriendly.Error()},
-		{"missing at", "/ipfs/QmThis", "unexpected char at position 0: '/'"},
+		{"missing at", "/ipfs/QmThis", "unexpected character at position 0: '/'"},
 		{"invalid base58", "@/ipfs/QmOne", ErrNotHumanFriendly.Error()},
 	}
 	for i, c := range badCases {

@@ -74,7 +74,7 @@ func TestFSIMethodsWrite(t *testing.T) {
 		{"empty reference", FSIWriteParams{Ref: ""}},
 		{"dataset name may not contain any upper-case letters", FSIWriteParams{Ref: "abc/ABC"}},
 		{"dataset is required", FSIWriteParams{Ref: "abc/movies"}},
-		{"unexpected char at position 0: '\xc3\xb0'", FSIWriteParams{Ref: "👋", Ds: &dataset.Dataset{}}},
+		{"unexpected character at position 0: '\xc3\xb0'", FSIWriteParams{Ref: "👋", Ds: &dataset.Dataset{}}},
 		{"repo: not found", FSIWriteParams{Ref: "abc/movies", Ds: &dataset.Dataset{}}},
 		{"dataset is not linked to the filesystem", FSIWriteParams{Ref: "peer/movies", Ds: &dataset.Dataset{}}},
 	}

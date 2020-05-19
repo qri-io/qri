@@ -47,9 +47,9 @@ var (
 	// ErrParseError is an error returned when parsing fails
 	ErrParseError = fmt.Errorf("could not parse ref")
 	// ErrUnexpectedChar is an error when a character is unexpected, topic string must be non-empty
-	ErrUnexpectedChar = fmt.Errorf("unexpected char")
+	ErrUnexpectedChar = fmt.Errorf("unexpected character")
 	// ErrNotHumanFriendly is an error returned when a reference is not human-friendly
-	ErrNotHumanFriendly = fmt.Errorf("unexpected char '@', ref can only have username/name")
+	ErrNotHumanFriendly = fmt.Errorf("unexpected character '@', ref can only have username/name")
 	// ErrBadCaseName is the error when a bad case is used in the dataset name
 	ErrBadCaseName = fmt.Errorf("dataset name may not contain any upper-case letters")
 	// ErrBadCaseUsername is for when a username contains upper-case letters
@@ -94,7 +94,7 @@ func Parse(text string) (Ref, error) {
 
 	if text != "" {
 		pos := origLength - len(text)
-		return r, fmt.Errorf("unexpected char at position %d: '%c'", pos, text[0])
+		return r, fmt.Errorf("unexpected character at position %d: '%c'", pos, text[0])
 	}
 
 	// Dataset names are not supposed to contain upper-case characters. For now, return an error
@@ -130,7 +130,7 @@ func ParseHumanFriendly(text string) (Ref, error) {
 			return r, ErrNotHumanFriendly
 		}
 		pos := origLength - len(text)
-		return r, fmt.Errorf("unexpected char at position %d: '%c'", pos, text[0])
+		return r, fmt.Errorf("unexpected character at position %d: '%c'", pos, text[0])
 	}
 
 	// Dataset names are not supposed to contain upper-case characters. For now, return an error
