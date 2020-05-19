@@ -445,7 +445,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 		expect      string
 	}{
 		{"invalid peer name",
-			&GetParams{Refstr: "peer/ABC@abc"}, `"peer/ABC@abc" is not a valid dataset reference: parsing ref, unexpected character at position 8: '@'`},
+			&GetParams{Refstr: "peer/ABC@abc"}, `"peer/ABC@abc" is not a valid dataset reference: unexpected character at position 8: '@'`},
 
 		{"peername without path",
 			&GetParams{Refstr: "peer/movies"},

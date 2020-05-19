@@ -83,6 +83,7 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if local && err == repo.ErrNotFound {
+			// TODO (b5): This should be 403 not 500
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}

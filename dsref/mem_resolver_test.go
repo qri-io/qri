@@ -18,7 +18,7 @@ func TestMemResolver(t *testing.T) {
 		t.Errorf("ResolveRef must be nil-callable. expected: %q, got %v", dsref.ErrNotFound, err)
 	}
 
-	dsrefspec.ResolverSpec(t, m, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, m, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
 		m.Put(dsref.VersionInfo{
 			InitID:   ref.InitID,
 			Username: ref.Username,

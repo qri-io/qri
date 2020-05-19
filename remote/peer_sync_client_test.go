@@ -61,7 +61,7 @@ func TestNewRemoteRefResolver(t *testing.T) {
 	resolver := cli.NewRemoteRefResolver(s.URL)
 
 	t.Skip("TODO(b5) - need to update ResolveHeadRef")
-	dsrefspec.ResolverSpec(t, resolver, func(r dsref.Ref, author identity.Author, log *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, resolver, func(r dsref.Ref, author identity.Author, log *oplog.Log) error {
 		return remA.Node().Repo.Logbook().MergeLog(context.Background(), author, log)
 	})
 }

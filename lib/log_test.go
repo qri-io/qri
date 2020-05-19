@@ -50,7 +50,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		{"log list - empty",
 			&LogParams{}, []DatasetLogItem{}, `"" is not a valid dataset reference: empty reference`},
 		{"log list - bad path",
-			&LogParams{Ref: "/badpath"}, []DatasetLogItem{}, `"/badpath" is not a valid dataset reference: parsing ref, unexpected character at position 0: '/'`},
+			&LogParams{Ref: "/badpath"}, []DatasetLogItem{}, `"/badpath" is not a valid dataset reference: unexpected character at position 0: '/'`},
 		{"log list - default",
 			&LogParams{Ref: firstRef}, items, ""},
 		{"log list - offset 0 limit 3",

@@ -79,24 +79,24 @@ func TestDscacheAssignSaveAndLoad(t *testing.T) {
 func TestResolveRef(t *testing.T) {
 	tmpdir, err := ioutil.TempDir("", "")
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	defer os.RemoveAll(tmpdir)
 
 	ctx := context.Background()
 	fs := localfs.NewFS()
 	path := filepath.Join(tmpdir, "dscache.qfb")
-	dsc := NewDscache(ctx, fs, nil, path)
+	dsc := NewDscache(ctx, fs, nil, "test_resolve_ref_user", path)
 
-	dsrefspec.ResolverSpec(t, dsc, func(r dsref.Ref, author identity.Author, log *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, dsc, func(r dsref.Ref, _ identity.Author, _ *oplog.Log) error {
 		builder := NewBuilder()
 		peerInfo := testPeers.GetTestPeerInfo(0)
-		builder.AddUser(r.Username, profile.IDFromPeerID(peerInfo.PeerID).String())
+		builder.AddUser(r.Username, peerInfo.EncodedPeerID)
 		builder.AddDsVersionInfo(dsref.VersionInfo{
 			Username:  r.Username,
 			InitID:    r.InitID,
 			Path:      r.Path,
-			ProfileID: profile.IDFromPeerID(peerInfo.PeerID).String(),
+			ProfileID: peerInfo.EncodedPeerID,
 			Name:      r.Name,
 		})
 		cache := builder.Build()
@@ -116,7 +116,7 @@ func TestCacheRefConsistency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dsc := NewDscache(ctx, fsys, book, "")
+	dsc := NewDscache(ctx, fsys, nil, "", "dscache.qfb")
 
 	_, _, err = dsrefspec.GenerateExampleOplog(ctx, book, localDsName, "/ipfs/QmLocalExample")
 	if err != nil {

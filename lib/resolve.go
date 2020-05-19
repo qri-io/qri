@@ -15,9 +15,23 @@ import (
 )
 
 // ParseAndResolveRef combines reference parsing and resolution
-func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string, useFSI bool) (dsref.Ref, string, error) {
+func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
 	ref, err := dsref.Parse(refStr)
+	if err != nil {
+		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
+	}
 
+	resolvedSource, err := inst.ResolveReference(ctx, &ref, source)
+	if err != nil {
+		return ref, resolvedSource, err
+	}
+	return ref, resolvedSource, err
+}
+
+// ParseAndResolveRefWithWorkingDir combines reference parsing and resolution,
+// including setting default Path to a linked working directory if one exists
+func (inst *Instance) ParseAndResolveRefWithWorkingDir(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
+	ref, err := dsref.Parse(refStr)
 	if err != nil {
 		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
 	}
@@ -27,8 +41,11 @@ func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source str
 	if err != nil {
 		return ref, resolvedSource, err
 	}
-	if !explicitPath && useFSI {
-		_, err = inst.fsi.ResolvedPath(&ref)
+	if !explicitPath {
+		err = inst.fsi.ResolvedPath(&ref)
+		if err == fsi.ErrNoLink {
+			err = nil
+		}
 	}
 	return ref, resolvedSource, err
 }
@@ -75,17 +92,12 @@ func (inst *Instance) resolveSources(source string) ([]dsref.Resolver, error) {
 			inst.dscache,
 			inst.repo,
 			dsref.ParallelResolver(
-				inst.logbook,
-				// inst.registry,
+				inst.registry,
 				// inst.node,
 			),
 		}, nil
 	case "local":
-		return []dsref.Resolver{
-			inst.dscache,
-			inst.repo,
-			inst.logbook,
-		}, nil
+		return []dsref.Resolver{inst.dscache, inst.repo}, nil
 	case "network":
 		return []dsref.Resolver{
 			dsref.ParallelResolver(
@@ -103,6 +115,7 @@ func (inst *Instance) resolveSources(source string) ([]dsref.Resolver, error) {
 	// * configured remote name
 	// * peername
 	// * peer multiaddress
+	// add support for peername & multiaddress resolution
 	addr, err := remote.Address(inst.Config(), source)
 	if err != nil {
 		return nil, err

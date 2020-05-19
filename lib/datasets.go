@@ -229,8 +229,13 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 	}
 	ctx := context.TODO()
 
+	// Check if the dataset ref uses bad-case characters, show a warning.
+	if _, err := dsref.Parse(p.Refstr); err == dsref.ErrBadCaseName {
+		log.Error(dsref.ErrBadCaseShouldRename)
+	}
+
 	var ds *dataset.Dataset
-	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Refstr, p.Remote, true)
+	ref, _, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, p.Remote)
 	if err != nil {
 		return err
 	}

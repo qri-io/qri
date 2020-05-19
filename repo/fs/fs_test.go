@@ -86,7 +86,7 @@ func TestResolveRef(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	cache := dscache.NewDscache(ctx, fs, nil, "")
+	cache := dscache.NewDscache(ctx, fs, nil, "", "")
 
 	store := cafs.NewMapstore()
 	r, err := NewRepo(store, fs, book, cache, pro, path)
@@ -94,7 +94,7 @@ func TestResolveRef(t *testing.T) {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}
 
-	dsrefspec.ResolverSpec(t, r, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, r, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
 		return r.Logbook().MergeLog(ctx, author, log)
 	})
 }

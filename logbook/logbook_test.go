@@ -245,7 +245,7 @@ func TestResolveRef(t *testing.T) {
 	}
 
 	book := tr.Book
-	dsrefspec.ResolverSpec(t, book, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, book, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
 		return book.MergeLog(context.Background(), author, log)
 	})
 }

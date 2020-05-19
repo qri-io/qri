@@ -28,7 +28,7 @@ func TestMemRepoResolveRef(t *testing.T) {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}
 
-	dsrefspec.ResolverSpec(t, r, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, r, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
 		return r.Logbook().MergeLog(ctx, author, log)
 	})
 }
