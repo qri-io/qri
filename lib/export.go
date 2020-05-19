@@ -69,9 +69,14 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 		return err
 	}
 
-	ds, err := base.ReadDatasetPath(ctx, r.node.Repo, ref.String())
+	ds, err := base.ReadDataset(ctx, r.node.Repo, ref.Path)
 	if err != nil {
 		return fmt.Errorf("reading dataset '%s': %w", ref, err)
+	}
+	ds.Name = ref.Name
+	ds.Peername = ref.Peername
+	if err := base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
+		return err
 	}
 
 	*fileWritten, err = archive.Export(ctx, r.node.Repo.Store(), ds, ref.String(), p.TargetDir, p.Output, p.Format, p.Zipped)

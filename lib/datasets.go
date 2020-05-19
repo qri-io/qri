@@ -788,18 +788,17 @@ func (m *DatasetMethods) Rename(p *RenameParams, res *dsref.VersionInfo) error {
 		pid = ""
 	}
 
-	readRef := reporef.DatasetRef{
-		Peername:  info.Username,
-		ProfileID: pid,
-		Name:      info.Name,
-		Path:      info.Path,
-	}
-
-	if err = base.ReadDataset(ctx, m.inst.repo, &readRef); err != nil && err != repo.ErrNoHistory {
+	ds, err := base.ReadDataset(ctx, m.inst.repo, info.Path)
+	if err != nil && err != repo.ErrNoHistory {
 		log.Debug(err.Error())
 		return err
 	}
-	*res = *info
+
+	ds.Name = info.Name
+	ds.Path = info.Path
+	ds.Peername = info.Username
+	ds.ProfileID = pid.String()
+	*res = dsref.ConvertDatasetToVersionInfo(ds)
 	return nil
 }
 

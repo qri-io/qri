@@ -34,11 +34,12 @@ func TestApplyPath(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	if err := ReadDataset(ctx, r, &ref); err != nil {
+	ds, err := ReadDataset(ctx, r, ref.Path)
+	if err != nil {
 		t.Error(err)
 	}
 
-	body, err := ApplyPath(ref.Dataset, "meta.title")
+	body, err := ApplyPath(ds, "meta.title")
 	if err != nil {
 		t.Error(err)
 	}

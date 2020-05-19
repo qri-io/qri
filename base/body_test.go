@@ -20,8 +20,11 @@ func TestReadBody(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	ds, err := ReadDatasetPath(ctx, r, ref.String())
+	ds, err := ReadDataset(ctx, r, ref.Path)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err = OpenDataset(ctx, r.Filesystem(), ds); err != nil {
 		t.Fatal(err)
 	}
 
