@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 )
@@ -92,7 +93,7 @@ type Book struct {
 	fsLocation string
 	fs         qfs.Filesystem
 
-	listener func(*Action)
+	onChangeHook func(hook.DsChange)
 }
 
 // NewBook creates a book with a user-provided logstore
@@ -320,11 +321,11 @@ func (book *Book) WriteDatasetInit(ctx context.Context, dsName string) (string, 
 
 	initID := dsLog.ID()
 
-	if book.listener != nil {
+	if book.onChangeHook != nil {
 		// TODO(dlong): Perhaps in the future, pass the authorID (hash of the author creation
 		// block) to the dscache, use that instead-of or in-addition-to the profileID.
-		book.listener(&Action{
-			Type:       ActionDatasetNameInit,
+		book.onChangeHook(hook.DsChange{
+			Type:       hook.DatasetNameInit,
 			InitID:     initID,
 			Username:   book.AuthorName(),
 			ProfileID:  profileID,
@@ -357,9 +358,9 @@ func (book *Book) WriteDatasetRename(ctx context.Context, initID string, newName
 		Name:      newName,
 		Timestamp: NewTimestamp(),
 	})
-	if book.listener != nil {
-		book.listener(&Action{
-			Type:       ActionDatasetRename,
+	if book.onChangeHook != nil {
+		book.onChangeHook(hook.DsChange{
+			Type:       hook.DatasetRename,
 			InitID:     initID,
 			PrettyName: newName,
 		})
@@ -445,9 +446,9 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, initID string) error {
 		Model:     DatasetModel,
 		Timestamp: NewTimestamp(),
 	})
-	if book.listener != nil {
-		book.listener(&Action{
-			Type:   ActionDatasetDeleteAll,
+	if book.onChangeHook != nil {
+		book.onChangeHook(hook.DsChange{
+			Type:   hook.DatasetDeleteAll,
 			InitID: initID,
 		})
 	}
@@ -477,9 +478,9 @@ func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *datas
 
 	info := dsref.ConvertDatasetToVersionInfo(ds)
 
-	if book.listener != nil {
-		book.listener(&Action{
-			Type:     ActionDatasetCommitChange,
+	if book.onChangeHook != nil {
+		book.onChangeHook(hook.DsChange{
+			Type:     hook.DatasetCommitChange,
 			InitID:   initID,
 			TopIndex: topIndex,
 			HeadRef:  info.Path,
@@ -561,9 +562,9 @@ func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisio
 
 	if len(items) > 0 {
 		lastItem := items[len(items)-1]
-		if book.listener != nil {
-			book.listener(&Action{
-				Type:     ActionDatasetCommitChange,
+		if book.onChangeHook != nil {
+			book.onChangeHook(hook.DsChange{
+				Type:     hook.DatasetCommitChange,
 				InitID:   initID,
 				TopIndex: len(items),
 				HeadRef:  lastItem.Path,
@@ -624,9 +625,9 @@ func (book *Book) WriteUnpublish(ctx context.Context, initID string, revisions i
 	return book.save(ctx)
 }
 
-// Observe saves a function which listens for changes
-func (book *Book) Observe(listener func(*Action)) {
-	book.listener = listener
+// SetChangeHook assigns a hook that will be called when a dataset changes
+func (book *Book) SetChangeHook(changeHook func(hook.DsChange)) {
+	book.onChangeHook = changeHook
 }
 
 // ListAllLogs lists all of the logs in the logbook

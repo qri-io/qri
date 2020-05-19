@@ -159,10 +159,12 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	}
 	ctx := context.TODO()
 
-	log.Debugf("Checkout started, stat'ing %q", p.Dir)
+	// Require a non-empty, absolute path for the checkout
+	if p.Dir == "" || !filepath.IsAbs(p.Dir) {
+		return fmt.Errorf("need Dir to be a non-empty, absolute path")
+	}
 
-	// TODO(dlong): Fail if Dir is "", should be required to specify a location. Should probably
-	// only allow absolute paths. Add tests.
+	log.Debugf("Checkout started, stat'ing %q", p.Dir)
 
 	// If directory exists, error.
 	if _, err = os.Stat(p.Dir); !os.IsNotExist(err) {
@@ -359,11 +361,18 @@ func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, refstr *string) (err e
 
 	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
 	if p.UseDscache {
+		// TODO(dustmop): Dscache exists on both repo and instance, and tests and production code
+		// use these fields differently. It should be removed from repo and only be used from
+		// the instance.
 		c := m.inst.Repo().Dscache()
+		if c == nil {
+			c = m.inst.Dscache()
+		}
 		c.CreateNewEnabled = true
 	}
 
-	*refstr, err = m.inst.fsi.InitDataset(*p)
+	ref, err := m.inst.fsi.InitDataset(*p)
+	*refstr = ref.Human()
 	return err
 }
 

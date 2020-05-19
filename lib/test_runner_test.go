@@ -7,12 +7,14 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -23,20 +25,40 @@ type testRunner struct {
 	Ctx      context.Context
 	Profile  *profile.Profile
 	Instance *Instance
+	Pwd      string
 	TmpDir   string
-	PrevTs   func() time.Time
+	WorkDir  string
+	dsfsTs   func() time.Time
+	bookTs   func() int64
 }
 
 func newTestRunner(t *testing.T) *testRunner {
-	prevTs := dsfs.Timestamp
-	dsfs.Timestamp = func() time.Time { return time.Time{} }
+	dsfsCounter := 0
+	dsfsTsFunc := dsfs.Timestamp
+	dsfs.Timestamp = func() time.Time {
+		dsfsCounter++
+		return time.Date(2001, 01, 01, 01, dsfsCounter, 01, 01, time.UTC)
+	}
 
+	bookCounter := 0
+	bookTsFunc := logbook.NewTimestamp
+	logbook.NewTimestamp = func() int64 {
+		bookCounter++
+		return time.Date(2001, 01, 01, 01, bookCounter, 01, 01, time.UTC).Unix()
+	}
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A temporary directory for doing filesystem work.
 	tmpDir, err := ioutil.TempDir("", "lib_test_runner")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewEmptyTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -51,12 +73,16 @@ func newTestRunner(t *testing.T) *testRunner {
 		Profile:  testPeerProfile,
 		Instance: NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node),
 		TmpDir:   tmpDir,
-		PrevTs:   prevTs,
+		Pwd:      pwd,
+		dsfsTs:   dsfsTsFunc,
+		bookTs:   bookTsFunc,
 	}
 }
 
 func (tr *testRunner) Delete() {
-	dsfs.Timestamp = tr.PrevTs
+	dsfs.Timestamp = tr.dsfsTs
+	logbook.NewTimestamp = tr.bookTs
+	os.Chdir(tr.Pwd)
 	os.RemoveAll(tr.TmpDir)
 }
 
@@ -76,7 +102,38 @@ func (tr *testRunner) MakeTmpFilename(filename string) (path string) {
 	return filepath.Join(tr.TmpDir, filename)
 }
 
-func (tr *testRunner) SaveDatasetFromBody(t *testing.T, dsName, bodyFilename string) dsref.Ref {
+func (tr *testRunner) NiceifyTempDirs(text string) string {
+	// Replace the temporary directory
+	text = strings.Replace(text, tr.TmpDir, "/tmp", -1)
+	// Replace that same directory with symlinks resolved
+	realTmp, err := filepath.EvalSymlinks(tr.TmpDir)
+	if err == nil {
+		text = strings.Replace(text, realTmp, "/tmp", -1)
+	}
+	return text
+}
+
+func (tr *testRunner) ChdirToRoot() {
+	os.Chdir(tr.TmpDir)
+}
+
+func (tr *testRunner) CreateAndChdirToWorkDir(subdir string) string {
+	tr.WorkDir = filepath.Join(tr.TmpDir, subdir)
+	err := os.Mkdir(tr.WorkDir, 0755)
+	if err != nil {
+		panic(err)
+	}
+	err = os.Chdir(tr.WorkDir)
+	if err != nil {
+		panic(err)
+	}
+	return tr.WorkDir
+}
+
+func (tr *testRunner) MustSaveFromBody(t *testing.T, dsName, bodyFilename string) dsref.Ref {
+	if !dsref.IsValidName(dsName) {
+		t.Fatalf("invalid dataset name: %q", dsName)
+	}
 	m := NewDatasetMethods(tr.Instance)
 	p := SaveParams{
 		Ref:      fmt.Sprintf("peer/%s", dsName),
@@ -87,6 +144,15 @@ func (tr *testRunner) SaveDatasetFromBody(t *testing.T, dsName, bodyFilename str
 		t.Fatal(err)
 	}
 	return reporef.ConvertToDsref(r)
+}
+
+func (tr *testRunner) SaveWithParams(p *SaveParams) (dsref.Ref, error) {
+	m := NewDatasetMethods(tr.Instance)
+	r := reporef.DatasetRef{}
+	if err := m.Save(p, &r); err != nil {
+		return dsref.Ref{}, err
+	}
+	return reporef.ConvertToDsref(r), nil
 }
 
 func (tr *testRunner) Diff(left, right, selector string) (string, error) {
@@ -121,4 +187,29 @@ func (tr *testRunner) DiffWithParams(p *DiffParams) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+func (tr *testRunner) Init(refstr, format string) error {
+	ref, err := dsref.Parse(refstr)
+	if err != nil {
+		return err
+	}
+	m := NewFSIMethods(tr.Instance)
+	out := ""
+	p := InitFSIDatasetParams{
+		Name:   ref.Name,
+		Dir:    tr.WorkDir,
+		Format: format,
+	}
+	return m.InitDataset(&p, &out)
+}
+
+func (tr *testRunner) Checkout(refstr, dir string) error {
+	m := NewFSIMethods(tr.Instance)
+	out := ""
+	p := CheckoutParams{
+		Ref: refstr,
+		Dir: dir,
+	}
+	return m.Checkout(&p, &out)
 }

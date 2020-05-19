@@ -36,7 +36,7 @@ func TestRepo(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		cache := dscache.NewDscache(ctx, fs, nil, "")
+		cache := dscache.NewDscache(ctx, fs, nil, pro.Peername, "")
 
 		store := cafs.NewMapstore()
 		r, err := NewRepo(store, fs, book, cache, pro, path)

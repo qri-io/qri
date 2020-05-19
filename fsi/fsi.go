@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -52,8 +53,9 @@ func RepoPath(repoPath string) string {
 // FSI is a repo-side struct for coordinating file system integration
 type FSI struct {
 	// repository for resolving dataset names
-	repo repo.Repo
-	pub  event.Publisher
+	repo         repo.Repo
+	pub          event.Publisher
+	onChangeHook func(hook.DsChange)
 }
 
 // NewFSI creates an FSI instance from a path to a links flatbuffer file
@@ -157,6 +159,15 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 		Dsname:   datasetRef.Name,
 	})
 
+	if fsi.onChangeHook != nil {
+		fsi.onChangeHook(hook.DsChange{
+			Type:       hook.DatasetCreateLink,
+			Username:   datasetRef.Peername,
+			PrettyName: datasetRef.Name,
+			Dir:        dirPath,
+		})
+	}
+
 	return datasetRef.AliasString(), removeLinkAndRemoveRefFunc, err
 }
 
@@ -250,6 +261,11 @@ func (fsi *FSI) RemoveAll(dirPath string) error {
 		log.Errorf("removing directory: %s", err.Error())
 	}
 	return nil
+}
+
+// SetChangeHook assigns a hook that will be called when a dataset changes
+func (fsi *FSI) SetChangeHook(changeHook func(hook.DsChange)) {
+	fsi.onChangeHook = changeHook
 }
 
 func (fsi *FSI) getRepoRef(refStr string) (ref reporef.DatasetRef, err error) {

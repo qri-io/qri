@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/lib"
 )
 
 // FSITestRunner holds test info for fsi integration tests, for convenient cleanup.
@@ -66,15 +67,24 @@ func (run *FSITestRunner) GetCommandOutput() string {
 	if buffer, ok := run.Streams.Out.(*bytes.Buffer); ok {
 		outputText = buffer.String()
 	}
+	return run.niceifyTempDirs(outputText)
+}
+
+// niceifyTempDirs replaces temporary directories with nice replacements
+func (run *FSITestRunner) niceifyTempDirs(text string) string {
 	realRoot, err := filepath.EvalSymlinks(run.RepoRoot.RootPath)
 	if err == nil {
-		outputText = strings.Replace(outputText, realRoot, "/root", -1)
+		text = strings.Replace(text, realRoot, "/root", -1)
 	}
 	realTmp, err := filepath.EvalSymlinks(run.RootPath)
 	if err == nil {
-		outputText = strings.Replace(outputText, realTmp, "/tmp", -1)
+		text = strings.Replace(text, realTmp, "/tmp", -1)
 	}
-	return outputText
+	workPath, err := filepath.EvalSymlinks(run.WorkPath)
+	if err == nil {
+		text = strings.Replace(text, workPath, "/work", -1)
+	}
+	return text
 }
 
 // NewFSITestRunnerWithMockRemoteClient returns a new FSITestRunner.
@@ -272,14 +282,21 @@ func TestInitDscache(t *testing.T) {
 	}
 
 	// Access the dscache
-	repo, err := run.RepoRoot.Repo()
+	// TODO(dustmop): A hack in place for now. The instance does not have an accessor for the
+	// dscache, and the dscache on the repo is not correct to use here.
+	instCopy, err := lib.NewInstance(
+		run.Context,
+		run.RepoRoot.QriPath,
+		lib.OptStdIOStreams(),
+		lib.OptSetIPFSPath(run.RepoRoot.IPFSPath),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cache := repo.Dscache()
+	cache := instCopy.Dscache()
 
 	// Dscache should have one reference. It has topIndex 0 because there there is only "init".
-	actual := cache.VerboseString(false)
+	actual := run.niceifyTempDirs(cache.VerboseString(false))
 	expect := `Dscache:
  Dscache.Users:
   0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
@@ -290,6 +307,7 @@ func TestInitDscache(t *testing.T) {
      cursorIndex   = 0
      prettyName    = init_dscache
      commitTime    = -62135596800
+     fsiPath       = /tmp/init_dscache
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
