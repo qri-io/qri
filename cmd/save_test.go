@@ -335,7 +335,7 @@ func TestSaveBasicCommands(t *testing.T) {
 		{
 			"dataset file explicit version",
 			"qri save --file dataset.yaml me/my_dataset@/ipfs/QmVersion",
-			"ref can only have username/name",
+			"unexpected char '@', ref can only have username/name",
 		},
 		{
 			"body file other username",

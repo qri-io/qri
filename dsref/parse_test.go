@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestParse(t *testing.T) {
+func TestParseFull(t *testing.T) {
 	goodCases := []struct {
 		description string
 		text        string
@@ -34,17 +34,16 @@ func TestParse(t *testing.T) {
 		text        string
 		expectErr   string
 	}{
-		{"missing at", "/ipfs/QmThis", "parsing ref, unexpected character at position 0: '/'"},
+		{"missing at", "/ipfs/QmThis", "unexpected char at position 0: '/'"},
 		{"invalid base58", "@/ipfs/QmOne", "path contains invalid base58 characters"},
-		// TODO(dlong): These error messages could be better
-		{"no slash", "foo", "parsing ref, unexpected character at position 0: 'f'"},
-		{"http url", "https://apple.com", "parsing ref, unexpected character at position 0: 'h'"},
-		{"domain name", "apple.com", "parsing ref, unexpected character at position 0: 'a'"},
-		{"local filename", "foo.json", "parsing ref, unexpected character at position 0: 'f'"},
-		{"absolute filepath", "/usr/local/bin/file.cbor", "parsing ref, unexpected character at position 0: '/'"},
-		{"absolute dirname", "/usr/local/bin", "parsing ref, unexpected character at position 0: '/'"},
-		{"dot in dataset", "abc/data.set", "parsing ref, unexpected character at position 8: '.'"},
-		{"equals in dataset", "abc/my=ds", "parsing ref, unexpected character at position 6: '='"},
+		{"no slash", "foo", "need username separated by '/' from dataset name"},
+		{"http url", "https://apple.com", "unexpected char at position 5: ':'"},
+		{"domain name", "apple.com", "unexpected char at position 5: '.'"},
+		{"local filename", "foo.json", "unexpected char at position 3: '.'"},
+		{"absolute filepath", "/usr/local/bin/file.cbor", "unexpected char at position 0: '/'"},
+		{"absolute dirname", "/usr/local/bin", "unexpected char at position 0: '/'"},
+		{"dot in dataset", "abc/data.set", "unexpected char at position 8: '.'"},
+		{"equals in dataset", "abc/my+ds", "unexpected char at position 6: '+'"},
 	}
 	for i, c := range badCases {
 		_, err := Parse(c.text)
@@ -55,7 +54,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func TestParseBadCase(t *testing.T) {
+func TestParseBadUpperCase(t *testing.T) {
 	ref, err := Parse("test_peer/a_New_Dataset")
 	if err != ErrBadCaseName {
 		t.Errorf("expected to get error %s, but got %s", ErrBadCaseName, err)
@@ -91,9 +90,10 @@ func TestParseHumanFriendly(t *testing.T) {
 		expectErr   string
 	}{
 		{"full reference", "abc/my_dataset@QmFirst/ipfs/QmSecond", ErrNotHumanFriendly.Error()},
+		{"only name", "my_dataset", "need username separated by '/' from dataset name"},
 		{"right hand side", "@QmFirst/ipfs/QmSecond", ErrNotHumanFriendly.Error()},
 		{"just path", "@/ipfs/QmSecond", ErrNotHumanFriendly.Error()},
-		{"missing at", "/ipfs/QmThis", "parsing ref, unexpected character at position 0: '/'"},
+		{"missing at", "/ipfs/QmThis", "unexpected char at position 0: '/'"},
 		{"invalid base58", "@/ipfs/QmOne", ErrNotHumanFriendly.Error()},
 	}
 	for i, c := range badCases {
