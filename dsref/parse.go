@@ -17,9 +17,9 @@ import (
 //
 // The grammar is here:
 //
-//  <dsref> = <humanFriendlyRef> [ <concreteRef> ] | <concreteRef>
-//  <humanFriendlyRef> = <username> '/' <datasetname>
-//  <concreteRef> = '@' [ <profileID> ] '/' <network> '/' <commitHash>
+//  <dsref> = <humanFriendlyPortion> [ <concreteRef> ] | <concreteRef>
+//  <humanFriendlyPortion> = <validName> '/' <validName>
+//  <concretePath> = '@' [ <profileID> ] '/' <network> '/' <commitHash>
 //
 // Some examples of valid references:
 //     me/dataset
@@ -37,17 +37,19 @@ const (
 )
 
 var (
+	validName      = regexp.MustCompile(`^` + alphaNumeric)
 	dsNameCheck    = regexp.MustCompile(`^` + alphaNumericDsname + `$`)
-	humanFriendly  = regexp.MustCompile(`^(` + alphaNumeric + `)\/(` + alphaNumericDsname + `)`)
-	concreteRef    = regexp.MustCompile(`^@(` + b58Id + `)?\/(` + alphaNumeric + `)\/(` + b58Id + `)`)
+	concretePath   = regexp.MustCompile(`^@(` + b58Id + `)?\/(` + alphaNumeric + `)\/(` + b58Id + `)`)
 	b58StrictCheck = regexp.MustCompile(`^Qm[1-9A-HJ-NP-Za-km-z]*$`)
 
 	// ErrEmptyRef is an error for when a reference is empty
 	ErrEmptyRef = fmt.Errorf("empty reference")
 	// ErrParseError is an error returned when parsing fails
 	ErrParseError = fmt.Errorf("could not parse ref")
+	// ErrUnexpectedChar is an error when a character is unexpected, topic string must be non-empty
+	ErrUnexpectedChar = fmt.Errorf("unexpected character")
 	// ErrNotHumanFriendly is an error returned when a reference is not human-friendly
-	ErrNotHumanFriendly = fmt.Errorf("ref can only have username/name")
+	ErrNotHumanFriendly = fmt.Errorf("unexpected character '@', ref can only have username/name")
 	// ErrBadCaseName is the error when a bad case is used in the dataset name
 	ErrBadCaseName = fmt.Errorf("dataset name may not contain any upper-case letters")
 	// ErrBadCaseUsername is for when a username contains upper-case letters
@@ -68,16 +70,20 @@ func Parse(text string) (Ref, error) {
 		return r, ErrEmptyRef
 	}
 
-	remain, partial, err := parseHumanFriendly(text)
+	remain, partial, err := parseHumanFriendlyPortion(text)
 	if err == nil {
 		text = remain
 		r.Username = partial.Username
 		r.Name = partial.Name
+	} else if err == ErrUnexpectedChar {
+		// This error must only be returned when the topic string is non-empty, so it's safe to
+		// index it at position 0.
+		return r, fmt.Errorf("%s at position %d: '%c'", err, len(text)-len(remain), remain[0])
 	} else if err != ErrParseError {
 		return r, err
 	}
 
-	remain, partial, err = parseConcreteRef(text)
+	remain, partial, err = parseConcretePath(text)
 	if err == nil {
 		text = remain
 		r.ProfileID = partial.ProfileID
@@ -88,7 +94,7 @@ func Parse(text string) (Ref, error) {
 
 	if text != "" {
 		pos := origLength - len(text)
-		return r, fmt.Errorf("parsing ref, unexpected character at position %d: '%c'", pos, text[0])
+		return r, fmt.Errorf("unexpected character at position %d: '%c'", pos, text[0])
 	}
 
 	// Dataset names are not supposed to contain upper-case characters. For now, return an error
@@ -110,7 +116,7 @@ func ParseHumanFriendly(text string) (Ref, error) {
 		return r, ErrEmptyRef
 	}
 
-	remain, partial, err := parseHumanFriendly(text)
+	remain, partial, err := parseHumanFriendlyPortion(text)
 	if err == nil {
 		text = remain
 		r.Username = partial.Username
@@ -124,7 +130,7 @@ func ParseHumanFriendly(text string) (Ref, error) {
 			return r, ErrNotHumanFriendly
 		}
 		pos := origLength - len(text)
-		return r, fmt.Errorf("parsing ref, unexpected character at position %d: '%c'", pos, text[0])
+		return r, fmt.Errorf("unexpected character at position %d: '%c'", pos, text[0])
 	}
 
 	// Dataset names are not supposed to contain upper-case characters. For now, return an error
@@ -187,24 +193,37 @@ func EnsureValidUsername(text string) error {
 	return err
 }
 
-func parseHumanFriendly(text string) (string, Ref, error) {
+// parse the front of a dataset reference, the human friendly portion
+func parseHumanFriendlyPortion(text string) (string, Ref, error) {
 	var r Ref
-	matches := humanFriendly.FindStringSubmatch(text)
-	if matches == nil {
+	// Parse as many alphaNumeric characters as possible for the username
+	match := validName.FindString(text)
+	if match == "" {
 		return text, r, ErrParseError
 	}
-	if len(matches) != 3 {
-		return text, r, fmt.Errorf("unexpected number of regex matches %d", len(matches))
+	r.Username = match
+	text = text[len(match):]
+	// Check if the remaining text is empty, or there's not a slash next
+	if text == "" {
+		return text, r, fmt.Errorf("need username separated by '/' from dataset name")
+	} else if text[0] != '/' {
+		return text, r, ErrUnexpectedChar
 	}
-	matchedLen := len(matches[0])
-	r.Username = matches[1]
-	r.Name = matches[2]
-	return text[matchedLen:], r, nil
+	text = text[1:]
+	// Parse as many alphaNumeric characters as possible for the dataset name
+	match = validName.FindString(text)
+	if match == "" {
+		return text, r, fmt.Errorf("did not find valid dataset name")
+	}
+	r.Name = match
+	text = text[len(match):]
+	return text, r, nil
 }
 
-func parseConcreteRef(text string) (string, Ref, error) {
+// parse the back of the dataset reference, the concrete path
+func parseConcretePath(text string) (string, Ref, error) {
 	var r Ref
-	matches := concreteRef.FindStringSubmatch(text)
+	matches := concretePath.FindStringSubmatch(text)
 	if matches == nil {
 		return text, r, ErrParseError
 	}

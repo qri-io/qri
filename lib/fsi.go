@@ -241,32 +241,32 @@ func (m *FSIMethods) Write(p *FSIWriteParams, res *[]StatusItem) (err error) {
 	}
 	ctx := context.TODO()
 
-	if p.Ref == "" {
-		return repo.ErrEmptyRef
+	ref, err := dsref.ParseHumanFriendly(p.Ref)
+	if err != nil {
+		return err
 	}
 	if p.Ds == nil {
 		return fmt.Errorf("dataset is required")
 	}
-	ref, err := repo.ParseDatasetRef(p.Ref)
-	if err != nil {
-		return fmt.Errorf("'%s' is not a valid dataset reference", p.Ref)
-	}
-	err = repo.CanonicalizeDatasetRef(m.inst.node.Repo, &ref)
+
+	datasetRef := reporef.RefFromDsref(ref)
+	err = repo.CanonicalizeDatasetRef(m.inst.node.Repo, &datasetRef)
 	if err != nil && err != repo.ErrNoHistory {
 		return err
 	}
 
 	// Directory to write components to can be determined from FSIPath of ref.
-	if ref.FSIPath == "" {
+	if datasetRef.FSIPath == "" {
 		return fsi.ErrNoLink
 	}
 
 	// Write components of the dataset to the working directory
-	if err = fsi.WriteComponents(p.Ds, ref.FSIPath, m.inst.node.Repo.Filesystem()); err != nil {
+	err = fsi.WriteComponents(p.Ds, datasetRef.FSIPath, m.inst.node.Repo.Filesystem())
+	if err != nil {
 		return err
 	}
 
-	*res, err = m.inst.fsi.Status(ctx, ref.FSIPath)
+	*res, err = m.inst.fsi.Status(ctx, datasetRef.FSIPath)
 	return err
 }
 
