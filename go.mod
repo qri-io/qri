@@ -48,7 +48,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/dag v0.2.1-0.20200317231253-5cd938b03caf
-	github.com/qri-io/dataset v0.1.5-0.20200511122508-17e18c0944de // indirect
+	github.com/qri-io/dataset v0.1.5-0.20200520111605-a8aa56636bda
 	github.com/qri-io/deepdiff v0.1.1-0.20200305020550-8173efebcaa1
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
