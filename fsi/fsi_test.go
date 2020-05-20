@@ -8,9 +8,9 @@ import (
 
 	"testing"
 
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
@@ -221,12 +221,17 @@ func TestModifyLinkReference(t *testing.T) {
 	// to the linkfile (.qri-ref). The below call to ModifyLinkReference will modify the linkfile,
 	// but it fails if the ref does not exist in the repo. The relationship between fsi and repo
 	// is not clear and inconsistent.
-	datasetRef, err := base.ToDatasetRef("me/test_ds", fsi.repo, true)
+	ref, err := dsref.Parse("peer/test_ds")
 	if err != nil {
 		t.Fatal(err)
 	}
-	datasetRef.Name = "test_ds_2"
-	err = fsi.repo.PutRef(*datasetRef)
+	rref, err := fsi.repo.GetRef(reporef.RefFromDsref(ref))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rref.Name = "test_ds_2"
+	err = fsi.repo.PutRef(rref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +249,7 @@ func TestModifyLinkReference(t *testing.T) {
 	}
 	expect := "peer/test_ds_2"
 	if ref.Human() != expect {
-		t.Errorf("expected %s, got %s", expect, ref)
+		t.Errorf("expected %s, got %s", expect, rref)
 	}
 }
 

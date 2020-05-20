@@ -32,23 +32,6 @@ func SetPublishStatus(r repo.Repo, ref *reporef.DatasetRef, published bool) erro
 	return r.PutRef(*ref)
 }
 
-// ToDatasetRef parses the dataset ref and looks it up in the refstore, allows refs with no history
-// TODO(dustmop): In a future change, remove the third parameter from this function
-func ToDatasetRef(path string, r repo.Repo, _ bool) (*reporef.DatasetRef, error) {
-	if path == "" {
-		return nil, repo.ErrEmptyRef
-	}
-	ref, err := repo.ParseDatasetRef(path)
-	if err != nil {
-		return nil, fmt.Errorf("'%s' is not a valid dataset reference", path)
-	}
-	err = repo.CanonicalizeDatasetRef(r, &ref)
-	if err != nil && err != repo.ErrNoHistory {
-		return nil, err
-	}
-	return &ref, nil
-}
-
 // ReplaceRefIfMoreRecent replaces the given ref in the ref store, if
 // it is more recent then the ref currently in the refstore
 func ReplaceRefIfMoreRecent(r repo.Repo, prev, curr *reporef.DatasetRef) error {

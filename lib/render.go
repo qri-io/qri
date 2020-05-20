@@ -6,8 +6,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -97,20 +95,14 @@ func (m *RenderMethods) RenderReadme(p *RenderParams, res *string) (err error) {
 	if p.Dataset != nil {
 		ds = p.Dataset
 	} else {
-		ref, err := base.ToDatasetRef(p.Ref, m.inst.repo, p.UseFSI)
+		ref, _, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
 		if err != nil {
 			return err
 		}
 
-		if ref.FSIPath != "" {
-			if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
-				return fmt.Errorf("loading linked dataset: %s", err)
-			}
-		} else {
-			ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
-			if err != nil {
-				return fmt.Errorf("loading dataset: %s", err)
-			}
+		ds, err = m.inst.loadDataset(ctx, ref)
+		if err != nil {
+			return fmt.Errorf("loading dataset: %w", err)
 		}
 	}
 

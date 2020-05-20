@@ -28,7 +28,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
-	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -1020,8 +1019,8 @@ func TestDatasetRequestsStats(t *testing.T) {
 		ref         string
 		expectedErr string
 	}{
-		{"empty reference", "", repo.ErrEmptyRef.Error()},
-		{"dataset does not exist", "me/dataset_does_not_exist", "repo: not found"},
+		{"empty reference", "", `"" is not a valid dataset reference: empty reference`},
+		{"dataset does not exist", "me/dataset_does_not_exist", "reference not found"},
 	}
 	for i, c := range badCases {
 		res := &StatsResponse{}

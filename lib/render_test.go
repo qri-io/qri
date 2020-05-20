@@ -189,7 +189,7 @@ func TestRenderReadme(t *testing.T) {
 		"testdata/jobs_by_automation/body.csv")
 
 	params := RenderParams{
-		Ref:       "me/my_dataset",
+		Ref:       "peer/my_dataset",
 		OutFormat: "html",
 	}
 	var text string

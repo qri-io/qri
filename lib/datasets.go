@@ -1252,21 +1252,19 @@ func (m *DatasetMethods) Stats(p *StatsParams, res *StatsResponse) error {
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Stats", p, res))
 	}
 	ctx := context.TODO()
+
 	if p.Dataset == nil {
-		ref := &reporef.DatasetRef{}
-		ref, err := base.ToDatasetRef(p.Ref, m.inst.repo, false)
+		// TODO (b5) - stats is currently local-only, supply a source parameter
+		ref, _, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
 		if err != nil {
 			return err
 		}
-		p.Dataset, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
+		p.Dataset, err = m.inst.loadDataset(ctx, ref)
 		if err != nil {
 			return fmt.Errorf("loading dataset: %s", err)
 		}
-
-		if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), p.Dataset); err != nil {
-			return err
-		}
 	}
+
 	if p.Dataset.Structure == nil || p.Dataset.Structure.IsEmpty() {
 		p.Dataset.Structure = &dataset.Structure{}
 		p.Dataset.Structure.Format = filepath.Ext(p.Dataset.BodyFile().FileName())
