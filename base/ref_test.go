@@ -60,7 +60,7 @@ func TestSetPublishStatus(t *testing.T) {
 		t.Error("expected invalid reference to error")
 	}
 
-	outside := repo.MustParseDatasetRef("a/b@QmX1oSPMbzkhk33EutuadL4sqsivsRKmMx5hAnZL2mRAM1/ipfs/d")
+	outside := reporef.RefFromDsref(repo.MustParseDatasetRef("a/b@QmX1oSPMbzkhk33EutuadL4sqsivsRKmMx5hAnZL2mRAM1/ipfs/d"))
 	if err := r.PutRef(outside); err != nil {
 		t.Fatal(err)
 	}

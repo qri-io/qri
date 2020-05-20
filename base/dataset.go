@@ -178,7 +178,7 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 			}
 
 			if showVersions {
-				dsVersions, err := DatasetLog(ctx, r, ref, 1000000, 0, false)
+				dsVersions, err := DatasetLog(ctx, r, reporef.ConvertToDsref(ref), 1000000, 0, false)
 				if err != nil {
 					return nil, err
 				}

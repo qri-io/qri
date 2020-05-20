@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -23,9 +24,9 @@ const TimeoutDuration = 100 * time.Millisecond
 var ErrDatasetLogTimeout = fmt.Errorf("datasetLog: timeout")
 
 // DatasetLog fetches the change version history of a dataset
-func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit, offset int, loadDatasets bool) ([]DatasetLogItem, error) {
+func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset int, loadDatasets bool) ([]DatasetLogItem, error) {
 	if book := r.Logbook(); book != nil {
-		if items, err := book.Items(ctx, reporef.ConvertToDsref(ref), offset, limit); err == nil {
+		if items, err := book.Items(ctx, ref, offset, limit); err == nil {
 			// logs are ok with history not existing. This keeps FSI interaction behaviour consistent
 			// TODO (b5) - we should consider having "empty history" be an ok state, instead of marking as an error
 			if len(items) == 0 {
@@ -54,19 +55,30 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 		}
 	}
 
-	rlog, err := DatasetLogFromHistory(ctx, r, ref, offset, limit, loadDatasets)
+	if ref.Path == "" {
+		return nil, fmt.Errorf("cannot build history: unknown HEAD path")
+	}
+
+	dsLog, err := DatasetLogFromHistory(ctx, r, ref.Path, offset, limit, loadDatasets)
 	if err != nil {
 		return nil, err
 	}
-	items := make([]DatasetLogItem, len(rlog))
-	for i, dref := range rlog {
-		items[i] = reporef.ConvertToDatasetLogItem(&dref)
+	items := make([]DatasetLogItem, len(dsLog))
+	for i, ds := range dsLog {
+		ref := &reporef.DatasetRef{
+			// TODO(b5): using the ref.Username & ref.ProfileID here is a hack that assumes single-author histories
+			Peername:  ref.Username,
+			ProfileID: profile.IDB58DecodeOrEmpty(ref.ProfileID),
+			Name:      ref.Name,
+			Dataset:   ds,
+		}
+		items[i] = reporef.ConvertToDatasetLogItem(ref)
 	}
 
 	// add a history entry b/c we didn't have one, but repo didn't error
-	if pro, err := r.Profile(); err == nil && ref.Peername == pro.Peername {
+	if pro, err := r.Profile(); err == nil && ref.Username == pro.Peername {
 		go func() {
-			if err := constructDatasetLogFromHistory(context.Background(), r, reporef.ConvertToDsref(ref)); err != nil {
+			if err := constructDatasetLogFromHistory(context.Background(), r, ref); err != nil {
 				log.Errorf("constructDatasetLogFromHistory: %s", err)
 			}
 		}()
@@ -78,42 +90,37 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 // DatasetLogFromHistory fetches the history of changes to a dataset by walking
 // backwards through dataset commits. if loadDatasets is true, dataset
 // information will be populated
-// TODO(dlong): Convert to use dsref.Ref (for input) and dsref.VersionInfo (for output)
-func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, offset, limit int, loadDatasets bool) (rlog []reporef.DatasetRef, err error) {
-	if err := repo.CanonicalizeDatasetRef(r, &ref); err != nil {
-		return nil, err
-	}
-
+func DatasetLogFromHistory(ctx context.Context, r repo.Repo, headPath string, offset, limit int, loadDatasets bool) (log []*dataset.Dataset, err error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, TimeoutDuration)
 	defer cancel()
 
-	versions := make(chan reporef.DatasetRef)
+	versions := make(chan *dataset.Dataset)
 	done := make(chan struct{})
+	path := headPath
 	go func() {
 		for {
 			var ds *dataset.Dataset
 			if loadDatasets {
-				if ds, err = dsfs.LoadDataset(timeoutCtx, r.Store(), ref.Path); err != nil {
+				if ds, err = dsfs.LoadDataset(timeoutCtx, r.Store(), path); err != nil {
 					return
 				}
 			} else {
-				if ds, err = dsfs.LoadDatasetRefs(timeoutCtx, r.Store(), ref.Path); err != nil {
+				if ds, err = dsfs.LoadDatasetRefs(timeoutCtx, r.Store(), path); err != nil {
 					return
 				}
 			}
-			ref.Dataset = ds
 
 			if offset <= 0 {
-				versions <- ref
+				versions <- ds
 				limit--
 				if limit == 0 {
 					break
 				}
 			}
-			if ref.Dataset.PreviousPath == "" {
+			if ds.PreviousPath == "" {
 				break
 			}
-			ref.Path = ref.Dataset.PreviousPath
+			path = ds.PreviousPath
 			offset--
 		}
 		done <- struct{}{}
@@ -122,13 +129,13 @@ func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref reporef.Dataset
 	for {
 		select {
 		case ref := <-versions:
-			rlog = append(rlog, ref)
+			log = append(log, ref)
 		case <-done:
-			return rlog, nil
+			return log, nil
 		case <-timeoutCtx.Done():
-			return rlog, ErrDatasetLogTimeout
+			return log, ErrDatasetLogTimeout
 		case <-ctx.Done():
-			return rlog, ErrDatasetLogTimeout
+			return log, ErrDatasetLogTimeout
 		}
 	}
 }
@@ -136,14 +143,9 @@ func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref reporef.Dataset
 // constructDatasetLogFromHistory constructs a log for a name if one doesn't
 // exist.
 func constructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.Ref) error {
-	repoRef := reporef.DatasetRef{Peername: ref.Username, Name: ref.Name, Path: ref.Path}
-	refs, err := DatasetLogFromHistory(ctx, r, repoRef, 0, 1000000, true)
+	history, err := DatasetLogFromHistory(ctx, r, ref.Path, 0, 1000000, true)
 	if err != nil {
 		return err
-	}
-	history := make([]*dataset.Dataset, len(refs))
-	for i, ref := range refs {
-		history[i] = ref.Dataset
 	}
 
 	book := r.Logbook()

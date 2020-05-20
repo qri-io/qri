@@ -886,7 +886,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	// Get the revisions that will be deleted.
-	history, err := base.DatasetLog(ctx, m.inst.repo, ref, p.Revision.Gen+1, 0, false)
+	history, err := base.DatasetLog(ctx, m.inst.repo, reporef.ConvertToDsref(ref), p.Revision.Gen+1, 0, false)
 	if err == nil && p.Revision.Gen >= len(history) {
 		// If the number of revisions to delete is greater than or equal to the amount in history,
 		// treat this operation as deleting everything.

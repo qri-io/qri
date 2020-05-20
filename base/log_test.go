@@ -22,7 +22,7 @@ func TestDatasetLog(t *testing.T) {
 	ctx := context.Background()
 	mr := newTestRepo(t)
 	addCitiesDataset(t, mr)
-	updateCitiesDataset(t, mr, "")
+	cities := updateCitiesDataset(t, mr, "")
 
 	ref := repo.MustParseDatasetRef("me/not_a_dataset")
 	log, err := DatasetLog(ctx, mr, ref, -1, 0, true)
@@ -30,8 +30,7 @@ func TestDatasetLog(t *testing.T) {
 		t.Errorf("expected lookup for nonexistent log to fail")
 	}
 
-	ref = repo.MustParseDatasetRef("me/cities")
-	if log, err = DatasetLog(ctx, mr, ref, 1, 0, true); err != nil {
+	if log, err = DatasetLog(ctx, mr, reporef.ConvertToDsref(cities), 1, 0, true); err != nil {
 		t.Error(err.Error())
 	}
 	if len(log) != 1 {
@@ -102,14 +101,7 @@ func TestDatasetLogForeign(t *testing.T) {
 	book := builder.Logbook()
 	mr.SetLogbook(book)
 
-	// Get the log, test against expectation
-	r := reporef.DatasetRef{
-		Peername:  ref.Username,
-		ProfileID: profile.IDB58DecodeOrEmpty(ref.ProfileID),
-		Name:      ref.Name,
-		Path:      ref.Path,
-	}
-	log, err := DatasetLog(ctx, mr, r, 1, 0, true)
+	log, err := DatasetLog(ctx, mr, ref, 1, 0, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -156,7 +148,7 @@ func TestDatasetLogForeignTimeout(t *testing.T) {
 	}
 
 	// Get a dataset log, which should timeout with an error
-	_, err = DatasetLog(ctx, mr, datasetRef, -1, 0, true)
+	_, err = DatasetLog(ctx, mr, reporef.ConvertToDsref(datasetRef), -1, 0, true)
 	if err == nil {
 		t.Fatal("expected lookup for foreign log to fail")
 	}
@@ -173,18 +165,18 @@ func TestDatasetLogFromHistory(t *testing.T) {
 	head := updateCitiesDataset(t, r, "")
 	expectLen := 2
 
-	dlog, err := DatasetLogFromHistory(ctx, r, head, 0, 100, true)
+	dlog, err := DatasetLogFromHistory(ctx, r, head.Path, 0, 100, true)
 	if err != nil {
 		t.Error(err)
 	}
 	if len(dlog) != expectLen {
 		t.Fatalf("log length mismatch. expected: %d, got: %d", expectLen, len(dlog))
 	}
-	if dlog[0].Dataset.Meta.Title != head.Dataset.Meta.Title {
+	if dlog[0].Meta.Title != head.Dataset.Meta.Title {
 		t.Errorf("expected log with loadDataset == true to populate datasets")
 	}
 
-	dlog, err = DatasetLogFromHistory(ctx, r, head, 0, 100, false)
+	dlog, err = DatasetLogFromHistory(ctx, r, head.Path, 0, 100, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -192,8 +184,8 @@ func TestDatasetLogFromHistory(t *testing.T) {
 	if len(dlog) != expectLen {
 		t.Errorf("log length mismatch. expected: %d, got: %d", expectLen, len(dlog))
 	}
-	if dlog[0].Dataset.Meta.Title != "" {
-		t.Errorf("expected log with loadDataset == false to not load a dataset. got: %v", dlog[0].Dataset)
+	if dlog[0].Meta.Title != "" {
+		t.Errorf("expected log with loadDataset == false to not load a dataset. got: %v", dlog[0])
 	}
 }
 
@@ -254,15 +246,15 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 		},
 	}
 
-	r := reporef.DatasetRef{
-		Peername:  "peer",
-		ProfileID: profile.IDB58DecodeOrEmpty("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"),
-		Name:      "cities",
-		Path:      "/map/QmaTfAQNUKqtPe2EUcCELJNprRLJWswsVPHHNhiKgZoTMR",
-	}
+	// r := reporef.DatasetRef{
+	// 	Peername:  "peer",
+	// 	ProfileID: profile.IDB58DecodeOrEmpty("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"),
+	// 	Name:      "cities",
+	// 	Path:      "/map/QmaTfAQNUKqtPe2EUcCELJNprRLJWswsVPHHNhiKgZoTMR",
+	// }
 
 	// confirm history exists:
-	log, err := DatasetLog(ctx, mr, r, 100, 0, true)
+	log, err := DatasetLog(ctx, mr, cities, 100, 0, true)
 	if err != nil {
 		t.Error(err)
 	}

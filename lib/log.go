@@ -72,7 +72,7 @@ func (m *LogMethods) Log(params *LogParams, res *[]DatasetLogItem) error {
 
 	if source == "" {
 		// local resolution
-		*res, err = base.DatasetLog(ctx, m.inst.repo, reporef.RefFromDsref(ref), params.Limit, params.Offset, true)
+		*res, err = base.DatasetLog(ctx, m.inst.repo, ref, params.Limit, params.Offset, true)
 		return err
 	}
 
