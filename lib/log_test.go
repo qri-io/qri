@@ -48,9 +48,9 @@ func TestHistoryRequestsLog(t *testing.T) {
 		err         string
 	}{
 		{"log list - empty",
-			&LogParams{}, []DatasetLogItem{}, "repo: empty dataset reference"},
+			&LogParams{}, []DatasetLogItem{}, `"" is not a valid dataset reference: empty reference`},
 		{"log list - bad path",
-			&LogParams{Ref: "/badpath"}, nil, "repo: not found"},
+			&LogParams{Ref: "/badpath"}, []DatasetLogItem{}, `"/badpath" is not a valid dataset reference: unexpected character at position 0: '/'`},
 		{"log list - default",
 			&LogParams{Ref: firstRef}, items, ""},
 		{"log list - offset 0 limit 3",
@@ -82,7 +82,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 			t.Logf("expect: %d got: %d", v.BodySize, got[i].BodySize)
 		}
 
-		if diff := cmp.Diff(c.refs, got, cmpopts.IgnoreFields(dsref.VersionInfo{}, "CommitTime"), cmpopts.IgnoreFields(dsref.Ref{}, "Path")); diff != "" {
+		if diff := cmp.Diff(c.refs, got, cmpopts.IgnoreFields(dsref.VersionInfo{}, "CommitTime", "ProfileID"), cmpopts.IgnoreFields(dsref.Ref{}, "Path")); diff != "" {
 			t.Errorf("case '%s' result mismatch (-want +got):\n%s", c.description, diff)
 		}
 	}

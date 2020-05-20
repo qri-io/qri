@@ -13,6 +13,7 @@ import (
 type Client interface {
 	ListDatasets(ctx context.Context, ds *reporef.DatasetRef, term string, offset, limit int) ([]reporef.DatasetRef, error)
 	ResolveHeadRef(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error
+	NewRemoteRefResolver(addr string) dsref.Resolver
 
 	PushDataset(ctx context.Context, ref reporef.DatasetRef, remoteAddr string) error
 	PullDataset(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error

@@ -6,9 +6,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -31,79 +29,6 @@ func NewRemoteMethods(inst *Instance) *RemoteMethods {
 
 // CoreRequestsName implements the Requests interface
 func (*RemoteMethods) CoreRequestsName() string { return "remote" }
-
-// FetchParams encapsulates parameters for a fetch request
-type FetchParams struct {
-	Ref        string
-	RemoteName string
-}
-
-// Fetch pulls a logbook from a remote
-func (r *RemoteMethods) Fetch(p *FetchParams, res *[]DatasetLogItem) error {
-	if r.inst.rpc != nil {
-		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Fetch", p, res))
-	}
-
-	ref, err := repo.ParseDatasetRef(p.Ref)
-	if err != nil {
-		return err
-	}
-	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
-		if err == repo.ErrNotFound {
-			err = nil
-		} else {
-			return err
-		}
-	}
-
-	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
-	if err != nil {
-		return err
-	}
-
-	// TODO (b5) - need contexts yo
-	ctx := context.TODO()
-	logs, err := r.inst.RemoteClient().FetchLogs(ctx, reporef.ConvertToDsref(ref), addr)
-	if err != nil {
-		return err
-	}
-
-	// TODO (b5) - FetchLogs currently returns oplogs arranged in user > dataset > branch
-	// hierarchy, and we need to descend to the branch oplog to get commit history
-	// info. It might be nicer if FetchLogs instead returned the branch oplog, but
-	// with .Parent() fields loaded & connected
-	if len(logs.Logs) > 0 {
-		logs = logs.Logs[0]
-		if len(logs.Logs) > 0 {
-			logs = logs.Logs[0]
-		}
-	}
-
-	items := logbook.ConvertLogsToItems(logs, reporef.ConvertToDsref(ref))
-	log.Debugf("found %d items: %v", len(items), items)
-	if len(items) == 0 {
-		return repo.ErrNoHistory
-	}
-
-	for i, item := range items {
-		local, hasErr := r.inst.Repo().Store().Has(ctx, item.Path)
-		if hasErr != nil {
-			continue
-		}
-		items[i].Foreign = !local
-
-		if local {
-			if ds, err := dsfs.LoadDataset(ctx, r.inst.repo.Store(), item.Path); err == nil {
-				if ds.Commit != nil {
-					items[i].CommitMessage = ds.Commit.Message
-				}
-			}
-		}
-	}
-
-	*res = items
-	return nil
-}
 
 // PublicationParams encapsulates parmeters for dataset publication
 type PublicationParams struct {

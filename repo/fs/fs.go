@@ -2,6 +2,7 @@
 package fsrepo
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -40,8 +42,6 @@ type Repo struct {
 }
 
 // NewRepo creates a new file-based repository
-//
-// Deprecated: use CreateRepo instead
 func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, cache *dscache.Dscache, pro *profile.Profile, base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
@@ -77,6 +77,24 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, cach
 	}
 
 	return r, nil
+}
+
+// ResolveRef implements the dsref.RefResolver interface
+func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
+	if r == nil {
+		return "", dsref.ErrNotFound
+	}
+
+	// TODO (b5) - not totally sure why, but memRepo doesn't seem to be wiring up
+	// dscache correctly in in tests
+	// if r.dscache != nil {
+	// 	return r.dscache.ResolveRef(ctx, ref)
+	// }
+
+	if r.logbook == nil {
+		return "", fmt.Errorf("cannot resolve local references without logbook")
+	}
+	return r.logbook.ResolveRef(ctx, ref)
 }
 
 // Path returns the path to the root of the repo directory

@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -10,6 +11,9 @@ import (
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
+	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/identity"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -45,6 +49,21 @@ func TestAddDataset(t *testing.T) {
 	if err := cli.AddDataset(tr.Ctx, &worldBankRef, ""); err != nil {
 		t.Error(err.Error())
 	}
+}
+
+func TestNewRemoteRefResolver(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	remA := tr.NodeARemote(t)
+	s := tr.RemoteTestServer(remA)
+	cli := tr.NodeBClient(t)
+	resolver := cli.NewRemoteRefResolver(s.URL)
+
+	t.Skip("TODO(b5) - need to update ResolveHeadRef")
+	dsrefspec.AssertResolverSpec(t, resolver, func(r dsref.Ref, author identity.Author, log *oplog.Log) error {
+		return remA.Node().Repo.Logbook().MergeLog(context.Background(), author, log)
+	})
 }
 
 func TestClientFeedsAndPreviews(t *testing.T) {

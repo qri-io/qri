@@ -36,6 +36,7 @@ require (
 	github.com/libp2p/go-libp2p-circuit v0.1.3
 	github.com/libp2p/go-libp2p-connmgr v0.1.1
 	github.com/libp2p/go-libp2p-core v0.2.3
+	github.com/libp2p/go-libp2p-crypto v0.1.0
 	github.com/libp2p/go-libp2p-peerstore v0.1.3
 	github.com/libp2p/go-libp2p-swarm v0.2.2
 	github.com/microcosm-cc/bluemonday v1.0.2

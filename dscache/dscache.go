@@ -177,6 +177,27 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	return refs, nil
 }
 
+// ResolveRef finds the identifier for a dataset reference
+// implements dsref.Resolver interface
+func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
+	// NOTE: isEmpty is nil-callable. important b/c ResolveRef must be nil-callable
+	if d.IsEmpty() {
+		return "", dsref.ErrNotFound
+	}
+
+	vi, err := d.LookupByName(*ref)
+	if err != nil {
+		return "", dsref.ErrNotFound
+	}
+
+	ref.InitID = vi.InitID
+	if ref.Path == "" {
+		ref.Path = vi.Path
+	}
+
+	return "", nil
+}
+
 // LookupByName looks up a dataset by dsref and returns the latest VersionInfo if found
 func (d *Dscache) LookupByName(ref dsref.Ref) (*dsref.VersionInfo, error) {
 	// Convert the username into a profileID

@@ -86,6 +86,10 @@ func TestCreateLink(t *testing.T) {
 	}
 }
 
+func TestResolvedRef(t *testing.T) {
+	t.Skip("TODO(b5) - owes a test")
+}
+
 func TestCreateLinkTwice(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()

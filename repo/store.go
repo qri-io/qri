@@ -16,7 +16,6 @@ type Refstore interface {
 	PutRef(ref reporef.DatasetRef) error
 	// GetRef "completes" a passed in alias (reporef.DatasetRef with at least Peername
 	// and Name field specified), filling in missing fields with a stored ref
-	// TODO - should we rename this to "CompleteRef"?
 	GetRef(ref reporef.DatasetRef) (reporef.DatasetRef, error)
 	// DeleteRef removes a reference from the store
 	DeleteRef(ref reporef.DatasetRef) error

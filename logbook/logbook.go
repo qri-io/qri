@@ -640,6 +640,52 @@ func (book Book) Log(ctx context.Context, id string) (*oplog.Log, error) {
 	return book.store.Get(ctx, id)
 }
 
+// ResolveRef finds the identifier & head path for a dataset reference
+// implements resolve.NameResolver interface
+func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
+	if book == nil {
+		return "", dsref.ErrNotFound
+	}
+
+	initID, err := book.RefToInitID(*ref)
+	if err != nil {
+		return "", dsref.ErrNotFound
+	}
+	ref.InitID = initID
+
+	if ref.Path == "" {
+		br, err := book.branchLog(ctx, initID)
+		if err != nil {
+			return "", err
+		}
+		ref.Path = book.latestSavePath(br.l)
+	}
+
+	return "", nil
+}
+
+func (book *Book) latestSavePath(branchLog *oplog.Log) string {
+	removes := 0
+
+	for i := len(branchLog.Ops) - 1; i >= 0; i-- {
+		op := branchLog.Ops[i]
+		if op.Model == CommitModel {
+			switch op.Type {
+			case oplog.OpTypeRemove:
+				removes += int(op.Size)
+			case oplog.OpTypeInit, oplog.OpTypeAmend:
+				if removes > 0 {
+					removes--
+				}
+				if removes == 0 {
+					return op.Ref
+				}
+			}
+		}
+	}
+	return ""
+}
+
 // UserDatasetRef gets a user's log and a dataset reference, the returned log
 // will be a user log with a single dataset log containing all known branches:
 //   user
@@ -719,9 +765,14 @@ func (book Book) BranchRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, erro
 	return book.store.HeadRef(ctx, ref.Username, ref.Name, DefaultBranchName)
 }
 
+// SignLog populates the signature field of a log using the author's private key
+func (book Book) SignLog(log *oplog.Log) error {
+	return log.Sign(book.pk)
+}
+
 // LogBytes signs a log with this book's private key and writes to a flatbuffer
 func (book Book) LogBytes(log *oplog.Log) ([]byte, error) {
-	if err := log.Sign(book.pk); err != nil {
+	if err := book.SignLog(log); err != nil {
 		return nil, err
 	}
 	return log.FlatbufferBytes(), nil

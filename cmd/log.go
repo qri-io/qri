@@ -80,8 +80,7 @@ type LogOptions struct {
 	NoRegistry bool
 	NoPin      bool
 
-	LogMethods    *lib.LogMethods
-	RemoteMethods *lib.RemoteMethods
+	LogMethods *lib.LogMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -95,11 +94,8 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 			return errors.New(err, "please provide a dataset reference")
 		}
 	}
+
 	o.LogMethods, err = f.LogMethods()
-	if err != nil {
-		return err
-	}
-	o.RemoteMethods, err = f.RemoteMethods()
 	return
 }
 
@@ -113,65 +109,22 @@ func (o *LogOptions) Run() error {
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
 
-	ref := o.Refs.RefList()[0]
-	refs := []DatasetLogItem{}
-	if o.RemoteName == "" && !o.Pull {
-		p := &lib.LogParams{
-			Ref: ref,
-			ListParams: lib.ListParams{
-				Limit:  page.Limit(),
-				Offset: page.Offset(),
-			},
-		}
-
-		if err := o.LogMethods.Log(p, &refs); err != nil {
-			// if the error is repo not found, this dataset may be on the network
-			// and we should fall through and attempt to find it via fetch
-			if err != repo.ErrNotFound {
-				return err
-			}
-			if o.Local && err == repo.ErrNotFound {
-				return err
-			}
-		} else {
-			makeItemsAndPrint(refs, o.Out, page)
-			return nil
-		}
+	res := []DatasetLogItem{}
+	p := &lib.LogParams{
+		Ref:    o.Refs.Ref(),
+		Pull:   o.Pull,
+		Source: o.RemoteName,
+		ListParams: lib.ListParams{
+			Limit:  page.Limit(),
+			Offset: page.Offset(),
+		},
 	}
 
-	// TODO(ramfox): currently, at the lib level, the empty string indicates that we
-	// should be fetching from the registry by default.
-	if o.RemoteName == "registry" {
-		o.RemoteName = ""
-	}
-
-	p := lib.FetchParams{
-		Ref:        ref,
-		RemoteName: o.RemoteName,
-	}
-	if err := o.RemoteMethods.Fetch(&p, &refs); err != nil {
+	if err := o.LogMethods.Log(p, &res); err != nil {
 		return err
 	}
-	lp := lib.ListParams{
-		Limit:  page.Limit(),
-		Offset: page.Offset(),
-	}
-	if lp.Limit <= 0 {
-		lp.Limit = 25
-	}
-	// ensure valid offset value
-	if lp.Offset < 0 {
-		lp.Offset = 0
-	}
-	if len(refs) < lp.Offset {
-		makeItemsAndPrint(refs[0:0], o.Out, page)
-		return nil
-	}
-	if len(refs) < lp.Offset+lp.Limit {
-		makeItemsAndPrint(refs[lp.Offset:], o.Out, page)
-		return nil
-	}
-	makeItemsAndPrint(refs[lp.Offset:lp.Offset+lp.Limit], o.Out, page)
+
+	makeItemsAndPrint(res, o.Out, page)
 	return nil
 }
 

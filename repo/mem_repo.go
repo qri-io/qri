@@ -2,12 +2,14 @@ package repo
 
 import (
 	"context"
+	"fmt"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
@@ -29,13 +31,12 @@ type MemRepo struct {
 }
 
 // NewMemRepo creates a new in-memory repository
-// TODO (b5) - need a better mem-repo constructor, we don't need a logbook for
-// all test cases
 func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, ps profile.Store) (*MemRepo, error) {
 	book, err := logbook.NewJournal(p.PrivKey, p.Peername, fsys, "/mem/logbook")
 	if err != nil {
 		return nil, err
 	}
+
 	ctx := context.Background()
 
 	// NOTE: This dscache won't get change notifications from FSI, because it's not constructed
@@ -52,6 +53,24 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, p
 		profile:     p,
 		profiles:    ps,
 	}, nil
+}
+
+// ResolveRef implements the dsref.Resolver interface
+func (r *MemRepo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
+	if r == nil {
+		return "", dsref.ErrNotFound
+	}
+
+	// TODO (b5) - not totally sure why, but memRepo doesn't seem to be wiring up
+	// dscache correctly in in tests
+	// if r.dscache != nil {
+	// 	return r.dscache.ResolveRef(ctx, ref)
+	// }
+
+	if r.logbook == nil {
+		return "", fmt.Errorf("cannot resolve local references without logbook")
+	}
+	return r.logbook.ResolveRef(ctx, ref)
 }
 
 // Store returns the underlying cafs.Filestore for this repo
