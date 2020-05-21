@@ -30,13 +30,13 @@ func NewFSIMethods(inst *Instance) *FSIMethods {
 // CoreRequestsName specifies this is a fsi handle
 func (m FSIMethods) CoreRequestsName() string { return "fsi" }
 
-// LinkedRefs lists all fsi links
-func (m *FSIMethods) LinkedRefs(p *ListParams, res *[]reporef.DatasetRef) (err error) {
+// LinkedDatasets lists all fsi links
+func (m *FSIMethods) LinkedDatasets(p *ListParams, res *[]dsref.VersionInfo) (err error) {
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("FSIMethods.LinkedRefs", p, res))
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.LinkedDatasets", p, res))
 	}
 
-	*res, err = m.inst.fsi.LinkedRefs(p.Offset, p.Limit)
+	*res, err = m.inst.fsi.LinkedDatasets(p.Offset, p.Limit)
 	return err
 }
 
@@ -47,7 +47,7 @@ type LinkParams struct {
 }
 
 // CreateLink creates a connection between a working drirectory and a dataset history
-func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
+func (m *FSIMethods) CreateLink(p *LinkParams, res *dsref.VersionInfo) (err error) {
 	// absolutize path name
 	path, err := filepath.Abs(p.Dir)
 	if err != nil {
@@ -59,7 +59,14 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
 		return checkRPCError(m.inst.rpc.Call("FSIMethods.CreateLink", p, res))
 	}
 
-	*res, _, err = m.inst.fsi.CreateLink(p.Dir, p.Ref)
+	ctx := context.TODO()
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Ref, "local")
+	if err != nil {
+		return err
+	}
+
+	vi, _, err := m.inst.fsi.CreateLink(p.Dir, ref)
+	*res = *vi
 	return err
 }
 
@@ -70,6 +77,7 @@ func (m *FSIMethods) Unlink(p *LinkParams, res *string) (err error) {
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("FSIMethods.Unlink", p, res))
 	}
+	ctx := context.TODO()
 
 	if p.Dir != "" && p.Ref != "" {
 		return fmt.Errorf("Unlink should be called with either Dir or Ref, not both")
@@ -78,20 +86,18 @@ func (m *FSIMethods) Unlink(p *LinkParams, res *string) (err error) {
 	var ref dsref.Ref
 	if p.Dir == "" {
 		// If only ref provided, canonicalize it to get its ref
-		datasetRef, err := repo.ParseDatasetRef(p.Ref)
+		ref, _, err = m.inst.ParseAndResolveRef(ctx, p.Ref, "local")
 		if err != nil {
 			return err
 		}
-		if err = repo.CanonicalizeDatasetRef(m.inst.repo, &datasetRef); err != nil {
-			if err != repo.ErrNoHistory {
-				return err
-			}
+		vi, err := repo.GetVersionInfoShim(m.inst.repo, ref)
+		if err != nil {
+			return err
 		}
-		if datasetRef.FSIPath == "" {
-			return fmt.Errorf("%s is not linked to a directory", p.Ref)
+		if vi.FSIPath == "" {
+			return fmt.Errorf("%s is not linked to a working directory", ref.Human())
 		}
-		p.Dir = datasetRef.FSIPath
-		ref = reporef.ConvertToDsref(datasetRef)
+		p.Dir = vi.FSIPath
 	}
 
 	if err := m.inst.fsi.Unlink(p.Dir, ref); err != nil {
@@ -126,11 +132,17 @@ func (m *FSIMethods) StatusForAlias(alias *string, res *[]StatusItem) (err error
 	}
 	ctx := context.TODO()
 
-	dir, err := m.inst.fsi.AliasToLinkedDir(*alias)
+	// If only ref provided, canonicalize it to get its ref
+	ref, err := dsref.Parse(*alias)
 	if err != nil {
 		return err
 	}
-	*res, err = m.inst.fsi.Status(ctx, dir)
+	vi, err := repo.GetVersionInfoShim(m.inst.repo, ref)
+	if err != nil {
+		return err
+	}
+
+	*res, err = m.inst.fsi.Status(ctx, vi.FSIPath)
 	return err
 }
 
@@ -171,17 +183,14 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 		return fmt.Errorf("directory with name \"%s\" already exists", p.Dir)
 	}
 
-	// Handle the ref to checkout.
-	ref := &reporef.DatasetRef{}
-	if p.Ref == "" {
-		return repo.ErrEmptyRef
-	}
-	*ref, err = repo.ParseDatasetRef(p.Ref)
+	// Handle the ref to checkout
+	ref, source, err := m.inst.ParseAndResolveRef(ctx, p.Ref, "")
 	if err != nil {
-		return fmt.Errorf("'%s' is not a valid dataset reference", p.Ref)
+		return err
 	}
-	if err = repo.CanonicalizeDatasetRef(m.inst.repo, ref); err != nil {
-		return
+
+	if source != "" {
+		return fmt.Errorf("auto-adding on checkout is not yet supported, please run `qri add %q` first", ref.Human())
 	}
 
 	log.Debugf("Checkout for ref %q", ref)
@@ -192,18 +201,11 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	}
 
 	// Load dataset that is being checked out.
-	ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
+	ds, err := m.inst.loadDataset(ctx, ref)
 	if err != nil {
 		log.Debugf("Checkout, dsfs.LoadDataset failed, error: %s", err)
-		return fmt.Errorf("error loading dataset")
+		return err
 	}
-	ds.Name = ref.Name
-	ds.Peername = ref.Peername
-	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
-		log.Debugf("Checkout, base.OpenDataset failed, error: %s", ref)
-		return
-	}
-	log.Debugf("Checkout loaded dataset %q", ref)
 
 	// Create a directory.
 	if err := os.Mkdir(p.Dir, os.ModePerm); err != nil {
@@ -213,7 +215,7 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	log.Debugf("Checkout made directory %q", p.Dir)
 
 	// Create the link file, containing the dataset reference.
-	if _, _, err = m.inst.fsi.CreateLink(p.Dir, p.Ref); err != nil {
+	if _, _, err = m.inst.fsi.CreateLink(p.Dir, ref); err != nil {
 		log.Debugf("Checkout, fsi.CreateLink failed, error: %s", ref)
 		return err
 	}
@@ -390,10 +392,17 @@ type EnsureParams struct {
 }
 
 // EnsureRef will modify the directory path in the repo for the given reference
-func (m *FSIMethods) EnsureRef(p *EnsureParams, out *bool) error {
+func (m *FSIMethods) EnsureRef(p *EnsureParams, out *dsref.VersionInfo) error {
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("FSIMethods.EnsureRef", p, out))
 	}
 
-	return m.inst.fsi.ModifyLinkDirectory(p.Dir, p.Ref)
+	ref, err := dsref.Parse(p.Ref)
+	if err != nil {
+		return err
+	}
+
+	vi, err := m.inst.fsi.ModifyLinkDirectory(p.Dir, ref)
+	*out = *vi
+	return err
 }

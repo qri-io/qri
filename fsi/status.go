@@ -57,18 +57,6 @@ func (si StatusItem) MarshalJSON() ([]byte, error) {
 	return json.Marshal(obj)
 }
 
-// AliasToLinkedDir converts the given dataset alias to the FSI path it is linked to.
-func (fsi *FSI) AliasToLinkedDir(alias string) (string, error) {
-	ref, err := fsi.getRepoRef(alias)
-	if err != nil && err != repo.ErrNoHistory {
-		return "", err
-	}
-	if ref.FSIPath == "" {
-		return "", ErrNoLink
-	}
-	return ref.FSIPath, nil
-}
-
 // Status compares status of the current working directory against the dataset's last version
 func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, err error) {
 	ref, ok := GetLinkedFilesysRef(dir)
@@ -78,12 +66,15 @@ func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, e
 	}
 
 	var stored *dataset.Dataset
-	datasetRef, err := fsi.getRepoRef(ref.Human())
-	if datasetRef.Path == "" {
+	vi, err := repo.GetVersionInfoShim(fsi.repo, ref)
+	if err != nil {
+		return nil, err
+	}
+	if vi.Path == "" {
 		// no dataset, compare to an empty ds
 		stored = &dataset.Dataset{}
 	} else {
-		if stored, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), datasetRef.Path); err != nil {
+		if stored, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), vi.Path); err != nil {
 			return nil, err
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -94,6 +95,31 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 		hinshun.Repo(),
 		tr.RegistryInst.Repo(),
 	)
+}
+
+func TestAddCheckoutIntegration(t *testing.T) {
+	tr := NewNetworkIntegrationTestRunner(t, "integration_add_checkout")
+	defer tr.Cleanup()
+
+	nasim := tr.InitNasim(t)
+
+	// - nasim creates a dataset, publishes to registry
+	ref := InitWorldBankDataset(t, nasim)
+	PublishToRegistry(t, nasim, ref.AliasString())
+
+	hinshun := tr.InitHinshun(t)
+	dsm := NewDatasetMethods(hinshun)
+	res := &reporef.DatasetRef{}
+
+	checkoutPath := filepath.Join(tr.hinshunRepo.RootPath, "wbp")
+	err := dsm.Add(&AddParams{
+		Ref:     ref.String(),
+		LinkDir: checkoutPath,
+	}, res)
+	if err != nil {
+		t.Errorf("adding with linked directory: %s", err)
+	}
+
 }
 
 type NetworkIntegrationTestRunner struct {

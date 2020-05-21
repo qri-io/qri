@@ -8,9 +8,10 @@ import (
 
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
@@ -57,29 +58,39 @@ func TestCreateLink(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	link, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	vi, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/movies"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	expect := `peer/test_ds`
-	if link != expect {
-		t.Errorf("error: link value, actual: %s, expect: %s", link, expect)
+	expect := &dsref.VersionInfo{
+		Username:  "peer",
+		Name:      "movies",
+		ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+		// TODO(b5) - NewTestRepo doesn't create stable path values
+		// Path: "/map/shouldBeConstantForTests",
+	}
+	if diff := cmp.Diff(expect, vi, cmpopts.IgnoreFields(dsref.VersionInfo{}, "FSIPath", "Path")); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+	if vi.FSIPath == "" {
+		t.Errorf("FSIPath cannot be empty")
 	}
 
 	actual, _ := ioutil.ReadFile(filepath.Join(paths.firstDir, ".qri-ref"))
-	if string(actual) != expect {
-		t.Errorf("error: .qri-ref content, actual: %s, expect: %s", actual, expect)
+	expectLinkFile := "peer/movies"
+	if string(actual) != expectLinkFile {
+		t.Errorf("wrong .qri-ref content.\nactual:\t%s\nexpect:\t%s", actual, expectLinkFile)
 	}
 
-	links, err := fsi.LinkedRefs(0, 30)
+	links, err := fsi.LinkedDatasets(0, 30)
 	if len(links) != 1 {
 		t.Errorf("error: wanted links of length 1, got %d", len(links))
 	}
 
 	ls := links[0]
-	if ls.AliasString() != "peer/test_ds" {
-		t.Errorf("error: links[0].Ref got %s", ls.AliasString())
+	if ls.SimpleRef().Human() != "peer/movies" {
+		t.Errorf("error: links[0].Ref got %s", ls.SimpleRef().Human())
 	}
 	if ls.FSIPath != paths.firstDir {
 		t.Errorf("error: links[0].Path, actual: %s, expect: %s", ls.FSIPath, paths.firstDir)
@@ -95,28 +106,28 @@ func TestCreateLinkTwice(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	_, _, err = fsi.CreateLink(paths.secondDir, "me/test_second")
+	_, _, err = fsi.CreateLink(paths.secondDir, dsref.MustParse("peer/movies"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	actual, _ := ioutil.ReadFile(filepath.Join(paths.firstDir, ".qri-ref"))
-	expect := `peer/test_ds`
+	expect := `peer/cities`
 	if string(actual) != expect {
 		t.Errorf("error: .qri-ref content, actual: %s, expect: %s", actual, expect)
 	}
 
 	actual, _ = ioutil.ReadFile(filepath.Join(paths.secondDir, ".qri-ref"))
-	expect = `peer/test_second`
+	expect = `peer/movies`
 	if string(actual) != expect {
 		t.Errorf("error: .qri-ref content, actual: %s, expect: %s", actual, expect)
 	}
 
-	links, err := fsi.LinkedRefs(0, 30)
+	links, err := fsi.LinkedDatasets(0, 30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,18 +136,18 @@ func TestCreateLinkTwice(t *testing.T) {
 	}
 
 	ls := links[0]
-	expectAlias := "peer/test_ds"
-	if ls.AliasString() != expectAlias {
-		t.Errorf("error: links[0].AliasString expected: %s got %s", expectAlias, ls.AliasString())
+	expectAlias := "peer/cities"
+	if ls.SimpleRef().Human() != expectAlias {
+		t.Errorf("error: links[0].SimpleRef.Human() expected: %s got %s", expectAlias, ls.SimpleRef().Human())
 	}
 	if ls.FSIPath != paths.firstDir {
 		t.Errorf("error: links[0].Path, actual: %s, expect: %s", ls.FSIPath, paths.firstDir)
 	}
 
 	ls = links[1]
-	expectAlias = "peer/test_second"
-	if ls.AliasString() != "peer/test_second" {
-		t.Errorf("error: links[1].AliasString expected: %s got %s", expectAlias, ls.AliasString())
+	expectAlias = "peer/movies"
+	if ls.SimpleRef().Human() != expectAlias {
+		t.Errorf("error: links[1].SimpleRef.Human() expected: %s got %s", expectAlias, ls.SimpleRef().Human())
 	}
 	if ls.FSIPath != paths.secondDir {
 		t.Errorf("error: links[1].Path, actual: %s, expect: %s", ls.FSIPath, paths.secondDir)
@@ -148,17 +159,17 @@ func TestCreateLinkAlreadyLinked(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	_, _, err = fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err = fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
 	if err == nil {
 		t.Errorf("expected an error, did not get one")
 		return
 	}
 
-	expect := fmt.Sprintf("'peer/test_ds' is already linked to %s", paths.firstDir)
+	expect := fmt.Sprintf(`"peer/cities" is already linked to %s`, paths.firstDir)
 	if err.Error() != expect {
 		t.Errorf("error didn't match, actual:\n%s\nexpect:\n%s", err.Error(), expect)
 	}
@@ -169,24 +180,24 @@ func TestCreateLinkAgainOnceQriRefRemoved(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	// Remove the .qri-ref link file, then CreateLink again.
 	os.Remove(filepath.Join(paths.firstDir, ".qri-ref"))
-	_, _, err = fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err = fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	actual, _ := ioutil.ReadFile(filepath.Join(paths.firstDir, ".qri-ref"))
-	expect := `peer/test_ds`
+	expect := `peer/cities`
 	if string(actual) != expect {
 		t.Errorf("error: .qri-ref content, actual: %s, expect: %s", actual, expect)
 	}
 
-	links, err := fsi.LinkedRefs(0, 30)
+	links, err := fsi.LinkedDatasets(0, 30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,9 +207,9 @@ func TestCreateLinkAgainOnceQriRefRemoved(t *testing.T) {
 	}
 
 	ls := links[0]
-	expect = "peer/test_ds"
-	if ls.AliasString() != expect {
-		t.Errorf("error: links[0].AliasString expected: %s got %s", expect, ls.AliasString())
+	expect = "peer/cities"
+	if ls.SimpleRef().Human() != expect {
+		t.Errorf("error: links[0].SimpleRef.Human() expected: %s got %s", expect, ls.SimpleRef().Human())
 	}
 	if ls.FSIPath != paths.firstDir {
 		t.Errorf("error: links[0].Path, actual: %s, expect: %s", ls.FSIPath, paths.firstDir)
@@ -211,7 +222,7 @@ func TestModifyLinkReference(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,23 +232,21 @@ func TestModifyLinkReference(t *testing.T) {
 	// to the linkfile (.qri-ref). The below call to ModifyLinkReference will modify the linkfile,
 	// but it fails if the ref does not exist in the repo. The relationship between fsi and repo
 	// is not clear and inconsistent.
-	ref, err := dsref.Parse("peer/test_ds")
-	if err != nil {
-		t.Fatal(err)
-	}
-	rref, err := fsi.repo.GetRef(reporef.RefFromDsref(ref))
+	ref := dsref.MustParse("peer/cities")
+
+	vi, err := repo.GetVersionInfoShim(paths.testRepo, ref)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rref.Name = "test_ds_2"
-	err = fsi.repo.PutRef(rref)
+	vi.Name = "cities_2"
+	err = repo.PutVersionInfoShim(paths.testRepo, vi)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Modify the linkfile.
-	err = fsi.ModifyLinkReference(paths.firstDir, "me/test_ds_2")
+	_, err = fsi.ModifyLinkReference(paths.firstDir, dsref.MustParse("peer/cities_2"))
 	if err != nil {
 		t.Errorf("expected ModifyLinkReference to succeed, got: %s", err.Error())
 	}
@@ -247,9 +256,9 @@ func TestModifyLinkReference(t *testing.T) {
 	if !ok {
 		t.Fatal("expected linked filesys ref, didn't get one")
 	}
-	expect := "peer/test_ds_2"
+	expect := "peer/cities_2"
 	if ref.Human() != expect {
-		t.Errorf("expected %s, got %s", expect, rref)
+		t.Errorf("expected %s, got %s", expect, ref.Human())
 	}
 }
 
@@ -259,16 +268,16 @@ func TestModifyLinkDirectory(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, "me/another_dataset")
+	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/movies"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = fsi.ModifyLinkDirectory(paths.secondDir, "me/another_dataset")
+	_, err = fsi.ModifyLinkDirectory(paths.secondDir, dsref.MustParse("peer/movies"))
 	if err != nil {
 		t.Errorf("expected ModifyLinkReference to succeed, got: %s", err.Error())
 	}
 
-	refs, err := fsi.LinkedRefs(0, 10)
+	refs, err := fsi.LinkedDatasets(0, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,10 +285,19 @@ func TestModifyLinkDirectory(t *testing.T) {
 	if len(refs) != 1 {
 		t.Fatalf("expected, 1 reference, got %d", len(refs))
 	}
-	actual := refs[0].DebugString()
-	expect := fmt.Sprintf("{peername:peer,profileID:QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt,name:another_dataset,fsiPath:%s}", paths.secondDir)
-	if actual != expect {
-		t.Errorf("expected %q, got %q", expect, actual)
+
+	actual := refs[0]
+	expect := dsref.VersionInfo{
+		Username:  "peer",
+		Name:      "movies",
+		ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+		FSIPath:   paths.secondDir,
+	}
+	if diff := cmp.Diff(expect, actual, cmpopts.IgnoreFields(dsref.VersionInfo{}, "FSIPath", "Path")); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+	if actual.FSIPath == "" {
+		t.Errorf("FSIPath cannot be empty")
 	}
 }
 
@@ -288,7 +306,7 @@ func TestUnlink(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, "peer/test_ds")
+	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -297,7 +315,7 @@ func TestUnlink(t *testing.T) {
 		t.Errorf("expected unlinking mismatched reference to error")
 	}
 
-	if err := fsi.Unlink(paths.firstDir, dsref.MustParse("peer/test_ds")); err != nil {
+	if err := fsi.Unlink(paths.firstDir, dsref.MustParse("peer/cities")); err != nil {
 		t.Errorf("unlinking valid reference: %s", err.Error())
 	}
 }

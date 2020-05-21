@@ -790,7 +790,7 @@ func (m *DatasetMethods) Rename(p *RenameParams, res *dsref.VersionInfo) error {
 
 	// If the dataset is linked to a working directory, update the ref
 	if vi.FSIPath != "" {
-		if err = m.inst.fsi.ModifyLinkReference(vi.SimpleRef(), vi.FSIPath); err != nil {
+		if _, err = m.inst.fsi.ModifyLinkReference(vi.FSIPath, vi.SimpleRef()); err != nil {
 			return err
 		}
 	}
@@ -1005,6 +1005,10 @@ func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
 	}
 
 	mergeLogsError := m.inst.remoteClient.CloneLogs(ctx, reporef.ConvertToDsref(ref), p.RemoteAddr)
+	// TODO(b5) - this line is swallowing errors that the cmd package integration
+	// tests are hitting. We need to change the behaviour of add to *require* logs
+	// successfully merge, which will require fixing lots of tests in cmd,
+	// ideally by removing remote.MockRepoClient
 	if p.LogsOnly {
 		return mergeLogsError
 	}
@@ -1017,7 +1021,7 @@ func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
 
 	if p.LinkDir != "" {
 		checkoutp := &CheckoutParams{
-			Ref: ref.String(),
+			Ref: ref.AliasString(),
 			Dir: p.LinkDir,
 		}
 		m := NewFSIMethods(m.inst)

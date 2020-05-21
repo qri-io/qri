@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -90,12 +91,12 @@ func (o *FSIOptions) Link() (err error) {
 		Dir: o.Path,
 		Ref: o.Refs.Ref(),
 	}
-	var res string
-	if err := o.FSIMethods.CreateLink(p, &res); err != nil {
+	res := &dsref.VersionInfo{}
+	if err := o.FSIMethods.CreateLink(p, res); err != nil {
 		return err
 	}
 
-	printSuccess(o.Out, "created dataset reference: %s", res)
+	printSuccess(o.Out, "created dataset reference: %s", res.SimpleRef().Human())
 	return nil
 }
 

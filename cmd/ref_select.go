@@ -122,8 +122,8 @@ func GetCurrentRefSelect(f Factory, args []string, allowed int, fsi *lib.FSIMeth
 	if err == nil {
 		if fsi != nil {
 			// Ensure that the link in the working directory matches what is in the repo.
-			var out bool
-			err = fsi.EnsureRef(&lib.EnsureParams{Dir: refs.Dir(), Ref: refs.Ref()}, &out)
+			out := &dsref.VersionInfo{}
+			err = fsi.EnsureRef(&lib.EnsureParams{Dir: refs.Dir(), Ref: refs.Ref()}, out)
 			if err != nil {
 				log.Debugf("%s", err)
 			}

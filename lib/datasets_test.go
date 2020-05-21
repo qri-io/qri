@@ -868,13 +868,11 @@ func TestDatasetRequestsRemove(t *testing.T) {
 }
 
 func TestDatasetRequestsAdd(t *testing.T) {
-	t.Skip("TODO (b5)")
-	cases := []struct {
-		p   *AddParams
-		res *reporef.DatasetRef
+	bad := []struct {
+		p   AddParams
 		err string
 	}{
-		{&AddParams{Ref: "abc/hash###"}, nil, "node is not online and no registry is configured"},
+		{AddParams{Ref: "abc/hash###"}, "node is not online and no registry is configured"},
 	}
 
 	mr, err := testrepo.NewTestRepo()
@@ -888,14 +886,18 @@ func TestDatasetRequestsAdd(t *testing.T) {
 
 	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
-	for i, c := range cases {
-		got := &reporef.DatasetRef{}
-		err := m.Add(c.p, got)
+	for i, c := range bad {
+		t.Run(fmt.Sprintf("bad_case_%d", i), func(t *testing.T) {
+			got := &reporef.DatasetRef{}
+			err := m.Add(&c.p, got)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
 
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
-		}
+			if err.Error() == c.err {
+				t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			}
+		})
 	}
 }
 
