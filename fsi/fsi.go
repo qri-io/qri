@@ -231,23 +231,12 @@ func (fsi *FSI) ModifyLinkDirectory(dirPath, refStr string) error {
 
 // ModifyLinkReference changes the reference that is in .qri-ref linkfile in the working directory.
 // Does not affect the ref in the repo. Called when a rename command is invoked.
-func (fsi *FSI) ModifyLinkReference(dirPath, refStr string) error {
-	datasetRef, err := repo.ParseDatasetRef(refStr)
-	if err != nil {
-		return err
-	}
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, &datasetRef); err != nil && err != repo.ErrNoHistory {
-		return err
-	}
-
-	log.Debugf("fsi.ModifyLinkReference: modify linkfile at %q, ref=%q", dirPath, datasetRef)
-	ref := reporef.ConvertToDsref(datasetRef)
+func (fsi *FSI) ModifyLinkReference(ref dsref.Ref, dirPath string) error {
+	log.Debugf("fsi.ModifyLinkReference: modify linkfile at %q, ref=%q", dirPath, ref)
 	// Remove the path from the reference because linkfile's don't store full paths.
 	ref.Path = ""
-	if _, err = linkfile.WriteHiddenInDir(dirPath, ref); err != nil {
-		return err
-	}
-	return nil
+	_, err := linkfile.WriteHiddenInDir(dirPath, ref)
+	return err
 }
 
 // Unlink removes the link file (.qri-ref) in the directory, and removes the fsi path

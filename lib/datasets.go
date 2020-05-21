@@ -29,7 +29,6 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -756,7 +755,7 @@ func (m *DatasetMethods) SetPublishStatus(p *SetPublishStatusParams, publishedRe
 
 // RenameParams defines parameters for Dataset renaming
 type RenameParams struct {
-	Current, Next dsref.Ref
+	Current, Next string
 }
 
 // Rename changes a user's given name for a dataset
@@ -766,39 +765,37 @@ func (m *DatasetMethods) Rename(p *RenameParams, res *dsref.VersionInfo) error {
 	}
 	ctx := context.TODO()
 
-	if p.Current.IsEmpty() {
+	if p.Current == "" {
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
 
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Current, "local")
+	if err != nil {
+		return err
+	}
+
+	next, err := dsref.ParseHumanFriendly(p.Next)
+	if err != nil {
+		return dsref.ErrDescribeValidName
+	}
+	if ref.Username != next.Username && next.Username != "me" {
+		return fmt.Errorf("cannot change username or profileID of a dataset")
+	}
+
 	// Update the reference stored in the repo
-	info, err := base.RenameDatasetRef(ctx, m.inst.repo, p.Current, p.Next)
+	vi, err := base.RenameDatasetRef(ctx, m.inst.repo, ref, next.Name)
 	if err != nil {
 		return err
 	}
 
 	// If the dataset is linked to a working directory, update the ref
-	if info.FSIPath != "" {
-		if err = m.inst.fsi.ModifyLinkReference(info.FSIPath, info.Alias()); err != nil {
+	if vi.FSIPath != "" {
+		if err = m.inst.fsi.ModifyLinkReference(vi.SimpleRef(), vi.FSIPath); err != nil {
 			return err
 		}
 	}
 
-	pid, err := profile.IDB58Decode(info.ProfileID)
-	if err != nil {
-		pid = ""
-	}
-
-	ds, err := base.ReadDataset(ctx, m.inst.repo, info.Path)
-	if err != nil && err != repo.ErrNoHistory {
-		log.Debug(err.Error())
-		return err
-	}
-
-	ds.Name = info.Name
-	ds.Path = info.Path
-	ds.Peername = info.Username
-	ds.ProfileID = pid.String()
-	*res = dsref.ConvertDatasetToVersionInfo(ds)
+	*res = *vi
 	return nil
 }
 

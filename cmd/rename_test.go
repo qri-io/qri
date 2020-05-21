@@ -114,10 +114,10 @@ func TestRenameRun(t *testing.T) {
 		err      string
 		msg      string
 	}{
-		{"", "", "", "empty reference", ""},
-		{"me/from", "", "", "empty reference", ""},
-		{"", "me/to", "", "empty reference", ""},
-		{"me/bad_name", "me/bad_name_too", "", "error with existing reference: repo: not found", ""},
+		{"", "", "", "current name is required to rename a dataset", ""},
+		{"me/from", "", "", "reference not found", ""},
+		{"", "me/to", "", "current name is required to rename a dataset", ""},
+		{"me/bad_name", "me/bad_name_too", "", "reference not found", ""},
 		{"me/cities", "me/cities_too", "renamed dataset to cities_too\n", "", ""},
 	}
 
@@ -137,7 +137,7 @@ func TestRenameRun(t *testing.T) {
 
 		err = opt.Run()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
+			t.Errorf("case %d, mismatched error. Expected: %q, Got: %q", i, c.err, err)
 			run.IOReset()
 			continue
 		}

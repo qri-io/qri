@@ -86,6 +86,14 @@ func (tr *testRunner) Delete() {
 	os.RemoveAll(tr.TmpDir)
 }
 
+func (tr *testRunner) MustReadFile(t *testing.T, filename string) string {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
+}
+
 func (tr *testRunner) MustWriteTmpFile(t *testing.T, filename, data string) string {
 	path := filepath.Join(tr.TmpDir, filename)
 	tr.MustWriteFile(t, path, data)

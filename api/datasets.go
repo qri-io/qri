@@ -522,39 +522,17 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 	util.WriteResponse(w, res)
 }
 
-// RenameReqParams is an encoding struct
-// its intent is to be a more user-friendly structure for the api endpoint
-// that will map to and from the lib.RenameParams struct
-type RenameReqParams struct {
-	Current string
-	New     string
-}
-
 func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
-	reqParams := &RenameReqParams{}
 	p := &lib.RenameParams{}
 	if r.Header.Get("Content-Type") == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(reqParams); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 	} else {
-		reqParams.Current = r.URL.Query().Get("current")
-		reqParams.New = r.URL.Query().Get("new")
-	}
-	current, err := repo.ParseDatasetRef(reqParams.Current)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error parsing current param: %s", err.Error()))
-		return
-	}
-	next, err := repo.ParseDatasetRef(reqParams.New)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error parsing new param: %s", err.Error()))
-		return
-	}
-	p = &lib.RenameParams{
-		Current: reporef.ConvertToDsref(current),
-		Next:    reporef.ConvertToDsref(next),
+		p.Current = r.URL.Query().Get("current")
+		// TODO(b5)- should this param be changed to "next"?
+		p.Next = r.URL.Query().Get("new")
 	}
 
 	res := &dsref.VersionInfo{}

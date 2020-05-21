@@ -656,25 +656,25 @@ func TestDatasetRequestsRename(t *testing.T) {
 		err string
 	}{
 		{&RenameParams{}, "current name is required to rename a dataset"},
-		{&RenameParams{Current: dsref.Ref{Username: "peer", Name: "movies"}, Next: dsref.Ref{Username: "peer", Name: "new movies"}}, dsref.ErrDescribeValidName.Error()},
-		{&RenameParams{Current: dsref.Ref{Username: "peer", Name: "cities"}, Next: dsref.Ref{Username: "peer", Name: "sitemap"}}, "dataset 'peer/sitemap' already exists"},
+		{&RenameParams{Current: "peer/movies", Next: "peer/new movies"}, dsref.ErrDescribeValidName.Error()},
+		{&RenameParams{Current: "peer/cities", Next: "peer/sitemap"}, `dataset "peer/sitemap" already exists`},
 	}
 
 	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 	for i, c := range bad {
-		got := &dsref.VersionInfo{}
-		err := m.Rename(c.p, got)
+		t.Run(fmt.Sprintf("bad_%d", i), func(t *testing.T) {
+			got := &dsref.VersionInfo{}
+			err := m.Rename(c.p, got)
 
-		if err == nil {
-			t.Errorf("case %d didn't error. expected: %s", i, c.err)
-			continue
-		}
+			if err == nil {
+				t.Fatalf("test didn't error")
+			}
 
-		if c.err != err.Error() {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
-		}
+			if c.err != err.Error() {
+				t.Errorf("error mismatch: expected: %s, got: %s", c.err, err)
+			}
+		})
 	}
 
 	log, err := mr.Logbook().DatasetRef(ctx, dsref.Ref{Username: "peer", Name: "movies"})
@@ -683,8 +683,8 @@ func TestDatasetRequestsRename(t *testing.T) {
 	}
 
 	p := &RenameParams{
-		Current: dsref.Ref{Username: "peer", Name: "movies"},
-		Next:    dsref.Ref{Username: "peer", Name: "new_movies"},
+		Current: "peer/movies",
+		Next:    "peer/new_movies",
 	}
 
 	res := &dsref.VersionInfo{}
@@ -705,6 +705,46 @@ func TestDatasetRequestsRename(t *testing.T) {
 
 	if expect.Name != after.Name() {
 		t.Errorf("rename log mismatch. expected: %s, got: %s", expect.Name, after.Name())
+	}
+}
+
+func TestRenameNoHistory(t *testing.T) {
+	tr := newTestRunner(t)
+	defer tr.Delete()
+
+	workDir := tr.CreateAndChdirToWorkDir("remove_no_history")
+	initP := &InitFSIDatasetParams{
+		Dir:    workDir,
+		Name:   "remove_no_history",
+		Format: "csv",
+	}
+	var refstr string
+	if err := NewFSIMethods(tr.Instance).InitDataset(initP, &refstr); err != nil {
+		t.Fatal(err)
+	}
+
+	// 	// Read .qri-ref file, it contains the reference this directory is linked to
+	actual := tr.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
+	expect := "peer/remove_no_history"
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("qri list (-want +got):\n%s", diff)
+	}
+
+	// Rename before any commits have happened
+	renameP := &RenameParams{
+		Current: "me/remove_no_history",
+		Next:    "me/remove_second_name",
+	}
+	res := new(dsref.VersionInfo)
+	if err := NewDatasetMethods(tr.Instance).Rename(renameP, res); err != nil {
+		t.Fatal(err)
+	}
+
+	// Read .qri-ref file, it contains the new reference name
+	actual = tr.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
+	expect = "peer/remove_second_name"
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("qri list (-want +got):\n%s", diff)
 	}
 }
 

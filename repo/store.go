@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 
+	"github.com/qri-io/qri/dsref"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -23,6 +24,28 @@ type Refstore interface {
 	References(offset, limit int) ([]reporef.DatasetRef, error)
 	// RefCount returns the number of references in the store
 	RefCount() (int, error)
+}
+
+// DeleteVersionInfoShim is a shim for getting away from the old stack of
+// DatasetRef, CanonicalizeDatasetRef, and RefStores
+// while still safely interacting with the repo.Refstore API
+func DeleteVersionInfoShim(r Repo, ref dsref.Ref) (*dsref.VersionInfo, error) {
+	rref := reporef.RefFromDsref(ref)
+	if err := CanonicalizeDatasetRef(r, &rref); err != nil && err != ErrNoHistory {
+		return nil, err
+	}
+	if err := r.DeleteRef(rref); err != nil {
+		return nil, err
+	}
+	vi := reporef.ConvertToVersionInfo(&rref)
+	return &vi, nil
+}
+
+// PutVersionInfoShim is a shim for getting away from old stack of
+// DatasetRef, CanonicalizeDatasetRef, and RefStores
+// while still safely interacting with the repo.Refstore API
+func PutVersionInfoShim(r Repo, vi *dsref.VersionInfo) error {
+	return r.PutRef(reporef.RefFromVersionInfo(vi))
 }
 
 // TODO(dlong): In the near future, switch to a new utility that resolves references to specific

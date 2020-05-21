@@ -83,3 +83,17 @@ func RefFromDsref(r dsref.Ref) DatasetRef {
 		Path:      r.Path,
 	}
 }
+
+// RefFromVersionInfo creates a reference from a dsref.VersionInfo, for
+// backwards compatibility
+func RefFromVersionInfo(vi *dsref.VersionInfo) DatasetRef {
+	return DatasetRef{
+		Peername:  vi.Username,
+		ProfileID: profile.IDB58DecodeOrEmpty(vi.ProfileID),
+		Name:      vi.Name,
+		Path:      vi.Path,
+		FSIPath:   vi.FSIPath,
+		Published: vi.Published,
+		Foreign:   vi.Foreign,
+	}
+}
