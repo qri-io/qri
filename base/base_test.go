@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -48,9 +49,10 @@ func init() {
 
 func newTestRepo(t *testing.T) repo.Repo {
 	mapStore := cafs.NewMapstore()
-	mux := qfs.NewMux(map[string]qfs.Filesystem{
-		"local": mapStore,
-		"cafs":  mapStore,
+	mem := qfs.NewMemFS()
+	mux := muxfs.NewMux(map[string]qfs.Filesystem{
+		"map": mapStore,
+		"mem": mem,
 	})
 	mr, err := repo.NewMemRepo(testPeerProfile, mapStore, mux, profile.NewMemStore())
 	if err != nil {

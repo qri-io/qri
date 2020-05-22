@@ -548,7 +548,12 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
 	// Because this test is using a memrepo, but the command runner instantiates its own repo
 	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
 	// same filename.
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem: %s", err)
+		return
+	}
+
 	cacheFilename := cache.Filename
 	ctx := context.Background()
 	// TODO(dustmop): Do we need to pass a book?
@@ -629,7 +634,12 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 	// Because this test is using a memrepo, but the command runner instantiates its own repo
 	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
 	// same filename.
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem: %s", err)
+		return
+	}
+
 	cacheFilename := cache.Filename
 	ctx := context.Background()
 	cache = dscache.NewDscache(ctx, fs, nil, run.Username(), cacheFilename)

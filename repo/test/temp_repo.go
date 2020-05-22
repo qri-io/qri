@@ -3,16 +3,17 @@ package test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs/cafs"
 	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/repo/gen"
 )
 
@@ -88,7 +89,7 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 func (r *TempRepo) Repo() (repo.Repo, error) {
 	if r.repo == nil {
 		var err error
-		if r.repo, err = buildrepo.New(context.TODO(), r.QriPath, r.cfg); err != nil {
+		if r.repo, _, err = NewMemRepoFromDir(r.IPFSPath); err != nil {
 			return nil, err
 		}
 	}
@@ -136,7 +137,7 @@ func (r *TempRepo) GetPathForDataset(index int) (string, error) {
 // in CAFS
 func (r *TempRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
 	ctx := context.Background()
-	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
+	fs, err := ipfs_filestore.NewFS(nil, func(cfg *ipfs_filestore.StoreCfg) {
 		cfg.Online = false
 		cfg.FsRepoPath = r.IPFSPath
 	})
@@ -160,11 +161,15 @@ func (r *TempRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
 // DatasetMarshalJSON reads the dataset head and marshals it as json.
 func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
 	ctx := context.Background()
-	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
+	fs, err := ipfs_filestore.NewFS(nil, func(cfg *ipfs_filestore.StoreCfg) {
 		cfg.Online = false
 		cfg.FsRepoPath = r.IPFSPath
 	})
-	ds, err := dsfs.LoadDataset(ctx, fs, ref)
+	cafs, ok := fs.(cafs.Filestore)
+	if !ok {
+		return "", fmt.Errorf("error asserting file system is a cafs filesystem")
+	}
+	ds, err := dsfs.LoadDataset(ctx, cafs, ref)
 	if err != nil {
 		return "", err
 	}

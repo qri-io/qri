@@ -72,7 +72,11 @@ func TestDatasetLogForeign(t *testing.T) {
 
 	ctx := context.Background()
 	mr := newTestRepo(t).(*repo.MemRepo)
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem")
+		return
+	}
 
 	// Construct a logbook for another user
 	theirRefStr := "them/foreign"

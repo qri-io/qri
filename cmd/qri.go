@@ -119,7 +119,10 @@ func NewQriOptions(ctx context.Context, qriPath, ipfsPath string, generator gen.
 
 // Init will initialize the internal state
 func (o *QriOptions) Init() (err error) {
-	if o.inst == nil {
+	if o.inst != nil {
+		return
+	}
+	initBody := func() {
 		opts := []lib.Option{
 			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
 			lib.OptSetIPFSPath(o.IpfsPath),
@@ -144,7 +147,8 @@ func (o *QriOptions) Init() (err error) {
 		setNoPrompt(o.NoPrompt)
 		log.Debugf("running cmd %q", os.Args)
 	}
-	return nil
+	initBody()
+	return
 }
 
 // Instance returns the instance this options is using

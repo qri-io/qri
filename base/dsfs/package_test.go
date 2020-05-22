@@ -1,6 +1,7 @@
 package dsfs
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -58,9 +59,14 @@ func makeTestIPFSRepo(path string) (fs *ipfsfs.Filestore, destroy func(), err er
 	if err != nil {
 		return
 	}
-	fs, err = ipfsfs.NewFilestore(func(cfg *ipfsfs.StoreCfg) { cfg.FsRepoPath = path })
+	qfsFilestore, err := ipfsfs.NewFS(map[string]interface{}{"fsRepoPath": path})
 	if err != nil {
 		return
+	}
+
+	fs, ok := qfsFilestore.(*ipfsfs.Filestore)
+	if !ok {
+		return nil, nil, fmt.Errorf("created filestore is not of type ipfs")
 	}
 
 	destroy = func() {
