@@ -56,6 +56,7 @@ PostgreSQL in a few ways:
 	}
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "table", "set output format [table]")
+	cmd.Flags().BoolVar(&o.Offline, "offline", false, "prevent network access")
 
 	return cmd
 }
@@ -64,8 +65,9 @@ PostgreSQL in a few ways:
 type SQLOptions struct {
 	ioes.IOStreams
 
-	Query  string
-	Format string
+	Query   string
+	Format  string
+	Offline bool
 
 	SQLMethods *lib.SQLMethods
 }
@@ -82,9 +84,15 @@ func (o *SQLOptions) Complete(f Factory, args []string) (err error) {
 func (o *SQLOptions) Run() (err error) {
 	o.StartSpinner()
 
+	var rm string
+	if o.Offline {
+		rm = "local"
+	}
+
 	p := &lib.SQLQueryParams{
 		Query:        o.Query,
 		OutputFormat: o.Format,
+		ResolverMode: rm,
 	}
 
 	res := []byte{}

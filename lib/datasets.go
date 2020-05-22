@@ -231,11 +231,11 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 	ctx := context.TODO()
 
 	var ds *dataset.Dataset
-	ref, _, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, p.Remote)
+	ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, p.Remote)
 	if err != nil {
 		return err
 	}
-	ds, err = m.inst.loadDataset(ctx, ref)
+	ds, err = m.inst.LoadDataset(ctx, ref, source)
 	if err != nil {
 		return err
 	}
@@ -632,7 +632,16 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 				return nil
 			}
 		}
-		err := base.TransformApply(ctx, ds, r, str, scriptOut, secrets)
+
+		// create a loader so transforms can call `load_dataset`
+		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverMode
+		// on the passed in mode string instead of just using the default resolver
+		// cmd can then define "remote" and "offline" flags, that set the ResolverMode
+		// string and control how transform functions
+		loader := dsref.NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
+
+		// apply the transform
+		err := base.TransformApply(ctx, ds, r, loader, str, scriptOut, secrets)
 		if err != nil {
 			return err
 		}
@@ -1300,13 +1309,13 @@ func (m *DatasetMethods) Stats(p *StatsParams, res *StatsResponse) error {
 
 	if p.Dataset == nil {
 		// TODO (b5) - stats is currently local-only, supply a source parameter
-		ref, _, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
+		ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
 		if err != nil {
 			return err
 		}
-		p.Dataset, err = m.inst.loadDataset(ctx, ref)
+		p.Dataset, err = m.inst.LoadDataset(ctx, ref, source)
 		if err != nil {
-			return fmt.Errorf("loading dataset: %s", err)
+			return fmt.Errorf("loading dataset: %w", err)
 		}
 	}
 

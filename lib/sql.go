@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/sql"
 )
 
@@ -27,6 +28,7 @@ func (m SQLMethods) CoreRequestsName() string { return "sql" }
 type SQLQueryParams struct {
 	Query        string
 	OutputFormat string
+	ResolverMode string
 }
 
 // Exec runs an SQL query
@@ -39,10 +41,16 @@ func (m *SQLMethods) Exec(p *SQLQueryParams, results *[]byte) error {
 	}
 	ctx := context.TODO()
 
-	svc := sql.New(m.inst.repo)
+	resolver, err := m.inst.resolverMode(p.ResolverMode)
+	if err != nil {
+		return err
+	}
+	// create a loader sql will use to load & fetch datasets
+	// pass in the configured peername, allowing the "me" alias in reference strings
+	loadDataset := dsref.NewParseResolveLoadFunc(m.inst.cfg.Profile.Peername, resolver, m.inst)
+	svc := sql.New(m.inst.repo, loadDataset)
 
 	buf := &bytes.Buffer{}
-
 	if err := svc.Exec(ctx, buf, p.OutputFormat, p.Query); err != nil {
 		return err
 	}

@@ -27,7 +27,8 @@ type Resolver interface {
 }
 
 // ParallelResolver composes multiple resolvers into one resolver that runs
-// in parallel when called, returning the first valid response
+// in parallel when called, using the first resolver that doesn't return
+// ErrorNotFound
 func ParallelResolver(resolvers ...Resolver) Resolver {
 	return parallelResolver(resolvers)
 }
@@ -81,4 +82,29 @@ func (rs parallelResolver) ResolveRef(ctx context.Context, ref *Ref) (string, er
 			return "", ctx.Err()
 		}
 	}
+}
+
+// SequentialResolver composes multiple resolvers into one that runs each
+// resolver in sequence, using the first resolver that doesn't return
+// ErrorNotFound
+func SequentialResolver(resolvers ...Resolver) Resolver {
+	return sequentialResolver(resolvers)
+}
+
+type sequentialResolver []Resolver
+
+func (sr sequentialResolver) ResolveRef(ctx context.Context, ref *Ref) (string, error) {
+	for _, resolver := range sr {
+		resolvedSource, err := resolver.ResolveRef(ctx, ref)
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				continue
+			} else {
+				return "", err
+			}
+		}
+		return resolvedSource, nil
+	}
+
+	return "", ErrNotFound
 }

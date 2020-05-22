@@ -12,6 +12,8 @@ import (
 	"github.com/cube2222/octosql/parser/sqlparser"
 	"github.com/cube2222/octosql/physical"
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
 )
@@ -63,7 +65,7 @@ func newTestRunner(t *testing.T) (*testRunner, func()) {
 }
 
 func (tr *testRunner) MustRun(t *testing.T, query string, cfg *octocfg.Config) string {
-	fac := NewDataSourceBuilderFactory(tr.repo)
+	fac := NewDataSourceBuilderFactory(tr.repo, tr.loadDatasetFunc())
 	ff := func(dbConfig map[string]interface{}) (physical.DataSourceBuilderFactory, error) {
 		return fac, nil
 	}
@@ -101,4 +103,10 @@ func (tr *testRunner) MustRun(t *testing.T, query string, cfg *octocfg.Config) s
 	// Run query
 	app.RunPlan(tr.ctx, plan)
 	return out.String()
+}
+
+func (tr *testRunner) loadDatasetFunc() dsref.ParseResolveLoad {
+	pro, _ := tr.repo.Profile()
+	loader := base.NewLocalDatasetLoader(tr.repo)
+	return dsref.NewParseResolveLoadFunc(pro.Peername, tr.repo, loader)
 }

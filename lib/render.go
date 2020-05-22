@@ -95,12 +95,12 @@ func (m *RenderMethods) RenderReadme(p *RenderParams, res *string) (err error) {
 	if p.Dataset != nil {
 		ds = p.Dataset
 	} else {
-		ref, _, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
+		ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
 		if err != nil {
 			return err
 		}
 
-		ds, err = m.inst.loadDataset(ctx, ref)
+		ds, err = m.inst.LoadDataset(ctx, ref, source)
 		if err != nil {
 			return fmt.Errorf("loading dataset: %w", err)
 		}

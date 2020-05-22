@@ -10,9 +10,35 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
+
+// NewLocalDatasetLoader creates a dsfs.Loader that operates on a filestore
+func NewLocalDatasetLoader(r repo.Repo) dsref.Loader {
+	return loader{r}
+}
+
+type loader struct {
+	r repo.Repo
+}
+
+func (l loader) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
+	// LoadDataset fetches, derefences and opens a dataset from a reference
+	// implements the dsfs.Loader interface
+	if source != "" {
+		return nil, fmt.Errorf("only local datasets can be loaded")
+	}
+
+	ds, err := dsfs.LoadDataset(ctx, l.r.Store(), ref.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	err = OpenDataset(ctx, l.r.Filesystem(), ds)
+	return ds, err
+}
 
 // OpenDataset prepares a dataset for use, checking each component
 // for populated Path or Byte suffixed fields, consuming those fields to

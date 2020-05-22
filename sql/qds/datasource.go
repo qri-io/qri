@@ -43,7 +43,7 @@ type DataSource struct {
 
 // NewDataSourceBuilderFactory is a factory function for qri data source
 // builders
-func NewDataSourceBuilderFactory(r repo.Repo) physical.DataSourceBuilderFactory {
+func NewDataSourceBuilderFactory(r repo.Repo, loadDataset dsref.ParseResolveLoad) physical.DataSourceBuilderFactory {
 	return physical.NewDataSourceBuilderFactory(
 		func(ctx context.Context, matCtx *physical.MaterializationContext, dbConfig map[string]interface{}, filter physical.Formula, alias string) (execution.Node, error) {
 			refstr, err := config.GetString(dbConfig, "ref")
@@ -51,27 +51,18 @@ func NewDataSourceBuilderFactory(r repo.Repo) physical.DataSourceBuilderFactory 
 				return nil, perrors.Wrap(err, "couldn't get path")
 			}
 
-			// TODO(b5) - we should be passing down lib.Instance as an interface that
-			// can parse and resolve references, instead of replicating that code
-			// here
-			ref, err := dsref.Parse(refstr)
+			ds, err := loadDataset(ctx, refstr)
 			if err != nil {
-				return nil, fmt.Errorf("%q is not a valid dataset reference: %w", refstr, err)
-			}
-			if ref.Username == "me" {
-				pro, err := r.Profile()
-				if err != nil {
-					return nil, fmt.Errorf("fetching profile: %w", err)
-				}
-				ref.Username = pro.Peername
+				return nil, err
 			}
 
-			if _, err = r.ResolveRef(ctx, &ref); err != nil {
-				log.Debugf("buildSource: resolving reference '%s': %s", refstr, err)
-				if errors.Is(err, dsref.ErrNotFound) {
-					return nil, qrierr.New(err, fmt.Sprintf("couldn't find '%s' in local dataset collection.\nhave you added it?", refstr))
-				}
-				return nil, perrors.Wrap(err, "preparing SQL data souce: bad dataset reference.")
+			// TODO(b5) - we need an easy way to get a reference from a dataset
+			ref := dsref.Ref{
+				// TODO(b5) - get an ID field on dataset
+				// InitID: ds.ID,
+				Username: ds.Peername,
+				Name:     ds.Name,
+				Path:     ds.Path,
 			}
 
 			return &DataSource{

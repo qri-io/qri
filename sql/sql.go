@@ -17,6 +17,7 @@ import (
 	"github.com/cube2222/octosql/physical"
 	golog "github.com/ipfs/go-log"
 	"github.com/pkg/errors"
+	"github.com/qri-io/qri/dsref"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/sql/preprocess"
@@ -27,13 +28,15 @@ var log = golog.Logger("sql")
 
 // Service executes SQL queries against qri datasets
 type Service struct {
-	r repo.Repo
+	r           repo.Repo
+	loadDataset dsref.ParseResolveLoad
 }
 
 // New creates an SQL service
-func New(r repo.Repo) *Service {
+func New(r repo.Repo, loadDataset dsref.ParseResolveLoad) *Service {
 	return &Service{
-		r: r,
+		r:           r,
+		loadDataset: loadDataset,
 	}
 }
 
@@ -58,7 +61,7 @@ func (svc *Service) Exec(ctx context.Context, w io.Writer, outFormat, query stri
 	}
 
 	ff := func(dbConfig map[string]interface{}) (physical.DataSourceBuilderFactory, error) {
-		return qds.NewDataSourceBuilderFactory(svc.r), nil
+		return qds.NewDataSourceBuilderFactory(svc.r, svc.loadDataset), nil
 	}
 
 	dataSourceRespository, err := physical.CreateDataSourceRepositoryFromConfig(
