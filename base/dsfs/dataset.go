@@ -610,12 +610,12 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 		}
 		err = ds.Transform.OpenScriptFile(ctx, fs)
 		if err != nil {
-			log.Error("ds.Transform.ScriptPath %q open err: %s", ds.Transform.ScriptPath, err)
+			log.Errorf("ds.Transform.ScriptPath %q open err: %s", ds.Transform.ScriptPath, err)
 		} else {
 			tfFile := ds.Transform.ScriptFile()
 			ds.Transform.ScriptBytes, err = ioutil.ReadAll(tfFile)
 			if err != nil {
-				log.Error("ds.Transform.ScriptPath %q read err: %s", ds.Transform.ScriptPath, err)
+				log.Errorf("ds.Transform.ScriptPath %q read err: %s", ds.Transform.ScriptPath, err)
 			}
 		}
 		// Reopen the transform file so that WriteDataset will be able to write it to the store.

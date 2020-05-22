@@ -87,10 +87,12 @@ func NewEmptyTestRepo() (mr *repo.MemRepo, err error) {
 func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
 	lfs, _ := localfs.NewFS(nil)
 	hfs, _ := httpfs.NewFS(nil)
+	mem := qfs.NewMemFS()
 	return muxfs.NewMux(map[string]qfs.Filesystem{
 		"local": lfs,
 		"http":  hfs,
-		"mem":   cafsys,
+		"map":   cafsys,
+		"mem":   mem,
 	})
 }
 
