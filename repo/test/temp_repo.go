@@ -14,7 +14,6 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/repo/gen"
 )
 
@@ -90,7 +89,7 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 func (r *TempRepo) Repo() (repo.Repo, error) {
 	if r.repo == nil {
 		var err error
-		if r.repo, err = buildrepo.New(context.TODO(), r.QriPath, r.cfg); err != nil {
+		if r.repo, _, err = NewMemRepoFromDir(r.IPFSPath); err != nil {
 			return nil, err
 		}
 	}
