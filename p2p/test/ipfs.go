@@ -19,7 +19,9 @@ import (
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	qfs "github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	ipfsfs "github.com/qri-io/qfs/cafs/ipfs"
+	"github.com/qri-io/qfs/muxfs"
 	cfgtest "github.com/qri-io/qri/config/test"
 	qrirepo "github.com/qri-io/qri/repo"
 	profile "github.com/qri-io/qri/repo/profile"
@@ -33,7 +35,7 @@ func MakeRepoFromIPFSNode(node *core.IpfsNode, username string) (qrirepo.Repo, e
 		PrivKey:  node.PrivateKey,
 	}
 
-	store, err := ipfsfs.NewFilestore(func(cfg *ipfsfs.StoreCfg) {
+	store, err := ipfsfs.NewFS(nil, func(cfg *ipfsfs.StoreCfg) {
 		cfg.Node = node
 	})
 	if err != nil {
@@ -41,13 +43,13 @@ func MakeRepoFromIPFSNode(node *core.IpfsNode, username string) (qrirepo.Repo, e
 	}
 
 	memFS := qfs.NewMemFS()
-	fsys := qfs.NewMux(map[string]qfs.Filesystem{
-		"cafs":  memFS,
+	fsys := muxfs.NewMux(map[string]qfs.Filesystem{
+		"mem":   memFS,
 		"local": memFS,
 		"ipfs":  store,
 	})
 
-	return qrirepo.NewMemRepo(p, store, fsys, profile.NewMemStore())
+	return qrirepo.NewMemRepo(p, store.(cafs.Filestore), fsys, profile.NewMemStore())
 }
 
 // MakeIPFSNode creates a single mock IPFS Node

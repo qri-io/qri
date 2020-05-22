@@ -49,7 +49,11 @@ func TestDscacheAssignSaveAndLoad(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 
 	ctx := context.Background()
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem")
+		return
+	}
 
 	peerInfo := testPeers.GetTestPeerInfo(0)
 	peername := "test_user"

@@ -1155,7 +1155,10 @@ func (m *DatasetMethods) Validate(p *ValidateDatasetParams, valerrs *[]jsonschem
 		body = ds.BodyFile()
 	} else {
 		// Body is set to the provided filename if given
-		fs := localfs.NewFS()
+		fs, err := localfs.NewFS(nil)
+		if err != nil {
+			return fmt.Errorf("error creating new local filesystem: %s", err)
+		}
 		body, err = fs.Get(context.Background(), p.BodyFilename)
 		if err != nil {
 			return fmt.Errorf("error opening body file: %s", p.BodyFilename)

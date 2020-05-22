@@ -225,7 +225,6 @@ func (book *Book) save(ctx context.Context) (err error) {
 // load reads the book dataset from book.fsLocation
 func (book *Book) load(ctx context.Context) error {
 	if al, ok := book.store.(oplog.AuthorLogstore); ok {
-
 		f, err := book.fs.Get(ctx, book.fsLocation)
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") {

@@ -13,10 +13,11 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	ipfs "github.com/qri-io/qfs/cafs/ipfs"
+	qipfs "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qfs/cafs/ipfs_http"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
 	qerr "github.com/qri-io/qri/errors"
@@ -41,7 +42,7 @@ var (
 // qri binary) by default
 func LoadIPFSPluginsOnce(path string) error {
 	body := func() {
-		pluginLoadError = ipfs.LoadPlugins(path)
+		pluginLoadError = qipfs.LoadPlugins(path)
 	}
 	pluginLoadLock.Do(body)
 	return pluginLoadError
@@ -89,17 +90,33 @@ func New(ctx context.Context, path string, cfg *config.Config) (repo.Repo, error
 
 // NewFilesystem creates a qfs.Filesystem from configuration
 func NewFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, error) {
+
+	lfs, err := localfs.NewFS(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	hfs, err := httpfs.NewFS(nil)
+	if err != nil {
+		return nil, err
+	}
 	mux := map[string]qfs.Filesystem{
-		"local": localfs.NewFS(),
-		"http":  httpfs.NewFS(),
+		"local": lfs,
+		"http":  hfs,
 		"cafs":  store,
 	}
 
-	if ipfss, ok := store.(*ipfs.Filestore); ok {
+	// TODO(ramfox): adding this to satisfy tests, soon `buildrepo` package
+	// will be removed
+	if cfg.Store.Type == "map" || cfg.Store.Type == "mem" {
+		mux["mem"] = store
+	}
+
+	if ipfss, ok := store.(*qipfs.Filestore); ok {
 		mux["ipfs"] = ipfss
 	}
 
-	fsys := qfs.NewMux(mux)
+	fsys := muxfs.NewMux(mux)
 	return fsys, nil
 }
 
@@ -124,19 +141,23 @@ func NewCAFSStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore
 			return nil, err
 		}
 
-		fsOpts := []ipfs.Option{
-			func(c *ipfs.StoreCfg) {
-				c.Ctx = ctx
-				c.FsRepoPath = path
-			},
-			ipfs.OptsFromMap(cfg.Store.Options),
-		}
-		store, err = ipfs.NewFilestore(fsOpts...)
-		if errors.Is(err, ipfs.ErrNeedMigration) {
+		// fsOpts := []qipfs.Option{
+		// 	qipfs.OptsFromMap(cfg.Store.Options),
+		// }
+		var ipfsfs qfs.Filesystem
+		ipfsfs, err = qipfs.NewFS(map[string]interface{}{"fsRepoPath": path}, qipfs.OptsFromMap(cfg.Store.Options))
+		if errors.Is(err, qipfs.ErrNeedMigration) {
 			err = qerr.New(err, `Your IPFS repo needs an update.
 Run 'qri connect' to begin the migration process.`)
 		}
-
+		if err != nil {
+			return
+		}
+		var ok bool
+		store, ok = (ipfsfs).(cafs.Filestore)
+		if !ok {
+			return nil, fmt.Errorf("n=%#v", store)
+		}
 		return store, err
 	case "ipfs_http":
 		urli, ok := cfg.Store.Options["url"]
@@ -147,7 +168,7 @@ Run 'qri connect' to begin the migration process.`)
 		if !ok {
 			return nil, fmt.Errorf("ipfs_http 'url' option must be a string")
 		}
-		return ipfs_http.New(urlStr)
+		return ipfs_http.NewFilesystem(map[string]interface{}{"ipfsApiUrl": urlStr})
 	case "map":
 		return cafs.NewMapstore(), nil
 	default:

@@ -20,6 +20,8 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
@@ -337,22 +339,79 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	if o.store != nil {
-		inst.store = o.store
-	} else if inst.store == nil {
-		if inst.store, err = buildrepo.NewCAFSStore(ctx, cfg); err != nil {
-			log.Debugf("intializing store: %s", err.Error())
-			return nil, fmt.Errorf("initializing store: %w", err)
-		}
-	}
-
 	if o.qfs != nil {
 		inst.qfs = o.qfs
 	} else if inst.qfs == nil {
-		if inst.qfs, err = buildrepo.NewFilesystem(cfg, inst.store); err != nil {
+		// TODO (ramfox): adding a default mux config
+		// after the config refactor to add a `Filesystem` field, that config
+		// section should replace this
+		// defaults are taken from the old buildrepo.NewFilesystem func
+		muxConfig := []muxfs.MuxConfig{
+			{Type: "local"},
+			{Type: "http"},
+		}
+
+		// TODO(ramfox): adding this to switch statement until we
+		// add a Filesystem config
+		switch cfg.Store.Type {
+		case "ipfs":
+			path := cfg.Store.Path
+			// TODO (ramfox): this should change when we migrate the
+			// config to default to `${QRI_PATH}/.ipfs`
+			if path == "" && os.Getenv("IPFS_PATH") != "" {
+				path = os.Getenv("IPFS_PATH")
+			} else if path == "" {
+				home, err := homedir.Dir()
+				if err != nil {
+					return nil, fmt.Errorf("creating IPFS store: %s", err)
+				}
+				path = filepath.Join(home, ".ipfs")
+			}
+
+			// TODO(ramfox): should we load the plugins down in qfs/cafs/ipfs?
+			if err := buildrepo.LoadIPFSPluginsOnce(path); err != nil {
+				return nil, err
+			}
+			ipfsCfg := muxfs.MuxConfig{
+				Type: "ipfs",
+				Config: map[string]interface{}{
+					"fsRepoPath": path,
+					"apiAddr":    cfg.Store.Options["url"],
+				},
+			}
+			muxConfig = append(muxConfig, ipfsCfg)
+		case "map":
+			muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "map"})
+		case "mem":
+			muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "mem"})
+		default:
+			return nil, fmt.Errorf("unknown store type: %s", cfg.Store.Type)
+		}
+
+		if cfg.Repo.Type == "mem" {
+			muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "mem"})
+		}
+
+		if inst.qfs, err = muxfs.New(context.Background(), muxConfig); err != nil {
 			log.Debugf("intializing filesystem:", err.Error())
 			return nil, fmt.Errorf("initializing filesystem: %w", err)
 		}
+	}
+
+	if o.store != nil {
+		inst.store = o.store
+	} else if inst.store == nil {
+		fs, err := muxfs.GetResolver(inst.qfs, cfg.Store.Type)
+		if err != nil {
+			log.Debugf("getting store from filesystem: %s", err.Error())
+			return nil, fmt.Errorf("getting store from filesystem: %w", err)
+		}
+		cafs, ok := fs.(cafs.Filestore)
+		if !ok {
+			log.Debugf("error asserting store is a cafs filestore: fs=%#v", err.Error())
+			return nil, fmt.Errorf("error asserting store is a cafs filestore: fs=%#v", err.Error())
+		}
+		inst.store = cafs
 	}
 
 	if inst.logbook == nil {

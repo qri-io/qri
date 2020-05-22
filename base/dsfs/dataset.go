@@ -604,7 +604,11 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
 		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
 		// local here. Is there some way to have a cafs store that works with both?
-		err := ds.Transform.OpenScriptFile(ctx, localfs.NewFS())
+		fs, err := localfs.NewFS(nil)
+		if err != nil {
+			log.Errorf("error setting up local fs: %s", err)
+		}
+		err = ds.Transform.OpenScriptFile(ctx, fs)
 		if err != nil {
 			log.Error("ds.Transform.ScriptPath %q open err: %s", ds.Transform.ScriptPath, err)
 		} else {
@@ -615,7 +619,7 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 			}
 		}
 		// Reopen the transform file so that WriteDataset will be able to write it to the store.
-		_ = ds.Transform.OpenScriptFile(ctx, localfs.NewFS())
+		_ = ds.Transform.OpenScriptFile(ctx, fs)
 	}
 
 	// Read the readme files to see if they changed.
