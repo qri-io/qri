@@ -32,7 +32,7 @@ func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source str
 // including setting default Path to a linked working directory if one exists
 func (inst *Instance) ParseAndResolveRefWithWorkingDir(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
 	ref, err := dsref.Parse(refStr)
-	if err != nil {
+	if err != nil && err != dsref.ErrBadCaseName {
 		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
 	}
 

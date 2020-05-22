@@ -44,7 +44,7 @@ func (o *WhatChangedOptions) Complete(f Factory, args []string) (err error) {
 	if o.FSIMethods, err = f.FSIMethods(); err != nil {
 		return err
 	}
-	o.Refs, err = GetCurrentRefSelect(f, args, 1, o.FSIMethods)
+	o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.FSIMethods))
 	return nil
 }
 

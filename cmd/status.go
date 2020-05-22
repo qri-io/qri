@@ -67,13 +67,15 @@ func (o *StatusOptions) Complete(f Factory, args []string) (err error) {
 		return err
 	}
 
-	o.Refs, err = GetCurrentRefSelect(f, args, 0, o.FSIMethods)
+	// Cannot pass explicit reference, must be run in a working directory
+	if len(args) > 0 {
+		// TODO(dustmop): Fix this, see issue https://github.com/qri-io/qri/issues/1246
+		return fmt.Errorf("can only get status of the current working directory")
+	}
+
+	o.Refs, err = GetCurrentRefSelect(f, args, 0, EnsureFSIAgrees(o.FSIMethods))
 	if err != nil {
 		return err
-	}
-	// Cannot pass explicit reference, must be run in a working directory
-	if !o.Refs.IsLinked() {
-		return fmt.Errorf("can only get status of the current working directory")
 	}
 
 	return nil

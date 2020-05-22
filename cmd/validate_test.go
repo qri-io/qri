@@ -26,7 +26,6 @@ func TestValidateComplete(t *testing.T) {
 	}{
 		{[]string{}, "filepath", "schemafilepath", "", ""},
 		{[]string{"test"}, "", "", "test", ""},
-		{[]string{"foo", "bar"}, "", "", "foo", ""},
 	}
 
 	for i, c := range cases {

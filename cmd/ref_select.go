@@ -8,7 +8,6 @@ import (
 
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
-	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -99,34 +98,57 @@ func (r *RefSelect) String() string {
 	return fmt.Sprintf("%s dataset [%s]", r.kind, strings.Join(r.refs, ", "))
 }
 
+// AnyNumberOfReferences is for commands that can work on any number of dataset references
+const AnyNumberOfReferences = -1
+
+// BadUpperCaseOkayWhenSavingExistingDataset is for the save command, which can have bad
+// upper-case characters in its reference but only if it already exists
+const BadUpperCaseOkayWhenSavingExistingDataset = -2
+
 // GetCurrentRefSelect returns the current reference selection. This could be explicitly provided
 // as command-line arguments, or could be determined by being in a linked directory, or could be
 // selected by the `use` command. This order is also the precendence, from most important to least.
-// This is the recommended method for command-line commands to get references, unless they have a
-// special way of interacting with datasets (for example, `qri status`).
-// If an fsi pointer is passed in, use it to ensure that the ref in the .qri-ref linkfile matches
+// This is the recommended method for command-line commands to get references.
+// If an Ensurer is passed in, it is used to ensure that the ref in the .qri-ref linkfile matches
 // what is in the repo.
-func GetCurrentRefSelect(f Factory, args []string, allowed int, fsi *lib.FSIMethods) (*RefSelect, error) {
-	// TODO(dlong): Respect `allowed`, number of refs the command uses. -1 means any.
-	// TODO(dlong): For example, `get` allows -1, `diff` allows 2, `save` allows 1
+func GetCurrentRefSelect(f Factory, args []string, allowed int, ensurer *FSIRefLinkEnsurer) (*RefSelect, error) {
 	// If reference is specified by the user provide command-line arguments, use that reference.
 	if len(args) > 0 {
-		if allowed >= 2 {
-			// Diff allows multiple explicit references.
+		// If bad upper-case characters are allowed, skip checking for them
+		if allowed == BadUpperCaseOkayWhenSavingExistingDataset {
+			// Bad upper-case characters are ignored, references will be checked again inside lib.
+			allowed = 1
+		} else {
+			// For each argument, make sure it's a valid and not using upper-case chracters.
+			for _, refstr := range args {
+				_, err := dsref.Parse(refstr)
+				if err == dsref.ErrBadCaseName {
+					// TODO(dustmop): For now, this is just a warning but not a fatal error.
+					// In the near future, change to: `return nil, dsref.ErrBadCaseShouldRename`
+					// The test `TestBadCaseIsJustWarning` in cmd/cmd_test.go verifies that this
+					// is not a fatal error.
+					log.Error(dsref.ErrBadCaseShouldRename)
+				}
+			}
+		}
+		if allowed == AnyNumberOfReferences {
 			return NewListOfRefSelects(args), nil
 		}
-		return NewExplicitRefSelect(args[0]), nil
+		if len(args) > allowed {
+			return nil, fmt.Errorf("%d references allowed but %d were given", allowed, len(args))
+		}
+		if allowed == 1 {
+			return NewExplicitRefSelect(args[0]), nil
+		}
+		return NewListOfRefSelects(args), nil
 	}
 	// If in a working directory that is linked to a dataset, use that link's reference.
 	refs, err := GetLinkedRefSelect()
 	if err == nil {
-		if fsi != nil {
-			// Ensure that the link in the working directory matches what is in the repo.
-			out := &dsref.VersionInfo{}
-			err = fsi.EnsureRef(&lib.EnsureParams{Dir: refs.Dir(), Ref: refs.Ref()}, out)
-			if err != nil {
-				log.Debugf("%s", err)
-			}
+		// Ensure that the link in the working directory matches what is in the repo.
+		err = ensurer.EnsureRef(refs)
+		if err != nil {
+			log.Debugf("%s", err)
 		}
 		return refs, nil
 	}

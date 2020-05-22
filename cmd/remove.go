@@ -76,7 +76,7 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
 		return err
 	}
-	if o.Refs, err = GetCurrentRefSelect(f, args, -1, nil); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
 		// This error will be handled during validation
 		if err != repo.ErrEmptyRef {
 			return err

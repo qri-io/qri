@@ -12,6 +12,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
 )
 
@@ -632,5 +634,31 @@ func TestListFormatJson(t *testing.T) {
 ]`
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+}
+
+// Test that a dataset name with bad upper-case characters, if it already exists, produces a
+// warning but not an error when you try to Get it
+func TestBadCaseIsJustWarning(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_get_bad_case")
+	defer run.Delete()
+
+	// Construct a dataset in order to have an existing version in the repo.
+	ds := dataset.Dataset{
+		Structure: &dataset.Structure{
+			Format: "json",
+			Schema: dataset.BaseSchemaArray,
+		},
+	}
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[[\"one\",2],[\"three\",4]]")))
+
+	// Add the dataset to the repo directly, which avoids the name validation check.
+	ctx := context.Background()
+	run.AddDatasetToRefstore(ctx, t, "test_peer/a_New_Dataset", &ds)
+
+	// Save the dataset, which will work now that a version already exists.
+	err := run.ExecCommand("qri get test_peer/a_New_Dataset")
+	if err != nil {
+		t.Errorf("expect no error (just a warning), got %q", err)
 	}
 }

@@ -54,7 +54,7 @@ func (o *CheckoutOptions) Complete(f Factory, args []string) (err error) {
 		return err
 	}
 
-	o.Refs, err = GetCurrentRefSelect(f, args, 1, o.FSIMethods)
+	o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.FSIMethods))
 	if err != nil {
 		return err
 	}
