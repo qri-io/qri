@@ -101,8 +101,9 @@ func (fsi *FSI) ResolvedPath(ref *dsref.Ref) error {
 	return ErrNoLink
 }
 
-// LinkedDatasets returns a list of linked datasets and their connected directories
-func (fsi *FSI) LinkedDatasets(offset, limit int) ([]dsref.VersionInfo, error) {
+// ListLinks returns a list of linked datasets and their connected
+// directories
+func (fsi *FSI) ListLinks(offset, limit int) ([]dsref.VersionInfo, error) {
 	// TODO (b5) - figure out a better pagination / querying strategy here
 	allRefs, err := repo.ListDatasetsShim(fsi.repo, offset, 100000)
 	if err != nil {

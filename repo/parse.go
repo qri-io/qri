@@ -6,19 +6,9 @@ import (
 
 	"github.com/mr-tron/base58/base58"
 	"github.com/multiformats/go-multihash"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
-
-// MustParseDatasetRef panics if the reference is invalid. Useful for testing
-func MustParseDatasetRef(refstr string) dsref.Ref {
-	ref, err := ParseDatasetRef(refstr)
-	if err != nil {
-		panic(err)
-	}
-	return reporef.ConvertToDsref(ref)
-}
 
 // ParseDatasetRef decodes a dataset reference from a string value
 // It’s possible to refer to a dataset in a number of ways.

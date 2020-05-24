@@ -83,7 +83,7 @@ func TestCreateLink(t *testing.T) {
 		t.Errorf("wrong .qri-ref content.\nactual:\t%s\nexpect:\t%s", actual, expectLinkFile)
 	}
 
-	links, err := fsi.LinkedDatasets(0, 30)
+	links, err := fsi.ListLinks(0, 30)
 	if len(links) != 1 {
 		t.Errorf("error: wanted links of length 1, got %d", len(links))
 	}
@@ -127,7 +127,7 @@ func TestCreateLinkTwice(t *testing.T) {
 		t.Errorf("error: .qri-ref content, actual: %s, expect: %s", actual, expect)
 	}
 
-	links, err := fsi.LinkedDatasets(0, 30)
+	links, err := fsi.ListLinks(0, 30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +197,7 @@ func TestCreateLinkAgainOnceQriRefRemoved(t *testing.T) {
 		t.Errorf("error: .qri-ref content, actual: %s, expect: %s", actual, expect)
 	}
 
-	links, err := fsi.LinkedDatasets(0, 30)
+	links, err := fsi.ListLinks(0, 30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,6 +232,8 @@ func TestModifyLinkReference(t *testing.T) {
 	// to the linkfile (.qri-ref). The below call to ModifyLinkReference will modify the linkfile,
 	// but it fails if the ref does not exist in the repo. The relationship between fsi and repo
 	// is not clear and inconsistent.
+	// UPDATE(b5): We need tests to confirm this, but requiring a dataset to exist before
+	// allowing CreateLink makes qri the authoritative source of dataset data
 	ref := dsref.MustParse("peer/cities")
 
 	vi, err := repo.GetVersionInfoShim(paths.testRepo, ref)
@@ -277,7 +279,7 @@ func TestModifyLinkDirectory(t *testing.T) {
 		t.Errorf("expected ModifyLinkReference to succeed, got: %s", err.Error())
 	}
 
-	refs, err := fsi.LinkedDatasets(0, 10)
+	refs, err := fsi.ListLinks(0, 10)
 	if err != nil {
 		t.Fatal(err)
 	}

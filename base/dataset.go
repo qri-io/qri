@@ -274,16 +274,15 @@ func FetchDataset(ctx context.Context, r repo.Repo, ref *reporef.DatasetRef, pin
 }
 
 // ReadDataset grabs a dataset from the store
+//
+// Deprecated - use LoadDataset instead
 func ReadDataset(ctx context.Context, r repo.Repo, path string) (ds *dataset.Dataset, err error) {
-	if store := r.Store(); store != nil {
-		ds, e := dsfs.LoadDataset(ctx, store, path)
-		if e != nil {
-			return nil, e
-		}
-		return ds, nil
+	store := r.Store()
+	if store == nil {
+		return nil, cafs.ErrNotFound
 	}
 
-	return nil, cafs.ErrNotFound
+	return dsfs.LoadDataset(ctx, store, path)
 }
 
 // PinDataset marks a dataset for retention in a store

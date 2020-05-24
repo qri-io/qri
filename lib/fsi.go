@@ -30,16 +30,6 @@ func NewFSIMethods(inst *Instance) *FSIMethods {
 // CoreRequestsName specifies this is a fsi handle
 func (m FSIMethods) CoreRequestsName() string { return "fsi" }
 
-// LinkedDatasets lists all fsi links
-func (m *FSIMethods) LinkedDatasets(p *ListParams, res *[]dsref.VersionInfo) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("FSIMethods.LinkedDatasets", p, res))
-	}
-
-	*res, err = m.inst.fsi.LinkedDatasets(p.Offset, p.Limit)
-	return err
-}
-
 // LinkParams encapsulate parameters to the link method
 type LinkParams struct {
 	Dir string
@@ -65,8 +55,7 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *dsref.VersionInfo) (err erro
 		return err
 	}
 
-	vi, _, err := m.inst.fsi.CreateLink(p.Dir, ref)
-	*res = *vi
+	res, _, err = m.inst.fsi.CreateLink(p.Dir, ref)
 	return err
 }
 
@@ -133,7 +122,7 @@ func (m *FSIMethods) StatusForAlias(alias *string, res *[]StatusItem) (err error
 	ctx := context.TODO()
 
 	// If only ref provided, canonicalize it to get its ref
-	ref, err := dsref.Parse(*alias)
+	ref, err := dsref.ParseHumanFriendly(*alias)
 	if err != nil {
 		return err
 	}

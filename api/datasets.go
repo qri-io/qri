@@ -531,8 +531,10 @@ func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		p.Current = r.URL.Query().Get("current")
-		// TODO(b5)- should this param be changed to "next"?
 		p.Next = r.URL.Query().Get("new")
+		if p.Next == "" {
+			p.Next = r.URL.Query().Get("next")
+		}
 	}
 
 	res := &dsref.VersionInfo{}

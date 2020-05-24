@@ -12,7 +12,8 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// InLocalNamespace checks if a dataset ref is local, assumes the reference is already rrefd
+// InLocalNamespace checks if a dataset ref is local, assumes the reference is
+// already resolved
 func InLocalNamespace(r repo.Repo, ref *reporef.DatasetRef) bool {
 	p, err := r.Profile()
 	if err != nil {
@@ -68,9 +69,9 @@ func RenameDatasetRef(ctx context.Context, r repo.Repo, ref dsref.Ref, newName s
 	}
 
 	next := dsref.Ref{Username: ref.Username, Name: newName}
-	// Canonicalize the next reference to make sure it doesn't exist
+	// Resolve the next reference to make sure it doesn't exist
 	if _, newRefErr := r.ResolveRef(ctx, &next); newRefErr == nil {
-		// successful canonicalization on rename is an error
+		// successful resolution on rename is an error
 		return nil, fmt.Errorf("dataset %q already exists", next.Human())
 	} else if errors.Is(newRefErr, dsref.ErrNotFound) {
 		// this is a good thing.

@@ -159,8 +159,7 @@ to create a working directory for an existing dataset`
 	// Create the link file, containing the dataset reference.
 	var undo func()
 	if _, undo, err = fsi.CreateLink(targetPath, ref); err != nil {
-		panic(err)
-		// return ref, err
+		return ref, err
 	}
 	// If future steps fail, rollback the link creation.
 	rollback = concatFunc(undo, rollback)
@@ -232,23 +231,6 @@ to create a working directory for an existing dataset`
 			}, rollback)
 		}
 	}
-
-	// // Send an event to the bus about this checkout
-	// fsi.pub.Publish(event.ETFSICreateLinkEvent, event.FSICreateLinkEvent{
-	// 	FSIPath:  dirPath,
-	// 	Username: vi.Username,
-	// 	Dsname:   vi.Name,
-	// })
-
-	// if fsi.onChangeHook != nil {
-	// 	fsi.onChangeHook(hook.DsChange{
-	// 		Type:       hook.DatasetCreateLink,
-	// 		InitID:     ref.InitID, // versionInfo probably coming from old Refstore
-	// 		Username:   vi.Username,
-	// 		PrettyName: vi.Name,
-	// 		Dir:        dirPath,
-	// 	})
-	// }
 
 	// Success, no need to rollback.
 	rollback = nil

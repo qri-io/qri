@@ -531,6 +531,7 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 // already-allocated QriNode & configuration
 // don't write new code that relies on this, instead create a configuration
 // and options that can be fed to NewInstance
+// This function must only be used for testing purposes
 func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instance {
 	ctx, teardown := context.WithCancel(context.Background())
 

@@ -56,15 +56,15 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset i
 	}
 
 	if ref.Path == "" {
-		return nil, fmt.Errorf("cannot build history: unknown HEAD path")
+		return nil, fmt.Errorf("cannot build history: %w", dsref.ErrPathRequired)
 	}
 
-	dsLog, err := DatasetLogFromHistory(ctx, r, ref.Path, offset, limit, loadDatasets)
+	datasets, err := StoredHistoricalDatasets(ctx, r, ref.Path, offset, limit, loadDatasets)
 	if err != nil {
 		return nil, err
 	}
-	items := make([]DatasetLogItem, len(dsLog))
-	for i, ds := range dsLog {
+	items := make([]DatasetLogItem, len(datasets))
+	for i, ds := range datasets {
 		ref := &reporef.DatasetRef{
 			// TODO(b5): using the ref.Username & ref.ProfileID here is a hack that assumes single-author histories
 			Peername:  ref.Username,
@@ -87,10 +87,10 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset i
 	return items, err
 }
 
-// DatasetLogFromHistory fetches the history of changes to a dataset by walking
+// StoredHistoricalDatasets fetches the history of changes to a dataset by walking
 // backwards through dataset commits. if loadDatasets is true, dataset
 // information will be populated
-func DatasetLogFromHistory(ctx context.Context, r repo.Repo, headPath string, offset, limit int, loadDatasets bool) (log []*dataset.Dataset, err error) {
+func StoredHistoricalDatasets(ctx context.Context, r repo.Repo, headPath string, offset, limit int, loadDatasets bool) (log []*dataset.Dataset, err error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, TimeoutDuration)
 	defer cancel()
 
@@ -143,7 +143,7 @@ func DatasetLogFromHistory(ctx context.Context, r repo.Repo, headPath string, of
 // constructDatasetLogFromHistory constructs a log for a name if one doesn't
 // exist.
 func constructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.Ref) error {
-	history, err := DatasetLogFromHistory(ctx, r, ref.Path, 0, 1000000, true)
+	history, err := StoredHistoricalDatasets(ctx, r, ref.Path, 0, 1000000, true)
 	if err != nil {
 		return err
 	}

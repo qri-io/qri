@@ -769,8 +769,11 @@ func (m *DatasetMethods) Rename(p *RenameParams, res *dsref.VersionInfo) error {
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
 
-	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Current, "local")
+	ref, err := dsref.ParseHumanFriendly(p.Current)
 	if err != nil {
+		return err
+	}
+	if _, err := m.inst.ResolveReference(ctx, &ref, "local"); err != nil {
 		return err
 	}
 
@@ -888,7 +891,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 		// If the number of revisions to delete is greater than or equal to the amount in history,
 		// treat this operation as deleting everything.
 		p.Revision.Gen = dsref.AllGenerations
-	} else if err == repo.ErrNoHistory {
+	} else if err == repo.ErrNoHistory || errors.Is(err, dsref.ErrPathRequired) {
 		// If the dataset has no history, treat this operation as deleting everything.
 		p.Revision.Gen = dsref.AllGenerations
 	} else if err != nil {
@@ -995,7 +998,7 @@ func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
 	}
 	ctx := context.TODO()
 
-	ref, err := repo.ParseDatasetRef(p.Ref)
+	ref, err := dsref.Parse(p.Ref)
 	if err != nil {
 		return err
 	}
@@ -1004,7 +1007,7 @@ func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
 		p.RemoteAddr = m.inst.cfg.Registry.Location
 	}
 
-	mergeLogsError := m.inst.remoteClient.CloneLogs(ctx, reporef.ConvertToDsref(ref), p.RemoteAddr)
+	mergeLogsError := m.inst.remoteClient.CloneLogs(ctx, ref, p.RemoteAddr)
 	// TODO(b5) - this line is swallowing errors that the cmd package integration
 	// tests are hitting. We need to change the behaviour of add to *require* logs
 	// successfully merge, which will require fixing lots of tests in cmd,
@@ -1013,15 +1016,16 @@ func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
 		return mergeLogsError
 	}
 
-	if err = m.inst.remoteClient.AddDataset(ctx, &ref, p.RemoteAddr); err != nil {
+	rref := reporef.RefFromDsref(ref)
+	if err = m.inst.remoteClient.AddDataset(ctx, &rref, p.RemoteAddr); err != nil {
 		return err
 	}
 
-	*res = ref
+	*res = rref
 
 	if p.LinkDir != "" {
 		checkoutp := &CheckoutParams{
-			Ref: ref.AliasString(),
+			Ref: ref.String(),
 			Dir: p.LinkDir,
 		}
 		m := NewFSIMethods(m.inst)
