@@ -10,11 +10,10 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/event/hook"
+	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // InitParams encapsulates parameters for fsi.InitDataset
@@ -41,6 +40,8 @@ var PrepareToWrite = func(comp component.Component) {
 
 // InitDataset creates a new dataset
 func (fsi *FSI) InitDataset(p InitParams) (ref dsref.Ref, err error) {
+	ctx := context.TODO()
+
 	// Create a rollback handler
 	rollback := func() {
 		log.Debug("did rollback InitDataset due to error")
@@ -101,14 +102,36 @@ func (fsi *FSI) InitDataset(p InitParams) (ref dsref.Ref, err error) {
 		return ref, err
 	}
 
-	datasetRef := reporef.DatasetRef{Peername: "me", Name: p.Name}
+	book := fsi.repo.Logbook()
 
+	// TODO(b5) - not a fan of relying on logbook for the current username
+	ref = dsref.Ref{Username: book.AuthorName(), Name: p.Name}
 	// Validate dataset name. The `init` command must only be used for creating new datasets.
 	// Make sure a dataset with this name does not exist in your repo.
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, &datasetRef); err == nil {
-		// TODO(dlong): Tell user to use `checkout` if the dataset already exists in their repo?
-		return ref, fmt.Errorf("a dataset with the name %s already exists in your repo", datasetRef)
+	if _, err = fsi.repo.ResolveRef(ctx, &ref); err == nil {
+		err = fmt.Errorf("a dataset named %q already exists", ref.Human())
+		msg := `can't init a dataset with a name that already exists, use the checkout command
+to create a working directory for an existing dataset`
+		return ref, qerr.New(err, msg)
 	}
+
+	// write an InitID
+	ref.InitID, err = fsi.repo.Logbook().WriteDatasetInit(ctx, ref.Name)
+	if err != nil {
+		if err == logbook.ErrNoLogbook {
+			rollback = func() {}
+			return ref, nil
+		}
+		return ref, err
+	}
+
+	rollback = concatFunc(
+		func() {
+			log.Debugf("removing log from logbook %q", ref)
+			if err := book.RemoveLog(ctx, book.Author(), ref); err != nil {
+				log.Error(err)
+			}
+		}, rollback)
 
 	// Derive format from --source-body-path if provided.
 	if p.Format == "" && p.SourceBodyPath != "" {
@@ -123,19 +146,29 @@ func (fsi *FSI) InitDataset(p InitParams) (ref dsref.Ref, err error) {
 		return ref, fmt.Errorf(`invalid format "%s", only "csv" and "json" accepted`, p.Format)
 	}
 
+	// add the versionInfo to the refstore so CreateLink has something to read from
+	// TODO (b5) - this probably means we shouldn't be using CreateLink here,
+	// but I'd like to have one place that fires LinkCreated Events, maybe a private function
+	// that both the exported CreateLink & Init can call
+	vi := ref.VersionInfo()
+	vi.FSIPath = targetPath
+	if err := repo.PutVersionInfoShim(fsi.repo, &vi); err != nil {
+		return ref, err
+	}
+
 	// Create the link file, containing the dataset reference.
 	var undo func()
-	if _, undo, err = fsi.CreateLink(targetPath, datasetRef.AliasString()); err != nil {
+	if _, undo, err = fsi.CreateLink(targetPath, ref); err != nil {
 		return ref, err
 	}
 	// If future steps fail, rollback the link creation.
 	rollback = concatFunc(undo, rollback)
 
 	// Construct the dataset to write to the working directory
-	initDs := &dataset.Dataset{}
-
-	// Add an empty meta.
-	initDs.Meta = &dataset.Meta{Title: ""}
+	initDs := &dataset.Dataset{
+		// Add an empty meta.
+		Meta: &dataset.Meta{Title: ""},
+	}
 
 	// Add body file.
 	var bodySchema map[string]interface{}
@@ -197,29 +230,6 @@ func (fsi *FSI) InitDataset(p InitParams) (ref dsref.Ref, err error) {
 				}
 			}, rollback)
 		}
-	}
-
-	initID, err := fsi.repo.Logbook().WriteDatasetInit(context.TODO(), datasetRef.Name)
-	if err != nil {
-		if err == logbook.ErrNoLogbook {
-			rollback = func() {}
-			return ref, nil
-		}
-		return ref, err
-	}
-
-	if fsi.onChangeHook != nil {
-		fsi.onChangeHook(hook.DsChange{
-			Type:   hook.DatasetCreateLink,
-			InitID: initID,
-			Dir:    p.Dir,
-		})
-	}
-
-	ref = dsref.Ref{
-		InitID:   initID,
-		Username: datasetRef.Peername,
-		Name:     datasetRef.Name,
 	}
 
 	// Success, no need to rollback.

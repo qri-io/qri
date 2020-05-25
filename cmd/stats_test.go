@@ -91,8 +91,8 @@ func TestStatsRun(t *testing.T) {
 		ref         string
 		err         string
 	}{
-		{"empty ref", "", "repo: empty dataset reference"},
-		{"dataset does not exist", "me/dataset_does_not_exist", "repo: not found"},
+		{"empty ref", "", `"" is not a valid dataset reference: empty reference`},
+		{"dataset does not exist", "me/dataset_does_not_exist", "reference not found"},
 	}
 
 	for i, c := range badCases {

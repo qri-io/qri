@@ -59,8 +59,6 @@ func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, sour
 
 	// Handle the "me" convenience shortcut
 	if ref.Username == "me" {
-		// TODO (b5) - this should be reading from a better place, and erroring if
-		// a canonical profile cannot be found for whatever reason
 		ref.Username = inst.cfg.Profile.Peername
 	}
 

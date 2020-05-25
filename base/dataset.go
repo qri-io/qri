@@ -178,7 +178,7 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 			}
 
 			if showVersions {
-				dsVersions, err := DatasetLog(ctx, r, ref, 1000000, 0, false)
+				dsVersions, err := DatasetLog(ctx, r, reporef.ConvertToDsref(ref), 1000000, 0, false)
 				if err != nil {
 					return nil, err
 				}
@@ -273,48 +273,16 @@ func FetchDataset(ctx context.Context, r repo.Repo, ref *reporef.DatasetRef, pin
 	return
 }
 
-// ReadDatasetPath takes a path string, parses, canonicalizes, loads a dataset pointer, and opens the file
-// The medium-term goal here is to obfuscate use of reporef.DatasetRef, which we're hoping to deprecate
-func ReadDatasetPath(ctx context.Context, r repo.Repo, path string) (ds *dataset.Dataset, err error) {
-	ref, err := repo.ParseDatasetRef(path)
-	if err != nil {
-		return nil, fmt.Errorf("'%s' is not a valid dataset reference", path)
-	}
-
-	if err = repo.CanonicalizeDatasetRef(r, &ref); err != nil {
-		return
-	}
-
-	loaded, err := dsfs.LoadDataset(ctx, r.Store(), ref.Path)
-	if err != nil {
-		return nil, fmt.Errorf("error loading dataset")
-	}
-	loaded.Name = ref.Name
-	loaded.Peername = ref.Peername
-	ds = loaded
-
-	err = OpenDataset(ctx, r.Filesystem(), ds)
-	return
-}
-
 // ReadDataset grabs a dataset from the store
-func ReadDataset(ctx context.Context, r repo.Repo, ref *reporef.DatasetRef) (err error) {
-	if err = repo.CanonicalizeDatasetRef(r, ref); err != nil {
-		return
+//
+// Deprecated - use LoadDataset instead
+func ReadDataset(ctx context.Context, r repo.Repo, path string) (ds *dataset.Dataset, err error) {
+	store := r.Store()
+	if store == nil {
+		return nil, cafs.ErrNotFound
 	}
 
-	if store := r.Store(); store != nil {
-		ds, e := dsfs.LoadDataset(ctx, store, ref.Path)
-		if e != nil {
-			return e
-		}
-		ds.Name = ref.Name
-		ds.Peername = ref.Peername
-		ref.Dataset = ds
-		return
-	}
-
-	return cafs.ErrNotFound
+	return dsfs.LoadDataset(ctx, store, path)
 }
 
 // PinDataset marks a dataset for retention in a store

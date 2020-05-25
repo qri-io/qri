@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -60,7 +60,7 @@ func TestSetPublishStatus(t *testing.T) {
 		t.Error("expected invalid reference to error")
 	}
 
-	outside := repo.MustParseDatasetRef("a/b@QmX1oSPMbzkhk33EutuadL4sqsivsRKmMx5hAnZL2mRAM1/ipfs/d")
+	outside := reporef.RefFromDsref(dsref.MustParse("a/b@QmX1oSPMbzkhk33EutuadL4sqsivsRKmMx5hAnZL2mRAM1/ipfs/Qmd"))
 	if err := r.PutRef(outside); err != nil {
 		t.Fatal(err)
 	}

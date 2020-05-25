@@ -52,7 +52,7 @@ func TestFSILinkingCommands(t *testing.T) {
 
 	// Link the dataset to the pwd
 	if err := runner.ExecCommand("qri workdir link me/save_and_unlink ."); err != nil {
-		t.Errorf("unlinking dataset: %s", err.Error())
+		t.Errorf("linking dataset: %s", err.Error())
 	}
 
 	dirContents = listDirectory(pwd)

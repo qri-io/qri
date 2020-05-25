@@ -2,17 +2,18 @@ package base
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// InLocalNamespace checks if a dataset ref is local, assumes the reference is already canonicalized
+// InLocalNamespace checks if a dataset ref is local, assumes the reference is
+// already resolved
 func InLocalNamespace(r repo.Repo, ref *reporef.DatasetRef) bool {
 	p, err := r.Profile()
 	if err != nil {
@@ -30,23 +31,6 @@ func SetPublishStatus(r repo.Repo, ref *reporef.DatasetRef, published bool) erro
 
 	ref.Published = published
 	return r.PutRef(*ref)
-}
-
-// ToDatasetRef parses the dataset ref and looks it up in the refstore, allows refs with no history
-// TODO(dustmop): In a future change, remove the third parameter from this function
-func ToDatasetRef(path string, r repo.Repo, _ bool) (*reporef.DatasetRef, error) {
-	if path == "" {
-		return nil, repo.ErrEmptyRef
-	}
-	ref, err := repo.ParseDatasetRef(path)
-	if err != nil {
-		return nil, fmt.Errorf("'%s' is not a valid dataset reference", path)
-	}
-	err = repo.CanonicalizeDatasetRef(r, &ref)
-	if err != nil && err != repo.ErrNoHistory {
-		return nil, err
-	}
-	return &ref, nil
 }
 
 // ReplaceRefIfMoreRecent replaces the given ref in the ref store, if
@@ -76,100 +60,41 @@ func ReplaceRefIfMoreRecent(r repo.Repo, prev, curr *reporef.DatasetRef) error {
 
 // RenameDatasetRef changes a dataset's pretty name by modifying the ref in the repository
 // refstore, and returns a versionInfo describing the resulting dataset reference.
-func RenameDatasetRef(ctx context.Context, r repo.Repo, curr, next dsref.Ref) (*dsref.VersionInfo, error) {
-	if !dsref.IsValidName(next.Name) {
+func RenameDatasetRef(ctx context.Context, r repo.Repo, ref dsref.Ref, newName string) (*dsref.VersionInfo, error) {
+	if !dsref.IsValidName(newName) {
 		return nil, dsref.ErrDescribeValidName
 	}
-	if curr.Username != next.Username || curr.ProfileID != next.ProfileID {
-		return nil, fmt.Errorf("cannot change username or profileID of a dataset")
-	}
-	if curr.Name == next.Name {
+	if ref.Name == newName {
 		return nil, fmt.Errorf("cannot rename without changing the dataset names")
 	}
 
-	currProfileID, err := profile.IDB58Decode(curr.ProfileID)
-	if err != nil {
-		if curr.ProfileID == "" {
-			currProfileID = profile.IDRawByteString("")
-		} else {
-			return nil, err
-		}
+	next := dsref.Ref{Username: ref.Username, Name: newName}
+	// Resolve the next reference to make sure it doesn't exist
+	if _, newRefErr := r.ResolveRef(ctx, &next); newRefErr == nil {
+		// successful resolution on rename is an error
+		return nil, fmt.Errorf("dataset %q already exists", next.Human())
+	} else if errors.Is(newRefErr, dsref.ErrNotFound) {
+		// this is a good thing.
+	} else {
+		log.Debug(newRefErr.Error())
+		return nil, fmt.Errorf("error with new reference: %w", newRefErr)
 	}
 
-	nextProfileID, err := profile.IDB58Decode(next.ProfileID)
-	if err != nil {
-		if next.ProfileID == "" {
-			nextProfileID = profile.IDRawByteString("")
-		} else {
-			return nil, err
-		}
-	}
-
-	currRef := reporef.DatasetRef{
-		Peername:  curr.Username,
-		ProfileID: currProfileID,
-		Name:      curr.Name,
-		Path:      curr.Path,
-	}
-	nextRef := reporef.DatasetRef{
-		Peername:  next.Username,
-		ProfileID: nextProfileID,
-		Name:      next.Name,
-		Path:      next.Path,
-	}
-
-	// Renaming the pretty name of a dataset
-	if currRef.Path != "" || nextRef.Path != "" || currRef.ProfileID != "" || nextRef.ProfileID != "" {
-		return nil, fmt.Errorf("can only rename using references that are human-friendly")
-	}
-	// Canonicalize the existing reference so that we have ProfileID and Path
-	if err := repo.CanonicalizeDatasetRef(r, &currRef); err != nil && err != repo.ErrNoHistory {
-		log.Debug(err.Error())
-		return nil, fmt.Errorf("error with existing reference: %s", err.Error())
-	}
-	// Canonicalize the next reference to make sure it doesn't exist
-	err = repo.CanonicalizeDatasetRef(r, &nextRef)
-	if err == nil {
-		// successful canonicalization on rename is an error
-		return nil, fmt.Errorf("dataset '%s/%s' already exists", nextRef.Peername, nextRef.Name)
-	} else if err != repo.ErrNotFound {
-		log.Debug(err.Error())
-		return nil, fmt.Errorf("error with new reference: %s", err.Error())
-	}
-	// Assign state that stays the same during a rename
-	nextRef.ProfileID = currRef.ProfileID
-	nextRef.Path = currRef.Path
-	nextRef.FSIPath = currRef.FSIPath
-
-	// Copy data back to the dsref after canonicalization.
-	// TODO(dustmop): Once we fully convert to dsref this will be unnecessary
-	curr.Username = currRef.Peername
-	curr.ProfileID = currRef.ProfileID.String()
-
-	// TODO(dustmop): When we switch to initIDs, use the initID passed to this function, retrieved
-	// from the top-level resolver.
-	initID, err := r.Logbook().RefToInitID(curr)
+	err := r.Logbook().WriteDatasetRename(ctx, ref.InitID, newName)
 	if err != nil && err != logbook.ErrNoLogbook {
 		return nil, err
 	}
-	err = r.Logbook().WriteDatasetRename(ctx, initID, nextRef.Name)
-	if err != nil && err != logbook.ErrNoLogbook {
-		return nil, err
-	}
-	if err := r.DeleteRef(currRef); err != nil {
-		return nil, err
-	}
-	if err := r.PutRef(nextRef); err != nil {
-		return nil, err
-	}
 
-	return &dsref.VersionInfo{
-		Username:  nextRef.Peername,
-		ProfileID: nextRef.ProfileID.String(),
-		Name:      nextRef.Name,
-		Path:      nextRef.Path,
-		FSIPath:   nextRef.FSIPath,
-	}, nil
+	// use the versionInfo returned from the delete to preserve fields like
+	// FSIPath when replaced
+	vi, err := repo.DeleteVersionInfoShim(r, ref)
+	if err != nil {
+		return nil, err
+	}
+	vi.InitID = ref.InitID
+	vi.Name = newName
+	err = repo.PutVersionInfoShim(r, vi)
+	return vi, err
 }
 
 // ModifyRepoUsername performs all tasks necessary to switch a username

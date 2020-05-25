@@ -71,21 +71,12 @@ func (o *RenameOptions) Validate() error {
 
 // Run executes the rename command
 func (o *RenameOptions) Run() error {
-	current, err := dsref.ParseHumanFriendly(o.From)
-	if err != nil {
-		return err
-	}
-	next, err := dsref.ParseHumanFriendly(o.To)
-	if err != nil {
-		return err
-	}
-
 	p := &lib.RenameParams{
-		Current: current,
-		Next:    next,
+		Current: o.From,
+		Next:    o.To,
 	}
 	res := dsref.VersionInfo{}
-	if err = o.DatasetMethods.Rename(p, &res); err != nil {
+	if err := o.DatasetMethods.Rename(p, &res); err != nil {
 		return err
 	}
 

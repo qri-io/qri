@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 
+	"github.com/qri-io/qri/dsref"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -12,7 +13,7 @@ import (
 // is already in the store will overwrite the stored reference
 type Refstore interface {
 	// PutRef adds a reference to the store. References must be complete with
-	// Peername, Name, and Path specified
+	// Peername, Name, and Path/FSIPath specified
 	PutRef(ref reporef.DatasetRef) error
 	// GetRef "completes" a passed in alias (reporef.DatasetRef with at least Peername
 	// and Name field specified), filling in missing fields with a stored ref
@@ -23,6 +24,69 @@ type Refstore interface {
 	References(offset, limit int) ([]reporef.DatasetRef, error)
 	// RefCount returns the number of references in the store
 	RefCount() (int, error)
+}
+
+// GetVersionInfoShim is a shim for getting away from the old
+// DatasetRef, CanonicalizeDatasetRef, RefStore stack
+func GetVersionInfoShim(r Repo, ref dsref.Ref) (*dsref.VersionInfo, error) {
+	rref, err := r.GetRef(reporef.RefFromDsref(ref))
+	if err != nil {
+		return nil, err
+	}
+	vi := reporef.ConvertToVersionInfo(&rref)
+	return &vi, nil
+}
+
+// PutVersionInfoShim is a shim for getting away from old stack of
+// DatasetRef, CanonicalizeDatasetRef, and RefStores
+// while still safely interacting with the repo.Refstore API
+func PutVersionInfoShim(r Repo, vi *dsref.VersionInfo) error {
+	// attempt to look up peerIDs when not set
+	if vi.ProfileID == "" && vi.Username != "" {
+		rref := &reporef.DatasetRef{Peername: vi.Username}
+		if err := CanonicalizeProfile(r, rref); err == nil {
+			vi.ProfileID = rref.ProfileID.String()
+		}
+	}
+	return r.PutRef(reporef.RefFromVersionInfo(vi))
+}
+
+// DeleteVersionInfoShim is a shim for getting away from the old stack of
+// DatasetRef, CanonicalizeDatasetRef, and RefStore
+// while still safely interacting with the repo.Refstore API
+func DeleteVersionInfoShim(r Repo, ref dsref.Ref) (*dsref.VersionInfo, error) {
+	rref := reporef.RefFromDsref(ref)
+	if err := CanonicalizeDatasetRef(r, &rref); err != nil && err != ErrNoHistory {
+		return nil, err
+	}
+	if err := r.DeleteRef(rref); err != nil {
+		return nil, err
+	}
+	vi := reporef.ConvertToVersionInfo(&rref)
+	return &vi, nil
+}
+
+// ListDatasetsShim gets away from the old stack of DatasetRef,
+// CanonicalizeDatasetRef and RefStore
+func ListDatasetsShim(r Repo, offset, limit int) ([]dsref.VersionInfo, error) {
+	rrefs, err := r.References(offset, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	vis := make([]dsref.VersionInfo, 0, limit)
+	for _, ref := range rrefs {
+		if offset > 0 {
+			offset--
+			continue
+		}
+		vis = append(vis, reporef.ConvertToVersionInfo(&ref))
+		if len(vis) == limit {
+			return vis, nil
+		}
+	}
+
+	return vis, nil
 }
 
 // TODO(dlong): In the near future, switch to a new utility that resolves references to specific

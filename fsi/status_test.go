@@ -38,7 +38,11 @@ func TestStatusValid(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, err := fsi.InitDataset(InitParams{
+		Name:   "test_ds",
+		Dir:    paths.firstDir,
+		Format: "csv",
+	})
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -82,7 +86,11 @@ func TestStatusInvalidDataset(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, err := fsi.InitDataset(InitParams{
+		Name:   "test_ds",
+		Dir:    paths.firstDir,
+		Format: "csv",
+	})
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -106,7 +114,11 @@ func TestStatusInvalidMeta(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, err := fsi.InitDataset(InitParams{
+		Name:   "test_ds",
+		Dir:    paths.firstDir,
+		Format: "csv",
+	})
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -128,12 +140,20 @@ func TestStatusNotFound(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, err := fsi.InitDataset(InitParams{
+		Name:   "test_ds",
+		Dir:    paths.firstDir,
+		Format: "csv",
+	})
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	_ = copyDir("testdata/invalid_mappings/not_found/", paths.firstDir)
+	// remove all default dataset files
+	os.Remove(filepath.Join(paths.firstDir, "structure.json"))
+	os.Remove(filepath.Join(paths.firstDir, "meta.json"))
+	os.Remove(filepath.Join(paths.firstDir, "body.csv"))
+
 	_, err = fsi.Status(ctx, paths.firstDir)
 	if err == nil {
 		t.Fatalf("expected error, did not get one")

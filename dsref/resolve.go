@@ -9,6 +9,11 @@ var (
 	// ErrNotFound must be returned by a ref resolver that cannot resolve a given
 	// reference
 	ErrNotFound = errors.New("reference not found")
+	// ErrPathRequired should be returned by functions that require a reference
+	// have a path value, but got none.
+	// ErrPathRequired should *not* be returned by implentationf of the
+	// ResolveRef interface
+	ErrPathRequired = errors.New("reference path value is required")
 )
 
 // Resolver finds the identifier and HEAD path for a dataset reference

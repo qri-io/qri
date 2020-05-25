@@ -25,7 +25,6 @@ import (
 	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // package level logger
@@ -90,27 +89,28 @@ func (fsi *FSI) ResolvedPath(ref *dsref.Ref) error {
 	// }
 
 	// old method falls back to refstore
-	match, err := fsi.repo.GetRef(reporef.RefFromDsref(*ref))
+	vi, err := repo.GetVersionInfoShim(fsi.repo, *ref)
 	if err != nil {
 		return ErrNoLink
 	}
 
-	if match.FSIPath != "" {
-		ref.Path = fmt.Sprintf("/fsi%s", match.FSIPath)
+	if vi.FSIPath != "" {
+		ref.Path = fmt.Sprintf("/fsi%s", vi.FSIPath)
 		return nil
 	}
 	return ErrNoLink
 }
 
-// LinkedRefs returns a list of linked datasets and their connected directories
-func (fsi *FSI) LinkedRefs(offset, limit int) ([]reporef.DatasetRef, error) {
+// ListLinks returns a list of linked datasets and their connected
+// directories
+func (fsi *FSI) ListLinks(offset, limit int) ([]dsref.VersionInfo, error) {
 	// TODO (b5) - figure out a better pagination / querying strategy here
-	allRefs, err := fsi.repo.References(offset, 100000)
+	allRefs, err := repo.ListDatasetsShim(fsi.repo, offset, 100000)
 	if err != nil {
 		return nil, err
 	}
 
-	var refs []reporef.DatasetRef
+	var refs []dsref.VersionInfo
 	for _, ref := range allRefs {
 		if ref.FSIPath != "" {
 			if offset > 0 {
@@ -128,62 +128,52 @@ func (fsi *FSI) LinkedRefs(offset, limit int) ([]reporef.DatasetRef, error) {
 }
 
 // EnsureRefNotLinked checks if a ref already has an existing link on the file system
-func (fsi *FSI) EnsureRefNotLinked(ref *reporef.DatasetRef) error {
-	if stored, err := fsi.repo.GetRef(*ref); err == nil {
+func (fsi *FSI) EnsureRefNotLinked(ref dsref.Ref) error {
+	if stored, err := repo.GetVersionInfoShim(fsi.repo, ref); err == nil {
 		// Check if there is already a link for this dataset, and if that link still exists.
 		if stored.FSIPath != "" && linkfile.ExistsInDir(stored.FSIPath) {
-			return fmt.Errorf("'%s' is already linked to %s", ref.AliasString(), stored.FSIPath)
+			return fmt.Errorf("%q is already linked to %s", ref.Human(), stored.FSIPath)
 		}
 	}
 	return nil
 }
 
-// CreateLink links a working directory to a dataset. Returns the reference alias, and a
-// rollback function if no error occurs
-func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(), err error) {
+// CreateLink links a working directory to an existing dataset. Returning
+// updated VersionInfo and a rollback function if no error occurs
+func (fsi *FSI) CreateLink(dirPath string, ref dsref.Ref) (vi *dsref.VersionInfo, rollback func(), err error) {
 	rollback = func() {}
-
-	datasetRef, err := repo.ParseDatasetRef(refStr)
-	if err != nil {
-		return "", rollback, err
-	}
-	err = repo.CanonicalizeDatasetRef(fsi.repo, &datasetRef)
-	if err != nil && err != repo.ErrNotFound && err != repo.ErrNoHistory {
-		return datasetRef.String(), rollback, err
-	}
 
 	// todo(arqu): should utilize rollback as other operations bellow
 	// can fail too
-	if err := fsi.EnsureRefNotLinked(&datasetRef); err != nil {
-		return "", rollback, err
+	if err := fsi.EnsureRefNotLinked(ref); err != nil {
+		return nil, rollback, err
 	}
 
 	// Link the FSIPath to the reference before putting it into the repo
-	log.Debugf("fsi.CreateLink: linking ref=%q, FSIPath=%q", datasetRef, dirPath)
-	datasetRef.FSIPath = dirPath
-	if err = fsi.repo.PutRef(datasetRef); err != nil {
-		return "", rollback, err
+	log.Debugf("fsi.CreateLink: linking ref=%q, FSIPath=%q", ref, dirPath)
+	vi, err = fsi.ModifyLinkDirectory(dirPath, ref)
+	if err != nil {
+		return nil, rollback, err
 	}
+
 	// If future steps fail, remove the ref we just put
 	removeRefFunc := func() {
-		log.Debugf("removing repo.ref %q during rollback", datasetRef)
-		if err := fsi.repo.DeleteRef(datasetRef); err != nil {
-			log.Debugf("error while removing repo.ref %q: %s", datasetRef, err)
+		log.Debugf("removing repo.ref %q during rollback", ref)
+		if _, err := repo.DeleteVersionInfoShim(fsi.repo, ref); err != nil {
+			log.Debugf("error while removing repo.ref %q: %s", ref, err)
 		}
 	}
 
-	ref := reporef.ConvertToDsref(datasetRef)
-	// Remove the path from the reference because linkfile's don't store full paths.
-	ref.Path = ""
-	linkFile, err := linkfile.WriteHiddenInDir(dirPath, ref)
+	linkfilePath, err := fsi.ModifyLinkReference(dirPath, ref)
 	if err != nil {
-		return "", removeRefFunc, err
+		return nil, removeRefFunc, err
 	}
+
 	// If future steps fail, remove the link file we just wrote to
 	removeLinkAndRemoveRefFunc := func() {
-		log.Debugf("removing linkFile %q during rollback", linkFile)
-		if err := os.Remove(linkFile); err != nil {
-			log.Debugf("error while removing linkFile %q: %s", linkFile, err)
+		log.Debugf("removing linkFile %q during rollback", linkfilePath)
+		if err := os.Remove(linkfilePath); err != nil {
+			log.Debugf("error while removing linkFile %q: %s", linkfilePath, err)
 		}
 		removeRefFunc()
 	}
@@ -191,20 +181,21 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 	// Send an event to the bus about this checkout
 	fsi.pub.Publish(event.ETFSICreateLinkEvent, event.FSICreateLinkEvent{
 		FSIPath:  dirPath,
-		Username: datasetRef.Peername,
-		Dsname:   datasetRef.Name,
+		Username: vi.Username,
+		Dsname:   vi.Name,
 	})
 
 	if fsi.onChangeHook != nil {
 		fsi.onChangeHook(hook.DsChange{
 			Type:       hook.DatasetCreateLink,
-			Username:   datasetRef.Peername,
-			PrettyName: datasetRef.Name,
+			InitID:     ref.InitID, // versionInfo probably coming from old Refstore
+			Username:   vi.Username,
+			PrettyName: vi.Name,
 			Dir:        dirPath,
 		})
 	}
 
-	return datasetRef.AliasString(), removeLinkAndRemoveRefFunc, err
+	return vi, removeLinkAndRemoveRefFunc, err
 }
 
 // ModifyLinkDirectory changes the FSIPath in the repo so that it is linked to the directory. Does
@@ -212,42 +203,28 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 // interface or filesystem watcher detects that a working folder has been moved.
 // TODO(dlong): Add a filesystem watcher that behaves as described
 // TODO(dlong): Perhaps add a `qri mv` command that explicitly changes a working directory location
-func (fsi *FSI) ModifyLinkDirectory(dirPath, refStr string) error {
-	ref, err := repo.ParseDatasetRef(refStr)
+func (fsi *FSI) ModifyLinkDirectory(dirPath string, ref dsref.Ref) (*dsref.VersionInfo, error) {
+	vi, err := repo.GetVersionInfoShim(fsi.repo, ref)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil && err != repo.ErrNoHistory {
-		return err
-	}
-	if ref.FSIPath == dirPath {
-		return nil
+	if vi.FSIPath == dirPath {
+		return vi, nil
 	}
 
-	log.Debugf("fsi.ModifyLinkDirectory: modify ref=%q, FSIPath was %q, changing to %q", ref, ref.FSIPath, dirPath)
-	ref.FSIPath = dirPath
-	return fsi.repo.PutRef(ref)
+	log.Debugf("fsi.ModifyLinkDirectory: modify ref=%q, FSIPath was %q, changing to %q", ref, vi.FSIPath, dirPath)
+	vi.FSIPath = dirPath
+	err = repo.PutVersionInfoShim(fsi.repo, vi)
+	return vi, err
 }
 
 // ModifyLinkReference changes the reference that is in .qri-ref linkfile in the working directory.
 // Does not affect the ref in the repo. Called when a rename command is invoked.
-func (fsi *FSI) ModifyLinkReference(dirPath, refStr string) error {
-	datasetRef, err := repo.ParseDatasetRef(refStr)
-	if err != nil {
-		return err
-	}
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, &datasetRef); err != nil && err != repo.ErrNoHistory {
-		return err
-	}
-
-	log.Debugf("fsi.ModifyLinkReference: modify linkfile at %q, ref=%q", dirPath, datasetRef)
-	ref := reporef.ConvertToDsref(datasetRef)
+func (fsi *FSI) ModifyLinkReference(dirPath string, ref dsref.Ref) (string, error) {
+	log.Debugf("fsi.ModifyLinkReference: modify linkfile at %q, ref=%q", dirPath, ref)
 	// Remove the path from the reference because linkfile's don't store full paths.
 	ref.Path = ""
-	if _, err = linkfile.WriteHiddenInDir(dirPath, ref); err != nil {
-		return err
-	}
-	return nil
+	return linkfile.WriteHiddenInDir(dirPath, ref)
 }
 
 // Unlink removes the link file (.qri-ref) in the directory, and removes the fsi path
@@ -263,15 +240,19 @@ func (fsi *FSI) Unlink(dirPath string, ref dsref.Ref) error {
 		return nil
 	}
 
-	// The FSIPath is *not* set, which removes it from the refstore
-	datasetRef := reporef.RefFromDsref(ref)
+	vi, err := repo.GetVersionInfoShim(fsi.repo, ref)
+	if err != nil {
+		return err
+	}
+	vi.FSIPath = ""
 
 	// if we're unlinking a ref without history, delete it
-	if datasetRef.Path == "" {
-		return fsi.repo.DeleteRef(datasetRef)
+	if ref.Path == "" {
+		_, err := repo.DeleteVersionInfoShim(fsi.repo, ref)
+		return err
 	}
 	// Otherwise just update the refstore
-	return fsi.repo.PutRef(datasetRef)
+	return repo.PutVersionInfoShim(fsi.repo, vi)
 }
 
 // Remove attempts to remove the dataset directory
@@ -302,19 +283,6 @@ func (fsi *FSI) RemoveAll(dirPath string) error {
 // SetChangeHook assigns a hook that will be called when a dataset changes
 func (fsi *FSI) SetChangeHook(changeHook func(hook.DsChange)) {
 	fsi.onChangeHook = changeHook
-}
-
-func (fsi *FSI) getRepoRef(refStr string) (ref reporef.DatasetRef, err error) {
-	ref, err = repo.ParseDatasetRef(refStr)
-	if err != nil {
-		return ref, err
-	}
-
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
-		return ref, err
-	}
-
-	return fsi.repo.GetRef(ref)
 }
 
 func isLowValueFile(f os.FileInfo) bool {

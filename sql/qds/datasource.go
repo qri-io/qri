@@ -2,6 +2,7 @@ package qds
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/cube2222/octosql"
@@ -10,15 +11,15 @@ import (
 	"github.com/cube2222/octosql/physical"
 	"github.com/cube2222/octosql/physical/metadata"
 	golog "github.com/ipfs/go-log"
-	"github.com/pkg/errors"
+	perrors "github.com/pkg/errors"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // CfgTypeString is the string constant that indicates the qri data source as
@@ -36,7 +37,7 @@ var availableFilters = map[physical.FieldType]map[physical.Relation]struct{}{
 type DataSource struct {
 	r     repo.Repo
 	alias string
-	ref   *reporef.DatasetRef
+	ref   dsref.Ref
 	ds    *dataset.Dataset
 }
 
@@ -47,16 +48,30 @@ func NewDataSourceBuilderFactory(r repo.Repo) physical.DataSourceBuilderFactory 
 		func(ctx context.Context, matCtx *physical.MaterializationContext, dbConfig map[string]interface{}, filter physical.Formula, alias string) (execution.Node, error) {
 			refstr, err := config.GetString(dbConfig, "ref")
 			if err != nil {
-				return nil, errors.Wrap(err, "couldn't get path")
+				return nil, perrors.Wrap(err, "couldn't get path")
 			}
 
-			ref, err := base.ToDatasetRef(refstr, r, false)
+			// TODO(b5) - we should be passing down lib.Instance as an interface that
+			// can parse and resolve references, instead of replicating that code
+			// here
+			ref, err := dsref.Parse(refstr)
 			if err != nil {
-				log.Debugf("buildSource: base.ToDatasetRef '%s': %s", refstr, err)
-				if err == repo.ErrNotFound {
+				return nil, fmt.Errorf("%q is not a valid dataset reference: %w", refstr, err)
+			}
+			if ref.Username == "me" {
+				pro, err := r.Profile()
+				if err != nil {
+					return nil, fmt.Errorf("fetching profile: %w", err)
+				}
+				ref.Username = pro.Peername
+			}
+
+			if _, err = r.ResolveRef(ctx, &ref); err != nil {
+				log.Debugf("buildSource: resolving reference '%s': %s", refstr, err)
+				if errors.Is(err, dsref.ErrNotFound) {
 					return nil, qrierr.New(err, fmt.Sprintf("couldn't find '%s' in local dataset collection.\nhave you added it?", refstr))
 				}
-				return nil, errors.Wrap(err, "preparing SQL data souce: bad dataset reference.")
+				return nil, perrors.Wrap(err, "preparing SQL data souce: bad dataset reference.")
 			}
 
 			return &DataSource{
@@ -77,7 +92,7 @@ func (qds *DataSource) Get(ctx context.Context, variables octosql.Variables) (ex
 	ds, err := dsfs.LoadDataset(ctx, qds.r.Store(), ref.Path)
 	if err != nil {
 		log.Debugf("buildSource: dsfs.LoadDataset '%s': %s", qds.ref, err)
-		return nil, errors.Wrap(err, "preparing SQL data source: couldn't load dataset")
+		return nil, perrors.Wrap(err, "preparing SQL data source: couldn't load dataset")
 	}
 
 	if ds.Structure == nil {
@@ -90,7 +105,7 @@ func (qds *DataSource) Get(ctx context.Context, variables octosql.Variables) (ex
 
 	if err = base.OpenDataset(ctx, qds.r.Filesystem(), ds); err != nil {
 		log.Debugf("buildSource: base.OpenDataset '%s': %s", qds.ref, err)
-		return nil, errors.Wrap(err, "couldn't open ")
+		return nil, perrors.Wrap(err, "couldn't open ")
 	}
 
 	r, err := dsio.NewEntryReader(ds.Structure, ds.BodyFile())
@@ -100,7 +115,7 @@ func (qds *DataSource) Get(ctx context.Context, variables octosql.Variables) (ex
 
 	aliasedFields, err := initializeColumns(qds.alias, qds.ref, ds.Structure)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't initialize columns for record stream")
+		return nil, perrors.Wrap(err, "couldn't initialize columns for record stream")
 	}
 
 	return &RecordStream{
@@ -124,13 +139,13 @@ type RecordStream struct {
 // Close finalizes the stream
 func (rs *RecordStream) Close() error {
 	if err := rs.r.Close(); err != nil {
-		return errors.Wrap(err, "couldn't close dataset entry reader")
+		return perrors.Wrap(err, "couldn't close dataset entry reader")
 	}
 
 	return nil
 }
 
-func initializeColumns(alias string, ref *reporef.DatasetRef, st *dataset.Structure) ([]octosql.VariableName, error) {
+func initializeColumns(alias string, ref dsref.Ref, st *dataset.Structure) ([]octosql.VariableName, error) {
 	cols, _, err := tabular.ColumnsFromJSONSchema(st.Schema)
 	if err != nil {
 		// the tabular package emits nice errors we can use as user-facing messages

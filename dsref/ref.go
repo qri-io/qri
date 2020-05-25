@@ -68,3 +68,14 @@ func (r Ref) Copy() Ref {
 		Path:      r.Path,
 	}
 }
+
+// VersionInfo creates a new sparse VersionInfo from a reference
+func (r Ref) VersionInfo() VersionInfo {
+	return VersionInfo{
+		InitID:    r.InitID,
+		Username:  r.Username,
+		ProfileID: r.ProfileID,
+		Name:      r.Name,
+		Path:      r.Path,
+	}
+}

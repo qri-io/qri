@@ -531,6 +531,7 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 // already-allocated QriNode & configuration
 // don't write new code that relies on this, instead create a configuration
 // and options that can be fed to NewInstance
+// This function must only be used for testing purposes
 func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instance {
 	ctx, teardown := context.WithCancel(context.Background())
 
@@ -542,6 +543,13 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 	bus := event.NewBus(ctx)
 	fsint := fsi.NewFSI(r, bus)
 	dc := dscache.NewDscache(ctx, r.Filesystem(), []hook.ChangeNotifier{r.Logbook(), fsint}, pro.Peername, "")
+
+	// TODO (b5) - lots of tests pass "DefaultConfigForTesting", which uses a different peername /
+	// identity from what the repo already has. This disagreement is a potential source of bugs
+	// we should fix this by getting over to lib.NewInstance ASAP
+	if cfg.Profile.Peername != pro.Peername {
+		cfg.Profile.Peername = pro.Peername
+	}
 
 	inst := &Instance{
 		ctx:      ctx,

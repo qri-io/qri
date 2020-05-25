@@ -1656,8 +1656,9 @@ func TestUnlinkLinkFileButNoFSIPath(t *testing.T) {
 
 	// Unlink the dataset
 	output := run.MustExecCombinedOutErr(t, "qri workdir unlink me/unlink_me")
-	if output != "me/unlink_me is not linked to a directory\n" {
-		t.Errorf("expected output mismatch, got %q", output)
+	expect := "test_peer/unlink_me is not linked to a working directory\n"
+	if expect != output {
+		t.Errorf("output mismatch. expected %q  got %q", expect, output)
 	}
 
 	// Verify that .qri-ref still exists
@@ -1732,8 +1733,9 @@ func TestUnlinkDirectoryButRefNotFound(t *testing.T) {
 
 	// Unlink the dataset
 	output := run.MustExecCombinedOutErr(t, "qri workdir unlink me/not_found")
-	if output != "repo: not found\n" {
-		t.Errorf("expected output mismatch, got %q", output)
+	expect := "reference not found\n"
+	if output != expect {
+		t.Errorf("output mismatch. expected %q got %q", expect, output)
 	}
 
 	// Verify that .qri-ref still exists

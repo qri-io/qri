@@ -29,7 +29,6 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -756,7 +755,7 @@ func (m *DatasetMethods) SetPublishStatus(p *SetPublishStatusParams, publishedRe
 
 // RenameParams defines parameters for Dataset renaming
 type RenameParams struct {
-	Current, Next dsref.Ref
+	Current, Next string
 }
 
 // Rename changes a user's given name for a dataset
@@ -766,40 +765,40 @@ func (m *DatasetMethods) Rename(p *RenameParams, res *dsref.VersionInfo) error {
 	}
 	ctx := context.TODO()
 
-	if p.Current.IsEmpty() {
+	if p.Current == "" {
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
 
+	ref, err := dsref.ParseHumanFriendly(p.Current)
+	if err != nil {
+		return err
+	}
+	if _, err := m.inst.ResolveReference(ctx, &ref, "local"); err != nil {
+		return err
+	}
+
+	next, err := dsref.ParseHumanFriendly(p.Next)
+	if err != nil {
+		return dsref.ErrDescribeValidName
+	}
+	if ref.Username != next.Username && next.Username != "me" {
+		return fmt.Errorf("cannot change username or profileID of a dataset")
+	}
+
 	// Update the reference stored in the repo
-	info, err := base.RenameDatasetRef(ctx, m.inst.repo, p.Current, p.Next)
+	vi, err := base.RenameDatasetRef(ctx, m.inst.repo, ref, next.Name)
 	if err != nil {
 		return err
 	}
 
 	// If the dataset is linked to a working directory, update the ref
-	if info.FSIPath != "" {
-		if err = m.inst.fsi.ModifyLinkReference(info.FSIPath, info.Alias()); err != nil {
+	if vi.FSIPath != "" {
+		if _, err = m.inst.fsi.ModifyLinkReference(vi.FSIPath, vi.SimpleRef()); err != nil {
 			return err
 		}
 	}
 
-	pid, err := profile.IDB58Decode(info.ProfileID)
-	if err != nil {
-		pid = ""
-	}
-
-	readRef := reporef.DatasetRef{
-		Peername:  info.Username,
-		ProfileID: pid,
-		Name:      info.Name,
-		Path:      info.Path,
-	}
-
-	if err = base.ReadDataset(ctx, m.inst.repo, &readRef); err != nil && err != repo.ErrNoHistory {
-		log.Debug(err.Error())
-		return err
-	}
-	*res = *info
+	*res = *vi
 	return nil
 }
 
@@ -887,12 +886,12 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	// Get the revisions that will be deleted.
-	history, err := base.DatasetLog(ctx, m.inst.repo, ref, p.Revision.Gen+1, 0, false)
+	history, err := base.DatasetLog(ctx, m.inst.repo, reporef.ConvertToDsref(ref), p.Revision.Gen+1, 0, false)
 	if err == nil && p.Revision.Gen >= len(history) {
 		// If the number of revisions to delete is greater than or equal to the amount in history,
 		// treat this operation as deleting everything.
 		p.Revision.Gen = dsref.AllGenerations
-	} else if err == repo.ErrNoHistory {
+	} else if err == repo.ErrNoHistory || errors.Is(err, dsref.ErrPathRequired) {
 		// If the dataset has no history, treat this operation as deleting everything.
 		p.Revision.Gen = dsref.AllGenerations
 	} else if err != nil {
@@ -999,7 +998,7 @@ func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
 	}
 	ctx := context.TODO()
 
-	ref, err := repo.ParseDatasetRef(p.Ref)
+	ref, err := dsref.Parse(p.Ref)
 	if err != nil {
 		return err
 	}
@@ -1008,16 +1007,21 @@ func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
 		p.RemoteAddr = m.inst.cfg.Registry.Location
 	}
 
-	mergeLogsError := m.inst.remoteClient.CloneLogs(ctx, reporef.ConvertToDsref(ref), p.RemoteAddr)
+	mergeLogsError := m.inst.remoteClient.CloneLogs(ctx, ref, p.RemoteAddr)
+	// TODO(b5) - this line is swallowing errors that the cmd package integration
+	// tests are hitting. We need to change the behaviour of add to *require* logs
+	// successfully merge, which will require fixing lots of tests in cmd,
+	// ideally by removing remote.MockRepoClient
 	if p.LogsOnly {
 		return mergeLogsError
 	}
 
-	if err = m.inst.remoteClient.AddDataset(ctx, &ref, p.RemoteAddr); err != nil {
+	rref := reporef.RefFromDsref(ref)
+	if err = m.inst.remoteClient.AddDataset(ctx, &rref, p.RemoteAddr); err != nil {
 		return err
 	}
 
-	*res = ref
+	*res = rref
 
 	if p.LinkDir != "" {
 		checkoutp := &CheckoutParams{
@@ -1253,21 +1257,19 @@ func (m *DatasetMethods) Stats(p *StatsParams, res *StatsResponse) error {
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Stats", p, res))
 	}
 	ctx := context.TODO()
+
 	if p.Dataset == nil {
-		ref := &reporef.DatasetRef{}
-		ref, err := base.ToDatasetRef(p.Ref, m.inst.repo, false)
+		// TODO (b5) - stats is currently local-only, supply a source parameter
+		ref, _, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
 		if err != nil {
 			return err
 		}
-		p.Dataset, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
+		p.Dataset, err = m.inst.loadDataset(ctx, ref)
 		if err != nil {
 			return fmt.Errorf("loading dataset: %s", err)
 		}
-
-		if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), p.Dataset); err != nil {
-			return err
-		}
 	}
+
 	if p.Dataset.Structure == nil || p.Dataset.Structure.IsEmpty() {
 		p.Dataset.Structure = &dataset.Structure{}
 		p.Dataset.Structure.Format = filepath.Ext(p.Dataset.BodyFile().FileName())

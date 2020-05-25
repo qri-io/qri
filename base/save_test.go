@@ -10,7 +10,6 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestSaveDataset(t *testing.T) {
@@ -88,12 +87,12 @@ func TestSaveDatasetReplace(t *testing.T) {
 		t.Error(err)
 	}
 
-	datasetRef := reporef.RefFromDsref(ref)
-	if err := ReadDataset(run.Context, run.Repo, &datasetRef); err != nil {
+	ds, err = ReadDataset(run.Context, run.Repo, ref.Path)
+	if err != nil {
 		t.Error(err)
 	}
 
-	if datasetRef.Dataset.Meta != nil {
+	if ds.Meta != nil {
 		t.Error("expected overwritten meta to be nil")
 	}
 }

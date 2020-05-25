@@ -10,15 +10,6 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// MustParseDatasetRef panics if the reference is invalid. Useful for testing
-func MustParseDatasetRef(refstr string) reporef.DatasetRef {
-	ref, err := ParseDatasetRef(refstr)
-	if err != nil {
-		panic(err)
-	}
-	return ref
-}
-
 // ParseDatasetRef decodes a dataset reference from a string value
 // It’s possible to refer to a dataset in a number of ways.
 // The full definition of a dataset reference is as follows:
