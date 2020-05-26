@@ -12,6 +12,8 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 	repoTest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/starlib"
@@ -136,7 +138,7 @@ def transform(ds, ctx):
 
 func TestLoadDataset(t *testing.T) {
 	ctx := context.Background()
-	repo := testRepo(t)
+	r := testRepo(t)
 
 	ds := &dataset.Dataset{
 		Transform: &dataset.Transform{},
@@ -144,12 +146,41 @@ func TestLoadDataset(t *testing.T) {
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/load_ds.star"))
 
 	err := ExecScript(ctx, ds, nil, func(o *ExecOpts) {
-		o.Repo = repo
+		o.Repo = r
 		o.ModuleLoader = testModuleLoader(t)
+		o.DatasetLoader = dsref.NewParseResolveLoadFunc("", r, repoLoader{r})
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+// TODO(b5) - we should think about moving this somewhere more general
+type repoLoader struct {
+	r repo.Repo
+}
+
+func (rl repoLoader) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
+	var (
+		ds  *dataset.Dataset
+		err error
+	)
+
+	if ds, err = dsfs.LoadDataset(ctx, rl.r.Store(), ref.Path); err != nil {
+		return nil, err
+	}
+	// Set transient info on the returned dataset
+	ds.Name = ref.Name
+	ds.Peername = ref.Username
+
+	// TODO (b5) - this should be a call to base.OpenDatasets
+	if ds.BodyFile() == nil {
+		if err = ds.OpenBodyFile(ctx, rl.r.Filesystem()); err != nil {
+			return nil, err
+		}
+	}
+
+	return ds, nil
 }
 
 func TestGetMetaNilPrev(t *testing.T) {
