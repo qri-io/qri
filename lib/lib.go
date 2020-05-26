@@ -184,14 +184,11 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 			return fmt.Errorf("no config file to check for migrations")
 		}
 
-		migrated, err := migrate.RunMigrations(o.Streams, o.Cfg)
+		err := migrate.RunMigrations(o.Streams, o.Cfg)
 		if err != nil {
 			return err
 		}
 
-		if migrated {
-			return o.Cfg.WriteToFile(cfgPath)
-		}
 		return nil
 	}
 }
