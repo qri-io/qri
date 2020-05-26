@@ -49,7 +49,7 @@ func (inst *Instance) ParseAndResolveRefWithWorkingDir(ctx context.Context, refS
 // the mode parameter determines which subsystems of Qri to use when resolving
 func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, mode string) (string, error) {
 	if inst == nil {
-		return "", dsref.ErrNotFound
+		return "", dsref.ErrRefNotFound
 	}
 
 	// Handle the "me" convenience shortcut

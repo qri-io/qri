@@ -45,13 +45,13 @@ func (m *MemResolver) GetInfo(initID string) *VersionInfo {
 // implements resolve.NameResolver interface
 func (m *MemResolver) ResolveRef(ctx context.Context, ref *Ref) (string, error) {
 	if m == nil {
-		return "", ErrNotFound
+		return "", ErrRefNotFound
 	}
 
 	id := m.RefMap[ref.Alias()]
 	resolved, ok := m.IDMap[id]
 	if !ok {
-		return "", ErrNotFound
+		return "", ErrRefNotFound
 	}
 
 	ref.InitID = id

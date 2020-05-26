@@ -756,7 +756,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 func (m *DatasetMethods) nameIsInUse(ctx context.Context, ref dsref.Ref) bool {
 	res := ref.Copy()
 	_, err := m.inst.ResolveReference(ctx, &res, "local")
-	if errors.Is(err, dsref.ErrNotFound) {
+	if errors.Is(err, dsref.ErrRefNotFound) {
 		return false
 	} else if err != nil {
 		// TODO(b5): Unsure if this is correct. If `Get` hits some other error, we aren't

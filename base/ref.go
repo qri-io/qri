@@ -73,7 +73,7 @@ func RenameDatasetRef(ctx context.Context, r repo.Repo, ref dsref.Ref, newName s
 	if _, newRefErr := r.ResolveRef(ctx, &next); newRefErr == nil {
 		// successful resolution on rename is an error
 		return nil, fmt.Errorf("dataset %q already exists", next.Human())
-	} else if errors.Is(newRefErr, dsref.ErrNotFound) {
+	} else if errors.Is(newRefErr, dsref.ErrRefNotFound) {
 		// this is a good thing.
 	} else {
 		log.Debug(newRefErr.Error())

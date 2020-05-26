@@ -644,12 +644,12 @@ func (book Book) Log(ctx context.Context, id string) (*oplog.Log, error) {
 // implements resolve.NameResolver interface
 func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	if book == nil {
-		return "", dsref.ErrNotFound
+		return "", dsref.ErrRefNotFound
 	}
 
 	initID, err := book.RefToInitID(*ref)
 	if err != nil {
-		return "", dsref.ErrNotFound
+		return "", dsref.ErrRefNotFound
 	}
 	ref.InitID = initID
 

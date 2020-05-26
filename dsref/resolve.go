@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	// ErrNotFound must be returned by a ref resolver that cannot resolve a given
-	// reference
-	ErrNotFound = errors.New("reference not found")
+	// ErrRefNotFound must be returned by a ref resolver that cannot resolve a
+	// given reference
+	ErrRefNotFound = errors.New("reference not found")
 	// ErrPathRequired should be returned by functions that require a reference
 	// have a path value, but got none.
 	// ErrPathRequired should *not* be returned by implentationf of the
@@ -44,7 +44,7 @@ func (rs parallelResolver) ResolveRef(ctx context.Context, ref *Ref) (string, er
 
 	run := func(ctx context.Context, r Resolver) {
 		if r == nil {
-			errs <- ErrNotFound
+			errs <- ErrRefNotFound
 			return
 		}
 
@@ -73,10 +73,10 @@ func (rs parallelResolver) ResolveRef(ctx context.Context, ref *Ref) (string, er
 			return res.Source, nil
 		case err := <-errs:
 			attempts--
-			if !errors.Is(err, ErrNotFound) {
+			if !errors.Is(err, ErrRefNotFound) {
 				return "", err
 			} else if attempts == 0 {
-				return "", ErrNotFound
+				return "", ErrRefNotFound
 			}
 		case <-ctx.Done():
 			return "", ctx.Err()
@@ -97,7 +97,7 @@ func (sr sequentialResolver) ResolveRef(ctx context.Context, ref *Ref) (string, 
 	for _, resolver := range sr {
 		resolvedSource, err := resolver.ResolveRef(ctx, ref)
 		if err != nil {
-			if errors.Is(err, ErrNotFound) {
+			if errors.Is(err, ErrRefNotFound) {
 				continue
 			} else {
 				return "", err
@@ -106,5 +106,5 @@ func (sr sequentialResolver) ResolveRef(ctx context.Context, ref *Ref) (string, 
 		return resolvedSource, nil
 	}
 
-	return "", ErrNotFound
+	return "", ErrRefNotFound
 }

@@ -53,7 +53,7 @@ var _ dsref.Resolver = (*Client)(nil)
 // implements dsref.Resolver interface
 func (c *Client) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	if c == nil {
-		return "", dsref.ErrNotFound
+		return "", dsref.ErrRefNotFound
 	}
 
 	// TODO (b5) - for now we're just using "registry" as the returned source value
@@ -84,7 +84,7 @@ func (c *Client) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error)
 	}
 
 	if res.StatusCode == http.StatusNotFound {
-		return "", dsref.ErrNotFound
+		return "", dsref.ErrRefNotFound
 	} else if res.StatusCode != http.StatusOK {
 		errMsg, _ := ioutil.ReadAll(res.Body)
 		return addr, fmt.Errorf("resolving dataset ref from registry failed: %s", string(errMsg))

@@ -25,7 +25,7 @@ func TestResolveRef(t *testing.T) {
 
 	ctx := context.Background()
 
-	if _, err := (*Client)(nil).ResolveRef(ctx, nil); err != dsref.ErrNotFound {
+	if _, err := (*Client)(nil).ResolveRef(ctx, nil); err != dsref.ErrRefNotFound {
 		t.Errorf("expected client to be nil-callable")
 	}
 

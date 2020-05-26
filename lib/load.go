@@ -16,6 +16,9 @@ import (
 // LoadDataset fetches, derefences and opens a dataset from a reference
 // implements the dsfs.Loader interface
 func (inst *Instance) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
+	if inst == nil {
+		return nil, fmt.Errorf("no instance")
+	}
 	if source == "" {
 		return inst.loadLocalDataset(ctx, ref)
 	}
