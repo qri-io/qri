@@ -2,13 +2,16 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/dsref"
 )
 
 // Test rename works if dataset has no history
@@ -116,6 +119,78 @@ func TestRenameUpdatesLink(t *testing.T) {
 	}
 }
 
+// Test that rename command only works with human-friendly references, those without paths
+func TestRenameNeedsHumanName(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "rename_human")
+	defer run.Delete()
+
+	// Create a dataset and get the resolved reference to it
+	output := run.MustExecCombinedOutErr(t, "qri save --body=testdata/movies/body_ten.csv me/first_name")
+	ref := dsref.MustParse(parseRefFromSave(output))
+
+	if !strings.HasPrefix(ref.Path, "/ipfs/") {
+		t.Errorf("expected saved ref to start with '/ipfs/', but got %q", ref.Path)
+	}
+
+	// Parse error for the land-hand-side
+	err := run.ExecCommand("qri rename test_peer/invalid+name test_peer/second_name")
+	if err == nil {
+		t.Fatal("expected error, did not get one")
+	}
+	expectErr := `original name: unexpected character at position 17: '+'`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
+	lhs := ref.Copy()
+
+	// Given a resolved reference for the left-hand-side is an error
+	err = run.ExecCommand(fmt.Sprintf("qri rename %s test_peer/second_name", lhs))
+	if err == nil {
+		t.Fatal("expected error, did not get one")
+	}
+	expectErr = `original name: unexpected character '@', ref can only have username/name`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
+	// Make left-hand-side into a human-friendly path
+	lhs.Path = ""
+
+	// Parse error for the right-hand-side
+	err = run.ExecCommand(fmt.Sprintf("qri rename %s test_peer/invalid+name", lhs))
+	if err == nil {
+		t.Fatal("expected error, did not get one")
+	}
+	expectErr = `destination name: dataset name must start with a lower-case letter, and only contain lower-case letters, numbers, dashes, and underscore. Maximum length is 144 characters`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
+	// Create right-hand-side with a path
+	rhs := ref.Copy()
+	rhs.Name = "second_name"
+
+	// Given a resolved reference for the right-hand-side is an error
+	err = run.ExecCommand(fmt.Sprintf("qri rename %s %s", lhs, rhs))
+	if err == nil {
+		t.Fatal("expected error, did not get one")
+	}
+	expectErr = `destination name: unexpected character '@', ref can only have username/name`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
+	// Make right-hand-side into a human-friendly path
+	rhs.Path = ""
+
+	// Now the rename command works without error
+	err = run.ExecCommand(fmt.Sprintf("qri rename %s %s", lhs, rhs))
+	if err != nil {
+		t.Errorf("got error: %s", err)
+	}
+}
+
 // Test that rename can be used on names with bad upper-case characters, but only to rename them
 // to be valid instead
 func TestRenameAwayFromBadCase(t *testing.T) {
@@ -130,8 +205,8 @@ func TestRenameAwayFromBadCase(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, did not get one")
 	}
-	expectErr := `dataset name may not contain any upper-case letters`
-	if diff := cmp.Diff(expectErr, err.Error()); diff != "" {
+	expectErr := `destination name: dataset name must start with a lower-case letter, and only contain lower-case letters, numbers, dashes, and underscore. Maximum length is 144 characters`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 
@@ -153,8 +228,8 @@ func TestRenameAwayFromBadCase(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, did not get one")
 	}
-	expectErr = `dataset name may not contain any upper-case letters`
-	if diff := cmp.Diff(expectErr, err.Error()); diff != "" {
+	expectErr = `destination name: dataset name must start with a lower-case letter, and only contain lower-case letters, numbers, dashes, and underscore. Maximum length is 144 characters`
+	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 

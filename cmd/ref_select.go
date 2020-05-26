@@ -127,6 +127,7 @@ func GetCurrentRefSelect(f Factory, args []string, allowed int, ensurer *FSIRefL
 					// In the near future, change to: `return nil, dsref.ErrBadCaseShouldRename`
 					// The test `TestBadCaseIsJustWarning` in cmd/cmd_test.go verifies that this
 					// is not a fatal error.
+					// TODO(dustmop): Change to a fatal error after qri 0.9.9 releases.
 					log.Error(dsref.ErrBadCaseShouldRename)
 				}
 			}

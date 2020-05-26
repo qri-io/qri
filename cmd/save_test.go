@@ -337,6 +337,11 @@ func TestSaveBasicCommands(t *testing.T) {
 			"unexpected character '@', ref can only have username/name",
 		},
 		{
+			"dataset file bad parse",
+			"qri save --file dataset.yaml me/invalid+name",
+			"dataset name must start with a lower-case letter, and only contain lower-case letters, numbers, dashes, and underscore. Maximum length is 144 characters",
+		},
+		{
 			"body file other username",
 			"qri save --body body_ten.csv other/my_dataset",
 			"cannot save using a different username than \"test_peer\"",

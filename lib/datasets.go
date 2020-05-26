@@ -494,9 +494,11 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		log.Error(dsref.ErrBadCaseShouldRename)
 	} else if errors.Is(err, dsref.ErrEmptyRef) {
 		// Okay if reference is empty. Later code will try to infer the name from other parameters.
-	} else if err != nil {
-		// If some other error happened, return that error.
+	} else if errors.Is(err, dsref.ErrNotHumanFriendly) {
 		return err
+	} else if err != nil {
+		// If some other parse error happened, describe a valid dataset name.
+		return dsref.ErrDescribeValidName
 	}
 
 	// Validate that username is our own, it's not valid to try to save a dataset with someone
@@ -804,16 +806,20 @@ func (m *DatasetMethods) Rename(p *RenameParams, res *dsref.VersionInfo) error {
 	}
 
 	ref, err := dsref.ParseHumanFriendly(p.Current)
-	if err != nil {
-		return err
+	// Allow bad upper-case characters in the left-hand side name, because it's needed to let users
+	// fix badly named datasets.
+	if err != nil && err != dsref.ErrBadCaseName {
+		return fmt.Errorf("original name: %s", err)
 	}
 	if _, err := m.inst.ResolveReference(ctx, &ref, "local"); err != nil {
 		return err
 	}
 
 	next, err := dsref.ParseHumanFriendly(p.Next)
-	if err != nil {
-		return dsref.ErrDescribeValidName
+	if errors.Is(err, dsref.ErrNotHumanFriendly) {
+		return fmt.Errorf("destination name: %s", err)
+	} else if err != nil {
+		return fmt.Errorf("destination name: %s", dsref.ErrDescribeValidName)
 	}
 	if ref.Username != next.Username && next.Username != "me" {
 		return fmt.Errorf("cannot change username or profileID of a dataset")
