@@ -2,21 +2,32 @@
 package migrate
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
+	qerr "github.com/qri-io/qri/errors"
 )
 
 // RunMigrations checks to see if any migrations runs them
-func RunMigrations(streams ioes.IOStreams, cfg *config.Config) (migrated bool, err error) {
+func RunMigrations(streams ioes.IOStreams, cfg *config.Config) (err error) {
 	if cfg.Revision != config.CurrentConfigRevision {
 		streams.PrintErr("migrating configuration...")
-		if err := ZeroToOne(cfg); err != nil {
-			return false, err
+		if cfg.Revision == 0 {
+			if err := ZeroToOne(cfg); err != nil {
+				return err
+			}
+		}
+		if cfg.Revision == 1 {
+			if err := OneToTwo(cfg); err != nil {
+				return err
+			}
 		}
 		streams.PrintErr("done!\n")
-		return true, nil
 	}
-	return false, nil
+	return nil
 }
 
 // ZeroToOne migrates a configuration from Revision Zero (no revision number) to Revision 1
@@ -49,7 +60,74 @@ func ZeroToOne(cfg *config.Config) error {
 	}
 
 	cfg.Revision = 1
+
+	if err := safeWriteConfig(cfg); err != nil {
+		rollbackConfigWrite(cfg)
+		return err
+	}
+
 	return nil
+}
+
+// OneToTwo migrates a configuration from Revision 1 to Revision 2
+func OneToTwo(cfg *config.Config) error {
+
+	// TODO(ramfox): qfs migration
+
+	// TODO(arqu): config migration
+	// if err := oneToTwoConfig(cfg); err != nil {
+	// 	return err
+	// }
+	// cfg.Revision = 2
+	// if err := cfg.Validate(); err != nil {
+	// 	return qerr.New(err, "config is invalid")
+	// }
+	// TODO(arqu): config write/rollback
+	// if err := safeWriteConfig(cfg); err != nil {
+	// 	rollbackConfigWrite(cfg)
+	// 	return err
+	// }
+
+	// TODO(ramfox): remove original ipfs repo after all migrations were successful
+
+	return nil
+}
+
+func oneToTwoConfig(cfg *config.Config) error {
+	return nil
+}
+
+func rollbackConfigWrite(cfg *config.Config) {
+	cfgPath := cfg.Path()
+	if len(cfgPath) == 0 {
+		return
+	}
+	tmpCfgPath := getTmpConfigFilepath(cfgPath)
+	if _, err := os.Stat(tmpCfgPath); !os.IsNotExist(err) {
+		os.Remove(tmpCfgPath)
+	}
+}
+
+func safeWriteConfig(cfg *config.Config) error {
+	cfgPath := cfg.Path()
+	if len(cfgPath) == 0 {
+		return qerr.New(fmt.Errorf("invalid path"), "could not determine config path")
+	}
+	tmpCfgPath := getTmpConfigFilepath(cfgPath)
+	if err := cfg.WriteToFile(tmpCfgPath); err != nil {
+		return qerr.New(err, fmt.Sprintf("could not write config to path %s", tmpCfgPath))
+	}
+	if err := os.Rename(tmpCfgPath, cfgPath); err != nil {
+		return qerr.New(err, fmt.Sprintf("could not write config to path %s", cfgPath))
+	}
+
+	return nil
+}
+
+func getTmpConfigFilepath(cfgPath string) string {
+	cfgDir := filepath.Dir(cfgPath)
+	tmpCfgPath := filepath.Join(cfgDir, "config_updated.yaml")
+	return tmpCfgPath
 }
 
 func delIdx(i int, sl []string) []string {
