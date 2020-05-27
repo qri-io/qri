@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"net/rpc"
 	"os"
 	"path/filepath"
@@ -17,6 +16,8 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
+	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
@@ -327,11 +328,11 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	// check if we're operating over RPC
 	if cfg.RPC.Enabled {
-		addr := fmt.Sprintf(":%d", cfg.RPC.Port)
-		conn, err := net.Dial("tcp", addr)
+		addr, _ := ma.NewMultiaddr(cfg.RPC.Address)
+		conn, err := manet.Dial(addr)
 		if err == nil {
 			// we have a connection
-			log.Debugf("using RPC address %s", addr)
+			log.Debugf("using RPC address %s", cfg.RPC.Address)
 			inst.rpc = rpc.NewClient(conn)
 			return qri, err
 		}

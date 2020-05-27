@@ -7,7 +7,7 @@ The config encapsulates qri configuration options & details. configuration is ge
 $ qri config get profile
 
 # to set, for example, your api port to 4444
-$ qri config set api.port 4444
+$ qri config set api.address /ip4/tcp/4444
 
 # to disable rpc connections
 $ qri config set rpc.enabled false
@@ -53,7 +53,8 @@ Here is a quick reference of all configurable fields:
     * [colorizeoutput](#colorizeoutput) *bool*
 * [api](#api) *object*
     * [enabled](#api-enabled) *bool*
-    * [port](#api-port) *string*
+    * [address](#api-address) *string*
+    * [websocketaddress](#api-websocketaddress) *string*
     * [readonly](#readonly) *bool*
     * [urlroot](#urlroot) *string*
     * [tls](#tls) *string*
@@ -66,7 +67,7 @@ Here is a quick reference of all configurable fields:
     * [scripts](#scripts) *array*
 * [rpc](#rpc) *object*
     * [enabled](#rpc-enabled) *bool*
-    * [port](#rpc-port) *string*
+    * [address](#rpc-address) *string*
 * [logging](#logging) *object*
     * [levels](#levels) *object*
         * [qriapi](#qriapi) *string*
@@ -472,18 +473,33 @@ $ qri config set api.enabled true
 ```
 
 -----
-## api port
-The api will listen for calls at this port.
+## api address
+The api will listen for calls at this address.
 
-The api must be enabled and set to port 2503 in order to work locally with the frontend webapp.
+The api must be enabled and set to the address /ip4/tcp/2503 in order to work locally with the frontend webapp.
 
-**Input options** (*integer*):
+**Input options** (*string*):
 
 **Commands:**
 ```
-$ qri config get api.port
+$ qri config get api.address
 
-$ qri config set api.port 2503
+$ qri config set api.address /ip4/tcp/2503
+```
+
+-----
+## api websocketaddress
+The api will listen for websocket calls at this address.
+
+The api must be enabled and set to the address /ip4/tcp/2506 in order to work locally with the frontend webapp.
+
+**Input options** (*string*):
+
+**Commands:**
+```
+$ qri config get api.websocketaddress
+
+$ qri config set api.websocketaddress /ip4/tcp/2506
 ```
 
 -----
@@ -563,16 +579,16 @@ $ qri config set rpc.enabled true
 ```
 
 -----
-## rpc port
-The rpc will listen for calls at this port. Qri standard is 2504.
+## rpc address
+The rpc will listen for calls at this address. Qri standard is 2504.
 
-**Input options** (*integer*):
+**Input options** (*string*):
 
 **Commands:**
 ```
-$ qri config get rpc.port
+$ qri config get rpc.address
 
-$ qri config set rpc.port 2504
+$ qri config set rpc.address /ip4/tcp/2504
 ```
 
 -----

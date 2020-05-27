@@ -1,61 +1,56 @@
 package api
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
 	"time"
 
+	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/qri/config"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 // StartServer interprets info from config to start the server
-// if config.TLS == true it'll spin up an https server using LetsEncrypt
-// that should work just fine on the raw internet (ie not behind a proxy like nginx etc)
-// it'll also redirect http traffic to it's https route counterpart if port 80 is open
+// StartServer interprets info from config to start an API server
 func StartServer(c *config.API, s *http.Server) error {
-	if c.ServeRemoteTraffic {
-		s.Addr = fmt.Sprintf(":%d", c.Port)
-	} else {
-		s.Addr = fmt.Sprintf("%s:%d", LocalHostIP, c.Port)
-	}
-	if !c.Enabled || c.Port == 0 {
+	if !c.Enabled {
 		return nil
 	}
 
-	if !c.TLS {
-		return s.ListenAndServe()
+	addr, err := ma.NewMultiaddr(c.Address)
+	if err != nil {
+		return err
 	}
 
-	// log.Infoln("using https server for url root:", c.UrlRoot)
-	certCache := "/tmp/certs"
-	key, cert := "", ""
+	var listener net.Listener
 
-	// LetsEncrypt is good. Thanks LetsEncrypt.
-	certManager := autocert.Manager{
-		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(c.URLRoot),
-		Cache:      autocert.DirCache(certCache),
+	if !c.ServeRemoteTraffic {
+		// if we're not serving remote traffic, strip off any address details other
+		// than a raw TCP address
+		portAddr := config.DefaultAPIPort
+		ma.ForEach(addr, func(comp ma.Component) bool {
+			if comp.Protocol().Code == ma.P_TCP {
+				portAddr = comp.Value()
+				return false
+			}
+			return true
+		})
+
+		// use a raw listener on a local TCP socket
+		listener, err = net.Listen("tcp", fmt.Sprintf(":%s", portAddr))
+		if err != nil {
+			return err
+		}
+	} else {
+		mal, err := manet.Listen(addr)
+		if err != nil {
+			return err
+		}
+		listener = manet.NetListener(mal)
 	}
 
-	// Attempt to boot a port 80 https redirect
-	go HTTPSRedirect(":80")
-
-	s.TLSConfig = &tls.Config{
-		GetCertificate: certManager.GetCertificate,
-		// Causes servers to use Go's default ciphersuite preferences,
-		// which are tuned to avoid attacks. Does nothing on clients.
-		PreferServerCipherSuites: true,
-		// Only use curves which have assembly implementations
-		CurvePreferences: []tls.CurveID{
-			tls.CurveP256,
-			tls.X25519,
-		},
-	}
-
-	return s.ListenAndServeTLS(cert, key)
+	return s.Serve(listener)
 }
 
 // HTTPSRedirect listens over TCP on addr, redirecting HTTP requests to https

@@ -8,14 +8,21 @@ import (
 	"github.com/qri-io/jsonschema"
 )
 
-// DefaultAPIPort is local the port webapp serves on by default
-var DefaultAPIPort = 2503
+// DefaultAPIPort is the port the webapp serves on by default
+var DefaultAPIPort = "2503"
+
+// DefaultAPIAddress is the address the webapp serves on by default
+var DefaultAPIAddress = fmt.Sprintf("/ip4/127.0.0.1/tcp/%s", DefaultAPIPort)
+
+// DefaultAPIWebsocketAddress is the websocket address the webapp serves on by default
+var DefaultAPIWebsocketAddress = "/ip4/127.0.0.1/tcp/2506"
 
 // API holds configuration for the qri JSON api
 type API struct {
+	// APIAddress specifies the multiaddress to listen for JSON API calls
+	Address string `json:"address"`
+	// API is enabled
 	Enabled bool `json:"enabled"`
-	// APIPort specifies the port to listen for JSON API calls
-	Port int `json:"port"`
 	// read-only mode
 	ReadOnly bool `json:"readonly"`
 	// remote mode
@@ -44,6 +51,8 @@ type API struct {
 	AllowedOrigins []string `json:"allowedorigins"`
 	// whether to allow requests from addresses other than localhost
 	ServeRemoteTraffic bool `json:"serveremotetraffic"`
+	// APIWebsocketAddress specifies the multiaddress to listen for websocket
+	WebsocketAddress string `json:"websocketaddress"`
 }
 
 // Validate validates all fields of api returning all errors found.
@@ -53,15 +62,19 @@ func (a API) Validate() error {
     "title": "api",
     "description": "Config for the api",
     "type": "object",
-    "required": ["enabled", "port", "readonly", "urlroot", "tls", "proxyforcehttps", "allowedorigins"],
+    "required": ["address", "websocketaddress", "enabled", "readonly", "urlroot", "tls", "proxyforcehttps", "allowedorigins"],
     "properties": {
       "enabled": {
         "description": "When false, the api port does not listen for calls",
         "type": "boolean"
       },
-      "port": {
-        "description": "The port that listens for JSON API calls",
-        "type": "integer"
+      "address": {
+        "description": "The address on which to listen for JSON API calls",
+        "type": "string"
+      },
+      "websocketaddress": {
+        "description": "The address on which to listen for websocket calls",
+        "type": "string"
       },
       "readonly": {
         "description": "When true, api port limits the accepted calls to certain GET requests",
@@ -98,9 +111,10 @@ func (a API) Validate() error {
 // DefaultAPI returns the default configuration details
 func DefaultAPI() *API {
 	return &API{
-		Enabled: true,
-		Port:    DefaultAPIPort,
-		TLS:     false,
+		Enabled:          true,
+		Address:          DefaultAPIAddress,
+		WebsocketAddress: DefaultAPIWebsocketAddress,
+		TLS:              false,
 		AllowedOrigins: []string{
 			"electron://local.qri.io",
 			fmt.Sprintf("http://localhost:%d", DefaultWebappPort),
@@ -114,7 +128,8 @@ func DefaultAPI() *API {
 func (a *API) Copy() *API {
 	res := &API{
 		Enabled:            a.Enabled,
-		Port:               a.Port,
+		Address:            a.Address,
+		WebsocketAddress:   a.WebsocketAddress,
 		ReadOnly:           a.ReadOnly,
 		URLRoot:            a.URLRoot,
 		TLS:                a.TLS,

@@ -16,7 +16,7 @@ import (
 
 // CurrentConfigRevision is the latest configuration revision configurations
 // that don't match this revision number should be migrated up
-const CurrentConfigRevision = 1
+const CurrentConfigRevision = 2
 
 // Config encapsulates all configuration details for qri
 type Config struct {
@@ -86,11 +86,11 @@ func (cfg Config) SummaryString() (summary string) {
 	}
 
 	if cfg.API != nil && cfg.API.Enabled {
-		summary += fmt.Sprintf("API port:\t%d\n", cfg.API.Port)
+		summary += fmt.Sprintf("API address:\t%s\n", cfg.API.Address)
 	}
 
 	if cfg.RPC != nil && cfg.RPC.Enabled {
-		summary += fmt.Sprintf("RPC port:\t%d\n", cfg.RPC.Port)
+		summary += fmt.Sprintf("RPC address:\t%s\n", cfg.RPC.Address)
 	}
 
 	return summary

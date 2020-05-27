@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/api"
@@ -74,10 +75,10 @@ func TestFetchCommand(t *testing.T) {
 
 	// Serve on an available port
 	// TODO(dustmop): This port could actually be randomized to make this more robust
-	const RemotePort = 9876
+	const RemotePort = "9876"
 	apiConfig := config.API{
 		Enabled:    true,
-		Port:       RemotePort,
+		Address:    fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", RemotePort),
 		RemoteMode: true,
 	}
 	go api.StartServer(&apiConfig, httpServer)
@@ -97,7 +98,7 @@ func TestFetchCommand(t *testing.T) {
 		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
 	}
 
-	RemoteHost := fmt.Sprintf("http://localhost:%d", RemotePort)
+	RemoteHost := fmt.Sprintf("http://localhost:%s", RemotePort)
 
 	// Assign peer A as a remote for peer B
 	cfgCmdText := fmt.Sprintf("qri config set remotes.a_node %s", RemoteHost)
@@ -189,6 +190,9 @@ func TestFetchCommand(t *testing.T) {
 // APICall calls the api and returns the status code and body
 func APICall(method, reqURL string, params map[string]string, hf http.HandlerFunc) (int, string) {
 	req := httptest.NewRequest(method, reqURL, nil)
+	ctx, cncl := context.WithTimeout(req.Context(), time.Second*10)
+	req.WithContext(ctx)
+	defer cncl()
 
 	// add parameters from map
 	if params != nil {
