@@ -7,12 +7,13 @@ import (
 	"io"
 	"io/ioutil"
 	stdlog "log"
-	"net"
 	"net/http"
 	"net/rpc"
 	"time"
 
 	golog "github.com/ipfs/go-log"
+	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/apiutil"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/lib"
@@ -138,19 +139,25 @@ func (s Server) Serve(ctx context.Context) (err error) {
 // ServeRPC checks for a configured RPC port, and registers a listner if so
 func (s Server) ServeRPC(ctx context.Context) {
 	cfg := s.Config()
-	if !cfg.RPC.Enabled || cfg.RPC.Port == 0 {
+	if !cfg.RPC.Enabled || cfg.RPC.Address == "" {
 		return
+	}
+	maAddress := cfg.RPC.Address
+	addr, err := ma.NewMultiaddr(maAddress)
+	if err != nil {
+		log.Errorf("cannot start RPC: error parsing RPC address %s: %w", maAddress, err.Error())
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", LocalHostIP, cfg.RPC.Port))
+	mal, err := manet.Listen(addr)
 	if err != nil {
-		log.Infof("RPC listen on port %d error: %s", cfg.RPC.Port, err)
+		log.Infof("RPC listen on address %d error: %w", cfg.RPC.Address, err)
 		return
 	}
+	listener := manet.NetListener(mal)
 
 	for _, rcvr := range lib.Receivers(s.Instance) {
 		if err := rpc.Register(rcvr); err != nil {
-			log.Errorf("cannot start RPC: error registering RPC receiver %s: %s", rcvr.CoreRequestsName(), err.Error())
+			log.Errorf("cannot start RPC: error registering RPC receiver %s: %w", rcvr.CoreRequestsName(), err.Error())
 			return
 		}
 	}

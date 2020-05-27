@@ -74,19 +74,17 @@ func OneToTwo(cfg *config.Config) error {
 
 	// TODO(ramfox): qfs migration
 
-	// TODO(arqu): config migration
-	// if err := oneToTwoConfig(cfg); err != nil {
-	// 	return err
-	// }
-	// cfg.Revision = 2
-	// if err := cfg.Validate(); err != nil {
-	// 	return qerr.New(err, "config is invalid")
-	// }
-	// TODO(arqu): config write/rollback
-	// if err := safeWriteConfig(cfg); err != nil {
-	// 	rollbackConfigWrite(cfg)
-	// 	return err
-	// }
+	if err := oneToTwoConfig(cfg); err != nil {
+		return err
+	}
+	cfg.Revision = 2
+	if err := cfg.Validate(); err != nil {
+		return qerr.New(err, "config is invalid")
+	}
+	if err := safeWriteConfig(cfg); err != nil {
+		rollbackConfigWrite(cfg)
+		return err
+	}
 
 	// TODO(ramfox): remove original ipfs repo after all migrations were successful
 
@@ -94,6 +92,28 @@ func OneToTwo(cfg *config.Config) error {
 }
 
 func oneToTwoConfig(cfg *config.Config) error {
+	if cfg.API != nil {
+		apiCfg := cfg.API
+		defaultAPICfg := config.DefaultAPI()
+		if apiCfg.Address == "" {
+			apiCfg.Address = defaultAPICfg.Address
+		}
+		if apiCfg.WebsocketAddress == "" {
+			apiCfg.WebsocketAddress = defaultAPICfg.WebsocketAddress
+		}
+	} else {
+		return qerr.New(fmt.Errorf("invalid config"), "config does not contain API configuration")
+	}
+
+	if cfg.RPC != nil {
+		defaultRPCCfg := config.DefaultRPC()
+		if cfg.RPC.Address == "" {
+			cfg.RPC.Address = defaultRPCCfg.Address
+		}
+	} else {
+		return qerr.New(fmt.Errorf("invalid config"), "config does not contain RPC configuration")
+	}
+
 	return nil
 }
 
