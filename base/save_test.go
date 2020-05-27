@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
@@ -99,7 +98,6 @@ func TestSaveDatasetReplace(t *testing.T) {
 
 func TestCreateDataset(t *testing.T) {
 	ctx := context.Background()
-	streams := ioes.NewDiscardIOStreams()
 	store := cafs.NewMapstore()
 	r, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(), profile.NewMemStore())
 	if err != nil {
@@ -118,11 +116,11 @@ func TestCreateDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
-	if _, err := CreateDataset(ctx, r, streams, &dataset.Dataset{}, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
+	if _, err := CreateDataset(ctx, r, &dataset.Dataset{}, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected bad dataset to error")
 	}
 
-	ref, err := CreateDataset(ctx, r, streams, ds, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := CreateDataset(ctx, r, ds, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -143,7 +141,7 @@ func TestCreateDataset(t *testing.T) {
 
 	prev := ref.Dataset
 
-	ref, err = CreateDataset(ctx, r, streams, ds, prev, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err = CreateDataset(ctx, r, ds, prev, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -162,12 +160,12 @@ func TestCreateDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 	prev = ref.Dataset
 
-	if ref, err = CreateDataset(ctx, r, streams, ds, prev, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
+	if ref, err = CreateDataset(ctx, r, ds, prev, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected unchanged dataset with no force flag to error")
 	}
 
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
-	if ref, err = CreateDataset(ctx, r, streams, ds, prev, SaveSwitches{ForceIfNoChanges: true, Pin: true, ShouldRender: true}); err != nil {
+	if ref, err = CreateDataset(ctx, r, ds, prev, SaveSwitches{ForceIfNoChanges: true, Pin: true, ShouldRender: true}); err != nil {
 		t.Errorf("unexpected force-save error: %s", err)
 	}
 }

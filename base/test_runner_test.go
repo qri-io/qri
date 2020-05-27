@@ -43,7 +43,7 @@ func (run *TestRunner) SaveDataset(ds *dataset.Dataset) (dsref.Ref, error) {
 }
 
 func (run *TestRunner) SaveDatasetDryRun(ds *dataset.Dataset) (dsref.Ref, error) {
-	sw := SaveSwitches{DryRun: true}
+	sw := SaveSwitches{}
 	return run.saveDataset(ds, sw)
 }
 
@@ -65,6 +65,6 @@ func (run *TestRunner) saveDataset(ds *dataset.Dataset, sw SaveSwitches) (dsref.
 	if err != nil {
 		return dsref.Ref{}, err
 	}
-	datasetRef, err := SaveDataset(run.Context, run.Repo, devNull, initID, headRef, ds, nil, nil, sw)
+	datasetRef, err := SaveDataset(run.Context, run.Repo, initID, headRef, ds, sw)
 	return reporef.ConvertToDsref(datasetRef), err
 }

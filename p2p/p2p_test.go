@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
@@ -71,7 +70,7 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) re
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[100]")))
 
-	ref, err := base.CreateDataset(ctx, r, ioes.NewDiscardIOStreams(), ds, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := base.CreateDataset(ctx, r, ds, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err)
 	}

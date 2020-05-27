@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/archive"
@@ -29,6 +30,7 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -616,6 +618,44 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		return err
 	}
 
+	// If a transform is being provided, execute its script
+	// TODO(dustmop): This will become a call to `apply` in the future, and will require the
+	// `--apply` flag to be true.
+	if ds.Transform != nil {
+		str := m.inst.node.LocalStreams
+		scriptOut := p.ScriptOutput
+		secrets := p.Secrets
+		r := m.inst.repo
+		if p.DryRun {
+			str.PrintErr("🏃🏽‍♀️ dry run\n")
+			// dry-runs store to an in-memory repo
+			r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), r.Filesystem(), profile.NewMemStore())
+			if err != nil {
+				log.Debugf("creating new memRepo: %s", err)
+				return nil
+			}
+		}
+		err := base.TransformApply(ctx, ds, r, str, scriptOut, secrets)
+		if err != nil {
+			return err
+		}
+	}
+
+	if p.DryRun {
+		// Tests expect a that a call to `qri save --dry-run` will still construct a full
+		// reference with an IPFS path and Name, etc. This isn't actually a valid reference,
+		// since nothing is written to the repo, so relying on this is a bit hacky. But using
+		// dry-run to save is going away once `apply` exists, so this is temporary anyway.
+		*res = reporef.DatasetRef{
+			ProfileID: pro.ID,
+			Name:      ds.Name,
+			Peername:  pro.Peername,
+			Path:      ds.Path,
+			Dataset:   ds,
+		}
+		return nil
+	}
+
 	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
 	if p.UseDscache && !p.DryRun {
 		c := m.inst.dscache
@@ -649,7 +689,6 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 	switches := base.SaveSwitches{
 		FileHint:            fileHint,
 		Replace:             p.Replace,
-		DryRun:              p.DryRun,
 		Pin:                 true,
 		ConvertFormatToPrev: p.ConvertFormatToPrev,
 		ForceIfNoChanges:    p.Force,
@@ -657,7 +696,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		NewName:             p.NewName,
 		Drop:                p.Drop,
 	}
-	datasetRef, err = base.SaveDataset(ctx, m.inst.repo, m.inst.node.LocalStreams, trueRef.InitID, trueRef.Path, ds, p.Secrets, p.ScriptOutput, switches)
+	datasetRef, err = base.SaveDataset(ctx, m.inst.repo, trueRef.InitID, trueRef.Path, ds, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err

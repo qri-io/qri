@@ -225,8 +225,6 @@ func DerefDatasetCommit(ctx context.Context, store cafs.Filestore, ds *dataset.D
 type SaveSwitches struct {
 	// Replace is whether the save is a full replacement or a set of patches to previous
 	Replace bool
-	// DryRun is whether the save should not be written to the refstore for real
-	DryRun bool
 	// Pin is whether the dataset should be pinned
 	Pin bool
 	// ConvertFormatToPrev is whether the body should be converted to match the previous format

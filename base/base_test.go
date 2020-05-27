@@ -66,7 +66,7 @@ func addCitiesDataset(t *testing.T, r repo.Repo) reporef.DatasetRef {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(ctx, r, ioes.NewDiscardIOStreams(), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := CreateDataset(ctx, r, tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -103,7 +103,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) reporef.Datase
 		tc.Input.PreviousPath = ""
 	}()
 
-	ref, err = CreateDataset(ctx, r, devNull, tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err = CreateDataset(ctx, r, tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -117,7 +117,7 @@ func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) reporef.DatasetRe
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(ctx, r, devNull, tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := CreateDataset(ctx, r, tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -151,7 +151,7 @@ def transform(ds, ctx):
 	ds.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", []byte(script)))
 	ds.SetBodyFile(qfs.NewMemfileBytes("data.json", []byte("[]")))
 
-	ref, err := CreateDataset(ctx, r, devNull, ds, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := CreateDataset(ctx, r, ds, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
