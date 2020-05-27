@@ -36,7 +36,6 @@ require (
 	github.com/libp2p/go-libp2p-circuit v0.1.3
 	github.com/libp2p/go-libp2p-connmgr v0.1.1
 	github.com/libp2p/go-libp2p-core v0.2.3
-	github.com/libp2p/go-libp2p-crypto v0.1.0
 	github.com/libp2p/go-libp2p-peerstore v0.1.3
 	github.com/libp2p/go-libp2p-swarm v0.2.2
 	github.com/microcosm-cc/bluemonday v1.0.2
@@ -46,7 +45,7 @@ require (
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/multiformats/go-multihash v0.0.8
 	github.com/pkg/errors v0.8.1
-	github.com/qri-io/apiutil v0.1.0
+	github.com/qri-io/apiutil v0.1.1-0.20200527185959-7a07891b60d0
 	github.com/qri-io/dag v0.2.1-0.20200317231253-5cd938b03caf
 	github.com/qri-io/dataset v0.1.5-0.20200522001545-71e64ebc31a1
 	github.com/qri-io/deepdiff v0.1.1-0.20200305020550-8173efebcaa1

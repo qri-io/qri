@@ -27,16 +27,8 @@ func NewSearchHandler(s registry.Searchable) http.HandlerFunc {
 				p.Limit = defaultLimit
 			}
 		default:
-			// read form values
-			var err error
-			if p.Limit, err = apiutil.ReqParamInt("limit", r); err != nil {
-				p.Limit = defaultLimit
-				err = nil
-			}
-			if p.Offset, err = apiutil.ReqParamInt("offset", r); err != nil {
-				p.Offset = defaultOffset
-				err = nil
-			}
+			p.Limit = apiutil.ReqParamInt(r, "limit", defaultLimit)
+			p.Offset = apiutil.ReqParamInt(r, "offset", defaultOffset)
 			p.Q = r.FormValue("q")
 		}
 		switch r.Method {

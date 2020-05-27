@@ -141,7 +141,7 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Expected response for body of the dataset
-	expectBody = `{"data":{"path":"fsi_init_dir/body.csv","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"nextUrl":"/body/peer/test_ds?page=2"}}`
+	expectBody = `{"data":{"path":"fsi_init_dir/body.csv","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"page":1,"pageSize":50,"nextUrl":"/body/peer/test_ds?page=2","prevUrl":""}}`
 
 	// Body with no history, but fsi working directory has body
 	gotStatusCode, gotBodyString = APICall("/body/peer/test_ds", dsHandler.BodyHandler)

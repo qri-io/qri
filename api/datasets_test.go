@@ -45,7 +45,7 @@ func TestGetParamsFromRequest(t *testing.T) {
 		{
 			"page and pageSize",
 			1, 25, -10, -10,
-			0, 25,
+			0, 100,
 			false,
 			false,
 			false,
