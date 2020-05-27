@@ -903,7 +903,6 @@ func TestSaveLargeBodyIsSame(t *testing.T) {
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
-
 }
 
 func TestSaveTwiceWithTransform(t *testing.T) {
@@ -923,6 +922,122 @@ func TestSaveTwiceWithTransform(t *testing.T) {
 	actual := strings.TrimSpace(output)
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
+func TestSaveTransformUsingPrev(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_using_prev")
+	defer run.Delete()
+
+	// Save a first version with a normal body
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+
+	// Save a second version with a transform
+	run.MustExec(t, "qri save --file testdata/movies/tf_set_len.star test_peer/my_ds")
+
+	// Read body from the dataset that was saved.
+	dsPath := run.GetPathForDataset(t, 0)
+	actualBody := run.ReadBodyFromIPFS(t, dsPath+"/body.csv")
+
+	// Read the body from the testdata input file.
+	expectBody := "movie_title,duration\nNumber of Movies,8\n"
+
+	// Make sure they match.
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
+func TestSaveTransformUsingConfigSecret(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_twice_with_xform")
+	defer run.Delete()
+
+	// Save a version with a transform that has config and secret data
+	run.MustExec(t, "qri save --file testdata/movies/tf_using_config_secret.json --secrets animal_sound,meow test_peer/my_ds")
+
+	// Read body from the dataset that was saved.
+	dsPath := run.GetPathForDataset(t, 0)
+	actualBody := run.ReadBodyFromIPFS(t, dsPath+"/body.json")
+
+	// Expected result has the config and secret data
+	expectBody := `[["Name","cat"],["Sound","meow"]]`
+
+	// Make sure they match.
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
+func TestSaveTransformSetMeta(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_set_meta")
+	defer run.Delete()
+
+	// Save a first version with a normal body
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+
+	// Save another version with a transform that sets the meta
+	run.MustExec(t, "qri save --file testdata/movies/tf_set_meta.star test_peer/my_ds")
+
+	// Read body from the dataset that was saved.
+	dsPath := run.GetPathForDataset(t, 0)
+	ds := run.MustLoadDataset(t, dsPath)
+
+	actualMetaTitle := ds.Meta.Title
+	expectMetaTitle := `Did Set Title`
+
+	// Make sure they match.
+	if diff := cmp.Diff(expectMetaTitle, actualMetaTitle); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
+func TestSaveTransformChangeMetaAndBody(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_set_meta")
+	defer run.Delete()
+
+	// Save a first version with a normal body
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+
+	// Save another version with a transform that sets the body and a manual meta change
+	err := run.ExecCommand("qri save --file testdata/movies/tf_set_len.star --file testdata/movies/meta_override.yaml test_peer/my_ds")
+	if err != nil {
+		t.Errorf("unexpected error: %q", err)
+	}
+}
+
+func TestSaveTransformConflictWithBody(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_set_meta")
+	defer run.Delete()
+
+	// Save a first version with a normal body
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+
+	// Save another version with a transform that sets the body and a manual body change
+	err := run.ExecCommand("qri save --file testdata/movies/tf_set_len.star --body testdata/movies/body_twenty.csv test_peer/my_ds")
+	if err == nil {
+		t.Fatal("expected error trying to save, did not get an error")
+	}
+	expectContains := "transform script and user-supplied dataset are both trying to set:\n  body"
+	if !strings.Contains(err.Error(), expectContains) {
+		t.Errorf("expected error to contain %q, but got %s", expectContains, err.Error())
+	}
+}
+
+func TestSaveTransformConflictWithMeta(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_set_meta")
+	defer run.Delete()
+
+	// Save a first version with a normal body
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+
+	// Save another version with a transform that sets the meta and a manual meta change
+	err := run.ExecCommand("qri save --file testdata/movies/tf_set_meta.star --file testdata/movies/meta_override.yaml test_peer/my_ds")
+	if err == nil {
+		t.Fatal("expected error trying to save, did not get an error")
+	}
+	expectContains := "transform script and user-supplied dataset are both trying to set:\n  meta"
+	if !strings.Contains(err.Error(), expectContains) {
+		t.Errorf("expected error to contain %q, but got %s", expectContains, err.Error())
 	}
 }
 

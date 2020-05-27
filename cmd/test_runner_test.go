@@ -320,7 +320,7 @@ func (run *TestRunner) GetPathForDataset(t *testing.T, index int) string {
 }
 
 // ReadBodyFromIPFS reads body data from an IPFS repo by path string,
-func (run *TestRunner) ReadBodyFromIPFS(t *testing.T, path string) (body string) {
+func (run *TestRunner) ReadBodyFromIPFS(t *testing.T, path string) string {
 	body, err := run.RepoRoot.ReadBodyFromIPFS(path)
 	if err != nil {
 		t.Fatal(err)
@@ -329,12 +329,21 @@ func (run *TestRunner) ReadBodyFromIPFS(t *testing.T, path string) (body string)
 }
 
 // DatasetMarshalJSON reads the dataset head and marshals it as json
-func (run *TestRunner) DatasetMarshalJSON(t *testing.T, ref string) (data string) {
+func (run *TestRunner) DatasetMarshalJSON(t *testing.T, ref string) string {
 	data, err := run.RepoRoot.DatasetMarshalJSON(ref)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return data
+}
+
+// MustLoadDataset loads the dataset or fails
+func (run *TestRunner) MustLoadDataset(t *testing.T, ref string) *dataset.Dataset {
+	ds, err := run.RepoRoot.LoadDataset(ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ds
 }
 
 // MustExec runs a command, returning standard output, failing the test if there's an error

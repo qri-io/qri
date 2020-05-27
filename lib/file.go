@@ -181,6 +181,9 @@ func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *data
 	case "st":
 		ds.Structure = &dataset.Structure{}
 		target = ds.Structure
+	case "tf":
+		ds.Transform = &dataset.Transform{}
+		target = ds.Transform
 	default:
 		return "", fmt.Errorf("unknown component key %q", kind)
 	}
