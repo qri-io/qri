@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -181,9 +182,9 @@ func TestPeerConnectionsParamsPod(t *testing.T) {
 		t.Error("expected NetworkID to be set")
 	}
 
-	ma := "/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"
+	ma := "/ip4/130.211.198.23/tcp/4001/p2p/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"
 	if p := NewPeerConnectionParamsPod(ma); p.Multiaddr != ma {
-		t.Error("expected Multiaddr to be set")
+		t.Error(fmt.Sprintf("expected Multiaddr to be set: %s", p.Multiaddr))
 	}
 
 	if p := NewPeerConnectionParamsPod("QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"); p.ProfileID != "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb" {

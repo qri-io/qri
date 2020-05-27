@@ -40,10 +40,11 @@ require (
 	github.com/libp2p/go-libp2p-swarm v0.2.2
 	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/mr-tron/base58 v1.1.2
-	github.com/multiformats/go-multiaddr v0.1.1
+	github.com/mr-tron/base58 v1.1.3
+	github.com/multiformats/go-multiaddr v0.2.1
+	github.com/multiformats/go-multiaddr-net v0.1.5
 	github.com/multiformats/go-multicodec v0.1.6
-	github.com/multiformats/go-multihash v0.0.8
+	github.com/multiformats/go-multihash v0.0.13
 	github.com/pkg/errors v0.8.1
 	github.com/qri-io/apiutil v0.1.1-0.20200527185959-7a07891b60d0
 	github.com/qri-io/dag v0.2.1-0.20200317231253-5cd938b03caf

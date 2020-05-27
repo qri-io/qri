@@ -1,3 +1,4 @@
+revision: 2
 profile:
   peername: foobar
 repo:
@@ -9,7 +10,8 @@ cli:
   colorizeoutput: true
 api:
   enabled: true
-  port: 2503
+  address: "/ip4/tcp/2503"
+  websocketaddress: "/ip4/tcp/2506"
   readonly: false
   urlroot: ""
   proxyforcehttps: false
@@ -40,7 +42,7 @@ update:
   address: "127.0.0.1:2507"
 rpc:
   enabled: true
-  port: 2504
+  address: "/ip4/tcp/2504"
 logging:
   levels: {}
 render:

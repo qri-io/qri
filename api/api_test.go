@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -16,6 +15,8 @@ import (
 
 	"github.com/beme/abide"
 	golog "github.com/ipfs/go-log"
+	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
@@ -132,9 +133,13 @@ func mustFile(t *testing.T, filename string) []byte {
 }
 
 func confirmQriNotRunning() error {
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.DefaultAPIPort))
+	addr, err := ma.NewMultiaddr(config.DefaultAPIAddress)
 	if err != nil {
-		return fmt.Errorf("it looks like a qri server is already running on port %d, please close before running tests", config.DefaultAPIPort)
+		return fmt.Errorf(err.Error())
+	}
+	l, err := manet.Listen(addr)
+	if err != nil {
+		return fmt.Errorf("it looks like a qri server is already running on address %s, please close before running tests", config.DefaultAPIAddress)
 	}
 
 	l.Close()
