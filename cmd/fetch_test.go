@@ -53,6 +53,7 @@ func TestFetchCommand(t *testing.T) {
 
 	ctx := context.Background()
 
+	fmt.Println("test fetch command")
 	// Create a remote that makes these versions available
 	remoteInst, err := lib.NewInstance(
 		ctx,
@@ -138,6 +139,7 @@ func TestFetchCommand(t *testing.T) {
 	// TODO(dustmop): Try to add the below to a separate test in api/. Need to populate the peers
 	// in a fashion similar to api/fsi_test.go's `TestNoHistory`.
 
+	fmt.Println("another new isntance")
 	localInst, err := lib.NewInstance(
 		ctx,
 		b.RepoRoot.QriPath,

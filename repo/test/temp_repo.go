@@ -57,7 +57,7 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 	// Build IPFS repo directory by unzipping an empty repo.
 	err = g.GenerateEmptyIpfsRepo(IPFSPath, "")
 	if err != nil {
-		return r, err
+		return r, fmt.Errorf("THIS ONE")
 	}
 	// Create directory for new Qri repo.
 	QriPath := filepath.Join(RootPath, "qri")

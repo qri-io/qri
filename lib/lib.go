@@ -258,6 +258,7 @@ func OptLogbook(bk *logbook.Book) Option {
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
+	fmt.Println("new instance")
 	if repoPath == "" {
 		return nil, fmt.Errorf("repo path is required")
 	}
@@ -688,21 +689,33 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 
 // Context returns the base context for this instance
 func (inst *Instance) Context() context.Context {
+	if inst == nil {
+		return nil
+	}
 	return inst.ctx
 }
 
 // Config provides methods for manipulating Qri configuration
 func (inst *Instance) Config() *config.Config {
+	if inst == nil {
+		return nil
+	}
 	return inst.cfg
 }
 
 // FSI returns methods for using filesystem integration
 func (inst *Instance) FSI() *fsi.FSI {
+	if inst == nil {
+		return nil
+	}
 	return inst.fsi
 }
 
 // Bus returns the event.Bus
 func (inst *Instance) Bus() event.Bus {
+	if inst == nil {
+		return nil
+	}
 	return inst.bus
 }
 

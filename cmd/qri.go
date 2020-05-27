@@ -129,6 +129,7 @@ func (o *QriOptions) Init() (err error) {
 			lib.OptCheckConfigMigrations(""),
 			lib.OptSetLogAll(o.LogAll),
 		}
+		fmt.Println("from Init")
 		o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
 		if err != nil {
 			return err
