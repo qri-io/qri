@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -316,7 +317,49 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	return mr, pk, nil
 }
 
-// ReadRepoConfig loads configuration data from a .yaml file
+// NewIPFSRepoFromDir reads a director of testCases and calls createDataset
+// on each case with the given privatekey, yeilding a repo where the peer with
+// this pk has created each dataset in question. Uses an IPFS enabled repo.
+// path should be the basepath above the qri and ipfs repos
+func NewIPFSRepoFromDir(qriPath, ipfsPath string) (repo.Repo, crypto.PrivKey, error) {
+	cfg, err := config.ReadFromFile(filepath.Join(qriPath, "config.yaml"))
+	pro := &profile.Profile{}
+	if err := pro.Decode(cfg.Profile); err != nil {
+		return nil, nil, err
+	}
+	if err := buildrepo.LoadIPFSPluginsOnce(ipfsPath); err != nil {
+		return nil, nil, err
+	}
+	muxCfg := []muxfs.MuxConfig{
+		{Type: "local"},
+		{Type: "http"},
+		{Type: "ipfs", Config: map[string]interface{}{"fsRepoPath": ipfsPath}},
+		{Type: "mem"},
+	}
+	ms, err := muxfs.New(context.TODO(), muxCfg)
+	if err != nil {
+		return nil, pro.PrivKey, err
+	}
+	mr, err := repo.NewMemRepo(pro, ms.CAFSStoreFromIPFS(), ms, profile.NewMemStore())
+	if err != nil {
+		return mr, pro.PrivKey, err
+	}
+
+	tc, err := dstest.LoadTestCases(qriPath)
+	if err != nil {
+		return mr, pro.PrivKey, err
+	}
+
+	for _, c := range tc {
+		if _, err := createDataset(mr, c); err != nil {
+			return mr, pro.PrivKey, err
+		}
+	}
+
+	return mr, pro.PrivKey, nil
+}
+
+// ReadRepoConfig loads configuration data from a file
 func ReadRepoConfig(path string) (pro *profile.Profile, pk crypto.PrivKey, err error) {
 	cfgData, err := ioutil.ReadFile(path)
 	if err != nil {

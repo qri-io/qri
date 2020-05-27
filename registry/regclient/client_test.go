@@ -49,11 +49,14 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 		t.Fatal(err)
 	}
 
-	r, err := tmpRepo.Repo()
+	// IPFSRepo assumes that the tempRepo is pointing to an actual qri config
+	// and an initialized ipfs repo
+	r, err := tmpRepo.IPFSRepo()
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// need an actual ipfs repo
 	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
 	if err != nil {
 		t.Fatal(err)

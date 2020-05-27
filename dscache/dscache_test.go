@@ -88,7 +88,10 @@ func TestResolveRef(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 
 	ctx := context.Background()
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem: %s", err)
+	}
 	path := filepath.Join(tmpdir, "dscache.qfb")
 	dsc := NewDscache(ctx, fs, nil, "test_resolve_ref_user", path)
 

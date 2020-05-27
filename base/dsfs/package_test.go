@@ -9,6 +9,7 @@ import (
 
 	"github.com/qri-io/qfs/cafs"
 	ipfsfs "github.com/qri-io/qfs/cafs/ipfs"
+	"golang.org/x/net/context"
 )
 
 func TestPackageFilepath(t *testing.T) {
@@ -59,7 +60,8 @@ func makeTestIPFSRepo(path string) (fs *ipfsfs.Filestore, destroy func(), err er
 	if err != nil {
 		return
 	}
-	qfsFilestore, err := ipfsfs.NewFS(map[string]interface{}{"fsRepoPath": path})
+	ctx := context.Background()
+	qfsFilestore, err := ipfsfs.NewFS(ctx, map[string]interface{}{"fsRepoPath": path})
 	if err != nil {
 		return
 	}

@@ -249,8 +249,8 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 		t.Fatal(err)
 	}
 
-	tr.NodeA = qriNode(t, "A", nodes[0], cfgtest.GetTestPeerInfo(0))
-	tr.NodeB = qriNode(t, "B", nodes[1], cfgtest.GetTestPeerInfo(1))
+	tr.NodeA = qriNode(t, tr, "A", nodes[0], cfgtest.GetTestPeerInfo(0))
+	tr.NodeB = qriNode(t, tr, "B", nodes[1], cfgtest.GetTestPeerInfo(1))
 
 	cleanup = func() {
 		dsfs.Timestamp = prevTs
@@ -286,8 +286,8 @@ func (tr *testRunner) NodeBClient(t *testing.T) Client {
 	return cli
 }
 
-func qriNode(t *testing.T, peername string, node *core.IpfsNode, pi *cfgtest.PeerInfo) *p2p.QriNode {
-	repo, err := p2ptest.MakeRepoFromIPFSNode(node, peername)
+func qriNode(t *testing.T, tr *testRunner, peername string, node *core.IpfsNode, pi *cfgtest.PeerInfo) *p2p.QriNode {
+	repo, err := p2ptest.MakeRepoFromIPFSNode(tr.Ctx, node, peername)
 	if err != nil {
 		t.Fatal(err)
 	}

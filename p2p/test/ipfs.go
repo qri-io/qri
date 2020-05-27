@@ -28,14 +28,14 @@ import (
 )
 
 // MakeRepoFromIPFSNode wraps an ipfs node with a mock qri repo
-func MakeRepoFromIPFSNode(node *core.IpfsNode, username string) (qrirepo.Repo, error) {
+func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username string) (qrirepo.Repo, error) {
 	p := &profile.Profile{
 		ID:       profile.IDFromPeerID(node.Identity),
 		Peername: username,
 		PrivKey:  node.PrivateKey,
 	}
 
-	store, err := ipfsfs.NewFS(nil, func(cfg *ipfsfs.StoreCfg) {
+	store, err := ipfsfs.NewFS(ctx, nil, func(cfg *ipfsfs.StoreCfg) {
 		cfg.Node = node
 	})
 	if err != nil {

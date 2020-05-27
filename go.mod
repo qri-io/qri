@@ -51,6 +51,7 @@ require (
 	github.com/ugorji/go/codec v1.1.7
 	go.starlark.net v0.0.0-20200330013621-be5394c419b6
 	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
+	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4
 	golang.org/x/text v0.3.2
 	gonum.org/v1/gonum v0.6.0

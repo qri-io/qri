@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"net/rpc"
 	"os"
 	"path/filepath"
@@ -88,6 +89,7 @@ func NewTestFactoryInstanceOptions(opts ...lib.Option) (tf TestFactory, err erro
 		lib.OptQriNode(tnode.(*p2p.QriNode)),
 	}, opts...)
 
+	fmt.Println("new test factory instance options")
 	inst, err := lib.NewInstance(context.Background(), "repo", opts...)
 	if err != nil {
 		return TestFactory{}, err
