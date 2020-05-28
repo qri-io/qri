@@ -721,7 +721,11 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
 	// Because this test is using a memrepo, but the command runner instantiates its own repo
 	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
 	// same filename.
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem")
+		return
+	}
 	cacheFilename := cache.Filename
 	ctx := context.Background()
 	cache = dscache.NewDscache(ctx, fs, nil, run.Username(), cacheFilename)
@@ -797,7 +801,10 @@ func TestSaveDscacheThenRemoveVersions(t *testing.T) {
 	// Because this test is using a memrepo, but the command runner instantiates its own repo
 	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
 	// same filename.
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem: %s", err)
+	}
 	cacheFilename := cache.Filename
 	ctx := context.Background()
 	cache = dscache.NewDscache(ctx, fs, nil, run.Username(), cacheFilename)

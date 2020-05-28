@@ -132,7 +132,7 @@ func (o *QriOptions) Init() (err error) {
 		fmt.Println("from Init")
 		o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
 		if err != nil {
-			return err
+			return
 		}
 		// Handle color and prompt flags which apply to every command
 		shouldColorOutput := !o.NoColor

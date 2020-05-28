@@ -10,7 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/doggos"
-	ipfs "github.com/qri-io/qfs/cafs/ipfs"
+	qipfs "github.com/qri-io/qfs/cafs/ipfs"
 )
 
 // CryptoGenerator is an interface for generating cryptographic info like private keys and peerIDs
@@ -56,5 +56,5 @@ func (g *CryptoSource) GenerateNickname(peerID string) string {
 
 // GenerateEmptyIpfsRepo creates an empty IPFS repo in a secure manner at the given path
 func (g *CryptoSource) GenerateEmptyIpfsRepo(repoPath, configPath string) error {
-	return ipfs.InitRepo(repoPath, configPath)
+	return qipfs.InitRepo(repoPath, configPath)
 }

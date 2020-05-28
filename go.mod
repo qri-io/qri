@@ -35,11 +35,11 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/dag v0.2.1-0.20200429122408-58ef1943d04b
-	github.com/qri-io/dataset v0.1.5-0.20200324184139-108a69072ede
+	github.com/qri-io/dataset v0.1.5-0.20200522001545-71e64ebc31a1
 	github.com/qri-io/deepdiff v0.1.1-0.20200305020550-8173efebcaa1
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
-	github.com/qri-io/jsonschema v0.1.1
+	github.com/qri-io/jsonschema v0.2.0
 	github.com/qri-io/qfs v0.1.1-0.20200522031737-3eeff5a87405
 	github.com/qri-io/starlib v0.4.2-0.20200406084526-0e4566b610a1
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887

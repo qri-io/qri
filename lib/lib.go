@@ -21,7 +21,6 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/muxfs"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
@@ -415,8 +414,13 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		inst.store = cafs
 	}
 
+	var pro *profile.Profile
+	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
+		return nil, fmt.Errorf("newProfile: %s", err)
+	}
+
 	if inst.logbook == nil {
-		inst.logbook, err = newLogbook(inst.qfs, cfg, inst.repoPath)
+		inst.logbook, err = newLogbook(inst.qfs, cfg, pro, inst.repoPath)
 		if err != nil {
 			return nil, fmt.Errorf("intializing logbook: %w", err)
 		}
