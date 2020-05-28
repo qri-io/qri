@@ -8,6 +8,13 @@ type Logging struct {
 	Levels map[string]string `json:"levels"`
 }
 
+// SetArbitrary is an interface implementation of base/fill/struct in order to safely
+// consume config files that have definitions beyond those specified in the struct.
+// This simply ignores all additional fields at read time.
+func (l *Logging) SetArbitrary(key string, val interface{}) error {
+	return nil
+}
+
 // DefaultLogging produces a new default logging configuration
 func DefaultLogging() *Logging {
 	return &Logging{

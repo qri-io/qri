@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/qri/config"
 )
 
-// StartServer interprets info from config to start the server
 // StartServer interprets info from config to start an API server
 func StartServer(c *config.API, s *http.Server) error {
 	if !c.Enabled {

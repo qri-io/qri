@@ -102,12 +102,12 @@ type InstanceOptions struct {
 	Cfg     *config.Config
 	Streams ioes.IOStreams
 
+	statsCache *stats.Cache
 	node       *p2p.QriNode
 	repo       repo.Repo
 	store      cafs.Filestore
 	qfs        qfs.Filesystem
 	regclient  *regclient.Client
-	statsCache *stats.Cache
 	logbook    *logbook.Book
 	logAll     bool
 
@@ -179,7 +179,7 @@ func OptStdIOStreams() Option {
 
 // OptCheckConfigMigrations checks for any configuration migrations that may need to be run
 // running & updating config if so
-func OptCheckConfigMigrations(cfgPath string) Option {
+func OptCheckConfigMigrations() Option {
 	return func(o *InstanceOptions) error {
 		if o.Cfg == nil {
 			return fmt.Errorf("no config file to check for migrations")
@@ -264,9 +264,16 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	o := &InstanceOptions{}
 
 	// attempt to load a base configuration from repoPath
+	needsMigration := false
 	if o.Cfg, err = loadRepoConfig(repoPath); err != nil {
 		log.Error("loading config: %s", err)
-		return
+		if o.Cfg != nil && o.Cfg.Revision != config.CurrentConfigRevision {
+			log.Info("config requires a migration from revision %d to %d", o.Cfg.Revision, config.CurrentConfigRevision)
+			needsMigration = true
+		}
+		if !needsMigration {
+			return
+		}
 	}
 
 	if len(opts) == 0 {
@@ -274,11 +281,18 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		opts = []Option{
 			OptStdIOStreams(),
 			OptSetIPFSPath(""),
-			OptCheckConfigMigrations(""),
+			OptCheckConfigMigrations(),
 		}
 	}
 	for _, opt := range opts {
 		if err = opt(o); err != nil {
+			return
+		}
+	}
+
+	if needsMigration {
+		if o.Cfg, err = loadRepoConfig(repoPath); err != nil {
+			log.Error("loading config: %s", err)
 			return
 		}
 	}

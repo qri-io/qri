@@ -27,7 +27,6 @@ type Config struct {
 	Repo     *Repo
 	Store    *Store
 	P2P      *P2P
-	Update   *Update
 	Stats    *Stats
 
 	Registry *Registry
@@ -36,11 +35,15 @@ type Config struct {
 
 	CLI     *CLI
 	API     *API
-	Webapp  *Webapp
 	RPC     *RPC
 	Logging *Logging
+}
 
-	Render *Render
+// SetArbitrary is an interface implementation of base/fill/struct in order to safely
+// consume config files that have definitions beyond those specified in the struct.
+// This simply ignores all additional fields at read time.
+func (cfg *Config) SetArbitrary(key string, val interface{}) error {
+	return nil
 }
 
 // NOTE: The configuration returned by DefaultConfig is insufficient, as is, to run a functional
@@ -59,7 +62,6 @@ func DefaultConfig() *Config {
 		Repo:     DefaultRepo(),
 		Store:    DefaultStore(),
 		P2P:      DefaultP2P(),
-		Update:   DefaultUpdate(),
 		Stats:    DefaultStats(),
 
 		Registry: DefaultRegistry(),
@@ -67,11 +69,8 @@ func DefaultConfig() *Config {
 
 		CLI:     DefaultCLI(),
 		API:     DefaultAPI(),
-		Webapp:  DefaultWebapp(),
 		RPC:     DefaultRPC(),
 		Logging: DefaultLogging(),
-
-		Render: DefaultRender(),
 	}
 }
 
@@ -109,8 +108,12 @@ func ReadFromFile(path string) (*Config, error) {
 	}
 
 	cfg := &Config{path: path}
+
+	if rev, ok := fields["revision"]; ok {
+		cfg.Revision = (int)(rev.(float64))
+	}
 	if err = fill.Struct(fields, cfg); err != nil {
-		return nil, err
+		return cfg, err
 	}
 
 	return cfg, nil
@@ -157,7 +160,6 @@ func (cfg *Config) Set(path string, value interface{}) error {
 func ImmutablePaths() map[string]bool {
 	return map[string]bool{
 		"p2p.peerid":      true,
-		"p2p.pubkey":      true,
 		"p2p.privkey":     true,
 		"profile.id":      true,
 		"profile.privkey": true,
@@ -194,7 +196,7 @@ func (cfg Config) Validate() error {
     "title": "config",
     "description": "qri configuration",
     "type": "object",
-    "required": ["Profile", "Repo", "Store", "P2P", "CLI", "API", "Webapp", "RPC", "Render"],
+    "required": ["Profile", "Repo", "Store", "P2P", "CLI", "API", "RPC"],
     "properties" : {
 			"Profile" : { "type":"object" },
 			"Repo" : { "type":"object" },
@@ -202,9 +204,7 @@ func (cfg Config) Validate() error {
 			"P2P" : { "type":"object" },
 			"CLI" : { "type":"object" },
 			"API" : { "type":"object" },
-			"Webapp" : { "type":"object" },
-			"RPC" : { "type":"object" },
-			"Render" : { "type":"object" }
+			"RPC" : { "type":"object" }
     }
   }`)
 	if err := validate(schema, &cfg); err != nil {
@@ -218,11 +218,8 @@ func (cfg Config) Validate() error {
 		cfg.P2P,
 		cfg.CLI,
 		cfg.API,
-		cfg.Webapp,
 		cfg.RPC,
-		cfg.Update,
 		cfg.Logging,
-		cfg.Stats,
 	}
 	for _, val := range validators {
 		// we need to check here because we're potentially calling methods on nil
@@ -260,9 +257,6 @@ func (cfg *Config) Copy() *Config {
 	if cfg.P2P != nil {
 		res.P2P = cfg.P2P.Copy()
 	}
-	if cfg.Update != nil {
-		res.Update = cfg.Update.Copy()
-	}
 	if cfg.Registry != nil {
 		res.Registry = cfg.Registry.Copy()
 	}
@@ -271,9 +265,6 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.API != nil {
 		res.API = cfg.API.Copy()
-	}
-	if cfg.Webapp != nil {
-		res.Webapp = cfg.Webapp.Copy()
 	}
 	if cfg.RPC != nil {
 		res.RPC = cfg.RPC.Copy()
@@ -286,9 +277,6 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.Logging != nil {
 		res.Logging = cfg.Logging.Copy()
-	}
-	if cfg.Render != nil {
-		res.Render = cfg.Render.Copy()
 	}
 	if cfg.Stats != nil {
 		res.Stats = cfg.Stats.Copy()

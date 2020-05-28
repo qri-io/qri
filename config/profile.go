@@ -50,6 +50,13 @@ type ProfilePod struct {
 	NetworkAddrs []string `json:"networkAddrs,omitempty"`
 }
 
+// SetArbitrary is an interface implementation of base/fill/struct in order to safely
+// consume config files that have definitions beyond those specified in the struct.
+// This simply ignores all additional fields at read time.
+func (p *ProfilePod) SetArbitrary(key string, val interface{}) error {
+	return nil
+}
+
 // DefaultProfile gives a new default profile configuration
 func DefaultProfile() *ProfilePod {
 	now := time.Now()

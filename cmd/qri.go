@@ -123,7 +123,7 @@ func (o *QriOptions) Init() (err error) {
 		opts := []lib.Option{
 			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
 			lib.OptSetIPFSPath(o.IpfsPath),
-			lib.OptCheckConfigMigrations(""),
+			lib.OptCheckConfigMigrations(),
 			lib.OptSetLogAll(o.LogAll),
 		}
 		o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
