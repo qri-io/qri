@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/qri-io/dataset"
 	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
@@ -172,4 +173,18 @@ func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
+}
+
+// LoadDataset from the temp repository
+func (r *TempRepo) LoadDataset(ref string) (*dataset.Dataset, error) {
+	ctx := context.Background()
+	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
+		cfg.Online = false
+		cfg.FsRepoPath = r.IPFSPath
+	})
+	ds, err := dsfs.LoadDataset(ctx, fs, ref)
+	if err != nil {
+		return nil, err
+	}
+	return ds, nil
 }

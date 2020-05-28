@@ -3,12 +3,9 @@ package base
 import (
 	"context"
 	"fmt"
-	"io"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	qerr "github.com/qri-io/qri/errors"
@@ -16,7 +13,6 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
-	"github.com/qri-io/qri/startf"
 )
 
 // SaveSwitches is an alias for the switches that control how saves happen
@@ -26,7 +22,7 @@ type SaveSwitches = dsfs.SaveSwitches
 var ErrNameTaken = fmt.Errorf("name already in use")
 
 // SaveDataset saves a version of the dataset for the given initID at the current path
-func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, initID, prevPath string, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
+func SaveDataset(ctx context.Context, r repo.Repo, initID, prevPath string, changes *dataset.Dataset, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
 	var pro *profile.Profile
 	if pro, err = r.Profile(); err != nil {
 		return
@@ -66,39 +62,9 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, initID, p
 		mutable.Commit = nil
 	}
 
-	// TODO(dustmop): In a future change, move code related to transform higher up, as we
-	// untangle transform from save, and use apply instead.
-
-	if sw.DryRun {
-		str.PrintErr("🏃🏽‍♀️ dry run\n")
-
-		// dry-runs store to an in-memory repo
-		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), r.Filesystem(), profile.NewMemStore())
-		if err != nil {
-			log.Debugf("creating new memRepo: %s", err)
-			return
-		}
-	}
-
-	if changes.Transform != nil {
-		// create a check func from a record of all the parts that the datasetPod is changing,
-		// the startf package will use this function to ensure the same components aren't modified
-		mutateCheck := startf.MutatedComponentsFunc(changes)
-
-		opts := []func(*startf.ExecOpts){
-			startf.AddQriRepo(r),
-			startf.AddMutateFieldCheck(mutateCheck),
-			startf.SetErrWriter(scriptOut),
-			startf.SetSecrets(secrets),
-		}
-
-		if err = startf.ExecScript(ctx, changes, prev, opts...); err != nil {
-			return
-		}
-
-		str.PrintErr("✅ transform complete\n")
-	}
-
+	// Save requires either a body or a structure.
+	// TODO(dustmop): Saving with only a structure is currently broken. See TestSaveBasicCommands
+	// in cmd/save_test.go
 	if prevPath == "" && changes.BodyFile() == nil && changes.Structure == nil {
 		err = fmt.Errorf("creating a new dataset requires a structure or a body")
 		return
@@ -138,23 +104,21 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, initID, p
 
 	// Write the dataset to storage and get back the new path.
 	// TODO(dustmop): Only return the cafs path, since this function shouldn't know about references
-	ref, err = CreateDataset(ctx, r, str, changes, prev, sw)
+	ref, err = CreateDataset(ctx, r, changes, prev, sw)
 	if err != nil {
 		return ref, err
 	}
 
-	if !sw.DryRun {
-		// Write the save to logbook
-		err = r.Logbook().WriteVersionSave(ctx, initID, changes)
-		if err != nil && err != logbook.ErrNoLogbook {
-			return ref, err
-		}
+	// Write the save to logbook
+	err = r.Logbook().WriteVersionSave(ctx, initID, changes)
+	if err != nil && err != logbook.ErrNoLogbook {
+		return ref, err
 	}
-	return ref, err
+	return ref, nil
 }
 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating the refstore
-func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
+func CreateDataset(ctx context.Context, r repo.Repo, ds, dsPrev *dataset.Dataset, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
 	var (
 		pro     *profile.Profile
 		path    string
@@ -209,11 +173,9 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		Path:      path,
 	}
 
-	if !sw.DryRun {
-		if err = r.PutRef(ref); err != nil {
-			log.Debugf("r.PutRef: %s", err)
-			return
-		}
+	if err = r.PutRef(ref); err != nil {
+		log.Debugf("r.PutRef: %s", err)
+		return
 	}
 
 	ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path)

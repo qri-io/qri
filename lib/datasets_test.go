@@ -168,6 +168,8 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 }
 
 func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
+	t.Skip("TODO(dustmop): Recall will be going away soon, apply will take its place")
+
 	node := newTestQriNode(t)
 	ref := addNowTransformDataset(t, node)
 	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)

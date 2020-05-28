@@ -10,7 +10,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
@@ -344,7 +343,6 @@ func writeVideoViewStats(ctx context.Context, t *testing.T, r repo.Repo) reporef
 }
 
 func saveDataset(ctx context.Context, r repo.Repo, peername string, ds *dataset.Dataset) reporef.DatasetRef {
-	devNull := ioes.NewDiscardIOStreams()
 	sw := base.SaveSwitches{}
 	headRef := ""
 	book := r.Logbook()
@@ -358,7 +356,7 @@ func saveDataset(ctx context.Context, r repo.Repo, peername string, ds *dataset.
 	if err != nil {
 		panic(err)
 	}
-	datasetRef, err := base.SaveDataset(ctx, r, devNull, initID, headRef, ds, nil, nil, sw)
+	datasetRef, err := base.SaveDataset(ctx, r, initID, headRef, ds, sw)
 	if err != nil {
 		panic(err)
 	}
