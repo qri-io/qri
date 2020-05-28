@@ -57,7 +57,7 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 	// Build IPFS repo directory by unzipping an empty repo.
 	err = g.GenerateEmptyIpfsRepo(IPFSPath, "")
 	if err != nil {
-		return r, fmt.Errorf("THIS ONE")
+		return r, err
 	}
 	// Create directory for new Qri repo.
 	QriPath := filepath.Join(RootPath, "qri")
@@ -89,7 +89,21 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 func (r *TempRepo) Repo() (repo.Repo, error) {
 	if r.repo == nil {
 		var err error
-		if r.repo, _, err = NewMemRepoFromDir(r.IPFSPath); err != nil {
+		if r.repo, _, err = NewMemRepoFromDir(r.QriPath); err != nil {
+			return nil, err
+		}
+	}
+	return r.repo, nil
+}
+
+// IPFSRepo returns the actual repo, building an ipfs enabled one if it
+// doesn't already exist
+// assumes that the TempRepo is pointing to an actual qri config
+// and an initialized ipfs repo
+func (r *TempRepo) IPFSRepo() (repo.Repo, error) {
+	if r.repo == nil {
+		var err error
+		if r.repo, _, err = NewIPFSRepoFromDir(r.QriPath, r.IPFSPath); err != nil {
 			return nil, err
 		}
 	}
@@ -183,11 +197,15 @@ func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
 // LoadDataset from the temp repository
 func (r *TempRepo) LoadDataset(ref string) (*dataset.Dataset, error) {
 	ctx := context.Background()
-	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
+	fs, err := ipfs_filestore.NewFS(nil, func(cfg *ipfs_filestore.StoreCfg) {
 		cfg.Online = false
 		cfg.FsRepoPath = r.IPFSPath
 	})
-	ds, err := dsfs.LoadDataset(ctx, fs, ref)
+	cafs, ok := fs.(cafs.Filestore)
+	if !ok {
+		return nil, fmt.Errorf("error asserting file system is a cafs filesystem")
+	}
+	ds, err := dsfs.LoadDataset(ctx, cafs, ref)
 	if err != nil {
 		return nil, err
 	}
