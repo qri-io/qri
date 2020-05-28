@@ -77,9 +77,8 @@ func TestFetchCommand(t *testing.T) {
 	// TODO(dustmop): This port could actually be randomized to make this more robust
 	const RemotePort = "9876"
 	apiConfig := config.API{
-		Enabled:    true,
-		Address:    fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", RemotePort),
-		RemoteMode: true,
+		Enabled: true,
+		Address: fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", RemotePort),
 	}
 	go api.StartServer(&apiConfig, httpServer)
 	defer httpServer.Close()

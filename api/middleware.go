@@ -14,18 +14,6 @@ func (s Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Infof("%s %s %s", r.Method, r.URL.Path, time.Now())
 
-		// If this server is operating behind a proxy, but we still want to force
-		// users to use https, cfg.ProxyForceHttps == true will listen for the common
-		// X-Forward-Proto & redirect to https
-		if s.Config().API.ProxyForceHTTPS {
-			if r.Header.Get("X-Forwarded-Proto") == "http" {
-				w.Header().Set("Connection", "close")
-				url := "https://" + r.Host + r.URL.String()
-				http.Redirect(w, r, url, http.StatusMovedPermanently)
-				return
-			}
-		}
-
 		// TODO - Strict Transport config?
 		// if cfg.TLS {
 		// 	// If TLS is enabled, set 1 week strict TLS, 1 week for now to prevent catastrophic mess-ups
