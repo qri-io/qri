@@ -21,8 +21,6 @@ func TestAPICopy(t *testing.T) {
 		{"ensure boolean values copy", &API{
 			Enabled:            true,
 			ReadOnly:           true,
-			TLS:                true,
-			ProxyForceHTTPS:    true,
 			ServeRemoteTraffic: true,
 		}},
 	}

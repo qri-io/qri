@@ -28,6 +28,12 @@ var APIVersion = version.String
 // LocalHostIP is the IP address for localhost
 const LocalHostIP = "127.0.0.1"
 
+// DefaultTemplateHash is the hash of the default render template
+const DefaultTemplateHash = "/ipfs/QmeqeRTf2Cvkqdx4xUdWi1nJB2TgCyxmemsL3H4f1eTBaw"
+
+// TemplateUpdateAddress is the URI for the template update
+const TemplateUpdateAddress = "/ipns/defaulttmpl.qri.io"
+
 func init() {
 	// We don't use the log package, and the net/rpc package spits out some complaints b/c
 	// a few methods don't conform to the proper signature (comment this out & run 'qri connect' to see errors)
@@ -78,28 +84,14 @@ func (s Server) Serve(ctx context.Context) (err error) {
 
 			go func() {
 				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
-				if cfg != nil && cfg.Render != nil && cfg.Render.TemplateUpdateAddress != "" {
-					if latest, err := lib.CheckVersion(context.Background(), namesys, cfg.Render.TemplateUpdateAddress, cfg.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
-						err := pinner.Pin(ctx, latest, true)
-						if err != nil {
-							log.Debug("error pinning template hash: %s", err.Error())
-							return
-						}
-						if err := cfg.Set("Render.DefaultTemplateHash", latest); err != nil {
-							log.Debugf("error setting latest hash: %s", err)
-							return
-						}
-
-						// TODO (b5) - potential bug here: the cfg pointer server is holding may become stale,
-						// causing "reverts" to old values when this ChangeConfig is called
-						// very unlikely, but a good reason to think through configuration updating
-						if err := s.ChangeConfig(cfg); err != nil {
-							log.Debugf("error saving configuration: %s", err)
-							return
-						}
-
-						log.Info("updated template hash: %s", latest)
+				if latest, err := lib.CheckVersion(context.Background(), namesys, TemplateUpdateAddress, DefaultTemplateHash); err == lib.ErrUpdateRequired {
+					err := pinner.Pin(ctx, latest, true)
+					if err != nil {
+						log.Debug("error pinning template hash: %s", err.Error())
+						return
 					}
+
+					log.Info("updated template hash: %s", latest)
 				}
 			}()
 

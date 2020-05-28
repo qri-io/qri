@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"context"
 	"testing"
 
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/repo"
@@ -58,8 +56,6 @@ func TestRenderComplete(t *testing.T) {
 }
 
 func TestRenderRun(t *testing.T) {
-	ctx := context.Background()
-
 	run := NewTestRunner(t, "test_peer", "qri_test_render_run")
 	defer run.Delete()
 
@@ -75,33 +71,8 @@ func TestRenderRun(t *testing.T) {
 		return
 	}
 
-	templateFile := qfs.NewMemfileBytes("template.html", []byte(`<html><h2>{{ds.peername}}/{{ds.name}}</h2></html>`))
-
 	if err := f.Init(); err != nil {
 		t.Errorf("error initializing: %s", err)
-		return
-	}
-	node, err := f.ConnectionNode()
-	if err != nil {
-		t.Errorf("error getting node from factory: %s", err)
-		return
-	}
-	r := node.Repo
-
-	key, err := r.Store().Put(ctx, templateFile)
-	if err != nil {
-		t.Errorf("error putting template into store: %s", err)
-		return
-	}
-
-	cfg, err := f.Config()
-	if err != nil {
-		t.Errorf("error getting config from factory: %s", err)
-		return
-	}
-
-	if err := cfg.Set("render.defaultTemplateHash", key); err != nil {
-		t.Errorf("error setting default template in config: %s", err)
 		return
 	}
 
