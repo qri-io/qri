@@ -590,21 +590,14 @@ func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.Get
 	}
 
 	if !readOnly {
-		offset, offsetErr := util.ReqParamInt("offset", r)
-		limit, limitErr := util.ReqParamInt("limit", r)
+		p.Offset = util.ReqParamInt(r, "offset", 0)
+		p.Limit = util.ReqParamInt(r, "limit", lib.DefaultPageSize)
+		if p.Limit > util.DefaultMaxPageSize {
+			p.Limit = util.DefaultMaxPageSize
+		}
 
-		if offsetErr == nil || limitErr == nil {
-			if limitErr != nil {
-				limit = util.DefaultPageSize
-			}
-			if offsetErr != nil {
-				offset = 0
-			}
-			p.Limit = limit
-			p.Offset = offset
-			if limit == -1 && offset == 0 {
-				p.All = true
-			}
+		if p.Limit == -1 && p.Offset == 0 {
+			p.All = true
 		}
 		// if we request all explicitly, or if offset is zero and limit is -1
 		// return all rows

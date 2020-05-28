@@ -53,10 +53,10 @@ func NewListParams(orderBy string, page, pageSize int) ListParams {
 // ListParamsFromRequest extracts ListParams from an http.Request pointer
 func ListParamsFromRequest(r *http.Request) ListParams {
 	var page, pageSize int
-	if i, err := util.ReqParamInt("page", r); err == nil {
+	if i := util.ReqParamInt(r, "page", 0); i != 0 {
 		page = i
 	}
-	if i, err := util.ReqParamInt("pageSize", r); err == nil {
+	if i := util.ReqParamInt(r, "pageSize", 0); i != 0 {
 		pageSize = i
 	}
 	return NewListParams(r.FormValue("orderBy"), page, pageSize)

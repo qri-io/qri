@@ -86,10 +86,8 @@ func (h *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request
 func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
 	args := lib.ListParamsFromRequest(r)
 	// args.OrderBy = "created"
-	cached, err := util.ReqParamBool("cached", r)
-	if err != nil {
-		cached = false
-	}
+	cached := util.ReqParamBool(r, "cached", false)
+
 	p := &lib.PeerListParams{
 		Limit:  args.Limit,
 		Offset: args.Offset,
