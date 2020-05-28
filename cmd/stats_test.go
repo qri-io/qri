@@ -46,7 +46,6 @@ func TestStatsComplete(t *testing.T) {
 		expectedRef string
 	}{
 		{"given one ref", []string{"me/ref"}, "me/ref"},
-		{"given multiple refs", []string{"me/ref", "me/ref_foo"}, "me/ref"},
 	}
 
 	for i, c := range goodCases {

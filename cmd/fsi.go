@@ -69,12 +69,14 @@ func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	if o.Refs, err = GetCurrentRefSelect(f, args, 1, o.FSIMethods); err != nil {
-		return err
-	}
 
 	if len(args) > 1 {
 		o.Path = args[1]
+		args = args[:1]
+	}
+
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.FSIMethods)); err != nil {
+		return err
 	}
 
 	return nil

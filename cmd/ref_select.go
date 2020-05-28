@@ -99,34 +99,60 @@ func (r *RefSelect) String() string {
 	return fmt.Sprintf("%s dataset [%s]", r.kind, strings.Join(r.refs, ", "))
 }
 
+const (
+	// AnyNumberOfReferences is for commands that can work on any number of dataset references
+	AnyNumberOfReferences = -1
+
+	// BadUpperCaseOkayWhenSavingExistingDataset is for the save command, which can have bad
+	// upper-case characters in its reference but only if it already exists
+	BadUpperCaseOkayWhenSavingExistingDataset = -2
+)
+
 // GetCurrentRefSelect returns the current reference selection. This could be explicitly provided
 // as command-line arguments, or could be determined by being in a linked directory, or could be
 // selected by the `use` command. This order is also the precendence, from most important to least.
-// This is the recommended method for command-line commands to get references, unless they have a
-// special way of interacting with datasets (for example, `qri status`).
-// If an fsi pointer is passed in, use it to ensure that the ref in the .qri-ref linkfile matches
+// This is the recommended method for command-line commands to get references.
+// If an Ensurer is passed in, it is used to ensure that the ref in the .qri-ref linkfile matches
 // what is in the repo.
-func GetCurrentRefSelect(f Factory, args []string, allowed int, fsi *lib.FSIMethods) (*RefSelect, error) {
-	// TODO(dlong): Respect `allowed`, number of refs the command uses. -1 means any.
-	// TODO(dlong): For example, `get` allows -1, `diff` allows 2, `save` allows 1
+func GetCurrentRefSelect(f Factory, args []string, allowed int, ensurer *FSIRefLinkEnsurer) (*RefSelect, error) {
 	// If reference is specified by the user provide command-line arguments, use that reference.
 	if len(args) > 0 {
-		if allowed >= 2 {
-			// Diff allows multiple explicit references.
+		// If bad upper-case characters are allowed, skip checking for them
+		if allowed == BadUpperCaseOkayWhenSavingExistingDataset {
+			// Bad upper-case characters are ignored, references will be checked again inside lib.
+			allowed = 1
+		} else {
+			// For each argument, make sure it's a valid and not using upper-case chracters.
+			for _, refstr := range args {
+				_, err := dsref.Parse(refstr)
+				if err == dsref.ErrBadCaseName {
+					// TODO(dustmop): For now, this is just a warning but not a fatal error.
+					// In the near future, change to: `return nil, dsref.ErrBadCaseShouldRename`
+					// The test `TestBadCaseIsJustWarning` in cmd/cmd_test.go verifies that this
+					// is not a fatal error.
+					// TODO(dustmop): Change to a fatal error after qri 0.9.9 releases.
+					log.Error(dsref.ErrBadCaseShouldRename)
+				}
+			}
+		}
+		if allowed == AnyNumberOfReferences {
 			return NewListOfRefSelects(args), nil
 		}
-		return NewExplicitRefSelect(args[0]), nil
+		if len(args) > allowed {
+			return nil, fmt.Errorf("%d references allowed but %d were given", allowed, len(args))
+		}
+		if allowed == 1 {
+			return NewExplicitRefSelect(args[0]), nil
+		}
+		return NewListOfRefSelects(args), nil
 	}
 	// If in a working directory that is linked to a dataset, use that link's reference.
 	refs, err := GetLinkedRefSelect()
 	if err == nil {
-		if fsi != nil {
-			// Ensure that the link in the working directory matches what is in the repo.
-			out := &dsref.VersionInfo{}
-			err = fsi.EnsureRef(&lib.EnsureParams{Dir: refs.Dir(), Ref: refs.Ref()}, out)
-			if err != nil {
-				log.Debugf("%s", err)
-			}
+		// Ensure that the link in the working directory matches what is in the repo.
+		err = ensurer.EnsureRef(refs)
+		if err != nil {
+			log.Debugf("%s", err)
 		}
 		return refs, nil
 	}
@@ -175,4 +201,40 @@ func DefaultSelectedRefList(f Factory) ([]string, error) {
 	}
 
 	return res, nil
+}
+
+// EnsureFSIAgrees should be passed to GetCurrentRefSelect in order to ensure that any references
+// used by a command have agreement between what their .qri-ref linkfile thinks and what the
+// qri repository thinks. If there's a disagreement, the linkfile wins and the repository will
+// be updated to match.
+// This is useful if a user has a working directory, and then manually deletes the .qri-ref (which
+// will unlink the dataset), or renames / moves the directory and then runs a command in that
+// directory (which will update the repository with the new working directory's path).
+func EnsureFSIAgrees(f *lib.FSIMethods) *FSIRefLinkEnsurer {
+	if f == nil {
+		return nil
+	}
+	return &FSIRefLinkEnsurer{FSIMethods: f}
+}
+
+// FSIRefLinkEnsurer is a simple wrapper for ensuring the linkfile agrees with the repository. We
+// use it instead of a raw FSIMethods pointer so that users of this code see they need to call
+// EnsureFSIAgrees(*fsiMethods) when calling GetRefSelect, hopefully providing a bit of insight
+// about what this parameter is for.
+type FSIRefLinkEnsurer struct {
+	FSIMethods *lib.FSIMethods
+}
+
+// EnsureRef checks if the linkfile and repository agree on the dataset's working directory path.
+// If not, it will modify the repository so that it matches the linkfile. The linkfile will
+// never be modified.
+func (e *FSIRefLinkEnsurer) EnsureRef(refs *RefSelect) error {
+	if e == nil {
+		return nil
+	}
+	p := lib.EnsureParams{Dir: refs.Dir(), Ref: refs.Ref()}
+	info := dsref.VersionInfo{}
+	// Lib call matches the gorpc method signature, but `out` is not used
+	err := e.FSIMethods.EnsureRef(&p, &info)
+	return err
 }

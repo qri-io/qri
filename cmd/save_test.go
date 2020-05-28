@@ -36,7 +36,6 @@ func TestSaveComplete(t *testing.T) {
 	}{
 		{[]string{}, "", ""},
 		{[]string{"test"}, "test", ""},
-		{[]string{"test", "test2"}, "test", ""},
 	}
 
 	for i, c := range cases {
@@ -336,6 +335,11 @@ func TestSaveBasicCommands(t *testing.T) {
 			"dataset file explicit version",
 			"qri save --file dataset.yaml me/my_dataset@/ipfs/QmVersion",
 			"unexpected character '@', ref can only have username/name",
+		},
+		{
+			"dataset file bad parse",
+			"qri save --file dataset.yaml me/invalid+name",
+			"dataset name must start with a lower-case letter, and only contain lower-case letters, numbers, dashes, and underscore. Maximum length is 144 characters",
 		},
 		{
 			"body file other username",

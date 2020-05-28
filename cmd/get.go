@@ -92,7 +92,7 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 			args = args[1:]
 		}
 	}
-	if o.Refs, err = GetCurrentRefSelect(f, args, -1, nil); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, AnyNumberOfReferences, nil); err != nil {
 		return
 	}
 
@@ -134,6 +134,11 @@ func (o *GetOptions) Run() (err error) {
 
 	// TODO(dustmop): Consider setting o.Format if o.Outfile has an extension and o.Format
 	// is not assigned anything
+
+	// TODO(dustmop): Allow any number of references. Right now we ignore everything after the
+	// first. The hard parts are:
+	// 1) Correctly handling the pager output, and having headers between each ref
+	// 2) Identifying cases that limit Get to only work on 1 dataset. For example, the -o flag
 
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)

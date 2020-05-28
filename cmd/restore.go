@@ -114,7 +114,7 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 	if o.FSIMethods, err = f.FSIMethods(); err != nil {
 		return err
 	}
-	if o.Refs, err = GetCurrentRefSelect(f, dsRefList, 1, o.FSIMethods); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, dsRefList, 1, EnsureFSIAgrees(o.FSIMethods)); err != nil {
 		return err
 	}
 	return nil

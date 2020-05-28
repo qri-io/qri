@@ -658,7 +658,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		err string
 	}{
 		{&RenameParams{}, "current name is required to rename a dataset"},
-		{&RenameParams{Current: "peer/movies", Next: "peer/new movies"}, dsref.ErrDescribeValidName.Error()},
+		{&RenameParams{Current: "peer/movies", Next: "peer/new movies"}, fmt.Sprintf("destination name: %s", dsref.ErrDescribeValidName.Error())},
 		{&RenameParams{Current: "peer/cities", Next: "peer/sitemap"}, `dataset "peer/sitemap" already exists`},
 	}
 

@@ -27,7 +27,6 @@ func TestRenderComplete(t *testing.T) {
 	}{
 		{[]string{}, "", ""},
 		{[]string{"test"}, "test", ""},
-		{[]string{"test", "test2"}, "test", ""},
 	}
 
 	for i, c := range cases {
