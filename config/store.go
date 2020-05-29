@@ -54,6 +54,7 @@ func (cfg *Store) Copy() *Store {
 	res := &Store{
 		Type:    cfg.Type,
 		Options: cfg.Options,
+		Path:    cfg.Path,
 	}
 
 	return res

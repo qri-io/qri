@@ -22,12 +22,13 @@ const CurrentConfigRevision = 2
 type Config struct {
 	path string
 
-	Revision int
-	Profile  *ProfilePod
-	Repo     *Repo
-	Store    *Store
-	P2P      *P2P
-	Stats    *Stats
+	Revision    int
+	Profile     *ProfilePod
+	Repo        *Repo
+	Store       *Store
+	P2P         *P2P
+	Stats       *Stats
+	Filesystems *Filesystems
 
 	Registry *Registry
 	Remotes  *Remotes
@@ -57,20 +58,18 @@ func (cfg *Config) SetArbitrary(key string, val interface{}) error {
 // DefaultConfig gives a new configuration with simple, default settings
 func DefaultConfig() *Config {
 	return &Config{
-		Revision: CurrentConfigRevision,
-		Profile:  DefaultProfile(),
-		Repo:     DefaultRepo(),
-		Store:    DefaultStore(),
-		P2P:      DefaultP2P(),
-		Stats:    DefaultStats(),
-
-		Registry: DefaultRegistry(),
-		// default to no configured remotes
-
-		CLI:     DefaultCLI(),
-		API:     DefaultAPI(),
-		RPC:     DefaultRPC(),
-		Logging: DefaultLogging(),
+		Revision:    CurrentConfigRevision,
+		Profile:     DefaultProfile(),
+		Repo:        DefaultRepo(),
+		Store:       DefaultStore(),
+		P2P:         DefaultP2P(),
+		Stats:       DefaultStats(),
+		Registry:    DefaultRegistry(),
+		CLI:         DefaultCLI(),
+		API:         DefaultAPI(),
+		RPC:         DefaultRPC(),
+		Logging:     DefaultLogging(),
+		Filesystems: DefaultFilesystems(),
 	}
 }
 
@@ -196,7 +195,7 @@ func (cfg Config) Validate() error {
     "title": "config",
     "description": "qri configuration",
     "type": "object",
-    "required": ["Profile", "Repo", "Store", "P2P", "CLI", "API", "RPC"],
+    "required": ["Profile", "Repo", "Store", "P2P", "CLI", "API", "RPC", "Filesystems"],
     "properties" : {
 			"Profile" : { "type":"object" },
 			"Repo" : { "type":"object" },
@@ -204,7 +203,8 @@ func (cfg Config) Validate() error {
 			"P2P" : { "type":"object" },
 			"CLI" : { "type":"object" },
 			"API" : { "type":"object" },
-			"RPC" : { "type":"object" }
+			"RPC" : { "type":"object" },
+			"Filesystems" : { "type":"array", "items": { "type": "object"} }
     }
   }`)
 	if err := validate(schema, &cfg); err != nil {
@@ -220,6 +220,7 @@ func (cfg Config) Validate() error {
 		cfg.API,
 		cfg.RPC,
 		cfg.Logging,
+		cfg.Filesystems,
 	}
 	for _, val := range validators {
 		// we need to check here because we're potentially calling methods on nil
@@ -280,6 +281,9 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.Stats != nil {
 		res.Stats = cfg.Stats.Copy()
+	}
+	if cfg.Filesystems != nil {
+		res.Filesystems = cfg.Filesystems.Copy()
 	}
 
 	return res

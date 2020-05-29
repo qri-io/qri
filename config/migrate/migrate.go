@@ -114,6 +114,10 @@ func oneToTwoConfig(cfg *config.Config) error {
 		return qerr.New(fmt.Errorf("invalid config"), "config does not contain RPC configuration")
 	}
 
+	if cfg.Filesystems == nil {
+		cfg.Filesystems = config.DefaultFilesystems()
+	}
+
 	return nil
 }
 

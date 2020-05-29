@@ -5,6 +5,14 @@ repo:
   type: fs
 store:
   type: ipfs
+filesystems:
+  - type: ipfs
+    config:
+      path: ./ipfs
+      api: true
+      pubsub: false
+  - type: local
+  - type: http
 cli:
   colorizeoutput: true
 api:

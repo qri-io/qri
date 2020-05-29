@@ -86,13 +86,31 @@ func New(ctx context.Context, path string, cfg *config.Config) (repo.Repo, error
 	}
 }
 
+var fsMap = map[string]qfs.Filesystem{
+	"http":  httpfs.NewFS(),
+	"local": localfs.NewFS(),
+	"map":   cafs.NewMapstore(),
+	"mem":   qfs.NewMemFS(),
+	// TODO(arqu): add ipfs once config passing is properrly supported
+}
+
 // NewFilesystem creates a qfs.Filesystem from configuration
 func NewFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, error) {
-	mux := map[string]qfs.Filesystem{
-		"local": localfs.NewFS(),
-		"http":  httpfs.NewFS(),
-		"cafs":  store,
+	mux := map[string]qfs.Filesystem{}
+
+	if cfg != nil && cfg.Filesystems != nil && len(*cfg.Filesystems) > 0 {
+		for _, fsCfg := range *cfg.Filesystems {
+			if fs, ok := fsMap[fsCfg.Type]; ok {
+				mux[fsCfg.Type] = fs
+			}
+		}
+	} else {
+		for fsName, fs := range fsMap {
+			mux[fsName] = fs
+		}
 	}
+
+	mux["cafs"] = store
 
 	if ipfss, ok := store.(*ipfs.Filestore); ok {
 		mux["ipfs"] = ipfss
