@@ -122,6 +122,43 @@ func TestAddCheckoutIntegration(t *testing.T) {
 
 }
 
+func TestSQLFetchReRunLocal(t *testing.T) {
+	tr := NewNetworkIntegrationTestRunner(t, "integration_sql_fetch_re_run_local")
+	defer tr.Cleanup()
+
+	nasim := tr.InitNasim(t)
+
+	// - nasim creates a dataset, publishes to registry
+	ref := InitWorldBankDataset(t, nasim)
+	PublishToRegistry(t, nasim, ref.AliasString())
+
+	hinshun := tr.InitHinshun(t)
+	sqlm := NewSQLMethods(hinshun)
+
+	// fetch this from the registry by default
+	p := &SQLQueryParams{
+		Query:        "SELECT * FROM nasim/world_bank_population a LIMIT 1",
+		OutputFormat: "json",
+	}
+	results := make([]byte, 0)
+	if err := sqlm.Exec(p, &results); err != nil {
+		t.Fatal(err)
+	}
+
+	tr.RegistryHTTPServer.Close()
+
+	// re-run. dataset should now be local, and no longer require registry to
+	// resolve
+	p = &SQLQueryParams{
+		Query:        "SELECT * FROM nasim/world_bank_population a LIMIT 1 OFFSET 1",
+		OutputFormat: "json",
+	}
+	results = make([]byte, 0)
+	if err := sqlm.Exec(p, &results); err != nil {
+		t.Fatal(err)
+	}
+}
+
 type NetworkIntegrationTestRunner struct {
 	Ctx                                  context.Context
 	prefix                               string
