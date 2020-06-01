@@ -45,6 +45,7 @@ type TestRunner struct {
 	XformVersion  string
 	CmdR          *cobra.Command
 	Teardown      func()
+	CmdDoneCh     chan struct{}
 
 	pathFactory PathFactory
 
@@ -182,35 +183,77 @@ func (run *TestRunner) MakeTmpDir(t *testing.T, pattern string) string {
 
 // ExecCommand executes the given command string
 func (run *TestRunner) ExecCommand(cmdText string) error {
-	run.CmdR = run.CreateCommandRunner(run.Context)
-	return executeCommand(run.CmdR, cmdText)
+	var doneCh chan struct{}
+	ctx, cancel := context.WithCancel(run.Context)
+	run.CmdR, doneCh = run.CreateCommandRunner(ctx)
+	if err := executeCommand(run.CmdR, cmdText); err != nil {
+		cancel()
+		return err
+	}
+	cancel()
+	if doneCh != nil {
+		<-doneCh
+	}
+	return nil
 }
 
 // ExecCommandWithStdin executes the given command string with the string as stdin content
 func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinText string) error {
 	setNoColor(true)
-	cmd := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, run.Streams)
+	ctx, cancel := context.WithCancel(ctx)
+	cmd, doneCh := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, run.Streams)
 	cmd.SetOutput(run.OutStream)
 	run.CmdR = cmd
-	return executeCommand(run.CmdR, cmdText)
+	if err := executeCommand(run.CmdR, cmdText); err != nil {
+		cancel()
+		return err
+	}
+	cancel()
+	if doneCh != nil {
+		<-doneCh
+	}
+	return nil
 }
 
 // ExecCommandCombinedOutErr executes the command with a combined stdout and stderr stream
 func (run *TestRunner) ExecCommandCombinedOutErr(cmdText string) error {
-	run.CmdR = run.CreateCommandRunnerCombinedOutErr(run.Context)
-	return executeCommand(run.CmdR, cmdText)
+	ctx, cancel := context.WithCancel(run.Context)
+	var doneCh chan struct{}
+	run.CmdR, doneCh = run.CreateCommandRunnerCombinedOutErr(ctx)
+	if err := executeCommand(run.CmdR, cmdText); err != nil {
+		cancel()
+		return err
+	}
+	cancel()
+	if doneCh != nil {
+		<-doneCh
+	}
+	return nil
 }
 
 // ExecCommandWithContext executes the given command with a context
 func (run *TestRunner) ExecCommandWithContext(ctx context.Context, cmdText string) error {
-	run.CmdR = run.CreateCommandRunner(ctx)
-	return executeCommand(run.CmdR, cmdText)
+	ctx, cancel := context.WithCancel(run.Context)
+	var doneCh chan struct{}
+	run.CmdR, doneCh = run.CreateCommandRunner(ctx)
+	if err := executeCommand(run.CmdR, cmdText); err != nil {
+		cancel()
+		return err
+	}
+	cancel()
+	if doneCh != nil {
+		<-doneCh
+	}
+	return nil
 }
 
 func (run *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText string) string {
-	run.CmdR = run.CreateCommandRunner(run.Context)
+	ctx, cancel := context.WithCancel(run.Context)
+	var doneCh chan struct{}
+	run.CmdR, doneCh = run.CreateCommandRunner(ctx)
 
 	if err := executeQuotedCommand(run.CmdR, quotedCmdText); err != nil {
+		cancel()
 		_, callerFile, callerLine, ok := runtime.Caller(1)
 		if !ok {
 			t.Fatal(err)
@@ -218,20 +261,25 @@ func (run *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText stri
 			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
 		}
 	}
+	cancel()
+	if doneCh != nil {
+		<-doneCh
+	}
 	return run.GetCommandOutput()
 }
 
 // CreateCommandRunner returns a cobra runable command.
-func (run *TestRunner) CreateCommandRunner(ctx context.Context) *cobra.Command {
+func (run *TestRunner) CreateCommandRunner(ctx context.Context) (*cobra.Command, chan struct{}) {
 	return run.newCommandRunner(ctx, false)
 }
 
 // CreateCommandRunnerCombinedOutErr returns a cobra command that combines stdout and stderr
-func (run *TestRunner) CreateCommandRunnerCombinedOutErr(ctx context.Context) *cobra.Command {
-	return run.newCommandRunner(ctx, true)
+func (run *TestRunner) CreateCommandRunnerCombinedOutErr(ctx context.Context) (*cobra.Command, chan struct{}) {
+	cmd, doneCh := run.newCommandRunner(ctx, true)
+	return cmd, doneCh
 }
 
-func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool) *cobra.Command {
+func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool) (*cobra.Command, chan struct{}) {
 	run.IOReset()
 	streams := run.Streams
 	if combineOutErr {
@@ -244,9 +292,9 @@ func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool)
 		key := lib.InstanceContextKey("RemoteClient")
 		ctx = context.WithValue(ctx, key, "mock")
 	}
-	cmd := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, streams)
+	cmd, doneCh := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, streams)
 	cmd.SetOutput(run.OutStream)
-	return cmd
+	return cmd, doneCh
 }
 
 // Username returns the test username from the config's profile
@@ -361,15 +409,22 @@ func (run *TestRunner) MustExec(t *testing.T, cmdText string) string {
 
 // MustExec runs a command, returning combined standard output and standard err
 func (run *TestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
-	run.CmdR = run.CreateCommandRunnerCombinedOutErr(run.Context)
+	ctx, cancel := context.WithCancel(run.Context)
+	var doneCh chan struct{}
+	run.CmdR, doneCh = run.CreateCommandRunnerCombinedOutErr(ctx)
 	err := executeCommand(run.CmdR, cmdText)
 	if err != nil {
+		cancel()
 		_, callerFile, callerLine, ok := runtime.Caller(1)
 		if !ok {
 			t.Fatal(err)
 		} else {
 			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
 		}
+	}
+	cancel()
+	if doneCh != nil {
+		<-doneCh
 	}
 	return run.GetCommandOutput()
 }
