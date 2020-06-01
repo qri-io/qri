@@ -40,7 +40,7 @@ require (
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/jsonschema v0.2.0
-	github.com/qri-io/qfs v0.1.1-0.20200522031737-3eeff5a87405
+	github.com/qri-io/qfs v0.1.1-0.20200529173902-60e3c26754da
 	github.com/qri-io/starlib v0.4.2-0.20200406084526-0e4566b610a1
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.0.0
@@ -50,6 +50,7 @@ require (
 	github.com/ugorji/go/codec v1.1.7
 	go.starlark.net v0.0.0-20200330013621-be5394c419b6
 	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
+	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4
 	golang.org/x/text v0.3.2
 	gonum.org/v1/gonum v0.6.0

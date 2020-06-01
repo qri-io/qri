@@ -151,7 +151,7 @@ func (r *TempRepo) GetPathForDataset(index int) (string, error) {
 // in CAFS
 func (r *TempRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
 	ctx := context.Background()
-	fs, err := ipfs_filestore.NewFS(nil, func(cfg *ipfs_filestore.StoreCfg) {
+	fs, err := ipfs_filestore.NewFS(ctx, nil, func(cfg *ipfs_filestore.StoreCfg) {
 		cfg.Online = false
 		cfg.FsRepoPath = r.IPFSPath
 	})
@@ -175,7 +175,7 @@ func (r *TempRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
 // DatasetMarshalJSON reads the dataset head and marshals it as json.
 func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
 	ctx := context.Background()
-	fs, err := ipfs_filestore.NewFS(nil, func(cfg *ipfs_filestore.StoreCfg) {
+	fs, err := ipfs_filestore.NewFS(ctx, nil, func(cfg *ipfs_filestore.StoreCfg) {
 		cfg.Online = false
 		cfg.FsRepoPath = r.IPFSPath
 	})
@@ -197,7 +197,7 @@ func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
 // LoadDataset from the temp repository
 func (r *TempRepo) LoadDataset(ref string) (*dataset.Dataset, error) {
 	ctx := context.Background()
-	fs, err := ipfs_filestore.NewFS(nil, func(cfg *ipfs_filestore.StoreCfg) {
+	fs, err := ipfs_filestore.NewFS(ctx, nil, func(cfg *ipfs_filestore.StoreCfg) {
 		cfg.Online = false
 		cfg.FsRepoPath = r.IPFSPath
 	})

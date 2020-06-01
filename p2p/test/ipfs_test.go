@@ -18,7 +18,7 @@ func TestMakeIPFS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err = MakeRepoFromIPFSNode(nodes[0], "ramfox"); err != nil {
+	if _, err = MakeRepoFromIPFSNode(ctx, nodes[0], "ramfox"); err != nil {
 		t.Fatal(err)
 	}
 }
