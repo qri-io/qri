@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	golog "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
@@ -257,7 +258,6 @@ func OptLogbook(bk *logbook.Book) Option {
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
-	fmt.Println("new instance")
 	if repoPath == "" {
 		return nil, fmt.Errorf("repo path is required")
 	}
@@ -299,6 +299,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	inst := &Instance{
 		ctx:      ctx,
 		teardown: teardown,
+		doneCh:   make(chan struct{}),
 		repoPath: repoPath,
 		cfg:      cfg,
 
@@ -392,9 +393,12 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "mem"})
 		}
 
-		if inst.qfs, err = muxfs.New(context.Background(), muxConfig); err != nil {
+		if inst.qfs, err = muxfs.New(ctx, muxConfig); err != nil {
 			log.Debugf("intializing filesystem:", err.Error())
 			return nil, fmt.Errorf("initializing filesystem: %w", err)
+		}
+		if releaser, ok := inst.qfs.(qfs.ReleasingFilesystem); ok {
+			go inst.waitForOneDone(releaser.Done())
 		}
 	}
 
@@ -500,6 +504,8 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			}
 		}
 	}
+
+	go inst.waitForAllDone()
 
 	return
 }
@@ -645,8 +651,10 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 // contain qri business logic. Think of instance as the "core" of the qri
 // ecosystem. Create an Instance pointer with NewInstance
 type Instance struct {
-	ctx      context.Context
-	teardown context.CancelFunc
+	ctx       context.Context
+	teardown  context.CancelFunc
+	doneCh    chan struct{}
+	releasers sync.WaitGroup
 
 	repoPath string
 	cfg      *config.Config
@@ -705,6 +713,12 @@ func (inst *Instance) Config() *config.Config {
 		return nil
 	}
 	return inst.cfg
+}
+
+// Done returns the channel onto which we can listen for
+// if all the parts of the instance have been closed
+func (inst *Instance) Done() chan struct{} {
+	return inst.doneCh
 }
 
 // FSI returns methods for using filesystem integration
@@ -798,6 +812,14 @@ func (inst *Instance) RemoteClient() remote.Client {
 	return inst.remoteClient
 }
 
+// Store returns the qfs filesystem
+func (inst *Instance) Store() qfs.Filesystem {
+	if inst == nil {
+		return nil
+	}
+	return inst.store
+}
+
 // Teardown destroys the instance, releasing reserved resources
 func (inst *Instance) Teardown() {
 	inst.teardown()
@@ -821,4 +843,15 @@ Error:
 		return qrierr.New(err, fmt.Sprintf(msg, err.Error()))
 	}
 	return err
+}
+
+func (inst *Instance) waitForOneDone(doneCh chan struct{}) {
+	inst.releasers.Add(1)
+	<-doneCh
+	inst.releasers.Done()
+}
+
+func (inst *Instance) waitForAllDone() {
+	inst.releasers.Wait()
+	inst.doneCh <- struct{}{}
 }

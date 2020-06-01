@@ -6,6 +6,7 @@ import (
 	"net/rpc"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
@@ -16,7 +17,7 @@ import (
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *cobra.Command {
+func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, chan struct{}) {
 
 	qriPath, ipfsPath := pf()
 	opt := NewQriOptions(ctx, qriPath, ipfsPath, generator, ioStreams)
@@ -77,7 +78,7 @@ https://github.com/qri-io/qri/issues`,
 		sub.SetUsageTemplate(defaultUsageTemplate)
 	}
 
-	return cmd
+	return cmd, opt.Done()
 }
 
 // QriOptions holds the Root Command State
@@ -86,7 +87,9 @@ type QriOptions struct {
 
 	// TODO (b5) - this context should be refactored away, prefering to pass
 	// this stored context object down through function calls
-	ctx context.Context
+	ctx       context.Context
+	releasers sync.WaitGroup
+	doneCh    chan struct{}
 
 	// path to the QRI repository directory
 	RepoPath string
@@ -111,6 +114,7 @@ func NewQriOptions(ctx context.Context, qriPath, ipfsPath string, generator gen.
 	return &QriOptions{
 		IOStreams: ioStreams,
 		ctx:       ctx,
+		doneCh:    make(chan struct{}),
 		RepoPath:  qriPath,
 		IpfsPath:  ipfsPath,
 		generator: generator,
@@ -122,33 +126,32 @@ func (o *QriOptions) Init() (err error) {
 	if o.inst != nil {
 		return
 	}
-	initBody := func() {
-		opts := []lib.Option{
-			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
-			lib.OptSetIPFSPath(o.IpfsPath),
-			lib.OptCheckConfigMigrations(""),
-			lib.OptSetLogAll(o.LogAll),
-		}
-		fmt.Println("from Init")
-		o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
-		if err != nil {
-			return
-		}
-		// Handle color and prompt flags which apply to every command
-		shouldColorOutput := !o.NoColor
-		cfg := o.inst.Config()
-		if cfg != nil && cfg.CLI != nil {
-			shouldColorOutput = cfg.CLI.ColorizeOutput
-		}
-		// todo(arqu): have a config var to indicate force override for windows
-		if runtime.GOOS == "windows" {
-			shouldColorOutput = false
-		}
-		setNoColor(!shouldColorOutput)
-		setNoPrompt(o.NoPrompt)
-		log.Debugf("running cmd %q", os.Args)
+	opts := []lib.Option{
+		lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
+		lib.OptSetIPFSPath(o.IpfsPath),
+		lib.OptCheckConfigMigrations(""),
+		lib.OptSetLogAll(o.LogAll),
 	}
-	initBody()
+	o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
+	if err != nil {
+		return
+	}
+	go o.waitForOneDone(o.inst.Done())
+	// Handle color and prompt flags which apply to every command
+	shouldColorOutput := !o.NoColor
+	cfg := o.inst.Config()
+	if cfg != nil && cfg.CLI != nil {
+		shouldColorOutput = cfg.CLI.ColorizeOutput
+	}
+	// todo(arqu): have a config var to indicate force override for windows
+	if runtime.GOOS == "windows" {
+		shouldColorOutput = false
+	}
+	setNoColor(!shouldColorOutput)
+	setNoPrompt(o.NoPrompt)
+	log.Debugf("running cmd %q", os.Args)
+
+	go o.waitForAllDone()
 	return
 }
 
@@ -296,4 +299,28 @@ func (o *QriOptions) FSIMethods() (m *lib.FSIMethods, err error) {
 	}
 
 	return lib.NewFSIMethods(o.inst), nil
+}
+
+// Done returns the chan on which we report when the contents
+// of the qri instance have been released
+func (o *QriOptions) Done() chan struct{} {
+	if err := o.Init(); err != nil {
+		return nil
+	}
+	return o.doneCh
+}
+
+// waitForOneDone adds to the wait group and waits to
+// hear back from the given channel, then removes from the wait group
+func (o *QriOptions) waitForOneDone(doneCh chan struct{}) {
+	o.releasers.Add(1)
+	<-doneCh
+	o.releasers.Done()
+}
+
+// waitForAllDone waits for all the the wait groups to return
+// then sends on the done channel
+func (o *QriOptions) waitForAllDone() {
+	o.releasers.Wait()
+	o.doneCh <- struct{}{}
 }
