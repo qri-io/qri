@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -48,15 +49,22 @@ func (run *FSITestRunner) MustExec(t *testing.T, cmdText string) string {
 
 // MustExec runs a command, returning combined standard output and standard err
 func (run *FSITestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
-	run.CmdR = run.CreateCommandRunnerCombinedOutErr(run.Context)
+	var doneCh chan struct{}
+	ctx, cancel := context.WithCancel(run.Context)
+	run.CmdR, doneCh = run.CreateCommandRunnerCombinedOutErr(ctx)
 	err := executeCommand(run.CmdR, cmdText)
 	if err != nil {
+		cancel()
 		_, callerFile, callerLine, ok := runtime.Caller(1)
 		if !ok {
 			t.Fatal(err)
 		} else {
 			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
 		}
+	}
+	cancel()
+	if doneCh != nil {
+		<-doneCh
 	}
 	return run.GetCommandOutput()
 }
