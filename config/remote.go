@@ -21,13 +21,6 @@ type Remote struct {
 	AllowRemoves bool `json:"allowremoves"`
 }
 
-// SetArbitrary is an interface implementation of base/fill/struct in order to safely
-// consume config files that have definitions beyond those specified in the struct.
-// This simply ignores all additional fields at read time.
-func (cfg *Remote) SetArbitrary(key string, val interface{}) error {
-	return nil
-}
-
 // Validate validates all fields of render returning all errors found.
 func (cfg Remote) Validate() error {
 	schema := jsonschema.Must(`{

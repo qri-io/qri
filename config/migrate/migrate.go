@@ -14,7 +14,7 @@ import (
 // RunMigrations checks to see if any migrations runs them
 func RunMigrations(streams ioes.IOStreams, cfg *config.Config) (err error) {
 	if cfg.Revision != config.CurrentConfigRevision {
-		streams.PrintErr("migrating configuration...")
+		streams.PrintErr("migrating configuration...\n")
 		if cfg.Revision == 0 {
 			if err := ZeroToOne(cfg); err != nil {
 				return err

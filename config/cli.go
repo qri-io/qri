@@ -7,13 +7,6 @@ type CLI struct {
 	ColorizeOutput bool `json:"colorizeoutput"`
 }
 
-// SetArbitrary is an interface implementation of base/fill/struct in order to safely
-// consume config files that have definitions beyond those specified in the struct.
-// This simply ignores all additional fields at read time.
-func (c *CLI) SetArbitrary(key string, val interface{}) error {
-	return nil
-}
-
 // DefaultCLI returns a new default CLI configuration
 func DefaultCLI() *CLI {
 	return &CLI{

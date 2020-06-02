@@ -8,13 +8,6 @@ type RPC struct {
 	Address string `json:"address"`
 }
 
-// SetArbitrary is an interface implementation of base/fill/struct in order to safely
-// consume config files that have definitions beyond those specified in the struct.
-// This simply ignores all additional fields at read time.
-func (cfg *RPC) SetArbitrary(key string, val interface{}) error {
-	return nil
-}
-
 // DefaultRPCAddress is the address RPC serves on by default
 var DefaultRPCAddress = "/ip4/127.0.0.1/tcp/2504"
 

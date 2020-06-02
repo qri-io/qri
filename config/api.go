@@ -35,11 +35,23 @@ type API struct {
 	WebsocketAddress string `json:"websocketaddress"`
 }
 
-// SetArbitrary is an interface implementation of base/fill/struct in order to safely
-// consume config files that have definitions beyond those specified in the struct.
-// This simply ignores all additional fields at read time.
-func (a *API) SetArbitrary(key string, val interface{}) error {
-	return nil
+// Ignore implements the ignorer interface from base/fill/struct in order to safely
+// consume config files that have definitions beyond those specified in the struct
+// and are either deprecaated or no longer supported.
+// This simply ignores all defined ignore fields at read time.
+func (a *API) Ignore(key string) error {
+	ignoredPaths := map[string]bool{
+		"remotemode":            true,
+		"remoteacceptsizemax":   true,
+		"remoteaccepttimeoutms": true,
+		"urlroot":               true,
+		"tls":                   true,
+		"proxyforcehttps":       true,
+	}
+	if ignoredPaths[key] {
+		return nil
+	}
+	return fmt.Errorf("key '%s' not found", key)
 }
 
 // Validate validates all fields of api returning all errors found.

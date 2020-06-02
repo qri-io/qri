@@ -9,13 +9,6 @@ type Registry struct {
 	Location string `json:"location"`
 }
 
-// SetArbitrary is an interface implementation of base/fill/struct in order to safely
-// consume config files that have definitions beyond those specified in the struct.
-// This simply ignores all additional fields at read time.
-func (cfg *Registry) SetArbitrary(key string, val interface{}) error {
-	return nil
-}
-
 // DefaultRegistry generates a new default registry instance
 func DefaultRegistry() *Registry {
 	r := &Registry{

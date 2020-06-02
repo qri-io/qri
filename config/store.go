@@ -9,13 +9,6 @@ type Store struct {
 	Path    string                 `json:"path,omitempty"`
 }
 
-// SetArbitrary is an interface implementation of base/fill/struct in order to safely
-// consume config files that have definitions beyond those specified in the struct.
-// This simply ignores all additional fields at read time.
-func (cfg *Store) SetArbitrary(key string, val interface{}) error {
-	return nil
-}
-
 // DefaultStore returns a new default Store configuration
 func DefaultStore() *Store {
 	return &Store{

@@ -11,13 +11,6 @@ type Stats struct {
 	// StopFreqCountThreshold int
 }
 
-// SetArbitrary is an interface implementation of base/fill/struct in order to safely
-// consume config files that have definitions beyond those specified in the struct.
-// This simply ignores all additional fields at read time.
-func (cfg *Stats) SetArbitrary(key string, val interface{}) error {
-	return nil
-}
-
 // cache configures the cached storage of stats
 type cache struct {
 	Type    string `json:"type"`
