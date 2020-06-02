@@ -28,7 +28,7 @@ type Resolver interface {
 
 // ParallelResolver composes multiple resolvers into one resolver that runs
 // in parallel when called, using the first resolver that doesn't return
-// ErrorNotFound
+// ErrRefNotFound
 func ParallelResolver(resolvers ...Resolver) Resolver {
 	return parallelResolver(resolvers)
 }

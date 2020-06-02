@@ -3,6 +3,7 @@ package startf
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -148,7 +149,7 @@ func TestLoadDataset(t *testing.T) {
 	err := ExecScript(ctx, ds, nil, func(o *ExecOpts) {
 		o.Repo = r
 		o.ModuleLoader = testModuleLoader(t)
-		o.DatasetLoader = dsref.NewParseResolveLoadFunc("", r, repoLoader{r})
+		o.DatasetLoader = newParseResolveLoadFunc("", r, repoLoader{r})
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -181,6 +182,31 @@ func (rl repoLoader) LoadDataset(ctx context.Context, ref dsref.Ref, source stri
 	}
 
 	return ds, nil
+}
+
+// newParseResolveLoadFunc composes a username, resolver, and loader into a
+// higher-order function that converts strings to full datasets
+// pass the empty string as a username to disable the "me" keyword in references
+func newParseResolveLoadFunc(username string, resolver dsref.Resolver, loader dsref.Loader) dsref.ParseResolveLoad {
+	return func(ctx context.Context, refStr string) (*dataset.Dataset, error) {
+		ref, err := dsref.Parse(refStr)
+		if err != nil {
+			return nil, err
+		}
+
+		if username == "" && ref.Username == "me" {
+			return nil, fmt.Errorf("invalid contextual reference")
+		} else if username != "" && ref.Username == "me" {
+			ref.Username = username
+		}
+
+		source, err := resolver.ResolveRef(ctx, &ref)
+		if err != nil {
+			return nil, err
+		}
+
+		return loader.LoadDataset(ctx, ref, source)
+	}
 }
 
 func TestGetMetaNilPrev(t *testing.T) {

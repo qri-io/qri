@@ -122,8 +122,8 @@ func TestAddCheckoutIntegration(t *testing.T) {
 
 }
 
-func TestSQLFetchReRunLocal(t *testing.T) {
-	tr := NewNetworkIntegrationTestRunner(t, "integration_sql_fetch_re_run_local")
+func TestReferencePulling(t *testing.T) {
+	tr := NewNetworkIntegrationTestRunner(t, "integration_reference_pulling")
 	defer tr.Cleanup()
 
 	nasim := tr.InitNasim(t)
@@ -145,28 +145,59 @@ func TestSQLFetchReRunLocal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tr.RegistryHTTPServer.Close()
-
 	// re-run. dataset should now be local, and no longer require registry to
 	// resolve
 	p = &SQLQueryParams{
 		Query:        "SELECT * FROM nasim/world_bank_population a LIMIT 1 OFFSET 1",
 		OutputFormat: "json",
+		ResolverMode: "local",
 	}
 	results = make([]byte, 0)
 	if err := sqlm.Exec(p, &results); err != nil {
 		t.Fatal(err)
 	}
+
+	// create adnan
+	adnan := tr.InitAdnan(t)
+	dsm := NewDatasetMethods(adnan)
+
+	// run a transform script that relies on world_bank_population, which adnan's
+	// node should automatically pull to execute thisscript
+	tfScriptData := `
+wbp = load_dataset("nasim/world_bank_population")
+
+def transform(ds, ctx):
+	body = wbp.get_body() + [["g","h","i",False,3]]
+	ds.set_body(body)
+`
+	scriptPath, err := tr.adnanRepo.WriteRootFile("transform.star", tfScriptData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	saveParams := &SaveParams{
+		Ref: "me/wbp_plus_one",
+		FilePaths: []string{
+			scriptPath,
+		},
+	}
+	res := &reporef.DatasetRef{}
+	if err := dsm.Save(saveParams, res); err != nil {
+		t.Fatal(err)
+	}
 }
 
 type NetworkIntegrationTestRunner struct {
-	Ctx                                  context.Context
-	prefix                               string
-	nasimRepo, hinshunRepo, registryRepo *repotest.TempRepo
-	Nasim, Hinshun, RegistryInst         *Instance
+	Ctx        context.Context
+	prefix     string
+	TestCrypto gen.CryptoGenerator
 
-	TestCrypto         gen.CryptoGenerator
+	nasimRepo, hinshunRepo, adnanRepo *repotest.TempRepo
+	Nasim, Hinshun, Adnan             *Instance
+
+	registryRepo       *repotest.TempRepo
 	Registry           registry.Registry
+	RegistryInst       *Instance
 	RegistryHTTPServer *httptest.Server
 }
 
@@ -227,6 +258,24 @@ func (tr *NetworkIntegrationTestRunner) InitHinshun(t *testing.T) *Instance {
 	}
 
 	return tr.Hinshun
+}
+
+func (tr *NetworkIntegrationTestRunner) InitAdnan(t *testing.T) *Instance {
+	r, err := repotest.NewTempRepo("adnan", fmt.Sprintf("%s_adnan", tr.prefix), tr.TestCrypto)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := r.GetConfig()
+	cfg.Registry.Location = tr.RegistryHTTPServer.URL
+	r.WriteConfigFile()
+	tr.adnanRepo = &r
+
+	if tr.Adnan, err = NewInstance(tr.Ctx, r.QriPath); err != nil {
+		t.Fatal(err)
+	}
+
+	return tr.Adnan
 }
 
 func (tr *NetworkIntegrationTestRunner) InitRegistry(t *testing.T) {

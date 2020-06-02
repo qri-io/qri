@@ -188,3 +188,10 @@ func (r *TempRepo) LoadDataset(ref string) (*dataset.Dataset, error) {
 	}
 	return ds, nil
 }
+
+// WriteRootFile writes a file string to the root directory of the temp repo
+func (r *TempRepo) WriteRootFile(filename, data string) (path string, err error) {
+	path = filepath.Join(r.RootPath, filename)
+	err = ioutil.WriteFile(path, []byte(data), 0667)
+	return path, err
+}

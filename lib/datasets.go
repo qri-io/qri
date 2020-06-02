@@ -634,11 +634,11 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		}
 
 		// create a loader so transforms can call `load_dataset`
-		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverMode
+		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverForMode
 		// on the passed in mode string instead of just using the default resolver
 		// cmd can then define "remote" and "offline" flags, that set the ResolverMode
 		// string and control how transform functions
-		loader := dsref.NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
+		loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
 
 		// apply the transform
 		err := base.TransformApply(ctx, ds, r, loader, str, scriptOut, secrets)

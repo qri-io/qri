@@ -13,7 +13,7 @@ import (
 
 // PutDatasetFunc adds a dataset to a system that stores datasets
 // PutDatasetFunc is required to run the LoaderSpec test. When called the
-// Resolver should retain the dataset for later loading by the spec test
+// Loader should retain the dataset for later loading by the spec test
 type PutDatasetFunc func(ds *dataset.Dataset) (path string, err error)
 
 // AssertLoaderSpec confirms the expected behaviour of a dsref.Loader

@@ -24,9 +24,9 @@ type loader struct {
 	r repo.Repo
 }
 
+// LoadDataset fetches, derefernces and opens a dataset from a reference
+// implements the dsfs.Loader interface
 func (l loader) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
-	// LoadDataset fetches, derefences and opens a dataset from a reference
-	// implements the dsfs.Loader interface
 	if source != "" {
 		return nil, fmt.Errorf("only local datasets can be loaded")
 	}

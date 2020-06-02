@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/sql"
 )
 
@@ -41,13 +40,13 @@ func (m *SQLMethods) Exec(p *SQLQueryParams, results *[]byte) error {
 	}
 	ctx := context.TODO()
 
-	resolver, err := m.inst.resolverMode(p.ResolverMode)
+	resolver, err := m.inst.resolverForMode(p.ResolverMode)
 	if err != nil {
 		return err
 	}
 	// create a loader sql will use to load & fetch datasets
 	// pass in the configured peername, allowing the "me" alias in reference strings
-	loadDataset := dsref.NewParseResolveLoadFunc(m.inst.cfg.Profile.Peername, resolver, m.inst)
+	loadDataset := NewParseResolveLoadFunc(m.inst.cfg.Profile.Peername, resolver, m.inst)
 	svc := sql.New(m.inst.repo, loadDataset)
 
 	buf := &bytes.Buffer{}

@@ -3,6 +3,7 @@ package qds
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/cube2222/octosql/app"
@@ -12,8 +13,10 @@ import (
 	"github.com/cube2222/octosql/parser/sqlparser"
 	"github.com/cube2222/octosql/physical"
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
+	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
 )
@@ -108,5 +111,33 @@ func (tr *testRunner) MustRun(t *testing.T, query string, cfg *octocfg.Config) s
 func (tr *testRunner) loadDatasetFunc() dsref.ParseResolveLoad {
 	pro, _ := tr.repo.Profile()
 	loader := base.NewLocalDatasetLoader(tr.repo)
-	return dsref.NewParseResolveLoadFunc(pro.Peername, tr.repo, loader)
+	return newParseResolveLoadFunc(pro.Peername, tr.repo, loader)
+}
+
+// newParseResolveLoadFunc composes a username, resolver, and loader into a
+// higher-order function that converts strings to full datasets
+// pass the empty string as a username to disable the "me" keyword in references
+func newParseResolveLoadFunc(username string, resolver dsref.Resolver, loader dsref.Loader) dsref.ParseResolveLoad {
+	return func(ctx context.Context, refStr string) (*dataset.Dataset, error) {
+		ref, err := dsref.Parse(refStr)
+		if err != nil {
+			return nil, err
+		}
+
+		if username == "" && ref.Username == "me" {
+			msg := fmt.Sprintf(`Can't use the "me" keyword to refer to a dataset in this context.
+Replace "me" with your username for the reference:
+%s`, refStr)
+			return nil, qerr.New(fmt.Errorf("invalid contextual reference"), msg)
+		} else if username != "" && ref.Username == "me" {
+			ref.Username = username
+		}
+
+		source, err := resolver.ResolveRef(ctx, &ref)
+		if err != nil {
+			return nil, err
+		}
+
+		return loader.LoadDataset(ctx, ref, source)
+	}
 }

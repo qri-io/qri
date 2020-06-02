@@ -9,11 +9,12 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
+	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/fsi"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// LoadDataset fetches, derefences and opens a dataset from a reference
+// LoadDataset fetches, dereferences and opens a dataset from a reference
 // implements the dsfs.Loader interface
 func (inst *Instance) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
 	if inst == nil {
@@ -74,4 +75,32 @@ func (inst *Instance) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*dat
 	}
 
 	return ds, nil
+}
+
+// NewParseResolveLoadFunc composes a username, resolver, and loader into a
+// higher-order function that converts strings to full datasets
+// pass the empty string as a username to disable the "me" keyword in references
+func NewParseResolveLoadFunc(username string, resolver dsref.Resolver, loader dsref.Loader) dsref.ParseResolveLoad {
+	return func(ctx context.Context, refStr string) (*dataset.Dataset, error) {
+		ref, err := dsref.Parse(refStr)
+		if err != nil {
+			return nil, err
+		}
+
+		if username == "" && ref.Username == "me" {
+			msg := fmt.Sprintf(`Can't use the "me" keyword to refer to a dataset in this context.
+Replace "me" with your username for the reference:
+%s`, refStr)
+			return nil, qerr.New(fmt.Errorf("invalid contextual reference"), msg)
+		} else if username != "" && ref.Username == "me" {
+			ref.Username = username
+		}
+
+		source, err := resolver.ResolveRef(ctx, &ref)
+		if err != nil {
+			return nil, err
+		}
+
+		return loader.LoadDataset(ctx, ref, source)
+	}
 }

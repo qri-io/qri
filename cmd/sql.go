@@ -84,15 +84,15 @@ func (o *SQLOptions) Complete(f Factory, args []string) (err error) {
 func (o *SQLOptions) Run() (err error) {
 	o.StartSpinner()
 
-	var rm string
+	var mode string
 	if o.Offline {
-		rm = "local"
+		mode = "local"
 	}
 
 	p := &lib.SQLQueryParams{
 		Query:        o.Query,
 		OutputFormat: o.Format,
-		ResolverMode: rm,
+		ResolverMode: mode,
 	}
 
 	res := []byte{}

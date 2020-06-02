@@ -57,7 +57,7 @@ func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, mode
 		ref.Username = inst.cfg.Profile.Peername
 	}
 
-	resolver, err := inst.resolverMode(mode)
+	resolver, err := inst.resolverForMode(mode)
 	if err != nil {
 		return "", err
 	}
@@ -65,7 +65,7 @@ func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, mode
 	return resolver.ResolveRef(ctx, ref)
 }
 
-func (inst *Instance) resolverMode(mode string) (dsref.Resolver, error) {
+func (inst *Instance) resolverForMode(mode string) (dsref.Resolver, error) {
 	switch mode {
 	case "":
 		return inst.defaultResolver(), nil
