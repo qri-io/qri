@@ -14,8 +14,8 @@ func TestMemResolver(t *testing.T) {
 	ctx := context.Background()
 	m := dsref.NewMemResolver("test_peer")
 
-	if _, err := (*dsref.MemResolver)(nil).ResolveRef(ctx, nil); err != dsref.ErrNotFound {
-		t.Errorf("ResolveRef must be nil-callable. expected: %q, got %v", dsref.ErrNotFound, err)
+	if _, err := (*dsref.MemResolver)(nil).ResolveRef(ctx, nil); err != dsref.ErrRefNotFound {
+		t.Errorf("ResolveRef must be nil-callable. expected: %q, got %v", dsref.ErrRefNotFound, err)
 	}
 
 	dsrefspec.AssertResolverSpec(t, m, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {

@@ -182,12 +182,12 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	// NOTE: isEmpty is nil-callable. important b/c ResolveRef must be nil-callable
 	if d.IsEmpty() {
-		return "", dsref.ErrNotFound
+		return "", dsref.ErrRefNotFound
 	}
 
 	vi, err := d.LookupByName(*ref)
 	if err != nil {
-		return "", dsref.ErrNotFound
+		return "", dsref.ErrRefNotFound
 	}
 
 	ref.InitID = vi.InitID

@@ -258,7 +258,7 @@ type remoteRefResolver struct {
 // TODO (b5) - implementation isn't complete, remotes don't complete InitID
 func (rr *remoteRefResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	if rr == nil || rr.cli == nil {
-		return rr.remoteAddr, dsref.ErrNotFound
+		return rr.remoteAddr, dsref.ErrRefNotFound
 	}
 
 	repoRef := reporef.RefFromDsref(*ref)

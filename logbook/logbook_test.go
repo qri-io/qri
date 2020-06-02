@@ -231,8 +231,8 @@ func TestNilCallable(t *testing.T) {
 	if err = book.WriteVersionSave(ctx, initID, nil); err != logbook.ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if _, err = book.ResolveRef(ctx, nil); err != dsref.ErrNotFound {
-		t.Errorf("expected '%s', got: %v", dsref.ErrNotFound, err)
+	if _, err = book.ResolveRef(ctx, nil); err != dsref.ErrRefNotFound {
+		t.Errorf("expected '%s', got: %v", dsref.ErrRefNotFound, err)
 	}
 }
 
@@ -240,8 +240,8 @@ func TestResolveRef(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
-	if _, err := (*logbook.Book)(nil).ResolveRef(tr.Ctx, nil); err != dsref.ErrNotFound {
-		t.Errorf("book ResolveRef must be nil-callable. expected: %q, got %v", dsref.ErrNotFound, err)
+	if _, err := (*logbook.Book)(nil).ResolveRef(tr.Ctx, nil); err != dsref.ErrRefNotFound {
+		t.Errorf("book ResolveRef must be nil-callable. expected: %q, got %v", dsref.ErrRefNotFound, err)
 	}
 
 	book := tr.Book

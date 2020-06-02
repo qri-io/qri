@@ -190,7 +190,7 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	}
 
 	// Load dataset that is being checked out.
-	ds, err := m.inst.loadDataset(ctx, ref)
+	ds, err := m.inst.LoadDataset(ctx, ref, "")
 	if err != nil {
 		log.Debugf("Checkout, dsfs.LoadDataset failed, error: %s", err)
 		return err

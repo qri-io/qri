@@ -2,13 +2,8 @@ package lib
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strings"
 
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/remote"
@@ -51,10 +46,10 @@ func (inst *Instance) ParseAndResolveRefWithWorkingDir(ctx context.Context, refS
 }
 
 // ResolveReference finds the identifier & HEAD path for a dataset reference.
-// the source parameter determines which subsystems of Qri to use when
-func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, source string) (string, error) {
+// the mode parameter determines which subsystems of Qri to use when resolving
+func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, mode string) (string, error) {
 	if inst == nil {
-		return "", dsref.ErrNotFound
+		return "", dsref.ErrRefNotFound
 	}
 
 	// Handle the "me" convenience shortcut
@@ -62,96 +57,51 @@ func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, sour
 		ref.Username = inst.cfg.Profile.Peername
 	}
 
-	resolvers, err := inst.resolveSources(source)
+	resolver, err := inst.resolverForMode(mode)
 	if err != nil {
 		return "", err
 	}
 
-	for _, resolver := range resolvers {
-		resolvedSource, err := resolver.ResolveRef(ctx, ref)
-		if err != nil {
-			if errors.Is(err, dsref.ErrNotFound) {
-				continue
-			} else {
-				return "", err
-			}
-		}
-
-		return resolvedSource, nil
-	}
-
-	return "", dsref.ErrNotFound
+	return resolver.ResolveRef(ctx, ref)
 }
 
-func (inst *Instance) resolveSources(source string) ([]dsref.Resolver, error) {
-	switch source {
+func (inst *Instance) resolverForMode(mode string) (dsref.Resolver, error) {
+	switch mode {
 	case "":
-		return []dsref.Resolver{
+		return inst.defaultResolver(), nil
+	case "local":
+		return dsref.SequentialResolver(
 			inst.dscache,
 			inst.repo,
-			dsref.ParallelResolver(
-				inst.registry,
-				// inst.node,
-			),
-		}, nil
-	case "local":
-		return []dsref.Resolver{inst.dscache, inst.repo}, nil
+		), nil
 	case "network":
-		return []dsref.Resolver{
-			dsref.ParallelResolver(
-				inst.registry,
-				// inst.node,
-			),
-		}, nil
+		// TODO(b5) - one day use registry & p2p in paralle here
+		return inst.registry, nil
 	case "registry":
-		return []dsref.Resolver{inst.registry}, nil
+		return inst.registry, nil
 	case "p2p":
 		return nil, fmt.Errorf("p2p network cannot be used to resolve references")
 	}
 
-	// TODO (b5) - sources could be one of:
+	// TODO (b5) - mode could be one of:
 	// * configured remote name
 	// * peername
 	// * peer multiaddress
 	// add support for peername & multiaddress resolution
-	addr, err := remote.Address(inst.Config(), source)
+	addr, err := remote.Address(inst.Config(), mode)
 	if err != nil {
 		return nil, err
 	}
-	return []dsref.Resolver{inst.remoteClient.NewRemoteRefResolver(addr)}, nil
+	return inst.remoteClient.NewRemoteRefResolver(addr), nil
 }
 
-// loadDataset fetches, derefences and opens a dataset from a reference
-// TODO (b5) - this needs to move down into base, replacing base.LoadDataset with
-// a version that can load paths with a /fsi prefix, but before that can happen
-// base needs to be able to import FSI. Currently FSI imports base, and doesn't
-// really need to. Most of the base package functions used by FSI should be in
-// FSI, as they deal with filesystem interaction.
-func (inst *Instance) loadDataset(ctx context.Context, ref dsref.Ref) (*dataset.Dataset, error) {
-	var (
-		ds  *dataset.Dataset
-		err error
+func (inst *Instance) defaultResolver() dsref.Resolver {
+	return dsref.SequentialResolver(
+		inst.dscache,
+		inst.repo,
+		dsref.ParallelResolver(
+			inst.registry,
+			// inst.node,
+		),
 	)
-
-	if strings.HasPrefix(ref.Path, "/fsi") {
-		// Has an FSI Path, load from working directory
-		if ds, err = fsi.ReadDir(strings.TrimPrefix(ref.Path, "/fsi")); err != nil {
-			return nil, err
-		}
-	} else {
-		// Load from dsfs
-		if ds, err = dsfs.LoadDataset(ctx, inst.store, ref.Path); err != nil {
-			return nil, err
-		}
-	}
-	// Set transient info on the returned dataset
-	ds.Name = ref.Name
-	ds.Peername = ref.Username
-
-	if err = base.OpenDataset(ctx, inst.repo.Filesystem(), ds); err != nil {
-		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
-		return nil, err
-	}
-
-	return ds, nil
 }

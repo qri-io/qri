@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/startf"
@@ -16,7 +17,15 @@ import (
 // TODO(dustmop): Tests. Especially once the `apply` command exists.
 
 // TransformApply applies the transform script to order to modify the changing dataset
-func TransformApply(ctx context.Context, ds *dataset.Dataset, r repo.Repo, str ioes.IOStreams, scriptOut io.Writer, secrets map[string]string) error {
+func TransformApply(
+	ctx context.Context,
+	ds *dataset.Dataset,
+	r repo.Repo,
+	loader dsref.ParseResolveLoad,
+	str ioes.IOStreams,
+	scriptOut io.Writer,
+	secrets map[string]string,
+) error {
 	pro, err := r.Profile()
 	if err != nil {
 		return err
@@ -62,6 +71,7 @@ func TransformApply(ctx context.Context, ds *dataset.Dataset, r repo.Repo, str i
 		startf.AddMutateFieldCheck(mutateCheck),
 		startf.SetErrWriter(scriptOut),
 		startf.SetSecrets(secrets),
+		startf.AddDatasetLoader(loader),
 	}
 
 	if err = startf.ExecScript(ctx, target, head, opts...); err != nil {

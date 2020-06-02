@@ -18,16 +18,16 @@ import (
 	"github.com/qri-io/qri/logbook/oplog"
 )
 
-// PutFunc adds a reference to a system that retains references
-// PutFunc is required to run the ResolverSpec test, when called the Resolver
-// should retain the reference for later retrieval by the spec test. PutFunc
+// PutRefFunc adds a reference to a system that retains references
+// PutRefFunc is required to run the ResolverSpec test, when called the Resolver
+// should retain the reference for later retrieval by the spec test. PutRefFunc
 // also passes the author & oplog that back the reference
-type PutFunc func(ref dsref.Ref, author identity.Author, log *oplog.Log) error
+type PutRefFunc func(ref dsref.Ref, author identity.Author, log *oplog.Log) error
 
 // AssertResolverSpec confirms the expected behaviour of a dsref.Resolver
 // Interface implementation. In addition to this test passing, implementations
 // MUST be nil-callable. Please add a nil-callable test for each implementation
-func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutFunc) {
+func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 	var (
 		ctx              = context.Background()
 		username, dsname = "resolve_spec_test_peer", "stored_ref_dataset"
@@ -55,8 +55,8 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutFunc) {
 		_, err := r.ResolveRef(ctx, &dsref.Ref{Username: "username", Name: "does_not_exist"})
 		if err == nil {
 			t.Errorf("expected error resolving nonexistent reference, got none")
-		} else if !errors.Is(err, dsref.ErrNotFound) {
-			t.Errorf("expected standard error resolving nonexistent ref: %q, got: %q", dsref.ErrNotFound, err)
+		} else if !errors.Is(err, dsref.ErrRefNotFound) {
+			t.Errorf("expected standard error resolving nonexistent ref: %q, got: %q", dsref.ErrRefNotFound, err)
 		}
 
 		resolveMe := dsref.Ref{
@@ -145,8 +145,8 @@ func ConsistentResolvers(t *testing.T, ref dsref.Ref, resolvers ...dsref.Resolve
 	for i, r := range resolvers {
 		got := ref.Copy()
 		if _, resolveErr := r.ResolveRef(ctx, &got); resolveErr != nil {
-			// only legal error return value is dsref.ErrNotFound
-			if resolveErr != dsref.ErrNotFound {
+			// only legal error return value is dsref.ErrRefNotFound
+			if resolveErr != dsref.ErrRefNotFound {
 				return fmt.Errorf("unexpected error checking consistency with resolver %d (%v): %w", i, r, resolveErr)
 			}
 

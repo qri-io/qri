@@ -11,7 +11,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 	skyctx "github.com/qri-io/qri/startf/context"
 	skyds "github.com/qri-io/qri/startf/ds"
@@ -27,6 +27,8 @@ var Version = version.String
 
 // ExecOpts defines options for execution
 type ExecOpts struct {
+	// function to use for loading datasets
+	DatasetLoader dsref.ParseResolveLoad
 	// supply a repo to make the 'qri' module available in starlark
 	Repo repo.Repo
 	// allow floating-point numbers
@@ -47,6 +49,13 @@ type ExecOpts struct {
 	ErrWriter io.Writer
 	// starlark module loader function
 	ModuleLoader ModuleLoader
+}
+
+// AddDatasetLoader is required to enable the load_dataset starlark builtin
+func AddDatasetLoader(prl dsref.ParseResolveLoad) func(o *ExecOpts) {
+	return func(o *ExecOpts) {
+		o.DatasetLoader = prl
+	}
 }
 
 // AddQriRepo adds a qri repo to execution options, providing scripted access
@@ -101,6 +110,7 @@ func DefaultExecOpts(o *ExecOpts) {
 
 type transform struct {
 	ctx          context.Context
+	loadDataset  dsref.ParseResolveLoad
 	repo         repo.Repo
 	next         *dataset.Dataset
 	prev         *dataset.Dataset
@@ -164,6 +174,7 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 
 	t := &transform{
 		ctx:          ctx,
+		loadDataset:  o.DatasetLoader,
 		repo:         o.Repo,
 		next:         next,
 		prev:         prev,
@@ -327,11 +338,15 @@ func (t *transform) ModuleLoader(thread *starlark.Thread, module string) (dict s
 	return t.moduleLoader(thread, module)
 }
 
-// LoadDataset is a function
+// LoadDataset implements the starlark load_dataset function
 func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var refstr starlark.String
 	if err := starlark.UnpackArgs("load_dataset", args, kwargs, "ref", &refstr); err != nil {
 		return starlark.None, err
+	}
+
+	if t.loadDataset == nil {
+		return nil, fmt.Errorf("load_dataset function is not enabled")
 	}
 
 	ds, err := t.loadDataset(t.ctx, refstr.GoString())
@@ -339,39 +354,19 @@ func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, ar
 		return starlark.None, err
 	}
 
-	return skyds.NewDataset(ds, nil).Methods(), nil
-}
-
-func (t *transform) loadDataset(ctx context.Context, refstr string) (*dataset.Dataset, error) {
-	if t.repo == nil {
-		return nil, fmt.Errorf("no qri repo available to load dataset: %s", refstr)
-	}
-
-	ref, err := repo.ParseDatasetRef(refstr)
-	if err != nil {
-		return nil, err
-	}
-	if err := repo.CanonicalizeDatasetRef(t.repo, &ref); err != nil {
-		return nil, err
-	}
-
-	ds, err := dsfs.LoadDataset(ctx, t.repo.Store(), ref.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	if ds.BodyFile() == nil {
-		if err = ds.OpenBodyFile(ctx, t.repo.Filesystem()); err != nil {
-			return nil, err
-		}
-	}
-
 	if t.next.Transform.Resources == nil {
 		t.next.Transform.Resources = map[string]*dataset.TransformResource{}
 	}
-	t.next.Transform.Resources[ref.Path] = &dataset.TransformResource{Path: ref.String()}
 
-	return ds, nil
+	t.next.Transform.Resources[ds.Path] = &dataset.TransformResource{
+		// TODO(b5) - this should be a method on dataset.Dataset
+		// we should add an ID field to dataset, set that to the InitID, and
+		// add fields to dataset.TransformResource that effectively make it the
+		// same data structure as dsref.Ref
+		Path: fmt.Sprintf("%s/%s@%s", ds.Peername, ds.Name, ds.Path),
+	}
+
+	return skyds.NewDataset(ds, nil).Methods(), nil
 }
 
 // MutatedComponentsFunc returns a function for checking if a field has been

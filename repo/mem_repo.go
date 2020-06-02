@@ -58,7 +58,7 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, p
 // ResolveRef implements the dsref.Resolver interface
 func (r *MemRepo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	if r == nil {
-		return "", dsref.ErrNotFound
+		return "", dsref.ErrRefNotFound
 	}
 
 	// TODO (b5) - not totally sure why, but memRepo doesn't seem to be wiring up

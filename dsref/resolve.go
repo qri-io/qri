@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	// ErrNotFound must be returned by a ref resolver that cannot resolve a given
-	// reference
-	ErrNotFound = errors.New("reference not found")
+	// ErrRefNotFound must be returned by a ref resolver that cannot resolve a
+	// given reference
+	ErrRefNotFound = errors.New("reference not found")
 	// ErrPathRequired should be returned by functions that require a reference
 	// have a path value, but got none.
 	// ErrPathRequired should *not* be returned by implentationf of the
@@ -27,7 +27,8 @@ type Resolver interface {
 }
 
 // ParallelResolver composes multiple resolvers into one resolver that runs
-// in parallel when called, returning the first valid response
+// in parallel when called, using the first resolver that doesn't return
+// ErrRefNotFound
 func ParallelResolver(resolvers ...Resolver) Resolver {
 	return parallelResolver(resolvers)
 }
@@ -43,7 +44,7 @@ func (rs parallelResolver) ResolveRef(ctx context.Context, ref *Ref) (string, er
 
 	run := func(ctx context.Context, r Resolver) {
 		if r == nil {
-			errs <- ErrNotFound
+			errs <- ErrRefNotFound
 			return
 		}
 
@@ -72,13 +73,38 @@ func (rs parallelResolver) ResolveRef(ctx context.Context, ref *Ref) (string, er
 			return res.Source, nil
 		case err := <-errs:
 			attempts--
-			if !errors.Is(err, ErrNotFound) {
+			if !errors.Is(err, ErrRefNotFound) {
 				return "", err
 			} else if attempts == 0 {
-				return "", ErrNotFound
+				return "", ErrRefNotFound
 			}
 		case <-ctx.Done():
 			return "", ctx.Err()
 		}
 	}
+}
+
+// SequentialResolver composes multiple resolvers into one that runs each
+// resolver in sequence, using the first resolver that doesn't return
+// ErrorNotFound
+func SequentialResolver(resolvers ...Resolver) Resolver {
+	return sequentialResolver(resolvers)
+}
+
+type sequentialResolver []Resolver
+
+func (sr sequentialResolver) ResolveRef(ctx context.Context, ref *Ref) (string, error) {
+	for _, resolver := range sr {
+		resolvedSource, err := resolver.ResolveRef(ctx, ref)
+		if err != nil {
+			if errors.Is(err, ErrRefNotFound) {
+				continue
+			} else {
+				return "", err
+			}
+		}
+		return resolvedSource, nil
+	}
+
+	return "", ErrRefNotFound
 }
