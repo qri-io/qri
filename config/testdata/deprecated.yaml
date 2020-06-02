@@ -1,0 +1,103 @@
+# yaml file that contains old fields qri must safely ignore
+API:
+  address: /ip4/127.0.0.1/tcp/2503
+  allowedorigins:
+  - electron://local.qri.io
+  - http://localhost:2505
+  - http://localhost:6006
+  - http://app.qri.io
+  - https://app.qri.io
+  enabled: true
+  proxyforcehttps: false
+  readonly: false
+  remoteacceptsizemax: 0
+  remoteaccepttimeoutms: 0
+  remotemode: false
+  serveremotetraffic: true
+  tls: false
+  urlroot: ""
+  websocketaddress: /ip4/127.0.0.1/tcp/2506
+CLI:
+  colorizeoutput: true
+Logging:
+  levels:
+    actions: info
+    base: info
+    core: debug
+    cron: debug
+    dsfs: info
+    lib: info
+    logbook: info
+    qriapi: info
+    qricore: info
+    qrip2p: info
+P2P:
+  addrs: null
+  autoNAT: false
+  bootstrapaddrs: []
+  enabled: true
+  httpgatewayaddr: ""
+  peerid: QmdJQpcmGMkNtKYv5bviZ7z9kPh7uLKSMzqdSbemYs3XpH
+  port: 0
+  privkey: ""
+  profilereplication: full
+  pubkey: ""
+  qribootstrapaddrs:
+  - /ip4/35.193.162.149/tcp/4001/ipfs/QmTZxETL4YCCzB1yFx4GT1te68henVHD1XPQMkHZ1N22mm
+  - /ip4/35.239.80.82/tcp/4001/ipfs/QmdpGkbqDYRPCcwLYnEm8oYGz2G9aUZn9WwPjqvqw3XUAc
+  - /ip4/35.225.152.38/tcp/4001/ipfs/QmTRqTLbKndFC2rp6VzpyApxHCLrFV35setF1DQZaRWPVf
+  - /ip4/35.202.155.225/tcp/4001/ipfs/QmegNYmwHUQFc3v3eemsYUVf3WiSg4RcMrh3hovA5LncJ2
+  - /ip4/35.238.10.180/tcp/4001/ipfs/QmessbA6uGLJ7HTwbUJ2niE49WbdPfzi27tdYXdAaGRB4G
+  - /ip4/35.238.105.35/tcp/4001/ipfs/Qmc353gHY5Wx5iHKHPYj3QDqHP4hVA1MpoSsT6hwSyVx3r
+  - /ip4/35.239.138.186/tcp/4001/ipfs/QmT9YHJF2YkysLqWhhiVTL5526VFtavic3bVueF9rCsjVi
+  - /ip4/35.226.44.58/tcp/4001/ipfs/QmQS2ryqZrjJtPKDy9VTkdPwdUSpTi1TdpGUaqAVwfxcNh
+Profile:
+  color: ""
+  created: "2020-06-01T09:39:36-04:00"
+  description: ""
+  email: deprecated@qri.io
+  homeurl: ""
+  id: QmSyDX5LYTiwQi861F5NAwdHrrnd1iRGsoEvCyzQMUyZ4W
+  name: ""
+  peername: deprecated
+  photo: https://qri-user-images.storage.googleapis.com/1570029792579.png
+  poster: /ipfs/QmSN2yHp4qFy1xLCRVQNJKAjgbwHYPAho9fT7C3vAM426c
+  thumb: ""
+  twitter: ""
+  type: peer
+  updated: "2018-04-19T18:10:46.627471799-04:00"
+RPC:
+  address: /ip4/127.0.0.1/tcp/2504
+  enabled: true
+Registry:
+  location: http://localhost:3002
+Remote:
+  acceptsizemax: 0
+  accepttimeoutms: 0
+  allowremoves: false
+  enabled: false
+  requireallblocks: false
+Remotes: null
+Render:
+  defaultTemplateHash: /ipfs/QmeqeRTf2Cvkqdx4xUdWi1nJB2TgCyxmemsL3H4f1eTBaw
+  templateUpdateAddress: /ipns/defaulttmpl.qri.io
+Repo:
+  middleware: ["old middleware"]
+  type: fs
+Revision: 2
+Stats: null
+Store:
+  options:
+    api: true
+    pubsub: false
+  type: ipfs
+Update:
+  address: ""
+  daemonize: false
+  type: fs
+Webapp:
+  analyticstoken: ""
+  enabled: true
+  entrypointhash: /ipfs/QmXofmXcQKnYTMjsfhgTGqzzLLPyS9enaHsfaRR5AxTGBK
+  entrypointupdateaddress: /ipns/webapp.qri.io
+  port: 0

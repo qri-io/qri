@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/qri-io/jsonschema"
 )
 
@@ -12,18 +10,13 @@ type Repo struct {
 	Path string `json:"path,omitempty"`
 }
 
-// Ignore implements the ignorer interface from base/fill/struct in order to safely
-// consume config files that have definitions beyond those specified in the struct
-// and are either deprecaated or no longer supported.
-// This simply ignores all defined ignore fields at read time.
-func (cfg *Repo) Ignore(key string) error {
-	ignoredPaths := map[string]bool{
+// IgnoreFillField implements the FieldIgnorer interface from base/fill/struct
+// in order to safely consume config files that have definitions beyond those
+// specified in the struct and are either deorecated or no longer supported
+func (cfg *Repo) IgnoreFillField(key string) bool {
+	return map[string]bool{
 		"middleware": true,
-	}
-	if ignoredPaths[key] {
-		return nil
-	}
-	return fmt.Errorf("key '%s' not found", key)
+	}[key]
 }
 
 // DefaultRepo creates & returns a new default repo configuration

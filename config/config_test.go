@@ -224,3 +224,15 @@ func TestConfigCopy(t *testing.T) {
 		}
 	}
 }
+
+func TestConfigIgnoreFields(t *testing.T) {
+	if _, err := ReadFromFile("testdata/deprecated.yaml"); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestConfigInvalidFields(t *testing.T) {
+	if _, err := ReadFromFile("testdata/invalid.yaml"); err == nil {
+		t.Errorf("expected error, got none")
+	}
+}

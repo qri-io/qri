@@ -35,23 +35,18 @@ type API struct {
 	WebsocketAddress string `json:"websocketaddress"`
 }
 
-// Ignore implements the ignorer interface from base/fill/struct in order to safely
-// consume config files that have definitions beyond those specified in the struct
-// and are either deprecaated or no longer supported.
-// This simply ignores all defined ignore fields at read time.
-func (a *API) Ignore(key string) error {
-	ignoredPaths := map[string]bool{
+// IgnoreFillField implements the FieldIgnorer interface from base/fill/struct
+// in order to safely consume config files that have definitions beyond those
+// specified in the struct and are either deorecated or no longer supported
+func (a *API) IgnoreFillField(key string) bool {
+	return map[string]bool{
 		"remotemode":            true,
 		"remoteacceptsizemax":   true,
 		"remoteaccepttimeoutms": true,
 		"urlroot":               true,
 		"tls":                   true,
 		"proxyforcehttps":       true,
-	}
-	if ignoredPaths[key] {
-		return nil
-	}
-	return fmt.Errorf("key '%s' not found", key)
+	}[key]
 }
 
 // Validate validates all fields of api returning all errors found.

@@ -40,20 +40,15 @@ type P2P struct {
 	AutoNAT bool `json:"autoNAT"`
 }
 
-// Ignore implements the ignorer interface from base/fill/struct in order to safely
-// consume config files that have definitions beyond those specified in the struct
-// and are either deprecaated or no longer supported.
-// This simply ignores all defined ignore fields at read time.
-func (cfg *P2P) Ignore(key string) error {
-	ignoredPaths := map[string]bool{
+// IgnoreFillField implements the FieldIgnorer interface from base/fill/struct
+// in order to safely consume config files that have definitions beyond those
+// specified in the struct and are either deorecated or no longer supported
+func (cfg *P2P) IgnoreFillField(key string) bool {
+	return map[string]bool{
 		"pubkey":             true,
 		"httpgatewayaddr":    true,
 		"profilereplication": true,
-	}
-	if ignoredPaths[key] {
-		return nil
-	}
-	return fmt.Errorf("key '%s' not found", key)
+	}[key]
 }
 
 // DefaultP2P generates a p2p struct with only bootstrap addresses set

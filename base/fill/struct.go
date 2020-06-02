@@ -30,9 +30,10 @@ type ArbitrarySetter interface {
 	SetArbitrary(string, interface{}) error
 }
 
-// PathIgnorer should be implement by stracts that have known fields that should be ignored at fill time
-type PathIgnorer interface {
-	Ignore(string) error
+// FieldIgnorer ignores a given field at fill-time. Implementations should
+// return true for a field that should be ignored, false otherwise
+type FieldIgnorer interface {
+	IgnoreFillField(field string) (ignore bool)
 }
 
 var (
@@ -102,7 +103,7 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 	arbitrarySetter := getArbitrarySetter(target)
 
 	// If the target struct is able, ignore named keys
-	ignorePaths := getIgnorePaths(target)
+	ignorer := fieldIgnorerValue(target)
 
 	// Iterate over keys in the `fields` data, see if there were any keys that were not stored in
 	// the target struct.
@@ -115,10 +116,8 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 				continue
 			}
 
-			if ignorePaths != nil {
-				if err := ignorePaths.Ignore(k); err == nil {
-					continue
-				}
+			if ignorer != nil && ignorer.IgnoreFillField(k) {
+				continue
 			}
 
 			// Otherwise, unknown fields are an error.
@@ -422,14 +421,14 @@ func getArbitrarySetter(target reflect.Value) ArbitrarySetter {
 	return nil
 }
 
-// getIgnorePaths returns a PathIgnorer if the target implements it.
-func getIgnorePaths(target reflect.Value) PathIgnorer {
+// fieldIgnorerValue returns a FieldIgnorer if the target implements it.
+func fieldIgnorerValue(target reflect.Value) FieldIgnorer {
 	if !target.CanAddr() {
 		return nil
 	}
 	ptr := target.Addr()
 	iface := ptr.Interface()
-	if ignorer, ok := iface.(PathIgnorer); ok {
+	if ignorer, ok := iface.(FieldIgnorer); ok {
 		return ignorer
 	}
 	return nil

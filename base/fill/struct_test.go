@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"gopkg.in/yaml.v2"
 )
@@ -204,6 +205,47 @@ func TestStructUnknownFields(t *testing.T) {
 	expect := `at "Unknown": not found in struct dataset.Dataset`
 	if err.Error() != expect {
 		t.Errorf("expected: expect: \"%s\", got: \"%s\"", expect, err.Error())
+	}
+}
+
+type IgnoreStruct struct {
+	A string
+	B string
+}
+
+func (*IgnoreStruct) IgnoreFillField(field string) bool {
+	if field == "a" {
+		return false
+	}
+	return true
+}
+
+func TestFieldIgnorer(t *testing.T) {
+	jsonData := `{
+  "a": "test_name",
+  "b": "test_profile_id",
+  "Qri": "qri:0",
+  "Unknown": "value"
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var got IgnoreStruct
+	if err = Struct(data, &got); err != nil {
+		t.Fatal(err)
+	}
+
+	expect := IgnoreStruct{
+		A: "test_name",
+		// field B must be ignored
+	}
+
+	if diff := cmp.Diff(expect, expect); diff != "" {
+		t.Errorf("result mistmatch (-want +got):\n%s", diff)
 	}
 }
 

@@ -40,20 +40,15 @@ type Config struct {
 	Logging *Logging
 }
 
-// Ignore implements the ignorer interface from base/fill/struct in order to safely
-// consume config files that have definitions beyond those specified in the struct
-// and are either deprecaated or no longer supported.
-// This simply ignores all defined ignore fields at read time.
-func (cfg *Config) Ignore(key string) error {
-	ignoredPaths := map[string]bool{
-		"update": true,
-		"webapp": true,
-		"render": true,
-	}
-	if ignoredPaths[key] {
-		return nil
-	}
-	return fmt.Errorf("key '%s' not found", key)
+// IgnoreFillField implements the FieldIgnorer interface from base/fill/struct
+// in order to safely consume config files that have definitions beyond those
+// specified in the struct and are either deorecated or no longer supported
+func (cfg *Config) IgnoreFillField(key string) bool {
+	return map[string]bool{
+		"Update": true,
+		"Webapp": true,
+		"Render": true,
+	}[key]
 }
 
 // NOTE: The configuration returned by DefaultConfig is insufficient, as is, to run a functional
