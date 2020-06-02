@@ -2,6 +2,8 @@ module github.com/qri-io/qri
 
 go 1.13
 
+replace github.com/qri-io/qfs => /Users/b5/qri/qfs
+
 require (
 	github.com/beme/abide v0.0.0-20181227202223-4c487ef9d895
 	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe

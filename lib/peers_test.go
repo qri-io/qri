@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -149,7 +148,7 @@ func TestGetReferences(t *testing.T) {
 		refCount int
 		err      string
 	}{
-		{PeerRefsParams{}, 0, "error decoding peer Id: input isn't valid multihash"},
+		{PeerRefsParams{}, 0, "error decoding peer Id: failed to parse peer ID: cid too short"},
 		{PeerRefsParams{PeerID: "QmY1PxkV9t9RoBwtXHfue1Qf6iYob19nL6rDHuXxooAVZa"}, 0, "not connected to p2p network"},
 	}
 
@@ -185,7 +184,7 @@ func TestPeerConnectionsParamsPod(t *testing.T) {
 
 	ma := "/ip4/130.211.198.23/tcp/4001/p2p/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"
 	if p := NewPeerConnectionParamsPod(ma); p.Multiaddr != ma {
-		t.Error(fmt.Sprintf("expected Multiaddr to be set: %s", p.Multiaddr))
+		t.Errorf("peer Multiaddr mismatch. expected: %q, got: %q", ma, p.Multiaddr)
 	}
 
 	if p := NewPeerConnectionParamsPod("QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"); p.ProfileID != "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb" {

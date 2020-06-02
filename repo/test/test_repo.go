@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	qipfs "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qfs/muxfs"
@@ -23,7 +24,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -327,7 +327,7 @@ func NewIPFSRepoFromDir(qriPath, ipfsPath string) (repo.Repo, crypto.PrivKey, er
 	if err := pro.Decode(cfg.Profile); err != nil {
 		return nil, nil, err
 	}
-	if err := buildrepo.LoadIPFSPluginsOnce(ipfsPath); err != nil {
+	if err := qipfs.LoadIPFSPluginsOnce(ipfsPath); err != nil {
 		return nil, nil, err
 	}
 	muxCfg := []muxfs.MuxConfig{

@@ -36,7 +36,6 @@ import (
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/buildrepo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/stats"
@@ -384,10 +383,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 				path = filepath.Join(home, ".ipfs")
 			}
 
-			// TODO(ramfox): should we load the plugins down in qfs/cafs/ipfs?
-			if err := buildrepo.LoadIPFSPluginsOnce(path); err != nil {
-				return nil, err
-			}
 			ipfsCfg := muxfs.MuxConfig{
 				Type: "ipfs",
 				Config: map[string]interface{}{

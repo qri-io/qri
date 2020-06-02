@@ -327,15 +327,21 @@ func (run *TestRunner) LookupVersionInfo(t *testing.T, refStr string) *dsref.Ver
 		return nil
 	}
 	datasetRef := reporef.RefFromDsref(dr)
-	r, err := run.RepoRoot.Repo()
+	ctx, cancel := context.WithCancel(run.RepoRoot.Context)
+	r, err := run.RepoRoot.IPFSRepo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	err = repo.CanonicalizeDatasetRef(r, &datasetRef)
 	if err != nil {
+		cancel()
 		return nil
 	}
 	vinfo := reporef.ConvertToVersionInfo(&datasetRef)
+	cancel()
+	if run.RepoRoot.Done != nil {
+		<-run.RepoRoot.Done
+	}
 	return &vinfo
 }
 
