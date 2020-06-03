@@ -33,6 +33,7 @@ type testRunner struct {
 }
 
 func newTestRunner(t *testing.T) *testRunner {
+
 	dsfsCounter := 0
 	dsfsTsFunc := dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time {
@@ -67,11 +68,12 @@ func newTestRunner(t *testing.T) *testRunner {
 		t.Fatal(err.Error())
 	}
 
+	ctx := context.Background()
 	return &testRunner{
-		Ctx: context.Background(),
+		Ctx: ctx,
 		// TODO (b5) - move test profile creation into testRunner constructor
 		Profile:  testPeerProfile,
-		Instance: NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node),
+		Instance: NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node),
 		TmpDir:   tmpDir,
 		Pwd:      pwd,
 		dsfsTs:   dsfsTsFunc,

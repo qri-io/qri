@@ -309,10 +309,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		return
 	}
 
-	ctx, teardown := context.WithCancel(ctx)
 	inst := &Instance{
-		ctx:      ctx,
-		teardown: teardown,
 		doneCh:   make(chan struct{}),
 		repoPath: repoPath,
 		cfg:      cfg,
@@ -611,9 +608,7 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 // don't write new code that relies on this, instead create a configuration
 // and options that can be fed to NewInstance
 // This function must only be used for testing purposes
-func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instance {
-	ctx, teardown := context.WithCancel(context.Background())
-
+func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node *p2p.QriNode) *Instance {
 	r := node.Repo
 	pro, err := r.Profile()
 	if err != nil {
@@ -631,12 +626,10 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 	}
 
 	inst := &Instance{
-		ctx:      ctx,
-		teardown: teardown,
-		cfg:      cfg,
-		node:     node,
-		dscache:  dc,
-		stats:    stats.New(nil),
+		cfg:     cfg,
+		node:    node,
+		dscache: dc,
+		stats:   stats.New(nil),
 	}
 
 	inst.remoteClient, err = remote.NewClient(node)
@@ -652,6 +645,7 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 		inst.fsi = fsint
 	}
 
+	go inst.waitForAllDone()
 	return inst
 }
 
@@ -661,8 +655,6 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 // contain qri business logic. Think of instance as the "core" of the qri
 // ecosystem. Create an Instance pointer with NewInstance
 type Instance struct {
-	ctx       context.Context
-	teardown  context.CancelFunc
 	doneCh    chan struct{}
 	releasers sync.WaitGroup
 
@@ -691,7 +683,7 @@ type Instance struct {
 
 // Connect takes an instance online
 func (inst *Instance) Connect(ctx context.Context) (err error) {
-	if err = inst.node.GoOnline(); err != nil {
+	if err = inst.node.GoOnline(ctx); err != nil {
 		log.Debugf("taking node online: %s", err.Error())
 		return
 	}
@@ -707,14 +699,6 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	}
 
 	return nil
-}
-
-// Context returns the base context for this instance
-func (inst *Instance) Context() context.Context {
-	if inst == nil {
-		return nil
-	}
-	return inst.ctx
 }
 
 // Config provides methods for manipulating Qri configuration
@@ -828,11 +812,6 @@ func (inst *Instance) Store() qfs.Filesystem {
 		return nil
 	}
 	return inst.store
-}
-
-// Teardown destroys the instance, releasing reserved resources
-func (inst *Instance) Teardown() {
-	inst.teardown()
 }
 
 // checkRPCError validates RPC errors and in case of EOF returns a

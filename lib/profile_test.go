@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -18,6 +19,9 @@ import (
 )
 
 func TestProfileRequestsGet(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cases := []struct {
 		in  bool
 		res *profile.Profile
@@ -39,7 +43,7 @@ func TestProfileRequestsGet(t *testing.T) {
 	}
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := NewInstanceFromConfigAndNode(cfg, node)
+	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 	m := NewProfileMethods(inst)
 
 	for i, c := range cases {
@@ -54,6 +58,9 @@ func TestProfileRequestsGet(t *testing.T) {
 }
 
 func TestProfileRequestsSave(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cfg := config.DefaultConfigForTesting()
 
 	cases := []struct {
@@ -76,7 +83,7 @@ func TestProfileRequestsSave(t *testing.T) {
 	}
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := NewInstanceFromConfigAndNode(cfg, node)
+	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 	m := NewProfileMethods(inst)
 
 	for i, c := range cases {
@@ -91,6 +98,9 @@ func TestProfileRequestsSave(t *testing.T) {
 }
 
 func TestSaveProfile(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cfg := config.DefaultConfigForTesting()
 
 	// Mock data for the global Config's Profile, used to create new profile.
@@ -122,7 +132,7 @@ func TestSaveProfile(t *testing.T) {
 	}
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := NewInstanceFromConfigAndNode(cfg, node)
+	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 	m := NewProfileMethods(inst)
 
 	got := config.ProfilePod{}
@@ -195,13 +205,16 @@ func TestSaveProfile(t *testing.T) {
 }
 
 func TestProfileRequestsSetPeername(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cfg := config.DefaultConfigForTesting()
 
 	reg := regmock.NewMemRegistry(nil)
 	node := newTestQriNode(t)
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := NewInstanceFromConfigAndNode(cfg, node)
+	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 
 	regCli, _ := regmock.NewMockServerRegistry(reg)
 	inst.registry = regCli
@@ -241,6 +254,9 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 }
 
 func TestProfileRequestsSetProfilePhoto(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cfg := config.DefaultConfigForTesting()
 
 	cases := []struct {
@@ -264,7 +280,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 	}
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := NewInstanceFromConfigAndNode(cfg, node)
+	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 	m := NewProfileMethods(inst)
 
 	for i, c := range cases {
@@ -294,6 +310,9 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 }
 
 func TestProfileRequestsSetPosterPhoto(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cfg := config.DefaultConfigForTesting()
 
 	cases := []struct {
@@ -317,7 +336,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 	}
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := NewInstanceFromConfigAndNode(cfg, node)
+	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 	m := NewProfileMethods(inst)
 
 	for i, c := range cases {

@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -18,8 +19,11 @@ import (
 )
 
 func TestPeerRequestsListNoConnection(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	req := NewPeerMethods(inst)
 	p := PeerListParams{}
 	got := []*config.ProfilePod{}
@@ -32,6 +36,9 @@ func TestPeerRequestsListNoConnection(t *testing.T) {
 }
 
 func TestPeerRequestsList(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cases := []struct {
 		p   *PeerListParams
 		res []*profile.Profile
@@ -45,7 +52,7 @@ func TestPeerRequestsList(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []*config.ProfilePod{}
@@ -59,7 +66,9 @@ func TestPeerRequestsList(t *testing.T) {
 }
 
 func TestConnectedQriProfiles(t *testing.T) {
-	// TODO - we're going to need network simulation to test this properly
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cases := []struct {
 		limit     int
 		peerCount int
@@ -69,7 +78,7 @@ func TestConnectedQriProfiles(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []*config.ProfilePod{}
@@ -86,7 +95,9 @@ func TestConnectedQriProfiles(t *testing.T) {
 }
 
 func TestConnectedIPFSPeers(t *testing.T) {
-	// TODO - we're going to need an IPFS network simulation to test this properly
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cases := []struct {
 		limit     int
 		peerCount int
@@ -96,7 +107,7 @@ func TestConnectedIPFSPeers(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []string{}
@@ -113,7 +124,9 @@ func TestConnectedIPFSPeers(t *testing.T) {
 }
 
 func TestInfo(t *testing.T) {
-	// TODO - we're going to need an IPFS network simulation to test this properly
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cases := []struct {
 		p        PeerInfoParams
 		refCount int
@@ -124,7 +137,7 @@ func TestInfo(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := config.ProfilePod{}
@@ -142,7 +155,8 @@ func TestInfo(t *testing.T) {
 }
 
 func TestGetReferences(t *testing.T) {
-	// TODO - we're going to need an IPFS network simulation to test this properly
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
 	cases := []struct {
 		p        PeerRefsParams
 		refCount int
@@ -157,7 +171,7 @@ func TestGetReferences(t *testing.T) {
 		t.Errorf("error creating qri node: %s", err)
 		return
 	}
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []reporef.DatasetRef{}
