@@ -16,7 +16,8 @@ import (
 func main() {
 	lastArg := os.Args[len(os.Args)-1]
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	switch lastArg {
 	case "completions":

@@ -42,7 +42,7 @@ type TestFactory struct {
 // with an optional registry client. In tests users can create mock registry
 // servers and pass in a client connected to that mock, or omit the registry
 // client entirely for testing without a designated registry
-func NewTestFactory() (tf TestFactory, err error) {
+func NewTestFactory(ctx context.Context) (tf TestFactory, err error) {
 	repo, err := test.NewTestRepo()
 	if err != nil {
 		return
@@ -64,7 +64,7 @@ func NewTestFactory() (tf TestFactory, err error) {
 		rpc:    nil,
 		config: cfg,
 		node:   tnode.(*p2p.QriNode),
-		inst:   lib.NewInstanceFromConfigAndNode(cfg, tnode.(*p2p.QriNode)),
+		inst:   lib.NewInstanceFromConfigAndNode(ctx, cfg, tnode.(*p2p.QriNode)),
 	}, nil
 }
 
@@ -72,7 +72,7 @@ func NewTestFactory() (tf TestFactory, err error) {
 // instance configuration overrides
 // TODO (b5) - I'm not confident this works perfectly at the moment. Let's add
 // more tests to lib.NewInstance before using everywhere
-func NewTestFactoryInstanceOptions(opts ...lib.Option) (tf TestFactory, err error) {
+func NewTestFactoryInstanceOptions(ctx context.Context, opts ...lib.Option) (tf TestFactory, err error) {
 	repo, err := test.NewTestRepo()
 	if err != nil {
 		return
@@ -90,7 +90,7 @@ func NewTestFactoryInstanceOptions(opts ...lib.Option) (tf TestFactory, err erro
 	}, opts...)
 
 	fmt.Println("new test factory instance options")
-	inst, err := lib.NewInstance(context.Background(), "repo", opts...)
+	inst, err := lib.NewInstance(ctx, "repo", opts...)
 	if err != nil {
 		return TestFactory{}, err
 	}

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"testing"
 )
 
@@ -8,7 +9,10 @@ func TestPeerHandlers(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	h := NewPeerHandlers(newTestInstanceWithProfileFromNode(node), false)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	h := NewPeerHandlers(newTestInstanceWithProfileFromNode(ctx, node), false)
 
 	connectionsCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

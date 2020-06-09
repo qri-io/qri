@@ -13,7 +13,10 @@ import (
 )
 
 func TestPackageFilepath(t *testing.T) {
-	ipfs, destroy, err := makeTestIPFSRepo("")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ipfs, destroy, err := makeTestIPFSRepo(ctx, "")
 	if err != nil {
 		t.Errorf("error creating IPFS test repo: %s", err.Error())
 		return
@@ -48,7 +51,7 @@ func TestPackageFilepath(t *testing.T) {
 	}
 }
 
-func makeTestIPFSRepo(path string) (fs *ipfsfs.Filestore, destroy func(), err error) {
+func makeTestIPFSRepo(ctx context.Context, path string) (fs *ipfsfs.Filestore, destroy func(), err error) {
 	if path == "" {
 		tmp, err := ioutil.TempDir("", "temp-ipfs-repo")
 		if err != nil {
@@ -60,7 +63,7 @@ func makeTestIPFSRepo(path string) (fs *ipfsfs.Filestore, destroy func(), err er
 	if err != nil {
 		return
 	}
-	ctx := context.Background()
+
 	qfsFilestore, err := ipfsfs.NewFS(ctx, map[string]interface{}{"fsRepoPath": path})
 	if err != nil {
 		return

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -220,8 +219,7 @@ func TestRenameAwayFromBadCase(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[[\"one\",2],[\"three\",4]]")))
 
 	// Add the dataset to the repo directly, which avoids the name validation check.
-	ctx := context.Background()
-	run.AddDatasetToRefstore(ctx, t, "test_peer/a_New_Dataset", &ds)
+	run.AddDatasetToRefstore(t, "test_peer/a_New_Dataset", &ds)
 
 	// Cannot rename the dataset to a name with bad upper-case characters still
 	err = run.ExecCommand("qri rename test_peer/a_New_Dataset test_peer/useUpperCase")

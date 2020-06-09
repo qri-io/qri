@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 
 	golog "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -32,13 +33,16 @@ type Repo struct {
 
 	profile *profile.Profile
 
-	store   cafs.Filestore
-	fsys    qfs.Filesystem
-	graph   map[string]*dsgraph.Node
-	logbook *logbook.Book
-	dscache *dscache.Dscache
-
+	store    cafs.Filestore
+	fsys     qfs.Filesystem
+	graph    map[string]*dsgraph.Node
+	logbook  *logbook.Book
+	dscache  *dscache.Dscache
 	profiles *ProfileStore
+
+	doneWg  sync.WaitGroup
+	doneCh  chan struct{}
+	doneErr error
 }
 
 // NewRepo creates a new file-based repository
@@ -51,6 +55,7 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, cach
 	if pro.PrivKey == nil {
 		return nil, fmt.Errorf("Expected: PrivateKey")
 	}
+
 	r := &Repo{
 		profile: pro,
 
@@ -63,7 +68,23 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, cach
 		Refstore: Refstore{basepath: bp, store: store, file: FileRefs},
 
 		profiles: NewProfileStore(bp),
+
+		doneCh: make(chan struct{}),
 	}
+
+	if rfs, ok := fsys.(qfs.ReleasingFilesystem); ok {
+		r.doneWg.Add(1)
+		go func() {
+			<-rfs.Done()
+			r.doneErr = rfs.DoneErr()
+			r.doneWg.Done()
+		}()
+	}
+
+	go func() {
+		r.doneWg.Wait()
+		close(r.doneCh)
+	}()
 
 	if _, err := maybeCreateFlatbufferRefsFile(base); err != nil {
 		return nil, err
@@ -98,17 +119,17 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 }
 
 // Path returns the path to the root of the repo directory
-func (r Repo) Path() string {
+func (r *Repo) Path() string {
 	return string(r.basepath)
 }
 
 // Store returns the underlying cafs.Filestore driving this repo
-func (r Repo) Store() cafs.Filestore {
+func (r *Repo) Store() cafs.Filestore {
 	return r.store
 }
 
 // Filesystem returns this repo's Filesystem
-func (r Repo) Filesystem() qfs.Filesystem {
+func (r *Repo) Filesystem() qfs.Filesystem {
 	return r.fsys
 }
 
@@ -146,6 +167,17 @@ func (r *Repo) PrivateKey() crypto.PrivKey {
 // Profiles returns this repo's Peers implementation
 func (r *Repo) Profiles() profile.Store {
 	return r.profiles
+}
+
+// Done returns a channel that the repo will send on when the repo is finished
+// closing
+func (r *Repo) Done() <-chan struct{} {
+	return r.doneCh
+}
+
+// DoneErr gives an error that occured during the shutdown process
+func (r *Repo) DoneErr() error {
+	return r.doneErr
 }
 
 // Destroy destroys this repository

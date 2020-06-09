@@ -3,12 +3,14 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"text/scanner"
 	"time"
@@ -78,8 +80,9 @@ func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *Tes
 		t.Fatalf("creating temp repo: %s", err)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	g := repotest.NewTestCrypto()
-	reg, teardownRegistry, err := regserver.NewTempRegistry("registry", testName+"_registry", g)
+	reg, teardownRegistry, err := regserver.NewTempRegistry(ctx, "registry", testName+"_registry", g)
 	if err != nil {
 		t.Fatalf("creating registry: %s", err)
 	}
@@ -91,6 +94,7 @@ func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *Tes
 	runner := newTestRunnerFromRoot(&root)
 	prevTeardown := runner.Teardown
 	runner.Teardown = func() {
+		cancel()
 		teardownRegistry()
 		server.Close()
 		if prevTeardown != nil {
@@ -183,77 +187,91 @@ func (run *TestRunner) MakeTmpDir(t *testing.T, pattern string) string {
 
 // ExecCommand executes the given command string
 func (run *TestRunner) ExecCommand(cmdText string) error {
-	var doneCh chan struct{}
-	ctx, cancel := context.WithCancel(run.Context)
-	run.CmdR, doneCh = run.CreateCommandRunner(ctx)
+	var shutdown func() <-chan struct{}
+	run.CmdR, shutdown = run.CreateCommandRunner(run.Context)
 	if err := executeCommand(run.CmdR, cmdText); err != nil {
-		cancel()
+		<-timedShutdown(fmt.Sprintf("ExecCommand: %q\n", cmdText), shutdown)
 		return err
 	}
-	cancel()
-	if doneCh != nil {
-		<-doneCh
-	}
-	return nil
+
+	return <-timedShutdown(fmt.Sprintf("ExecCommand: %q\n", cmdText), shutdown)
 }
 
 // ExecCommandWithStdin executes the given command string with the string as stdin content
 func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinText string) error {
 	setNoColor(true)
-	ctx, cancel := context.WithCancel(ctx)
-	cmd, doneCh := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, run.Streams)
+	cmd, shutdown := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, run.Streams)
 	cmd.SetOutput(run.OutStream)
 	run.CmdR = cmd
 	if err := executeCommand(run.CmdR, cmdText); err != nil {
-		cancel()
 		return err
 	}
-	cancel()
-	if doneCh != nil {
-		<-doneCh
-	}
-	return nil
+
+	return <-timedShutdown(fmt.Sprintf("ExecCommandCombinedOutErr: %q\n", cmdText), shutdown)
 }
 
 // ExecCommandCombinedOutErr executes the command with a combined stdout and stderr stream
 func (run *TestRunner) ExecCommandCombinedOutErr(cmdText string) error {
 	ctx, cancel := context.WithCancel(run.Context)
-	var doneCh chan struct{}
-	run.CmdR, doneCh = run.CreateCommandRunnerCombinedOutErr(ctx)
+	var shutdown func() <-chan struct{}
+	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(ctx)
 	if err := executeCommand(run.CmdR, cmdText); err != nil {
 		cancel()
 		return err
 	}
+
+	done := timedShutdown(fmt.Sprintf("ExecCommandCombinedOutErr: %q\n", cmdText), shutdown)
 	cancel()
-	if doneCh != nil {
-		<-doneCh
-	}
-	return nil
+	return <-done
+}
+
+func timedShutdown(cmd string, shutdown func() <-chan struct{}) chan error {
+	waitForDone := make(chan error)
+	go func() {
+		select {
+		case <-time.NewTimer(time.Second * 5).C:
+			waitForDone <- fmt.Errorf("%s shutdown didn't send on 'done' channel within 5 seconds of context cancellation", cmd)
+		case <-shutdown():
+			waitForDone <- nil
+		}
+	}()
+	return waitForDone
+}
+
+func shutdownRepoGraceful(cancel context.CancelFunc, r repo.Repo) error {
+	var (
+		wg  sync.WaitGroup
+		err error
+	)
+	wg.Add(1)
+
+	go func() {
+		<-r.Done()
+		err = r.DoneErr()
+		wg.Done()
+	}()
+	cancel()
+	wg.Wait()
+	return err
 }
 
 // ExecCommandWithContext executes the given command with a context
 func (run *TestRunner) ExecCommandWithContext(ctx context.Context, cmdText string) error {
-	ctx, cancel := context.WithCancel(run.Context)
-	var doneCh chan struct{}
-	run.CmdR, doneCh = run.CreateCommandRunner(ctx)
+	var shutdown func() <-chan struct{}
+	run.CmdR, shutdown = run.CreateCommandRunner(run.Context)
 	if err := executeCommand(run.CmdR, cmdText); err != nil {
-		cancel()
 		return err
 	}
-	cancel()
-	if doneCh != nil {
-		<-doneCh
-	}
-	return nil
+
+	done := timedShutdown(fmt.Sprintf("ExecCommandWith ontext: %q\n", cmdText), shutdown)
+	return <-done
 }
 
 func (run *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText string) string {
-	ctx, cancel := context.WithCancel(run.Context)
-	var doneCh chan struct{}
-	run.CmdR, doneCh = run.CreateCommandRunner(ctx)
+	var shutdown func() <-chan struct{}
+	run.CmdR, shutdown = run.CreateCommandRunner(run.Context)
 
 	if err := executeQuotedCommand(run.CmdR, quotedCmdText); err != nil {
-		cancel()
 		_, callerFile, callerLine, ok := runtime.Caller(1)
 		if !ok {
 			t.Fatal(err)
@@ -261,25 +279,26 @@ func (run *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText stri
 			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
 		}
 	}
-	cancel()
-	if doneCh != nil {
-		<-doneCh
+	done := timedShutdown(fmt.Sprintf("MustExecuteQuotedCommand: %q\n", quotedCmdText), shutdown)
+	err := <-done
+	if err != nil {
+		t.Error(err)
 	}
 	return run.GetCommandOutput()
 }
 
 // CreateCommandRunner returns a cobra runable command.
-func (run *TestRunner) CreateCommandRunner(ctx context.Context) (*cobra.Command, chan struct{}) {
+func (run *TestRunner) CreateCommandRunner(ctx context.Context) (*cobra.Command, func() <-chan struct{}) {
 	return run.newCommandRunner(ctx, false)
 }
 
 // CreateCommandRunnerCombinedOutErr returns a cobra command that combines stdout and stderr
-func (run *TestRunner) CreateCommandRunnerCombinedOutErr(ctx context.Context) (*cobra.Command, chan struct{}) {
-	cmd, doneCh := run.newCommandRunner(ctx, true)
-	return cmd, doneCh
+func (run *TestRunner) CreateCommandRunnerCombinedOutErr(ctx context.Context) (*cobra.Command, func() <-chan struct{}) {
+	cmd, shutdown := run.newCommandRunner(ctx, true)
+	return cmd, shutdown
 }
 
-func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool) (*cobra.Command, chan struct{}) {
+func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool) (*cobra.Command, func() <-chan struct{}) {
 	run.IOReset()
 	streams := run.Streams
 	if combineOutErr {
@@ -292,9 +311,9 @@ func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool)
 		key := lib.InstanceContextKey("RemoteClient")
 		ctx = context.WithValue(ctx, key, "mock")
 	}
-	cmd, doneCh := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, streams)
+	cmd, shutdown := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, streams)
 	cmd.SetOutput(run.OutStream)
-	return cmd, doneCh
+	return cmd, shutdown
 }
 
 // Username returns the test username from the config's profile
@@ -319,30 +338,58 @@ func (run *TestRunner) FileExists(file string) bool {
 
 // LookupVersionInfo returns a versionInfo for the ref, or nil if not found
 func (run *TestRunner) LookupVersionInfo(t *testing.T, refStr string) *dsref.VersionInfo {
-	// TODO(dustmop): Could directly parse reporef.DatasetRef instead, but we should transition
-	// to dsref's data structures where possible. This will make it easier to switch to dscache
-	// once it exists.
-	dr, err := dsref.Parse(refStr)
-	if err != nil {
-		return nil
-	}
-	datasetRef := reporef.RefFromDsref(dr)
-	ctx, cancel := context.WithCancel(run.RepoRoot.Context)
-	r, err := run.RepoRoot.IPFSRepo(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	r, err := run.RepoRoot.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = repo.CanonicalizeDatasetRef(r, &datasetRef)
+
+	dr, err := dsref.Parse(refStr)
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	// TODO(b5): me shortcut is handled by an instance, it'd be nice we had a
+	// function in the repo package that deduplicated this in both places
+	if dr.Username == "me" {
+		pro, err := r.Profile()
+		if err != nil {
+			t.Fatal(err)
+		}
+		dr.Username = pro.Peername
+	}
+
+	if _, err := r.ResolveRef(ctx, &dr); err != nil {
+		t.Fatal(err)
+	}
+
+	// TODO(b5): TestUnlinkNoHistory relies on a nil-return versionInfo, so
+	// we need to ignore this error for now
+	vi, _ := repo.GetVersionInfoShim(r, dr)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// TODO(b5) - hand-creating a shutdown function to satisfy "timedshutdown",
+	// which works with an instance in most other cases
+	shutdown := func() <-chan struct{} {
+		finished := make(chan struct{})
+		go func() {
+			<-r.Done()
+			close(finished)
+		}()
+
 		cancel()
-		return nil
+		return finished
 	}
-	vinfo := reporef.ConvertToVersionInfo(&datasetRef)
-	cancel()
-	if run.RepoRoot.Done != nil {
-		<-run.RepoRoot.Done
+
+	err = <-timedShutdown("LookupVersionInfo", shutdown)
+	if err != nil {
+		t.Fatal(err)
 	}
-	return &vinfo
+
+	return vi
 }
 
 // ClearFSIPath clears the FSIPath for a reference in the refstore
@@ -352,7 +399,8 @@ func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
 		t.Fatal(err)
 	}
 	datasetRef := reporef.RefFromDsref(dr)
-	r, err := run.RepoRoot.Repo()
+	ctx, cancel := context.WithCancel(context.Background())
+	r, err := run.RepoRoot.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -362,6 +410,22 @@ func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
 	}
 	datasetRef.FSIPath = ""
 	r.PutRef(datasetRef)
+
+	shutdown := func() <-chan struct{} {
+		finished := make(chan struct{})
+		go func() {
+			<-r.Done()
+			close(finished)
+		}()
+
+		cancel()
+		return finished
+	}
+
+	done := timedShutdown("ClearFSIPath", shutdown)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
 }
 
 // GetPathForDataset fetches a path for dataset index
@@ -407,7 +471,7 @@ func (run *TestRunner) MustExec(t *testing.T, cmdText string) string {
 		if !ok {
 			t.Fatal(err)
 		} else {
-			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
+			t.Fatalf("executing command: %q\n%s:%d: %s", cmdText, callerFile, callerLine, err)
 		}
 	}
 	return run.GetCommandOutput()
@@ -416,8 +480,8 @@ func (run *TestRunner) MustExec(t *testing.T, cmdText string) string {
 // MustExec runs a command, returning combined standard output and standard err
 func (run *TestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
 	ctx, cancel := context.WithCancel(run.Context)
-	var doneCh chan struct{}
-	run.CmdR, doneCh = run.CreateCommandRunnerCombinedOutErr(ctx)
+	var shutdown func() <-chan struct{}
+	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(ctx)
 	err := executeCommand(run.CmdR, cmdText)
 	if err != nil {
 		cancel()
@@ -428,9 +492,11 @@ func (run *TestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) stri
 			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
 		}
 	}
+
+	done := timedShutdown("MustExecCombinedOutErr", shutdown)
 	cancel()
-	if doneCh != nil {
-		<-doneCh
+	if err := <-done; err != nil {
+		t.Fatal(err)
 	}
 	return run.GetCommandOutput()
 }
@@ -493,6 +559,7 @@ func (run *TestRunner) niceifyTempDirs(text string) string {
 }
 
 func executeCommand(root *cobra.Command, cmd string) error {
+	fmt.Printf("exec command: %s\n", cmd)
 	cmd = strings.TrimPrefix(cmd, "qri ")
 	args := strings.Split(cmd, " ")
 	return executeCommandC(root, args...)
@@ -525,7 +592,10 @@ func executeCommandC(root *cobra.Command, args ...string) (err error) {
 // AddDatasetToRefstore adds a dataset to the test runner's refstore. It ignores the upper-levels
 // of our stack, namely cmd/ and lib/, which means it can be used to add a dataset with a name
 // that is using upper-case characters.
-func (run *TestRunner) AddDatasetToRefstore(ctx context.Context, t *testing.T, refStr string, ds *dataset.Dataset) {
+func (run *TestRunner) AddDatasetToRefstore(t *testing.T, refStr string, ds *dataset.Dataset) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	ref, err := dsref.ParseHumanFriendly(refStr)
 	if err != nil && err != dsref.ErrBadCaseName {
 		t.Fatal(err)
@@ -534,7 +604,7 @@ func (run *TestRunner) AddDatasetToRefstore(ctx context.Context, t *testing.T, r
 	ds.Peername = ref.Username
 	ds.Name = ref.Name
 
-	r, err := run.RepoRoot.Repo()
+	r, err := run.RepoRoot.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -551,4 +621,7 @@ func (run *TestRunner) AddDatasetToRefstore(ctx context.Context, t *testing.T, r
 	if _, err = base.SaveDataset(ctx, r, initID, emptyHeadRef, ds, base.SaveSwitches{}); err != nil {
 		t.Fatal(err)
 	}
+
+	cancel()
+	<-r.Done()
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -12,7 +13,11 @@ import (
 func TestHistoryHandlers(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
-	inst := lib.NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	inst := lib.NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 
 	res := &reporef.DatasetRef{}
 	p := &lib.SaveParams{

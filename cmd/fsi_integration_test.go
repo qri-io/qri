@@ -49,12 +49,11 @@ func (run *FSITestRunner) MustExec(t *testing.T, cmdText string) string {
 
 // MustExec runs a command, returning combined standard output and standard err
 func (run *FSITestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
-	var doneCh chan struct{}
-	ctx, cancel := context.WithCancel(run.Context)
-	run.CmdR, doneCh = run.CreateCommandRunnerCombinedOutErr(ctx)
+	var shutdown func() <-chan struct{}
+
+	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(context.Background())
 	err := executeCommand(run.CmdR, cmdText)
 	if err != nil {
-		cancel()
 		_, callerFile, callerLine, ok := runtime.Caller(1)
 		if !ok {
 			t.Fatal(err)
@@ -62,10 +61,8 @@ func (run *FSITestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) s
 			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
 		}
 	}
-	cancel()
-	if doneCh != nil {
-		<-doneCh
-	}
+
+	<-timedShutdown(fmt.Sprintf("MustExecCombinedOutErr: %q", cmdText), shutdown)
 	return run.GetCommandOutput()
 }
 
@@ -121,6 +118,9 @@ func newFSITestRunnerFromInner(t *testing.T, inner *TestRunner) *FSITestRunner {
 	run.Teardown = func() {
 		os.Chdir(run.Pwd)
 		os.RemoveAll(run.RootPath)
+		if inner.Teardown != nil {
+			inner.Teardown()
+		}
 	}
 
 	return &run

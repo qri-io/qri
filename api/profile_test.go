@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -20,6 +21,9 @@ func TestProfileHandler(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	cases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
@@ -28,7 +32,7 @@ func TestProfileHandler(t *testing.T) {
 		{"DELETE", "/", nil},
 	}
 
-	inst := newTestInstanceWithProfileFromNode(node)
+	inst := newTestInstanceWithProfileFromNode(ctx, node)
 	proh := NewProfileHandlers(inst, false)
 	runHandlerTestCases(t, "profile", proh.ProfileHandler, cases, true)
 
@@ -50,6 +54,9 @@ func TestProfileHandler(t *testing.T) {
 func TestProfilePhotoHandler(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	cases := []struct {
 		name, method, endpoint string
@@ -83,7 +90,7 @@ func TestProfilePhotoHandler(t *testing.T) {
 	cfg.Profile, _ = pro.Encode()
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
+	inst := lib.NewInstanceFromConfigAndNode(ctx, cfg, node)
 	proh := NewProfileHandlers(inst, false)
 
 	for _, c := range cases {
@@ -106,6 +113,9 @@ func TestProfilePhotoHandler(t *testing.T) {
 func TestProfilePosterHandler(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	cases := []struct {
 		name, method, endpoint string
@@ -140,7 +150,7 @@ func TestProfilePosterHandler(t *testing.T) {
 	cfg.Profile, _ = pro.Encode()
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
+	inst := lib.NewInstanceFromConfigAndNode(ctx, cfg, node)
 	proh := NewProfileHandlers(inst, false)
 
 	for _, c := range cases {

@@ -36,6 +36,7 @@ import (
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/buildrepo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/stats"
@@ -258,6 +259,14 @@ func OptLogbook(bk *logbook.Book) Option {
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
+	ctx, cancel := context.WithCancel(ctx)
+	ok := false
+	defer func() {
+		if !ok {
+			cancel()
+		}
+	}()
+
 	if repoPath == "" {
 		return nil, fmt.Errorf("repo path is required")
 	}
@@ -310,7 +319,9 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	inst := &Instance{
-		doneCh:   make(chan struct{}),
+		cancel: cancel,
+		doneCh: make(chan struct{}),
+
 		repoPath: repoPath,
 		cfg:      cfg,
 
@@ -354,58 +365,19 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if o.qfs != nil {
 		inst.qfs = o.qfs
 	} else if inst.qfs == nil {
-		// TODO (ramfox): adding a default mux config
-		// after the config refactor to add a `Filesystem` field, that config
-		// section should replace this
-		// defaults are taken from the old buildrepo.NewFilesystem func
-		muxConfig := []muxfs.MuxConfig{
-			{Type: "local"},
-			{Type: "http"},
+		inst.qfs, err = buildrepo.NewFilesystem(ctx, cfg)
+		if err != nil {
+			return nil, err
 		}
 
-		// TODO(ramfox): adding this to switch statement until we
-		// add a Filesystem config
-		switch cfg.Store.Type {
-		case "ipfs":
-			path := cfg.Store.Path
-			// TODO (ramfox): this should change when we migrate the
-			// config to default to `${QRI_PATH}/.ipfs`
-			if path == "" && os.Getenv("IPFS_PATH") != "" {
-				path = os.Getenv("IPFS_PATH")
-			} else if path == "" {
-				home, err := homedir.Dir()
-				if err != nil {
-					return nil, fmt.Errorf("creating IPFS store: %s", err)
-				}
-				path = filepath.Join(home, ".ipfs")
-			}
-
-			ipfsCfg := muxfs.MuxConfig{
-				Type: "ipfs",
-				Config: map[string]interface{}{
-					"fsRepoPath": path,
-					"apiAddr":    cfg.Store.Options["url"],
-				},
-			}
-			muxConfig = append(muxConfig, ipfsCfg)
-		case "map":
-			muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "map"})
-		case "mem":
-			muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "mem"})
-		default:
-			return nil, fmt.Errorf("unknown store type: %s", cfg.Store.Type)
-		}
-
-		if cfg.Repo.Type == "mem" {
-			muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "mem"})
-		}
-
-		if inst.qfs, err = muxfs.New(ctx, muxConfig); err != nil {
-			log.Debugf("intializing filesystem:", err.Error())
-			return nil, fmt.Errorf("initializing filesystem: %w", err)
-		}
 		if releaser, ok := inst.qfs.(qfs.ReleasingFilesystem); ok {
-			go inst.waitForOneDone(releaser.Done())
+			go func() {
+				//inst.waitForOneDone(releaser.Done())
+				inst.releasers.Add(1)
+				<-releaser.Done()
+				inst.doneErr = releaser.DoneErr()
+				inst.releasers.Done()
+			}()
 		}
 	}
 
@@ -434,13 +406,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		inst.logbook, err = newLogbook(inst.qfs, cfg, pro, inst.repoPath)
 		if err != nil {
 			return nil, fmt.Errorf("intializing logbook: %w", err)
-		}
-	}
-
-	if inst.logbook == nil {
-		inst.logbook, err = newLogbook(inst.qfs, cfg, pro, inst.repoPath)
-		if err != nil {
-			return nil, fmt.Errorf("newLogbook: %w", err)
 		}
 	}
 
@@ -513,7 +478,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	go inst.waitForAllDone()
-
+	ok = true
 	return
 }
 
@@ -609,9 +574,12 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 // and options that can be fed to NewInstance
 // This function must only be used for testing purposes
 func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node *p2p.QriNode) *Instance {
+	ctx, cancel := context.WithCancel(ctx)
+
 	r := node.Repo
 	pro, err := r.Profile()
 	if err != nil {
+		cancel()
 		panic(err)
 	}
 	bus := event.NewBus(ctx)
@@ -626,6 +594,9 @@ func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node 
 	}
 
 	inst := &Instance{
+		cancel: cancel,
+		doneCh: make(chan struct{}),
+
 		cfg:     cfg,
 		node:    node,
 		dscache: dc,
@@ -634,6 +605,7 @@ func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node 
 
 	inst.remoteClient, err = remote.NewClient(node)
 	if err != nil {
+		cancel()
 		panic(err)
 	}
 
@@ -655,7 +627,9 @@ func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node 
 // contain qri business logic. Think of instance as the "core" of the qri
 // ecosystem. Create an Instance pointer with NewInstance
 type Instance struct {
+	cancel    context.CancelFunc
 	doneCh    chan struct{}
+	doneErr   error
 	releasers sync.WaitGroup
 
 	repoPath string
@@ -709,9 +683,10 @@ func (inst *Instance) Config() *config.Config {
 	return inst.cfg
 }
 
-// Done returns the channel onto which we can listen for
-// if all the parts of the instance have been closed
-func (inst *Instance) Done() chan struct{} {
+// Shutdown closes the instance if it isn't already closing returning a channel
+// that will close when completed
+func (inst *Instance) Shutdown() <-chan struct{} {
+	inst.cancel()
 	return inst.doneCh
 }
 
@@ -834,13 +809,8 @@ Error:
 	return err
 }
 
-func (inst *Instance) waitForOneDone(doneCh chan struct{}) {
-	inst.releasers.Add(1)
-	<-doneCh
-	inst.releasers.Done()
-}
-
 func (inst *Instance) waitForAllDone() {
 	inst.releasers.Wait()
-	inst.doneCh <- struct{}{}
+	log.Debug("closing instance")
+	close(inst.doneCh)
 }

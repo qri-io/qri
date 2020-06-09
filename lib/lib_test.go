@@ -85,12 +85,17 @@ func TestNewInstance(t *testing.T) {
 		t.Error(err)
 	}
 
+	finished := make(chan struct{})
+	go func() {
+		select {
+		case <-time.NewTimer(time.Millisecond * 100).C:
+			t.Errorf("done didn't fire within 100ms of canceling instance context")
+		case <-got.Shutdown():
+		}
+		finished <- struct{}{}
+	}()
 	cancel()
-	select {
-	case <-time.NewTimer(time.Millisecond * 100).C:
-		t.Errorf("done didn't fire within 100ms of canceling instance context")
-	case <-got.Done():
-	}
+	<-finished
 }
 
 func TestNewDefaultInstance(t *testing.T) {

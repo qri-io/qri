@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -28,7 +29,11 @@ type APITestRunner struct {
 func NewAPITestRunner(t *testing.T) *APITestRunner {
 	run := APITestRunner{}
 	run.Node, run.NodeTeardown = newTestNode(t)
-	run.Inst = newTestInstanceWithProfileFromNode(run.Node)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	run.Inst = newTestInstanceWithProfileFromNode(ctx, run.Node)
 
 	tmpDir, err := ioutil.TempDir("", "api_test")
 	if err != nil {

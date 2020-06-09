@@ -92,6 +92,11 @@ type Repo interface {
 	// A repository must maintain profile information about encountered peers.
 	// Decsisions regarding retentaion of peers is left to the the implementation
 	Profiles() profile.Store
+
+	// Done returns a channel that the repo will send on when the repo is closed
+	Done() <-chan struct{}
+	// DoneErr gives any error that occured in the shutdown process
+	DoneErr() error
 }
 
 // QFSSetter sets a qfs.Filesystem

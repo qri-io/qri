@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"testing"
 )
 
@@ -8,7 +9,10 @@ func TestSQLHandler(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	inst := newTestInstanceWithProfileFromNode(node)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	inst := newTestInstanceWithProfileFromNode(ctx, node)
 	h := NewSQLHandlers(inst, false)
 
 	cases := []handlerTestCase{

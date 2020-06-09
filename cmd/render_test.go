@@ -12,7 +12,10 @@ func TestRenderComplete(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_render_complete")
 	defer run.Delete()
 
-	f, err := NewTestFactory()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	f, err := NewTestFactory(ctx)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -65,7 +68,10 @@ func TestRenderRun(t *testing.T) {
 	base.DefaultTemplate = `<html><h1>{{ds.peername}}/{{ds.name}}</h1></html>`
 	defer func() { base.DefaultTemplate = prevDefaultTemplate }()
 
-	f, err := NewTestFactory()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	f, err := NewTestFactory(ctx)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return

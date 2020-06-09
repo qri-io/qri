@@ -42,8 +42,7 @@ func Execute() {
 
 	// root context
 	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	root, doneCh := NewQriCommand(ctx, EnvPathFactory, gen.NewCryptoSource(), ioes.NewStdIOStreams())
+	root, shutdown := NewQriCommand(ctx, EnvPathFactory, gen.NewCryptoSource(), ioes.NewStdIOStreams())
 	// If the subcommand hits an error, don't show usage or the error, since we'll show
 	// the error message below, on our own. Usage is still shown if the subcommand
 	// is missing command-line arguments.
@@ -51,14 +50,11 @@ func Execute() {
 	root.SilenceErrors = true
 	// Execute the subcommand
 	if err := root.Execute(); err != nil {
-		cancel()
 		printErr(os.Stderr, err)
 		os.Exit(1)
 	}
-	cancel()
-	if doneCh != nil {
-		<-doneCh
-	}
+
+	<-shutdown()
 }
 
 // ErrExit writes an error to the given io.Writer & exits

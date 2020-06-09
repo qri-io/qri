@@ -2,8 +2,6 @@ module github.com/qri-io/qri
 
 go 1.13
 
-replace github.com/qri-io/qfs => /Users/b5/qri/qfs
-
 require (
 	github.com/beme/abide v0.0.0-20181227202223-4c487ef9d895
 	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe
@@ -43,7 +41,7 @@ require (
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/jsonschema v0.2.0
-	github.com/qri-io/qfs v0.1.1-0.20200601130639-b0f80b5f8462
+	github.com/qri-io/qfs v0.1.1-0.20200610210318-ff4f8ddf307c
 	github.com/qri-io/starlib v0.4.2-0.20200406084526-0e4566b610a1
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.0.0

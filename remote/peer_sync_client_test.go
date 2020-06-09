@@ -40,8 +40,8 @@ func TestAddDataset(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tr.NodeA.GoOnline()
-	tr.NodeB.GoOnline()
+	tr.NodeA.GoOnline(tr.Ctx)
+	tr.NodeB.GoOnline(tr.Ctx)
 
 	if err := cli.AddDataset(tr.Ctx, &reporef.DatasetRef{Peername: "foo", Name: "bar"}, ""); err == nil {
 		t.Error("expected add of invalid ref to error")

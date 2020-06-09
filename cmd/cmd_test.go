@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -24,6 +23,9 @@ func init() {
 	// 10:12:42.396 ERROR       core: core is shutting down...
 	// after all sorts of tests
 	golog.SetLogLevel("core", "CRITICAL")
+
+	// golog.SetLogLevel("cafs/ipfs", "DEBUG")
+	// golog.SetLogLevel("lib", "DEBUG")
 }
 
 // ioReset resets the in, out, errs buffers
@@ -560,10 +562,8 @@ func TestRenameAfterRegistration(t *testing.T) {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 
-	ctx := context.Background()
-
 	// Register (using a mock server) which changes the username
-	err := run.ExecCommandWithStdin(ctx, "qri registry signup --username real_peer --email me@example.com", "myPassword")
+	err := run.ExecCommandWithStdin(run.Context, "qri registry signup --username real_peer --email me@example.com", "myPassword")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -612,7 +612,6 @@ func TestRenameAfterRegistration(t *testing.T) {
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
-
 }
 
 // Test that list can format output as json
@@ -658,8 +657,7 @@ func TestBadCaseIsJustWarning(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[[\"one\",2],[\"three\",4]]")))
 
 	// Add the dataset to the repo directly, which avoids the name validation check.
-	ctx := context.Background()
-	run.AddDatasetToRefstore(ctx, t, "test_peer/a_New_Dataset", &ds)
+	run.AddDatasetToRefstore(t, "test_peer/a_New_Dataset", &ds)
 
 	// Save the dataset, which will work now that a version already exists.
 	err := run.ExecCommand("qri get test_peer/a_New_Dataset")

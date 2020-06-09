@@ -17,7 +17,7 @@ import (
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, chan struct{}) {
+func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan struct{}) {
 
 	qriPath, ipfsPath := pf()
 	opt := NewQriOptions(ctx, qriPath, ipfsPath, generator, ioStreams)
@@ -78,7 +78,7 @@ https://github.com/qri-io/qri/issues`,
 		sub.SetUsageTemplate(defaultUsageTemplate)
 	}
 
-	return cmd, opt.Done()
+	return cmd, opt.Shutdown
 }
 
 // QriOptions holds the Root Command State
@@ -136,7 +136,7 @@ func (o *QriOptions) Init() (err error) {
 	if err != nil {
 		return
 	}
-	go o.waitForOneDone(o.inst.Done())
+
 	// Handle color and prompt flags which apply to every command
 	shouldColorOutput := !o.NoColor
 	cfg := o.inst.Config()
@@ -151,7 +151,7 @@ func (o *QriOptions) Init() (err error) {
 	setNoPrompt(o.NoPrompt)
 	log.Debugf("running cmd %q", os.Args)
 
-	go o.waitForAllDone()
+	// go o.waitForAllDone()
 	return
 }
 
@@ -301,26 +301,12 @@ func (o *QriOptions) FSIMethods() (m *lib.FSIMethods, err error) {
 	return lib.NewFSIMethods(o.inst), nil
 }
 
-// Done returns the chan on which we report when the contents
-// of the qri instance have been released
-func (o *QriOptions) Done() chan struct{} {
-	if err := o.Init(); err != nil {
-		return nil
+// Shutdown closes the instance
+func (o *QriOptions) Shutdown() <-chan struct{} {
+	if o.inst == nil {
+		done := make(chan struct{})
+		close(done)
+		return done
 	}
-	return o.doneCh
-}
-
-// waitForOneDone adds to the wait group and waits to
-// hear back from the given channel, then removes from the wait group
-func (o *QriOptions) waitForOneDone(doneCh chan struct{}) {
-	o.releasers.Add(1)
-	<-doneCh
-	o.releasers.Done()
-}
-
-// waitForAllDone waits for all the the wait groups to return
-// then sends on the done channel
-func (o *QriOptions) waitForAllDone() {
-	o.releasers.Wait()
-	o.doneCh <- struct{}{}
+	return o.inst.Shutdown()
 }

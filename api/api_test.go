@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -68,15 +69,15 @@ func testConfigAndSetter() (cfg *config.Config, setCfg func(*config.Config) erro
 	return
 }
 
-func newTestInstanceWithProfileFromNode(node *p2p.QriNode) *lib.Instance {
+func newTestInstanceWithProfileFromNode(ctx context.Context, node *p2p.QriNode) *lib.Instance {
 	cfg := config.DefaultConfigForTesting()
 	pro, _ := node.Repo.Profile()
 	cfg.Profile, _ = pro.Encode()
-	return lib.NewInstanceFromConfigAndNode(cfg, node)
+	return lib.NewInstanceFromConfigAndNode(ctx, cfg, node)
 }
 
 // TODO (b5) - num param is no longer in use, refactor this function away
-func newTestNodeWithNumDatasets(t *testing.T, num int) (node *p2p.QriNode, teardown func()) {
+func newTestNodeWithNumDatasets(t *testing.T, _ int) (node *p2p.QriNode, teardown func()) {
 	var r repo.Repo
 	r, teardown = newTestRepo(t)
 	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
@@ -168,6 +169,9 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	prevXformVer := APIVersion
 	APIVersion = "test_version"
 	defer func() {
@@ -204,7 +208,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
+	inst := lib.NewInstanceFromConfigAndNode(ctx, cfg, node)
 	s := New(inst)
 
 	server := httptest.NewServer(NewServerRoutes(s))
