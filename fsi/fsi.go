@@ -69,10 +69,6 @@ func NewFSI(r repo.Repo, pub event.Publisher) *FSI {
 // path if one exists, ignoring any prior Path value. If no FSI link exists
 // ResolvedPath will return ErrNoLink
 func (fsi *FSI) ResolvedPath(ref *dsref.Ref) error {
-	if ref.InitID == "" {
-		return fmt.Errorf("initID is required")
-	}
-
 	// TODO (b5) - currently causing tests to fail, we should be using dscache
 	// if it exists
 	// if dsc := fsi.repo.Dscache(); dsc != nil {
@@ -91,7 +87,7 @@ func (fsi *FSI) ResolvedPath(ref *dsref.Ref) error {
 	// old method falls back to refstore
 	vi, err := repo.GetVersionInfoShim(fsi.repo, *ref)
 	if err != nil {
-		return ErrNoLink
+		return err
 	}
 
 	if vi.FSIPath != "" {

@@ -10,8 +10,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
@@ -319,5 +321,52 @@ func TestUnlink(t *testing.T) {
 
 	if err := fsi.Unlink(paths.firstDir, dsref.MustParse("peer/cities")); err != nil {
 		t.Errorf("unlinking valid reference: %s", err.Error())
+	}
+}
+
+func TestResolvedPath(t *testing.T) {
+	paths := NewTmpPaths()
+	defer paths.Close()
+
+	info := testPeers.GetTestPeerInfo(0)
+
+	ref := dsref.Ref{
+		Username:  "test_peer",
+		ProfileID: info.EncodedPeerID,
+		Name:      "my_dataset",
+		Path:      "/ipfs/QmExample1",
+	}
+	datasetRef := reporef.RefFromDsref(ref)
+	err := paths.testRepo.PutRef(datasetRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fsi := NewFSI(paths.testRepo, nil)
+	err = fsi.ResolvedPath(&ref)
+	if err != ErrNoLink {
+		t.Errorf("expected ResolvePath to give ErrNoLink, got err=%s", err)
+	}
+
+	ref = dsref.Ref{
+		Username:  "test_peer",
+		ProfileID: info.EncodedPeerID,
+		Name:      "second_dataset",
+		Path:      "/ipfs/QmExample2",
+	}
+	datasetRef = reporef.RefFromDsref(ref)
+	datasetRef.FSIPath = "/path/to/dataset"
+	err = paths.testRepo.PutRef(datasetRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = fsi.ResolvedPath(&ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectPath := "/fsi/path/to/dataset"
+	if diff := cmp.Diff(expectPath, ref.Path); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }

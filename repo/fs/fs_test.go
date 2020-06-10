@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/config"
+	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
@@ -17,6 +18,7 @@ import (
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/test/spec"
 )
 
@@ -88,6 +90,8 @@ func TestResolveRef(t *testing.T) {
 	ctx := context.Background()
 	cache := dscache.NewDscache(ctx, fs, nil, "", "")
 
+	info := testPeers.GetTestPeerInfo(0)
+
 	store := cafs.NewMapstore()
 	r, err := NewRepo(store, fs, book, cache, pro, path)
 	if err != nil {
@@ -95,6 +99,14 @@ func TestResolveRef(t *testing.T) {
 	}
 
 	dsrefspec.AssertResolverSpec(t, r, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+		datasetRef := reporef.RefFromDsref(ref)
+		datasetRef.ProfileID = profile.IDFromPeerID(info.PeerID)
+		// Add to repo's restore
+		err := r.PutRef(datasetRef)
+		if err != nil {
+			return err
+		}
+		// Add to logbook
 		return r.Logbook().MergeLog(ctx, author, log)
 	})
 }

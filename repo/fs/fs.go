@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 var log = golog.Logger("fsrepo")
@@ -90,11 +91,36 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	// if r.dscache != nil {
 	// 	return r.dscache.ResolveRef(ctx, ref)
 	// }
+	// See: https://github.com/qri-io/qri/issues/1385
 
-	if r.logbook == nil {
-		return "", fmt.Errorf("cannot resolve local references without logbook")
+	// Lookup using refstore
+	datasetRef := reporef.RefFromDsref(*ref)
+	foundRef, err := r.GetRef(datasetRef)
+	if err != nil {
+		return "", dsref.ErrRefNotFound
 	}
-	return r.logbook.ResolveRef(ctx, ref)
+
+	ref.Username = foundRef.Peername
+	// ResolveRef spec expects empty ProfileID in resulting ref
+	ref.ProfileID = ""
+	ref.Name = foundRef.Name
+	if ref.Path == "" {
+		ref.Path = foundRef.Path
+	}
+
+	// Try to add initID using logbook. Ignore errors; while we should move to a world where
+	// initID is used everywhere, some subsystems don't need InitID, so we shouldn't break
+	// functionality.
+	if r.logbook != nil {
+		initID, err := r.logbook.RefToInitID(*ref)
+		if err == nil {
+			ref.InitID = initID
+		} else {
+			err = nil
+		}
+	}
+
+	return "", nil
 }
 
 // Path returns the path to the root of the repo directory
