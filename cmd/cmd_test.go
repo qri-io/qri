@@ -23,9 +23,6 @@ func init() {
 	// 10:12:42.396 ERROR       core: core is shutting down...
 	// after all sorts of tests
 	golog.SetLogLevel("core", "CRITICAL")
-
-	// golog.SetLogLevel("cafs/ipfs", "DEBUG")
-	// golog.SetLogLevel("lib", "DEBUG")
 }
 
 // ioReset resets the in, out, errs buffers

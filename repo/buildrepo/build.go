@@ -11,8 +11,8 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qfs/cafs/ipfs_http"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qfs/qipfs/qipfs_http"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/event/hook"
@@ -121,13 +121,13 @@ func NewCAFSStore(cfg *config.Config, mux *muxfs.Mux) (store cafs.Filestore, err
 	case "ipfs_http":
 		urli, ok := cfg.Store.Options["url"]
 		if !ok {
-			return nil, fmt.Errorf("ipfs_http store requires 'url' option")
+			return nil, fmt.Errorf("qipfs_http store requires 'url' option")
 		}
 		urlStr, ok := urli.(string)
 		if !ok {
-			return nil, fmt.Errorf("ipfs_http 'url' option must be a string")
+			return nil, fmt.Errorf("qipfs_http 'url' option must be a string")
 		}
-		return ipfs_http.NewFilesystem(map[string]interface{}{
+		return qipfs_http.NewFilesystem(map[string]interface{}{
 			"url": urlStr,
 		})
 	case "map":

@@ -20,8 +20,8 @@ import (
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	qfs "github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	ipfsfs "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qfs/muxfs"
+	qipfs "github.com/qri-io/qfs/qipfs"
 	cfgtest "github.com/qri-io/qri/config/test"
 	qrirepo "github.com/qri-io/qri/repo"
 	profile "github.com/qri-io/qri/repo/profile"
@@ -35,7 +35,7 @@ func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username str
 		PrivKey:  node.PrivateKey,
 	}
 
-	store, err := ipfsfs.NewFS(ctx, nil, func(cfg *ipfsfs.StoreCfg) {
+	store, err := qipfs.NewFS(ctx, nil, func(cfg *qipfs.StoreCfg) {
 		cfg.Node = node
 	})
 	if err != nil {

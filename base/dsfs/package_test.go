@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qfs/cafs"
-	ipfsfs "github.com/qri-io/qfs/cafs/ipfs"
+	"github.com/qri-io/qfs/qipfs"
 	"golang.org/x/net/context"
 )
 
@@ -51,7 +51,7 @@ func TestPackageFilepath(t *testing.T) {
 	}
 }
 
-func makeTestIPFSRepo(ctx context.Context, path string) (fs *ipfsfs.Filestore, destroy func(), err error) {
+func makeTestIPFSRepo(ctx context.Context, path string) (fs *qipfs.Filestore, destroy func(), err error) {
 	if path == "" {
 		tmp, err := ioutil.TempDir("", "temp-ipfs-repo")
 		if err != nil {
@@ -59,17 +59,17 @@ func makeTestIPFSRepo(ctx context.Context, path string) (fs *ipfsfs.Filestore, d
 		}
 		path = filepath.Join(tmp, ".ipfs")
 	}
-	err = ipfsfs.InitRepo(path, "")
+	err = qipfs.InitRepo(path, "")
 	if err != nil {
 		return
 	}
 
-	qfsFilestore, err := ipfsfs.NewFS(ctx, map[string]interface{}{"fsRepoPath": path})
+	qfsFilestore, err := qipfs.NewFS(ctx, map[string]interface{}{"fsRepoPath": path})
 	if err != nil {
 		return
 	}
 
-	fs, ok := qfsFilestore.(*ipfsfs.Filestore)
+	fs, ok := qfsFilestore.(*qipfs.Filestore)
 	if !ok {
 		return nil, nil, fmt.Errorf("created filestore is not of type ipfs")
 	}

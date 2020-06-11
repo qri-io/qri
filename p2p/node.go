@@ -21,7 +21,7 @@ import (
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/ioes"
-	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/config"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -139,7 +139,7 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	// If the underlying content-addressed-filestore is an ipfs
 	// node, it has built-in p2p, overlay the qri protocol
 	// on the ipfs node's p2p connections.
-	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
+	if ipfsfs, ok := n.Repo.Store().(*qipfs.Filestore); ok {
 		if !ipfsfs.Online() {
 			if err := ipfsfs.GoOnline(ctx); err != nil {
 				return err
@@ -225,7 +225,7 @@ func (n *QriNode) echoMessages() {
 
 // ipfsNode returns the internal IPFS node
 func (n *QriNode) ipfsNode() (*core.IpfsNode, error) {
-	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
+	if ipfsfs, ok := n.Repo.Store().(*qipfs.Filestore); ok {
 		return ipfsfs.Node(), nil
 	}
 	return nil, fmt.Errorf("not using IPFS")
@@ -247,7 +247,7 @@ func (n *QriNode) GetIPFSNamesys() (namesys.NameSystem, error) {
 	return ipfsn.Namesys, nil
 }
 
-// note: both ipfs_filestore and ipfs_http have this method
+// note: both qipfs and ipfs_http have this method
 type ipfsApier interface {
 	IPFSCoreAPI() coreiface.CoreAPI
 }

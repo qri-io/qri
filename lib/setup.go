@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	qipfs "github.com/qri-io/qfs/cafs/ipfs"
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/gen"
 )
