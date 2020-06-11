@@ -339,7 +339,7 @@ func NewIPFSRepoFromDir(qriPath, ipfsPath string) (repo.Repo, crypto.PrivKey, er
 	muxCfg := []muxfs.MuxConfig{
 		{Type: "local"},
 		{Type: "http"},
-		{Type: "ipfs", Config: map[string]interface{}{"fsRepoPath": ipfsPath}},
+		{Type: "ipfs", Config: map[string]interface{}{"path": ipfsPath}},
 		{Type: "mem"},
 	}
 	ms, err := muxfs.New(context.TODO(), muxCfg)

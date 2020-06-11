@@ -64,7 +64,7 @@ func makeTestIPFSRepo(ctx context.Context, path string) (fs *qipfs.Filestore, de
 		return
 	}
 
-	qfsFilestore, err := qipfs.NewFS(ctx, map[string]interface{}{"fsRepoPath": path})
+	qfsFilestore, err := qipfs.NewFilesystem(ctx, map[string]interface{}{"path": path})
 	if err != nil {
 		return
 	}

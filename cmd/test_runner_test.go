@@ -559,7 +559,7 @@ func (run *TestRunner) niceifyTempDirs(text string) string {
 }
 
 func executeCommand(root *cobra.Command, cmd string) error {
-	fmt.Printf("exec command: %s\n", cmd)
+	// fmt.Printf("exec command: %s\n", cmd)
 	cmd = strings.TrimPrefix(cmd, "qri ")
 	args := strings.Split(cmd, " ")
 	return executeCommandC(root, args...)

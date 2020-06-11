@@ -142,10 +142,11 @@ func (r *TempRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fs, err := qipfs.NewFS(ctx, nil, func(cfg *qipfs.StoreCfg) {
-		cfg.Online = false
-		cfg.FsRepoPath = r.IPFSPath
+	fs, err := qipfs.NewFilesystem(ctx, map[string]interface{}{
+		"online": false,
+		"path":   r.IPFSPath,
 	})
+
 	if err != nil {
 		return "", err
 	}
@@ -170,9 +171,9 @@ func (r *TempRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
 func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	fs, err := qipfs.NewFS(ctx, nil, func(cfg *qipfs.StoreCfg) {
-		cfg.Online = false
-		cfg.FsRepoPath = r.IPFSPath
+	fs, err := qipfs.NewFilesystem(ctx, map[string]interface{}{
+		"online": false,
+		"path":   r.IPFSPath,
 	})
 	cafs, ok := fs.(cafs.Filestore)
 	if !ok {
@@ -196,9 +197,9 @@ func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
 // LoadDataset from the temp repository
 func (r *TempRepo) LoadDataset(ref string) (*dataset.Dataset, error) {
 	ctx := context.Background()
-	fs, err := qipfs.NewFS(ctx, nil, func(cfg *qipfs.StoreCfg) {
-		cfg.Online = false
-		cfg.FsRepoPath = r.IPFSPath
+	fs, err := qipfs.NewFilesystem(ctx, map[string]interface{}{
+		"online": false,
+		"path":   r.IPFSPath,
 	})
 	cafs, ok := fs.(cafs.Filestore)
 	if !ok {

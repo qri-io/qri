@@ -35,9 +35,7 @@ func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username str
 		PrivKey:  node.PrivateKey,
 	}
 
-	store, err := qipfs.NewFS(ctx, nil, func(cfg *qipfs.StoreCfg) {
-		cfg.Node = node
-	})
+	store, err := qipfs.NewFilesystemFromNode(node)
 	if err != nil {
 		return nil, err
 	}

@@ -91,8 +91,8 @@ func NewFilesystem(ctx context.Context, cfg *config.Config) (*muxfs.Mux, error) 
 		ipfsCfg := muxfs.MuxConfig{
 			Type: "ipfs",
 			Config: map[string]interface{}{
-				"fsRepoPath": path,
-				"apiAddr":    cfg.Store.Options["url"],
+				"path": path,
+				"url":  cfg.Store.Options["url"],
 			},
 		}
 		muxConfig = append(muxConfig, ipfsCfg)

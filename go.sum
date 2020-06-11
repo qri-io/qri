@@ -774,6 +774,8 @@ github.com/qri-io/qfs v0.1.1-0.20200611140517-d8064224b48a h1:fpFy7MuSlf36r7BPHb
 github.com/qri-io/qfs v0.1.1-0.20200611140517-d8064224b48a/go.mod h1:9gttXzuN7ob/OZtP8olSb9dEjG77F6fBhI4iPCBJcC4=
 github.com/qri-io/qfs v0.1.1-0.20200611164143-57e4eb98637e h1:sVasNCN17TbO2CIrkbn/9yKyFQN7FxDkHpDvo7pHBMI=
 github.com/qri-io/qfs v0.1.1-0.20200611164143-57e4eb98637e/go.mod h1:9gttXzuN7ob/OZtP8olSb9dEjG77F6fBhI4iPCBJcC4=
+github.com/qri-io/qfs v0.1.1-0.20200611165444-31e408337a73 h1:5Dk1dGN8O68WOVeVUV3CsulGc0KhadtRqwNq74r0Kps=
+github.com/qri-io/qfs v0.1.1-0.20200611165444-31e408337a73/go.mod h1:9gttXzuN7ob/OZtP8olSb9dEjG77F6fBhI4iPCBJcC4=
 github.com/qri-io/starlib v0.4.2-0.20200406084526-0e4566b610a1/go.mod h1:Nno0nW88BMydkiYjFYwswcQxQTSYhYAivSdFwlm5l04=
 github.com/qri-io/varName v0.1.0/go.mod h1:IGWuuGOHhLJ9ZZg28C/+oMYm1QYP+pAorNZKQpdXhxQ=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
