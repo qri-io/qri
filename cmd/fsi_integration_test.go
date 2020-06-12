@@ -49,7 +49,7 @@ func (run *FSITestRunner) MustExec(t *testing.T, cmdText string) string {
 
 // MustExec runs a command, returning combined standard output and standard err
 func (run *FSITestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
-	var shutdown func() <-chan struct{}
+	var shutdown func() <-chan error
 
 	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(context.Background())
 	err := executeCommand(run.CmdR, cmdText)
@@ -62,7 +62,9 @@ func (run *FSITestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) s
 		}
 	}
 
-	<-timedShutdown(fmt.Sprintf("MustExecCombinedOutErr: %q", cmdText), shutdown)
+	if err := timedShutdown(fmt.Sprintf("MustExecCombinedOutErr: %q", cmdText), shutdown); err != nil {
+		t.Fatal(err)
+	}
 	return run.GetCommandOutput()
 }
 

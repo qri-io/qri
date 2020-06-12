@@ -17,7 +17,7 @@ import (
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan struct{}) {
+func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan error) {
 
 	qriPath, ipfsPath := pf()
 	opt := NewQriOptions(ctx, qriPath, ipfsPath, generator, ioStreams)
@@ -302,10 +302,10 @@ func (o *QriOptions) FSIMethods() (m *lib.FSIMethods, err error) {
 }
 
 // Shutdown closes the instance
-func (o *QriOptions) Shutdown() <-chan struct{} {
+func (o *QriOptions) Shutdown() <-chan error {
 	if o.inst == nil {
-		done := make(chan struct{})
-		close(done)
+		done := make(chan error)
+		go func() { done <- nil }()
 		return done
 	}
 	return o.inst.Shutdown()

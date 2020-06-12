@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -187,14 +188,14 @@ func (run *TestRunner) MakeTmpDir(t *testing.T, pattern string) string {
 
 // ExecCommand executes the given command string
 func (run *TestRunner) ExecCommand(cmdText string) error {
-	var shutdown func() <-chan struct{}
+	var shutdown func() <-chan error
 	run.CmdR, shutdown = run.CreateCommandRunner(run.Context)
 	if err := executeCommand(run.CmdR, cmdText); err != nil {
-		<-timedShutdown(fmt.Sprintf("ExecCommand: %q\n", cmdText), shutdown)
+		timedShutdown(fmt.Sprintf("ExecCommand: %q\n", cmdText), shutdown)
 		return err
 	}
 
-	return <-timedShutdown(fmt.Sprintf("ExecCommand: %q\n", cmdText), shutdown)
+	return timedShutdown(fmt.Sprintf("ExecCommand: %q\n", cmdText), shutdown)
 }
 
 // ExecCommandWithStdin executes the given command string with the string as stdin content
@@ -207,35 +208,38 @@ func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinT
 		return err
 	}
 
-	return <-timedShutdown(fmt.Sprintf("ExecCommandCombinedOutErr: %q\n", cmdText), shutdown)
+	return timedShutdown(fmt.Sprintf("ExecCommandCombinedOutErr: %q\n", cmdText), shutdown)
 }
 
 // ExecCommandCombinedOutErr executes the command with a combined stdout and stderr stream
 func (run *TestRunner) ExecCommandCombinedOutErr(cmdText string) error {
 	ctx, cancel := context.WithCancel(run.Context)
-	var shutdown func() <-chan struct{}
+	var shutdown func() <-chan error
 	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(ctx)
 	if err := executeCommand(run.CmdR, cmdText); err != nil {
 		cancel()
 		return err
 	}
 
-	done := timedShutdown(fmt.Sprintf("ExecCommandCombinedOutErr: %q\n", cmdText), shutdown)
+	err := timedShutdown(fmt.Sprintf("ExecCommandCombinedOutErr: %q\n", cmdText), shutdown)
 	cancel()
-	return <-done
+	return err
 }
 
-func timedShutdown(cmd string, shutdown func() <-chan struct{}) chan error {
+func timedShutdown(cmd string, shutdown func() <-chan error) error {
 	waitForDone := make(chan error)
 	go func() {
 		select {
-		case <-time.NewTimer(time.Second * 5).C:
-			waitForDone <- fmt.Errorf("%s shutdown didn't send on 'done' channel within 5 seconds of context cancellation", cmd)
-		case <-shutdown():
-			waitForDone <- nil
+		case <-time.NewTimer(time.Second * 3).C:
+			waitForDone <- fmt.Errorf("%s shutdown didn't send on 'done' channel within 3 seconds of context cancellation", cmd)
+		case err := <-shutdown():
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				err = nil
+			}
+			waitForDone <- err
 		}
 	}()
-	return waitForDone
+	return <-waitForDone
 }
 
 func shutdownRepoGraceful(cancel context.CancelFunc, r repo.Repo) error {
@@ -257,18 +261,17 @@ func shutdownRepoGraceful(cancel context.CancelFunc, r repo.Repo) error {
 
 // ExecCommandWithContext executes the given command with a context
 func (run *TestRunner) ExecCommandWithContext(ctx context.Context, cmdText string) error {
-	var shutdown func() <-chan struct{}
+	var shutdown func() <-chan error
 	run.CmdR, shutdown = run.CreateCommandRunner(run.Context)
 	if err := executeCommand(run.CmdR, cmdText); err != nil {
 		return err
 	}
 
-	done := timedShutdown(fmt.Sprintf("ExecCommandWith ontext: %q\n", cmdText), shutdown)
-	return <-done
+	return timedShutdown(fmt.Sprintf("ExecCommandWith ontext: %q\n", cmdText), shutdown)
 }
 
 func (run *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText string) string {
-	var shutdown func() <-chan struct{}
+	var shutdown func() <-chan error
 	run.CmdR, shutdown = run.CreateCommandRunner(run.Context)
 
 	if err := executeQuotedCommand(run.CmdR, quotedCmdText); err != nil {
@@ -279,26 +282,24 @@ func (run *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText stri
 			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
 		}
 	}
-	done := timedShutdown(fmt.Sprintf("MustExecuteQuotedCommand: %q\n", quotedCmdText), shutdown)
-	err := <-done
-	if err != nil {
+	if err := timedShutdown(fmt.Sprintf("MustExecuteQuotedCommand: %q\n", quotedCmdText), shutdown); err != nil {
 		t.Error(err)
 	}
 	return run.GetCommandOutput()
 }
 
 // CreateCommandRunner returns a cobra runable command.
-func (run *TestRunner) CreateCommandRunner(ctx context.Context) (*cobra.Command, func() <-chan struct{}) {
+func (run *TestRunner) CreateCommandRunner(ctx context.Context) (*cobra.Command, func() <-chan error) {
 	return run.newCommandRunner(ctx, false)
 }
 
 // CreateCommandRunnerCombinedOutErr returns a cobra command that combines stdout and stderr
-func (run *TestRunner) CreateCommandRunnerCombinedOutErr(ctx context.Context) (*cobra.Command, func() <-chan struct{}) {
+func (run *TestRunner) CreateCommandRunnerCombinedOutErr(ctx context.Context) (*cobra.Command, func() <-chan error) {
 	cmd, shutdown := run.newCommandRunner(ctx, true)
 	return cmd, shutdown
 }
 
-func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool) (*cobra.Command, func() <-chan struct{}) {
+func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool) (*cobra.Command, func() <-chan error) {
 	run.IOReset()
 	streams := run.Streams
 	if combineOutErr {
@@ -373,18 +374,18 @@ func (run *TestRunner) LookupVersionInfo(t *testing.T, refStr string) *dsref.Ver
 
 	// TODO(b5) - hand-creating a shutdown function to satisfy "timedshutdown",
 	// which works with an instance in most other cases
-	shutdown := func() <-chan struct{} {
-		finished := make(chan struct{})
+	shutdown := func() <-chan error {
+		finished := make(chan error)
 		go func() {
 			<-r.Done()
-			close(finished)
+			finished <- r.DoneErr()
 		}()
 
 		cancel()
 		return finished
 	}
 
-	err = <-timedShutdown("LookupVersionInfo", shutdown)
+	err = timedShutdown("LookupVersionInfo", shutdown)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -411,19 +412,18 @@ func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
 	datasetRef.FSIPath = ""
 	r.PutRef(datasetRef)
 
-	shutdown := func() <-chan struct{} {
-		finished := make(chan struct{})
+	shutdown := func() <-chan error {
+		finished := make(chan error)
 		go func() {
 			<-r.Done()
-			close(finished)
+			finished <- r.DoneErr()
 		}()
 
 		cancel()
 		return finished
 	}
 
-	done := timedShutdown("ClearFSIPath", shutdown)
-	if err := <-done; err != nil {
+	if err := timedShutdown("ClearFSIPath", shutdown); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -480,7 +480,7 @@ func (run *TestRunner) MustExec(t *testing.T, cmdText string) string {
 // MustExec runs a command, returning combined standard output and standard err
 func (run *TestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
 	ctx, cancel := context.WithCancel(run.Context)
-	var shutdown func() <-chan struct{}
+	var shutdown func() <-chan error
 	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(ctx)
 	err := executeCommand(run.CmdR, cmdText)
 	if err != nil {
@@ -493,9 +493,9 @@ func (run *TestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) stri
 		}
 	}
 
-	done := timedShutdown("MustExecCombinedOutErr", shutdown)
+	err = timedShutdown("MustExecCombinedOutErr", shutdown)
 	cancel()
-	if err := <-done; err != nil {
+	if err != nil {
 		t.Fatal(err)
 	}
 	return run.GetCommandOutput()

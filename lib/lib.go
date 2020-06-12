@@ -627,19 +627,13 @@ func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node 
 // contain qri business logic. Think of instance as the "core" of the qri
 // ecosystem. Create an Instance pointer with NewInstance
 type Instance struct {
-	cancel    context.CancelFunc
-	doneCh    chan struct{}
-	doneErr   error
-	releasers sync.WaitGroup
-
 	repoPath string
 	cfg      *config.Config
 
-	streams ioes.IOStreams
-	repo    repo.Repo
-	store   cafs.Filestore
-	node    *p2p.QriNode
-
+	streams      ioes.IOStreams
+	repo         repo.Repo
+	store        cafs.Filestore
+	node         *p2p.QriNode
 	qfs          qfs.Filesystem
 	fsi          *fsi.FSI
 	remote       *remote.Remote
@@ -649,10 +643,14 @@ type Instance struct {
 	logbook      *logbook.Book
 	dscache      *dscache.Dscache
 	bus          event.Bus
-
-	Watcher *watchfs.FilesysWatcher
+	Watcher      *watchfs.FilesysWatcher
 
 	rpc *rpc.Client
+
+	cancel    context.CancelFunc
+	doneCh    chan struct{}
+	doneErr   error
+	releasers sync.WaitGroup
 }
 
 // Connect takes an instance online
@@ -683,11 +681,17 @@ func (inst *Instance) Config() *config.Config {
 	return inst.cfg
 }
 
-// Shutdown closes the instance if it isn't already closing returning a channel
-// that will close when completed
-func (inst *Instance) Shutdown() <-chan struct{} {
+// Shutdown closes the instance, releasing all held resources. the returned
+// channel will write any closing error, including context cancellation
+// timeout
+func (inst *Instance) Shutdown() <-chan error {
+	errCh := make(chan error)
+	go func() {
+		<-inst.doneCh
+		errCh <- inst.doneErr
+	}()
 	inst.cancel()
-	return inst.doneCh
+	return errCh
 }
 
 // FSI returns methods for using filesystem integration
