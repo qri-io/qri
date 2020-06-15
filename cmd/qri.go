@@ -151,7 +151,6 @@ func (o *QriOptions) Init() (err error) {
 	setNoPrompt(o.NoPrompt)
 	log.Debugf("running cmd %q", os.Args)
 
-	// go o.waitForAllDone()
 	return
 }
 

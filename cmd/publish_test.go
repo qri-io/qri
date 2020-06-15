@@ -22,7 +22,8 @@ func TestPublish(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer cleanup()
-	// TODO(b5): need to defer in this orderd. the deferred cleanup command blocks on done
+	// TODO(b5): need to defer in this order. the deferred cleanup command blocks on done,
+	// which is in turn blocked on cancel. deferring in the other order deadlocks.
 	// the smarter way to deal with this is to refactor TempRegistry to use the Done pattern
 	defer cancel()
 

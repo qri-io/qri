@@ -196,7 +196,8 @@ func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
 
 // LoadDataset from the temp repository
 func (r *TempRepo) LoadDataset(ref string) (*dataset.Dataset, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	fs, err := qipfs.NewFilesystem(ctx, map[string]interface{}{
 		"online": false,
 		"path":   r.IPFSPath,
@@ -209,7 +210,10 @@ func (r *TempRepo) LoadDataset(ref string) (*dataset.Dataset, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ds, nil
+	done := gracefulShutdown(fs.(qfs.ReleasingFilesystem).Done())
+	cancel()
+	err = <-done
+	return ds, err
 }
 
 // WriteRootFile writes a file string to the root directory of the temp repo

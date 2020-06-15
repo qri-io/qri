@@ -372,7 +372,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 		if releaser, ok := inst.qfs.(qfs.ReleasingFilesystem); ok {
 			go func() {
-				//inst.waitForOneDone(releaser.Done())
 				inst.releasers.Add(1)
 				<-releaser.Done()
 				inst.doneErr = releaser.DoneErr()
