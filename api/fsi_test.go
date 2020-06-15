@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -26,7 +27,10 @@ func TestFSIHandlers(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	inst := newTestInstanceWithProfileFromNode(node)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	inst := newTestInstanceWithProfileFromNode(ctx, node)
 	h := NewFSIHandlers(inst, false)
 
 	// TODO (b5) - b/c of the way our API snapshotting we have to write these
@@ -222,7 +226,10 @@ func TestFSIWrite(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	inst := newTestInstanceWithProfileFromNode(node)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	inst := newTestInstanceWithProfileFromNode(ctx, node)
 
 	tmpDir := os.TempDir()
 	workSubdir := "write_test"
@@ -309,7 +316,10 @@ func TestCheckoutAndRestore(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	inst := newTestInstanceWithProfileFromNode(node)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	inst := newTestInstanceWithProfileFromNode(ctx, node)
 
 	tmpDir := os.TempDir()
 	workSubdir := "fsi_checkout_restore"

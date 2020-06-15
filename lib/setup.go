@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/repo/gen"
 )
 
@@ -33,7 +33,7 @@ func Setup(p SetupParams) error {
 
 	if p.SetupIPFS {
 		// IPFS plugins need to be loaded
-		if err := buildrepo.LoadIPFSPluginsOnce(p.IPFSFsPath); err != nil {
+		if err := qipfs.LoadIPFSPluginsOnce(p.IPFSFsPath); err != nil {
 			return err
 		}
 

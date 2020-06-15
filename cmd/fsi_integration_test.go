@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -48,7 +49,9 @@ func (run *FSITestRunner) MustExec(t *testing.T, cmdText string) string {
 
 // MustExec runs a command, returning combined standard output and standard err
 func (run *FSITestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
-	run.CmdR = run.CreateCommandRunnerCombinedOutErr(run.Context)
+	var shutdown func() <-chan error
+
+	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(context.Background())
 	err := executeCommand(run.CmdR, cmdText)
 	if err != nil {
 		_, callerFile, callerLine, ok := runtime.Caller(1)
@@ -57,6 +60,10 @@ func (run *FSITestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) s
 		} else {
 			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
 		}
+	}
+
+	if err := timedShutdown(fmt.Sprintf("MustExecCombinedOutErr: %q", cmdText), shutdown); err != nil {
+		t.Fatal(err)
 	}
 	return run.GetCommandOutput()
 }
@@ -113,6 +120,9 @@ func newFSITestRunnerFromInner(t *testing.T, inner *TestRunner) *FSITestRunner {
 	run.Teardown = func() {
 		os.Chdir(run.Pwd)
 		os.RemoveAll(run.RootPath)
+		if inner.Teardown != nil {
+			inner.Teardown()
+		}
 	}
 
 	return &run

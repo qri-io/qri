@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
@@ -39,8 +40,8 @@ func TestAddDataset(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tr.NodeA.GoOnline()
-	tr.NodeB.GoOnline()
+	tr.NodeA.GoOnline(tr.Ctx)
+	tr.NodeB.GoOnline(tr.Ctx)
 
 	if err := cli.AddDataset(tr.Ctx, &reporef.DatasetRef{Peername: "foo", Name: "bar"}, ""); err == nil {
 		t.Error("expected add of invalid ref to error")
@@ -163,8 +164,8 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 }
 
 func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
-	return qfs.NewMux(map[string]qfs.Filesystem{
-		"cafs": cafsys,
+	return muxfs.NewMux(map[string]qfs.Filesystem{
+		"mem": cafsys,
 	})
 }
 

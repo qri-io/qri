@@ -6,6 +6,7 @@ import (
 	"net/rpc"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
@@ -16,7 +17,7 @@ import (
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *cobra.Command {
+func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan error) {
 
 	qriPath, ipfsPath := pf()
 	opt := NewQriOptions(ctx, qriPath, ipfsPath, generator, ioStreams)
@@ -77,7 +78,7 @@ https://github.com/qri-io/qri/issues`,
 		sub.SetUsageTemplate(defaultUsageTemplate)
 	}
 
-	return cmd
+	return cmd, opt.Shutdown
 }
 
 // QriOptions holds the Root Command State
@@ -86,7 +87,9 @@ type QriOptions struct {
 
 	// TODO (b5) - this context should be refactored away, prefering to pass
 	// this stored context object down through function calls
-	ctx context.Context
+	ctx       context.Context
+	releasers sync.WaitGroup
+	doneCh    chan struct{}
 
 	// path to the QRI repository directory
 	RepoPath string
@@ -111,6 +114,7 @@ func NewQriOptions(ctx context.Context, qriPath, ipfsPath string, generator gen.
 	return &QriOptions{
 		IOStreams: ioStreams,
 		ctx:       ctx,
+		doneCh:    make(chan struct{}),
 		RepoPath:  qriPath,
 		IpfsPath:  ipfsPath,
 		generator: generator,
@@ -119,32 +123,35 @@ func NewQriOptions(ctx context.Context, qriPath, ipfsPath string, generator gen.
 
 // Init will initialize the internal state
 func (o *QriOptions) Init() (err error) {
-	if o.inst == nil {
-		opts := []lib.Option{
-			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
-			lib.OptSetIPFSPath(o.IpfsPath),
-			lib.OptCheckConfigMigrations(),
-			lib.OptSetLogAll(o.LogAll),
-		}
-		o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
-		if err != nil {
-			return err
-		}
-		// Handle color and prompt flags which apply to every command
-		shouldColorOutput := !o.NoColor
-		cfg := o.inst.Config()
-		if cfg != nil && cfg.CLI != nil {
-			shouldColorOutput = cfg.CLI.ColorizeOutput
-		}
-		// todo(arqu): have a config var to indicate force override for windows
-		if runtime.GOOS == "windows" {
-			shouldColorOutput = false
-		}
-		setNoColor(!shouldColorOutput)
-		setNoPrompt(o.NoPrompt)
-		log.Debugf("running cmd %q", os.Args)
+	if o.inst != nil {
+		return
 	}
-	return nil
+	opts := []lib.Option{
+		lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
+		lib.OptSetIPFSPath(o.IpfsPath),
+		lib.OptCheckConfigMigrations(),
+		lib.OptSetLogAll(o.LogAll),
+	}
+	o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
+	if err != nil {
+		return
+	}
+
+	// Handle color and prompt flags which apply to every command
+	shouldColorOutput := !o.NoColor
+	cfg := o.inst.Config()
+	if cfg != nil && cfg.CLI != nil {
+		shouldColorOutput = cfg.CLI.ColorizeOutput
+	}
+	// todo(arqu): have a config var to indicate force override for windows
+	if runtime.GOOS == "windows" {
+		shouldColorOutput = false
+	}
+	setNoColor(!shouldColorOutput)
+	setNoPrompt(o.NoPrompt)
+	log.Debugf("running cmd %q", os.Args)
+
+	return
 }
 
 // Instance returns the instance this options is using
@@ -291,4 +298,14 @@ func (o *QriOptions) FSIMethods() (m *lib.FSIMethods, err error) {
 	}
 
 	return lib.NewFSIMethods(o.inst), nil
+}
+
+// Shutdown closes the instance
+func (o *QriOptions) Shutdown() <-chan error {
+	if o.inst == nil {
+		done := make(chan error)
+		go func() { done <- nil }()
+		return done
+	}
+	return o.inst.Shutdown()
 }

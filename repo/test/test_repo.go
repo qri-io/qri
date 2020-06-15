@@ -5,11 +5,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 	"runtime"
 
-	"github.com/ghodss/yaml"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
@@ -17,6 +15,8 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
@@ -84,10 +84,14 @@ func NewEmptyTestRepo() (mr *repo.MemRepo, err error) {
 }
 
 func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
-	return qfs.NewMux(map[string]qfs.Filesystem{
-		"local": localfs.NewFS(),
-		"http":  httpfs.NewFS(),
-		"cafs":  cafsys,
+	lfs, _ := localfs.NewFS(nil)
+	hfs, _ := httpfs.NewFS(nil)
+	mem := qfs.NewMemFS()
+	return muxfs.NewMux(map[string]qfs.Filesystem{
+		"local": lfs,
+		"http":  hfs,
+		"map":   cafsys,
+		"mem":   mem,
 	})
 }
 
@@ -286,64 +290,79 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 // on each case with the given privatekey, yeilding a repo where the peer with
 // this pk has created each dataset in question
 func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
-	pro, pk, err := ReadRepoConfig(filepath.Join(path, "config.yaml"))
+	// TODO (b5) - use a function & a contstant to get this path
+	cfgPath := filepath.Join(path, "config.yaml")
+
+	cfg, err := config.ReadFromFile(cfgPath)
 	if err != nil {
-		return nil, pk, err
+		return nil, nil, err
+	}
+
+	pro, err := profile.NewProfile(cfg.Profile)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	ms := cafs.NewMapstore()
 	mr, err := repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore())
 	if err != nil {
-		return mr, pk, err
+		return mr, pro.PrivKey, err
 	}
 
 	tc, err := dstest.LoadTestCases(path)
 	if err != nil {
-		return mr, pk, err
+		return mr, pro.PrivKey, err
 	}
 
 	for _, c := range tc {
 		if _, err := createDataset(mr, c); err != nil {
-			return mr, pk, err
+			return mr, pro.PrivKey, err
 		}
 	}
 
-	return mr, pk, nil
+	return mr, pro.PrivKey, nil
 }
 
-// ReadRepoConfig loads configuration data from a .yaml file
-func ReadRepoConfig(path string) (pro *profile.Profile, pk crypto.PrivKey, err error) {
-	cfgData, err := ioutil.ReadFile(path)
+// NewIPFSRepoFromDir reads a director of testCases and calls createDataset
+// on each case with the given privatekey, yeilding a repo where the peer with
+// this pk has created each dataset in question. Uses an IPFS enabled repo.
+// path should be the basepath above the qri and ipfs repos
+func NewIPFSRepoFromDir(qriPath, ipfsPath string) (repo.Repo, crypto.PrivKey, error) {
+	cfg, err := config.ReadFromFile(filepath.Join(qriPath, "config.yaml"))
+	pro := &profile.Profile{}
+	if err := pro.Decode(cfg.Profile); err != nil {
+		return nil, nil, err
+	}
+	if err := qipfs.LoadIPFSPluginsOnce(ipfsPath); err != nil {
+		return nil, nil, err
+	}
+	muxCfg := []muxfs.MuxConfig{
+		{Type: "local"},
+		{Type: "http"},
+		{Type: "ipfs", Config: map[string]interface{}{"path": ipfsPath}},
+		{Type: "mem"},
+	}
+	ms, err := muxfs.New(context.TODO(), muxCfg)
 	if err != nil {
-		err = fmt.Errorf("error reading config file: %s", err.Error())
-		return
+		return nil, pro.PrivKey, err
 	}
-
-	cfg := &struct {
-		PrivateKey string
-		Profile    *profile.Profile
-	}{}
-	if err = yaml.Unmarshal(cfgData, &cfg); err != nil {
-		err = fmt.Errorf("error unmarshaling yaml data: %s", err.Error())
-		return
-	}
-
-	pro = cfg.Profile
-
-	pkdata, err := base64.StdEncoding.DecodeString(cfg.PrivateKey)
+	mr, err := repo.NewMemRepo(pro, ms.CAFSStoreFromIPFS(), ms, profile.NewMemStore())
 	if err != nil {
-		err = fmt.Errorf("invalde privatekey: %s", err.Error())
-		return
+		return mr, pro.PrivKey, err
 	}
 
-	pk, err = crypto.UnmarshalPrivateKey(pkdata)
+	tc, err := dstest.LoadTestCases(qriPath)
 	if err != nil {
-		err = fmt.Errorf("error unmarshaling privatekey: %s", err.Error())
-		return
+		return mr, pro.PrivKey, err
 	}
-	pro.PrivKey = pk
 
-	return
+	for _, c := range tc {
+		if _, err := createDataset(mr, c); err != nil {
+			return mr, pro.PrivKey, err
+		}
+	}
+
+	return mr, pro.PrivKey, nil
 }
 
 // BadBodyFile is a bunch of bad CSV data

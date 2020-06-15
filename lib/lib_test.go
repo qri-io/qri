@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
@@ -22,7 +23,6 @@ import (
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
@@ -52,24 +52,29 @@ func init() {
 		panic(fmt.Errorf("error unmarshaling private key: %s", err.Error()))
 	}
 	testPeerProfile.PrivKey = privKey
-
-	// call LoadPlugins once with the empty string b/c we only rely on standard
-	// plugin set
-	if err := buildrepo.LoadIPFSPluginsOnce(""); err != nil {
-		panic(err)
-	}
 }
 
 func TestNewInstance(t *testing.T) {
-	var err error
+	if _, err := NewInstance(context.Background(), ""); err == nil {
+		t.Error("expected NewInstance to error when provided no repo path")
+	}
+
+	tr, err := repotest.NewTempRepo("foo", "new_instance_test", repotest.NewTestCrypto())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tr.Delete()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	cfg := config.DefaultConfigForTesting()
 	cfg.Store.Type = "map"
 	cfg.Repo.Type = "mem"
 
-	got, err := NewInstance(context.Background(), os.TempDir(), OptConfig(cfg))
+	got, err := NewInstance(ctx, tr.QriPath, OptConfig(cfg))
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	expect := &Instance{
@@ -80,9 +85,17 @@ func TestNewInstance(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, err = NewInstance(context.Background(), ""); err == nil {
-		t.Error("expected NewInstance to error when provided no repo path")
-	}
+	finished := make(chan struct{})
+	go func() {
+		select {
+		case <-time.NewTimer(time.Millisecond * 100).C:
+			t.Errorf("done didn't fire within 100ms of canceling instance context")
+		case <-got.Shutdown():
+		}
+		finished <- struct{}{}
+	}()
+	cancel()
+	<-finished
 }
 
 func TestNewDefaultInstance(t *testing.T) {

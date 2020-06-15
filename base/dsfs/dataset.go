@@ -604,18 +604,22 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
 		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
 		// local here. Is there some way to have a cafs store that works with both?
-		err := ds.Transform.OpenScriptFile(ctx, localfs.NewFS())
+		fs, err := localfs.NewFS(nil)
 		if err != nil {
-			log.Error("ds.Transform.ScriptPath %q open err: %s", ds.Transform.ScriptPath, err)
+			log.Errorf("error setting up local fs: %s", err)
+		}
+		err = ds.Transform.OpenScriptFile(ctx, fs)
+		if err != nil {
+			log.Errorf("ds.Transform.ScriptPath %q open err: %s", ds.Transform.ScriptPath, err)
 		} else {
 			tfFile := ds.Transform.ScriptFile()
 			ds.Transform.ScriptBytes, err = ioutil.ReadAll(tfFile)
 			if err != nil {
-				log.Error("ds.Transform.ScriptPath %q read err: %s", ds.Transform.ScriptPath, err)
+				log.Errorf("ds.Transform.ScriptPath %q read err: %s", ds.Transform.ScriptPath, err)
 			}
 		}
 		// Reopen the transform file so that WriteDataset will be able to write it to the store.
-		_ = ds.Transform.OpenScriptFile(ctx, localfs.NewFS())
+		_ = ds.Transform.OpenScriptFile(ctx, fs)
 	}
 
 	// Read the readme files to see if they changed.
@@ -635,7 +639,11 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 	if ds.Readme != nil && ds.Readme.ScriptPath != "" {
 		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
 		// local here. Is there some way to have a cafs store that works with both?
-		err := ds.Readme.OpenScriptFile(ctx, localfs.NewFS())
+		fs, err := localfs.NewFS(nil)
+		if err != nil {
+			log.Error("localfs.NewFS err: %s", err)
+		}
+		err = ds.Readme.OpenScriptFile(ctx, fs)
 		if err != nil {
 			log.Error("ds.Readme.ScriptPath %q open err: %s", ds.Readme.ScriptPath, err)
 		} else {
@@ -645,8 +653,7 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 				log.Error("ds.Readme.ScriptPath %q read err: %s", ds.Readme.ScriptPath, err)
 			}
 		}
-		// Reopen the readme file so that WriteDataset will be able to write it to the store.
-		_ = ds.Readme.OpenScriptFile(ctx, localfs.NewFS())
+		_ = ds.Readme.OpenScriptFile(ctx, fs)
 	}
 
 	var prevData map[string]interface{}

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/qri-io/ioes"
@@ -97,9 +98,9 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 }
 
 // Run executes the connect command with currently configured state
-func (o *ConnectOptions) Run() (err error) {
-	s := api.New(o.inst)
-	err = s.Serve(o.inst.Context())
+func (o *ConnectOptions) Run() error {
+	ctx := context.Background()
+	err := api.New(o.inst).Serve(ctx)
 	if err != nil && err.Error() == "http: Server closed" {
 		return nil
 	}

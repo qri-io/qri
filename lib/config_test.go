@@ -2,6 +2,7 @@ package lib
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"testing"
 
@@ -11,6 +12,9 @@ import (
 )
 
 func TestGetConfig(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cfg := config.DefaultConfigForTesting()
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
@@ -22,7 +26,7 @@ func TestGetConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	inst := NewInstanceFromConfigAndNode(cfg, node)
+	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 	m := NewConfigMethods(inst)
 
 	p := &GetConfigParams{Field: "profile.id", Format: "json"}
@@ -36,6 +40,9 @@ func TestGetConfig(t *testing.T) {
 }
 
 func TestSaveConfigToFile(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	path, err := ioutil.TempDir("", "save_config_test")
 	if err != nil {
 		t.Fatal(err.Error())
@@ -54,7 +61,7 @@ func TestSaveConfigToFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	inst := NewInstanceFromConfigAndNode(cfg, node)
+	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 	m := NewConfigMethods(inst)
 
 	var ok bool
@@ -64,6 +71,9 @@ func TestSaveConfigToFile(t *testing.T) {
 }
 
 func TestSetConfig(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cfg := config.DefaultConfigForTesting()
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
@@ -75,7 +85,7 @@ func TestSetConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	inst := NewInstanceFromConfigAndNode(cfg, node)
+	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 	m := NewConfigMethods(inst)
 
 	var set bool

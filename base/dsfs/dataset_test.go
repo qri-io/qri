@@ -19,18 +19,9 @@ import (
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/base/toqtype"
 	testPeers "github.com/qri-io/qri/config/test"
 )
-
-func init() {
-	// call LoadPlugins once with the empty string b/c we only rely on standard
-	// plugins
-	if err := ipfs_filestore.LoadPlugins(""); err != nil {
-		panic(err)
-	}
-}
 
 func TestLoadDataset(t *testing.T) {
 	ctx := context.Background()

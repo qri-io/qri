@@ -33,7 +33,7 @@ func (tr *testRunner) IPFSBackedQriNode(t *testing.T, username string) *QriNode 
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := p2ptest.MakeRepoFromIPFSNode(ipfs, username)
+	r, err := p2ptest.MakeRepoFromIPFSNode(tr.Ctx, ipfs, username)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -66,17 +66,18 @@ func (n *QriNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
 	// tag the connection as more important in the conn manager:
 	n.host.ConnManager().TagPeer(pid, qriSupportKey, qriSupportValue)
 
-	if _, err := n.RequestProfile(n.Context(), pid); err != nil {
+	ctx := context.TODO()
+	if _, err := n.RequestProfile(ctx, pid); err != nil {
 		log.Debug(err.Error())
 		return err
 	}
 
 	go func() {
-		ps, err := n.RequestQriPeers(n.Context(), pid)
+		ps, err := n.RequestQriPeers(ctx, pid)
 		if err != nil {
 			log.Debug("error fetching qri peers: %s", err)
 		}
-		n.RequestNewPeers(n.ctx, ps)
+		n.RequestNewPeers(ctx, ps)
 	}()
 
 	return nil

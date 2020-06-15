@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -12,7 +13,10 @@ func TestUseComplete(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_use_complete")
 	defer run.Delete()
 
-	f, err := NewTestFactory()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	f, err := NewTestFactory(ctx)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -93,9 +97,12 @@ func TestUseRun(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_use_run")
 	defer run.Delete()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	tmpDir := run.MakeTmpDir(t, "qri_use_test")
 
-	_, err := NewTestFactory()
+	_, err := NewTestFactory(ctx)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return

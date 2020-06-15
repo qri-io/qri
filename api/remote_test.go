@@ -2,6 +2,7 @@ package api
 
 import (
 	// "math/rand"
+	"context"
 	"testing"
 )
 
@@ -11,7 +12,10 @@ func TestRemoteClientHandlers(t *testing.T) {
 	node, teardown := newTestNodeWithNumDatasets(t, 2)
 	defer teardown()
 
-	inst := newTestInstanceWithProfileFromNode(node)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	inst := newTestInstanceWithProfileFromNode(ctx, node)
 	l := NewLogHandlers(inst)
 	h := NewRemoteClientHandlers(inst, false)
 

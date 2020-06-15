@@ -27,7 +27,7 @@ type TestablePeerNode interface {
 	Host() host.Host
 	SimplePeerInfo() pstore.PeerInfo
 	UpgradeToQriConnection(pstore.PeerInfo) error
-	GoOnline() error
+	GoOnline(ctx context.Context) error
 }
 
 // NodeMakerFunc is a function that constructs a Node from a Repo and options.
@@ -78,7 +78,7 @@ func NewTestNetwork(ctx context.Context, f *TestNodeFactory, num int) ([]Testabl
 		if err != nil {
 			return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 		}
-		node, err := NewAvailableTestNode(r, f)
+		node, err := NewAvailableTestNode(ctx, r, f)
 		if err != nil {
 			return nil, err
 		}
@@ -105,7 +105,7 @@ func NewTestDirNetwork(ctx context.Context, f *TestNodeFactory) ([]TestablePeerN
 				return nil, err
 			}
 
-			node, err := NewAvailableTestNode(repo, f)
+			node, err := NewAvailableTestNode(ctx, repo, f)
 			if err != nil {
 				return nil, err
 			}
@@ -116,7 +116,7 @@ func NewTestDirNetwork(ctx context.Context, f *TestNodeFactory) ([]TestablePeerN
 }
 
 // NewAvailableTestNode constructs a test node that is hooked up and ready to Connect
-func NewAvailableTestNode(r repo.Repo, f *TestNodeFactory) (TestablePeerNode, error) {
+func NewAvailableTestNode(ctx context.Context, r repo.Repo, f *TestNodeFactory) (TestablePeerNode, error) {
 	info := f.NextInfo()
 	addr, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
 	p2pconf := config.DefaultP2P()
@@ -126,7 +126,7 @@ func NewAvailableTestNode(r repo.Repo, f *TestNodeFactory) (TestablePeerNode, er
 	if err != nil {
 		return nil, fmt.Errorf("error creating test node: %s", err.Error())
 	}
-	if err := node.GoOnline(); err != nil {
+	if err := node.GoOnline(ctx); err != nil {
 		return nil, fmt.Errorf("errror connecting: %s", err.Error())
 	}
 	node.Host().Peerstore().AddPubKey(info.PeerID, info.PubKey)

@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,6 +13,8 @@ import (
 )
 
 func TestSearch(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write(mockResponse)
@@ -26,7 +29,7 @@ func TestSearch(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfig(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfig(), node)
 	inst.registry = rc
 
 	m := NewSearchMethods(inst)

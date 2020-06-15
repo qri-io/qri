@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	golog "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
@@ -21,6 +22,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
@@ -257,6 +259,14 @@ func OptLogbook(bk *logbook.Book) Option {
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
+	ctx, cancel := context.WithCancel(ctx)
+	ok := false
+	defer func() {
+		if !ok {
+			cancel()
+		}
+	}()
+
 	if repoPath == "" {
 		return nil, fmt.Errorf("repo path is required")
 	}
@@ -308,10 +318,10 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		return
 	}
 
-	ctx, teardown := context.WithCancel(ctx)
 	inst := &Instance{
-		ctx:      ctx,
-		teardown: teardown,
+		cancel: cancel,
+		doneCh: make(chan struct{}),
+
 		repoPath: repoPath,
 		cfg:      cfg,
 
@@ -352,22 +362,38 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	if o.store != nil {
-		inst.store = o.store
-	} else if inst.store == nil {
-		if inst.store, err = buildrepo.NewCAFSStore(ctx, cfg); err != nil {
-			log.Error("intializing store:", err.Error())
-			return nil, fmt.Errorf("newStore: %s", err)
-		}
-	}
-
 	if o.qfs != nil {
 		inst.qfs = o.qfs
 	} else if inst.qfs == nil {
-		if inst.qfs, err = buildrepo.NewFilesystem(cfg, inst.store); err != nil {
-			log.Error("intializing filesystem:", err.Error())
-			return nil, fmt.Errorf("newFilesystem: %s", err)
+		inst.qfs, err = buildrepo.NewFilesystem(ctx, cfg)
+		if err != nil {
+			return nil, err
 		}
+
+		if releaser, ok := inst.qfs.(qfs.ReleasingFilesystem); ok {
+			go func() {
+				inst.releasers.Add(1)
+				<-releaser.Done()
+				inst.doneErr = releaser.DoneErr()
+				inst.releasers.Done()
+			}()
+		}
+	}
+
+	if o.store != nil {
+		inst.store = o.store
+	} else if inst.store == nil {
+		fs, err := muxfs.GetResolver(inst.qfs, cfg.Store.Type)
+		if err != nil {
+			log.Debugf("getting store from filesystem: %s", err.Error())
+			return nil, fmt.Errorf("getting store from filesystem: %w", err)
+		}
+		cafs, ok := fs.(cafs.Filestore)
+		if !ok {
+			log.Debugf("error asserting store is a cafs filestore: fs=%#v", err.Error())
+			return nil, fmt.Errorf("error asserting store is a cafs filestore: fs=%#v", err.Error())
+		}
+		inst.store = cafs
 	}
 
 	var pro *profile.Profile
@@ -378,7 +404,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if inst.logbook == nil {
 		inst.logbook, err = newLogbook(inst.qfs, cfg, pro, inst.repoPath)
 		if err != nil {
-			return nil, fmt.Errorf("newLogbook: %w", err)
+			return nil, fmt.Errorf("intializing logbook: %w", err)
 		}
 	}
 
@@ -450,6 +476,8 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	go inst.waitForAllDone()
+	ok = true
 	return
 }
 
@@ -544,12 +572,13 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 // don't write new code that relies on this, instead create a configuration
 // and options that can be fed to NewInstance
 // This function must only be used for testing purposes
-func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instance {
-	ctx, teardown := context.WithCancel(context.Background())
+func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node *p2p.QriNode) *Instance {
+	ctx, cancel := context.WithCancel(ctx)
 
 	r := node.Repo
 	pro, err := r.Profile()
 	if err != nil {
+		cancel()
 		panic(err)
 	}
 	bus := event.NewBus(ctx)
@@ -564,16 +593,18 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 	}
 
 	inst := &Instance{
-		ctx:      ctx,
-		teardown: teardown,
-		cfg:      cfg,
-		node:     node,
-		dscache:  dc,
-		stats:    stats.New(nil),
+		cancel: cancel,
+		doneCh: make(chan struct{}),
+
+		cfg:     cfg,
+		node:    node,
+		dscache: dc,
+		stats:   stats.New(nil),
 	}
 
 	inst.remoteClient, err = remote.NewClient(node)
 	if err != nil {
+		cancel()
 		panic(err)
 	}
 
@@ -585,6 +616,7 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 		inst.fsi = fsint
 	}
 
+	go inst.waitForAllDone()
 	return inst
 }
 
@@ -594,17 +626,13 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 // contain qri business logic. Think of instance as the "core" of the qri
 // ecosystem. Create an Instance pointer with NewInstance
 type Instance struct {
-	ctx      context.Context
-	teardown context.CancelFunc
-
 	repoPath string
 	cfg      *config.Config
 
-	streams ioes.IOStreams
-	repo    repo.Repo
-	store   cafs.Filestore
-	node    *p2p.QriNode
-
+	streams      ioes.IOStreams
+	repo         repo.Repo
+	store        cafs.Filestore
+	node         *p2p.QriNode
 	qfs          qfs.Filesystem
 	fsi          *fsi.FSI
 	remote       *remote.Remote
@@ -614,15 +642,19 @@ type Instance struct {
 	logbook      *logbook.Book
 	dscache      *dscache.Dscache
 	bus          event.Bus
-
-	Watcher *watchfs.FilesysWatcher
+	Watcher      *watchfs.FilesysWatcher
 
 	rpc *rpc.Client
+
+	cancel    context.CancelFunc
+	doneCh    chan struct{}
+	doneErr   error
+	releasers sync.WaitGroup
 }
 
 // Connect takes an instance online
 func (inst *Instance) Connect(ctx context.Context) (err error) {
-	if err = inst.node.GoOnline(); err != nil {
+	if err = inst.node.GoOnline(ctx); err != nil {
 		log.Debugf("taking node online: %s", err.Error())
 		return
 	}
@@ -640,23 +672,40 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	return nil
 }
 
-// Context returns the base context for this instance
-func (inst *Instance) Context() context.Context {
-	return inst.ctx
-}
-
 // Config provides methods for manipulating Qri configuration
 func (inst *Instance) Config() *config.Config {
+	if inst == nil {
+		return nil
+	}
 	return inst.cfg
+}
+
+// Shutdown closes the instance, releasing all held resources. the returned
+// channel will write any closing error, including context cancellation
+// timeout
+func (inst *Instance) Shutdown() <-chan error {
+	errCh := make(chan error)
+	go func() {
+		<-inst.doneCh
+		errCh <- inst.doneErr
+	}()
+	inst.cancel()
+	return errCh
 }
 
 // FSI returns methods for using filesystem integration
 func (inst *Instance) FSI() *fsi.FSI {
+	if inst == nil {
+		return nil
+	}
 	return inst.fsi
 }
 
 // Bus returns the event.Bus
 func (inst *Instance) Bus() event.Bus {
+	if inst == nil {
+		return nil
+	}
 	return inst.bus
 }
 
@@ -735,9 +784,12 @@ func (inst *Instance) RemoteClient() remote.Client {
 	return inst.remoteClient
 }
 
-// Teardown destroys the instance, releasing reserved resources
-func (inst *Instance) Teardown() {
-	inst.teardown()
+// Store returns the qfs filesystem
+func (inst *Instance) Store() qfs.Filesystem {
+	if inst == nil {
+		return nil
+	}
+	return inst.store
 }
 
 // checkRPCError validates RPC errors and in case of EOF returns a
@@ -758,4 +810,10 @@ Error:
 		return qrierr.New(err, fmt.Sprintf(msg, err.Error()))
 	}
 	return err
+}
+
+func (inst *Instance) waitForAllDone() {
+	inst.releasers.Wait()
+	log.Debug("closing instance")
+	close(inst.doneCh)
 }

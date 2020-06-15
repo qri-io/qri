@@ -7,55 +7,29 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	ipfs "github.com/qri-io/qfs/cafs/ipfs"
-	"github.com/qri-io/qfs/cafs/ipfs_http"
-	"github.com/qri-io/qfs/httpfs"
-	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qfs/qipfs/qipfs_http"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/fs"
+	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 )
 
-var (
-	pluginLoadLock  sync.Once
-	pluginLoadError error
-)
-
-// LoadIPFSPluginsOnce runs IPFS plugin initialization.
-// we need to load plugins before attempting to configure IPFS, flatfs is
-// specified as part of the default IPFS configuration, but all flatfs
-// code is loaded as a plugin.  ¯\_(ツ)_/¯
-//
-// This works without anything present in the /.ipfs/plugins/ directory b/c
-// the default plugin set is complied into go-ipfs (and subsequently, the
-// qri binary) by default
-func LoadIPFSPluginsOnce(path string) error {
-	body := func() {
-		pluginLoadError = ipfs.LoadPlugins(path)
-	}
-	pluginLoadLock.Do(body)
-	return pluginLoadError
-}
-
-// New creates storage a qri repo can use for configuration
-// we're still carrying around a legacy cafs.Filestore, but one day should be
-// able to get down to just a qfs.Filesystem return
+// New is the canonical method for building a repo
 func New(ctx context.Context, path string, cfg *config.Config) (repo.Repo, error) {
-	store, err := NewCAFSStore(ctx, cfg)
+	fs, err := NewFilesystem(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	fs, err := NewFilesystem(cfg, store)
+	store, err := NewCAFSStore(cfg, fs)
 	if err != nil {
 		return nil, err
 	}
@@ -87,28 +61,23 @@ func New(ctx context.Context, path string, cfg *config.Config) (repo.Repo, error
 }
 
 // NewFilesystem creates a qfs.Filesystem from configuration
-func NewFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, error) {
-	mux := map[string]qfs.Filesystem{
-		"local": localfs.NewFS(),
-		"http":  httpfs.NewFS(),
-		"cafs":  store,
+func NewFilesystem(ctx context.Context, cfg *config.Config) (*muxfs.Mux, error) {
+	// TODO (ramfox): adding a default mux config
+	// after the config refactor to add a `Filesystem` field, that config
+	// section should replace this
+	// defaults are taken from the old buildrepo.NewFilesystem func
+	muxConfig := []muxfs.MuxConfig{
+		{Type: "local"},
+		{Type: "http"},
 	}
 
-	if ipfss, ok := store.(*ipfs.Filestore); ok {
-		mux["ipfs"] = ipfss
-	}
-
-	fsys := qfs.NewMux(mux)
-	return fsys, nil
-}
-
-// NewCAFSStore creates a cafs.Filestore store from configuration
-// we're in the process of absorbing cafs.Filestore into qfs.Filesystem, use
-// a qfs.Filesystem instead
-func NewCAFSStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore, err error) {
+	// TODO(ramfox): adding this to switch statement until we
+	// add a Filesystem config
 	switch cfg.Store.Type {
 	case "ipfs":
 		path := cfg.Store.Path
+		// TODO (ramfox): this should change when we migrate the
+		// config to default to `${QRI_PATH}/.ipfs`
 		if path == "" && os.Getenv("IPFS_PATH") != "" {
 			path = os.Getenv("IPFS_PATH")
 		} else if path == "" {
@@ -119,28 +88,48 @@ func NewCAFSStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore
 			path = filepath.Join(home, ".ipfs")
 		}
 
-		if err := LoadIPFSPluginsOnce(path); err != nil {
-			return nil, err
-		}
-
-		fsOpts := []ipfs.Option{
-			func(c *ipfs.StoreCfg) {
-				c.Ctx = ctx
-				c.FsRepoPath = path
+		ipfsCfg := muxfs.MuxConfig{
+			Type: "ipfs",
+			Config: map[string]interface{}{
+				"path": path,
+				"url":  cfg.Store.Options["url"],
 			},
-			ipfs.OptsFromMap(cfg.Store.Options),
 		}
-		return ipfs.NewFilestore(fsOpts...)
+		muxConfig = append(muxConfig, ipfsCfg)
+	case "map":
+		muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "map"})
+	case "mem":
+		muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "mem"})
+	default:
+		return nil, fmt.Errorf("unknown store type: %s", cfg.Store.Type)
+	}
+
+	if cfg.Repo.Type == "mem" {
+		muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "mem"})
+	}
+
+	return muxfs.New(ctx, muxConfig)
+}
+
+// NewCAFSStore creates a cafs.Filestore store from configuration
+// we're in the process of absorbing cafs.Filestore into qfs.Filesystem, use
+// a qfs.Filesystem instead
+func NewCAFSStore(cfg *config.Config, mux *muxfs.Mux) (store cafs.Filestore, err error) {
+	switch cfg.Store.Type {
+	case "ipfs":
+		return mux.CAFSStoreFromIPFS(), nil
 	case "ipfs_http":
 		urli, ok := cfg.Store.Options["url"]
 		if !ok {
-			return nil, fmt.Errorf("ipfs_http store requires 'url' option")
+			return nil, fmt.Errorf("qipfs_http store requires 'url' option")
 		}
 		urlStr, ok := urli.(string)
 		if !ok {
-			return nil, fmt.Errorf("ipfs_http 'url' option must be a string")
+			return nil, fmt.Errorf("qipfs_http 'url' option must be a string")
 		}
-		return ipfs_http.New(urlStr)
+		return qipfs_http.NewFilesystem(map[string]interface{}{
+			"url": urlStr,
+		})
 	case "map":
 		return cafs.NewMapstore(), nil
 	default:

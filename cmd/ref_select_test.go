@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -113,7 +114,10 @@ func TestBasicRefSelect(t *testing.T) {
 }
 
 func TestGetCurrentRefSelect(t *testing.T) {
-	f, err := NewTestFactory()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	f, err := NewTestFactory(ctx)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -213,7 +217,10 @@ func TestGetCurrentRefSelect(t *testing.T) {
 }
 
 func TestGetCurrentRefSelectUsingTwoArgs(t *testing.T) {
-	f, err := NewTestFactory()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	f, err := NewTestFactory(ctx)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

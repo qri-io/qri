@@ -19,6 +19,9 @@ func (r *Remotes) SetArbitrary(key string, val interface{}) (err error) {
 
 // Get retrieves an address from the name of remote
 func (r *Remotes) Get(name string) (string, bool) {
+	if r == nil {
+		return "", false
+	}
 	addr, ok := (*r)[name]
 	return addr, ok
 }

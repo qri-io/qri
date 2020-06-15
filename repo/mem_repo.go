@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset/dsgraph"
@@ -28,6 +29,10 @@ type MemRepo struct {
 
 	profile  *profile.Profile
 	profiles profile.Store
+
+	doneWg  sync.WaitGroup
+	doneCh  chan struct{}
+	doneErr error
 }
 
 // NewMemRepo creates a new in-memory repository
@@ -37,13 +42,12 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, p
 		return nil, err
 	}
 
-	ctx := context.Background()
-
+	ctx := context.TODO()
 	// NOTE: This dscache won't get change notifications from FSI, because it's not constructed
 	// with the hook for FSI.
 	cache := dscache.NewDscache(ctx, fsys, []hook.ChangeNotifier{book}, p.Peername, "")
 
-	return &MemRepo{
+	mr := &MemRepo{
 		store:       store,
 		filesystem:  fsys,
 		MemRefstore: &MemRefstore{},
@@ -52,7 +56,25 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, p
 		dscache:     cache,
 		profile:     p,
 		profiles:    ps,
-	}, nil
+
+		doneCh: make(chan struct{}),
+	}
+
+	if rfs, ok := fsys.(qfs.ReleasingFilesystem); ok {
+		mr.doneWg.Add(1)
+		go func() {
+			<-rfs.Done()
+			mr.doneErr = rfs.DoneErr()
+			mr.doneWg.Done()
+		}()
+	}
+
+	go func() {
+		mr.doneWg.Wait()
+		close(mr.doneCh)
+	}()
+
+	return mr, nil
 }
 
 // ResolveRef implements the dsref.Resolver interface
@@ -137,4 +159,14 @@ func (r *MemRepo) SetProfile(p *profile.Profile) error {
 // Profiles gives this repo's Peer interface implementation
 func (r *MemRepo) Profiles() profile.Store {
 	return r.profiles
+}
+
+// Done returns a channel that the repo will send on when the repo is closed
+func (r *MemRepo) Done() <-chan struct{} {
+	return r.doneCh
+}
+
+// DoneErr gives an error that occured during the shutdown process
+func (r *MemRepo) DoneErr() error {
+	return r.doneErr
 }
