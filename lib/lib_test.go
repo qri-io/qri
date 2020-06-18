@@ -69,6 +69,11 @@ func TestNewInstance(t *testing.T) {
 	defer cancel()
 
 	cfg := config.DefaultConfigForTesting()
+	cfg.Filesystems = []qfs.Config{
+		{Type: "mem"},
+		{Type: "map"},
+		{Type: "local"},
+	}
 	cfg.Store.Type = "map"
 	cfg.Repo.Type = "mem"
 
@@ -99,25 +104,13 @@ func TestNewInstance(t *testing.T) {
 }
 
 func TestNewDefaultInstance(t *testing.T) {
-	prevIPFSEnvLocation := os.Getenv("IPFS_PATH")
-	prevDefaultIPFSLocation := defaultIPFSLocation
-
-	os.Setenv("IPFS_PATH", "")
-
 	tempDir, err := ioutil.TempDir(os.TempDir(), "TestNewDefaultInstance")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defaultIPFSLocation = tempDir
-
-	defer func() {
-		defaultIPFSLocation = prevDefaultIPFSLocation
-		os.Setenv("IPFS_PATH", prevIPFSEnvLocation)
-		os.RemoveAll(tempDir)
-	}()
 
 	testCrypto := repotest.NewTestCrypto()
-	if err = testCrypto.GenerateEmptyIpfsRepo(tempDir, ""); err != nil {
+	if err = testCrypto.GenerateEmptyIpfsRepo(filepath.Join(tempDir, "ipfs"), ""); err != nil {
 		t.Fatal(err)
 	}
 

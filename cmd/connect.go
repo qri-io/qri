@@ -57,7 +57,7 @@ type ConnectOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
-	qriPath := f.QriRepoPath()
+	qriPath := f.QriPath()
 
 	if o.Setup && !QRIRepoInitialized(qriPath) {
 		so := &SetupOptions{

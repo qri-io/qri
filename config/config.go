@@ -11,6 +11,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/fill"
 )
 
@@ -22,12 +23,13 @@ const CurrentConfigRevision = 2
 type Config struct {
 	path string
 
-	Revision int
-	Profile  *ProfilePod
-	Repo     *Repo
-	Store    *Store
-	P2P      *P2P
-	Stats    *Stats
+	Revision    int
+	Profile     *ProfilePod
+	Repo        *Repo
+	Store       *Store
+	Filesystems []qfs.Config
+	P2P         *P2P
+	Stats       *Stats
 
 	Registry *Registry
 	Remotes  *Remotes
@@ -57,12 +59,13 @@ func (cfg *Config) SetArbitrary(key string, val interface{}) error {
 // DefaultConfig gives a new configuration with simple, default settings
 func DefaultConfig() *Config {
 	return &Config{
-		Revision: CurrentConfigRevision,
-		Profile:  DefaultProfile(),
-		Repo:     DefaultRepo(),
-		Store:    DefaultStore(),
-		P2P:      DefaultP2P(),
-		Stats:    DefaultStats(),
+		Revision:    CurrentConfigRevision,
+		Profile:     DefaultProfile(),
+		Repo:        DefaultRepo(),
+		Store:       DefaultStore(),
+		Filesystems: DefaultFilesystems(),
+		P2P:         DefaultP2P(),
+		Stats:       DefaultStats(),
 
 		Registry: DefaultRegistry(),
 		// default to no configured remotes
@@ -281,6 +284,11 @@ func (cfg *Config) Copy() *Config {
 	if cfg.Stats != nil {
 		res.Stats = cfg.Stats.Copy()
 	}
+	if cfg.Filesystems != nil {
+		for _, fs := range cfg.Filesystems {
+			res.Filesystems = append(res.Filesystems, fs)
+		}
+	}
 
 	return res
 }
@@ -304,4 +312,18 @@ func (cfg *Config) WithPrivateValues(p *Config) *Config {
 	res.P2P.PrivKey = p.P2P.PrivKey
 
 	return res
+}
+
+// DefaultFilesystems is the default filesystem stack
+func DefaultFilesystems() []qfs.Config {
+	return []qfs.Config{
+		{
+			Type: "ipfs",
+			Config: map[string]interface{}{
+				"path": "./ipfs",
+			},
+		},
+		{Type: "local"},
+		{Type: "http"},
+	}
 }

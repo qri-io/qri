@@ -34,7 +34,9 @@ import (
 
 // TestRunner holds data used to run tests
 type TestRunner struct {
-	RepoRoot      *repotest.TempRepo
+	RepoRoot *repotest.TempRepo
+	QriPath  string
+
 	Context       context.Context
 	ContextDone   func()
 	TmpDir        string
@@ -49,8 +51,6 @@ type TestRunner struct {
 	CmdR          *cobra.Command
 	Teardown      func()
 	CmdDoneCh     chan struct{}
-
-	pathFactory PathFactory
 
 	registry *registry.Registry
 }
@@ -76,6 +76,8 @@ func NewTestRunnerWithMockRemoteClient(t *testing.T, peerName, testName string) 
 
 // NewTestRunnerWithTempRegistry constructs a test runner with a mock registry connection
 func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *TestRunner {
+	t.Helper()
+
 	root, err := repotest.NewTempRepoFixedProfileID(peerName, testName)
 	if err != nil {
 		t.Fatalf("creating temp repo: %s", err)
@@ -112,11 +114,14 @@ func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *Tes
 }
 
 func newTestRunnerFromRoot(root *repotest.TempRepo) *TestRunner {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	run := TestRunner{
-		pathFactory: NewDirPathFactory(root.RootPath),
+		RepoRoot:    root,
+		QriPath:     RootedQriPath(root.RootPath),
+		Context:     ctx,
+		ContextDone: cancel,
 	}
-	run.RepoRoot = root
-	run.Context, run.ContextDone = context.WithCancel(context.Background())
 
 	// TmpDir will be removed recursively, only if it is non-empty
 	run.TmpDir = ""
@@ -201,7 +206,7 @@ func (run *TestRunner) ExecCommand(cmdText string) error {
 // ExecCommandWithStdin executes the given command string with the string as stdin content
 func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinText string) error {
 	setNoColor(true)
-	cmd, shutdown := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, run.Streams)
+	cmd, shutdown := NewQriCommand(ctx, run.QriPath, run.RepoRoot.TestCrypto, run.Streams)
 	cmd.SetOutput(run.OutStream)
 	run.CmdR = cmd
 	if err := executeCommand(run.CmdR, cmdText); err != nil {
@@ -312,7 +317,7 @@ func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool)
 		key := lib.InstanceContextKey("RemoteClient")
 		ctx = context.WithValue(ctx, key, "mock")
 	}
-	cmd, shutdown := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, streams)
+	cmd, shutdown := NewQriCommand(ctx, run.QriPath, run.RepoRoot.TestCrypto, streams)
 	cmd.SetOutput(run.OutStream)
 	return cmd, shutdown
 }

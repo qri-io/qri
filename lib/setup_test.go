@@ -19,7 +19,7 @@ func TestSetupTeardown(t *testing.T) {
 	cfg1.Profile = nil
 	cfg1.Registry = nil
 	params := SetupParams{
-		QriRepoPath:    path,
+		QriPath:        path,
 		ConfigFilepath: filepath.Join(path, "config.yml"),
 		Config:         cfg1,
 		Generator:      repotest.NewTestCrypto(),
@@ -32,7 +32,6 @@ func TestSetupTeardown(t *testing.T) {
 	params.Config.Profile.Peername = "hallo"
 	params.Config.Registry.Location = registryServer.URL
 	params.SetupIPFS = true
-	params.IPFSFsPath = path
 	params.SetupIPFSConfigData = ipfsCfg
 	params.Register = true
 	if err := Setup(params); err != nil {
@@ -59,7 +58,7 @@ func TestSetupTeardown(t *testing.T) {
 	err := Teardown(TeardownParams{
 		Config:         params.Config,
 		ConfigFilepath: params.ConfigFilepath,
-		QriRepoPath:    path,
+		QriPath:        path,
 	})
 
 	if err != nil {

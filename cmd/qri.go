@@ -17,10 +17,8 @@ import (
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan error) {
-
-	qriPath, ipfsPath := pf()
-	opt := NewQriOptions(ctx, qriPath, ipfsPath, generator, ioStreams)
+func NewQriCommand(ctx context.Context, qriPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan error) {
+	opt := NewQriOptions(ctx, qriPath, generator, ioStreams)
 
 	cmd := &cobra.Command{
 		Use:   "qri",
@@ -36,8 +34,7 @@ https://github.com/qri-io/qri/issues`,
 	cmd.SetUsageTemplate(rootUsageTemplate)
 	cmd.PersistentFlags().BoolVarP(&opt.NoPrompt, "no-prompt", "", false, "disable all interactive prompts")
 	cmd.PersistentFlags().BoolVarP(&opt.NoColor, "no-color", "", false, "disable colorized output")
-	cmd.PersistentFlags().StringVar(&opt.RepoPath, "repo", qriPath, "provide a path to load qri from")
-	cmd.PersistentFlags().StringVar(&opt.IpfsPath, "ipfs-path", ipfsPath, "override IPFS path location")
+	cmd.PersistentFlags().StringVar(&opt.qriPath, "path", qriPath, "provide a path to load qri from")
 	cmd.PersistentFlags().BoolVarP(&opt.LogAll, "log-all", "", false, "log all activity")
 
 	cmd.AddCommand(
@@ -92,9 +89,7 @@ type QriOptions struct {
 	doneCh    chan struct{}
 
 	// path to the QRI repository directory
-	RepoPath string
-	// custom path to IPFS repo
-	IpfsPath string
+	qriPath string
 	// generator is source of generating cryptographic info
 	generator gen.CryptoGenerator
 	// NoPrompt Disables all promt messages
@@ -110,13 +105,12 @@ type QriOptions struct {
 }
 
 // NewQriOptions creates an options object
-func NewQriOptions(ctx context.Context, qriPath, ipfsPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
+func NewQriOptions(ctx context.Context, qriPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
 	return &QriOptions{
 		IOStreams: ioStreams,
 		ctx:       ctx,
 		doneCh:    make(chan struct{}),
-		RepoPath:  qriPath,
-		IpfsPath:  ipfsPath,
+		qriPath:   qriPath,
 		generator: generator,
 	}
 }
@@ -128,11 +122,10 @@ func (o *QriOptions) Init() (err error) {
 	}
 	opts := []lib.Option{
 		lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
-		lib.OptSetIPFSPath(o.IpfsPath),
-		lib.OptCheckConfigMigrations(),
+		lib.OptCheckConfigMigrations(!noPrompt),
 		lib.OptSetLogAll(o.LogAll),
 	}
-	o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
+	o.inst, err = lib.NewInstance(o.ctx, o.qriPath, opts...)
 	if err != nil {
 		return
 	}
@@ -162,22 +155,17 @@ func (o *QriOptions) Instance() *lib.Instance {
 	return o.inst
 }
 
+// QriPath returns the path to the qri directory
+func (o *QriOptions) QriPath() string {
+	return o.qriPath
+}
+
 // Config returns from internal state
 func (o *QriOptions) Config() (*config.Config, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	return o.inst.Config(), nil
-}
-
-// IpfsFsPath returns from internal state
-func (o *QriOptions) IpfsFsPath() string {
-	return o.IpfsPath
-}
-
-// QriRepoPath returns from internal state
-func (o *QriOptions) QriRepoPath() string {
-	return o.RepoPath
 }
 
 // CryptoGenerator returns a resource for generating cryptographic info

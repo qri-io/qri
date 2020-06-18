@@ -51,8 +51,14 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 		return r, err
 	}
 
+	// Create directory for new Qri repo.
+	QriPath := filepath.Join(RootPath, "qri")
+	err = os.MkdirAll(QriPath, os.ModePerm)
+	if err != nil {
+		return r, err
+	}
 	// Create directory for new IPFS repo.
-	IPFSPath := filepath.Join(RootPath, "ipfs")
+	IPFSPath := filepath.Join(RootPath, "qri", "ipfs")
 	err = os.MkdirAll(IPFSPath, os.ModePerm)
 	if err != nil {
 		return r, err
@@ -62,18 +68,13 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 	if err != nil {
 		return r, err
 	}
-	// Create directory for new Qri repo.
-	QriPath := filepath.Join(RootPath, "qri")
-	err = os.MkdirAll(QriPath, os.ModePerm)
-	if err != nil {
-		return r, err
-	}
 
 	// Create empty config.yaml into the test repo.
 	cfg := config.DefaultConfigForTesting().Copy()
 	cfg.Profile.Peername = peername
 	cfg.Profile.PrivKey, cfg.Profile.ID = g.GeneratePrivateKeyAndPeerID()
 	cfg.Store.Path = IPFSPath
+	cfg.SetPath(filepath.Join(QriPath, "config.yaml"))
 
 	r = TempRepo{
 		RootPath:   RootPath,

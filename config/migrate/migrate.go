@@ -3,18 +3,33 @@ package migrate
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/config"
 	qerr "github.com/qri-io/qri/errors"
 )
 
+// ErrNeedMigration indicates a migration is required
+var ErrNeedMigration = fmt.Errorf("migration required")
+
 // RunMigrations checks to see if any migrations runs them
-func RunMigrations(streams ioes.IOStreams, cfg *config.Config) (err error) {
+func RunMigrations(streams ioes.IOStreams, cfg *config.Config, interactive bool) (err error) {
 	if cfg.Revision != config.CurrentConfigRevision {
-		streams.PrintErr("migrating configuration...")
+		if interactive {
+			msg := `Your repo needs updating before qri can start. 
+Run migration now?`
+			if !confirm(streams.Out, streams.In, msg) {
+				return qerr.New(ErrNeedMigration, `your repo requires migration before it can run`)
+			}
+		}
+
+		streams.PrintErr("migrating configuration...\n")
 		if cfg.Revision == 0 {
 			if err := ZeroToOne(cfg); err != nil {
 				return err
@@ -71,8 +86,14 @@ func ZeroToOne(cfg *config.Config) error {
 
 // OneToTwo migrates a configuration from Revision 1 to Revision 2
 func OneToTwo(cfg *config.Config) error {
+	qriPath := filepath.Dir(cfg.Path())
+	// qri repo path must be the base of the config path
+	newIPFSPath := filepath.Join(qriPath, "ipfs")
 
 	// TODO(ramfox): qfs migration
+	if err := qipfs.InternalizeIPFSRepo(configVersionOneIPFSPath(), newIPFSPath); err != nil {
+		return err
+	}
 
 	if err := oneToTwoConfig(cfg); err != nil {
 		return err
@@ -87,7 +108,6 @@ func OneToTwo(cfg *config.Config) error {
 	}
 
 	// TODO(ramfox): remove original ipfs repo after all migrations were successful
-
 	return nil
 }
 
@@ -113,6 +133,8 @@ func oneToTwoConfig(cfg *config.Config) error {
 	} else {
 		return qerr.New(fmt.Errorf("invalid config"), "config does not contain RPC configuration")
 	}
+
+	cfg.Filesystems = config.DefaultFilesystems()
 
 	return nil
 }
@@ -156,4 +178,34 @@ func delIdx(i int, sl []string) []string {
 	}
 
 	return sl[:i]
+}
+
+// In qri v0.9.8 & earlier, the IPFS path location was detrimined by the
+// IPFS_PATH env var, and falling back to $HOME/.ipfs.
+func configVersionOneIPFSPath() string {
+	path := os.Getenv("IPFS_PATH")
+	if path != "" {
+		return path
+	}
+	home, err := homedir.Dir()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to find the home directory: %s", err.Error()))
+	}
+	return home
+}
+
+func confirm(w io.Writer, r io.Reader, message string) bool {
+	input := prompt(w, r, fmt.Sprintf("%s [Y/n]: ", message))
+	if input == "" {
+		return true
+	}
+
+	return (input == "y" || input == "yes")
+}
+
+func prompt(w io.Writer, r io.Reader, msg string) string {
+	var input string
+	fmt.Fprintf(w, msg)
+	fmt.Fscanln(r, &input)
+	return strings.TrimSpace(strings.ToLower(input))
 }

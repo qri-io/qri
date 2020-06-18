@@ -47,11 +47,6 @@ var (
 	// ErrBadArgs is an error for when a user provides bad arguments
 	ErrBadArgs = errors.New("bad arguments provided")
 
-	// defaultIPFSLocation is where qri data defaults to looking for / setting up
-	// IPFS. The keyword $HOME will be replaced with the current user home
-	// directory. only $HOME is replaced (no other $ env vars).
-	defaultIPFSLocation = "$HOME/.ipfs"
-
 	log = golog.Logger("lib")
 )
 
@@ -154,7 +149,8 @@ func OptSetIPFSPath(path string) Option {
 					if err != nil {
 						return err
 					}
-					path = strings.Replace(defaultIPFSLocation, "$HOME", dir, 1)
+
+					path = filepath.Join(dir, ".ipfs")
 				}
 			}
 			o.Cfg.Store.Path = path
@@ -181,13 +177,13 @@ func OptStdIOStreams() Option {
 
 // OptCheckConfigMigrations checks for any configuration migrations that may need to be run
 // running & updating config if so
-func OptCheckConfigMigrations() Option {
+func OptCheckConfigMigrations(interactive bool) Option {
 	return func(o *InstanceOptions) error {
 		if o.Cfg == nil {
 			return fmt.Errorf("no config file to check for migrations")
 		}
 
-		err := migrate.RunMigrations(o.Streams, o.Cfg)
+		err := migrate.RunMigrations(o.Streams, o.Cfg, interactive)
 		if err != nil {
 			return err
 		}
@@ -291,7 +287,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		opts = []Option{
 			OptStdIOStreams(),
 			OptSetIPFSPath(""),
-			OptCheckConfigMigrations(),
+			OptCheckConfigMigrations(false),
 		}
 	}
 	for _, opt := range opts {

@@ -67,6 +67,8 @@ including all your datasets, and de-registers your peername from the registry.`,
 // SetupOptions encapsulates state for the setup command
 type SetupOptions struct {
 	ioes.IOStreams
+	qriPath   string
+	Generator gen.CryptoGenerator
 
 	Anonymous      bool
 	Overwrite      bool
@@ -77,16 +79,11 @@ type SetupOptions struct {
 	IPFSConfigData string
 	ConfigData     string
 	GimmeDoggo     bool
-
-	QriRepoPath string
-	IpfsFsPath  string
-	Generator   gen.CryptoGenerator
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SetupOptions) Complete(f Factory, args []string) (err error) {
-	o.QriRepoPath = f.QriRepoPath()
-	o.IpfsFsPath = f.IpfsFsPath()
+	o.qriPath = f.QriPath()
 	o.Generator = f.CryptoGenerator()
 	return
 }
@@ -104,8 +101,8 @@ func (o *SetupOptions) Run(f Factory) error {
 		}
 		// TODO - add a big warning here that requires user input
 		err = lib.Teardown(lib.TeardownParams{
-			Config:      cfg,
-			QriRepoPath: o.QriRepoPath,
+			Config:  cfg,
+			QriPath: o.qriPath,
 		})
 		if err != nil {
 			return err
@@ -114,7 +111,7 @@ func (o *SetupOptions) Run(f Factory) error {
 		return nil
 	}
 
-	if QRIRepoInitialized(o.QriRepoPath) && !o.Overwrite {
+	if QRIRepoInitialized(o.qriPath) && !o.Overwrite {
 		// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
 		// this is usually a terrible idea
 		return fmt.Errorf("repo already initialized")
@@ -124,7 +121,7 @@ func (o *SetupOptions) Run(f Factory) error {
 		return err
 	}
 
-	printSuccess(o.Out, "set up qri repo at: %s\n", o.QriRepoPath)
+	printSuccess(o.Out, "set up qri repo at: %s\n", o.qriPath)
 	return nil
 }
 
@@ -187,10 +184,9 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 
 	p := lib.SetupParams{
 		Config:         cfg,
-		QriRepoPath:    o.QriRepoPath,
-		ConfigFilepath: filepath.Join(o.QriRepoPath, "config.yaml"),
+		QriPath:        o.qriPath,
+		ConfigFilepath: filepath.Join(o.qriPath, "config.yaml"),
 		SetupIPFS:      o.IPFS,
-		IPFSFsPath:     o.IpfsFsPath,
 		Register:       o.Registry == "none",
 		Generator:      o.Generator,
 	}

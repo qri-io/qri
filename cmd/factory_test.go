@@ -3,12 +3,7 @@ package cmd
 import (
 	"context"
 	"net/rpc"
-	"os"
-	"path/filepath"
-	"strings"
-	"testing"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
@@ -22,10 +17,8 @@ import (
 // TestFactory is an implementation of the Factory interface for testing purposes
 type TestFactory struct {
 	ioes.IOStreams
-	// QriRepoPath is the path to the QRI repository
-	qriRepoPath string
-	// IpfsFsPath is the path to the IPFS repo
-	ipfsFsPath string
+	// path to the QRI repository
+	qriPath string
 	// generator is a source of cryptographic info
 	generator gen.CryptoGenerator
 
@@ -54,10 +47,8 @@ func NewTestFactory(ctx context.Context) (tf TestFactory, err error) {
 	}
 
 	return TestFactory{
-		IOStreams:   ioes.NewDiscardIOStreams(),
-		qriRepoPath: "",
-		ipfsFsPath:  "",
-		generator:   repotest.NewTestCrypto(),
+		IOStreams: ioes.NewDiscardIOStreams(),
+		generator: repotest.NewTestCrypto(),
 
 		repo:   repo,
 		rpc:    nil,
@@ -94,10 +85,8 @@ func NewTestFactoryInstanceOptions(ctx context.Context, opts ...lib.Option) (tf 
 	}
 
 	return TestFactory{
-		IOStreams:   ioes.NewDiscardIOStreams(),
-		qriRepoPath: "",
-		ipfsFsPath:  "",
-		generator:   repotest.NewTestCrypto(),
+		IOStreams: ioes.NewDiscardIOStreams(),
+		generator: repotest.NewTestCrypto(),
 
 		repo:   repo,
 		rpc:    nil,
@@ -116,14 +105,9 @@ func (t TestFactory) Instance() *lib.Instance {
 	return t.inst
 }
 
-// IpfsFsPath returns from internal state
-func (t TestFactory) IpfsFsPath() string {
-	return t.ipfsFsPath
-}
-
-// QriRepoPath returns from internal state
-func (t TestFactory) QriRepoPath() string {
-	return t.qriRepoPath
+// QriPath returns the path to the qri directory from internal state
+func (t TestFactory) QriPath() string {
+	return t.qriPath
 }
 
 // CryptoGenerator
@@ -204,58 +188,4 @@ func (t TestFactory) SQLMethods() (*lib.SQLMethods, error) {
 // RenderMethods generates a lib.RenderMethods from internal state
 func (t TestFactory) RenderMethods() (*lib.RenderMethods, error) {
 	return lib.NewRenderMethods(t.inst), nil
-}
-
-func TestEnvPathFactory(t *testing.T) {
-	//Needed to clean up changes after the test has finished running
-	prevQRIPath := os.Getenv("QRI_PATH")
-	prevIPFSPath := os.Getenv("IPFS_PATH")
-
-	defer func() {
-		os.Setenv("QRI_PATH", prevQRIPath)
-		os.Setenv("IPFS_PATH", prevIPFSPath)
-	}()
-
-	//Test variables
-	emptyPath := ""
-	fakePath := "fake_path"
-	home, err := homedir.Dir()
-	if err != nil {
-		t.Fatalf("Failed to find the home directory: %s", err.Error())
-	}
-
-	tests := []struct {
-		qriPath    string
-		ipfsPath   string
-		qriAnswer  string
-		ipfsAnswer string
-	}{
-		{emptyPath, emptyPath, filepath.Join(home, ".qri"), filepath.Join(home, ".ipfs")},
-		{emptyPath, fakePath, filepath.Join(home, ".qri"), fakePath},
-		{fakePath, emptyPath, fakePath, filepath.Join(home, ".ipfs")},
-		{fakePath, fakePath, fakePath, fakePath},
-	}
-
-	for i, test := range tests {
-		err := os.Setenv("QRI_PATH", test.qriPath)
-		if err != nil {
-			t.Errorf("case %d failed to set up QRI_PATH: %s", i, err.Error())
-		}
-
-		err = os.Setenv("IPFS_PATH", test.ipfsPath)
-		if err != nil {
-			t.Errorf("case %d failed to set up IPFS_PATH: %s", i, err.Error())
-		}
-
-		qriResult, ipfsResult := EnvPathFactory()
-
-		if !strings.EqualFold(qriResult, test.qriAnswer) {
-			t.Errorf("case %d expected qri path to be %s, but got %s", i, test.qriAnswer, qriResult)
-		}
-
-		if !strings.EqualFold(ipfsResult, test.ipfsAnswer) {
-			t.Errorf("case %d Expected ipfs path to be %s, but got %s", i, test.ipfsAnswer, ipfsResult)
-		}
-
-	}
 }
