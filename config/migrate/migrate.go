@@ -191,7 +191,7 @@ func configVersionOneIPFSPath() string {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to find the home directory: %s", err.Error()))
 	}
-	return home
+	return filepath.Join(home, ".ipfs")
 }
 
 func confirm(w io.Writer, r io.Reader, message string) bool {
