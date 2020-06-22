@@ -248,11 +248,11 @@ type SaveSwitches struct {
 // Pk is the private key for cryptographically signing
 // Sw is switches that control how the save happens
 // Returns the immutable path if no error
-func CreateDataset(ctx context.Context, store cafs.Filestore, ds, dsPrev *dataset.Dataset, pk crypto.PrivKey, sw SaveSwitches) (string, error) {
+func CreateDataset(ctx context.Context, source, destination cafs.Filestore, ds, dsPrev *dataset.Dataset, pk crypto.PrivKey, sw SaveSwitches) (string, error) {
 	if pk == nil {
 		return "", fmt.Errorf("private key is required to create a dataset")
 	}
-	if err := DerefDataset(ctx, store, ds); err != nil {
+	if err := DerefDataset(ctx, source, ds); err != nil {
 		log.Debug(err.Error())
 		return "", err
 	}
@@ -262,7 +262,7 @@ func CreateDataset(ctx context.Context, store cafs.Filestore, ds, dsPrev *datase
 	}
 
 	if dsPrev != nil && !dsPrev.IsEmpty() {
-		if err := DerefDataset(ctx, store, dsPrev); err != nil {
+		if err := DerefDataset(ctx, source, dsPrev); err != nil {
 			log.Debug(err.Error())
 			return "", err
 		}
@@ -271,13 +271,13 @@ func CreateDataset(ctx context.Context, store cafs.Filestore, ds, dsPrev *datase
 			return "", err
 		}
 	}
-	err := prepareDataset(store, ds, dsPrev, pk, sw)
+	err := prepareDataset(source, ds, dsPrev, pk, sw)
 	if err != nil {
 		log.Debug(err.Error())
 		return "", err
 	}
 
-	path, err := WriteDataset(ctx, store, ds, sw.Pin)
+	path, err := WriteDataset(ctx, destination, ds, sw.Pin)
 	if err != nil {
 		log.Debug(err.Error())
 		err := fmt.Errorf("error writing dataset: %s", err.Error())
@@ -803,7 +803,7 @@ func readAllEntries(reader dsio.EntryReader) (interface{}, error) {
 // during the write process. Directory structure is according to PackageFile naming conventions.
 // This method is currently exported, but 99% of use cases should use CreateDataset instead of this
 // lower-level function
-func WriteDataset(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, pin bool) (string, error) {
+func WriteDataset(ctx context.Context, destination cafs.Filestore, ds *dataset.Dataset, pin bool) (string, error) {
 
 	if ds == nil || ds.IsEmpty() {
 		return "", fmt.Errorf("cannot save empty dataset")
@@ -813,7 +813,7 @@ func WriteDataset(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset
 	bodyFile := ds.BodyFile()
 	fileTasks := 0
 	addedDataset := false
-	adder, err := store.NewAdder(pin, true)
+	adder, err := destination.NewAdder(pin, true)
 	if err != nil {
 		return "", fmt.Errorf("error creating new adder: %s", err.Error())
 	}
@@ -1031,7 +1031,7 @@ func WriteDataset(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset
 	// TODO(dustmop): This is necessary because ds doesn't have all fields in Structure and Commit.
 	// Try if there's another way to set these instead of requiring a full call to LoadDataset.
 	var loaded *dataset.Dataset
-	loaded, err = LoadDataset(ctx, store, path)
+	loaded, err = LoadDataset(ctx, destination, path)
 	if err != nil {
 		return "", err
 	}

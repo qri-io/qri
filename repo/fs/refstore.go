@@ -7,7 +7,6 @@ import (
 	"os"
 	"sort"
 
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -17,8 +16,6 @@ import (
 type Refstore struct {
 	basepath
 	file File
-	// filestore for checking dataset integrity
-	store cafs.Filestore
 }
 
 // PutRef adds a reference to the store

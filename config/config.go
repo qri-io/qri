@@ -27,7 +27,6 @@ type Config struct {
 	Revision    int
 	Profile     *ProfilePod
 	Repo        *Repo
-	Store       *Store
 	Filesystems []qfs.Config
 	P2P         *P2P
 	Stats       *Stats
@@ -63,7 +62,6 @@ func DefaultConfig() *Config {
 		Revision:    CurrentConfigRevision,
 		Profile:     DefaultProfile(),
 		Repo:        DefaultRepo(),
-		Store:       DefaultStore(),
 		Filesystems: DefaultFilesystems(),
 		P2P:         DefaultP2P(),
 		Stats:       DefaultStats(),
@@ -200,11 +198,11 @@ func (cfg Config) Validate() error {
     "title": "config",
     "description": "qri configuration",
     "type": "object",
-    "required": ["Profile", "Repo", "Store", "P2P", "CLI", "API", "RPC"],
+    "required": ["Profile", "Repo", "Filesystems", "P2P", "CLI", "API", "RPC"],
     "properties" : {
 			"Profile" : { "type":"object" },
 			"Repo" : { "type":"object" },
-			"Store" : { "type":"object" },
+			"Filesystems" : { "type":"array" },
 			"P2P" : { "type":"object" },
 			"CLI" : { "type":"object" },
 			"API" : { "type":"object" },
@@ -218,7 +216,6 @@ func (cfg Config) Validate() error {
 	validators := []validator{
 		cfg.Profile,
 		cfg.Repo,
-		cfg.Store,
 		cfg.P2P,
 		cfg.CLI,
 		cfg.API,
@@ -254,9 +251,6 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.Repo != nil {
 		res.Repo = cfg.Repo.Copy()
-	}
-	if cfg.Store != nil {
-		res.Store = cfg.Store.Copy()
 	}
 	if cfg.P2P != nil {
 		res.P2P = cfg.P2P.Copy()

@@ -58,7 +58,7 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 		return r, err
 	}
 	// Create directory for new IPFS repo.
-	IPFSPath := filepath.Join(RootPath, "qri", "ipfs")
+	IPFSPath := filepath.Join(QriPath, "ipfs")
 	err = os.MkdirAll(IPFSPath, os.ModePerm)
 	if err != nil {
 		return r, err
@@ -73,8 +73,12 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 	cfg := config.DefaultConfigForTesting().Copy()
 	cfg.Profile.Peername = peername
 	cfg.Profile.PrivKey, cfg.Profile.ID = g.GeneratePrivateKeyAndPeerID()
-	cfg.Store.Path = IPFSPath
 	cfg.SetPath(filepath.Join(QriPath, "config.yaml"))
+	cfg.Filesystems = []qfs.Config{
+		{Type: "ipfs", Config: map[string]interface{}{"path": IPFSPath}},
+		{Type: "local"},
+		{Type: "http"},
+	}
 
 	r = TempRepo{
 		RootPath:   RootPath,

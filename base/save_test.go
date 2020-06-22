@@ -6,9 +6,8 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 )
 
 func TestSaveDataset(t *testing.T) {
@@ -98,8 +97,14 @@ func TestSaveDatasetReplace(t *testing.T) {
 
 func TestCreateDataset(t *testing.T) {
 	ctx := context.Background()
-	store := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(), profile.NewMemStore())
+	fs, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "map"},
+		{Type: "mem"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := repo.NewMemRepo(ctx, testPeerProfile, fs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -116,11 +121,11 @@ func TestCreateDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
-	if _, err := CreateDataset(ctx, r, &dataset.Dataset{}, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
+	if _, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), &dataset.Dataset{}, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected bad dataset to error")
 	}
 
-	ref, err := CreateDataset(ctx, r, ds, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -141,7 +146,7 @@ func TestCreateDataset(t *testing.T) {
 
 	prev := ref.Dataset
 
-	ref, err = CreateDataset(ctx, r, ds, prev, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, prev, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -160,12 +165,12 @@ func TestCreateDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 	prev = ref.Dataset
 
-	if ref, err = CreateDataset(ctx, r, ds, prev, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
+	if ref, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, prev, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected unchanged dataset with no force flag to error")
 	}
 
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
-	if ref, err = CreateDataset(ctx, r, ds, prev, SaveSwitches{ForceIfNoChanges: true, Pin: true, ShouldRender: true}); err != nil {
+	if ref, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, prev, SaveSwitches{ForceIfNoChanges: true, Pin: true, ShouldRender: true}); err != nil {
 		t.Errorf("unexpected force-save error: %s", err)
 	}
 }

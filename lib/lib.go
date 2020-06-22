@@ -37,7 +37,6 @@ import (
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/buildrepo"
-	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/stats"
 	"github.com/qri-io/qri/watchfs"
@@ -103,7 +102,7 @@ type InstanceOptions struct {
 	node       *p2p.QriNode
 	repo       repo.Repo
 	store      cafs.Filestore
-	qfs        qfs.Filesystem
+	qfs        *muxfs.Mux
 	regclient  *regclient.Client
 	logbook    *logbook.Book
 	logAll     bool
@@ -128,33 +127,50 @@ func OptConfig(cfg *config.Config) Option {
 	}
 }
 
-// OptSetIPFSPath configures the directory to read IPFS from (only if the
-// configured store is IPFS). If the given path is the empty string, default
-// to the standard IPFS config:
-// * IPFS_PATH environment variable if set
-// * if none set: "$HOME/.ipfs"
+// OptSetIPFSPath sets the directory to read IPFS from
+// passing the empty string adjusts qri to use the go-ipfs default:
+// first checking the IPFS_PATH env variable, then falling back to $HOME/.ipfs
+// if no ipfs filesystem is configured, this option creates one
 func OptSetIPFSPath(path string) Option {
 	return func(o *InstanceOptions) error {
 		if o.Cfg == nil {
 			return fmt.Errorf("config is nil, can't set IPFS path")
 		}
-		if o.Cfg.Store == nil {
-			return fmt.Errorf("config.Store is nil, can't check type")
+		if o.Cfg.Filesystems == nil {
+			return fmt.Errorf("config Filesystems field is nil, can't set IPFS path")
 		}
-		if o.Cfg.Store.Type == "ipfs" && o.Cfg.Store.Path == "" {
-			if path == "" {
-				path = os.Getenv("IPFS_PATH")
-				if path == "" {
-					dir, err := homedir.Dir()
-					if err != nil {
-						return err
-					}
 
-					path = filepath.Join(dir, ".ipfs")
+		if path == "" {
+			path = os.Getenv("IPFS_PATH")
+			if path == "" {
+				dir, err := homedir.Dir()
+				if err != nil {
+					return err
 				}
+				path = filepath.Join(dir, ".ipfs")
 			}
-			o.Cfg.Store.Path = path
 		}
+
+		for i, fsc := range o.Cfg.Filesystems {
+			if fsc.Type == "ipfs" {
+				fsConfig := o.Cfg.Filesystems[i]
+				if fsConfig.Config == nil {
+					fsConfig.Config = map[string]interface{}{}
+				}
+				fsConfig.Config["path"] = path
+				return nil
+			}
+		}
+
+		o.Cfg.Filesystems = append([]qfs.Config{
+			{
+				Type: "ipfs",
+				Config: map[string]interface{}{
+					"path": path,
+				},
+			},
+		}, o.Cfg.Filesystems...)
+
 		return nil
 	}
 }
@@ -216,9 +232,6 @@ func OptQriNode(node *p2p.QriNode) Option {
 		o.node = node
 		if o.node.Repo != nil && o.repo == nil {
 			o.repo = o.node.Repo
-		}
-		if o.node.Repo.Store() != nil {
-			o.store = o.node.Repo.Store()
 		}
 		if o.node.Repo.Filesystem() != nil {
 			o.qfs = o.node.Repo.Filesystem()
@@ -286,7 +299,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		// default to a standard composition of Option funcs
 		opts = []Option{
 			OptStdIOStreams(),
-			OptSetIPFSPath(""),
 			OptCheckConfigMigrations(false),
 		}
 	}
@@ -321,6 +333,8 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		repoPath: repoPath,
 		cfg:      cfg,
 
+		qfs:      o.qfs,
+		repo:     o.repo,
 		node:     o.node,
 		streams:  o.Streams,
 		registry: o.regclient,
@@ -358,38 +372,18 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	if o.qfs != nil {
-		inst.qfs = o.qfs
-	} else if inst.qfs == nil {
+	if inst.qfs == nil {
 		inst.qfs, err = buildrepo.NewFilesystem(ctx, cfg)
 		if err != nil {
 			return nil, err
 		}
 
-		if releaser, ok := inst.qfs.(qfs.ReleasingFilesystem); ok {
-			go func() {
-				inst.releasers.Add(1)
-				<-releaser.Done()
-				inst.doneErr = releaser.DoneErr()
-				inst.releasers.Done()
-			}()
-		}
-	}
-
-	if o.store != nil {
-		inst.store = o.store
-	} else if inst.store == nil {
-		fs, err := muxfs.GetResolver(inst.qfs, cfg.Store.Type)
-		if err != nil {
-			log.Debugf("getting store from filesystem: %s", err.Error())
-			return nil, fmt.Errorf("getting store from filesystem: %w", err)
-		}
-		cafs, ok := fs.(cafs.Filestore)
-		if !ok {
-			log.Debugf("error asserting store is a cafs filestore: fs=%#v", err.Error())
-			return nil, fmt.Errorf("error asserting store is a cafs filestore: fs=%#v", err.Error())
-		}
-		inst.store = cafs
+		go func() {
+			inst.releasers.Add(1)
+			<-inst.qfs.Done()
+			inst.doneErr = inst.qfs.DoneErr()
+			inst.releasers.Done()
+		}()
 	}
 
 	var pro *profile.Profile
@@ -408,12 +402,14 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		inst.registry = newRegClient(ctx, cfg)
 	}
 
-	if o.repo != nil {
-		inst.repo = o.repo
-	} else if inst.repo == nil {
-		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.qfs, inst.logbook, inst.dscache); err != nil {
+	if inst.repo == nil {
+		if inst.repo, err = buildrepo.New(ctx, inst.repoPath, cfg, func(o *buildrepo.Options) {
+			o.Filesystem = inst.qfs
+			o.Logbook = inst.logbook
+			o.Dscache = inst.dscache
+		}); err != nil {
 			log.Error("intializing repo:", err.Error())
-			return nil, fmt.Errorf("newRepo: %s", err)
+			return nil, fmt.Errorf("newRepo: %w", err)
 		}
 	}
 
@@ -517,27 +513,27 @@ func newEventBus(ctx context.Context) event.Bus {
 	return event.NewBus(ctx)
 }
 
-func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Filesystem, book *logbook.Book, cache *dscache.Dscache) (r repo.Repo, err error) {
-	var pro *profile.Profile
-	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
-		return
-	}
+// func newRepo(ctx context.Context, path string, cfg *config.Config, store cafs.Filestore, fs *muxfs.Mux, book *logbook.Book, cache *dscache.Dscache) (r repo.Repo, err error) {
+// 	var pro *profile.Profile
+// 	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
+// 		return
+// 	}
 
-	switch cfg.Repo.Type {
-	case "fs":
-		repo, err := fsrepo.NewRepo(store, fs, book, cache, pro, path)
-		if err != nil {
-			return nil, err
-		}
-		// Try to make the repo a hidden directory, but it's okay if we can't. Ingore the error.
-		_ = hiddenfile.SetFileHidden(path)
-		return repo, nil
-	case "mem":
-		return repo.NewMemRepo(pro, store, fs, profile.NewMemStore())
-	default:
-		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
-	}
-}
+// 	switch cfg.Repo.Type {
+// 	case "fs":
+// 		repo, err := fsrepo.NewRepo(store, fs, book, cache, pro, path)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		// Try to make the repo a hidden directory, but it's okay if we can't. Ingore the error.
+// 		_ = hiddenfile.SetFileHidden(path)
+// 		return repo, nil
+// 	case "mem":
+// 		return repo.NewMemRepo(pro, store, fs, profile.NewMemStore())
+// 	default:
+// 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
+// 	}
+// }
 
 func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 	// The stats cache default location is repoPath/stats
@@ -552,12 +548,6 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 	switch cfg.Stats.Cache.Type {
 	case "fs":
 		return stats.New(stats.NewOSCache(path, cfg.Stats.Cache.MaxSize))
-	// TODO (ramfox): return a mem and/or postgres version of the stats.Stats
-	// once those are implemented
-	// case "mem":
-	// 	return stats.New(stats.NewMemCache(path, cfg.Stats.Cache.MaxSize))
-	// case "postgres":
-	// 	return stats.New(stats.NewSqlCache(path, cfg.Stats.Cache.MaxSize))
 	default:
 		return stats.New(nil)
 	}
@@ -606,10 +596,9 @@ func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node 
 
 	if node != nil && r != nil {
 		inst.repo = r
-		inst.store = r.Store()
-		inst.qfs = r.Filesystem()
 		inst.bus = bus
 		inst.fsi = fsint
+		inst.qfs = r.Filesystem()
 	}
 
 	go inst.waitForAllDone()
@@ -627,9 +616,8 @@ type Instance struct {
 
 	streams      ioes.IOStreams
 	repo         repo.Repo
-	store        cafs.Filestore
 	node         *p2p.QriNode
-	qfs          qfs.Filesystem
+	qfs          *muxfs.Mux
 	fsi          *fsi.FSI
 	remote       *remote.Remote
 	remoteClient remote.Client
@@ -778,14 +766,6 @@ func (inst *Instance) RemoteClient() remote.Client {
 		return nil
 	}
 	return inst.remoteClient
-}
-
-// Store returns the qfs filesystem
-func (inst *Instance) Store() qfs.Filesystem {
-	if inst == nil {
-		return nil
-	}
-	return inst.store
 }
 
 // checkRPCError validates RPC errors and in case of EOF returns a

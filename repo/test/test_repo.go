@@ -12,9 +12,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qfs/httpfs"
-	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/base/dsfs"
@@ -74,25 +71,26 @@ func ProfileConfig() *config.ProfilePod {
 
 // NewEmptyTestRepo initializes a test repo with no contents
 func NewEmptyTestRepo() (mr *repo.MemRepo, err error) {
+	ctx := context.TODO()
 	pro := &profile.Profile{
 		Peername: "peer",
 		ID:       profile.IDB58MustDecode(profileID),
 		PrivKey:  privKey,
 	}
-	ms := cafs.NewMapstore()
-	return repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore())
+	return repo.NewMemRepo(ctx, pro, newTestFS(ctx))
 }
 
-func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
-	lfs, _ := localfs.NewFS(nil)
-	hfs, _ := httpfs.NewFS(nil)
-	mem := qfs.NewMemFS()
-	return muxfs.NewMux(map[string]qfs.Filesystem{
-		"local": lfs,
-		"http":  hfs,
-		"map":   cafsys,
-		"mem":   mem,
+func newTestFS(ctx context.Context) *muxfs.Mux {
+	fs, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "local"},
+		{Type: "http"},
+		{Type: "map"},
+		{Type: "mem"},
 	})
+	if err != nil {
+		panic(err)
+	}
+	return fs
 }
 
 // NewTestRepo generates a repository usable for testing purposes
@@ -153,6 +151,7 @@ func NewTestRepoWithHistory() (mr *repo.MemRepo, refs []reporef.DatasetRef, err 
 
 // NewTestRepoFromProfileID constructs a repo from a profileID, usable for tests
 func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.Repo, error) {
+	ctx := context.TODO()
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
 	pk, _, err := crypto.GenerateSecp256k1Key(rand.Reader)
@@ -160,12 +159,11 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		return nil, err
 	}
 
-	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(&profile.Profile{
+	r, err := repo.NewMemRepo(ctx, &profile.Profile{
 		ID:       id,
 		Peername: fmt.Sprintf("test-repo-%d", peerNum),
 		PrivKey:  pk,
-	}, ms, newTestFS(ms), profile.NewMemStore())
+	}, newTestFS(ctx))
 	if err != nil {
 		return r, err
 	}
@@ -220,7 +218,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	}
 
 	sw := dsfs.SaveSwitches{Pin: true, ShouldRender: true}
-	if path, err = dsfs.CreateDataset(ctx, r.Store(), ds, nil, r.PrivateKey(), sw); err != nil {
+	if path, err = dsfs.CreateDataset(ctx, r.Store(), r.Store(), ds, nil, r.PrivateKey(), sw); err != nil {
 		return
 	}
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
@@ -290,6 +288,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 // on each case with the given privatekey, yeilding a repo where the peer with
 // this pk has created each dataset in question
 func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
+	ctx := context.TODO()
 	// TODO (b5) - use a function & a contstant to get this path
 	cfgPath := filepath.Join(path, "config.yaml")
 
@@ -303,8 +302,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 		return nil, nil, err
 	}
 
-	ms := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore())
+	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx))
 	if err != nil {
 		return mr, pro.PrivKey, err
 	}
@@ -328,6 +326,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 // this pk has created each dataset in question. Uses an IPFS enabled repo.
 // path should be the basepath above the qri and ipfs repos
 func NewIPFSRepoFromDir(qriPath, ipfsPath string) (repo.Repo, crypto.PrivKey, error) {
+	ctx := context.TODO()
 	cfg, err := config.ReadFromFile(filepath.Join(qriPath, "config.yaml"))
 	pro := &profile.Profile{}
 	if err := pro.Decode(cfg.Profile); err != nil {
@@ -336,17 +335,17 @@ func NewIPFSRepoFromDir(qriPath, ipfsPath string) (repo.Repo, crypto.PrivKey, er
 	if err := qipfs.LoadIPFSPluginsOnce(ipfsPath); err != nil {
 		return nil, nil, err
 	}
-	muxCfg := []qfs.Config{
+
+	fs, err := muxfs.New(ctx, []qfs.Config{
 		{Type: "local"},
 		{Type: "http"},
 		{Type: "ipfs", Config: map[string]interface{}{"path": ipfsPath}},
 		{Type: "mem"},
-	}
-	ms, err := muxfs.New(context.TODO(), muxCfg)
+	})
 	if err != nil {
 		return nil, pro.PrivKey, err
 	}
-	mr, err := repo.NewMemRepo(pro, ms.CAFSStoreFromIPFS(), ms, profile.NewMemStore())
+	mr, err := repo.NewMemRepo(ctx, pro, fs)
 	if err != nil {
 		return mr, pro.PrivKey, err
 	}

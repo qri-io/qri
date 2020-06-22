@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
@@ -36,17 +36,24 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		fs := qfs.NewMemFS()
-		book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, fs, path)
+		ctx := context.Background()
+		fs, err := muxfs.New(ctx, []qfs.Config{
+			{Type: "map"},
+			{Type: "mem"},
+			{Type: "local"},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		ctx := context.Background()
+		book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, fs, "/mem/logbook.qfb")
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		cache := dscache.NewDscache(ctx, fs, nil, pro.Peername, "")
 
-		store := cafs.NewMapstore()
-		r, err := NewRepo(store, fs, book, cache, pro, path)
+		r, err := NewRepo(path, fs, book, cache, pro)
 		if err != nil {
 			t.Fatalf("error creating repo: %s", err.Error())
 		}
@@ -79,17 +86,24 @@ func TestResolveRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fs := qfs.NewMemFS()
-	book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, fs, path)
+	ctx := context.Background()
+	fs, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "map"},
+		{Type: "mem"},
+		{Type: "local"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
+	book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, fs, "/mem/logbook")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	cache := dscache.NewDscache(ctx, fs, nil, "", "")
 
-	store := cafs.NewMapstore()
-	r, err := NewRepo(store, fs, book, cache, pro, path)
+	r, err := NewRepo(path, fs, book, cache, pro)
 	if err != nil {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}

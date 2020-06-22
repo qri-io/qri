@@ -6,9 +6,6 @@ import (
 	"testing"
 
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qfs/httpfs"
-	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -234,8 +231,10 @@ func TestPeerConnectionsParamsPod(t *testing.T) {
 }
 
 func newTestQriNode(t *testing.T) *p2p.QriNode {
-	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	r, err := repo.NewMemRepo(ctx, testPeerProfile, newTestFS(ctx))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,21 +246,24 @@ func newTestQriNode(t *testing.T) *p2p.QriNode {
 	return node
 }
 
-func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
-	lfs, _ := localfs.NewFS(nil)
-	hfs, _ := httpfs.NewFS(nil)
-	mem := qfs.NewMemFS()
-	return muxfs.NewMux(map[string]qfs.Filesystem{
-		"local": lfs,
-		"http":  hfs,
-		"map":   cafsys,
-		"mem":   mem,
+func newTestFS(ctx context.Context) *muxfs.Mux {
+	mux, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "local"},
+		{Type: "http"},
+		{Type: "map"},
+		{Type: "mem"},
 	})
+	if err != nil {
+		panic(err)
+	}
+
+	return mux
 }
 
 func newTestDisconnectedQriNode() (*p2p.QriNode, error) {
-	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(&profile.Profile{PrivKey: privKey}, ms, newTestFS(ms), profile.NewMemStore())
+	ctx := context.TODO()
+	pro := &profile.Profile{PrivKey: privKey}
+	r, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx))
 	if err != nil {
 		return nil, err
 	}

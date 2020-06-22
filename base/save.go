@@ -6,6 +6,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	qerr "github.com/qri-io/qri/errors"
@@ -22,7 +23,7 @@ type SaveSwitches = dsfs.SaveSwitches
 var ErrNameTaken = fmt.Errorf("name already in use")
 
 // SaveDataset saves a version of the dataset for the given initID at the current path
-func SaveDataset(ctx context.Context, r repo.Repo, initID, prevPath string, changes *dataset.Dataset, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
+func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, initID, prevPath string, changes *dataset.Dataset, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
 	var pro *profile.Profile
 	if pro, err = r.Profile(); err != nil {
 		return
@@ -104,7 +105,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, initID, prevPath string, chan
 
 	// Write the dataset to storage and get back the new path.
 	// TODO(dustmop): Only return the cafs path, since this function shouldn't know about references
-	ref, err = CreateDataset(ctx, r, changes, prev, sw)
+	ref, err = CreateDataset(ctx, r, writeDest, changes, prev, sw)
 	if err != nil {
 		return ref, err
 	}
@@ -118,7 +119,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, initID, prevPath string, chan
 }
 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating the refstore
-func CreateDataset(ctx context.Context, r repo.Repo, ds, dsPrev *dataset.Dataset, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
+func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ds, dsPrev *dataset.Dataset, sw SaveSwitches) (ref reporef.DatasetRef, err error) {
 	var (
 		pro     *profile.Profile
 		path    string
@@ -147,7 +148,12 @@ func CreateDataset(ctx context.Context, r repo.Repo, ds, dsPrev *dataset.Dataset
 		return
 	}
 
-	if path, err = dsfs.CreateDataset(ctx, r.Store(), ds, dsPrev, r.PrivateKey(), sw); err != nil {
+	cafsWriteDest, ok := writeDest.(cafs.Filestore)
+	if !ok {
+		return ref, fmt.Errorf("write destination must be a cafs.Filstore")
+	}
+
+	if path, err = dsfs.CreateDataset(ctx, r.Store(), cafsWriteDest, ds, dsPrev, r.PrivateKey(), sw); err != nil {
 		log.Debugf("dsfs.CreateDataset: %s", err)
 		return
 	}
