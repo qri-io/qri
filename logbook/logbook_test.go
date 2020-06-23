@@ -46,7 +46,7 @@ func Example() {
 	//  * a base path on the filesystem to read & write the logbook to
 	// Initializing a logbook ensures the author has an user opset that matches
 	// their current state. It will error if a stored book can't be decrypted
-	book, err := logbook.NewJournal(pk, "b5", fs, "/mem/logset")
+	book, err := logbook.NewJournal(pk, "b5", fs, "/mem/logbook.qfb")
 	if err != nil {
 		panic(err) // real programs don't panic
 	}
@@ -165,20 +165,20 @@ func TestNewJournal(t *testing.T) {
 	pk := testPrivKey(t)
 	fs := qfs.NewMemFS()
 
-	if _, err := logbook.NewJournal(nil, "b5", nil, "/mem/logset"); err == nil {
+	if _, err := logbook.NewJournal(nil, "b5", nil, "/mem/logbook.qfb"); err == nil {
 		t.Errorf("expected missing private key arg to error")
 	}
-	if _, err := logbook.NewJournal(pk, "", nil, "/mem/logset"); err == nil {
+	if _, err := logbook.NewJournal(pk, "", nil, "/mem/logbook.qfb"); err == nil {
 		t.Errorf("expected missing author arg to error")
 	}
-	if _, err := logbook.NewJournal(pk, "b5", nil, "/mem/logset"); err == nil {
+	if _, err := logbook.NewJournal(pk, "b5", nil, "/mem/logbook.qfb"); err == nil {
 		t.Errorf("expected missing filesystem arg to error")
 	}
 	if _, err := logbook.NewJournal(pk, "b5", fs, ""); err == nil {
 		t.Errorf("expected missing location arg to error")
 	}
 
-	_, err := logbook.NewJournal(pk, "b5", fs, "/mem/logset")
+	_, err := logbook.NewJournal(pk, "b5", fs, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -594,7 +594,7 @@ func TestLogTransfer(t *testing.T) {
 
 	pk2 := testPrivKey2(t)
 	fs2 := qfs.NewMemFS()
-	book2, err := logbook.NewJournal(pk2, "user2", fs2, "/mem/fs2_location")
+	book2, err := logbook.NewJournal(pk2, "user2", fs2, "/mem/fs2_location.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -845,7 +845,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	logbook.NewTimestamp = tr.newTimestamp
 
 	var err error
-	tr.Book, err = logbook.NewJournal(pk, authorName, fs, "/mem/logset")
+	tr.Book, err = logbook.NewJournal(pk, authorName, fs, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatalf("creating book: %s", err.Error())
 	}

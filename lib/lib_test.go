@@ -110,7 +110,7 @@ func TestNewDefaultInstance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir)
 
 	qriPath := filepath.Join(tempDir, "qri")
 	ipfsPath := filepath.Join(qriPath, "ipfs")

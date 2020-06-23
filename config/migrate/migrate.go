@@ -98,7 +98,6 @@ func ZeroToOne(cfg *config.Config) error {
 // OneToTwo migrates a configuration from Revision 1 to Revision 2
 func OneToTwo(cfg *config.Config) error {
 	qriPath := filepath.Dir(cfg.Path())
-	// qri repo path must be the base of the config path
 	newIPFSPath := filepath.Join(qriPath, "ipfs")
 
 	// TODO(ramfox): qfs migration
@@ -191,7 +190,7 @@ func delIdx(i int, sl []string) []string {
 	return sl[:i]
 }
 
-// In qri v0.9.8 & earlier, the IPFS path location was detrimined by the
+// In qri v0.9.8 & earlier, the IPFS path location was determined by the
 // IPFS_PATH env var, and falling back to $HOME/.ipfs.
 func configVersionOneIPFSPath() string {
 	path := os.Getenv("IPFS_PATH")

@@ -177,7 +177,7 @@ func ConsistentResolvers(t *testing.T, ref dsref.Ref, resolvers ...dsref.Resolve
 func ForeignLogbook(t *testing.T, username string) *logbook.Book {
 	pk := testPeers.GetTestPeerInfo(9).PrivKey
 	ms := qfs.NewMemFS()
-	journal, err := logbook.NewJournal(pk, username, ms, "/mem/logset")
+	journal, err := logbook.NewJournal(pk, username, ms, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}

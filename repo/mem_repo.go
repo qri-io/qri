@@ -42,7 +42,7 @@ func NewMemRepo(ctx context.Context, p *profile.Profile, fs *muxfs.Mux) (*MemRep
 		fs.SetFilesystem(cafs.NewMapstore())
 	}
 
-	book, err := logbook.NewJournal(p.PrivKey, p.Peername, fs, "/mem/logbook")
+	book, err := logbook.NewJournal(p.PrivKey, p.Peername, fs, "/mem/logbook.qfb")
 	if err != nil {
 		return nil, err
 	}

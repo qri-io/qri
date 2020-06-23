@@ -127,8 +127,8 @@ func OptConfig(cfg *config.Config) Option {
 	}
 }
 
-// OptSetIPFSPath sets the directory to read IPFS from
-// passing the empty string adjusts qri to use the go-ipfs default:
+// OptSetIPFSPath sets the directory to read IPFS from.
+// Passing the empty string adjusts qri to use the go-ipfs default:
 // first checking the IPFS_PATH env variable, then falling back to $HOME/.ipfs
 // if no ipfs filesystem is configured, this option creates one
 func OptSetIPFSPath(path string) Option {
@@ -512,28 +512,6 @@ func newDscache(ctx context.Context, fs qfs.Filesystem, hooks []hook.ChangeNotif
 func newEventBus(ctx context.Context) event.Bus {
 	return event.NewBus(ctx)
 }
-
-// func newRepo(ctx context.Context, path string, cfg *config.Config, store cafs.Filestore, fs *muxfs.Mux, book *logbook.Book, cache *dscache.Dscache) (r repo.Repo, err error) {
-// 	var pro *profile.Profile
-// 	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
-// 		return
-// 	}
-
-// 	switch cfg.Repo.Type {
-// 	case "fs":
-// 		repo, err := fsrepo.NewRepo(store, fs, book, cache, pro, path)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		// Try to make the repo a hidden directory, but it's okay if we can't. Ingore the error.
-// 		_ = hiddenfile.SetFileHidden(path)
-// 		return repo, nil
-// 	case "mem":
-// 		return repo.NewMemRepo(pro, store, fs, profile.NewMemStore())
-// 	default:
-// 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
-// 	}
-// }
 
 func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 	// The stats cache default location is repoPath/stats

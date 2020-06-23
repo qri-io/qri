@@ -96,7 +96,7 @@ func TestResolveRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, fs, "/mem/logbook")
+	book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, fs, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}

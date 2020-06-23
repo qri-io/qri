@@ -119,7 +119,7 @@ func TestCacheRefConsistency(t *testing.T) {
 
 	localUsername := "local_user"
 	localDsName := "local_dataset"
-	book, err := logbook.NewJournal(testPeers.GetTestPeerInfo(0).PrivKey, localUsername, fsys, "/mem/logbook")
+	book, err := logbook.NewJournal(testPeers.GetTestPeerInfo(0).PrivKey, localUsername, fsys, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}
