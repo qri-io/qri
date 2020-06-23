@@ -102,7 +102,7 @@ func GetHashBase(in, network string) string {
 // If you supply a path that does not match the filestore's naming conventions will
 // return an invalid path
 func PackageFilepath(store cafs.Filestore, path string, pf PackageFile) string {
-	prefix := store.PathPrefix()
+	prefix := store.Type()
 	if prefix == "" {
 		return path
 	}

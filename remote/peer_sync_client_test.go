@@ -145,6 +145,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 }
 
 func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
+	ctx := context.Background()
 	ms := cafs.NewMapstore()
 	pi := cfgtest.GetTestPeerInfo(0)
 	pro := &profile.Profile{
@@ -152,7 +153,7 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 		ID:       profile.IDFromPeerID(pi.PeerID),
 		PrivKey:  pi.PrivKey,
 	}
-	mr, err := repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore())
+	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx, ms))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -163,10 +164,15 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 	return node
 }
 
-func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
-	return muxfs.NewMux(map[string]qfs.Filesystem{
-		"mem": cafsys,
-	})
+func newTestFS(ctx context.Context, cafsys cafs.Filestore) *muxfs.Mux {
+	mux, err := muxfs.New(ctx, []qfs.Config{})
+	if err != nil {
+		panic(err)
+	}
+	if err := mux.SetFilesystem(cafsys); err != nil {
+		panic(err)
+	}
+	return mux
 }
 
 // Convert from test nodes to non-test nodes.

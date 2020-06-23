@@ -1,11 +1,12 @@
 package repo
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -184,23 +185,6 @@ func TestParseDatasetRef(t *testing.T) {
 
 		{"peername/datasetname/@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
 		{"peername/datasetname/@/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
-
-		// TODO - restore. These have been removed b/c I didn't have time to make dem work properly - @b5
-		// {"peername/datasetname@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSreporef.DatasetRef, ""},
-		// {"peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSreporef.DatasetRef, ""},
-		// {"@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", pathOnlyreporef.DatasetRef, ""},
-		// {"@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", pathOnlyreporef.DatasetRef, ""},
-		// {"@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", ipfsOnlyreporef.DatasetRef, ""},
-		// {"@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D96w1L5qAhUM5Y/junk/junk/...", ipfsOnlyreporef.DatasetRef, ""},
-
-		// {"peername/datasetname@network/bad_hash", reporef.DatasetRef{}, "invalid ProfileID: profile.IDB58MustDecode('network'"}),
-		// {"peername/datasetname@bad_hash/junk/junk..", reporef.DatasetRef{}, "invalid ProfileID: profile.IDB58MustDecode('bad_hash'"}),
-		// {"peername/datasetname@bad_hash", reporef.DatasetRef{}, "invalid ProfileID: profile.IDB58MustDecode('bad_hash'"}),
-
-		// {"@///*(*)/", reporef.DatasetRef{}, "malformed reporef.DatasetRef string: @///*(*)/"},
-		// {"///*(*)/", reporef.DatasetRef{}, "malformed reporef.DatasetRef string: ///*(*)/"},
-		// {"@", reporef.DatasetRef{}, ""},
-		// {"///@////", reporef.DatasetRef{}, ""},
 	}
 
 	for i, c := range cases {
@@ -344,11 +328,20 @@ func TestCompareDatasets(t *testing.T) {
 }
 
 func TestCanonicalizeDatasetRef(t *testing.T) {
+	ctx := context.Background()
 	lucille := &profile.Profile{ID: profile.IDRawByteString("a"), Peername: "lucille", PrivKey: privKey}
 	carla := &profile.Profile{ID: profile.IDRawByteString("b"), Peername: "carla"}
 
-	store := cafs.NewMapstore()
-	memRepo, err := NewMemRepo(lucille, store, qfs.NewMemFS(), profile.NewMemStore())
+	fs, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "map"},
+		{Type: "mem"},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	memRepo, err := NewMemRepo(ctx, lucille, fs)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
@@ -409,10 +402,20 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 }
 
 func TestCanonicalizeDatasetRefFSI(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	peer := "lucille"
 	prof := &profile.Profile{ID: profile.IDRawByteString("a"), Peername: peer, PrivKey: privKey}
-	store := cafs.NewMapstore()
-	memRepo, err := NewMemRepo(prof, store, qfs.NewMemFS(), profile.NewMemStore())
+	fs, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "map"},
+		{Type: "mem"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	memRepo, err := NewMemRepo(ctx, prof, fs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -461,9 +464,19 @@ func TestCanonicalizeDatasetRefFSI(t *testing.T) {
 }
 
 func TestCanonicalizeProfile(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	prof := &profile.Profile{Peername: "lucille", ID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"), PrivKey: privKey}
-	store := cafs.NewMapstore()
-	repo, err := NewMemRepo(prof, store, qfs.NewMemFS(), profile.NewMemStore())
+	fs, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "map"},
+		{Type: "mem"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repo, err := NewMemRepo(ctx, prof, fs)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return

@@ -210,7 +210,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	book, err := logbook.NewJournal(p.PrivKey, p.Peername, mr.Filesystem(), "/map/logbook")
+	book, err := logbook.NewJournal(p.PrivKey, p.Peername, mr.Filesystem(), "/map/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}

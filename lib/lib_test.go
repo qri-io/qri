@@ -15,7 +15,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
@@ -74,7 +74,6 @@ func TestNewInstance(t *testing.T) {
 		{Type: "map"},
 		{Type: "local"},
 	}
-	cfg.Store.Type = "map"
 	cfg.Repo.Type = "mem"
 
 	got, err := NewInstance(ctx, tr.QriPath, OptConfig(cfg))
@@ -104,25 +103,37 @@ func TestNewInstance(t *testing.T) {
 }
 
 func TestNewDefaultInstance(t *testing.T) {
-	tempDir, err := ioutil.TempDir(os.TempDir(), "TestNewDefaultInstance")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tempDir, err := ioutil.TempDir("", "TestNewDefaultInstance")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.RemoveAll(tempDir)
+
+	qriPath := filepath.Join(tempDir, "qri")
+	ipfsPath := filepath.Join(qriPath, "ipfs")
+	t.Logf(tempDir)
 
 	testCrypto := repotest.NewTestCrypto()
-	if err = testCrypto.GenerateEmptyIpfsRepo(filepath.Join(tempDir, "ipfs"), ""); err != nil {
+	if err = testCrypto.GenerateEmptyIpfsRepo(ipfsPath, ""); err != nil {
 		t.Fatal(err)
 	}
 
 	cfg := config.DefaultConfigForTesting()
-	cfg.Store.Path = tempDir
-	cfg.WriteToFile(filepath.Join(tempDir, "config.yaml"))
+	cfg.Filesystems = []qfs.Config{
+		{Type: "ipfs", Config: map[string]interface{}{"path": ipfsPath}},
+		{Type: "local"},
+		{Type: "http"},
+	}
+	cfg.WriteToFile(filepath.Join(qriPath, "config.yaml"))
 
-	_, err = NewInstance(context.Background(), tempDir)
+	_, err = NewInstance(ctx, qriPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = os.Stat(filepath.Join(tempDir, "stats")); os.IsNotExist(err) {
+	if _, err = os.Stat(filepath.Join(qriPath, "stats")); os.IsNotExist(err) {
 		t.Errorf("NewInstance error: stats cache never created")
 	}
 }
@@ -137,8 +148,15 @@ func CompareInstances(a, b *Instance) error {
 }
 
 func TestReceivers(t *testing.T) {
-	store := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(&profile.Profile{PrivKey: privKey}, store, qfs.NewMemFS(), profile.NewMemStore())
+	ctx := context.Background()
+	fs, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "map"},
+		{Type: "mem"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := repo.NewMemRepo(ctx, &profile.Profile{PrivKey: privKey}, fs)
 	if err != nil {
 		t.Errorf("error creating mem repo: %s", err)
 		return
@@ -193,7 +211,7 @@ func saveDataset(ctx context.Context, r repo.Repo, ds *dataset.Dataset, sw base.
 	if err != nil {
 		return dsref.Ref{}, err
 	}
-	datasetRef, err := base.SaveDataset(ctx, r, initID, headRef, ds, sw)
+	datasetRef, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), initID, headRef, ds, sw)
 	return reporef.ConvertToDsref(datasetRef), err
 }
 

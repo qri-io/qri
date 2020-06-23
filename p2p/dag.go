@@ -64,7 +64,7 @@ func newDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, p
 		return nil, err
 	}
 	info.Labels = map[string]int{}
-	prefix := store.PathPrefix()
+	prefix := store.Type()
 	if ds.BodyPath != "" {
 		err := info.AddLabelByID("bd", dsfs.GetHashBase(ds.BodyPath, prefix))
 		if err != nil {

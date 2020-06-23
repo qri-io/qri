@@ -65,6 +65,6 @@ func (run *TestRunner) saveDataset(ds *dataset.Dataset, sw SaveSwitches) (dsref.
 	if err != nil {
 		return dsref.Ref{}, err
 	}
-	datasetRef, err := SaveDataset(run.Context, run.Repo, initID, headRef, ds, sw)
+	datasetRef, err := SaveDataset(run.Context, run.Repo, run.Repo.Filesystem().DefaultWriteFS(), initID, headRef, ds, sw)
 	return reporef.ConvertToDsref(datasetRef), err
 }
