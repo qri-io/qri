@@ -18,7 +18,8 @@ type Factory interface {
 	Instance() *lib.Instance
 	Config() (*config.Config, error)
 
-	QriPath() string
+	// path to qri data directory
+	RepoPath() string
 	CryptoGenerator() gen.CryptoGenerator
 
 	Init() error
@@ -41,9 +42,9 @@ type Factory interface {
 	ExportRequests() (*lib.ExportRequests, error)
 }
 
-// StandardQriPath returns qri paths based on the QRI_PATH environment variable
-// falling back to the default: $HOME/.qri
-func StandardQriPath() string {
+// StandardRepoPath returns qri paths based on the QRI_PATH environment
+// variable falling back to the default: $HOME/.qri
+func StandardRepoPath() string {
 	qriRepoPath := os.Getenv("QRI_PATH")
 	if qriRepoPath == "" {
 		home, err := homedir.Dir()
@@ -54,9 +55,4 @@ func StandardQriPath() string {
 	}
 
 	return qriRepoPath
-}
-
-// RootedQriPath gives a "/qri" directory from a given root path
-func RootedQriPath(root string) string {
-	return filepath.Join(root, "qri")
 }

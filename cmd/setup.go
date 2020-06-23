@@ -67,7 +67,7 @@ including all your datasets, and de-registers your peername from the registry.`,
 // SetupOptions encapsulates state for the setup command
 type SetupOptions struct {
 	ioes.IOStreams
-	qriPath   string
+	repoPath  string
 	Generator gen.CryptoGenerator
 
 	Anonymous      bool
@@ -83,7 +83,7 @@ type SetupOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SetupOptions) Complete(f Factory, args []string) (err error) {
-	o.qriPath = f.QriPath()
+	o.repoPath = f.RepoPath()
 	o.Generator = f.CryptoGenerator()
 	return
 }
@@ -101,8 +101,8 @@ func (o *SetupOptions) Run(f Factory) error {
 		}
 		// TODO - add a big warning here that requires user input
 		err = lib.Teardown(lib.TeardownParams{
-			Config:  cfg,
-			QriPath: o.qriPath,
+			Config:   cfg,
+			RepoPath: o.repoPath,
 		})
 		if err != nil {
 			return err
@@ -111,7 +111,7 @@ func (o *SetupOptions) Run(f Factory) error {
 		return nil
 	}
 
-	if QRIRepoInitialized(o.qriPath) && !o.Overwrite {
+	if QRIRepoInitialized(o.repoPath) && !o.Overwrite {
 		// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
 		// this is usually a terrible idea
 		return fmt.Errorf("repo already initialized")
@@ -121,7 +121,7 @@ func (o *SetupOptions) Run(f Factory) error {
 		return err
 	}
 
-	printSuccess(o.Out, "set up qri repo at: %s\n", o.qriPath)
+	printSuccess(o.Out, "set up qri repo at: %s\n", o.repoPath)
 	return nil
 }
 
@@ -184,8 +184,8 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 
 	p := lib.SetupParams{
 		Config:         cfg,
-		QriPath:        o.qriPath,
-		ConfigFilepath: filepath.Join(o.qriPath, "config.yaml"),
+		RepoPath:       o.repoPath,
+		ConfigFilepath: filepath.Join(o.repoPath, "config.yaml"),
 		SetupIPFS:      o.IPFS,
 		Register:       o.Registry == "none",
 		Generator:      o.Generator,

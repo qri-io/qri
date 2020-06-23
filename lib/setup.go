@@ -15,7 +15,7 @@ import (
 // SetupParams encapsulates arguments for Setup
 type SetupParams struct {
 	Config              *config.Config
-	QriPath             string
+	RepoPath            string
 	ConfigFilepath      string
 	SetupIPFS           bool
 	Register            bool
@@ -26,12 +26,12 @@ type SetupParams struct {
 // Setup provisions a new qri instance, it intentionally doesn't conform to the RPC function signature
 // because remotely invoking setup doesn't make much sense
 func Setup(p SetupParams) error {
-	if err := setup(p.QriPath, p.ConfigFilepath, p.Config, p.Register); err != nil {
+	if err := setup(p.RepoPath, p.ConfigFilepath, p.Config, p.Register); err != nil {
 		return err
 	}
 
 	if p.SetupIPFS {
-		ipfsPath := filepath.Join(p.QriPath, "ipfs")
+		ipfsPath := filepath.Join(p.RepoPath, "ipfs")
 		// IPFS plugins need to be loaded
 		if err := qipfs.LoadIPFSPluginsOnce(ipfsPath); err != nil {
 			return err
@@ -48,14 +48,14 @@ func Setup(p SetupParams) error {
 // TeardownParams encapsulates arguments for Setup
 type TeardownParams struct {
 	Config         *config.Config
-	QriPath        string
+	RepoPath       string
 	ConfigFilepath string
 }
 
 // Teardown reverses the setup process, destroying a user's privateKey
 // and removing local qri data
 func Teardown(p TeardownParams) error {
-	return os.RemoveAll(p.QriPath)
+	return os.RemoveAll(p.RepoPath)
 }
 
 // setup provisions a new qri instance

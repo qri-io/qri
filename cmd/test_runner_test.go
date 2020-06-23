@@ -35,7 +35,7 @@ import (
 // TestRunner holds data used to run tests
 type TestRunner struct {
 	RepoRoot *repotest.TempRepo
-	QriPath  string
+	RepoPath string
 
 	Context       context.Context
 	ContextDone   func()
@@ -118,7 +118,7 @@ func newTestRunnerFromRoot(root *repotest.TempRepo) *TestRunner {
 
 	run := TestRunner{
 		RepoRoot:    root,
-		QriPath:     RootedQriPath(root.RootPath),
+		RepoPath:    filepath.Join(root.RootPath, "qri"),
 		Context:     ctx,
 		ContextDone: cancel,
 	}
@@ -206,7 +206,7 @@ func (run *TestRunner) ExecCommand(cmdText string) error {
 // ExecCommandWithStdin executes the given command string with the string as stdin content
 func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinText string) error {
 	setNoColor(true)
-	cmd, shutdown := NewQriCommand(ctx, run.QriPath, run.RepoRoot.TestCrypto, run.Streams)
+	cmd, shutdown := NewQriCommand(ctx, run.RepoPath, run.RepoRoot.TestCrypto, run.Streams)
 	cmd.SetOutput(run.OutStream)
 	run.CmdR = cmd
 	if err := executeCommand(run.CmdR, cmdText); err != nil {
@@ -317,7 +317,7 @@ func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool)
 		key := lib.InstanceContextKey("RemoteClient")
 		ctx = context.WithValue(ctx, key, "mock")
 	}
-	cmd, shutdown := NewQriCommand(ctx, run.QriPath, run.RepoRoot.TestCrypto, streams)
+	cmd, shutdown := NewQriCommand(ctx, run.RepoPath, run.RepoRoot.TestCrypto, streams)
 	cmd.SetOutput(run.OutStream)
 	return cmd, shutdown
 }

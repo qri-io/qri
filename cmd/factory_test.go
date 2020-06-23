@@ -17,8 +17,8 @@ import (
 // TestFactory is an implementation of the Factory interface for testing purposes
 type TestFactory struct {
 	ioes.IOStreams
-	// path to the QRI repository
-	qriPath string
+	// path to qri data directory
+	repoPath string
 	// generator is a source of cryptographic info
 	generator gen.CryptoGenerator
 
@@ -105,9 +105,9 @@ func (t TestFactory) Instance() *lib.Instance {
 	return t.inst
 }
 
-// QriPath returns the path to the qri directory from internal state
-func (t TestFactory) QriPath() string {
-	return t.qriPath
+// RepoPath returns the path to the qri directory from internal state
+func (t TestFactory) RepoPath() string {
+	return t.repoPath
 }
 
 // CryptoGenerator

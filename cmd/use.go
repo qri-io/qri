@@ -70,7 +70,7 @@ Qri to explore a dataset.`,
 // UseOptions encapsulates state for the search command
 type UseOptions struct {
 	ioes.IOStreams
-	qriPath string
+	repoPath string
 
 	Refs  []string
 	List  bool
@@ -79,7 +79,7 @@ type UseOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *UseOptions) Complete(f Factory, args []string) (err error) {
-	o.qriPath = f.QriPath()
+	o.repoPath = f.RepoPath()
 	o.Refs = args
 	return
 }
@@ -98,7 +98,7 @@ func (o *UseOptions) Validate() error {
 // Run executes the search command
 func (o *UseOptions) Run() (err error) {
 	var refs []reporef.DatasetRef
-	fileSelectionPath := filepath.Join(o.qriPath, FileSelectedRefs)
+	fileSelectionPath := filepath.Join(o.repoPath, FileSelectedRefs)
 
 	if o.List {
 		refs, err = readFile(fileSelectionPath)

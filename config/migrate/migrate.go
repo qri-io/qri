@@ -2,6 +2,7 @@
 package migrate
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -15,8 +16,12 @@ import (
 	qerr "github.com/qri-io/qri/errors"
 )
 
-// ErrNeedMigration indicates a migration is required
-var ErrNeedMigration = fmt.Errorf("migration required")
+var (
+	// ErrNeedMigration indicates a migration is required
+	ErrNeedMigration = fmt.Errorf("migration required")
+	// ErrMigrationSucceeded indicates a migration completed executing
+	ErrMigrationSucceeded = errors.New("migration succeeded")
+)
 
 // RunMigrations checks to see if any migrations runs them
 func RunMigrations(streams ioes.IOStreams, cfg *config.Config, interactive bool) (err error) {
@@ -41,6 +46,12 @@ Run migration now?`
 			}
 		}
 		streams.PrintErr("done!\n")
+
+		// interactive migration execution returns an error, callers using an
+		// interactive prompt will want to ask users to re-execute their request
+		if interactive {
+			return ErrMigrationSucceeded
+		}
 	}
 	return nil
 }

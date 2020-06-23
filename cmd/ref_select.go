@@ -184,7 +184,7 @@ func GetLinkedRefSelect() (*RefSelect, error) {
 
 // DefaultSelectedRefList returns the list of currently `use`ing dataset references
 func DefaultSelectedRefList(f Factory) ([]string, error) {
-	fileSelectionPath := filepath.Join(f.QriPath(), FileSelectedRefs)
+	fileSelectionPath := filepath.Join(f.RepoPath(), FileSelectedRefs)
 
 	refs, err := readFile(fileSelectionPath)
 	if err != nil {

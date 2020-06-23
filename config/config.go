@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"reflect"
 
 	"github.com/ghodss/yaml"
@@ -320,7 +321,7 @@ func DefaultFilesystems() []qfs.Config {
 		{
 			Type: "ipfs",
 			Config: map[string]interface{}{
-				"path": "./ipfs",
+				"path": filepath.Join(".", "ipfs"),
 			},
 		},
 		{Type: "local"},

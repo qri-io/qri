@@ -19,7 +19,7 @@ func TestSetupTeardown(t *testing.T) {
 	cfg1.Profile = nil
 	cfg1.Registry = nil
 	params := SetupParams{
-		QriPath:        path,
+		RepoPath:       path,
 		ConfigFilepath: filepath.Join(path, "config.yml"),
 		Config:         cfg1,
 		Generator:      repotest.NewTestCrypto(),
@@ -58,7 +58,7 @@ func TestSetupTeardown(t *testing.T) {
 	err := Teardown(TeardownParams{
 		Config:         params.Config,
 		ConfigFilepath: params.ConfigFilepath,
-		QriPath:        path,
+		RepoPath:       path,
 	})
 
 	if err != nil {

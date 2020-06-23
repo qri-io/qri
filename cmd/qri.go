@@ -17,8 +17,8 @@ import (
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(ctx context.Context, qriPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan error) {
-	opt := NewQriOptions(ctx, qriPath, generator, ioStreams)
+func NewQriCommand(ctx context.Context, repoPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan error) {
+	opt := NewQriOptions(ctx, repoPath, generator, ioStreams)
 
 	cmd := &cobra.Command{
 		Use:   "qri",
@@ -34,7 +34,7 @@ https://github.com/qri-io/qri/issues`,
 	cmd.SetUsageTemplate(rootUsageTemplate)
 	cmd.PersistentFlags().BoolVarP(&opt.NoPrompt, "no-prompt", "", false, "disable all interactive prompts")
 	cmd.PersistentFlags().BoolVarP(&opt.NoColor, "no-color", "", false, "disable colorized output")
-	cmd.PersistentFlags().StringVar(&opt.qriPath, "path", qriPath, "provide a path to load qri from")
+	cmd.PersistentFlags().StringVar(&opt.repoPath, "repo", repoPath, "filepath to load qri data from")
 	cmd.PersistentFlags().BoolVarP(&opt.LogAll, "log-all", "", false, "log all activity")
 
 	cmd.AddCommand(
@@ -88,8 +88,8 @@ type QriOptions struct {
 	releasers sync.WaitGroup
 	doneCh    chan struct{}
 
-	// path to the QRI repository directory
-	qriPath string
+	// path to the qri data directory
+	repoPath string
 	// generator is source of generating cryptographic info
 	generator gen.CryptoGenerator
 	// NoPrompt Disables all promt messages
@@ -105,12 +105,12 @@ type QriOptions struct {
 }
 
 // NewQriOptions creates an options object
-func NewQriOptions(ctx context.Context, qriPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
+func NewQriOptions(ctx context.Context, repoPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
 	return &QriOptions{
 		IOStreams: ioStreams,
 		ctx:       ctx,
 		doneCh:    make(chan struct{}),
-		qriPath:   qriPath,
+		repoPath:  repoPath,
 		generator: generator,
 	}
 }
@@ -125,7 +125,7 @@ func (o *QriOptions) Init() (err error) {
 		lib.OptCheckConfigMigrations(!noPrompt),
 		lib.OptSetLogAll(o.LogAll),
 	}
-	o.inst, err = lib.NewInstance(o.ctx, o.qriPath, opts...)
+	o.inst, err = lib.NewInstance(o.ctx, o.repoPath, opts...)
 	if err != nil {
 		return
 	}
@@ -155,9 +155,9 @@ func (o *QriOptions) Instance() *lib.Instance {
 	return o.inst
 }
 
-// QriPath returns the path to the qri directory
-func (o *QriOptions) QriPath() string {
-	return o.qriPath
+// RepoPath returns the path to the qri data directory
+func (o *QriOptions) RepoPath() string {
+	return o.repoPath
 }
 
 // Config returns from internal state

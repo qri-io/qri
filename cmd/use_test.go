@@ -128,7 +128,7 @@ func TestUseRun(t *testing.T) {
 			Refs:      c.refs,
 			List:      c.list,
 			Clear:     c.clear,
-			qriPath:   tmpDir,
+			repoPath:  tmpDir,
 		}
 
 		err = opt.Run()
