@@ -159,7 +159,7 @@ type PeersOptions struct {
 	Page     int
 
 	UsingRPC     bool
-	PeerRequests *lib.PeerMethods
+	PeerMethods *lib.PeerMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -168,7 +168,7 @@ func (o *PeersOptions) Complete(f Factory, args []string) (err error) {
 		o.Peername = args[0]
 	}
 	o.UsingRPC = f.RPC() != nil
-	o.PeerRequests, err = f.PeerMethods()
+	o.PeerMethods, err = f.PeerMethods()
 	return
 }
 
@@ -186,7 +186,7 @@ func (o *PeersOptions) Info() (err error) {
 	}
 
 	res := &config.ProfilePod{}
-	if err = o.PeerRequests.Info(p, res); err != nil {
+	if err = o.PeerMethods.Info(p, res); err != nil {
 		return err
 	}
 
@@ -215,7 +215,7 @@ func (o *PeersOptions) List() (err error) {
 
 	if o.Network == "ipfs" {
 		limit := page.Limit()
-		if err := o.PeerRequests.ConnectedQriProfiles(&limit, &res); err != nil {
+		if err := o.PeerMethods.ConnectedQriProfiles(&limit, &res); err != nil {
 			return err
 		}
 	} else {
@@ -230,7 +230,7 @@ func (o *PeersOptions) List() (err error) {
 			Offset: page.Offset(),
 			Cached: o.Cached,
 		}
-		if err = o.PeerRequests.List(p, &res); err != nil {
+		if err = o.PeerMethods.List(p, &res); err != nil {
 			return err
 		}
 	}
@@ -254,7 +254,7 @@ func (o *PeersOptions) List() (err error) {
 func (o *PeersOptions) Connect() (err error) {
 	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
 	res := &config.ProfilePod{}
-	if err = o.PeerRequests.ConnectToPeer(pcpod, res); err != nil {
+	if err = o.PeerMethods.ConnectToPeer(pcpod, res); err != nil {
 		return err
 	}
 
@@ -268,7 +268,7 @@ func (o *PeersOptions) Connect() (err error) {
 func (o *PeersOptions) Disconnect() (err error) {
 	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
 	res := false
-	if err = o.PeerRequests.DisconnectFromPeer(pcpod, &res); err != nil {
+	if err = o.PeerMethods.DisconnectFromPeer(pcpod, &res); err != nil {
 		return err
 	}
 

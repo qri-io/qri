@@ -160,7 +160,7 @@ func (t TestFactory) ExportRequests() (*lib.ExportRequests, error) {
 	return lib.NewExportRequests(t.node, t.rpc), nil
 }
 
-// PeerRequests generates a lib.PeerRequests from internal state
+// PeerMethods generates a lib.PeerMethods from internal state
 func (t TestFactory) PeerMethods() (*lib.PeerMethods, error) {
 	return lib.NewPeerMethods(t.inst), nil
 }

@@ -42,7 +42,7 @@ type PeerListParams struct {
 // List lists Peers on the qri network
 func (m *PeerMethods) List(p *PeerListParams, res *[]*config.ProfilePod) (err error) {
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("PeerRequests.List", p, res))
+		return checkRPCError(m.inst.rpc.Call("PeerMethods.List", p, res))
 	}
 	if m.inst.node == nil || !m.inst.node.Online {
 		return fmt.Errorf("error: not connected, run `qri connect` in another window")
@@ -60,7 +60,7 @@ func (m *PeerMethods) List(p *PeerListParams, res *[]*config.ProfilePod) (err er
 // IPFS this will also return connected IPFS nodes
 func (m *PeerMethods) ConnectedIPFSPeers(limit *int, peers *[]string) error {
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("PeerRequests.ConnectedIPFSPeers", limit, peers))
+		return checkRPCError(m.inst.rpc.Call("PeerMethods.ConnectedIPFSPeers", limit, peers))
 	}
 
 	*peers = m.inst.node.ConnectedPeers()
@@ -70,7 +70,7 @@ func (m *PeerMethods) ConnectedIPFSPeers(limit *int, peers *[]string) error {
 // ConnectedQriProfiles lists profiles we're currently connected to
 func (m *PeerMethods) ConnectedQriProfiles(limit *int, peers *[]*config.ProfilePod) (err error) {
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("PeerRequests.ConnectedQriProfiles", limit, peers))
+		return checkRPCError(m.inst.rpc.Call("PeerMethods.ConnectedQriProfiles", limit, peers))
 	}
 
 	connected := m.inst.node.ConnectedQriProfiles()
@@ -147,7 +147,7 @@ func (p PeerConnectionParamsPod) Decode() (cp p2p.PeerConnectionParams, err erro
 // ConnectToPeer attempts to create a connection with a peer for a given peer.ID
 func (m *PeerMethods) ConnectToPeer(p *PeerConnectionParamsPod, res *config.ProfilePod) error {
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("PeerRequests.ConnectToPeer", p, res))
+		return checkRPCError(m.inst.rpc.Call("PeerMethods.ConnectToPeer", p, res))
 	}
 	ctx := context.TODO()
 
@@ -173,7 +173,7 @@ func (m *PeerMethods) ConnectToPeer(p *PeerConnectionParamsPod, res *config.Prof
 // DisconnectFromPeer explicitly closes a peer connection
 func (m *PeerMethods) DisconnectFromPeer(p *PeerConnectionParamsPod, res *bool) error {
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("PeerRequests.DisconnectFromPeer", p, res))
+		return checkRPCError(m.inst.rpc.Call("PeerMethods.DisconnectFromPeer", p, res))
 	}
 	ctx := context.TODO()
 
@@ -201,7 +201,7 @@ type PeerInfoParams struct {
 // Info shows peer profile details
 func (m *PeerMethods) Info(p *PeerInfoParams, res *config.ProfilePod) error {
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("PeerRequests.Info", p, res))
+		return checkRPCError(m.inst.rpc.Call("PeerMethods.Info", p, res))
 	}
 
 	// TODO: Move most / all of this to p2p package, perhaps.
@@ -255,7 +255,7 @@ type PeerRefsParams struct {
 // GetReferences lists a peer's named datasets
 func (m *PeerMethods) GetReferences(p *PeerRefsParams, res *[]reporef.DatasetRef) error {
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("PeerRequests.GetReferences", p, res))
+		return checkRPCError(m.inst.rpc.Call("PeerMethods.GetReferences", p, res))
 	}
 	ctx := context.TODO()
 

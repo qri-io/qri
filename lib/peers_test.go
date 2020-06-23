@@ -15,7 +15,7 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-func TestPeerRequestsListNoConnection(t *testing.T) {
+func TestPeerMethodsListNoConnection(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
@@ -32,7 +32,7 @@ func TestPeerRequestsListNoConnection(t *testing.T) {
 	}
 }
 
-func TestPeerRequestsList(t *testing.T) {
+func TestPeerMethodsList(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
