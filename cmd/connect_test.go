@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,11 +23,14 @@ func TestConnect(t *testing.T) {
 	// Construct a mock registry to pass to the connect command
 	_, registryServer := regmock.NewMockServer()
 
+	// TODO(b5): this is supposed to free up ports, but locks when not completely disabled:
+	run.MustExec(t, "qri config set api.enabled false rpc.enabled false")
 	// Configure ports such that other tests do not conflict with the connection ports
-	// TODO(dustmop): Add websocket.port to config, set that here
-	run.MustExec(t, "qri config set api.port 0 rpc.port 0")
+	// run.MustExec(t, "qri config set api.address /ip4/127.0.0.1/tcp/0 api.websocketaddress /ip4/127.0.0.1/tcp/0 rpc.address /ip4/127.0.0.1/tcp/0")
 
-	cmd := "qri connect --registry=" + registryServer.URL
+	u, _ := url.Parse(registryServer.URL)
+
+	cmd := "qri connect --registry=" + fmt.Sprintf("/ip4/127.0.0.1/tcp/%s", strings.Split(u.Host, ":")[1])
 
 	// Run the command for 1 second
 	ctx, done := context.WithTimeout(context.Background(), time.Second)

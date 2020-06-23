@@ -410,7 +410,7 @@ func newTestbook(username string, pk crypto.PrivKey) (*logbook.Book, error) {
 	// logbook relies on a qfs.Filesystem for read & write. create an in-memory
 	// filesystem we can play with
 	fs := qfs.NewMemFS()
-	return logbook.NewJournal(pk, username, fs, "/mem/logset")
+	return logbook.NewJournal(pk, username, fs, "/mem/logbook.qfb")
 }
 
 func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, err error) {

@@ -7,28 +7,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"reflect"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/fill"
 )
 
 // CurrentConfigRevision is the latest configuration revision configurations
 // that don't match this revision number should be migrated up
-const CurrentConfigRevision = 1
+const CurrentConfigRevision = 2
 
 // Config encapsulates all configuration details for qri
 type Config struct {
 	path string
 
-	Revision int
-	Profile  *ProfilePod
-	Repo     *Repo
-	Store    *Store
-	P2P      *P2P
-	Update   *Update
-	Stats    *Stats
+	Revision    int
+	Profile     *ProfilePod
+	Repo        *Repo
+	Filesystems []qfs.Config
+	P2P         *P2P
+	Stats       *Stats
 
 	Registry *Registry
 	Remotes  *Remotes
@@ -36,11 +37,15 @@ type Config struct {
 
 	CLI     *CLI
 	API     *API
-	Webapp  *Webapp
 	RPC     *RPC
 	Logging *Logging
+}
 
-	Render *Render
+// SetArbitrary is an interface implementation of base/fill/struct in order to safely
+// consume config files that have definitions beyond those specified in the struct.
+// This simply ignores all additional fields at read time.
+func (cfg *Config) SetArbitrary(key string, val interface{}) error {
+	return nil
 }
 
 // NOTE: The configuration returned by DefaultConfig is insufficient, as is, to run a functional
@@ -54,24 +59,20 @@ type Config struct {
 // DefaultConfig gives a new configuration with simple, default settings
 func DefaultConfig() *Config {
 	return &Config{
-		Revision: CurrentConfigRevision,
-		Profile:  DefaultProfile(),
-		Repo:     DefaultRepo(),
-		Store:    DefaultStore(),
-		P2P:      DefaultP2P(),
-		Update:   DefaultUpdate(),
-		Stats:    DefaultStats(),
+		Revision:    CurrentConfigRevision,
+		Profile:     DefaultProfile(),
+		Repo:        DefaultRepo(),
+		Filesystems: DefaultFilesystems(),
+		P2P:         DefaultP2P(),
+		Stats:       DefaultStats(),
 
 		Registry: DefaultRegistry(),
 		// default to no configured remotes
 
 		CLI:     DefaultCLI(),
 		API:     DefaultAPI(),
-		Webapp:  DefaultWebapp(),
 		RPC:     DefaultRPC(),
 		Logging: DefaultLogging(),
-
-		Render: DefaultRender(),
 	}
 }
 
@@ -86,11 +87,11 @@ func (cfg Config) SummaryString() (summary string) {
 	}
 
 	if cfg.API != nil && cfg.API.Enabled {
-		summary += fmt.Sprintf("API port:\t%d\n", cfg.API.Port)
+		summary += fmt.Sprintf("API address:\t%s\n", cfg.API.Address)
 	}
 
 	if cfg.RPC != nil && cfg.RPC.Enabled {
-		summary += fmt.Sprintf("RPC port:\t%d\n", cfg.RPC.Port)
+		summary += fmt.Sprintf("RPC address:\t%s\n", cfg.RPC.Address)
 	}
 
 	return summary
@@ -109,8 +110,12 @@ func ReadFromFile(path string) (*Config, error) {
 	}
 
 	cfg := &Config{path: path}
+
+	if rev, ok := fields["revision"]; ok {
+		cfg.Revision = (int)(rev.(float64))
+	}
 	if err = fill.Struct(fields, cfg); err != nil {
-		return nil, err
+		return cfg, err
 	}
 
 	return cfg, nil
@@ -157,7 +162,6 @@ func (cfg *Config) Set(path string, value interface{}) error {
 func ImmutablePaths() map[string]bool {
 	return map[string]bool{
 		"p2p.peerid":      true,
-		"p2p.pubkey":      true,
 		"p2p.privkey":     true,
 		"profile.id":      true,
 		"profile.privkey": true,
@@ -194,17 +198,15 @@ func (cfg Config) Validate() error {
     "title": "config",
     "description": "qri configuration",
     "type": "object",
-    "required": ["Profile", "Repo", "Store", "P2P", "CLI", "API", "Webapp", "RPC", "Render"],
+    "required": ["Profile", "Repo", "Filesystems", "P2P", "CLI", "API", "RPC"],
     "properties" : {
 			"Profile" : { "type":"object" },
 			"Repo" : { "type":"object" },
-			"Store" : { "type":"object" },
+			"Filesystems" : { "type":"array" },
 			"P2P" : { "type":"object" },
 			"CLI" : { "type":"object" },
 			"API" : { "type":"object" },
-			"Webapp" : { "type":"object" },
-			"RPC" : { "type":"object" },
-			"Render" : { "type":"object" }
+			"RPC" : { "type":"object" }
     }
   }`)
 	if err := validate(schema, &cfg); err != nil {
@@ -214,15 +216,11 @@ func (cfg Config) Validate() error {
 	validators := []validator{
 		cfg.Profile,
 		cfg.Repo,
-		cfg.Store,
 		cfg.P2P,
 		cfg.CLI,
 		cfg.API,
-		cfg.Webapp,
 		cfg.RPC,
-		cfg.Update,
 		cfg.Logging,
-		cfg.Stats,
 	}
 	for _, val := range validators {
 		// we need to check here because we're potentially calling methods on nil
@@ -254,14 +252,8 @@ func (cfg *Config) Copy() *Config {
 	if cfg.Repo != nil {
 		res.Repo = cfg.Repo.Copy()
 	}
-	if cfg.Store != nil {
-		res.Store = cfg.Store.Copy()
-	}
 	if cfg.P2P != nil {
 		res.P2P = cfg.P2P.Copy()
-	}
-	if cfg.Update != nil {
-		res.Update = cfg.Update.Copy()
 	}
 	if cfg.Registry != nil {
 		res.Registry = cfg.Registry.Copy()
@@ -271,9 +263,6 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.API != nil {
 		res.API = cfg.API.Copy()
-	}
-	if cfg.Webapp != nil {
-		res.Webapp = cfg.Webapp.Copy()
 	}
 	if cfg.RPC != nil {
 		res.RPC = cfg.RPC.Copy()
@@ -287,11 +276,13 @@ func (cfg *Config) Copy() *Config {
 	if cfg.Logging != nil {
 		res.Logging = cfg.Logging.Copy()
 	}
-	if cfg.Render != nil {
-		res.Render = cfg.Render.Copy()
-	}
 	if cfg.Stats != nil {
 		res.Stats = cfg.Stats.Copy()
+	}
+	if cfg.Filesystems != nil {
+		for _, fs := range cfg.Filesystems {
+			res.Filesystems = append(res.Filesystems, fs)
+		}
 	}
 
 	return res
@@ -316,4 +307,18 @@ func (cfg *Config) WithPrivateValues(p *Config) *Config {
 	res.P2P.PrivKey = p.P2P.PrivKey
 
 	return res
+}
+
+// DefaultFilesystems is the default filesystem stack
+func DefaultFilesystems() []qfs.Config {
+	return []qfs.Config{
+		{
+			Type: "ipfs",
+			Config: map[string]interface{}{
+				"path": filepath.Join(".", "ipfs"),
+			},
+		},
+		{Type: "local"},
+		{Type: "http"},
+	}
 }

@@ -21,7 +21,7 @@ import (
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/ioes"
-	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/config"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -39,9 +39,6 @@ type QriNode struct {
 	privateKey crypto.PrivKey
 
 	cfg *config.P2P
-
-	// base context for this node
-	ctx context.Context
 
 	// Online indicates weather this is node is connected to the p2p network
 	Online bool
@@ -105,7 +102,6 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
 		ID:       pid,
 		cfg:      p2pconf,
 		Repo:     r,
-		ctx:      context.Background(),
 		msgState: &sync.Map{},
 		msgChan:  make(chan Message),
 		// Make sure we always have proper IOStreams, this can be set
@@ -132,7 +128,7 @@ func (n *QriNode) setHost(h host.Host) {
 // GoOnline puts QriNode on the distributed web, ensuring there's an active peer-2-peer host
 // participating in a peer-2-peer network, and kicks off requests to connect to known bootstrap
 // peers that support the QriProtocol
-func (n *QriNode) GoOnline() (err error) {
+func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	if !n.cfg.Enabled {
 		return fmt.Errorf("p2p connection is disabled")
 	}
@@ -143,9 +139,9 @@ func (n *QriNode) GoOnline() (err error) {
 	// If the underlying content-addressed-filestore is an ipfs
 	// node, it has built-in p2p, overlay the qri protocol
 	// on the ipfs node's p2p connections.
-	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
+	if ipfsfs, ok := n.Repo.Store().(*qipfs.Filestore); ok {
 		if !ipfsfs.Online() {
-			if err := ipfsfs.GoOnline(n.ctx); err != nil {
+			if err := ipfsfs.GoOnline(ctx); err != nil {
 				return err
 			}
 		}
@@ -160,7 +156,7 @@ func (n *QriNode) GoOnline() (err error) {
 		}
 	} else if n.host == nil {
 		ps := pstoremem.NewPeerstore()
-		n.host, err = makeBasicHost(n.ctx, ps, n.cfg)
+		n.host, err = makeBasicHost(ctx, ps, n.cfg)
 		if err != nil {
 			return fmt.Errorf("error creating host: %s", err.Error())
 		}
@@ -171,14 +167,6 @@ func (n *QriNode) GoOnline() (err error) {
 	// the distributed web that this node supports Qri. for more info on
 	// multistreams  check github.com/multformats/go-multistream
 	n.host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
-
-	// TODO - wait for new IPFS release
-	// if n.cfg.AutoNAT {
-	// 	n.autonat, err = autonat.NewAutoNATService(n.ctx, n.host)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
 
 	p, err := n.Repo.Profile()
 	if err != nil {
@@ -195,12 +183,12 @@ func (n *QriNode) GoOnline() (err error) {
 	n.Online = true
 	go n.echoMessages()
 
-	return n.startOnlineServices()
+	return n.startOnlineServices(ctx)
 }
 
 // startOnlineServices bootstraps the node to qri & IPFS networks
 // and begins NAT discovery
-func (n *QriNode) startOnlineServices() error {
+func (n *QriNode) startOnlineServices(ctx context.Context) error {
 	if !n.Online {
 		return nil
 	}
@@ -211,7 +199,7 @@ func (n *QriNode) startOnlineServices() error {
 		// block until we have at least one successful bootstrap connection
 		<-bsPeers
 
-		if err := n.AnnounceConnected(n.Context()); err != nil {
+		if err := n.AnnounceConnected(ctx); err != nil {
 			log.Infof("error announcing connected: %s", err.Error())
 		}
 	}()
@@ -237,7 +225,7 @@ func (n *QriNode) echoMessages() {
 
 // ipfsNode returns the internal IPFS node
 func (n *QriNode) ipfsNode() (*core.IpfsNode, error) {
-	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
+	if ipfsfs, ok := n.Repo.Store().(*qipfs.Filestore); ok {
 		return ipfsfs.Node(), nil
 	}
 	return nil, fmt.Errorf("not using IPFS")
@@ -259,7 +247,7 @@ func (n *QriNode) GetIPFSNamesys() (namesys.NameSystem, error) {
 	return ipfsn.Namesys, nil
 }
 
-// note: both ipfs_filestore and ipfs_http have this method
+// note: both qipfs and ipfs_http have this method
 type ipfsApier interface {
 	IPFSCoreAPI() coreiface.CoreAPI
 }
@@ -302,21 +290,6 @@ func (n *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 
 	return res
 }
-
-// Context returns this node's context
-func (n *QriNode) Context() context.Context {
-	if n.ctx == nil {
-		n.ctx = context.Background()
-	}
-	return n.ctx
-}
-
-// TODO - finish. We need a proper termination & cleanup process
-// func (n *QriNode) Close() error {
-// 	if node, err := n.IPFSNode(); err == nil {
-// 		return node.Close()
-// 	}
-// }
 
 // makeBasicHost creates a LibP2P host from a NodeCfg
 func makeBasicHost(ctx context.Context, ps pstore.Peerstore, p2pconf *config.P2P) (host.Host, error) {

@@ -2,11 +2,11 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -16,6 +16,8 @@ import (
 
 	"github.com/beme/abide"
 	golog "github.com/ipfs/go-log"
+	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
@@ -67,15 +69,15 @@ func testConfigAndSetter() (cfg *config.Config, setCfg func(*config.Config) erro
 	return
 }
 
-func newTestInstanceWithProfileFromNode(node *p2p.QriNode) *lib.Instance {
+func newTestInstanceWithProfileFromNode(ctx context.Context, node *p2p.QriNode) *lib.Instance {
 	cfg := config.DefaultConfigForTesting()
 	pro, _ := node.Repo.Profile()
 	cfg.Profile, _ = pro.Encode()
-	return lib.NewInstanceFromConfigAndNode(cfg, node)
+	return lib.NewInstanceFromConfigAndNode(ctx, cfg, node)
 }
 
 // TODO (b5) - num param is no longer in use, refactor this function away
-func newTestNodeWithNumDatasets(t *testing.T, num int) (node *p2p.QriNode, teardown func()) {
+func newTestNodeWithNumDatasets(t *testing.T, _ int) (node *p2p.QriNode, teardown func()) {
 	var r repo.Repo
 	r, teardown = newTestRepo(t)
 	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
@@ -132,9 +134,13 @@ func mustFile(t *testing.T, filename string) []byte {
 }
 
 func confirmQriNotRunning() error {
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.DefaultAPIPort))
+	addr, err := ma.NewMultiaddr(config.DefaultAPIAddress)
 	if err != nil {
-		return fmt.Errorf("it looks like a qri server is already running on port %d, please close before running tests", config.DefaultAPIPort)
+		return fmt.Errorf(err.Error())
+	}
+	l, err := manet.Listen(addr)
+	if err != nil {
+		return fmt.Errorf("it looks like a qri server is already running on address %s, please close before running tests", config.DefaultAPIAddress)
 	}
 
 	l.Close()
@@ -162,6 +168,9 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 	if err := confirmQriNotRunning(); err != nil {
 		t.Skip(err.Error())
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	prevXformVer := APIVersion
 	APIVersion = "test_version"
@@ -199,7 +208,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
+	inst := lib.NewInstanceFromConfigAndNode(ctx, cfg, node)
 	s := New(inst)
 
 	server := httptest.NewServer(NewServerRoutes(s))

@@ -5,12 +5,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 
 	golog "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/qri-io/dataset/dsgraph"
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
@@ -32,40 +32,55 @@ type Repo struct {
 
 	profile *profile.Profile
 
-	store   cafs.Filestore
-	fsys    qfs.Filesystem
-	graph   map[string]*dsgraph.Node
-	logbook *logbook.Book
-	dscache *dscache.Dscache
-
+	fsys     *muxfs.Mux
+	logbook  *logbook.Book
+	dscache  *dscache.Dscache
 	profiles *ProfileStore
+
+	doneWg  sync.WaitGroup
+	doneCh  chan struct{}
+	doneErr error
 }
 
 // NewRepo creates a new file-based repository
-func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, cache *dscache.Dscache, pro *profile.Profile, base string) (repo.Repo, error) {
-	if err := os.MkdirAll(base, os.ModePerm); err != nil {
+func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Dscache, pro *profile.Profile) (repo.Repo, error) {
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		log.Error(err)
 		return nil, err
 	}
-	bp := basepath(base)
+	bp := basepath(path)
 
 	if pro.PrivKey == nil {
 		return nil, fmt.Errorf("Expected: PrivateKey")
 	}
+
 	r := &Repo{
 		profile: pro,
 
-		store:    store,
 		fsys:     fsys,
 		basepath: bp,
 		logbook:  book,
 		dscache:  cache,
 
-		Refstore: Refstore{basepath: bp, store: store, file: FileRefs},
-
+		Refstore: Refstore{basepath: bp, file: FileRefs},
 		profiles: NewProfileStore(bp),
+
+		doneCh: make(chan struct{}),
 	}
 
-	if _, err := maybeCreateFlatbufferRefsFile(base); err != nil {
+	r.doneWg.Add(1)
+	go func() {
+		<-r.fsys.Done()
+		r.doneErr = r.fsys.DoneErr()
+		r.doneWg.Done()
+	}()
+
+	go func() {
+		r.doneWg.Wait()
+		close(r.doneCh)
+	}()
+
+	if _, err := maybeCreateFlatbufferRefsFile(path); err != nil {
 		return nil, err
 	}
 
@@ -98,22 +113,22 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 }
 
 // Path returns the path to the root of the repo directory
-func (r Repo) Path() string {
+func (r *Repo) Path() string {
 	return string(r.basepath)
 }
 
 // Store returns the underlying cafs.Filestore driving this repo
-func (r Repo) Store() cafs.Filestore {
-	return r.store
+func (r *Repo) Store() cafs.Filestore {
+	return r.fsys.DefaultWriteFS()
 }
 
 // Filesystem returns this repo's Filesystem
-func (r Repo) Filesystem() qfs.Filesystem {
+func (r *Repo) Filesystem() *muxfs.Mux {
 	return r.fsys
 }
 
 // SetFilesystem implements QFSSetter, currently used during lib contstruction
-func (r *Repo) SetFilesystem(fs qfs.Filesystem) {
+func (r *Repo) SetFilesystem(fs *muxfs.Mux) {
 	r.fsys = fs
 }
 
@@ -146,6 +161,17 @@ func (r *Repo) PrivateKey() crypto.PrivKey {
 // Profiles returns this repo's Peers implementation
 func (r *Repo) Profiles() profile.Store {
 	return r.profiles
+}
+
+// Done returns a channel that the repo will send on when the repo is finished
+// closing
+func (r *Repo) Done() <-chan struct{} {
+	return r.doneCh
+}
+
+// DoneErr gives an error that occured during the shutdown process
+func (r *Repo) DoneErr() error {
+	return r.doneErr
 }
 
 // Destroy destroys this repository

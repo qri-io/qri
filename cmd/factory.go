@@ -18,8 +18,8 @@ type Factory interface {
 	Instance() *lib.Instance
 	Config() (*config.Config, error)
 
-	IpfsFsPath() string
-	QriRepoPath() string
+	// path to qri data directory
+	RepoPath() string
 	CryptoGenerator() gen.CryptoGenerator
 
 	Init() error
@@ -42,33 +42,17 @@ type Factory interface {
 	ExportRequests() (*lib.ExportRequests, error)
 }
 
-// PathFactory is a function that returns paths to qri & ipfs repos
-type PathFactory func() (string, string)
-
-// EnvPathFactory returns qri & IPFS paths based on enviornment variables
-// falling back to $HOME/.qri && $HOME/.ipfs
-func EnvPathFactory() (string, string) {
-	home, err := homedir.Dir()
-	if err != nil {
-		panic(err)
-	}
-
+// StandardRepoPath returns qri paths based on the QRI_PATH environment
+// variable falling back to the default: $HOME/.qri
+func StandardRepoPath() string {
 	qriRepoPath := os.Getenv("QRI_PATH")
 	if qriRepoPath == "" {
+		home, err := homedir.Dir()
+		if err != nil {
+			panic(err)
+		}
 		qriRepoPath = filepath.Join(home, ".qri")
 	}
 
-	ipfsFsPath := os.Getenv("IPFS_PATH")
-	if ipfsFsPath == "" {
-		ipfsFsPath = filepath.Join(home, ".ipfs")
-	}
-	return qriRepoPath, ipfsFsPath
-}
-
-// NewDirPathFactory creates a path factory that sets qri & ipfs paths to
-// dir/qri & qri/ipfs
-func NewDirPathFactory(dir string) PathFactory {
-	return func() (string, string) {
-		return filepath.Join(dir, "qri"), filepath.Join(dir, "ipfs")
-	}
+	return qriRepoPath
 }

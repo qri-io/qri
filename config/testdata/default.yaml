@@ -1,24 +1,26 @@
+revision: 2
 profile:
   peername: foobar
 repo:
-  middleware: []
   type: fs
-store:
-  type: ipfs
+filesystems:
+- type: ipfs
+  config:
+    path: ./ipfs
+- type: local
+- type: http
 cli:
   colorizeoutput: true
 api:
   enabled: true
-  port: 2503
+  address: "/ip4/tcp/2503"
+  websocketaddress: "/ip4/tcp/2506"
   readonly: false
-  urlroot: ""
-  proxyforcehttps: false
   allowedorigins:
   - http://localhost:2505
 p2p:
   enabled: false
   peerid: !!binary EiCW5d0LrUQ3UfOXkfmuQW2zvl7yAq+7GwSLrD33Bgq6Og==
-  pubkey: ""
   privkey: ""
   port: 0
   addrs: []
@@ -26,26 +28,11 @@ p2p:
   - /ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb
   - /ip4/35.193.162.149/tcp/4001/ipfs/QmTZxETL4YCCzB1yFx4GT1te68henVHD1XPQMkHZ1N22mm
   - /ip4/35.226.92.45/tcp/4001/ipfs/QmP6sbnHXANXgQ7JeCCeCKdJrgpvUd8s75YNfzdkHf6Mpi
-  bootstrapaddrs: []
-  httpgatewayaddr: https://ipfs.io
-webapp:
-  enabled: true
-  port: 2505
-  analyticstoken: ""
-  entrypointupdateaddress: /ipns/webapp.qri.io
-  entrypointhash: QmYDkLrvzDpzDzKeLD3okiQUzSL1ksNsfYU6ZwRYYn8ViS
-update:
-  type: fs
-  daemonize: true
-  address: "127.0.0.1:2507"
 rpc:
   enabled: true
-  port: 2504
+  address: "/ip4/tcp/2504"
 logging:
   levels: {}
-render:
-  templateupdateaddress: /ipns/defaulttmpl.qri.io
-  defaulttemplatehash:   /ipfs/QmeqeRTf2Cvkqdx4xUdWi1nJB2TgCyxmemsL3H4f1eTBaw
 stats:
   cache:
     type: fs

@@ -19,18 +19,9 @@ import (
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/base/toqtype"
 	testPeers "github.com/qri-io/qri/config/test"
 )
-
-func init() {
-	// call LoadPlugins once with the empty string b/c we only rely on standard
-	// plugins
-	if err := ipfs_filestore.LoadPlugins(""); err != nil {
-		panic(err)
-	}
-}
 
 func TestLoadDataset(t *testing.T) {
 	ctx := context.Background()
@@ -133,7 +124,7 @@ func TestCreateDataset(t *testing.T) {
 	info := testPeers.GetTestPeerInfo(10)
 	privKey := info.PrivKey
 
-	_, err := CreateDataset(ctx, store, nil, nil, nil, SaveSwitches{ShouldRender: true})
+	_, err := CreateDataset(ctx, store, store, nil, nil, nil, SaveSwitches{ShouldRender: true})
 	if err == nil {
 		t.Errorf("expected call without prvate key to error")
 		return
@@ -181,7 +172,7 @@ func TestCreateDataset(t *testing.T) {
 			continue
 		}
 
-		path, err := CreateDataset(ctx, store, tc.Input, c.prev, privKey, SaveSwitches{ShouldRender: true})
+		path, err := CreateDataset(ctx, store, store, tc.Input, c.prev, privKey, SaveSwitches{ShouldRender: true})
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("%s: error mismatch. expected: '%s', got: '%s'", tc.Name, c.err, err)
 			continue
@@ -233,7 +224,7 @@ func TestCreateDataset(t *testing.T) {
 		t.Errorf("case nil body and previous body files, error reading data file: %s", err.Error())
 	}
 	expectedErr := "bodyfile or previous bodyfile needed"
-	_, err = CreateDataset(ctx, store, ds, nil, privKey, SaveSwitches{ShouldRender: true})
+	_, err = CreateDataset(ctx, store, store, ds, nil, privKey, SaveSwitches{ShouldRender: true})
 	if err.Error() != expectedErr {
 		t.Errorf("case nil body and previous body files, error mismatch: expected '%s', got '%s'", expectedErr, err.Error())
 	}
@@ -252,7 +243,7 @@ func TestCreateDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.csv", bodyBytes))
 
-	_, err = CreateDataset(ctx, store, ds, dsPrev, privKey, SaveSwitches{ShouldRender: true})
+	_, err = CreateDataset(ctx, store, store, ds, dsPrev, privKey, SaveSwitches{ShouldRender: true})
 	if err != nil && err.Error() != expectedErr {
 		t.Errorf("case no changes in dataset, error mismatch: expected '%s', got '%s'", expectedErr, err.Error())
 	} else if err == nil {
@@ -309,7 +300,7 @@ func TestCreateDatasetBodyTooLarge(t *testing.T) {
 	}
 	nextDs.SetBodyFile(qfs.NewMemfileBytes(testBodyPath, testBodyBytes))
 
-	path, err := CreateDataset(ctx, store, &nextDs, &prevDs, privKey, SaveSwitches{ShouldRender: true})
+	path, err := CreateDataset(ctx, store, store, &nextDs, &prevDs, privKey, SaveSwitches{ShouldRender: true})
 	if err != nil {
 		t.Fatalf("CreateDataset: %s", err)
 	}
@@ -945,7 +936,7 @@ func BenchmarkCreateDatasetCSV(b *testing.B) {
 				_, dataset := GenerateDataset(b, sampleSize, "csv")
 
 				b.StartTimer()
-				_, err := CreateDataset(ctx, store, dataset, nil, privKey, SaveSwitches{ShouldRender: true})
+				_, err := CreateDataset(ctx, store, store, dataset, nil, privKey, SaveSwitches{ShouldRender: true})
 				if err != nil {
 					b.Errorf("error creating dataset: %s", err.Error())
 				}

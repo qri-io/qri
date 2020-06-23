@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -10,7 +11,10 @@ func TestDiffComplete(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_diff_complete")
 	defer run.Delete()
 
-	f, err := NewTestFactory()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	f, err := NewTestFactory(ctx)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -51,7 +55,10 @@ func TestDiffRun(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_dag_info")
 	defer run.Delete()
 
-	f, err := NewTestFactory()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	f, err := NewTestFactory(ctx)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return

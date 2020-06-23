@@ -3,12 +3,16 @@ package test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/qri-io/dataset"
-	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
+	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
@@ -47,8 +51,14 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 		return r, err
 	}
 
+	// Create directory for new Qri repo.
+	QriPath := filepath.Join(RootPath, "qri")
+	err = os.MkdirAll(QriPath, os.ModePerm)
+	if err != nil {
+		return r, err
+	}
 	// Create directory for new IPFS repo.
-	IPFSPath := filepath.Join(RootPath, "ipfs")
+	IPFSPath := filepath.Join(QriPath, "ipfs")
 	err = os.MkdirAll(IPFSPath, os.ModePerm)
 	if err != nil {
 		return r, err
@@ -58,18 +68,17 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 	if err != nil {
 		return r, err
 	}
-	// Create directory for new Qri repo.
-	QriPath := filepath.Join(RootPath, "qri")
-	err = os.MkdirAll(QriPath, os.ModePerm)
-	if err != nil {
-		return r, err
-	}
 
 	// Create empty config.yaml into the test repo.
 	cfg := config.DefaultConfigForTesting().Copy()
 	cfg.Profile.Peername = peername
 	cfg.Profile.PrivKey, cfg.Profile.ID = g.GeneratePrivateKeyAndPeerID()
-	cfg.Store.Path = IPFSPath
+	cfg.SetPath(filepath.Join(QriPath, "config.yaml"))
+	cfg.Filesystems = []qfs.Config{
+		{Type: "ipfs", Config: map[string]interface{}{"path": IPFSPath}},
+		{Type: "local"},
+		{Type: "http"},
+	}
 
 	r = TempRepo{
 		RootPath:   RootPath,
@@ -85,10 +94,10 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 }
 
 // Repo accesses the actual repo, building one if it doesn't already exist
-func (r *TempRepo) Repo() (repo.Repo, error) {
+func (r *TempRepo) Repo(ctx context.Context) (repo.Repo, error) {
 	if r.repo == nil {
 		var err error
-		if r.repo, err = buildrepo.New(context.TODO(), r.QriPath, r.cfg); err != nil {
+		if r.repo, err = buildrepo.New(ctx, r.QriPath, r.cfg); err != nil {
 			return nil, err
 		}
 	}
@@ -135,11 +144,14 @@ func (r *TempRepo) GetPathForDataset(index int) (string, error) {
 // ReadBodyFromIPFS reads the body of the dataset at the given keyPath stored
 // in CAFS
 func (r *TempRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
-	ctx := context.Background()
-	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
-		cfg.Online = false
-		cfg.FsRepoPath = r.IPFSPath
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fs, err := qipfs.NewFilesystem(ctx, map[string]interface{}{
+		"online": false,
+		"path":   r.IPFSPath,
 	})
+
 	if err != nil {
 		return "", err
 	}
@@ -154,17 +166,25 @@ func (r *TempRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
 		return "", err
 	}
 
-	return string(bodyBytes), nil
+	done := gracefulShutdown(fs.(qfs.ReleasingFilesystem).Done())
+	cancel()
+	err = <-done
+	return string(bodyBytes), err
 }
 
 // DatasetMarshalJSON reads the dataset head and marshals it as json.
 func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
-	ctx := context.Background()
-	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
-		cfg.Online = false
-		cfg.FsRepoPath = r.IPFSPath
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	fs, err := qipfs.NewFilesystem(ctx, map[string]interface{}{
+		"online": false,
+		"path":   r.IPFSPath,
 	})
-	ds, err := dsfs.LoadDataset(ctx, fs, ref)
+	cafs, ok := fs.(cafs.Filestore)
+	if !ok {
+		return "", fmt.Errorf("error asserting file system is a cafs filesystem")
+	}
+	ds, err := dsfs.LoadDataset(ctx, cafs, ref)
 	if err != nil {
 		return "", err
 	}
@@ -172,21 +192,33 @@ func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(bytes), nil
+
+	done := gracefulShutdown(fs.(qfs.ReleasingFilesystem).Done())
+	cancel()
+	err = <-done
+	return string(bytes), err
 }
 
 // LoadDataset from the temp repository
 func (r *TempRepo) LoadDataset(ref string) (*dataset.Dataset, error) {
-	ctx := context.Background()
-	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
-		cfg.Online = false
-		cfg.FsRepoPath = r.IPFSPath
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	fs, err := qipfs.NewFilesystem(ctx, map[string]interface{}{
+		"online": false,
+		"path":   r.IPFSPath,
 	})
-	ds, err := dsfs.LoadDataset(ctx, fs, ref)
+	cafs, ok := fs.(cafs.Filestore)
+	if !ok {
+		return nil, fmt.Errorf("error asserting file system is a cafs filesystem")
+	}
+	ds, err := dsfs.LoadDataset(ctx, cafs, ref)
 	if err != nil {
 		return nil, err
 	}
-	return ds, nil
+	done := gracefulShutdown(fs.(qfs.ReleasingFilesystem).Done())
+	cancel()
+	err = <-done
+	return ds, err
 }
 
 // WriteRootFile writes a file string to the root directory of the temp repo
@@ -194,4 +226,17 @@ func (r *TempRepo) WriteRootFile(filename, data string) (path string, err error)
 	path = filepath.Join(r.RootPath, filename)
 	err = ioutil.WriteFile(path, []byte(data), 0667)
 	return path, err
+}
+
+func gracefulShutdown(doneCh <-chan struct{}) chan error {
+	waitForDone := make(chan error)
+	go func() {
+		select {
+		case <-time.NewTimer(time.Second).C:
+			waitForDone <- fmt.Errorf("shutdown didn't send on 'done' channel within 1 second of context cancellation")
+		case <-doneCh:
+			waitForDone <- nil
+		}
+	}()
+	return waitForDone
 }

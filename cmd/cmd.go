@@ -16,6 +16,7 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/config/migrate"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/repo/gen"
 )
@@ -42,8 +43,7 @@ func Execute() {
 
 	// root context
 	ctx := context.Background()
-
-	root := NewQriCommand(ctx, EnvPathFactory, gen.NewCryptoSource(), ioes.NewStdIOStreams())
+	root, shutdown := NewQriCommand(ctx, StandardRepoPath(), gen.NewCryptoSource(), ioes.NewStdIOStreams())
 	// If the subcommand hits an error, don't show usage or the error, since we'll show
 	// the error message below, on our own. Usage is still shown if the subcommand
 	// is missing command-line arguments.
@@ -54,10 +54,17 @@ func Execute() {
 		printErr(os.Stderr, err)
 		os.Exit(1)
 	}
+
+	<-shutdown()
 }
 
 // ErrExit writes an error to the given io.Writer & exits
 func ErrExit(w io.Writer, err error) {
+	if errors.Is(err, migrate.ErrMigrationSucceeded) {
+		printSuccess(w, "migration succeeded, re-run your command to continue")
+		os.Exit(0)
+	}
+
 	log.Debug(err.Error())
 	var qerr qrierr.Error
 	if errors.As(err, &qerr) {

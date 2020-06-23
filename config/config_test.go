@@ -190,13 +190,6 @@ func TestConfigValidate(t *testing.T) {
 		t.Error("When given bad input in Repo, config.Validate did not catch the error.")
 	}
 
-	// Store:
-	s := DefaultConfigForTesting()
-	s.Store.Type = "badType"
-	if err := s.Validate(); err == nil {
-		t.Error("When given bad input in Store, config.Validate did not catch the error.")
-	}
-
 	// Logging:
 	l := DefaultConfigForTesting()
 	l.Logging.Levels["qriapi"] = "badType"

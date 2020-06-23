@@ -16,7 +16,6 @@ func TestRepoCopy(t *testing.T) {
 	// build off DefaultRepo so we can test that the repo Copy
 	// actually copies over correctly (ie, deeply)
 	r := DefaultRepo()
-	r.Middleware = []string{"firstMiddleware"}
 
 	cases := []struct {
 		repo *Repo
@@ -29,7 +28,7 @@ func TestRepoCopy(t *testing.T) {
 			t.Errorf("Repo Copy test case %v, repo structs are not equal: \ncopy: %v, \noriginal: %v", i, cpy, c.repo)
 			continue
 		}
-		cpy.Middleware[0] = "differentMiddleware"
+		cpy.Path = "newPath"
 		if reflect.DeepEqual(cpy, c.repo) {
 			t.Errorf("Repo Copy test case %v, editing one repo struct should not affect the other: \ncopy: %v, \noriginal: %v", i, cpy, c.repo)
 			continue

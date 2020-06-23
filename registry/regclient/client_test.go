@@ -49,11 +49,16 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 		t.Fatal(err)
 	}
 
-	r, err := tmpRepo.Repo()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// IPFSRepo assumes that the tempRepo is pointing to an actual qri config
+	// and an initialized ipfs repo
+	r, err := tmpRepo.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// need an actual ipfs repo
 	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
 	if err != nil {
 		t.Fatal(err)
@@ -90,6 +95,7 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 	}
 
 	cleanup := func() {
+		cancel()
 		ts.Close()
 		tmpRepo.Delete()
 	}

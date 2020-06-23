@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -14,6 +15,9 @@ import (
 )
 
 func TestHistoryRequestsLog(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	mr, refs, err := testrepo.NewTestRepoWithHistory()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -61,7 +65,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 6, Limit: 3}}, nil, "repo: no history"},
 	}
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewLogMethods(inst)
 	for _, c := range cases {
 		got := []DatasetLogItem{}
@@ -89,6 +93,9 @@ func TestHistoryRequestsLog(t *testing.T) {
 }
 
 func TestHistoryRequestsLogEntries(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	mr, refs, err := testrepo.NewTestRepoWithHistory()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -101,7 +108,7 @@ func TestHistoryRequestsLogEntries(t *testing.T) {
 	}
 
 	firstRef := refs[0].String()
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewLogMethods(inst)
 
 	if err = m.Logbook(&RefListParams{}, nil); err == nil {

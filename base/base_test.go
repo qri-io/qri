@@ -11,7 +11,7 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -47,12 +47,16 @@ func init() {
 }
 
 func newTestRepo(t *testing.T) repo.Repo {
-	mapStore := cafs.NewMapstore()
-	mux := qfs.NewMux(map[string]qfs.Filesystem{
-		"local": mapStore,
-		"cafs":  mapStore,
+	ctx := context.TODO()
+	mux, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "map"},
+		{Type: "mem"},
 	})
-	mr, err := repo.NewMemRepo(testPeerProfile, mapStore, mux, profile.NewMemStore())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mr, err := repo.NewMemRepo(ctx, testPeerProfile, mux)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -66,7 +70,7 @@ func addCitiesDataset(t *testing.T, r repo.Repo) reporef.DatasetRef {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(ctx, r, tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -103,7 +107,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) reporef.Datase
 		tc.Input.PreviousPath = ""
 	}()
 
-	ref, err = CreateDataset(ctx, r, tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -117,7 +121,7 @@ func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) reporef.DatasetRe
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(ctx, r, tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -151,7 +155,7 @@ def transform(ds, ctx):
 	ds.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", []byte(script)))
 	ds.SetBodyFile(qfs.NewMemfileBytes("data.json", []byte("[]")))
 
-	ref, err := CreateDataset(ctx, r, ds, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -1,5 +1,6 @@
 API: null
 CLI: null
+Filesystems: null
 Logging: null
 P2P: null
 Profile:
@@ -21,10 +22,6 @@ RPC: null
 Registry: null
 Remote: null
 Remotes: null
-Render: null
 Repo: null
-Revision: 1
+Revision: 2
 Stats: null
-Store: null
-Update: null
-Webapp: null

@@ -21,7 +21,6 @@ type P2P struct {
 	// PeerID is this nodes peer identifier
 	PeerID string `json:"peerid"`
 
-	PubKey  string `json:"pubkey"`
 	PrivKey string `json:"privkey"`
 
 	// Port default port to bind a tcp listener to
@@ -34,16 +33,6 @@ type P2P struct {
 	// QriBootstrapAddrs lists addresses to bootstrap qri node from
 	QriBootstrapAddrs []string `json:"qribootstrapaddrs"`
 
-	// HTTPGatewayAddr is an address that qri can use to resolve p2p assets
-	// over HTTP, represented as a url. eg: https://ipfs.io
-	HTTPGatewayAddr string `json:"httpgatewayaddr"`
-
-	// ProfileReplication determines what to do when this peer sees messages
-	// broadcast by it's own profile (from another peer instance). setting
-	// ProfileReplication == "full" will cause this peer to automatically pin
-	// any data that is verifiably posted by the same peer
-	ProfileReplication string `json:"profilereplication"`
-
 	// list of addresses to bootsrap qri peers on
 	BootstrapAddrs []string `json:"bootstrapaddrs"`
 
@@ -51,11 +40,17 @@ type P2P struct {
 	AutoNAT bool `json:"autoNAT"`
 }
 
+// SetArbitrary is an interface implementation of base/fill/struct in order to safely
+// consume config files that have definitions beyond those specified in the struct.
+// This simply ignores all additional fields at read time.
+func (cfg *P2P) SetArbitrary(key string, val interface{}) error {
+	return nil
+}
+
 // DefaultP2P generates a p2p struct with only bootstrap addresses set
 func DefaultP2P() *P2P {
 	p2p := &P2P{
-		Enabled:         true,
-		HTTPGatewayAddr: "https://ipfs.io",
+		Enabled: true,
 		// DefaultBootstrapAddresses follows the pattern of IPFS boostrapping off known "gateways".
 		// This boostrapping is specific to finding qri peers, which are IPFS peers that also
 		// support the qri protocol.
@@ -72,7 +67,6 @@ func DefaultP2P() *P2P {
 			"/ip4/35.239.138.186/tcp/4001/ipfs/QmT9YHJF2YkysLqWhhiVTL5526VFtavic3bVueF9rCsjVi", // indigo
 			"/ip4/35.226.44.58/tcp/4001/ipfs/QmQS2ryqZrjJtPKDy9VTkdPwdUSpTi1TdpGUaqAVwfxcNh",   // violet
 		},
-		ProfileReplication: "full",
 	}
 	return p2p
 }
@@ -106,7 +100,7 @@ func (cfg P2P) Validate() error {
     "title": "P2P",
     "description": "Config for the p2p",
     "type": "object",
-    "required": ["enabled", "peerid", "pubkey", "privkey", "port", "addrs", "httpgatewayaddr", "qribootstrapaddrs", "profilereplication", "bootstrapaddrs"],
+    "required": ["enabled", "peerid", "privkey", "port", "addrs", "qribootstrapaddrs"],
     "properties": {
       "enabled": {
         "description": "When true, peer to peer communication is allowed",
@@ -114,10 +108,6 @@ func (cfg P2P) Validate() error {
       },
       "peerid": {
         "description": "The peerid is this nodes peer identifier",
-        "type": "string"
-      },
-      "pubkey": {
-        "description": "",
         "type": "string"
       },
       "privkey": {
@@ -138,23 +128,12 @@ func (cfg P2P) Validate() error {
           "type": "string"
         }
       },
-      "httpgatewayaddr": {
-        "description" : "address that qri can use to resolve p2p assets over HTTP",
-        "type" : "string"
-      },
       "qribootstrapaddrs": {
         "description": "List of addresses to bootstrap the qri node from",
         "type": "array",
         "items": {
           "type": "string"
         }
-      },
-      "profilereplication": {
-        "description": "Determings what to do when this peer sees messages broadcast by it's own profile (from another peer instance). Setting profilereplication to 'full' will cause this peer to automatically pin any data that is verifiably posted by the same peer",
-        "type": "string",
-        "enum": [
-          "full"
-        ]
       },
       "bootstrapaddrs": {
         "description": "List of addresses to bootstrap qri peers on",
@@ -174,13 +153,10 @@ func (cfg P2P) Validate() error {
 // Copy returns a deep copy of a p2p struct
 func (cfg *P2P) Copy() *P2P {
 	res := &P2P{
-		Enabled:            cfg.Enabled,
-		PeerID:             cfg.PeerID,
-		PubKey:             cfg.PubKey,
-		PrivKey:            cfg.PrivKey,
-		Port:               cfg.Port,
-		ProfileReplication: cfg.ProfileReplication,
-		HTTPGatewayAddr:    cfg.HTTPGatewayAddr,
+		Enabled: cfg.Enabled,
+		PeerID:  cfg.PeerID,
+		PrivKey: cfg.PrivKey,
+		Port:    cfg.Port,
 	}
 
 	if cfg.QriBootstrapAddrs != nil {

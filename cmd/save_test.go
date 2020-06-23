@@ -23,7 +23,10 @@ func TestSaveComplete(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_save_complete")
 	defer run.Delete()
 
-	f, err := NewTestFactory()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	f, err := NewTestFactory(ctx)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -107,7 +110,10 @@ func TestSaveRun(t *testing.T) {
 	run := NewTestRunner(t, "peer_name", "qri_test_save_run")
 	defer run.Delete()
 
-	f, err := NewTestFactory()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	f, err := NewTestFactory(ctx)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -514,12 +520,14 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
 	// Save a dataset with one version.
 	run.MustExec(t, "qri save --body testdata/movies/body_two.json me/movie_ds --use-dscache")
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// Access the dscache
-	repo, err := run.RepoRoot.Repo()
+	r, err := run.RepoRoot.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cache := repo.Dscache()
+	cache := r.Dscache()
 
 	// Dscache should have one reference. It has topIndex 1 because there are two logbook
 	// elements in the branch, one for "init", one for "commit".
@@ -542,15 +550,21 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
 
+	shutdownRepoGraceful(cancel, r)
+
 	// Save a different dataset, but dscache already exists.
 	run.MustExec(t, "qri save --body testdata/movies/body_four.json me/another_ds --use-dscache")
 
 	// Because this test is using a memrepo, but the command runner instantiates its own repo
 	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
 	// same filename.
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem: %s", err)
+		return
+	}
+
 	cacheFilename := cache.Filename
-	ctx := context.Background()
 	// TODO(dustmop): Do we need to pass a book?
 	cache = dscache.NewDscache(ctx, fs, nil, run.Username(), cacheFilename)
 
@@ -595,12 +609,13 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 	// List with the --use-dscache flag, which builds the dscache from the logbook.
 	run.MustExec(t, "qri list --use-dscache")
 
+	ctx, cancel := context.WithCancel(context.Background())
 	// Access the dscache
-	repo, err := run.RepoRoot.Repo()
+	r, err := run.RepoRoot.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cache := repo.Dscache()
+	cache := r.Dscache()
 
 	// Dscache should have one reference. It has topIndex 1 because there are two logbook
 	// elements in the branch, one for "init", one for "commit".
@@ -623,15 +638,21 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
 
+	shutdownRepoGraceful(cancel, r)
+
 	// Save a new new commit. Since the dscache exists, it should get updated.
 	run.MustExec(t, "qri save --body testdata/movies/body_four.json me/movie_ds")
 
 	// Because this test is using a memrepo, but the command runner instantiates its own repo
 	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
 	// same filename.
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem: %s", err)
+		return
+	}
+
 	cacheFilename := cache.Filename
-	ctx := context.Background()
 	cache = dscache.NewDscache(ctx, fs, nil, run.Username(), cacheFilename)
 
 	// Dscache should now have one reference. Now topIndex is 2 because there is another "commit".
@@ -668,12 +689,14 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
 	// List with the --use-dscache flag, which builds the dscache from the logbook.
 	run.MustExec(t, "qri list --use-dscache")
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// Access the dscache
-	repo, err := run.RepoRoot.Repo()
+	r, err := run.RepoRoot.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cache := repo.Dscache()
+	cache := r.Dscache()
 
 	// Dscache should have two references, one for each save operation.
 	actual := cache.VerboseString(false)
@@ -705,15 +728,20 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
 
+	shutdownRepoGraceful(cancel, r)
+
 	// Remove one of those datasets.
 	run.MustExec(t, "qri remove --all me/another_ds")
 
 	// Because this test is using a memrepo, but the command runner instantiates its own repo
 	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
 	// same filename.
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem")
+		return
+	}
 	cacheFilename := cache.Filename
-	ctx := context.Background()
 	cache = dscache.NewDscache(ctx, fs, nil, run.Username(), cacheFilename)
 
 	// Dscache should now have one reference.
@@ -753,12 +781,14 @@ func TestSaveDscacheThenRemoveVersions(t *testing.T) {
 	// List with the --use-dscache flag, which builds the dscache from the logbook.
 	run.MustExec(t, "qri list --use-dscache")
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// Access the dscache
-	repo, err := run.RepoRoot.Repo()
+	r, err := run.RepoRoot.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cache := repo.Dscache()
+	cache := r.Dscache()
 
 	// Dscache should have one reference. It has three commits.
 	actual := cache.VerboseString(false)
@@ -781,15 +811,19 @@ func TestSaveDscacheThenRemoveVersions(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
 
+	shutdownRepoGraceful(cancel, r)
+
 	// Remove one of those commits, keeping 1.
 	run.MustExec(t, "qri remove --revisions=1 me/movie_ds")
 
 	// Because this test is using a memrepo, but the command runner instantiates its own repo
 	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
 	// same filename.
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem: %s", err)
+	}
 	cacheFilename := cache.Filename
-	ctx := context.Background()
 	cache = dscache.NewDscache(ctx, fs, nil, run.Username(), cacheFilename)
 
 	// Dscache should now have one reference.
@@ -838,8 +872,7 @@ func TestSaveBadCaseCantBeUsedForNewDatasets(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[[\"one\",2],[\"three\",4]]")))
 
 	// Add the dataset to the repo directly, which avoids the name validation check.
-	ctx := context.Background()
-	run.AddDatasetToRefstore(ctx, t, "test_peer/a_New_Dataset", &ds)
+	run.AddDatasetToRefstore(t, "test_peer/a_New_Dataset", &ds)
 
 	// Save the dataset, which will work now that a version already exists.
 	run.MustExec(t, "qri save --body testdata/movies/body_two.json test_peer/a_New_Dataset")

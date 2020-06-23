@@ -1,17 +1,22 @@
 package dsfs
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/qri-io/qfs/cafs"
-	ipfsfs "github.com/qri-io/qfs/cafs/ipfs"
+	"github.com/qri-io/qfs/qipfs"
+	"golang.org/x/net/context"
 )
 
 func TestPackageFilepath(t *testing.T) {
-	ipfs, destroy, err := makeTestIPFSRepo("")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ipfs, destroy, err := makeTestIPFSRepo(ctx, "")
 	if err != nil {
 		t.Errorf("error creating IPFS test repo: %s", err.Error())
 		return
@@ -46,7 +51,7 @@ func TestPackageFilepath(t *testing.T) {
 	}
 }
 
-func makeTestIPFSRepo(path string) (fs *ipfsfs.Filestore, destroy func(), err error) {
+func makeTestIPFSRepo(ctx context.Context, path string) (fs *qipfs.Filestore, destroy func(), err error) {
 	if path == "" {
 		tmp, err := ioutil.TempDir("", "temp-ipfs-repo")
 		if err != nil {
@@ -54,13 +59,19 @@ func makeTestIPFSRepo(path string) (fs *ipfsfs.Filestore, destroy func(), err er
 		}
 		path = filepath.Join(tmp, ".ipfs")
 	}
-	err = ipfsfs.InitRepo(path, "")
+	err = qipfs.InitRepo(path, "")
 	if err != nil {
 		return
 	}
-	fs, err = ipfsfs.NewFilestore(func(cfg *ipfsfs.StoreCfg) { cfg.FsRepoPath = path })
+
+	qfsFilestore, err := qipfs.NewFilesystem(ctx, map[string]interface{}{"path": path})
 	if err != nil {
 		return
+	}
+
+	fs, ok := qfsFilestore.(*qipfs.Filestore)
+	if !ok {
+		return nil, nil, fmt.Errorf("created filestore is not of type ipfs")
 	}
 
 	destroy = func() {

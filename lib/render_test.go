@@ -17,6 +17,9 @@ import (
 )
 
 func TestRenderMethodsRender(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	// set Default Template to something easier to work with, then
 	// cleanup when test completes
 	prevDefaultTemplate := base.DefaultTemplate
@@ -70,7 +73,7 @@ func TestRenderMethodsRender(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	rm := NewRenderMethods(inst)
 
 	for i, c := range cases {
@@ -100,6 +103,9 @@ type renderTestRunner struct {
 
 // newRenderTestRunner returns a test runner for render
 func newRenderTestRunner(t *testing.T, testName string) *renderTestRunner {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	r := renderTestRunner{}
 	r.Context, r.ContextDone = context.WithCancel(context.Background())
 
@@ -118,7 +124,7 @@ func newRenderTestRunner(t *testing.T, testName string) *renderTestRunner {
 	if err != nil {
 		panic(err)
 	}
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), r.Node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), r.Node)
 	r.DatasetReqs = NewDatasetMethods(inst)
 	r.RenderMethods = NewRenderMethods(inst)
 

@@ -352,14 +352,7 @@ func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, refstr *string) (err e
 
 	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
 	if p.UseDscache {
-		// TODO(dustmop): Dscache exists on both repo and instance, and tests and production code
-		// use these fields differently. It should be removed from repo and only be used from
-		// the instance.
-		c := m.inst.Repo().Dscache()
-		if c == nil {
-			c = m.inst.Dscache()
-		}
-		c.CreateNewEnabled = true
+		m.inst.Dscache().CreateNewEnabled = true
 	}
 
 	ref, err := m.inst.fsi.InitDataset(*p)

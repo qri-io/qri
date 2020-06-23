@@ -91,7 +91,7 @@ func (n *TestableNode) TestStreamHandler(s net.Stream) {
 
 // GoOnline assumes the TestNode is not online, it will set
 // the StreamHandler and updates our profile with the underlying peerIDs
-func (n *TestableNode) GoOnline() error {
+func (n *TestableNode) GoOnline(_ context.Context) error {
 
 	// add multistream handler for qri protocol to the host
 	// for more info on multistreams check github.com/multformats/go-multistream

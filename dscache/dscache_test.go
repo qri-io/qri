@@ -49,7 +49,11 @@ func TestDscacheAssignSaveAndLoad(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 
 	ctx := context.Background()
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem")
+		return
+	}
 
 	peerInfo := testPeers.GetTestPeerInfo(0)
 	peername := "test_user"
@@ -84,7 +88,10 @@ func TestResolveRef(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 
 	ctx := context.Background()
-	fs := localfs.NewFS()
+	fs, err := localfs.NewFS(nil)
+	if err != nil {
+		t.Errorf("error creating local filesystem: %s", err)
+	}
 	path := filepath.Join(tmpdir, "dscache.qfb")
 	dsc := NewDscache(ctx, fs, nil, "test_resolve_ref_user", path)
 
@@ -112,7 +119,7 @@ func TestCacheRefConsistency(t *testing.T) {
 
 	localUsername := "local_user"
 	localDsName := "local_dataset"
-	book, err := logbook.NewJournal(testPeers.GetTestPeerInfo(0).PrivKey, localUsername, fsys, "/mem/logbook")
+	book, err := logbook.NewJournal(testPeers.GetTestPeerInfo(0).PrivKey, localUsername, fsys, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}

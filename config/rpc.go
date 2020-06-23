@@ -4,18 +4,25 @@ import "github.com/qri-io/jsonschema"
 
 // RPC configures a Remote Procedure Call (RPC) listener
 type RPC struct {
-	Enabled bool `json:"enabled"`
-	Port    int  `json:"port"`
+	Enabled bool   `json:"enabled"`
+	Address string `json:"address"`
 }
 
-// DefaultRPCPort is local the port RPC serves on by default
-var DefaultRPCPort = 2504
+// SetArbitrary is an interface implementation of base/fill/struct in order to safely
+// consume config files that have definitions beyond those specified in the struct.
+// This simply ignores all additional fields at read time.
+func (cfg *RPC) SetArbitrary(key string, val interface{}) error {
+	return nil
+}
+
+// DefaultRPCAddress is the address RPC serves on by default
+var DefaultRPCAddress = "/ip4/127.0.0.1/tcp/2504"
 
 // DefaultRPC creates a new default RPC configuration
 func DefaultRPC() *RPC {
 	return &RPC{
 		Enabled: true,
-		Port:    DefaultRPCPort,
+		Address: DefaultRPCAddress,
 	}
 }
 
@@ -27,15 +34,15 @@ func (cfg RPC) Validate() error {
     "title": "RPC",
     "description": "The RPC configuration",
     "type": "object",
-    "required": ["enabled", "port"],
+    "required": ["enabled", "address"],
     "properties": {
       "enabled": {
         "description": "When true, communcation over rpc is allowed",
         "type": "boolean"
       },
-      "port": {
-        "description": "The port on which to listen for rpc calls",
-        "type": "integer"
+      "address": {
+        "description": "The address on which to listen for rpc calls",
+        "type": "string"
       }
     }
   }`)
@@ -46,7 +53,7 @@ func (cfg RPC) Validate() error {
 func (cfg *RPC) Copy() *RPC {
 	res := &RPC{
 		Enabled: cfg.Enabled,
-		Port:    cfg.Port,
+		Address: cfg.Address,
 	}
 
 	return res

@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,6 +17,9 @@ import (
 )
 
 func TestFSIMethodsWrite(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -25,7 +29,7 @@ func TestFSIMethodsWrite(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 
 	// we need some fsi stuff to fully test remove
 	methods := NewFSIMethods(inst)

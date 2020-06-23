@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -177,7 +178,10 @@ func TestSaveWithInferredNewName(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	inst := newTestInstanceWithProfileFromNode(node)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	inst := newTestInstanceWithProfileFromNode(ctx, node)
 	h := NewDatasetHandlers(inst, false)
 
 	bodyPath := "testdata/cities/data.csv"

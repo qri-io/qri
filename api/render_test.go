@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -10,7 +11,10 @@ func TestRenderHandler(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	inst := newTestInstanceWithProfileFromNode(node)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	inst := newTestInstanceWithProfileFromNode(ctx, node)
 
 	cases := []handlerTestCase{
 		{"OPTIONS", "/render", nil},

@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
@@ -39,8 +40,8 @@ func TestAddDataset(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tr.NodeA.GoOnline()
-	tr.NodeB.GoOnline()
+	tr.NodeA.GoOnline(tr.Ctx)
+	tr.NodeB.GoOnline(tr.Ctx)
 
 	if err := cli.AddDataset(tr.Ctx, &reporef.DatasetRef{Peername: "foo", Name: "bar"}, ""); err == nil {
 		t.Error("expected add of invalid ref to error")
@@ -144,6 +145,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 }
 
 func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
+	ctx := context.Background()
 	ms := cafs.NewMapstore()
 	pi := cfgtest.GetTestPeerInfo(0)
 	pro := &profile.Profile{
@@ -151,7 +153,7 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 		ID:       profile.IDFromPeerID(pi.PeerID),
 		PrivKey:  pi.PrivKey,
 	}
-	mr, err := repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore())
+	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx, ms))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -162,10 +164,15 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 	return node
 }
 
-func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
-	return qfs.NewMux(map[string]qfs.Filesystem{
-		"cafs": cafsys,
-	})
+func newTestFS(ctx context.Context, cafsys cafs.Filestore) *muxfs.Mux {
+	mux, err := muxfs.New(ctx, []qfs.Config{})
+	if err != nil {
+		panic(err)
+	}
+	if err := mux.SetFilesystem(cafsys); err != nil {
+		panic(err)
+	}
+	return mux
 }
 
 // Convert from test nodes to non-test nodes.

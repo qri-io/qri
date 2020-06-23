@@ -6,6 +6,7 @@ import (
 	"net/rpc"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
@@ -16,10 +17,8 @@ import (
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *cobra.Command {
-
-	qriPath, ipfsPath := pf()
-	opt := NewQriOptions(ctx, qriPath, ipfsPath, generator, ioStreams)
+func NewQriCommand(ctx context.Context, repoPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan error) {
+	opt := NewQriOptions(ctx, repoPath, generator, ioStreams)
 
 	cmd := &cobra.Command{
 		Use:   "qri",
@@ -35,8 +34,7 @@ https://github.com/qri-io/qri/issues`,
 	cmd.SetUsageTemplate(rootUsageTemplate)
 	cmd.PersistentFlags().BoolVarP(&opt.NoPrompt, "no-prompt", "", false, "disable all interactive prompts")
 	cmd.PersistentFlags().BoolVarP(&opt.NoColor, "no-color", "", false, "disable colorized output")
-	cmd.PersistentFlags().StringVar(&opt.RepoPath, "repo", qriPath, "provide a path to load qri from")
-	cmd.PersistentFlags().StringVar(&opt.IpfsPath, "ipfs-path", ipfsPath, "override IPFS path location")
+	cmd.PersistentFlags().StringVar(&opt.repoPath, "repo", repoPath, "filepath to load qri data from")
 	cmd.PersistentFlags().BoolVarP(&opt.LogAll, "log-all", "", false, "log all activity")
 
 	cmd.AddCommand(
@@ -77,7 +75,7 @@ https://github.com/qri-io/qri/issues`,
 		sub.SetUsageTemplate(defaultUsageTemplate)
 	}
 
-	return cmd
+	return cmd, opt.Shutdown
 }
 
 // QriOptions holds the Root Command State
@@ -86,12 +84,12 @@ type QriOptions struct {
 
 	// TODO (b5) - this context should be refactored away, prefering to pass
 	// this stored context object down through function calls
-	ctx context.Context
+	ctx       context.Context
+	releasers sync.WaitGroup
+	doneCh    chan struct{}
 
-	// path to the QRI repository directory
-	RepoPath string
-	// custom path to IPFS repo
-	IpfsPath string
+	// path to the qri data directory
+	repoPath string
 	// generator is source of generating cryptographic info
 	generator gen.CryptoGenerator
 	// NoPrompt Disables all promt messages
@@ -107,44 +105,46 @@ type QriOptions struct {
 }
 
 // NewQriOptions creates an options object
-func NewQriOptions(ctx context.Context, qriPath, ipfsPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
+func NewQriOptions(ctx context.Context, repoPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
 	return &QriOptions{
 		IOStreams: ioStreams,
 		ctx:       ctx,
-		RepoPath:  qriPath,
-		IpfsPath:  ipfsPath,
+		doneCh:    make(chan struct{}),
+		repoPath:  repoPath,
 		generator: generator,
 	}
 }
 
 // Init will initialize the internal state
 func (o *QriOptions) Init() (err error) {
-	if o.inst == nil {
-		opts := []lib.Option{
-			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
-			lib.OptSetIPFSPath(o.IpfsPath),
-			lib.OptCheckConfigMigrations(""),
-			lib.OptSetLogAll(o.LogAll),
-		}
-		o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
-		if err != nil {
-			return err
-		}
-		// Handle color and prompt flags which apply to every command
-		shouldColorOutput := !o.NoColor
-		cfg := o.inst.Config()
-		if cfg != nil && cfg.CLI != nil {
-			shouldColorOutput = cfg.CLI.ColorizeOutput
-		}
-		// todo(arqu): have a config var to indicate force override for windows
-		if runtime.GOOS == "windows" {
-			shouldColorOutput = false
-		}
-		setNoColor(!shouldColorOutput)
-		setNoPrompt(o.NoPrompt)
-		log.Debugf("running cmd %q", os.Args)
+	if o.inst != nil {
+		return
 	}
-	return nil
+	opts := []lib.Option{
+		lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
+		lib.OptCheckConfigMigrations(!noPrompt),
+		lib.OptSetLogAll(o.LogAll),
+	}
+	o.inst, err = lib.NewInstance(o.ctx, o.repoPath, opts...)
+	if err != nil {
+		return
+	}
+
+	// Handle color and prompt flags which apply to every command
+	shouldColorOutput := !o.NoColor
+	cfg := o.inst.Config()
+	if cfg != nil && cfg.CLI != nil {
+		shouldColorOutput = cfg.CLI.ColorizeOutput
+	}
+	// todo(arqu): have a config var to indicate force override for windows
+	if runtime.GOOS == "windows" {
+		shouldColorOutput = false
+	}
+	setNoColor(!shouldColorOutput)
+	setNoPrompt(o.NoPrompt)
+	log.Debugf("running cmd %q", os.Args)
+
+	return
 }
 
 // Instance returns the instance this options is using
@@ -155,22 +155,17 @@ func (o *QriOptions) Instance() *lib.Instance {
 	return o.inst
 }
 
+// RepoPath returns the path to the qri data directory
+func (o *QriOptions) RepoPath() string {
+	return o.repoPath
+}
+
 // Config returns from internal state
 func (o *QriOptions) Config() (*config.Config, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	return o.inst.Config(), nil
-}
-
-// IpfsFsPath returns from internal state
-func (o *QriOptions) IpfsFsPath() string {
-	return o.IpfsPath
-}
-
-// QriRepoPath returns from internal state
-func (o *QriOptions) QriRepoPath() string {
-	return o.RepoPath
 }
 
 // CryptoGenerator returns a resource for generating cryptographic info
@@ -291,4 +286,14 @@ func (o *QriOptions) FSIMethods() (m *lib.FSIMethods, err error) {
 	}
 
 	return lib.NewFSIMethods(o.inst), nil
+}
+
+// Shutdown closes the instance
+func (o *QriOptions) Shutdown() <-chan error {
+	if o.inst == nil {
+		done := make(chan error)
+		go func() { done <- nil }()
+		return done
+	}
+	return o.inst.Shutdown()
 }

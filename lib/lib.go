@@ -9,17 +9,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"net/rpc"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	golog "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
+	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
@@ -34,7 +37,6 @@ import (
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/buildrepo"
-	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/stats"
 	"github.com/qri-io/qri/watchfs"
@@ -43,11 +45,6 @@ import (
 var (
 	// ErrBadArgs is an error for when a user provides bad arguments
 	ErrBadArgs = errors.New("bad arguments provided")
-
-	// defaultIPFSLocation is where qri data defaults to looking for / setting up
-	// IPFS. The keyword $HOME will be replaced with the current user home
-	// directory. only $HOME is replaced (no other $ env vars).
-	defaultIPFSLocation = "$HOME/.ipfs"
 
 	log = golog.Logger("lib")
 )
@@ -101,12 +98,12 @@ type InstanceOptions struct {
 	Cfg     *config.Config
 	Streams ioes.IOStreams
 
+	statsCache *stats.Cache
 	node       *p2p.QriNode
 	repo       repo.Repo
 	store      cafs.Filestore
-	qfs        qfs.Filesystem
+	qfs        *muxfs.Mux
 	regclient  *regclient.Client
-	statsCache *stats.Cache
 	logbook    *logbook.Book
 	logAll     bool
 
@@ -130,32 +127,50 @@ func OptConfig(cfg *config.Config) Option {
 	}
 }
 
-// OptSetIPFSPath configures the directory to read IPFS from (only if the
-// configured store is IPFS). If the given path is the empty string, default
-// to the standard IPFS config:
-// * IPFS_PATH environment variable if set
-// * if none set: "$HOME/.ipfs"
+// OptSetIPFSPath sets the directory to read IPFS from.
+// Passing the empty string adjusts qri to use the go-ipfs default:
+// first checking the IPFS_PATH env variable, then falling back to $HOME/.ipfs
+// if no ipfs filesystem is configured, this option creates one
 func OptSetIPFSPath(path string) Option {
 	return func(o *InstanceOptions) error {
 		if o.Cfg == nil {
 			return fmt.Errorf("config is nil, can't set IPFS path")
 		}
-		if o.Cfg.Store == nil {
-			return fmt.Errorf("config.Store is nil, can't check type")
+		if o.Cfg.Filesystems == nil {
+			return fmt.Errorf("config Filesystems field is nil, can't set IPFS path")
 		}
-		if o.Cfg.Store.Type == "ipfs" && o.Cfg.Store.Path == "" {
+
+		if path == "" {
+			path = os.Getenv("IPFS_PATH")
 			if path == "" {
-				path = os.Getenv("IPFS_PATH")
-				if path == "" {
-					dir, err := homedir.Dir()
-					if err != nil {
-						return err
-					}
-					path = strings.Replace(defaultIPFSLocation, "$HOME", dir, 1)
+				dir, err := homedir.Dir()
+				if err != nil {
+					return err
 				}
+				path = filepath.Join(dir, ".ipfs")
 			}
-			o.Cfg.Store.Path = path
 		}
+
+		for i, fsc := range o.Cfg.Filesystems {
+			if fsc.Type == "ipfs" {
+				fsConfig := o.Cfg.Filesystems[i]
+				if fsConfig.Config == nil {
+					fsConfig.Config = map[string]interface{}{}
+				}
+				fsConfig.Config["path"] = path
+				return nil
+			}
+		}
+
+		o.Cfg.Filesystems = append([]qfs.Config{
+			{
+				Type: "ipfs",
+				Config: map[string]interface{}{
+					"path": path,
+				},
+			},
+		}, o.Cfg.Filesystems...)
+
 		return nil
 	}
 }
@@ -176,15 +191,15 @@ func OptStdIOStreams() Option {
 	}
 }
 
-// OptCheckConfigMigrations checks for any configuration migrations that may need to be run
-// running & updating config if so
-func OptCheckConfigMigrations(cfgPath string) Option {
+// OptCheckConfigMigrations checks for any configuration migrations that may
+// need to be run. running & updating config if so
+func OptCheckConfigMigrations(interactive bool) Option {
 	return func(o *InstanceOptions) error {
 		if o.Cfg == nil {
 			return fmt.Errorf("no config file to check for migrations")
 		}
 
-		err := migrate.RunMigrations(o.Streams, o.Cfg)
+		err := migrate.RunMigrations(o.Streams, o.Cfg, interactive)
 		if err != nil {
 			return err
 		}
@@ -217,9 +232,6 @@ func OptQriNode(node *p2p.QriNode) Option {
 		o.node = node
 		if o.node.Repo != nil && o.repo == nil {
 			o.repo = o.node.Repo
-		}
-		if o.node.Repo.Store() != nil {
-			o.store = o.node.Repo.Store()
 		}
 		if o.node.Repo.Filesystem() != nil {
 			o.qfs = o.node.Repo.Filesystem()
@@ -256,6 +268,14 @@ func OptLogbook(bk *logbook.Book) Option {
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
+	ctx, cancel := context.WithCancel(ctx)
+	ok := false
+	defer func() {
+		if !ok {
+			cancel()
+		}
+	}()
+
 	if repoPath == "" {
 		return nil, fmt.Errorf("repo path is required")
 	}
@@ -263,21 +283,34 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	o := &InstanceOptions{}
 
 	// attempt to load a base configuration from repoPath
+	needsMigration := false
 	if o.Cfg, err = loadRepoConfig(repoPath); err != nil {
 		log.Error("loading config: %s", err)
-		return
+		if o.Cfg != nil && o.Cfg.Revision != config.CurrentConfigRevision {
+			log.Info("config requires a migration from revision %d to %d", o.Cfg.Revision, config.CurrentConfigRevision)
+			needsMigration = true
+		}
+		if !needsMigration {
+			return
+		}
 	}
 
 	if len(opts) == 0 {
 		// default to a standard composition of Option funcs
 		opts = []Option{
 			OptStdIOStreams(),
-			OptSetIPFSPath(""),
-			OptCheckConfigMigrations(""),
+			OptCheckConfigMigrations(false),
 		}
 	}
 	for _, opt := range opts {
 		if err = opt(o); err != nil {
+			return nil, err
+		}
+	}
+
+	if needsMigration {
+		if o.Cfg, err = loadRepoConfig(repoPath); err != nil {
+			log.Error("loading config: %s", err)
 			return
 		}
 	}
@@ -293,13 +326,15 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		return
 	}
 
-	ctx, teardown := context.WithCancel(ctx)
 	inst := &Instance{
-		ctx:      ctx,
-		teardown: teardown,
+		cancel: cancel,
+		doneCh: make(chan struct{}),
+
 		repoPath: repoPath,
 		cfg:      cfg,
 
+		qfs:      o.qfs,
+		repo:     o.repo,
 		node:     o.node,
 		streams:  o.Streams,
 		registry: o.regclient,
@@ -327,32 +362,28 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	// check if we're operating over RPC
 	if cfg.RPC.Enabled {
-		addr := fmt.Sprintf(":%d", cfg.RPC.Port)
-		conn, err := net.Dial("tcp", addr)
+		addr, _ := ma.NewMultiaddr(cfg.RPC.Address)
+		conn, err := manet.Dial(addr)
 		if err == nil {
 			// we have a connection
-			log.Debugf("using RPC address %s", addr)
+			log.Debugf("using RPC address %s", cfg.RPC.Address)
 			inst.rpc = rpc.NewClient(conn)
 			return qri, err
 		}
 	}
 
-	if o.store != nil {
-		inst.store = o.store
-	} else if inst.store == nil {
-		if inst.store, err = buildrepo.NewCAFSStore(ctx, cfg); err != nil {
-			log.Error("intializing store:", err.Error())
-			return nil, fmt.Errorf("newStore: %s", err)
+	if inst.qfs == nil {
+		inst.qfs, err = buildrepo.NewFilesystem(ctx, cfg)
+		if err != nil {
+			return nil, err
 		}
-	}
 
-	if o.qfs != nil {
-		inst.qfs = o.qfs
-	} else if inst.qfs == nil {
-		if inst.qfs, err = buildrepo.NewFilesystem(cfg, inst.store); err != nil {
-			log.Error("intializing filesystem:", err.Error())
-			return nil, fmt.Errorf("newFilesystem: %s", err)
-		}
+		go func() {
+			inst.releasers.Add(1)
+			<-inst.qfs.Done()
+			inst.doneErr = inst.qfs.DoneErr()
+			inst.releasers.Done()
+		}()
 	}
 
 	var pro *profile.Profile
@@ -363,7 +394,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if inst.logbook == nil {
 		inst.logbook, err = newLogbook(inst.qfs, cfg, pro, inst.repoPath)
 		if err != nil {
-			return nil, fmt.Errorf("newLogbook: %w", err)
+			return nil, fmt.Errorf("intializing logbook: %w", err)
 		}
 	}
 
@@ -371,12 +402,14 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		inst.registry = newRegClient(ctx, cfg)
 	}
 
-	if o.repo != nil {
-		inst.repo = o.repo
-	} else if inst.repo == nil {
-		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.qfs, inst.logbook, inst.dscache); err != nil {
+	if inst.repo == nil {
+		if inst.repo, err = buildrepo.New(ctx, inst.repoPath, cfg, func(o *buildrepo.Options) {
+			o.Filesystem = inst.qfs
+			o.Logbook = inst.logbook
+			o.Dscache = inst.dscache
+		}); err != nil {
 			log.Error("intializing repo:", err.Error())
-			return nil, fmt.Errorf("newRepo: %s", err)
+			return nil, fmt.Errorf("newRepo: %w", err)
 		}
 	}
 
@@ -435,6 +468,8 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	go inst.waitForAllDone()
+	ok = true
 	return
 }
 
@@ -478,28 +513,6 @@ func newEventBus(ctx context.Context) event.Bus {
 	return event.NewBus(ctx)
 }
 
-func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Filesystem, book *logbook.Book, cache *dscache.Dscache) (r repo.Repo, err error) {
-	var pro *profile.Profile
-	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
-		return
-	}
-
-	switch cfg.Repo.Type {
-	case "fs":
-		repo, err := fsrepo.NewRepo(store, fs, book, cache, pro, path)
-		if err != nil {
-			return nil, err
-		}
-		// Try to make the repo a hidden directory, but it's okay if we can't. Ingore the error.
-		_ = hiddenfile.SetFileHidden(path)
-		return repo, nil
-	case "mem":
-		return repo.NewMemRepo(pro, store, fs, profile.NewMemStore())
-	default:
-		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
-	}
-}
-
 func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 	// The stats cache default location is repoPath/stats
 	// can be overridden in the config: cfg.Stats.Path
@@ -513,12 +526,6 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 	switch cfg.Stats.Cache.Type {
 	case "fs":
 		return stats.New(stats.NewOSCache(path, cfg.Stats.Cache.MaxSize))
-	// TODO (ramfox): return a mem and/or postgres version of the stats.Stats
-	// once those are implemented
-	// case "mem":
-	// 	return stats.New(stats.NewMemCache(path, cfg.Stats.Cache.MaxSize))
-	// case "postgres":
-	// 	return stats.New(stats.NewSqlCache(path, cfg.Stats.Cache.MaxSize))
 	default:
 		return stats.New(nil)
 	}
@@ -529,12 +536,13 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 // don't write new code that relies on this, instead create a configuration
 // and options that can be fed to NewInstance
 // This function must only be used for testing purposes
-func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instance {
-	ctx, teardown := context.WithCancel(context.Background())
+func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node *p2p.QriNode) *Instance {
+	ctx, cancel := context.WithCancel(ctx)
 
 	r := node.Repo
 	pro, err := r.Profile()
 	if err != nil {
+		cancel()
 		panic(err)
 	}
 	bus := event.NewBus(ctx)
@@ -549,27 +557,29 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 	}
 
 	inst := &Instance{
-		ctx:      ctx,
-		teardown: teardown,
-		cfg:      cfg,
-		node:     node,
-		dscache:  dc,
-		stats:    stats.New(nil),
+		cancel: cancel,
+		doneCh: make(chan struct{}),
+
+		cfg:     cfg,
+		node:    node,
+		dscache: dc,
+		stats:   stats.New(nil),
 	}
 
 	inst.remoteClient, err = remote.NewClient(node)
 	if err != nil {
+		cancel()
 		panic(err)
 	}
 
 	if node != nil && r != nil {
 		inst.repo = r
-		inst.store = r.Store()
-		inst.qfs = r.Filesystem()
 		inst.bus = bus
 		inst.fsi = fsint
+		inst.qfs = r.Filesystem()
 	}
 
+	go inst.waitForAllDone()
 	return inst
 }
 
@@ -579,18 +589,13 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 // contain qri business logic. Think of instance as the "core" of the qri
 // ecosystem. Create an Instance pointer with NewInstance
 type Instance struct {
-	ctx      context.Context
-	teardown context.CancelFunc
-
 	repoPath string
 	cfg      *config.Config
 
-	streams ioes.IOStreams
-	repo    repo.Repo
-	store   cafs.Filestore
-	node    *p2p.QriNode
-
-	qfs          qfs.Filesystem
+	streams      ioes.IOStreams
+	repo         repo.Repo
+	node         *p2p.QriNode
+	qfs          *muxfs.Mux
 	fsi          *fsi.FSI
 	remote       *remote.Remote
 	remoteClient remote.Client
@@ -599,15 +604,19 @@ type Instance struct {
 	logbook      *logbook.Book
 	dscache      *dscache.Dscache
 	bus          event.Bus
-
-	Watcher *watchfs.FilesysWatcher
+	Watcher      *watchfs.FilesysWatcher
 
 	rpc *rpc.Client
+
+	cancel    context.CancelFunc
+	doneCh    chan struct{}
+	doneErr   error
+	releasers sync.WaitGroup
 }
 
 // Connect takes an instance online
 func (inst *Instance) Connect(ctx context.Context) (err error) {
-	if err = inst.node.GoOnline(); err != nil {
+	if err = inst.node.GoOnline(ctx); err != nil {
 		log.Debugf("taking node online: %s", err.Error())
 		return
 	}
@@ -625,23 +634,40 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	return nil
 }
 
-// Context returns the base context for this instance
-func (inst *Instance) Context() context.Context {
-	return inst.ctx
-}
-
 // Config provides methods for manipulating Qri configuration
 func (inst *Instance) Config() *config.Config {
+	if inst == nil {
+		return nil
+	}
 	return inst.cfg
+}
+
+// Shutdown closes the instance, releasing all held resources. the returned
+// channel will write any closing error, including context cancellation
+// timeout
+func (inst *Instance) Shutdown() <-chan error {
+	errCh := make(chan error)
+	go func() {
+		<-inst.doneCh
+		errCh <- inst.doneErr
+	}()
+	inst.cancel()
+	return errCh
 }
 
 // FSI returns methods for using filesystem integration
 func (inst *Instance) FSI() *fsi.FSI {
+	if inst == nil {
+		return nil
+	}
 	return inst.fsi
 }
 
 // Bus returns the event.Bus
 func (inst *Instance) Bus() event.Bus {
+	if inst == nil {
+		return nil
+	}
 	return inst.bus
 }
 
@@ -720,11 +746,6 @@ func (inst *Instance) RemoteClient() remote.Client {
 	return inst.remoteClient
 }
 
-// Teardown destroys the instance, releasing reserved resources
-func (inst *Instance) Teardown() {
-	inst.teardown()
-}
-
 // checkRPCError validates RPC errors and in case of EOF returns a
 // more user friendly message
 func checkRPCError(err error) error {
@@ -743,4 +764,10 @@ Error:
 		return qrierr.New(err, fmt.Sprintf(msg, err.Error()))
 	}
 	return err
+}
+
+func (inst *Instance) waitForAllDone() {
+	inst.releasers.Wait()
+	log.Debug("closing instance")
+	close(inst.doneCh)
 }

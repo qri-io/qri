@@ -137,11 +137,11 @@ type ConfigOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConfigOptions) Complete(f Factory) (err error) {
-	o.inst = f.Instance()
 	o.ConfigMethods, err = f.ConfigMethods()
 	if err != nil {
 		return
 	}
+	o.inst = f.Instance()
 
 	o.ProfileMethods, err = f.ProfileMethods()
 	return

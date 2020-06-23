@@ -33,7 +33,7 @@ func (tr *testRunner) IPFSBackedQriNode(t *testing.T, username string) *QriNode 
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := p2ptest.MakeRepoFromIPFSNode(ipfs, username)
+	r, err := p2ptest.MakeRepoFromIPFSNode(tr.Ctx, ipfs, username)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) re
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[100]")))
 
-	ref, err := base.CreateDataset(ctx, r, ds, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := base.CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err)
 	}

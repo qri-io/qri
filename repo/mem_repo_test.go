@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
@@ -15,15 +15,21 @@ import (
 )
 
 func TestMemRepoResolveRef(t *testing.T) {
+	ctx := context.Background()
+	fs, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "map"},
+		{Type: "mem"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	pro, err := profile.NewProfile(config.DefaultProfileForTesting())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
-	store := cafs.NewMapstore()
-	fs := qfs.NewMemFS()
-	r, err := NewMemRepo(pro, store, fs, profile.NewMemStore())
+	r, err := NewMemRepo(ctx, pro, fs)
 	if err != nil {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}

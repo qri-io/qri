@@ -3,11 +3,12 @@ package repo
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event/hook"
@@ -19,40 +20,62 @@ import (
 type MemRepo struct {
 	*MemRefstore
 
-	store      cafs.Filestore
-	filesystem qfs.Filesystem
-	graph      map[string]*dsgraph.Node
+	filesystem *muxfs.Mux
 	refCache   *MemRefstore
 	logbook    *logbook.Book
 	dscache    *dscache.Dscache
 
 	profile  *profile.Profile
 	profiles profile.Store
+
+	doneWg  sync.WaitGroup
+	doneCh  chan struct{}
+	doneErr error
 }
 
 // NewMemRepo creates a new in-memory repository
-func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, ps profile.Store) (*MemRepo, error) {
-	book, err := logbook.NewJournal(p.PrivKey, p.Peername, fsys, "/mem/logbook")
+func NewMemRepo(ctx context.Context, p *profile.Profile, fs *muxfs.Mux) (*MemRepo, error) {
+	if fs.Filesystem(qfs.MemFilestoreType) == nil {
+		fs.SetFilesystem(qfs.NewMemFS())
+	}
+	if fs.Filesystem(cafs.MapFilestoreType) == nil {
+		fs.SetFilesystem(cafs.NewMapstore())
+	}
+
+	book, err := logbook.NewJournal(p.PrivKey, p.Peername, fs, "/mem/logbook.qfb")
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := context.Background()
-
 	// NOTE: This dscache won't get change notifications from FSI, because it's not constructed
 	// with the hook for FSI.
-	cache := dscache.NewDscache(ctx, fsys, []hook.ChangeNotifier{book}, p.Peername, "")
+	cache := dscache.NewDscache(ctx, fs, []hook.ChangeNotifier{book}, p.Peername, "")
 
-	return &MemRepo{
-		store:       store,
-		filesystem:  fsys,
+	mr := &MemRepo{
+		filesystem:  fs,
 		MemRefstore: &MemRefstore{},
 		refCache:    &MemRefstore{},
 		logbook:     book,
 		dscache:     cache,
 		profile:     p,
-		profiles:    ps,
-	}, nil
+		profiles:    profile.NewMemStore(),
+
+		doneCh: make(chan struct{}),
+	}
+
+	mr.doneWg.Add(1)
+	go func() {
+		<-fs.Done()
+		mr.doneErr = fs.DoneErr()
+		mr.doneWg.Done()
+	}()
+
+	go func() {
+		mr.doneWg.Wait()
+		close(mr.doneCh)
+	}()
+
+	return mr, nil
 }
 
 // ResolveRef implements the dsref.Resolver interface
@@ -75,11 +98,11 @@ func (r *MemRepo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 
 // Store returns the underlying cafs.Filestore for this repo
 func (r *MemRepo) Store() cafs.Filestore {
-	return r.store
+	return r.filesystem.DefaultWriteFS()
 }
 
 // Filesystem gives access to the underlying filesystem
-func (r *MemRepo) Filesystem() qfs.Filesystem {
+func (r *MemRepo) Filesystem() *muxfs.Mux {
 	return r.filesystem
 }
 
@@ -106,7 +129,7 @@ func (r *MemRepo) SetLogbook(book *logbook.Book) {
 }
 
 // SetFilesystem implements QFSSetter, currently used during lib contstruction
-func (r *MemRepo) SetFilesystem(fs qfs.Filesystem) {
+func (r *MemRepo) SetFilesystem(fs *muxfs.Mux) {
 	r.filesystem = fs
 }
 
@@ -137,4 +160,14 @@ func (r *MemRepo) SetProfile(p *profile.Profile) error {
 // Profiles gives this repo's Peer interface implementation
 func (r *MemRepo) Profiles() profile.Store {
 	return r.profiles
+}
+
+// Done returns a channel that the repo will send on when the repo is closed
+func (r *MemRepo) Done() <-chan struct{} {
+	return r.doneCh
+}
+
+// DoneErr gives an error that occured during the shutdown process
+func (r *MemRepo) DoneErr() error {
+	return r.doneErr
 }

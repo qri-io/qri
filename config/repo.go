@@ -1,23 +1,26 @@
 package config
 
 import (
-	"reflect"
-
 	"github.com/qri-io/jsonschema"
 )
 
 // Repo configures a qri repo
 type Repo struct {
-	Middleware []string `json:"middleware"`
-	Type       string   `json:"type"`
-	Path       string   `json:"path,omitempty"`
+	Type string `json:"type"`
+	Path string `json:"path,omitempty"`
+}
+
+// SetArbitrary is an interface implementation of base/fill/struct in order to safely
+// consume config files that have definitions beyond those specified in the struct.
+// This simply ignores all additional fields at read time.
+func (cfg *Repo) SetArbitrary(key string, val interface{}) error {
+	return nil
 }
 
 // DefaultRepo creates & returns a new default repo configuration
 func DefaultRepo() *Repo {
 	return &Repo{
-		Type:       "fs",
-		Middleware: []string{},
+		Type: "fs",
 	}
 }
 
@@ -30,13 +33,6 @@ func (cfg Repo) Validate() error {
     "type": "object",
     "required": ["type"],
     "properties": {
-      "middleware": {
-        "description": "Middleware packages that need to be applied to the repo",
-        "type": ["array", "null"],
-        "items": {
-          "type": "string"
-        }
-      },
       "type": {
         "description": "Type of repository",
         "type": "string",
@@ -54,10 +50,6 @@ func (cfg Repo) Validate() error {
 func (cfg *Repo) Copy() *Repo {
 	res := &Repo{
 		Type: cfg.Type,
-	}
-	if cfg.Middleware != nil {
-		res.Middleware = make([]string, len(cfg.Middleware))
-		reflect.Copy(reflect.ValueOf(res.Middleware), reflect.ValueOf(cfg.Middleware))
 	}
 
 	return res

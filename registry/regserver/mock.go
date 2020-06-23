@@ -47,17 +47,23 @@ func NewMemRegistry(rem *remote.Remote) registry.Registry {
 }
 
 // NewTempRegistry creates a functioning registry with a teardown function
-func NewTempRegistry(peername, tmpDirPrefix string, g gen.CryptoGenerator) (*registry.Registry, func(), error) {
+// TODO(b5) - the tempRepo.Repo call in this func *requires* the passed-in
+// context be cancelled at some point. drop the cleanup function return in
+// favour of listening for ctx.Done and running the cleanup routine internally
+func NewTempRegistry(ctx context.Context, peername, tmpDirPrefix string, g gen.CryptoGenerator) (*registry.Registry, func(), error) {
 	tempRepo, err := repotest.NewTempRepo(peername, tmpDirPrefix, g)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	teardown := tempRepo.Delete
-
-	r, err := tempRepo.Repo()
+	r, err := tempRepo.Repo(ctx)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	teardown := func() {
+		<-r.Done()
+		tempRepo.Delete()
 	}
 
 	p2pCfg := config.DefaultP2P()

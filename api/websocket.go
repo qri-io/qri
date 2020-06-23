@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"net"
 	"net/http"
 	"time"
 
+	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
@@ -17,8 +18,6 @@ import (
 )
 
 const (
-	// TODO(dlong): Move to cfg
-	websocketPort        = 2506
 	qriWebsocketProtocol = "qri-websocket"
 )
 
@@ -29,6 +28,7 @@ const (
 
 // ServeWebsocket creates a websocket that clients can connect to in order to get realtime events
 func (s Server) ServeWebsocket(ctx context.Context) {
+	c := s.Config().API
 	// Watch the filesystem. Events will be sent to websocket connections.
 	node := s.Node()
 	fsmessages, err := s.startFilesysWatcher(ctx, node)
@@ -38,11 +38,18 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 	}
 
 	go func() {
-		l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", LocalHostIP, websocketPort))
+		maAddress := c.WebsocketAddress
+		addr, err := ma.NewMultiaddr(maAddress)
 		if err != nil {
-			log.Infof("Websocket listen on port %d error: %s", websocketPort, err)
+			log.Errorf("cannot start Websocket: error parsing Websocket address %s: %w", maAddress, err.Error())
+		}
+
+		mal, err := manet.Listen(addr)
+		if err != nil {
+			log.Infof("Websocket listen on address %d error: %w", c.WebsocketAddress, err.Error())
 			return
 		}
+		l := manet.NetListener(mal)
 		defer l.Close()
 
 		// Collect all websocket connections. Should only be one at a time, but that may

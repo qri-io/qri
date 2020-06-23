@@ -1,13 +1,12 @@
 package lib
 
 import (
+	"context"
 	"strings"
 	"testing"
 
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qfs/httpfs"
-	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
@@ -17,8 +16,11 @@ import (
 )
 
 func TestPeerRequestsListNoConnection(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	req := NewPeerMethods(inst)
 	p := PeerListParams{}
 	got := []*config.ProfilePod{}
@@ -31,6 +33,9 @@ func TestPeerRequestsListNoConnection(t *testing.T) {
 }
 
 func TestPeerRequestsList(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cases := []struct {
 		p   *PeerListParams
 		res []*profile.Profile
@@ -44,7 +49,7 @@ func TestPeerRequestsList(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []*config.ProfilePod{}
@@ -58,7 +63,9 @@ func TestPeerRequestsList(t *testing.T) {
 }
 
 func TestConnectedQriProfiles(t *testing.T) {
-	// TODO - we're going to need network simulation to test this properly
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cases := []struct {
 		limit     int
 		peerCount int
@@ -68,7 +75,7 @@ func TestConnectedQriProfiles(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []*config.ProfilePod{}
@@ -85,7 +92,9 @@ func TestConnectedQriProfiles(t *testing.T) {
 }
 
 func TestConnectedIPFSPeers(t *testing.T) {
-	// TODO - we're going to need an IPFS network simulation to test this properly
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cases := []struct {
 		limit     int
 		peerCount int
@@ -95,7 +104,7 @@ func TestConnectedIPFSPeers(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []string{}
@@ -112,7 +121,9 @@ func TestConnectedIPFSPeers(t *testing.T) {
 }
 
 func TestInfo(t *testing.T) {
-	// TODO - we're going to need an IPFS network simulation to test this properly
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	cases := []struct {
 		p        PeerInfoParams
 		refCount int
@@ -123,7 +134,7 @@ func TestInfo(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := config.ProfilePod{}
@@ -141,13 +152,14 @@ func TestInfo(t *testing.T) {
 }
 
 func TestGetReferences(t *testing.T) {
-	// TODO - we're going to need an IPFS network simulation to test this properly
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
 	cases := []struct {
 		p        PeerRefsParams
 		refCount int
 		err      string
 	}{
-		{PeerRefsParams{}, 0, "error decoding peer Id: input isn't valid multihash"},
+		{PeerRefsParams{}, 0, "error decoding peer Id: failed to parse peer ID: cid too short"},
 		{PeerRefsParams{PeerID: "QmY1PxkV9t9RoBwtXHfue1Qf6iYob19nL6rDHuXxooAVZa"}, 0, "not connected to p2p network"},
 	}
 
@@ -156,7 +168,7 @@ func TestGetReferences(t *testing.T) {
 		t.Errorf("error creating qri node: %s", err)
 		return
 	}
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []reporef.DatasetRef{}
@@ -181,9 +193,9 @@ func TestPeerConnectionsParamsPod(t *testing.T) {
 		t.Error("expected NetworkID to be set")
 	}
 
-	ma := "/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"
+	ma := "/ip4/130.211.198.23/tcp/4001/p2p/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"
 	if p := NewPeerConnectionParamsPod(ma); p.Multiaddr != ma {
-		t.Error("expected Multiaddr to be set")
+		t.Errorf("peer Multiaddr mismatch. expected: %q, got: %q", ma, p.Multiaddr)
 	}
 
 	if p := NewPeerConnectionParamsPod("QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"); p.ProfileID != "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb" {
@@ -219,8 +231,10 @@ func TestPeerConnectionsParamsPod(t *testing.T) {
 }
 
 func newTestQriNode(t *testing.T) *p2p.QriNode {
-	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	r, err := repo.NewMemRepo(ctx, testPeerProfile, newTestFS(ctx))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,17 +246,24 @@ func newTestQriNode(t *testing.T) *p2p.QriNode {
 	return node
 }
 
-func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
-	return qfs.NewMux(map[string]qfs.Filesystem{
-		"local": localfs.NewFS(),
-		"http":  httpfs.NewFS(),
-		"cafs":  cafsys,
+func newTestFS(ctx context.Context) *muxfs.Mux {
+	mux, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "local"},
+		{Type: "http"},
+		{Type: "map"},
+		{Type: "mem"},
 	})
+	if err != nil {
+		panic(err)
+	}
+
+	return mux
 }
 
 func newTestDisconnectedQriNode() (*p2p.QriNode, error) {
-	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(&profile.Profile{PrivKey: privKey}, ms, newTestFS(ms), profile.NewMemStore())
+	ctx := context.TODO()
+	pro := &profile.Profile{PrivKey: privKey}
+	r, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx))
 	if err != nil {
 		return nil, err
 	}

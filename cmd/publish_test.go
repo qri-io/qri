@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/qri/registry"
@@ -13,12 +14,18 @@ func TestPublish(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_registry_publish")
 	defer run.Delete()
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	// TODO(dustmop): Move into test runner
-	reg, cleanup, err := regserver.NewTempRegistry("temp_registry", "", repotest.NewTestCrypto())
+	reg, cleanup, err := regserver.NewTempRegistry(ctx, "temp_registry", "", repotest.NewTestCrypto())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer cleanup()
+	// TODO(b5): need to defer in this order. the deferred cleanup command blocks on done,
+	// which is in turn blocked on cancel. deferring in the other order deadlocks.
+	// the smarter way to deal with this is to refactor TempRegistry to use the Done pattern
+	defer cancel()
 
 	// Create a mock registry, point our test runner to its URL
 	_, httpServer := regserver.NewMockServerRegistry(*reg)

@@ -21,6 +21,7 @@ func TestLoadDataset(t *testing.T) {
 		return dsfs.CreateDataset(
 			tr.Ctx,
 			tr.Instance.Repo().Store(),
+			tr.Instance.Repo().Filesystem().DefaultWriteFS(),
 			ds,
 			nil,
 			tr.Instance.repo.PrivateKey(),

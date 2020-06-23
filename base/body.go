@@ -2,20 +2,13 @@ package base
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 )
 
 // ReadBody grabs some or all of a dataset's body, writing an output in the desired format
@@ -156,69 +149,6 @@ func ConvertBodyFile(file qfs.File, in, out *dataset.Structure, limit, offset in
 	}
 
 	return buf.Bytes(), nil
-}
-
-// DatasetBodyFile creates a streaming data file from a Dataset using the following precedence:
-// * ds.BodyBytes not being nil (requires ds.Structure.Format be set to know data format)
-// * ds.BodyPath being a url
-// * ds.BodyPath being a path on the local filesystem
-func DatasetBodyFile(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset) (qfs.File, error) {
-	if ds.BodyBytes != nil {
-		if ds.Structure == nil || ds.Structure.Format == "" {
-			return nil, fmt.Errorf("specifying bodyBytes requires format be specified in dataset.structure")
-		}
-		return qfs.NewMemfileBytes(fmt.Sprintf("body.%s", ds.Structure.Format), ds.BodyBytes), nil
-	}
-
-	// all other methods are based on path, bail if we don't have one
-	if ds.BodyPath == "" {
-		return nil, nil
-	}
-
-	loweredPath := strings.ToLower(ds.BodyPath)
-
-	// if opening protocol is http/s, we're dealing with a web request
-	if strings.HasPrefix(loweredPath, "http://") || strings.HasPrefix(loweredPath, "https://") {
-		// TODO - attempt to determine file format based on response headers
-		filename := filepath.Base(ds.BodyPath)
-
-		res, err := http.Get(ds.BodyPath)
-		if err != nil {
-			return nil, fmt.Errorf("fetching body url: %s", err.Error())
-		}
-		if res.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("invalid status code fetching body url: %d", res.StatusCode)
-		}
-
-		return qfs.NewMemfileReader(filename, res.Body), nil
-	}
-
-	if strings.HasPrefix(ds.BodyPath, "/ipfs") || strings.HasPrefix(ds.BodyPath, "/cafs") || strings.HasPrefix(ds.BodyPath, "/map") {
-		return store.Get(ctx, ds.BodyPath)
-	}
-
-	// convert yaml input to json as a hack to support yaml input for now
-	ext := strings.ToLower(filepath.Ext(ds.BodyPath))
-	if ext == ".yaml" || ext == ".yml" {
-		yamlBody, err := ioutil.ReadFile(ds.BodyPath)
-		if err != nil {
-			return nil, fmt.Errorf("body file: %s", err.Error())
-		}
-		jsonBody, err := yaml.YAMLToJSON(yamlBody)
-		if err != nil {
-			return nil, fmt.Errorf("converting yaml body to json: %s", err.Error())
-		}
-
-		filename := fmt.Sprintf("%s.json", strings.TrimSuffix(filepath.Base(ds.BodyPath), ext))
-		return qfs.NewMemfileBytes(filename, jsonBody), nil
-	}
-
-	file, err := os.Open(ds.BodyPath)
-	if err != nil {
-		return nil, fmt.Errorf("body file: %s", err.Error())
-	}
-
-	return qfs.NewMemfileReader(filepath.Base(ds.BodyPath), file), nil
 }
 
 // ConvertBodyFormat rewrites a body from a source format to a destination format.

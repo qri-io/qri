@@ -30,7 +30,6 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -478,7 +477,11 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		p.ScriptOutput = nil
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Save", p, res))
 	}
-	ctx := context.TODO()
+
+	var (
+		ctx       = context.TODO()
+		writeDest = m.inst.qfs.DefaultWriteFS() // filesystem dataset will be written to
+	)
 
 	if p.Private {
 		return fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
@@ -625,12 +628,8 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		r := m.inst.repo
 		if p.DryRun {
 			str.PrintErr("🏃🏽‍♀️ dry run\n")
-			// dry-runs store to an in-memory repo
-			r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), r.Filesystem(), profile.NewMemStore())
-			if err != nil {
-				log.Debugf("creating new memRepo: %s", err)
-				return nil
-			}
+			// dry run writes to an ephemeral mapstore
+			writeDest = cafs.NewMapstore()
 		}
 
 		// create a loader so transforms can call `load_dataset`
@@ -702,7 +701,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		NewName:             p.NewName,
 		Drop:                p.Drop,
 	}
-	datasetRef, err = base.SaveDataset(ctx, m.inst.repo, trueRef.InitID, trueRef.Path, ds, switches)
+	datasetRef, err = base.SaveDataset(ctx, m.inst.repo, writeDest, trueRef.InitID, trueRef.Path, ds, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
@@ -1164,7 +1163,10 @@ func (m *DatasetMethods) Validate(p *ValidateDatasetParams, valerrs *[]jsonschem
 		body = ds.BodyFile()
 	} else {
 		// Body is set to the provided filename if given
-		fs := localfs.NewFS()
+		fs, err := localfs.NewFS(nil)
+		if err != nil {
+			return fmt.Errorf("error creating new local filesystem: %s", err)
+		}
 		body, err = fs.Get(context.Background(), p.BodyFilename)
 		if err != nil {
 			return fmt.Errorf("error opening body file: %s", p.BodyFilename)

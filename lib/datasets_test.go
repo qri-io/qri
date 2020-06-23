@@ -33,6 +33,9 @@ import (
 )
 
 func TestDatasetRequestsSave(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -70,7 +73,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 		os.RemoveAll(citiesMetaTwoPath)
 	}()
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
 	privateErrMsg := "option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates"
@@ -149,9 +152,12 @@ func tempDatasetFile(t *testing.T, fileName string, ds *dataset.Dataset) (path s
 }
 
 func TestDatasetRequestsForceSave(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	node := newTestQriNode(t)
 	ref := addCitiesDataset(t, node)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
 	res := &reporef.DatasetRef{}
@@ -169,10 +175,12 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 
 func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 	t.Skip("TODO(dustmop): Recall will be going away soon, apply will take its place")
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
 
 	node := newTestQriNode(t)
 	ref := addNowTransformDataset(t, node)
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
 	metaOnePath := tempDatasetFile(t, "*-meta.json", &dataset.Dataset{Meta: &dataset.Meta{Title: "an updated title"}})
@@ -231,6 +239,9 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 }
 
 func TestDatasetRequestsSaveZip(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -239,7 +250,7 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
 	res := reporef.DatasetRef{}
@@ -258,6 +269,9 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	}
 }
 func TestDatasetRequestsList(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	var (
 		movies, counter, cities, craigslist, sitemap dsref.VersionInfo
 	)
@@ -278,7 +292,7 @@ func TestDatasetRequestsList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 
 	for _, ref := range refs {
 		dr := reporef.ConvertToVersionInfo(&ref)
@@ -357,10 +371,12 @@ func compareVersionInfoAsSimple(a, b dsref.VersionInfo) error {
 }
 
 func TestDatasetRequestsListP2p(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	// Matches what is used to generated test peers.
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
-	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 5)
 	if err != nil {
@@ -384,7 +400,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 		go func(node *p2p.QriNode) {
 			defer wg.Done()
 
-			inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+			inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 			m := NewDatasetMethods(inst)
 			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
 			var res []dsref.VersionInfo
@@ -408,7 +424,9 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 }
 
 func TestDatasetRequestsGet(t *testing.T) {
-	ctx := context.Background()
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -417,7 +435,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 
 	ref, err := mr.GetRef(reporef.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
@@ -591,10 +609,12 @@ func bodyToPrettyString(component interface{}) string {
 }
 
 func TestDatasetRequestsGetP2p(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	// Matches what is used to generated test peers.
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
-	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 5)
 	if err != nil {
@@ -624,7 +644,7 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			name := datasets[index]
 			ref := reporef.DatasetRef{Peername: profile.Peername, Name: name}
 
-			inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+			inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 			m := NewDatasetMethods(inst)
 			got := &GetResult{}
 			err = m.Get(&GetParams{Refstr: ref.String()}, got)
@@ -643,6 +663,9 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 }
 
 func TestDatasetRequestsRename(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -651,7 +674,6 @@ func TestDatasetRequestsRename(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ctx := context.Background()
 
 	bad := []struct {
 		p   *RenameParams
@@ -662,7 +684,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		{&RenameParams{Current: "peer/cities", Next: "peer/sitemap"}, `dataset "peer/sitemap" already exists`},
 	}
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_%d", i), func(t *testing.T) {
@@ -751,6 +773,9 @@ func TestRenameNoHistory(t *testing.T) {
 }
 
 func TestDatasetRequestsRemove(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -760,7 +785,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	dsm := NewDatasetMethods(inst)
 	allRevs := dsref.Rev{Field: "ds", Gen: -1}
 
@@ -870,6 +895,9 @@ func TestDatasetRequestsRemove(t *testing.T) {
 }
 
 func TestDatasetRequestsAdd(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	bad := []struct {
 		p   AddParams
 		err string
@@ -886,7 +914,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_case_%d", i), func(t *testing.T) {
@@ -905,11 +933,13 @@ func TestDatasetRequestsAdd(t *testing.T) {
 
 func TestDatasetRequestsAddP2P(t *testing.T) {
 	t.Skip("TODO (b5)")
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	// Matches what is used to generate the test peers.
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
 	// Create test nodes.
-	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 5)
 	if err != nil {
@@ -956,7 +986,7 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 				}
 
 				// Build requests for peer1 to peer2.
-				inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), p0)
+				inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), p0)
 				dsm := NewDatasetMethods(inst)
 				got := &reporef.DatasetRef{}
 
@@ -976,6 +1006,9 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 }
 
 func TestDatasetRequestsValidate(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	run := newTestRunner(t)
 	defer run.Delete()
 
@@ -1027,7 +1060,7 @@ Pirates of the Caribbean: At World's End ,foo
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 	for i, c := range cases {
 		got := []jsonschema.KeyError{}
@@ -1046,6 +1079,9 @@ Pirates of the Caribbean: At World's End ,foo
 }
 
 func TestDatasetRequestsStats(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -1055,7 +1091,7 @@ func TestDatasetRequestsStats(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
 	badCases := []struct {
@@ -1106,6 +1142,9 @@ func mustBeArray(i interface{}, err error) []interface{} {
 }
 
 func TestListRawRefs(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	// TODO(dlong): Put a TestRunner instance here
 
 	// to keep hashes consistent, artificially specify the timestamp by overriding
@@ -1126,7 +1165,7 @@ func TestListRawRefs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
 	var text string

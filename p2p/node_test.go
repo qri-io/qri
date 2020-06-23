@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/qri/config"
@@ -10,6 +11,9 @@ import (
 )
 
 func TestNewNode(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	info := cfgtest.GetTestPeerInfo(0)
 	r, err := test.NewTestRepoFromProfileID(profile.IDFromPeerID(info.PeerID), 0, -1)
 	if err != nil {
@@ -27,7 +31,7 @@ func TestNewNode(t *testing.T) {
 	if n.Online {
 		t.Errorf("default node online flag should be false")
 	}
-	if err := n.GoOnline(); err != nil {
+	if err := n.GoOnline(ctx); err != nil {
 		t.Error(err.Error())
 	}
 	if !n.Online {

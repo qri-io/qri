@@ -2,16 +2,16 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	golog "github.com/ipfs/go-log"
+	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
@@ -34,9 +34,13 @@ func ioReset(in, out, errs *bytes.Buffer) {
 }
 
 func confirmQriNotRunning() error {
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.DefaultAPIPort))
+	addr, err := ma.NewMultiaddr(config.DefaultAPIAddress)
 	if err != nil {
-		return fmt.Errorf("it looks like a qri server is already running on port %d, please close before running tests", config.DefaultAPIPort)
+		return fmt.Errorf(err.Error())
+	}
+	l, err := manet.Listen(addr)
+	if err != nil {
+		return fmt.Errorf("it looks like a qri server is already running on address %s, please close before running tests", config.DefaultAPIAddress)
 	}
 
 	l.Close()
@@ -555,10 +559,8 @@ func TestRenameAfterRegistration(t *testing.T) {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 
-	ctx := context.Background()
-
 	// Register (using a mock server) which changes the username
-	err := run.ExecCommandWithStdin(ctx, "qri registry signup --username real_peer --email me@example.com", "myPassword")
+	err := run.ExecCommandWithStdin(run.Context, "qri registry signup --username real_peer --email me@example.com", "myPassword")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -607,7 +609,6 @@ func TestRenameAfterRegistration(t *testing.T) {
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
-
 }
 
 // Test that list can format output as json
@@ -653,8 +654,7 @@ func TestBadCaseIsJustWarning(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[[\"one\",2],[\"three\",4]]")))
 
 	// Add the dataset to the repo directly, which avoids the name validation check.
-	ctx := context.Background()
-	run.AddDatasetToRefstore(ctx, t, "test_peer/a_New_Dataset", &ds)
+	run.AddDatasetToRefstore(t, "test_peer/a_New_Dataset", &ds)
 
 	// Save the dataset, which will work now that a version already exists.
 	err := run.ExecCommand("qri get test_peer/a_New_Dataset")

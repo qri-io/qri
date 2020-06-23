@@ -10,6 +10,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
@@ -66,7 +67,7 @@ type Repo interface {
 	// Filestores can multiplex to read from multiple sources like the local
 	// filesystem, over http, or content-addressed filesystems.
 	// the long term-plan is to merge Filestore & Store
-	Filesystem() qfs.Filesystem
+	Filesystem() *muxfs.Mux
 
 	// A Repo can resolve dataset references it knows about locally from its
 	// Refstore
@@ -92,6 +93,11 @@ type Repo interface {
 	// A repository must maintain profile information about encountered peers.
 	// Decsisions regarding retentaion of peers is left to the the implementation
 	Profiles() profile.Store
+
+	// Done returns a channel that the repo will send on when the repo is closed
+	Done() <-chan struct{}
+	// DoneErr gives any error that occured in the shutdown process
+	DoneErr() error
 }
 
 // QFSSetter sets a qfs.Filesystem
