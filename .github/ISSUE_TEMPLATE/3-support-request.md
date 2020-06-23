@@ -1,6 +1,6 @@
 ---
 name: "❓ Support request"
-about: Questions and requests for support
+about: Questions and requests for support.
 ---
 
       🛑          🛑          🛑

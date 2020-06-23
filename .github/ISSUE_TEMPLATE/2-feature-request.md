@@ -1,33 +1,36 @@
 ---
 name: "🚀 Feature request"
-about: Suggest a feature
+about: Suggest a feature.
 ---
 <!--
-
 Hello! Thanks for taking an interest in Qri.
 
 Please search open and closed issues before submitting.
 
 Existing issues often contain information about workarounds, resolution, or progress updates.
 
+✂️ You can delete any html comments. ✂️
+
 Thanks for your help.
 
 -->
 
-### Description
-<!-- ✍️ A clear and concise description of the problem or missing capability... -->
+### What feature or capability would you like?
 
 
-### Describe the solution you’d like
-<!-- ✍️ If you have a solution in mind, please describe it. -->
+
+### Do you have a proposed solution?
 
 
-### Describe alternatives you’ve considered
-<!-- ✍️ Have you considered any alternative solutions or workarounds? -->
+
+### Have you considered any alternative solutions or workarounds?
 
 
-<!--
 
-Thank you for your time.
+<!-- Optional additional information. 
+     ✂️ Cut any that do not apply. -->
 
--->
+### Do you have any examples of similar features in other software?
+### Please link any related issues.
+
+<!-- Thank you for your time. -->
