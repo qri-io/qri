@@ -4,11 +4,9 @@ package buildrepo
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/muxfs"
@@ -62,53 +60,32 @@ func New(ctx context.Context, path string, cfg *config.Config) (repo.Repo, error
 
 // NewFilesystem creates a qfs.Filesystem from configuration
 func NewFilesystem(ctx context.Context, cfg *config.Config) (*muxfs.Mux, error) {
-	// TODO (ramfox): adding a default mux config
-	// after the config refactor to add a `Filesystem` field, that config
-	// section should replace this
-	// defaults are taken from the old buildrepo.NewFilesystem func
-	muxConfig := []muxfs.MuxConfig{
-		{Type: "local"},
-		{Type: "http"},
-	}
+	qriPath := filepath.Dir(cfg.Path())
 
-	// TODO(ramfox): adding this to switch statement until we
-	// add a Filesystem config
-	switch cfg.Store.Type {
-	case "ipfs":
-		path := cfg.Store.Path
-		// TODO (ramfox): this should change when we migrate the
-		// config to default to `${QRI_PATH}/.ipfs`
-		if path == "" && os.Getenv("IPFS_PATH") != "" {
-			path = os.Getenv("IPFS_PATH")
-		} else if path == "" {
-			home, err := homedir.Dir()
-			if err != nil {
-				return nil, fmt.Errorf("creating IPFS store: %s", err)
+	for i, fsCfg := range cfg.Filesystems {
+		if fsCfg.Type == "ipfs" {
+			if path, ok := fsCfg.Config["path"].(string); ok {
+				if !filepath.IsAbs(path) {
+					// resolve relative filepaths
+					cfg.Filesystems[i].Config["path"] = filepath.Join(qriPath, path)
+				}
 			}
-			path = filepath.Join(home, ".ipfs")
 		}
-
-		ipfsCfg := muxfs.MuxConfig{
-			Type: "ipfs",
-			Config: map[string]interface{}{
-				"path": path,
-				"url":  cfg.Store.Options["url"],
-			},
-		}
-		muxConfig = append(muxConfig, ipfsCfg)
-	case "map":
-		muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "map"})
-	case "mem":
-		muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "mem"})
-	default:
-		return nil, fmt.Errorf("unknown store type: %s", cfg.Store.Type)
 	}
 
 	if cfg.Repo.Type == "mem" {
-		muxConfig = append(muxConfig, muxfs.MuxConfig{Type: "mem"})
+		hasMemType := false
+		for _, fsCfg := range cfg.Filesystems {
+			if fsCfg.Type == "mem" {
+				hasMemType = true
+			}
+		}
+		if !hasMemType {
+			cfg.Filesystems = append(cfg.Filesystems, qfs.Config{Type: "mem"})
+		}
 	}
 
-	return muxfs.New(ctx, muxConfig)
+	return muxfs.New(ctx, cfg.Filesystems)
 }
 
 // NewCAFSStore creates a cafs.Filestore store from configuration

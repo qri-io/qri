@@ -57,9 +57,9 @@ type ConnectOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
-	qriPath := f.QriRepoPath()
+	repoPath := f.RepoPath()
 
-	if o.Setup && !QRIRepoInitialized(qriPath) {
+	if o.Setup && !QRIRepoInitialized(repoPath) {
 		so := &SetupOptions{
 			IOStreams: o.IOStreams,
 			IPFS:      true,
@@ -72,7 +72,7 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 		if err = so.DoSetup(f); err != nil {
 			return err
 		}
-	} else if !QRIRepoInitialized(qriPath) {
+	} else if !QRIRepoInitialized(repoPath) {
 		return errors.New(repo.ErrNoRepo, "no qri repo exists\nhave you run 'qri setup'?")
 	}
 

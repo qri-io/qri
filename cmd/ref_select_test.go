@@ -131,7 +131,7 @@ func TestGetCurrentRefSelect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.qriRepoPath = qriPath
+	f.repoPath = qriPath
 	workPath := filepath.Join(rootPath, "work")
 	err = os.MkdirAll(workPath, os.ModePerm)
 	if err != nil {

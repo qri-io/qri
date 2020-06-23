@@ -124,11 +124,11 @@ func TestUseRun(t *testing.T) {
 
 	for i, c := range cases {
 		opt := &UseOptions{
-			IOStreams:   run.Streams,
-			Refs:        c.refs,
-			List:        c.list,
-			Clear:       c.clear,
-			QriRepoPath: tmpDir,
+			IOStreams: run.Streams,
+			Refs:      c.refs,
+			List:      c.list,
+			Clear:     c.clear,
+			repoPath:  tmpDir,
 		}
 
 		err = opt.Run()

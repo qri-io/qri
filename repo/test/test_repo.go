@@ -336,7 +336,7 @@ func NewIPFSRepoFromDir(qriPath, ipfsPath string) (repo.Repo, crypto.PrivKey, er
 	if err := qipfs.LoadIPFSPluginsOnce(ipfsPath); err != nil {
 		return nil, nil, err
 	}
-	muxCfg := []muxfs.MuxConfig{
+	muxCfg := []qfs.Config{
 		{Type: "local"},
 		{Type: "http"},
 		{Type: "ipfs", Config: map[string]interface{}{"path": ipfsPath}},

@@ -64,7 +64,7 @@ func TestFetchCommand(t *testing.T) {
 	// Create a remote that makes these versions available
 	remoteInst, err := lib.NewInstance(
 		ctx,
-		a.RepoRoot.QriPath,
+		a.RepoRoot.RootPath,
 		lib.OptStdIOStreams(),
 		lib.OptSetIPFSPath(a.RepoRoot.IPFSPath),
 	)
@@ -147,7 +147,7 @@ func TestFetchCommand(t *testing.T) {
 
 	localInst, err := lib.NewInstance(
 		ctx,
-		b.RepoRoot.QriPath,
+		b.RepoRoot.RootPath,
 		lib.OptStdIOStreams(),
 		lib.OptSetIPFSPath(b.RepoRoot.IPFSPath),
 	)
