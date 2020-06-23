@@ -12,36 +12,36 @@ require (
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.11.0
 	github.com/google/go-cmp v0.4.0
-	github.com/ipfs/go-cid v0.0.5
+	github.com/ipfs/go-cid v0.0.6
 	github.com/ipfs/go-datastore v0.4.4
-	github.com/ipfs/go-ipfs v0.5.0
-	github.com/ipfs/go-ipfs-config v0.5.3
+	github.com/ipfs/go-ipfs v0.6.0
+	github.com/ipfs/go-ipfs-config v0.8.0
 	github.com/ipfs/go-ipld-format v0.2.0
 	github.com/ipfs/go-log v1.0.4
-	github.com/ipfs/interface-go-ipfs-core v0.2.7
+	github.com/ipfs/interface-go-ipfs-core v0.3.0
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
-	github.com/libp2p/go-libp2p v0.8.3
-	github.com/libp2p/go-libp2p-circuit v0.2.2
-	github.com/libp2p/go-libp2p-connmgr v0.2.1
-	github.com/libp2p/go-libp2p-core v0.5.2
-	github.com/libp2p/go-libp2p-peerstore v0.2.3
-	github.com/libp2p/go-libp2p-swarm v0.2.3
+	github.com/libp2p/go-libp2p v0.9.6
+	github.com/libp2p/go-libp2p-circuit v0.2.3
+	github.com/libp2p/go-libp2p-connmgr v0.2.4
+	github.com/libp2p/go-libp2p-core v0.5.7
+	github.com/libp2p/go-libp2p-peerstore v0.2.6
+	github.com/libp2p/go-libp2p-swarm v0.2.6
 	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.3
-	github.com/multiformats/go-multiaddr v0.2.1
+	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/multiformats/go-multiaddr-net v0.1.5
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/multiformats/go-multihash v0.0.13
 	github.com/pkg/errors v0.9.1
 	github.com/qri-io/apiutil v0.1.1-0.20200527185959-7a07891b60d0
-	github.com/qri-io/dag v0.2.1-0.20200429122408-58ef1943d04b
-	github.com/qri-io/dataset v0.1.5-0.20200522001545-71e64ebc31a1
+	github.com/qri-io/dag v0.2.1-0.20200623175143-57781ab0dbd9
+	github.com/qri-io/dataset v0.1.5-0.20200623182245-a094a632ec33
 	github.com/qri-io/deepdiff v0.1.1-0.20200305020550-8173efebcaa1
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/jsonschema v0.2.0
-	github.com/qri-io/qfs v0.1.1-0.20200622234626-6cbc5bff846b
+	github.com/qri-io/qfs v0.1.1-0.20200623190921-7764b79b00d9
 	github.com/qri-io/starlib v0.4.2-0.20200406084526-0e4566b610a1
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.0.0
@@ -50,9 +50,9 @@ require (
 	github.com/theckman/go-flock v0.7.1
 	github.com/ugorji/go/codec v1.1.7
 	go.starlark.net v0.0.0-20200330013621-be5394c419b6
-	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
-	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
-	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4
+	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2
+	golang.org/x/sys v0.0.0-20200523222454-059865788121
 	golang.org/x/text v0.3.2
 	gonum.org/v1/gonum v0.6.0
 	gopkg.in/yaml.v2 v2.2.8
