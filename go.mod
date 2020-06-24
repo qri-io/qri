@@ -41,7 +41,7 @@ require (
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/jsonschema v0.2.0
-	github.com/qri-io/qfs v0.1.1-0.20200623190921-7764b79b00d9
+	github.com/qri-io/qfs v0.1.1-0.20200624184248-011ef3915f0c
 	github.com/qri-io/starlib v0.4.2-0.20200406084526-0e4566b610a1
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.0.0

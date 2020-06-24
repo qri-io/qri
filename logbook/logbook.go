@@ -634,6 +634,43 @@ func (book Book) ListAllLogs(ctx context.Context) ([]*oplog.Log, error) {
 	return book.store.Logs(ctx, 0, -1)
 }
 
+// AllReferencedDatasetPaths scans an entire logbook looking for dataset paths
+func (book *Book) AllReferencedDatasetPaths(ctx context.Context) (map[string]struct{}, error) {
+	paths := map[string]struct{}{}
+	logs, err := book.ListAllLogs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, l := range logs {
+		addReferencedPaths(l, paths)
+	}
+	return paths, nil
+}
+
+func addReferencedPaths(log *oplog.Log, paths map[string]struct{}) {
+	ps := []string{}
+	for _, op := range log.Ops {
+		if op.Model == CommitModel {
+			switch op.Type {
+			case oplog.OpTypeInit:
+				ps = append(ps, op.Ref)
+			case oplog.OpTypeRemove:
+				ps = ps[:len(ps)-int(op.Size)]
+			case oplog.OpTypeAmend:
+				ps[len(ps)-1] = op.Ref
+			}
+		}
+	}
+	for _, p := range ps {
+		paths[p] = struct{}{}
+	}
+
+	for _, l := range log.Logs {
+		addReferencedPaths(l, paths)
+	}
+}
+
 // Log gets a log for a given ID
 func (book Book) Log(ctx context.Context, id string) (*oplog.Log, error) {
 	return book.store.Get(ctx, id)

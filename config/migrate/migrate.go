@@ -2,21 +2,26 @@
 package migrate
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	logging "github.com/ipfs/go-log"
 	"github.com/mitchellh/go-homedir"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/config"
 	qerr "github.com/qri-io/qri/errors"
+	"github.com/qri-io/qri/repo/buildrepo"
 )
 
 var (
+	log = logging.Logger("migrate")
 	// ErrNeedMigration indicates a migration is required
 	ErrNeedMigration = fmt.Errorf("migration required")
 	// ErrMigrationSucceeded indicates a migration completed executing
@@ -99,9 +104,10 @@ func ZeroToOne(cfg *config.Config) error {
 func OneToTwo(cfg *config.Config) error {
 	qriPath := filepath.Dir(cfg.Path())
 	newIPFSPath := filepath.Join(qriPath, "ipfs")
+	oldIPFSPath := configVersionOneIPFSPath()
 
 	// TODO(ramfox): qfs migration
-	if err := qipfs.InternalizeIPFSRepo(configVersionOneIPFSPath(), newIPFSPath); err != nil {
+	if err := qipfs.InternalizeIPFSRepo(oldIPFSPath, newIPFSPath); err != nil {
 		return err
 	}
 
@@ -117,7 +123,14 @@ func OneToTwo(cfg *config.Config) error {
 		return err
 	}
 
-	// TODO(ramfox): remove original ipfs repo after all migrations were successful
+	if err := maybeRemoveIPFSRepo(cfg, oldIPFSPath); err != nil {
+		log.Debug(err)
+		fmt.Printf("error removing IPFS repo at %q:\n\t%s", oldIPFSPath, err)
+		fmt.Printf(`qri has successfully internalized this IPFS repo, and no longer 
+		needs the folder at %q. you may want to remove it
+`, oldIPFSPath)
+	}
+
 	return nil
 }
 
@@ -218,4 +231,76 @@ func prompt(w io.Writer, r io.Reader, msg string) string {
 	fmt.Fprintf(w, msg)
 	fmt.Fscanln(r, &input)
 	return strings.TrimSpace(strings.ToLower(input))
+}
+
+func maybeRemoveIPFSRepo(cfg *config.Config, oldPath string) error {
+	fmt.Println("\nchecking if existing IPFS directory contains non-qri data...")
+	repoPath := filepath.Dir(cfg.Path())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	r, err := buildrepo.New(ctx, repoPath, cfg)
+	if err != nil {
+		return err
+	}
+
+	// Note: this is intentionally using the new post-migration IPFS repo to judge
+	// pin presence, because we can't operate on the old one
+	fs := r.Filesystem().Filesystem(qipfs.FilestoreType)
+	if fs == nil {
+		return nil
+	}
+
+	logbookPaths, err := r.Logbook().AllReferencedDatasetPaths(ctx)
+	if err != nil {
+		return err
+	}
+
+	paths := map[string]struct{}{
+		// add common paths auto-added on IPFS init we can safely ignore
+		"/ipld/QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc": {},
+		"/ipld/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn": {},
+		"/ipld/QmS4ustL54uo8FzR9455qaxZwuMiUhyvMcX9Ba8nUH4uVv": {},
+	}
+
+	for p := range logbookPaths {
+		// switch "/ipfs/" prefixes for "/ipld/"
+		p = strings.Replace(p, "/ipfs", "/ipld", 1)
+		paths[p] = struct{}{}
+	}
+
+	unknownPinCh, err := fs.(*qipfs.Filestore).PinsetDifference(ctx, paths)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("checking pins...%#v\n", paths)
+
+	unknown := []string{}
+	for path := range unknownPinCh {
+		log.Debugf("checking if unknown pin is a dataset: %s\n", path)
+		path = strings.Replace(path, "/ipld", "/ipfs", 1)
+		// check if the pinned path is a valid qri dataset, looking for "dataset.json"
+		// this check allows us to ignore qri data logbook doesn't know about
+		if f, err := fs.Get(ctx, fmt.Sprintf("%s/dataset.json", path)); err == nil {
+			f.Close()
+		} else {
+			unknown = append(unknown, path)
+		}
+	}
+
+	if len(unknown) > 0 {
+		fmt.Printf(`qri left your original IPFS repo in place because it contains pinned data that 
+qri isn't managing. Qri has created an internal copy of your IPFS repo, and no
+longer requires the repo at %q`, oldPath)
+		if len(unknown) < 10 {
+			fmt.Printf("unknown pins:\n\t%s\n", strings.Join(unknown, "\n\t"))
+		} else {
+			fmt.Printf("found %d unknown pins\n", len(unknown))
+		}
+		return nil
+	}
+
+	fmt.Printf("moved IPFS repo from %q into qri repo\n", oldPath)
+	return os.RemoveAll(oldPath)
 }

@@ -51,8 +51,7 @@ func Execute() {
 	root.SilenceErrors = true
 	// Execute the subcommand
 	if err := root.Execute(); err != nil {
-		printErr(os.Stderr, err)
-		os.Exit(1)
+		ErrExit(os.Stderr, err)
 	}
 
 	<-shutdown()

@@ -42,7 +42,7 @@ func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username str
 		return nil, err
 	}
 
-	ipfs, err := qipfs.NewFilesystemFromNode(node)
+	ipfs, err := qipfs.NewFilesystemFromNode(ctx, node)
 	if err != nil {
 		return nil, err
 	}
