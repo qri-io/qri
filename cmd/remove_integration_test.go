@@ -785,17 +785,36 @@ func TestRemoveEvenIfLogbookGone(t *testing.T) {
 	}
 }
 
-// Test that an added dataset can be removed
+// Test that an added dataset can be removed, which removes it from the logbook
 func TestRemoveEvenIfForeignDataset(t *testing.T) {
 	run := NewTestRunnerWithMockRemoteClient(t, "test_peer", "remove_foreign")
 	defer run.Delete()
 
+	actual := run.MustExec(t, "qri logbook --raw")
+	expectEmpty := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"1969-12-31T19:00:00.978310861-05:00"}]}]`
+	if diff := cmp.Diff(expectEmpty, actual); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
 	// Save a foreign dataset
 	run.MustExec(t, "qri add other_peer/their_dataset")
+
+	actual = run.MustExec(t, "qri logbook --raw")
+	expectHasForiegn := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"1969-12-31T19:00:00.978310861-05:00"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"1969-12-31T19:00:00.978310921-05:00"}],"logs":[{"ops":[{"type":"init","model":"dataset","name":"their_dataset","authorID":"xstfcrqf26suws6dnjih4ugvmfk6w5o7e6b7rmflt7aso6htyufa","timestamp":"1969-12-31T19:00:00.978310981-05:00"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"xstfcrqf26suws6dnjih4ugvmfk6w5o7e6b7rmflt7aso6htyufa","timestamp":"1969-12-31T19:00:00.978311041-05:00"},{"type":"init","model":"commit","ref":"QmExample","timestamp":"1969-12-31T19:00:00.978311101-05:00","note":"their commit"}]}]}]}]`
+	if diff := cmp.Diff(expectHasForiegn, actual); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
 
 	// Remove all should still work, even though the dataset is foreign
 	if err := run.ExecCommand("qri remove --revisions=all other_peer/their_dataset"); err != nil {
 		t.Error(err)
+	}
+
+	actual = run.MustExec(t, "qri logbook --raw")
+	// Log is removed for the database, but author init still remains
+	expectEmptyAuthor := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"1969-12-31T19:00:00.978310861-05:00"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"1969-12-31T19:00:00.978310921-05:00"}]}]`
+	if diff := cmp.Diff(expectEmptyAuthor, actual); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 }
 

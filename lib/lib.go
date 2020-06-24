@@ -443,7 +443,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	key := InstanceContextKey("RemoteClient")
 	if v := ctx.Value(key); v != nil && v == "mock" && inst.node != nil {
 		inst.node.LocalStreams = o.Streams
-		if inst.remoteClient, err = remote.NewMockClient(inst.node); err != nil {
+		if inst.remoteClient, err = remote.NewMockClient(inst.node, inst.logbook); err != nil {
 			return
 		}
 	} else if inst.node != nil {

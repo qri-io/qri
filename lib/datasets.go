@@ -1063,6 +1063,9 @@ func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
 	if p.LogsOnly {
 		return mergeLogsError
 	}
+	if mergeLogsError != nil {
+		return mergeLogsError
+	}
 
 	rref := reporef.RefFromDsref(ref)
 	if err = m.inst.remoteClient.AddDataset(ctx, &rref, p.RemoteAddr); err != nil {

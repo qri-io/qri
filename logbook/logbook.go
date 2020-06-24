@@ -861,6 +861,15 @@ func (book *Book) RemoveLog(ctx context.Context, sender identity.Author, ref dsr
 	return book.save(ctx)
 }
 
+// RemoveAnyoneLog removes a log owned by anyone.
+func (book *Book) RemoveAnyoneLog(ctx context.Context, ref dsref.Ref) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+	book.store.RemoveLog(ctx, dsRefToLogPath(ref)...)
+	return book.save(ctx)
+}
+
 func dsRefToLogPath(ref dsref.Ref) (path []string) {
 	for _, str := range []string{
 		ref.Username,

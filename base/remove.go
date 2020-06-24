@@ -9,7 +9,6 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -42,13 +41,20 @@ func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, histor
 		log.Debugf("Remove, logbook.RefToInitID failed, error: %s", err)
 		removeErr = err
 	}
-	if err := book.WriteDatasetDelete(ctx, initID); err == nil {
-		didRemove = appendString(didRemove, "logbook")
-	} else {
-		// If the logbook is missing, it's not an error worth stopping for, since we're
-		// deleting the dataset anyway. This can happen from adding a foreign dataset.
-		if err != oplog.ErrNotFound {
+	if ref.Username == book.AuthorName() {
+		// TOOD(dustmop): Logbook should validate the fact that author's should only be able to
+		// write to their own logs. Trying to write to another user's log should throw an error.
+		if err := book.WriteDatasetDelete(ctx, initID); err == nil {
+			didRemove = appendString(didRemove, "logbook")
+		} else {
 			log.Debugf("Remove, logbook.WriteDatasetDelete failed, error: %s", err)
+			removeErr = err
+		}
+	} else {
+		if err := book.RemoveAnyoneLog(ctx, ref); err == nil {
+			didRemove = appendString(didRemove, "logbook")
+		} else {
+			log.Debugf("Remove, logbook.RemoveLog failed, error: %s", err)
 			removeErr = err
 		}
 	}

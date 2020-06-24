@@ -3,11 +3,17 @@ package remote
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/identity"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo/profile"
@@ -20,11 +26,12 @@ var ErrNotImplemented = fmt.Errorf("not implemented")
 // MockClient is a remote client suitable for tests
 type MockClient struct {
 	node *p2p.QriNode
+	book *logbook.Book
 }
 
 // NewMockClient returns a mock remote client
-func NewMockClient(node *p2p.QriNode) (c Client, err error) {
-	return &MockClient{node: node}, nil
+func NewMockClient(node *p2p.QriNode, book *logbook.Book) (c Client, err error) {
+	return &MockClient{node: node, book: book}, nil
 }
 
 // ListDatasets is not implemented
@@ -44,7 +51,39 @@ func (c *MockClient) FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr st
 
 // CloneLogs is not implemented
 func (c *MockClient) CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
-	return ErrNotImplemented
+	tmpdir, err := ioutil.TempDir("", "")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpdir)
+
+	theirBookPath := filepath.Join(tmpdir, "their_logbook.qfs")
+
+	otherUsername := ref.Username
+	otherPeerInfo := cfgtest.GetTestPeerInfo(1)
+	sender := identity.NewAuthor("abc", otherPeerInfo.PubKey)
+
+	fs := qfs.NewMemFS()
+
+	foreignBuilder := logbook.NewLogbookTempBuilder(nil, otherPeerInfo.PrivKey, otherUsername, fs, theirBookPath)
+
+	initID := foreignBuilder.DatasetInit(ctx, nil, ref.Name)
+	// NOTE: Need to assign ProfileID because nothing is resolving the username
+	ref.ProfileID = otherPeerInfo.EncodedPeerID
+	ref.Path = "QmExample"
+	foreignBuilder.Commit(ctx, nil, initID, "their commit", ref.Path)
+	foreignBook := foreignBuilder.Logbook()
+	foreignLog, err := foreignBook.UserDatasetRef(ctx, ref)
+	if err != nil {
+		panic(err)
+	}
+
+	err = foreignBook.SignLog(foreignLog)
+	if err != nil {
+		panic(err)
+	}
+
+	return c.book.MergeLog(ctx, sender, foreignLog)
 }
 
 // RemoveDataset is not implemented
