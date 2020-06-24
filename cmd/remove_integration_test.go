@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -790,8 +791,12 @@ func TestRemoveEvenIfForeignDataset(t *testing.T) {
 	run := NewTestRunnerWithMockRemoteClient(t, "test_peer", "remove_foreign")
 	defer run.Delete()
 
-	actual := run.MustExec(t, "qri logbook --raw")
-	expectEmpty := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"1969-12-31T19:00:00.978310861-05:00"}]}]`
+	// Regex that replaces the timestamp with just static text
+	fixTs := regexp.MustCompile(`"(timestamp|commitTime)":\s?"[0-9TZ.:+-]*?"`)
+
+	output := run.MustExec(t, "qri logbook --raw")
+	expectEmpty := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]}]`
+	actual := string(fixTs.ReplaceAll([]byte(output), []byte(`"timestamp":"ts"`)))
 	if diff := cmp.Diff(expectEmpty, actual); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -799,8 +804,9 @@ func TestRemoveEvenIfForeignDataset(t *testing.T) {
 	// Save a foreign dataset
 	run.MustExec(t, "qri add other_peer/their_dataset")
 
-	actual = run.MustExec(t, "qri logbook --raw")
-	expectHasForiegn := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"1969-12-31T19:00:00.978310861-05:00"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"1969-12-31T19:00:00.978310921-05:00"}],"logs":[{"ops":[{"type":"init","model":"dataset","name":"their_dataset","authorID":"xstfcrqf26suws6dnjih4ugvmfk6w5o7e6b7rmflt7aso6htyufa","timestamp":"1969-12-31T19:00:00.978310981-05:00"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"xstfcrqf26suws6dnjih4ugvmfk6w5o7e6b7rmflt7aso6htyufa","timestamp":"1969-12-31T19:00:00.978311041-05:00"},{"type":"init","model":"commit","ref":"QmExample","timestamp":"1969-12-31T19:00:00.978311101-05:00","note":"their commit"}]}]}]}]`
+	output = run.MustExec(t, "qri logbook --raw")
+	expectHasForiegn := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"ts"}],"logs":[{"ops":[{"type":"init","model":"dataset","name":"their_dataset","authorID":"xstfcrqf26suws6dnjih4ugvmfk6w5o7e6b7rmflt7aso6htyufa","timestamp":"ts"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"xstfcrqf26suws6dnjih4ugvmfk6w5o7e6b7rmflt7aso6htyufa","timestamp":"ts"},{"type":"init","model":"commit","ref":"QmExample","timestamp":"ts","note":"their commit"}]}]}]}]`
+	actual = string(fixTs.ReplaceAll([]byte(output), []byte(`"timestamp":"ts"`)))
 	if diff := cmp.Diff(expectHasForiegn, actual); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -810,9 +816,10 @@ func TestRemoveEvenIfForeignDataset(t *testing.T) {
 		t.Error(err)
 	}
 
-	actual = run.MustExec(t, "qri logbook --raw")
+	output = run.MustExec(t, "qri logbook --raw")
 	// Log is removed for the database, but author init still remains
-	expectEmptyAuthor := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"1969-12-31T19:00:00.978310861-05:00"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"1969-12-31T19:00:00.978310921-05:00"}]}]`
+	expectEmptyAuthor := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"ts"}]}]`
+	actual = string(fixTs.ReplaceAll([]byte(output), []byte(`"timestamp":"ts"`)))
 	if diff := cmp.Diff(expectEmptyAuthor, actual); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
