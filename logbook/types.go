@@ -9,6 +9,10 @@ type UserLog struct {
 	l *oplog.Log
 }
 
+func newUserLog(log *oplog.Log) *UserLog {
+	return &UserLog{l: log}
+}
+
 // TODO(dustmop): Consider changing the "Append" methods to type-safe methods that are specific
 // to each log level, which accept individual parameters instead of type-unsafe Op values.
 
@@ -18,6 +22,7 @@ func (alog *UserLog) Append(op oplog.Op) {
 		log.Errorf("cannot Append, incorrect model %d for UserLog", op.Model)
 		return
 	}
+
 	alog.l.Append(op)
 }
 
@@ -35,6 +40,10 @@ func (alog *UserLog) AddChild(l *oplog.Log) {
 // DatasetLog is the mid-level log representing a single dataset
 type DatasetLog struct {
 	l *oplog.Log
+}
+
+func newDatasetLog(log *oplog.Log) *DatasetLog {
+	return &DatasetLog{l: log}
 }
 
 // Append adds an op to the DatasetLog
@@ -56,6 +65,15 @@ type BranchLog struct {
 	l *oplog.Log
 }
 
+func newBranchLog(l *oplog.Log) *BranchLog {
+	blog := &BranchLog{l: l}
+	// BranchLog should never have logs underneath it, display error if any are found
+	if len(blog.l.Logs) > 0 {
+		log.Errorf("invalid branchLog, has %d child Logs", len(blog.l.Logs))
+	}
+	return blog
+}
+
 // Append adds an op to the BranchLog
 func (blog *BranchLog) Append(op oplog.Op) {
 	if op.Model != BranchModel && op.Model != CommitModel && op.Model != PublicationModel {
@@ -73,13 +91,4 @@ func (blog *BranchLog) Size() int {
 // Ops returns the raw Op list
 func (blog *BranchLog) Ops() []oplog.Op {
 	return blog.l.Ops
-}
-
-func branchLogFromRawLog(l *oplog.Log) *BranchLog {
-	blog := BranchLog{l: l}
-	// BranchLog should never have logs underneath it, display error if any are found
-	if len(l.Logs) > 0 {
-		log.Errorf("invalid branchLog, has %d child Logs", len(l.Logs))
-	}
-	return &blog
 }

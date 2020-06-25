@@ -33,6 +33,9 @@ var (
 	// append-only, passing a shorter log than the one on file is grounds
 	// for rejection
 	ErrLogTooShort = fmt.Errorf("logbook: log is too short")
+	// ErrAccessDenied indicates insufficent privileges to perform a logbook
+	// operation
+	ErrAccessDenied = fmt.Errorf("access denied")
 
 	// NewTimestamp generates the current unix nanosecond time.
 	// This is mainly here for tests to override
@@ -351,6 +354,10 @@ func (book *Book) WriteDatasetRename(ctx context.Context, initID string, newName
 		return err
 	}
 
+	if err := book.hasWriteAccess(dsLog.l); err != nil {
+		return err
+	}
+
 	dsLog.Append(oplog.Op{
 		Type:      oplog.OpTypeAmend,
 		Model:     DatasetModel,
@@ -404,7 +411,7 @@ func (book Book) authorLog(ctx context.Context) (*UserLog, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &UserLog{l: lg}, nil
+	return newUserLog(lg), nil
 }
 
 // Return a strongly typed DatasetLog. Uses DatasetModel model.
@@ -413,7 +420,7 @@ func (book *Book) datasetLog(ctx context.Context, initID string) (*DatasetLog, e
 	if err != nil {
 		return nil, err
 	}
-	return &DatasetLog{l: lg}, nil
+	return newDatasetLog(lg), nil
 }
 
 // Return a strongly typed BranchLog
@@ -425,7 +432,15 @@ func (book *Book) branchLog(ctx context.Context, initID string) (*BranchLog, err
 	if len(lg.Logs) != 1 {
 		return nil, fmt.Errorf("expected dataset to have 1 branch, has %d", len(lg.Logs))
 	}
-	return &BranchLog{l: lg.Logs[0]}, nil
+	return newBranchLog(lg.Logs[0]), nil
+}
+
+// hasWriteAccess is a simple author-matching check
+func (book *Book) hasWriteAccess(log *oplog.Log) error {
+	if log.Ops[0].AuthorID != book.authorID {
+		return fmt.Errorf("%w: you do not have write access", ErrAccessDenied)
+	}
+	return nil
 }
 
 // WriteDatasetDelete closes a dataset, marking it as deleted
@@ -437,6 +452,10 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, initID string) error {
 
 	dsLog, err := book.datasetLog(ctx, initID)
 	if err != nil {
+		return err
+	}
+
+	if err := book.hasWriteAccess(dsLog.l); err != nil {
 		return err
 	}
 
@@ -465,6 +484,10 @@ func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *datas
 	log.Debugf("WriteVersionSave: %s", initID)
 	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
+		return err
+	}
+
+	if err := book.hasWriteAccess(branchLog.l); err != nil {
 		return err
 	}
 
@@ -521,6 +544,9 @@ func (book *Book) WriteVersionAmend(ctx context.Context, initID string, ds *data
 	if err != nil {
 		return err
 	}
+	if err := book.hasWriteAccess(branchLog.l); err != nil {
+		return err
+	}
 
 	branchLog.Append(oplog.Op{
 		Type:  oplog.OpTypeAmend,
@@ -546,6 +572,9 @@ func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisio
 
 	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
+		return err
+	}
+	if err := book.hasWriteAccess(branchLog.l); err != nil {
 		return err
 	}
 
@@ -587,6 +616,9 @@ func (book *Book) WritePublish(ctx context.Context, initID string, revisions int
 	if err != nil {
 		return err
 	}
+	if err := book.hasWriteAccess(branchLog.l); err != nil {
+		return err
+	}
 
 	branchLog.Append(oplog.Op{
 		Type:      oplog.OpTypeInit,
@@ -610,6 +642,9 @@ func (book *Book) WriteUnpublish(ctx context.Context, initID string, revisions i
 
 	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
+		return err
+	}
+	if err := book.hasWriteAccess(branchLog.l); err != nil {
 		return err
 	}
 
@@ -968,7 +1003,7 @@ func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int) ([
 
 // ConvertLogsToItems collapses the history of a dataset branch into linear log items
 func ConvertLogsToItems(l *oplog.Log, ref dsref.Ref) []DatasetLogItem {
-	return branchToLogItems(branchLogFromRawLog(l), ref, 0, -1, true)
+	return branchToLogItems(newBranchLog(l), ref, 0, -1, true)
 }
 
 // Items collapses the history of a dataset branch into linear log items
