@@ -137,13 +137,18 @@ func (m *FSIMethods) StatusForAlias(alias *string, res *[]StatusItem) (err error
 
 // WhatChanged gets changes that happened at a particular version in the history of the given
 // dataset reference. Not used for FSI.
-func (m *FSIMethods) WhatChanged(ref *string, res *[]StatusItem) (err error) {
+func (m *FSIMethods) WhatChanged(refstr *string, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("FSIMethods.WhatChanged", ref, res))
+		return checkRPCError(m.inst.rpc.Call("FSIMethods.WhatChanged", refstr, res))
 	}
 	ctx := context.TODO()
 
-	*res, err = m.inst.fsi.StatusAtVersion(ctx, *ref)
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, *refstr, "local")
+	if err != nil {
+		return err
+	}
+
+	*res, err = m.inst.fsi.StatusAtVersion(ctx, ref)
 	return err
 }
 
