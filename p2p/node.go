@@ -13,6 +13,7 @@ import (
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	libp2pevent "github.com/libp2p/go-libp2p-core/event"
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -391,24 +392,23 @@ func (n *QriNode) QriStreamHandler(s net.Stream) {
 }
 
 func (n *QriNode) libp2pSubscribe() error {
-	// TODO (b5) - use this once we upgrade IPFS & libp2p deps
-	// host := n.host
-	// sub, err := host.EventBus().Subscribe(
-	// 	// new(libp2pevent.EvtPeerIdentificationCompleted),
-	// 	libp2peventbus.BufSize(1024),
-	// )
-	// if err != nil {
-	// 	return fmt.Errorf("failed to subscribe to identify notifications: %w", err)
-	// }
-	// go func() {
-	// 	defer sub.Close()
-	// 	for e := range sub.Out() {
-	// 		switch e := e.(type) {
-	// 		case libp2pevent.EvtPeerIdentificationCompleted:
-	// 			n.upgradeToQriConnection(e.Peer)
-	// 		}
-	// 	}
-	// }()
+	host := n.host
+	sub, err := host.EventBus().Subscribe(
+		new(libp2pevent.EvtPeerIdentificationCompleted),
+		// libp2peventbus.BufSize(1024),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to identify notifications: %w", err)
+	}
+	go func() {
+		defer sub.Close()
+		for e := range sub.Out() {
+			switch e := e.(type) {
+			case libp2pevent.EvtPeerIdentificationCompleted:
+				n.upgradeToQriConnection(e.Peer)
+			}
+		}
+	}()
 	return nil
 }
 
