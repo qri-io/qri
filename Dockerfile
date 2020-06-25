@@ -26,4 +26,4 @@ RUN mkdir -p $IPFS_PATH && mkdir -p $QRI_PATH \
 # VOLUME $QRI_PATH
 
 # Set binary as entrypoint, initalizing ipfs & qri repos if none is mounted
-CMD ["qri", "connect", "--setup"]
+CMD ["qri", "connect", "--setup", "--migrate"]

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	logging "github.com/ipfs/go-log"
@@ -126,9 +127,9 @@ func OneToTwo(cfg *config.Config) error {
 	if err := maybeRemoveIPFSRepo(cfg, oldIPFSPath); err != nil {
 		log.Debug(err)
 		fmt.Printf("error removing IPFS repo at %q:\n\t%s", oldIPFSPath, err)
-		fmt.Printf(`qri has successfully internalized this IPFS repo, and no longer 
-		needs the folder at %q. you may want to remove it
-`, oldIPFSPath)
+		fmt.Printf(`qri has successfully internalized this IPFS repo, and no longer
+			needs the folder at %q. you may want to remove it
+	`, oldIPFSPath)
 	}
 
 	return nil
@@ -302,5 +303,20 @@ longer requires the repo at %q`, oldPath)
 	}
 
 	fmt.Printf("moved IPFS repo from %q into qri repo\n", oldPath)
-	return os.RemoveAll(oldPath)
+	if err := os.RemoveAll(oldPath); err != nil {
+		return err
+	}
+
+	log.Error("successfully migrated repo, shutting down")
+
+	var wg sync.WaitGroup
+	go func() {
+		<-r.Done()
+		wg.Done()
+	}()
+
+	wg.Add(1)
+	cancel()
+	wg.Wait()
+	return nil
 }
