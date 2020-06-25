@@ -55,7 +55,7 @@ func TestDatasetHandlers(t *testing.T) {
 		{"GET", "/me/family_relationships?fsi=true", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "get", h.GetHandler, getCases, true)
+	runHandlerTestCases(t, "get", h.GetHandler(""), getCases, true)
 
 	bodyCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
@@ -85,7 +85,7 @@ func TestDatasetHandlers(t *testing.T) {
 		{"GET", "/export/me/cities/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "export", h.ZipDatasetHandler, exportCases, true)
+	runHandlerTestCases(t, "export", h.ZipDatasetHandler("/export"), exportCases, true)
 
 	// TODO: Perhaps add an option to runHandlerTestCases to set Content-Type, then combin, truee
 	// `runHandlerZipPostTestCases` with `runHandlerTestCases`, true.
