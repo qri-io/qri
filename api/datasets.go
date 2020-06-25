@@ -79,18 +79,20 @@ func (h *DatasetHandlers) RemoveHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetHandler is a dataset single endpoint
-func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
-		if h.ReadOnly {
-			readOnlyResponse(w, "/me/")
-			return
+func (h *DatasetHandlers) GetHandler(endpointPath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "OPTIONS":
+			util.EmptyOkHandler(w, r)
+		case "GET":
+			if h.ReadOnly {
+				readOnlyResponse(w, fmt.Sprintf("%s/", endpointPath))
+				return
+			}
+			h.getHandler(w, r, endpointPath)
+		default:
+			util.NotFoundHandler(w, r)
 		}
-		h.getHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
 	}
 }
 
@@ -192,23 +194,25 @@ func (h *DatasetHandlers) UnpackHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 // ZipDatasetHandler is the endpoint for getting a zip archive of a dataset
-func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
-		if h.ReadOnly {
-			readOnlyResponse(w, "/export/")
-			return
+func (h *DatasetHandlers) ZipDatasetHandler(endpointPath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "OPTIONS":
+			util.EmptyOkHandler(w, r)
+		case "GET":
+			if h.ReadOnly {
+				readOnlyResponse(w, fmt.Sprintf("%s/", endpointPath))
+				return
+			}
+			h.zipDatasetHandler(w, r, endpointPath)
+		default:
+			util.NotFoundHandler(w, r)
 		}
-		h.zipDatasetHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
 	}
 }
 
-func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	ref := HTTPPathToQriPath(r.URL.Path[len("/export"):])
+func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request, endpointPath string) {
+	ref := HTTPPathToQriPath(r.URL.Path[len(endpointPath):])
 	// default is zipped
 	zipped := r.FormValue("zipped") != "false"
 	format := r.FormValue("format")
@@ -280,17 +284,23 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 // and have the root check to see if `me` is the peername
 // if we are in read-only mode, we should error,
 // otherwise, resolve the peername and proceed as normal
-func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
-	ref, err := dsref.Parse(HTTPPathToQriPath(r.URL.Path))
+func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request, endpointPath string) {
+	path := r.URL.Path
+	if !strings.HasPrefix("/me/", r.URL.Path) {
+		path = r.URL.Path[len(endpointPath):]
+	}
+	ref, err := dsref.Parse(HTTPPathToQriPath(path))
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
 	format := r.FormValue("format")
+	selector := r.FormValue("component")
 	p := lib.GetParams{
-		Refstr: ref.String(),
-		Format: format,
+		Refstr:   ref.String(),
+		Format:   format,
+		Selector: selector,
 	}
 	res := lib.GetResult{}
 	err = h.Get(&p, &res)
