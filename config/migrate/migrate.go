@@ -300,15 +300,14 @@ longer requires the repo at %q
 		} else {
 			fmt.Printf("\nfound %d unknown pins\n\n", len(unknown))
 		}
-		return nil
+	} else {
+		fmt.Printf("moved IPFS repo from %q into qri repo\n", oldPath)
+		if err := os.RemoveAll(oldPath); err != nil {
+			return err
+		}
 	}
 
-	fmt.Printf("moved IPFS repo from %q into qri repo\n", oldPath)
-	if err := os.RemoveAll(oldPath); err != nil {
-		return err
-	}
-
-	log.Error("successfully migrated repo, shutting down")
+	log.Info("successfully migrated repo, shutting down")
 
 	var wg sync.WaitGroup
 	go func() {
