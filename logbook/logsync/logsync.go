@@ -271,7 +271,33 @@ func (lsync *Logsync) del(ctx context.Context, sender identity.Author, ref dsref
 		}
 	}
 
-	if err := lsync.book.RemoveLog(ctx, sender, ref); err != nil {
+	l, err := lsync.book.BranchRef(ctx, ref)
+	if err != nil {
+		return err
+	}
+
+	// eventually access control will dictate which logs can be written by whom.
+	// For now we only allow users to merge logs they've written
+	// book will need access to a store of public keys before we can verify
+	// signatures non-same-senders
+	// if err := l.Verify(sender.AuthorPubKey()); err != nil {
+	// 	return err
+	// }
+
+	root := l
+	for {
+		p := root.Parent()
+		if p == nil {
+			break
+		}
+		root = p
+	}
+
+	if root.ID() != sender.AuthorID() {
+		return fmt.Errorf("authors can only remove logs they own")
+	}
+
+	if err := lsync.book.RemoveLog(ctx, ref); err != nil {
 		return err
 	}
 

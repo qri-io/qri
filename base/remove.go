@@ -51,7 +51,7 @@ func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, histor
 			removeErr = err
 		}
 	} else {
-		if err := book.RemoveAnyoneLog(ctx, ref); err == nil {
+		if err := book.RemoveLog(ctx, ref); err == nil {
 			didRemove = appendString(didRemove, "logbook")
 		} else {
 			log.Debugf("Remove, logbook.RemoveLog failed, error: %s", err)

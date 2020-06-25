@@ -49,7 +49,7 @@ func (c *MockClient) FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr st
 	return nil, ErrNotImplemented
 }
 
-// CloneLogs is not implemented
+// CloneLogs creates a log from a temp logbook, and merges those into the client's logbook
 func (c *MockClient) CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	tmpdir, err := ioutil.TempDir("", "")
 	if err != nil {

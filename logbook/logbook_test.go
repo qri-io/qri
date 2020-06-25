@@ -198,7 +198,7 @@ func TestNilCallable(t *testing.T) {
 	if err = book.MergeLog(ctx, nil, &oplog.Log{}); err != logbook.ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.RemoveLog(ctx, nil, dsref.Ref{}); err != logbook.ErrNoLogbook {
+	if err = book.RemoveLog(ctx, dsref.Ref{}); err != logbook.ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
 	if err = book.ConstructDatasetLog(ctx, dsref.Ref{}, nil); err != logbook.ErrNoLogbook {
