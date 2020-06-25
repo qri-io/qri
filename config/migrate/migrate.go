@@ -107,7 +107,6 @@ func OneToTwo(cfg *config.Config) error {
 	newIPFSPath := filepath.Join(qriPath, "ipfs")
 	oldIPFSPath := configVersionOneIPFSPath()
 
-	// TODO(ramfox): qfs migration
 	if err := qipfs.InternalizeIPFSRepo(oldIPFSPath, newIPFSPath); err != nil {
 		return err
 	}
@@ -235,7 +234,7 @@ func prompt(w io.Writer, r io.Reader, msg string) string {
 }
 
 func maybeRemoveIPFSRepo(cfg *config.Config, oldPath string) error {
-	fmt.Println("\nchecking if existing IPFS directory contains non-qri data...")
+	fmt.Println("\nChecking if existing IPFS directory contains non-qri data...")
 	repoPath := filepath.Dir(cfg.Path())
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
@@ -291,13 +290,15 @@ func maybeRemoveIPFSRepo(cfg *config.Config, oldPath string) error {
 	}
 
 	if len(unknown) > 0 {
-		fmt.Printf(`qri left your original IPFS repo in place because it contains pinned data that 
-qri isn't managing. Qri has created an internal copy of your IPFS repo, and no
-longer requires the repo at %q`, oldPath)
+		fmt.Printf(`
+Qri left your original IPFS repo in place because it contains pinned data that 
+Qri isn't managing. Qri has created an internal copy of your IPFS repo, and no
+longer requires the repo at %q
+`, oldPath)
 		if len(unknown) < 10 {
-			fmt.Printf("unknown pins:\n\t%s\n", strings.Join(unknown, "\n\t"))
+			fmt.Printf("unknown pins:\n\t%s\n\n", strings.Join(unknown, "\n\t"))
 		} else {
-			fmt.Printf("found %d unknown pins\n", len(unknown))
+			fmt.Printf("\nfound %d unknown pins\n\n", len(unknown))
 		}
 		return nil
 	}
