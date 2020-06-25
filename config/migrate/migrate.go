@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/config"
 	qerr "github.com/qri-io/qri/errors"
+	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/buildrepo"
 )
 
@@ -107,6 +108,7 @@ func OneToTwo(cfg *config.Config) error {
 	newIPFSPath := filepath.Join(qriPath, "ipfs")
 	oldIPFSPath := configVersionOneIPFSPath()
 
+	// TODO(ramfox): qfs migration
 	if err := qipfs.InternalizeIPFSRepo(oldIPFSPath, newIPFSPath); err != nil {
 		return err
 	}
@@ -126,9 +128,9 @@ func OneToTwo(cfg *config.Config) error {
 	if err := maybeRemoveIPFSRepo(cfg, oldIPFSPath); err != nil {
 		log.Debug(err)
 		fmt.Printf("error removing IPFS repo at %q:\n\t%s", oldIPFSPath, err)
-		fmt.Printf(`qri has successfully internalized this IPFS repo, and no longer
-			needs the folder at %q. you may want to remove it
-	`, oldIPFSPath)
+		fmt.Printf(`qri has successfully internalized this IPFS repo, and no longer 
+		needs the folder at %q. you may want to remove it
+`, oldIPFSPath)
 	}
 
 	return nil
@@ -237,12 +239,14 @@ func maybeRemoveIPFSRepo(cfg *config.Config, oldPath string) error {
 	fmt.Println("\nChecking if existing IPFS directory contains non-qri data...")
 	repoPath := filepath.Dir(cfg.Path())
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
 
 	r, err := buildrepo.New(ctx, repoPath, cfg)
 	if err != nil {
+		cancel()
 		return err
 	}
+
+	defer gracefulShutdown(cancel, r)
 
 	// Note: this is intentionally using the new post-migration IPFS repo to judge
 	// pin presence, because we can't operate on the old one
@@ -301,14 +305,18 @@ longer requires the repo at %q
 			fmt.Printf("\nfound %d unknown pins\n\n", len(unknown))
 		}
 	} else {
-		fmt.Printf("moved IPFS repo from %q into qri repo\n", oldPath)
 		if err := os.RemoveAll(oldPath); err != nil {
 			return err
 		}
+		fmt.Printf("moved IPFS repo from %q into qri repo\n", oldPath)
 	}
 
 	log.Info("successfully migrated repo, shutting down")
 
+	return nil
+}
+
+func gracefulShutdown(cancel context.CancelFunc, r repo.Repo) {
 	var wg sync.WaitGroup
 	go func() {
 		<-r.Done()
@@ -318,5 +326,4 @@ longer requires the repo at %q
 	wg.Add(1)
 	cancel()
 	wg.Wait()
-	return nil
 }
