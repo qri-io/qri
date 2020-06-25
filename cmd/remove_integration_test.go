@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -785,17 +786,42 @@ func TestRemoveEvenIfLogbookGone(t *testing.T) {
 	}
 }
 
-// Test that an added dataset can be removed
+// Test that an added dataset can be removed, which removes it from the logbook
 func TestRemoveEvenIfForeignDataset(t *testing.T) {
 	run := NewTestRunnerWithMockRemoteClient(t, "test_peer", "remove_foreign")
 	defer run.Delete()
 
+	// Regex that replaces the timestamp with just static text
+	fixTs := regexp.MustCompile(`"(timestamp|commitTime)":\s?"[0-9TZ.:+-]*?"`)
+
+	output := run.MustExec(t, "qri logbook --raw")
+	expectEmpty := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]}]`
+	actual := string(fixTs.ReplaceAll([]byte(output), []byte(`"timestamp":"ts"`)))
+	if diff := cmp.Diff(expectEmpty, actual); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
 	// Save a foreign dataset
 	run.MustExec(t, "qri add other_peer/their_dataset")
+
+	output = run.MustExec(t, "qri logbook --raw")
+	expectHasForiegn := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"ts"}],"logs":[{"ops":[{"type":"init","model":"dataset","name":"their_dataset","authorID":"xstfcrqf26suws6dnjih4ugvmfk6w5o7e6b7rmflt7aso6htyufa","timestamp":"ts"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"xstfcrqf26suws6dnjih4ugvmfk6w5o7e6b7rmflt7aso6htyufa","timestamp":"ts"},{"type":"init","model":"commit","ref":"QmExample","timestamp":"ts","note":"their commit"}]}]}]}]`
+	actual = string(fixTs.ReplaceAll([]byte(output), []byte(`"timestamp":"ts"`)))
+	if diff := cmp.Diff(expectHasForiegn, actual); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
 
 	// Remove all should still work, even though the dataset is foreign
 	if err := run.ExecCommand("qri remove --revisions=all other_peer/their_dataset"); err != nil {
 		t.Error(err)
+	}
+
+	output = run.MustExec(t, "qri logbook --raw")
+	// Log is removed for the database, but author init still remains
+	expectEmptyAuthor := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"ts"}]}]`
+	actual = string(fixTs.ReplaceAll([]byte(output), []byte(`"timestamp":"ts"`)))
+	if diff := cmp.Diff(expectEmptyAuthor, actual); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 }
 

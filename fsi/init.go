@@ -128,7 +128,7 @@ to create a working directory for an existing dataset`
 	rollback = concatFunc(
 		func() {
 			log.Debugf("removing log from logbook %q", ref)
-			if err := book.RemoveLog(ctx, book.Author(), ref); err != nil {
+			if err := book.RemoveLog(ctx, ref); err != nil {
 				log.Error(err)
 			}
 		}, rollback)

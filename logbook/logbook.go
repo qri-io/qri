@@ -898,37 +898,10 @@ func (book *Book) MergeLog(ctx context.Context, sender identity.Author, lg *oplo
 }
 
 // RemoveLog removes an entire log from a logbook
-func (book *Book) RemoveLog(ctx context.Context, sender identity.Author, ref dsref.Ref) error {
+func (book *Book) RemoveLog(ctx context.Context, ref dsref.Ref) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
-
-	l, err := book.BranchRef(ctx, ref)
-	if err != nil {
-		return err
-	}
-
-	// eventually access control will dictate which logs can be written by whom.
-	// For now we only allow users to merge logs they've written
-	// book will need access to a store of public keys before we can verify
-	// signatures non-same-senders
-	// if err := l.Verify(sender.AuthorPubKey()); err != nil {
-	// 	return err
-	// }
-
-	root := l
-	for {
-		p := root.Parent()
-		if p == nil {
-			break
-		}
-		root = p
-	}
-
-	if root.ID() != sender.AuthorID() {
-		return fmt.Errorf("authors can only remove logs they own")
-	}
-
 	book.store.RemoveLog(ctx, dsRefToLogPath(ref)...)
 	return book.save(ctx)
 }
