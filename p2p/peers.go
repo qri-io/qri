@@ -184,13 +184,13 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 		return nil, fmt.Errorf("host connect %s failure: %s", pinfo.ID.Pretty(), err)
 	}
 
-	// do an explicit connection upgrade. We're assmun
-	if err := n.upgradeToQriConnection(pinfo.ID); err != nil {
-		if err == ErrQriProtocolNotSupported {
-			return nil, fmt.Errorf("upgrading p2p connection to a qri connection: %w", err)
-		}
-		return nil, err
-	}
+	// // do an explicit connection upgrade. We're assmun
+	// if err := n.upgradeToQriConnection(pinfo.ID); err != nil {
+	// 	if err == ErrQriProtocolNotSupported {
+	// 		return nil, fmt.Errorf("upgrading p2p connection to a qri connection: %w", err)
+	// 	}
+	// 	return nil, err
+	// }
 
 	return n.Repo.Profiles().PeerProfile(pinfo.ID)
 }

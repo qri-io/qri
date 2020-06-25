@@ -76,6 +76,8 @@ func (n *QriNode) upgradeToQriConnection(pid peer.ID) error {
 	n.pub.Publish(ctx, event.ETP2PQriPeerConnected, pro)
 
 	go func() {
+		ctx, done := context.WithTimeout(context.Background(), time.Second*20)
+		defer done()
 		ps, err := n.RequestQriPeers(ctx, pid)
 		if err != nil {
 			log.Debug("error fetching qri peers: %s", err)
