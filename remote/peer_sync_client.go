@@ -426,12 +426,24 @@ func (c *PeerSyncClient) AddDataset(ctx context.Context, ref *reporef.DatasetRef
 
 	log.Debugf("add dataset %s. remoteAddr: %s", ref.String(), remoteAddr)
 	if !ref.Complete() {
+		headRef := &reporef.DatasetRef{
+			Path:      ref.Path,
+			ProfileID: ref.ProfileID,
+			Name:      ref.Name,
+			Peername:  ref.Peername,
+		}
 		// TODO (b5) - we should remove ResolveHeadRef in favour of a p2p.ResolveDatasetRef
 		// head resolution shouldn't require setting up a remote, and should instead be a
 		// standard method any qri peer can perform
-		if err := c.ResolveHeadRef(ctx, ref, remoteAddr); err != nil {
+		if err := c.ResolveHeadRef(ctx, headRef, remoteAddr); err != nil {
 			return err
 		}
+		// if the original ref had an empty path, ignore this
+		// but if the headRef overrode the given ref.Path, fill it back in
+		if ref.Path != "" {
+			headRef.Path = ref.Path
+		}
+		ref = headRef
 	}
 
 	node := c.node
