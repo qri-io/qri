@@ -101,6 +101,11 @@ Replace "me" with your username for the reference:
 			return nil, err
 		}
 
+		if ref.Path == "" {
+			err = qerr.New(dsref.ErrNoHistory, fmt.Sprintf("can't load dataset %q, it has no saved versions", ref.Human()))
+			return nil, err
+		}
+
 		return loader.LoadDataset(ctx, ref, source)
 	}
 }
