@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -185,16 +186,12 @@ func (fsi *FSI) CalculateStateTransition(ctx context.Context, prev, next compone
 }
 
 // StatusAtVersion gets changes that happened at a particular version in a dataset's history.
-func (fsi *FSI) StatusAtVersion(ctx context.Context, refStr string) (changes []StatusItem, err error) {
-	ref, err := repo.ParseDatasetRef(refStr)
-	if err != nil {
-		return nil, err
+func (fsi *FSI) StatusAtVersion(ctx context.Context, ref dsref.Ref) (changes []StatusItem, err error) {
+	if ref.Path == "" {
+		return nil, fmt.Errorf("path is required to determine status at version")
 	}
 
 	var next, prev *dataset.Dataset
-	if err := repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
-		return nil, err
-	}
 	if next, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), ref.Path); err != nil {
 		return nil, err
 	}

@@ -2,15 +2,14 @@ package base
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/startf"
 )
 
@@ -31,34 +30,19 @@ func TransformApply(
 		return err
 	}
 
-	headPath := ""
+	var (
+		target = ds
+		head   *dataset.Dataset
+	)
+
 	if ds.Name != "" {
-		// Lookup the dataset to retrieve the head version
-		lookup := &reporef.DatasetRef{Peername: pro.Peername, Name: ds.Name}
-		err = repo.CanonicalizeDatasetRef(r, lookup)
-		if err == repo.ErrNotFound || err == repo.ErrNoHistory {
-			// Dataset either does not exist yet, or has no history. Not an error.
+		head, err = loader(ctx, fmt.Sprintf("%s/%s", pro.Peername, ds.Name))
+		if errors.Is(err, dsref.ErrRefNotFound) || errors.Is(err, dsref.ErrNoHistory) {
+			// Dataset either does not exist yet, or has no history. Not an error
+			head = &dataset.Dataset{}
+			err = nil
 		} else if err != nil {
 			return err
-		}
-		headPath = lookup.Path
-	}
-
-	target := ds
-	head := &dataset.Dataset{}
-
-	if headPath != "" {
-		// Load the dataset's most recent version
-		if head, err = dsfs.LoadDataset(ctx, r.Store(), headPath); err != nil {
-			return nil
-		}
-		if head.BodyPath != "" {
-			var body qfs.File
-			body, err = dsfs.LoadBody(ctx, r.Store(), head)
-			if err != nil {
-				return err
-			}
-			head.SetBodyFile(body)
 		}
 	}
 

@@ -2,9 +2,13 @@ package dsref
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/qri-io/dataset"
 )
+
+// ErrNoHistory indicates a resolved reference has no HEAD path
+var ErrNoHistory = fmt.Errorf("no history")
 
 // Loader loads and opens a dataset. The only useful implementation of the
 // loader interface is in github.com/qri-io/qri/lib.
