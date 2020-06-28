@@ -8,7 +8,6 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	host "github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -29,7 +28,7 @@ func TestP2PLogsync(t *testing.T) {
 	})
 
 	// connect a & b
-	if err := aHost.Connect(tr.Ctx, pstore.PeerInfo{ID: bHost.ID(), Addrs: bHost.Addrs()}); err != nil {
+	if err := aHost.Connect(tr.Ctx, peer.AddrInfo{ID: bHost.ID(), Addrs: bHost.Addrs()}); err != nil {
 		t.Fatal(err)
 	}
 

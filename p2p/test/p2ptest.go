@@ -11,7 +11,7 @@ import (
 	"github.com/ipfs/go-cid"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	host "github.com/libp2p/go-libp2p-core/host"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/qri/config"
@@ -25,8 +25,8 @@ import (
 // TestablePeerNode is used by tests only. Implemented by QriNode
 type TestablePeerNode interface {
 	Host() host.Host
-	SimplePeerInfo() pstore.PeerInfo
-	UpgradeToQriConnection(pstore.PeerInfo) error
+	SimplePeerInfo() peer.AddrInfo
+	UpgradeToQriConnection(peer.AddrInfo) error
 	GoOnline(ctx context.Context) error
 }
 
@@ -146,7 +146,7 @@ func NewAvailableTestNode(ctx context.Context, r repo.Repo, f *TestNodeFactory) 
 // - add a tag for each peer in the connmanager
 func ConnectNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	var wg sync.WaitGroup
-	connect := func(n TestablePeerNode, pinfo pstore.PeerInfo) error {
+	connect := func(n TestablePeerNode, pinfo peer.AddrInfo) error {
 		if err := n.Host().Connect(ctx, pinfo); err != nil {
 			return fmt.Errorf("error connecting nodes: %s", err)
 		}
@@ -171,7 +171,7 @@ func ConnectNodes(ctx context.Context, nodes []TestablePeerNode) error {
 // They support the qri protocol and have exchanged profile
 func ConnectQriNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	var wgConnect sync.WaitGroup
-	connect := func(n TestablePeerNode, pinfo pstore.PeerInfo) error {
+	connect := func(n TestablePeerNode, pinfo peer.AddrInfo) error {
 		if err := n.Host().Connect(ctx, pinfo); err != nil {
 			return fmt.Errorf("error connecting nodes: %s", err)
 		}

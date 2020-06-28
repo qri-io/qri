@@ -6,7 +6,7 @@ import (
 	"time"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	peerstore "github.com/libp2p/go-libp2p-core/peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -18,8 +18,9 @@ type pinfoPod struct {
 	Addrs []string
 }
 
-func (pod pinfoPod) Decode() (pstore.PeerInfo, error) {
-	pi := pstore.PeerInfo{}
+func (pod pinfoPod) Decode() (
+	peer.AddrInfo, error) {
+	pi := peer.AddrInfo{}
 	id, err := peer.IDB58Decode(pod.ID)
 	if err != nil {
 		return pi, err
@@ -86,7 +87,7 @@ func (n *QriNode) handleConnected(ws *WrappedStream, msg Message) (hangup bool) 
 		log.Debug(err.Error())
 		return
 	}
-	n.host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
+	n.host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, peerstore.ConnectedAddrTTL)
 
 	// request this peer's profile to connect two node's knowledge of each other
 	if _, err := n.RequestProfile(context.TODO(), pinfo.ID); err != nil {

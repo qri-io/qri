@@ -7,14 +7,13 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
 // Bootstrap samples a subset of peers & requests their peers list
 // This is a naive version of IPFS bootstrapping, which we'll add in once
 // qri's settled on a shared-state implementation
-func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan pstore.PeerInfo) {
+func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan peer.AddrInfo) {
 	peers, err := ParseMultiaddrs(boostrapAddrs)
 	if err != nil {
 		log.Info("error parsing bootstrap addresses:", err.Error())
@@ -23,7 +22,7 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan pstore.Pe
 
 	pinfos := toPeerInfos(peers)
 	for _, p := range randomSubsetOfPeers(pinfos, 4) {
-		go func(p pstore.PeerInfo) {
+		go func(p peer.AddrInfo) {
 			log.Debugf("boostrapping to: %s", p.ID.Pretty())
 			if err := n.host.Connect(context.Background(), p); err == nil {
 				if err = n.UpgradeToQriConnection(p); err != nil && err != ErrQriProtocolNotSupported {
@@ -60,8 +59,8 @@ func ParseMultiaddrs(addrs []string) (maddrs []ma.Multiaddr, err error) {
 }
 
 // toPeerInfos turns a slice of multiaddrs into a slice of PeerInfos
-func toPeerInfos(addrs []ma.Multiaddr) []pstore.PeerInfo {
-	pinfos := make(map[peer.ID]*pstore.PeerInfo)
+func toPeerInfos(addrs []ma.Multiaddr) []peer.AddrInfo {
+	pinfos := make(map[peer.ID]*peer.AddrInfo)
 	for _, addr := range addrs {
 		pid, err := addr.ValueForProtocol(ma.P_IPFS)
 		if err != nil {
@@ -74,7 +73,7 @@ func toPeerInfos(addrs []ma.Multiaddr) []pstore.PeerInfo {
 
 		pinfo, ok := pinfos[peerid]
 		if !ok {
-			pinfo = new(pstore.PeerInfo)
+			pinfo = new(peer.AddrInfo)
 			pinfos[peerid] = pinfo
 			pinfo.ID = peerid
 		}
@@ -85,7 +84,7 @@ func toPeerInfos(addrs []ma.Multiaddr) []pstore.PeerInfo {
 		pinfo.Addrs = append(pinfo.Addrs, maddr)
 	}
 
-	var peers []pstore.PeerInfo
+	var peers []peer.AddrInfo
 	for _, pinfo := range pinfos {
 		peers = append(peers, *pinfo)
 	}
@@ -94,9 +93,9 @@ func toPeerInfos(addrs []ma.Multiaddr) []pstore.PeerInfo {
 }
 
 // randomSubsetOfPeers samples up to max from a slice of PeerInfos
-func randomSubsetOfPeers(in []pstore.PeerInfo, max int) []pstore.PeerInfo {
+func randomSubsetOfPeers(in []peer.AddrInfo, max int) []peer.AddrInfo {
 	n := int(math.Min(float64(max), float64(len(in))))
-	var out []pstore.PeerInfo
+	var out []peer.AddrInfo
 	for _, val := range rand.Perm(len(in)) {
 		out = append(out, in[val])
 		if len(out) >= n {
