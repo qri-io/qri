@@ -560,6 +560,53 @@ func TestDatasetRequestsGet(t *testing.T) {
 	}
 }
 
+func TestDatasetRequestsGetFSIPath(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+
+	tempDir, err := ioutil.TempDir("", "get_fsi_test")
+	defer os.RemoveAll(tempDir)
+
+	dsDir := filepath.Join(tempDir, "movies")
+	fsim := NewFSIMethods(inst)
+	p := &CheckoutParams{
+		Dir: dsDir,
+		Ref: "peer/movies",
+	}
+	out := ""
+	if err := fsim.Checkout(p, &out); err != nil {
+		t.Fatalf("error checking out dataset: %s", err)
+	}
+
+	dsm := NewDatasetMethods(inst)
+	got := &GetResult{}
+	getParams := &GetParams{
+		Refstr: "peer/movies",
+	}
+	if err := dsm.Get(getParams, got); err != nil {
+		t.Fatalf("error getting fsi dataset: %s", err)
+	}
+	if got.Ref.Username != "peer" {
+		t.Errorf("incorrect Username, expected 'peer', got %q", got.Ref.Username)
+	}
+	if got.Ref.Name != "movies" {
+		t.Errorf("incorrect Username, expected 'movies', got %q", got.Ref.Name)
+	}
+	if got.FSIPath != dsDir {
+		t.Errorf("incorrect FSIPath, expected %q, got %q", dsDir, got.FSIPath)
+	}
+}
+
 func setDatasetName(ds *dataset.Dataset, name string) *dataset.Dataset {
 	parts := strings.Split(name, "/")
 	ds.Peername = parts[0]

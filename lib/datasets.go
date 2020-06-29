@@ -241,8 +241,12 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 
 	res.Ref = &ref
 	res.Dataset = ds
-	// TODO (b5) - FSIPath is determined differently now: by checking .Path for
-	// an /fsi prefix
+
+	// TODO (b5) - replace this prefix check with a call to qfs.PathKind when it
+	// supports the fsi prefix
+	if strings.HasPrefix(ref.Path, "/fsi") {
+		res.FSIPath = strings.TrimPrefix(ref.Path, "/fsi")
+	}
 	// TODO (b5) - Published field is longer set as part of Reference Resolution
 	// getting publication status should be delegated to a new function
 
