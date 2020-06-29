@@ -34,15 +34,15 @@ require (
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/multiformats/go-multihash v0.0.13
 	github.com/pkg/errors v0.9.1
-	github.com/qri-io/apiutil v0.1.1-0.20200527185959-7a07891b60d0
-	github.com/qri-io/dag v0.2.1-0.20200623175143-57781ab0dbd9
-	github.com/qri-io/dataset v0.1.5-0.20200623182245-a094a632ec33
-	github.com/qri-io/deepdiff v0.1.1-0.20200305020550-8173efebcaa1
+	github.com/qri-io/apiutil v0.2.0
+	github.com/qri-io/dag v0.2.1
+	github.com/qri-io/dataset v0.2.0
+	github.com/qri-io/deepdiff v0.2.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/jsonschema v0.2.0
-	github.com/qri-io/qfs v0.1.1-0.20200624184248-011ef3915f0c
-	github.com/qri-io/starlib v0.4.2-0.20200406084526-0e4566b610a1
+	github.com/qri-io/qfs v0.5.0
+	github.com/qri-io/starlib v0.4.2
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.0.0
 	github.com/sirupsen/logrus v1.4.2
