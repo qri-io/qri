@@ -16,7 +16,6 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	qfs "github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
@@ -136,7 +135,7 @@ func MakeIPFSSwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsN
 	}
 
 	bsinf := corebs.BootstrapConfigWithPeers(
-		[]pstore.PeerInfo{
+		[]peer.AddrInfo{
 			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
 		},
 	)

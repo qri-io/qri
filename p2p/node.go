@@ -16,7 +16,7 @@ import (
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	ma "github.com/multiformats/go-multiaddr"
@@ -193,7 +193,7 @@ func (n *QriNode) startOnlineServices(ctx context.Context) error {
 		return nil
 	}
 
-	bsPeers := make(chan pstore.PeerInfo, len(n.cfg.BootstrapAddrs))
+	bsPeers := make(chan peer.AddrInfo, len(n.cfg.BootstrapAddrs))
 
 	go func() {
 		// block until we have at least one successful bootstrap connection
@@ -292,7 +292,7 @@ func (n *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 }
 
 // makeBasicHost creates a LibP2P host from a NodeCfg
-func makeBasicHost(ctx context.Context, ps pstore.Peerstore, p2pconf *config.P2P) (host.Host, error) {
+func makeBasicHost(ctx context.Context, ps peerstore.Peerstore, p2pconf *config.P2P) (host.Host, error) {
 	pk, err := p2pconf.DecodePrivateKey()
 	if err != nil {
 		return nil, err
@@ -400,18 +400,18 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 }
 
 // Keys returns the KeyBook for the node.
-func (n *QriNode) Keys() pstore.KeyBook {
+func (n *QriNode) Keys() peerstore.KeyBook {
 	return n.host.Peerstore()
 }
 
 // Addrs returns the AddrBook for the node.
-func (n *QriNode) Addrs() pstore.AddrBook {
+func (n *QriNode) Addrs() peerstore.AddrBook {
 	return n.host.Peerstore()
 }
 
 // SimplePeerInfo returns a PeerInfo with just the ID and Addresses.
-func (n *QriNode) SimplePeerInfo() pstore.PeerInfo {
-	return pstore.PeerInfo{
+func (n *QriNode) SimplePeerInfo() peer.AddrInfo {
+	return peer.AddrInfo{
 		ID:    n.host.ID(),
 		Addrs: n.host.Addrs(),
 	}

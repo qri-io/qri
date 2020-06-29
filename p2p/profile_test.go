@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	// pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
+	// peerstore "github.com/libp2p/go-libp2p-core/peerstore"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 )
@@ -116,7 +116,7 @@ func TestRequestProfileConnectNodes(t *testing.T) {
 // 	peers = peers[1:]
 
 // 	for _, peer := range peers {
-// 		p1.Addrs().AddAddr(peer.host.Network().LocalPeer(), peer.host.Network().ListenAddresses()[0], pstore.PermanentAddrTTL)
+// 		p1.Addrs().AddAddr(peer.host.Network().LocalPeer(), peer.host.Network().ListenAddresses()[0], peerstore.PermanentAddrTTL)
 // 	}
 
 // 	t.Logf("testing profile message with %d peers", len(peers))

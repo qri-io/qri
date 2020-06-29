@@ -14,7 +14,6 @@ import (
 	net "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
 )
 
@@ -41,8 +40,8 @@ func (n *TestableNode) Host() host.Host {
 }
 
 // SimplePeerInfo returns the PeerInfo of the TestableNode
-func (n *TestableNode) SimplePeerInfo() pstore.PeerInfo {
-	return pstore.PeerInfo{
+func (n *TestableNode) SimplePeerInfo() peer.AddrInfo {
+	return peer.AddrInfo{
 		ID:    n.host.ID(),
 		Addrs: n.host.Addrs(),
 	}
@@ -50,7 +49,7 @@ func (n *TestableNode) SimplePeerInfo() pstore.PeerInfo {
 
 // UpgradeToQriConnection upgrades the connection from a basic connection
 // to a Qri connection
-func (n *TestableNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
+func (n *TestableNode) UpgradeToQriConnection(pinfo peer.AddrInfo) error {
 	// bail early if we have seen this peer before
 	if _, err := n.Host().Peerstore().Get(pinfo.ID, TestQriSupportKey); err == nil {
 		return nil

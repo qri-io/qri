@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -112,9 +111,9 @@ func peerDifference(a, b []peer.ID) (diff []peer.ID) {
 }
 
 // PeerInfo returns peer peer ID & network multiaddrs from the Host Peerstore
-func (n *QriNode) PeerInfo(pid peer.ID) pstore.PeerInfo {
+func (n *QriNode) PeerInfo(pid peer.ID) peer.AddrInfo {
 	if !n.Online {
-		return pstore.PeerInfo{}
+		return peer.AddrInfo{}
 	}
 
 	return n.host.Peerstore().PeerInfo(pid)
@@ -212,7 +211,7 @@ func (n *QriNode) DisconnectFromPeer(ctx context.Context, p PeerConnectionParams
 }
 
 // peerConnectionParamsToPeerInfo turns connection parameters into something p2p can dial
-func (n *QriNode) peerConnectionParamsToPeerInfo(p PeerConnectionParams) (pi pstore.PeerInfo, err error) {
+func (n *QriNode) peerConnectionParamsToPeerInfo(p PeerConnectionParams) (pi peer.AddrInfo, err error) {
 	if p.Multiaddr != nil {
 		return toPeerInfos([]ma.Multiaddr{p.Multiaddr})[0], nil
 	} else if len(p.PeerID) > 0 {
@@ -235,7 +234,7 @@ func (n *QriNode) peerConnectionParamsToPeerInfo(p PeerConnectionParams) (pi pst
 		return
 	}
 	if len(ids) == 0 {
-		return pstore.PeerInfo{}, fmt.Errorf("no network info for %s", proID)
+		return peer.AddrInfo{}, fmt.Errorf("no network info for %s", proID)
 	}
 
 	// TODO - there's ambiguity here that we should address, for now
@@ -245,7 +244,7 @@ func (n *QriNode) peerConnectionParamsToPeerInfo(p PeerConnectionParams) (pi pst
 
 // getPeerInfo first looks for local peer info, then tries to fall back to using IPFS
 // to do routing lookups
-func (n *QriNode) getPeerInfo(pid peer.ID) (pstore.PeerInfo, error) {
+func (n *QriNode) getPeerInfo(pid peer.ID) (peer.AddrInfo, error) {
 	// first check for local peer info
 	if pinfo := n.host.Peerstore().PeerInfo(pid); len(pinfo.ID) > 0 {
 		// _, err := n.RequestProfile(pinfo.ID)
@@ -256,7 +255,7 @@ func (n *QriNode) getPeerInfo(pid peer.ID) (pstore.PeerInfo, error) {
 	ipfsnode, err := n.ipfsNode()
 	if err != nil {
 		log.Debug(err.Error())
-		return pstore.PeerInfo{}, err
+		return peer.AddrInfo{}, err
 	}
 
 	return ipfsnode.Routing.FindPeer(context.Background(), pid)

@@ -10,7 +10,6 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -28,7 +27,7 @@ type QriPeer struct {
 // it records whether the peer supports Qri in the host Peerstore,
 // returns ErrQriProtocolNotSupported if the connection cannot be upgraded,
 // and sets a priority in the host Connection Manager if the connection is upgraded
-func (n *QriNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
+func (n *QriNode) UpgradeToQriConnection(pinfo peer.AddrInfo) error {
 	// bail early if we have seen this peer before
 	// OKAY
 	pid := pinfo.ID
