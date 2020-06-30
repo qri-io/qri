@@ -5,8 +5,10 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"syscall"
 
 	"golang.org/x/sys/unix"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // preferredNumOpenFiles is the perferred number of open files that the process can have.
@@ -41,4 +43,11 @@ func ensureLargeNumOpenFiles() {
 		fmt.Printf("error setting max open files limit: %s\n", err)
 		return
 	}
+}
+
+// stdoutIsTerminal returns whether stdout is writing to a terminal, as opposed to something
+// like a pipe. For example, when running `qri get me/my_ds --format zip` this returns true,
+// but when running `qri get me/my_ds --format zip | gzip -l` this returns false
+func stdoutIsTerminal() bool {
+	return terminal.IsTerminal(syscall.Stdout)
 }
