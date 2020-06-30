@@ -434,8 +434,6 @@ type SaveParams struct {
 	// option to make dataset private. private data is not currently implimented,
 	// see https://github.com/qri-io/qri/issues/291 for updates
 	Private bool
-	// if true, set saved dataset to published
-	Publish bool
 	// run without saving, returning results
 	DryRun bool
 	// if true, res.Dataset.Body will be a fs.file of the body
@@ -721,23 +719,6 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 
 	if p.ReturnBody {
 		if err = base.InlineJSONBody(datasetRef.Dataset); err != nil {
-			return err
-		}
-	}
-
-	if p.Publish {
-		if p.DryRun {
-			return fmt.Errorf("can't use publish & dry-run together")
-		}
-		var publishedRef reporef.DatasetRef
-		err = m.SetPublishStatus(&SetPublishStatusParams{
-			Ref:           datasetRef.String(),
-			PublishStatus: true,
-			// UpdateRegistry:    true,
-			// UpdateRegistryPin: true,
-		}, &publishedRef)
-
-		if err != nil {
 			return err
 		}
 	}

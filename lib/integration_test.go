@@ -376,8 +376,7 @@ func AssertLogsEqual(a, b *Instance, ref *reporef.DatasetRef) error {
 func InitWorldBankDataset(t *testing.T, inst *Instance) *reporef.DatasetRef {
 	res := &reporef.DatasetRef{}
 	err := NewDatasetMethods(inst).Save(&SaveParams{
-		Publish: true,
-		Ref:     "me/world_bank_population",
+		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
 			Meta: &dataset.Meta{
 				Title: "World Bank Population",
@@ -402,8 +401,7 @@ d,e,f,false,3`),
 func Commit2WorldBank(t *testing.T, inst *Instance) *reporef.DatasetRef {
 	res := &reporef.DatasetRef{}
 	err := NewDatasetMethods(inst).Save(&SaveParams{
-		Publish: true,
-		Ref:     "me/world_bank_population",
+		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
 			Meta: &dataset.Meta{
 				Title: "World Bank Population",
