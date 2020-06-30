@@ -214,8 +214,12 @@ func NewNetworkIntegrationTestRunner(t *testing.T, prefix string) *NetworkIntegr
 }
 
 func (tr *NetworkIntegrationTestRunner) Cleanup() {
-	tr.RegistryHTTPServer.Close()
-	tr.registryRepo.Delete()
+	if tr.RegistryHTTPServer != nil {
+		tr.RegistryHTTPServer.Close()
+	}
+	if tr.registryRepo != nil {
+		tr.registryRepo.Delete()
+	}
 	if tr.nasimRepo != nil {
 		tr.nasimRepo.Delete()
 	}
@@ -230,9 +234,11 @@ func (tr *NetworkIntegrationTestRunner) InitNasim(t *testing.T) *Instance {
 		t.Fatal(err)
 	}
 
-	cfg := r.GetConfig()
-	cfg.Registry.Location = tr.RegistryHTTPServer.URL
-	r.WriteConfigFile()
+	if tr.RegistryHTTPServer != nil {
+		cfg := r.GetConfig()
+		cfg.Registry.Location = tr.RegistryHTTPServer.URL
+		r.WriteConfigFile()
+	}
 	tr.nasimRepo = &r
 
 	if tr.Nasim, err = NewInstance(tr.Ctx, r.QriPath); err != nil {
@@ -248,10 +254,12 @@ func (tr *NetworkIntegrationTestRunner) InitHinshun(t *testing.T) *Instance {
 		t.Fatal(err)
 	}
 
+	if tr.RegistryHTTPServer != nil {
+		cfg := r.GetConfig()
+		cfg.Registry.Location = tr.RegistryHTTPServer.URL
+		r.WriteConfigFile()
+	}
 	tr.hinshunRepo = &r
-	cfg := tr.hinshunRepo.GetConfig()
-	cfg.Registry.Location = tr.RegistryHTTPServer.URL
-	tr.hinshunRepo.WriteConfigFile()
 
 	if tr.Hinshun, err = NewInstance(tr.Ctx, tr.hinshunRepo.QriPath); err != nil {
 		t.Fatal(err)
@@ -266,9 +274,11 @@ func (tr *NetworkIntegrationTestRunner) InitAdnan(t *testing.T) *Instance {
 		t.Fatal(err)
 	}
 
-	cfg := r.GetConfig()
-	cfg.Registry.Location = tr.RegistryHTTPServer.URL
-	r.WriteConfigFile()
+	if tr.RegistryHTTPServer != nil {
+		cfg := r.GetConfig()
+		cfg.Registry.Location = tr.RegistryHTTPServer.URL
+		r.WriteConfigFile()
+	}
 	tr.adnanRepo = &r
 
 	if tr.Adnan, err = NewInstance(tr.Ctx, r.QriPath); err != nil {

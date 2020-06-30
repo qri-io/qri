@@ -5,8 +5,6 @@ package lib
 
 import (
 	"context"
-	"encoding/gob"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/rpc"
@@ -48,36 +46,6 @@ var (
 
 	log = golog.Logger("lib")
 )
-
-func init() {
-	// Fields like dataset.Structure.Schema contain data of arbitrary types,
-	// registering with the gob package prevents errors when sending them
-	// over net/rpc calls.
-	gob.Register(json.RawMessage{})
-	gob.Register([]interface{}{})
-	gob.Register(map[string]interface{}{})
-}
-
-// Receivers returns a slice of CoreRequests that defines the full local
-// API of lib methods
-func Receivers(inst *Instance) []Methods {
-	return []Methods{
-		NewDatasetMethods(inst),
-		NewRegistryClientMethods(inst),
-		NewRemoteMethods(inst),
-		NewLogMethods(inst),
-		NewPeerMethods(inst),
-		NewProfileMethods(inst),
-		NewConfigMethods(inst),
-		NewSearchMethods(inst),
-		NewSQLMethods(inst),
-		NewRenderMethods(inst),
-		NewFSIMethods(inst),
-
-		// TODO (b5) - deprecate ExportRequests
-		NewExportRequests(inst.Node(), nil),
-	}
-}
 
 // Methods is a related set of library functions
 type Methods interface {
@@ -362,12 +330,16 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	// check if we're operating over RPC
 	if cfg.RPC.Enabled {
-		addr, _ := ma.NewMultiaddr(cfg.RPC.Address)
+		addr, err := ma.NewMultiaddr(cfg.RPC.Address)
+		if err != nil {
+			return nil, qrierr.New(err, fmt.Sprintf("invalid config.rpc.address value: %q", cfg.RPC.Address))
+		}
 		conn, err := manet.Dial(addr)
 		if err == nil {
 			// we have a connection
 			log.Debugf("using RPC address %s", cfg.RPC.Address)
 			inst.rpc = rpc.NewClient(conn)
+			go inst.waitForAllDone()
 			return qri, err
 		}
 	}
