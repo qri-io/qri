@@ -56,12 +56,12 @@ func (c *Client) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error)
 		return "", dsref.ErrRefNotFound
 	}
 
-	// TODO (b5) - for now we're just using "registry" as the returned source value
+	// TODO (b5) - for now we're just using the registry location as the returned source value
 	// value should be a /dnsaddr multiaddress
-	addr := "registry"
+	addr := c.cfg.Location
 
 	// TODO (b5) - need to document this endpoint
-	u, err := url.Parse(fmt.Sprintf("%s/remote/refs", c.cfg.Location))
+	u, err := url.Parse(fmt.Sprintf("%s/remote/refs", addr))
 	if err != nil {
 		return addr, err
 	}
