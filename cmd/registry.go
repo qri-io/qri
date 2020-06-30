@@ -114,7 +114,7 @@ $ qri config set registry.location ""`,
 
 	signup := &cobra.Command{
 		Use:   "signup",
-		Short: "create a registery profile & connect your local keypair",
+		Short: "create a registry profile & connect your local keypair",
 		Long: `Signup creates a profile for you on the configured registry.
 (qri is configred to use qri.cloud as a registry by default.)
 

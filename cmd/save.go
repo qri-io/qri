@@ -72,7 +72,7 @@ commit message and title to the save.`,
 	cmd.Flags().BoolVar(&o.Force, "force", false, "force a new commit, even if no changes are detected")
 	cmd.Flags().BoolVarP(&o.KeepFormat, "keep-format", "k", false, "convert incoming data to stored data format")
 	// TODO(dlong): --no-render is deprecated, viz are being phased out, in favor of readme.
-	cmd.Flags().BoolVar(&o.NoRender, "no-render", false, "don't store a rendered version of the the vizualization ")
+	cmd.Flags().BoolVar(&o.NoRender, "no-render", false, "don't store a rendered version of the the visualization")
 	cmd.Flags().BoolVarP(&o.NewName, "new", "n", false, "save a new dataset only, using an available name")
 	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "experimental: build and use dscache if none exists")
 	cmd.Flags().StringVar(&o.Drop, "drop", "", "comma-separated list of components to remove")

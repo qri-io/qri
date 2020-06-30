@@ -110,7 +110,7 @@ const (
 
 // GetCurrentRefSelect returns the current reference selection. This could be explicitly provided
 // as command-line arguments, or could be determined by being in a linked directory, or could be
-// selected by the `use` command. This order is also the precendence, from most important to least.
+// selected by the `use` command. This order is also the precedence, from most important to least.
 // This is the recommended method for command-line commands to get references.
 // If an Ensurer is passed in, it is used to ensure that the ref in the .qri-ref linkfile matches
 // what is in the repo.

@@ -98,7 +98,7 @@ func TestFetchCommand(t *testing.T) {
 	err = b.ExecCommand("qri log peer_b/test_movies")
 	expectErr := `reference not found`
 	if err == nil {
-		t.Fatal("expected fetch on non-existant log to error")
+		t.Fatal("expected fetch on non-existent log to error")
 	}
 	if expectErr != err.Error() {
 		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
