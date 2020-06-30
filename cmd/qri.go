@@ -82,7 +82,7 @@ https://github.com/qri-io/qri/issues`,
 type QriOptions struct {
 	ioes.IOStreams
 
-	// TODO (b5) - this context should be refactored away, prefering to pass
+	// TODO (b5) - this context should be refactored away, preferring to pass
 	// this stored context object down through function calls
 	ctx       context.Context
 	releasers sync.WaitGroup

@@ -48,7 +48,7 @@ func Receivers(inst *Instance) []Methods {
 	}
 }
 
-// ServeRPC checks for a configured RPC port, and registers a listner if so
+// ServeRPC checks for a configured RPC port, and registers a listener if so
 func (inst *Instance) ServeRPC(ctx context.Context) {
 	cfg := inst.cfg
 	if !cfg.RPC.Enabled || cfg.RPC.Address == "" {
