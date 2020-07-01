@@ -1,3 +1,107 @@
+<a name="v0.9.9"></a>
+# [v0.9.9](https://github.com/qri-io/qri/compare/v0.9.8...v0.9.9) (2020-07-01)
+
+Welcome to Qri 0.9.9! We've got a lot of internal changes that speed up the work you do on Qri everyday, as well as a bunch of new features, and key bug fixes!
+
+## Config Overhaul
+We've taken a hard look at our config and wanted to make sure that, not only was every field being used, but also that this config could serve us well as we progress down our roadmap and create future features. 
+
+To that effect, we removed many unused fields, switched to using multiaddresses for all network configuration (replacing any `port` fields), formalized the hierarchy of different configuration sources, and added a new `Filesystems` field. 
+
+This new `Filesystems` field allows users to choose the supported filesystems on which they want Qri to store their data. For example, in the future, when we support s3 storage, this `Filesystems` field is where the user can go to configure the path to the storage, if it's the default save location, etc. More immediately however, exposing the `Filesystems` configuration also allows folks to point to a non-default location for their IPFS storage. This leads directly to our next change: moving the default IPFS repo location.
+
+## Migration
+One big change we've been working on behind the scenes is upgrading our IPFS dependency. IPFS recently released version 0.6.0, and that's the version we are now relying on! This was a very important upgrade, as users relying on older versions of IPFS (below 0.5.0) would not be seen by the larger IPFS network. 
+
+We also wanted to move the Qri associated IPFS node off the default `IPFS_PATH` and into a location that advertises a bit more that this is the IPFS node we rely on. And since our new configuration allows users to explicitly set the path to the IPFS repo, if a user prefers to point their repo to the old location, we can still accommodate that. By default, the IPFS node that Qri relies on will now live on the `QRI_PATH`.
+
+Migrations can be rough, so we took the time to ensure that upgrading to the newest version of IPFS, adjusting the Qri config, and moving the IPFS repo onto the `QRI_PATH` would go off without a hitch!
+
+## JSON schema
+Qri now relies on a newer draft (draft2019_09) of JSON Schema. Our golang implementation of `jsonschema` now has better support for the spec, equal or better performance depending on the keyword, and the option to extend using your own keywords.
+
+## Removed `Update`
+This was a real kill-your-darlings situation! The functionality of `update` - scheduling and running `qri saves` - can be done more reliably using other schedulers/taskmanagers. Our upcoming roadmap expands many Qri features, and we realized we couldn't justify the planning/engineering time to ensure `update` was up to our standards. Rather then letting this feature weigh us down, we realized it would be better to remove `update` and instead point users to docs on how to schedule updates. One day we may revisit updates as a plugin or wrapper.
+
+## Merkledag error
+Some users were getting `Merkledag not found` errors when trying to add some popular datasets from Qri Cloud (for example `nyc-transit-data/turnstile_daily_counts_2019`). This should no longer be the case!
+
+## Specific Command Line Features/Changes
+- `qri save` - use the `--drop` flag to remove a component from that dataset version
+- `qri log` - use the `--local` flag to only get the logs of the dataset that are storied locally
+            - use the `--pull` flag to only get the logs of the dataset from the network (explicitly not local)
+            - use the `--remote` flag to specify a remote off of which you want to grab that dataset's log. This defaults to the qri cloud registry
+- `qri get` - use the `-- zip` flag to export a zip of the dataset
+
+## Specific API Features/Changes
+- `/fetch` - removed, use `/history?pull=true` 
+- `/history` - use the `local=true` param to only get the logs of a dataset that are stored locally
+             - use the `pull=true` param to get the logs of a dataset from the network only (explicitly not local)
+             - use the `remote=REMOTE_NAME` to specify a remote off of which you want to grab that dataset's log. This defaults to the qri cloud registry
+
+### Bug Fixes
+
+* **AddDataset:** preserve original path after `ResolveHeadRef` ([ff87926](https://github.com/qri-io/qri/commit/ff87926))
+* **dsfs:** Ensure name and peername are not written to IPFS ([654ed64](https://github.com/qri-io/qri/commit/654ed64))
+* **dsref:** Change char to character in dsref.parse errors ([83882b0](https://github.com/qri-io/qri/commit/83882b0))
+* **dsref:** Improve dsref parse error messages ([2f97a4e](https://github.com/qri-io/qri/commit/2f97a4e))
+* **get:** Quick fix to ignore merkledag errors ([14dd03e](https://github.com/qri-io/qri/commit/14dd03e))
+* **init:** Derive dataset name from directory base, not whole path ([8dec66b](https://github.com/qri-io/qri/commit/8dec66b))
+* **init:** Multiple fixes to init, save, dscache ([a21cc31](https://github.com/qri-io/qri/commit/a21cc31))
+* **lib:** rpc calls need to reference renamed struct `PeerMethods` ([4ef8122](https://github.com/qri-io/qri/commit/4ef8122))
+* **lib.Get:** add FSIPath when ref.Path is prefixed with "/fsi" ([74fbe4c](https://github.com/qri-io/qri/commit/74fbe4c))
+* **logbook:** enforce single-author permissions on write methods ([b8cd838](https://github.com/qri-io/qri/commit/b8cd838))
+* **logbook:** Only a single Logbook method, owner check in logsync ([c741ef0](https://github.com/qri-io/qri/commit/c741ef0))
+* **logbook:** use sync.Once for rollback functions ([a59725d](https://github.com/qri-io/qri/commit/a59725d))
+* **migrate:** don't copy entire home directory if IPFS_PATH isn't set ([393473b](https://github.com/qri-io/qri/commit/393473b))
+* **migrate:** wait for repo to shut down after migration ([7aad0c3](https://github.com/qri-io/qri/commit/7aad0c3))
+* **naming:** Handle names with upper-case characters ([d7138a1](https://github.com/qri-io/qri/commit/d7138a1))
+* **regClient:** ResolveRef now returns registry address ([c2cdf6a](https://github.com/qri-io/qri/commit/c2cdf6a))
+* **remove:** When removing foreign dataset, remove the log ([978def4](https://github.com/qri-io/qri/commit/978def4))
+* **repo:** Construct temp repo using correct path ([2b1518f](https://github.com/qri-io/qri/commit/2b1518f))
+* **rpc:** shut down gracefully after completed RPC call ([044a16a](https://github.com/qri-io/qri/commit/044a16a))
+* **windows:** Don't detect terminal type ([92f0613](https://github.com/qri-io/qri/commit/92f0613))
+* simplify issue templates ([11c4d57](https://github.com/qri-io/qri/commit/11c4d57)), closes [#1394](https://github.com/qri-io/qri/issues/1394)
+* **temp_repo:** cancel context on LoadDataset method ([894134e](https://github.com/qri-io/qri/commit/894134e))
+* correct issue template path ([eced3b5](https://github.com/qri-io/qri/commit/eced3b5)), closes [#1362](https://github.com/qri-io/qri/issues/1362)
+* **save:** Save change detection with readme works correctly ([df3975e](https://github.com/qri-io/qri/commit/df3975e))
+
+
+### chore
+
+* remove update command, subsystem, api ([8b55243](https://github.com/qri-io/qri/commit/8b55243))
+
+
+### Code Refactoring
+
+* **save:** remove publish flag from save ([dc8737b](https://github.com/qri-io/qri/commit/dc8737b))
+
+
+### Features
+
+* **`lib`, `cmd`:** add wait group and done channel to `lib.Instance` and `cmd.QriOptions` ([69d6021](https://github.com/qri-io/qri/commit/69d6021))
+* **cmd:** add migrate flag to connect command ([4a465a9](https://github.com/qri-io/qri/commit/4a465a9))
+* **dscache:** Dscache used for fsi init and checkout ([3b47d1d](https://github.com/qri-io/qri/commit/3b47d1d))
+* **dscache:** Remove operations update the dscache if it exists ([3212add](https://github.com/qri-io/qri/commit/3212add))
+* **dsref:** ParseLoadResolve turns strings into datasets ([0283fc0](https://github.com/qri-io/qri/commit/0283fc0))
+* **dsref.Resolve:** add source multiaddr return value ([dec83f9](https://github.com/qri-io/qri/commit/dec83f9))
+* **export:** Rewrite zip creation so it closely resembles fsi ([25fc08c](https://github.com/qri-io/qri/commit/25fc08c))
+* **export:** With no filename, write zip bytes to stdout or API ([880ee63](https://github.com/qri-io/qri/commit/880ee63))
+* **logbook:** write push & pull operations, logbook diagnostic method ([8d1b6c9](https://github.com/qri-io/qri/commit/8d1b6c9))
+* **migrate:** remove qri-only IPFS repo on config migration ([d13511c](https://github.com/qri-io/qri/commit/d13511c))
+* **migration:** OneToTwo basic implementation ([4159a25](https://github.com/qri-io/qri/commit/4159a25))
+* **RefResolver:** introduce RefResolver interface, use in DatasetRequests.Get ([d5ddc8f](https://github.com/qri-io/qri/commit/d5ddc8f))
+* **regClient:** add initial registry client resolver ([3092c75](https://github.com/qri-io/qri/commit/3092c75))
+* **save:** add --drop flag to remove dataset components when saving ([63a2808](https://github.com/qri-io/qri/commit/63a2808))
+* **zip:** Cmd options for `get --format zip`, initID in WriteZip ([bc3b318](https://github.com/qri-io/qri/commit/bc3b318))
+
+
+### BREAKING CHANGES
+
+* update command and all api endpoints are removed
+* removed `/fetch` endpoint - use `/history` instead. `local=true` param ensure that the logbook data is only what you have locally in your logbook
+
+
 <a name="0.9.8"></a>
 # [0.9.8](https://github.com/qri-io/qri/compare/v0.9.7...v0.9.8) (2020-04-20)
 
