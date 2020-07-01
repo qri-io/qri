@@ -434,8 +434,6 @@ type SaveParams struct {
 	// option to make dataset private. private data is not currently implimented,
 	// see https://github.com/qri-io/qri/issues/291 for updates
 	Private bool
-	// if true, set saved dataset to published
-	Publish bool
 	// run without saving, returning results
 	DryRun bool
 	// if true, res.Dataset.Body will be a fs.file of the body
@@ -725,23 +723,6 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		}
 	}
 
-	if p.Publish {
-		if p.DryRun {
-			return fmt.Errorf("can't use publish & dry-run together")
-		}
-		var publishedRef reporef.DatasetRef
-		err = m.SetPublishStatus(&SetPublishStatusParams{
-			Ref:           datasetRef.String(),
-			PublishStatus: true,
-			// UpdateRegistry:    true,
-			// UpdateRegistryPin: true,
-		}, &publishedRef)
-
-		if err != nil {
-			return err
-		}
-	}
-
 	*res = datasetRef
 
 	if fsiPath != "" && !p.DryRun {
@@ -768,37 +749,6 @@ func (m *DatasetMethods) nameIsInUse(ctx context.Context, ref dsref.Ref) bool {
 		log.Error(err)
 	}
 	return true
-}
-
-// SetPublishStatusParams encapsulates parameters for setting the publication status of a dataset
-type SetPublishStatusParams struct {
-	Ref           string
-	PublishStatus bool
-	// UpdateRegistry    bool
-	// UpdateRegistryPin bool
-}
-
-// SetPublishStatus updates the publicity of a reference in the peer's namespace
-func (m *DatasetMethods) SetPublishStatus(p *SetPublishStatusParams, publishedRef *reporef.DatasetRef) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.SetPublishStatus", p, publishedRef))
-	}
-
-	ref, err := repo.ParseDatasetRef(p.Ref)
-	if err != nil {
-		return err
-	}
-	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
-		return err
-	}
-
-	ref.Published = p.PublishStatus
-	if err = base.SetPublishStatus(m.inst.repo, &ref, ref.Published); err != nil {
-		return err
-	}
-
-	*publishedRef = ref
-	return nil
 }
 
 // RenameParams defines parameters for Dataset renaming
@@ -1059,16 +1009,9 @@ func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
 		p.RemoteAddr = m.inst.cfg.Registry.Location
 	}
 
-	mergeLogsError := m.inst.remoteClient.CloneLogs(ctx, ref, p.RemoteAddr)
-	// TODO(b5) - this line is swallowing errors that the cmd package integration
-	// tests are hitting. We need to change the behaviour of add to *require* logs
-	// successfully merge, which will require fixing lots of tests in cmd,
-	// ideally by removing remote.MockRepoClient
-	if p.LogsOnly {
-		return mergeLogsError
-	}
-	if mergeLogsError != nil {
-		return mergeLogsError
+	if err := m.inst.remoteClient.CloneLogs(ctx, ref, p.RemoteAddr); err != nil {
+		log.Error(err)
+		return err
 	}
 
 	rref := reporef.RefFromDsref(ref)

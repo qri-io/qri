@@ -75,42 +75,43 @@ func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 
 	cli := tr.NodeBClient(t)
 
-	relRef := &reporef.DatasetRef{Peername: worldBankRef.Peername, Name: worldBankRef.Name}
+	relRef := &reporef.DatasetRef{Peername: worldBankRef.Username, Name: worldBankRef.Name}
 	if err := cli.ResolveHeadRef(tr.Ctx, relRef, server.URL); err != nil {
 		t.Error(err)
 	}
 
-	if !relRef.Equal(worldBankRef) {
+	if !relRef.Equal(reporef.RefFromDsref(worldBankRef)) {
 		t.Errorf("resolve mismatch. expected:\n%s\ngot:\n%s", worldBankRef, relRef)
 	}
 
 	if _, err := cli.FetchLogs(tr.Ctx, reporef.ConvertToDsref(*relRef), server.URL); err != nil {
 		t.Error(err)
 	}
-	if err := cli.PullDataset(tr.Ctx, &worldBankRef, server.URL); err != nil {
+	wbp := reporef.RefFromDsref(worldBankRef)
+	if err := cli.PullDataset(tr.Ctx, &wbp, server.URL); err != nil {
 		t.Error(err)
 	}
 
 	videoViewRef := writeVideoViewStats(tr.Ctx, t, tr.NodeB.Repo)
 
-	if err := cli.PushLogs(tr.Ctx, reporef.ConvertToDsref(videoViewRef), server.URL); err != nil {
+	if err := cli.PushLogs(tr.Ctx, videoViewRef, server.URL); err != nil {
 		t.Error(err)
 	}
-	if err := cli.PushDataset(tr.Ctx, videoViewRef, server.URL); err != nil {
+	if err := cli.PushDataset(tr.Ctx, reporef.RefFromDsref(videoViewRef), server.URL); err != nil {
 		t.Error(err)
 	}
 
-	if err := cli.RemoveLogs(tr.Ctx, reporef.ConvertToDsref(videoViewRef), server.URL); err != nil {
+	if err := cli.RemoveLogs(tr.Ctx, videoViewRef, server.URL); err != nil {
 		t.Error(err)
 	}
-	if err := cli.RemoveDataset(tr.Ctx, videoViewRef, server.URL); err != nil {
+	if err := cli.RemoveDataset(tr.Ctx, reporef.RefFromDsref(videoViewRef), server.URL); err != nil {
 		t.Error(err)
 	}
 
 	if _, err := cli.Feeds(tr.Ctx, server.URL); err != nil {
 		t.Error(err)
 	}
-	if _, err := cli.Preview(tr.Ctx, reporef.ConvertToDsref(worldBankRef), server.URL); err != nil {
+	if _, err := cli.Preview(tr.Ctx, worldBankRef, server.URL); err != nil {
 		t.Error(err)
 	}
 
@@ -175,10 +176,12 @@ func TestFeeds(t *testing.T) {
 	defer cleanup()
 
 	wbp := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
-	publishRef(t, tr.NodeA.Repo, &wbp)
+	wbpRepoRef := reporef.RefFromDsref(wbp)
+	setRefPublished(t, tr.NodeA.Repo, &wbpRepoRef)
 
 	vvs := writeVideoViewStats(tr.Ctx, t, tr.NodeA.Repo)
-	publishRef(t, tr.NodeA.Repo, &vvs)
+	vvsRepoRef := reporef.RefFromDsref(vvs)
+	setRefPublished(t, tr.NodeA.Repo, &vvsRepoRef)
 
 	aCfg := &config.Remote{
 		Enabled:       true,
@@ -300,7 +303,7 @@ func qriNode(t *testing.T, tr *testRunner, peername string, node *core.IpfsNode,
 	return qriNode
 }
 
-func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) reporef.DatasetRef {
+func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) dsref.Ref {
 	ds := &dataset.Dataset{
 		Name: "world_bank_population",
 		Commit: &dataset.Commit{
@@ -318,13 +321,13 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) re
 	return saveDataset(ctx, r, "peer", ds)
 }
 
-func publishRef(t *testing.T, r repo.Repo, ref *reporef.DatasetRef) {
+func setRefPublished(t *testing.T, r repo.Repo, ref *reporef.DatasetRef) {
 	if err := base.SetPublishStatus(r, ref, true); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func writeVideoViewStats(ctx context.Context, t *testing.T, r repo.Repo) reporef.DatasetRef {
+func writeVideoViewStats(ctx context.Context, t *testing.T, r repo.Repo) dsref.Ref {
 	ds := &dataset.Dataset{
 		Name: "video_view_stats",
 		Commit: &dataset.Commit{
@@ -342,8 +345,7 @@ func writeVideoViewStats(ctx context.Context, t *testing.T, r repo.Repo) reporef
 	return saveDataset(ctx, r, "peer", ds)
 }
 
-func saveDataset(ctx context.Context, r repo.Repo, peername string, ds *dataset.Dataset) reporef.DatasetRef {
-	sw := base.SaveSwitches{}
+func saveDataset(ctx context.Context, r repo.Repo, peername string, ds *dataset.Dataset) dsref.Ref {
 	headRef := ""
 	book := r.Logbook()
 	initID, err := book.RefToInitID(dsref.Ref{Username: peername, Name: ds.Name})
@@ -356,9 +358,11 @@ func saveDataset(ctx context.Context, r repo.Repo, peername string, ds *dataset.
 	if err != nil {
 		panic(err)
 	}
-	datasetRef, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), initID, headRef, ds, sw)
+	datasetRef, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), initID, headRef, ds, base.SaveSwitches{})
 	if err != nil {
 		panic(err)
 	}
-	return datasetRef
+	ref := reporef.ConvertToDsref(datasetRef)
+	ref.InitID = initID
+	return ref
 }

@@ -114,10 +114,6 @@ func (m *LogMethods) Log(params *LogParams, res *[]DatasetLogItem) error {
 		}
 	}
 
-	// TODO (b5) - store logs on pull
-	// if params.Pull {
-	// }
-
 	*res = items
 	return nil
 }
@@ -163,12 +159,21 @@ type PlainLogsParams struct {
 type PlainLogs = []logbook.PlainLog
 
 // PlainLogs encodes the full logbook as human-oriented json
-func (m *LogMethods) PlainLogs(p *PlainLogsParams, res *PlainLogs) error {
-	var err error
+func (m *LogMethods) PlainLogs(p *PlainLogsParams, res *PlainLogs) (err error) {
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("LogMethods.PlainLogs", p, res))
 	}
 	ctx := context.TODO()
 	*res, err = m.inst.repo.Logbook().PlainLogs(ctx)
 	return err
+}
+
+// LogbookSummary returns a string overview of the logbook
+func (m *LogMethods) LogbookSummary(p *struct{}, res *string) (err error) {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("LogMethods.Diagnostic", p, res))
+	}
+	ctx := context.TODO()
+	*res = m.inst.repo.Logbook().SummaryString(ctx)
+	return nil
 }

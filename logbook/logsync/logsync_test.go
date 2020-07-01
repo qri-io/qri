@@ -445,6 +445,7 @@ func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, er
 	return dsref.Ref{
 		Username: book.AuthorName(),
 		Name:     name,
+		InitID:   initID,
 	}, nil
 }
 
@@ -487,6 +488,7 @@ func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref,
 	return dsref.Ref{
 		Username: book.AuthorName(),
 		Name:     name,
+		InitID:   initID,
 	}, nil
 }
 

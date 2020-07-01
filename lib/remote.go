@@ -45,14 +45,18 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Publish", p, res))
 	}
 
-	ref, err := repo.ParseDatasetRef(p.Ref)
+	// TODO (b5) - need contexts yo
+	ctx := context.TODO()
+
+	ref, err := dsref.Parse(p.Ref)
 	if err != nil {
 		return err
 	}
 	if ref.Path != "" {
 		return fmt.Errorf("can only publish entire dataset, cannot use version %s", ref.Path)
 	}
-	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
+
+	if _, err := r.inst.ResolveReference(ctx, &ref, "local"); err != nil {
 		return err
 	}
 
@@ -61,27 +65,26 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 		return err
 	}
 
-	// TODO (b5) - need contexts yo
-	ctx := context.TODO()
-
-	// TODO (b5) - we're early in log syncronization days. This is going to fail a bunch
-	// while we work to upgrade the stack. Long term we may want to consider a mechanism
-	// for allowing partial completion where only one of logs or dataset pushing works
-	// by doing both in parallel and reporting issues on both
-	if pushLogsErr := r.inst.RemoteClient().PushLogs(ctx, reporef.ConvertToDsref(ref), addr); pushLogsErr != nil {
-		log.Errorf("pushing logs: %s", pushLogsErr)
-	}
-
-	if err = r.inst.RemoteClient().PushDataset(ctx, ref, addr); err != nil {
+	if err = r.inst.RemoteClient().PushLogs(ctx, ref, addr); err != nil {
 		return err
 	}
 
-	ref.Published = true
-	if err = base.SetPublishStatus(r.inst.node.Repo, &ref, ref.Published); err != nil {
+	// TODO (b5) - another example of where reference resolution needs to set
+	// the profileID, and isn't. the conversion to a reporef & dataset push will
+	// fail if profileID isn't specified
+	pro, _ := r.inst.Repo().Profile()
+	ref.ProfileID = pro.ID.String()
+
+	datasetRef := reporef.RefFromDsref(ref)
+	if err = r.inst.RemoteClient().PushDataset(ctx, datasetRef, addr); err != nil {
+		return err
+	}
+	datasetRef.Published = true
+	if err = base.SetPublishStatus(r.inst.node.Repo, &datasetRef, datasetRef.Published); err != nil {
 		return err
 	}
 
-	*res = reporef.ConvertToDsref(ref)
+	*res = ref
 	return nil
 }
 

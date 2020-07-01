@@ -208,9 +208,7 @@ func GenerateExampleOplog(ctx context.Context, journal *logbook.Book, dsname, he
 		return "", nil, err
 	}
 
-	// TODO (b5) - we need UserDatasetRef here b/c it returns the full hierarchy
-	// of oplogs. This method should take an InitID
-	lg, err := journal.UserDatasetRef(ctx, dsref.Ref{Username: username, Name: dsname})
+	lg, err := journal.UserDatasetBranchesLog(ctx, initID)
 	if err != nil {
 		return "", nil, err
 	}

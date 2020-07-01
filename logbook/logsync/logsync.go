@@ -147,7 +147,18 @@ func (lsync *Logsync) DoRemove(ctx context.Context, ref dsref.Ref, remoteAddr st
 		return err
 	}
 
-	return rem.del(ctx, lsync.Author(), ref)
+	if err = rem.del(ctx, lsync.Author(), ref); err != nil {
+		return err
+	}
+
+	versions, err := lsync.book.Items(ctx, ref, 0, -1)
+	if err != nil {
+		return err
+	}
+
+	// record remove as delete of all versions on the remote
+	_, _, err = lsync.book.WriteRemoteDelete(ctx, ref.InitID, len(versions), remoteAddr)
+	return err
 }
 
 func (lsync *Logsync) remoteClient(ctx context.Context, remoteAddr string) (rem remote, err error) {
@@ -170,12 +181,13 @@ func (lsync *Logsync) remoteClient(ctx context.Context, remoteAddr string) (rem 
 	return nil, fmt.Errorf("unrecognized push address string: %s", remoteAddr)
 }
 
-// remove is an internal interface for methods available on foreign logbooks
+// remote is an internal interface for methods available on foreign logbooks
 // the logsync struct contains the canonical implementation of a remote
 // interface. network clients wrap the remote interface with network behaviours,
 // using Logsync methods to do the "real work" and echoing that back across the
 // client protocol
 type remote interface {
+	addr() string
 	put(ctx context.Context, author identity.Author, r io.Reader) error
 	get(ctx context.Context, author identity.Author, ref dsref.Ref) (sender identity.Author, data io.Reader, err error)
 	del(ctx context.Context, author identity.Author, ref dsref.Ref) error
@@ -183,6 +195,11 @@ type remote interface {
 
 // assert at compile-time that Logsync is a remote
 var _ remote = (*Logsync)(nil)
+
+// addr is only used by clients. this should never be called
+func (lsync *Logsync) addr() string {
+	panic("cannot get the address of logsync itself")
+}
 
 func (lsync *Logsync) put(ctx context.Context, author identity.Author, r io.Reader) error {
 	if lsync == nil {
@@ -242,7 +259,11 @@ func (lsync *Logsync) get(ctx context.Context, author identity.Author, ref dsref
 		}
 	}
 
-	l, err := lsync.book.UserDatasetRef(ctx, ref)
+	if _, err := lsync.book.ResolveRef(ctx, &ref); err != nil {
+		return nil, nil, err
+	}
+
+	l, err := lsync.book.UserDatasetBranchesLog(ctx, ref.InitID)
 	if err != nil {
 		return lsync.Author(), nil, err
 	}
@@ -319,17 +340,30 @@ type Push struct {
 
 // Do executes a push
 func (p *Push) Do(ctx context.Context) error {
-	log, err := p.book.UserDatasetRef(ctx, p.ref)
-	if err != nil {
-		return err
-	}
-	data, err := p.book.LogBytes(log)
+	// eagerly write a push to the logbook. The log the remote receives will include
+	// the push operation. If anything goes wrong, rollback the write
+	log, rollback, err := p.book.WriteRemotePush(ctx, p.ref.InitID, 1, p.remote.addr())
 	if err != nil {
 		return err
 	}
 
+	data, err := p.book.LogBytes(log)
+	if err != nil {
+		if rollbackErr := rollback(ctx); rollbackErr != nil {
+			logger.Errorf("rolling back dataset log: %q", rollbackErr.Error())
+		}
+		return err
+	}
+
 	buf := bytes.NewBuffer(data)
-	return p.remote.put(ctx, p.book.Author(), buf)
+	err = p.remote.put(ctx, p.book.Author(), buf)
+	if err != nil {
+		if rollbackErr := rollback(ctx); rollbackErr != nil {
+			logger.Errorf("rolling back dataset log: %q", rollbackErr.Error())
+		}
+		return err
+	}
+	return nil
 }
 
 // Pull is a request to fetch a log

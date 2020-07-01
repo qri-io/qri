@@ -73,7 +73,7 @@ func (c *MockClient) CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr st
 	ref.Path = "QmExample"
 	foreignBuilder.Commit(ctx, nil, initID, "their commit", ref.Path)
 	foreignBook := foreignBuilder.Logbook()
-	foreignLog, err := foreignBook.UserDatasetRef(ctx, ref)
+	foreignLog, err := foreignBook.UserDatasetBranchesLog(ctx, initID)
 	if err != nil {
 		panic(err)
 	}

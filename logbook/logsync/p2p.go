@@ -46,6 +46,10 @@ type p2pClient struct {
 // assert at compile time that p2pClient implements DagSyncable
 var _ remote = (*p2pClient)(nil)
 
+func (c *p2pClient) addr() string {
+	return c.remotePeerID.Pretty()
+}
+
 func (c *p2pClient) put(ctx context.Context, author identity.Author, r io.Reader) (err error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {

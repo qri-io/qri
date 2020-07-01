@@ -67,7 +67,6 @@ commit message and title to the save.`,
 	cmd.Flags().StringVarP(&o.Recall, "recall", "", "", "restore revisions from dataset history")
 	// cmd.Flags().BoolVarP(&o.ShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
-	cmd.Flags().BoolVarP(&o.Publish, "publish", "p", false, "publish this dataset to the registry")
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate saving a dataset")
 	cmd.Flags().BoolVar(&o.Force, "force", false, "force a new commit, even if no changes are detected")
 	cmd.Flags().BoolVarP(&o.KeepFormat, "keep-format", "k", false, "convert incoming data to stored data format")
@@ -95,7 +94,6 @@ type SaveOptions struct {
 
 	Replace        bool
 	ShowValidation bool
-	Publish        bool
 	DryRun         bool
 	KeepFormat     bool
 	Force          bool
@@ -158,7 +156,6 @@ func (o *SaveOptions) Run() (err error) {
 		ScriptOutput:        o.ErrOut,
 		FilePaths:           o.FilePaths,
 		Private:             false,
-		Publish:             o.Publish,
 		DryRun:              o.DryRun,
 		Recall:              o.Recall,
 		Drop:                o.Drop,

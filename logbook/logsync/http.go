@@ -26,7 +26,10 @@ type httpClient struct {
 // httpClient exists to satisfy the Remote interface on the client side
 var _ remote = (*httpClient)(nil)
 
-// Put
+func (c *httpClient) addr() string {
+	return c.URL
+}
+
 func (c *httpClient) put(ctx context.Context, author identity.Author, r io.Reader) error {
 	req, err := http.NewRequest("PUT", c.URL, r)
 	if err != nil {

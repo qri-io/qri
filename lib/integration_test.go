@@ -132,6 +132,17 @@ func TestReferencePulling(t *testing.T) {
 	ref := InitWorldBankDataset(t, nasim)
 	PublishToRegistry(t, nasim, ref.AliasString())
 
+	// - nasim's local repo should reflect publication
+	logRes := []DatasetLogItem{}
+	err := NewLogMethods(nasim).Log(&LogParams{Ref: ref.AliasString(), ListParams: ListParams{Limit: 1}}, &logRes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if logRes[0].Published != true {
+		t.Errorf("nasim has published HEAD. ref[0] published is false")
+	}
+
 	hinshun := tr.InitHinshun(t)
 	sqlm := NewSQLMethods(hinshun)
 
@@ -162,7 +173,7 @@ func TestReferencePulling(t *testing.T) {
 	dsm := NewDatasetMethods(adnan)
 
 	// run a transform script that relies on world_bank_population, which adnan's
-	// node should automatically pull to execute thisscript
+	// node should automatically pull to execute this script
 	tfScriptData := `
 wbp = load_dataset("nasim/world_bank_population")
 
@@ -184,6 +195,17 @@ def transform(ds, ctx):
 	res := &reporef.DatasetRef{}
 	if err := dsm.Save(saveParams, res); err != nil {
 		t.Fatal(err)
+	}
+
+	// - adnan's local repo should reflect nasim's publication
+	logRes = []DatasetLogItem{}
+	err = NewLogMethods(adnan).Log(&LogParams{Ref: ref.AliasString(), ListParams: ListParams{Limit: 1}}, &logRes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if logRes[0].Published != true {
+		t.Errorf("adnan's log expects head was published, ref[0] published is false")
 	}
 }
 
@@ -364,8 +386,7 @@ func AssertLogsEqual(a, b *Instance, ref *reporef.DatasetRef) error {
 func InitWorldBankDataset(t *testing.T, inst *Instance) *reporef.DatasetRef {
 	res := &reporef.DatasetRef{}
 	err := NewDatasetMethods(inst).Save(&SaveParams{
-		Publish: true,
-		Ref:     "me/world_bank_population",
+		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
 			Meta: &dataset.Meta{
 				Title: "World Bank Population",
@@ -390,8 +411,7 @@ d,e,f,false,3`),
 func Commit2WorldBank(t *testing.T, inst *Instance) *reporef.DatasetRef {
 	res := &reporef.DatasetRef{}
 	err := NewDatasetMethods(inst).Save(&SaveParams{
-		Publish: true,
-		Ref:     "me/world_bank_population",
+		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
 			Meta: &dataset.Meta{
 				Title: "World Bank Population",

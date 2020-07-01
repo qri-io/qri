@@ -126,22 +126,21 @@ func TestSaveRun(t *testing.T) {
 		bodypath    string
 		title       string
 		message     string
-		publish     bool
 		dryrun      bool
 		noRender    bool
 		expect      string
 		err         string
 		msg         string
 	}{
-		{"no data", "me/bad_dataset", "", "", "", "", false, false, true, "", "no changes to save", ""},
-		{"bad dataset file", "me/cities", "bad/filpath.json", "", "", "", false, false, true, "", "open bad/filpath.json: no such file or directory", ""},
-		{"bad body file", "me/cities", "", "bad/bodypath.csv", "", "", false, false, true, "", "opening dataset.bodyPath 'bad/bodypath.csv': path not found", ""},
-		{"good inputs, dryrun", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", false, true, true, "dataset saved: peer/movies\n", "", ""},
-		{"good inputs", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, false, true, "dataset saved: peer/movies@/map/QmVDSrf4BpupXYmDJc6eXanFVW9DS6g3Pfkkx6YqkcUjEQ\nthis dataset has 1 validation errors\n", "", ""},
-		{"add rows, dry run", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", false, true, true, "dataset saved: peer/movies\n", "", ""},
-		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, false, true, "dataset saved: peer/movies@/map/QmZof1Gc95VFxaAXBq28pTYLe4nQ3TMi4ceBL7ExDkXyyj\nthis dataset has 1 validation errors\n", "", ""},
-		{"no changes", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, false, true, "", "error saving: no changes", ""},
-		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, false, "dataset saved: peer/movies@/map/QmXDJLrEePbBGro5m9K9edszqN89XMePrampGhBq7QkyoF\nthis dataset has 1 validation errors\n", "", ""},
+		{"no data", "me/bad_dataset", "", "", "", "", false, true, "", "no changes to save", ""},
+		{"bad dataset file", "me/cities", "bad/filpath.json", "", "", "", false, true, "", "open bad/filpath.json: no such file or directory", ""},
+		{"bad body file", "me/cities", "", "bad/bodypath.csv", "", "", false, true, "", "opening dataset.bodyPath 'bad/bodypath.csv': path not found", ""},
+		{"good inputs, dryrun", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, true, "dataset saved: peer/movies\n", "", ""},
+		{"good inputs", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", false, true, "dataset saved: peer/movies@/map/QmVDSrf4BpupXYmDJc6eXanFVW9DS6g3Pfkkx6YqkcUjEQ\nthis dataset has 1 validation errors\n", "", ""},
+		{"add rows, dry run", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, true, "dataset saved: peer/movies\n", "", ""},
+		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", false, true, "dataset saved: peer/movies@/map/QmZof1Gc95VFxaAXBq28pTYLe4nQ3TMi4ceBL7ExDkXyyj\nthis dataset has 1 validation errors\n", "", ""},
+		{"no changes", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, true, "", "error saving: no changes", ""},
+		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, "dataset saved: peer/movies@/map/QmXDJLrEePbBGro5m9K9edszqN89XMePrampGhBq7QkyoF\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
 	for _, c := range cases {
@@ -164,7 +163,6 @@ func TestSaveRun(t *testing.T) {
 			BodyPath:       c.bodypath,
 			Title:          c.title,
 			Message:        c.message,
-			Publish:        c.publish,
 			DryRun:         c.dryrun,
 			NoRender:       c.noRender,
 			DatasetMethods: dsm,
