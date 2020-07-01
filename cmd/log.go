@@ -159,8 +159,8 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 			}
 			if o.Raw {
 				return o.RawLogs()
-			} else if o.Diagnostic {
-				return o.LogbookDiagnostic()
+			} else if o.Summary {
+				return o.LogbookSummary()
 			}
 			return o.Logbook()
 		},
@@ -169,7 +169,7 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
 	cmd.Flags().BoolVar(&o.Raw, "raw", false, "full logbook in raw JSON format. overrides all other flags")
-	cmd.Flags().BoolVar(&o.Diagnostic, "diagnostic", false, "print one oplog per line in the format 'MODEL ID OPCOUNT NAME'overrides all other flags")
+	cmd.Flags().BoolVar(&o.Summary, "summary", false, "print one oplog per line in the format 'MODEL ID OPCOUNT NAME'. overrides all other flags")
 
 	return cmd
 }
@@ -178,21 +178,21 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 type LogbookOptions struct {
 	ioes.IOStreams
 
-	PageSize        int
-	Page            int
-	Refs            *RefSelect
-	Raw, Diagnostic bool
+	PageSize     int
+	Page         int
+	Refs         *RefSelect
+	Raw, Summary bool
 
 	LogMethods *lib.LogMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
-	if o.Raw && o.Diagnostic {
-		return fmt.Errorf("cannot use diagnostic & raw flags at once")
+	if o.Raw && o.Summary {
+		return fmt.Errorf("cannot use summary & raw flags at once")
 	}
 
-	if o.Raw || o.Diagnostic {
+	if o.Raw || o.Summary {
 		if len(args) != 0 {
 			return fmt.Errorf("can't use dataset reference. the raw flag shows the entire logbook")
 		}
@@ -255,10 +255,10 @@ func (o *LogbookOptions) RawLogs() error {
 	return nil
 }
 
-// LogbookDiagnostic prints a logbook overview
-func (o *LogbookOptions) LogbookDiagnostic() error {
+// LogbookSummary prints a logbook overview
+func (o *LogbookOptions) LogbookSummary() error {
 	var res string
-	if err := o.LogMethods.LogbookDiagnostic(&struct{}{}, &res); err != nil {
+	if err := o.LogMethods.LogbookSummary(&struct{}{}, &res); err != nil {
 		return err
 	}
 

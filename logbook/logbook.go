@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 
 	logger "github.com/ipfs/go-log"
@@ -632,26 +633,28 @@ func (book *Book) WriteRemotePush(ctx context.Context, initID string, revisions 
 		return nil, nil, err
 	}
 
+	var (
+		rollbackOnce  sync.Once
+		rollbackError error
+	)
 	// after successful save calling rollback drops the written push operation
-	// rollback can only be called once. it will overwrite itself with a noop func
-	// when called
 	rollback = func(ctx context.Context) error {
-		defer func() {
-			rollback = func(ctx context.Context) error { return nil }
-		}()
+		rollbackOnce.Do(func() {
+			branchLog, err := book.branchLog(ctx, initID)
+			if err != nil {
+				rollbackError = err
+				return
+			}
 
-		branchLog, err := book.branchLog(ctx, initID)
-		if err != nil {
-			return err
-		}
-
-		// TODO (b5) - the fact that this works means accessors are passing data that
-		// if modified will be persisted on save, which may be a *major* source of
-		// bugs if not handled correctly by packages that read & save logbook data
-		// we should consider returning copies, and adding explicit methods for
-		// modification.
-		branchLog.l.Ops = branchLog.l.Ops[:len(branchLog.l.Ops)-1]
-		return book.save(ctx)
+			// TODO (b5) - the fact that this works means accessors are passing data that
+			// if modified will be persisted on save, which may be a *major* source of
+			// bugs if not handled correctly by packages that read & save logbook data
+			// we should consider returning copies, and adding explicit methods for
+			// modification.
+			branchLog.l.Ops = branchLog.l.Ops[:len(branchLog.l.Ops)-1]
+			rollbackError = book.save(ctx)
+		})
+		return rollbackError
 	}
 
 	sparseLog, err := book.UserDatasetBranchesLog(ctx, initID)
@@ -690,20 +693,22 @@ func (book *Book) WriteRemoteDelete(ctx context.Context, initID string, revision
 		return nil, nil, err
 	}
 
+	var (
+		rollbackOnce  sync.Once
+		rollbackError error
+	)
 	// after successful save calling rollback drops the written push operation
-	// rollback can only be called once. it will overwrite itself with a noop func
-	// when called
 	rollback = func(ctx context.Context) error {
-		defer func() {
-			rollback = func(ctx context.Context) error { return nil }
-		}()
-
-		branchLog, err := book.branchLog(ctx, initID)
-		if err != nil {
-			return err
-		}
-		branchLog.l.Ops = branchLog.l.Ops[:len(branchLog.l.Ops)-1]
-		return book.save(ctx)
+		rollbackOnce.Do(func() {
+			branchLog, err := book.branchLog(ctx, initID)
+			if err != nil {
+				rollbackError = err
+				return
+			}
+			branchLog.l.Ops = branchLog.l.Ops[:len(branchLog.l.Ops)-1]
+			rollbackError = book.save(ctx)
+		})
+		return rollbackError
 	}
 
 	sparseLog, err := book.UserDatasetBranchesLog(ctx, initID)
@@ -1148,9 +1153,9 @@ func (book Book) PlainLogs(ctx context.Context) ([]PlainLog, error) {
 	return logs, nil
 }
 
-// DiagnosticString prints the entire hierarchy of logbook model/ID/opcount in a
-// single string
-func (book Book) DiagnosticString(ctx context.Context) string {
+// SummaryString prints the entire hierarchy of logbook model/ID/opcount/name in
+// a single string
+func (book Book) SummaryString(ctx context.Context) string {
 	logs, err := book.store.Logs(ctx, 0, -1)
 	if err != nil {
 		return fmt.Sprintf("error getting diagnostics: %q", err)

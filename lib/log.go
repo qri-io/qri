@@ -168,12 +168,12 @@ func (m *LogMethods) PlainLogs(p *PlainLogsParams, res *PlainLogs) (err error) {
 	return err
 }
 
-// LogbookDiagnostic returns a string overview of
-func (m *LogMethods) LogbookDiagnostic(p *struct{}, res *string) (err error) {
+// LogbookSummary returns a string overview of the logbook
+func (m *LogMethods) LogbookSummary(p *struct{}, res *string) (err error) {
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("LogMethods.Diagnostic", p, res))
 	}
 	ctx := context.TODO()
-	*res = m.inst.repo.Logbook().DiagnosticString(ctx)
+	*res = m.inst.repo.Logbook().SummaryString(ctx)
 	return nil
 }

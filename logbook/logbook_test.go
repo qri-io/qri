@@ -473,13 +473,16 @@ func TestPushModel(t *testing.T) {
 		t.Errorf("expected branch log to have 3 operations. got: %d", len(lg.Logs[0].Logs[0].Ops))
 	}
 
-	t.Log(tr.Book.DiagnosticString(ctx) + "\n\n")
+	t.Log(tr.Book.SummaryString(ctx) + "\n\n")
 
 	if err = rollback(ctx); err != nil {
 		t.Errorf("rollback error: %q", err)
 	}
+	if err = rollback(ctx); err != nil {
+		t.Errorf("rollback error: %q", err)
+	}
 
-	t.Log(tr.Book.DiagnosticString(ctx))
+	t.Log(tr.Book.SummaryString(ctx))
 
 	lg, err = tr.Book.UserDatasetBranchesLog(ctx, initID)
 	if err != nil {
@@ -514,7 +517,7 @@ func TestPushModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(lg.Logs[0].Logs[0].Ops) != 2 {
+	if len(lg.Logs[0].Logs[0].Ops) != 3 {
 		t.Errorf("expected branch log to have 3 operations after writing push & delete push. got: %d", len(lg.Logs[0].Logs[0].Ops))
 	}
 

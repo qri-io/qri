@@ -75,12 +75,12 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 	pro, _ := r.inst.Repo().Profile()
 	ref.ProfileID = pro.ID.String()
 
-	rref := reporef.RefFromDsref(ref)
-	if err = r.inst.RemoteClient().PushDataset(ctx, rref, addr); err != nil {
+	datasetRef := reporef.RefFromDsref(ref)
+	if err = r.inst.RemoteClient().PushDataset(ctx, datasetRef, addr); err != nil {
 		return err
 	}
-	rref.Published = true
-	if err = base.SetPublishStatus(r.inst.node.Repo, &rref, true); err != nil {
+	datasetRef.Published = true
+	if err = base.SetPublishStatus(r.inst.node.Repo, &datasetRef, datasetRef.Published); err != nil {
 		return err
 	}
 
