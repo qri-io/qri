@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"syscall"
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
@@ -11,7 +10,6 @@ import (
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 // NewGetCommand creates a new `qri search` command that searches for datasets
@@ -154,7 +152,7 @@ func (o *GetOptions) Run() (err error) {
 		// Generate a filename only if we're outputting to a terminal (not a pipe), and we're
 		// outputting a zip. lib.Get will also check that we're outputting a zip, this check is
 		// repeated here for clarity.
-		GenFilename: o.Outfile == "" && terminal.IsTerminal(syscall.Stdout) && o.Format == "zip",
+		GenFilename: o.Outfile == "" && stdoutIsTerminal() && o.Format == "zip",
 	}
 	res := lib.GetResult{}
 	if err = o.DatasetMethods.Get(&p, &res); err != nil {
