@@ -76,7 +76,7 @@ func newBranchLog(l *oplog.Log) *BranchLog {
 
 // Append adds an op to the BranchLog
 func (blog *BranchLog) Append(op oplog.Op) {
-	if op.Model != BranchModel && op.Model != CommitModel && op.Model != PublicationModel {
+	if op.Model != BranchModel && op.Model != CommitModel && op.Model != PushModel {
 		log.Errorf("cannot Append, incorrect model %d for BranchLog", op.Model)
 		return
 	}

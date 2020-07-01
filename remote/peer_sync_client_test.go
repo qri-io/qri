@@ -47,7 +47,8 @@ func TestAddDataset(t *testing.T) {
 		t.Error("expected add of invalid ref to error")
 	}
 
-	if err := cli.AddDataset(tr.Ctx, &worldBankRef, ""); err != nil {
+	wbpRef := reporef.RefFromDsref(worldBankRef)
+	if err := cli.AddDataset(tr.Ctx, &wbpRef, ""); err != nil {
 		t.Error(err.Error())
 	}
 }
@@ -72,7 +73,8 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 	defer cleanup()
 
 	worldBankRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
-	publishRef(t, tr.NodeA.Repo, &worldBankRef)
+	wbp := reporef.RefFromDsref(worldBankRef)
+	setRefPublished(t, tr.NodeA.Repo, &wbp)
 
 	rem := tr.NodeARemote(t)
 	server := tr.RemoteTestServer(rem)
@@ -103,7 +105,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 		t.Errorf("feeds result mismatch (-want +got): \n%s", diff)
 	}
 
-	ds, err := cli.Preview(tr.Ctx, reporef.ConvertToDsref(worldBankRef), server.URL)
+	ds, err := cli.Preview(tr.Ctx, worldBankRef, server.URL)
 	if err != nil {
 		t.Error(err)
 	}

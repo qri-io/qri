@@ -54,8 +54,8 @@ const (
 	BranchModel
 	// CommitModel is the enum for a commit model
 	CommitModel
-	// PublicationModel is the enum for a publication model
-	PublicationModel
+	// PushModel is the enum for a push model
+	PushModel
 	// ACLModel is the enum for a acl model
 	ACLModel
 )
@@ -76,8 +76,8 @@ func ModelString(m uint32) string {
 		return "branch"
 	case CommitModel:
 		return "commit"
-	case PublicationModel:
-		return "publication"
+	case PushModel:
+		return "push"
 	case ACLModel:
 		return "acl"
 	default:
@@ -604,59 +604,115 @@ func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisio
 	return book.save(ctx)
 }
 
-// WritePublish adds an operation to a log marking the publication of a number
-// of versions to one or more destinations
-func (book *Book) WritePublish(ctx context.Context, initID string, revisions int, destinations ...string) error {
+// WriteRemotePush adds an operation to a log marking the publication of a
+// number of versions to a remote address. It returns a rollback function that
+// removes the operation when called
+func (book *Book) WriteRemotePush(ctx context.Context, initID string, revisions int, remoteAddr string) (l *oplog.Log, rollback func(ctx context.Context) error, err error) {
 	if book == nil {
-		return ErrNoLogbook
+		return nil, nil, ErrNoLogbook
 	}
-	log.Debugf("WritePublish: %s, revisions: %d, destinations: %v", initID, revisions, destinations)
+	log.Debugf("WriteRemotePush: %s, revisions: %d, remote: %q", initID, revisions, remoteAddr)
 
 	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	if err := book.hasWriteAccess(branchLog.l); err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	branchLog.Append(oplog.Op{
 		Type:      oplog.OpTypeInit,
-		Model:     PublicationModel,
+		Model:     PushModel,
 		Size:      int64(revisions),
-		Relations: destinations,
-		// TODO (b5) - finish
+		Relations: []string{remoteAddr},
 	})
 
-	return book.save(ctx)
+	if err = book.save(ctx); err != nil {
+		return nil, nil, err
+	}
+
+	// after successful save calling rollback drops the written push operation
+	// rollback can only be called once. it will overwrite itself with a noop func
+	// when called
+	rollback = func(ctx context.Context) error {
+		defer func() {
+			rollback = func(ctx context.Context) error { return nil }
+		}()
+
+		branchLog, err := book.branchLog(ctx, initID)
+		if err != nil {
+			return err
+		}
+
+		// TODO (b5) - the fact that this works means accessors are passing data that
+		// if modified will be persisted on save, which may be a *major* source of
+		// bugs if not handled correctly by packages that read & save logbook data
+		// we should consider returning copies, and adding explicit methods for
+		// modification.
+		branchLog.l.Ops = branchLog.l.Ops[:len(branchLog.l.Ops)-1]
+		return book.save(ctx)
+	}
+
+	sparseLog, err := book.UserDatasetBranchesLog(ctx, initID)
+	if err != nil {
+		rollback(ctx)
+		return nil, rollback, err
+	}
+
+	return sparseLog, rollback, nil
 }
 
-// WriteUnpublish adds an operation to a log marking an unpublish request for a
-// count of sequential versions from HEAD
-// TODO(dustmop): Currently unused by codebase, only called in tests.
-func (book *Book) WriteUnpublish(ctx context.Context, initID string, revisions int, destinations ...string) error {
+// WriteRemoteDelete adds an operation to a log marking an unpublish request for
+// a count of sequential versions from HEAD
+func (book *Book) WriteRemoteDelete(ctx context.Context, initID string, revisions int, remoteAddr string) (l *oplog.Log, rollback func(ctx context.Context) error, err error) {
 	if book == nil {
-		return ErrNoLogbook
+		return nil, nil, ErrNoLogbook
 	}
-	log.Debugf("WriteUnpublish: %s, revisions: %d, destinations: %v", initID, revisions, destinations)
+	log.Debugf("WriteRemoteDelete: %s, revisions: %d, remote: %q", initID, revisions, remoteAddr)
 
 	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	if err := book.hasWriteAccess(branchLog.l); err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	branchLog.Append(oplog.Op{
 		Type:      oplog.OpTypeRemove,
-		Model:     PublicationModel,
+		Model:     PushModel,
 		Size:      int64(revisions),
-		Relations: destinations,
-		// TODO (b5) - finish
+		Relations: []string{remoteAddr},
 	})
 
-	return book.save(ctx)
+	if err = book.save(ctx); err != nil {
+		return nil, nil, err
+	}
+
+	// after successful save calling rollback drops the written push operation
+	// rollback can only be called once. it will overwrite itself with a noop func
+	// when called
+	rollback = func(ctx context.Context) error {
+		defer func() {
+			rollback = func(ctx context.Context) error { return nil }
+		}()
+
+		branchLog, err := book.branchLog(ctx, initID)
+		if err != nil {
+			return err
+		}
+		branchLog.l.Ops = branchLog.l.Ops[:len(branchLog.l.Ops)-1]
+		return book.save(ctx)
+	}
+
+	sparseLog, err := book.UserDatasetBranchesLog(ctx, initID)
+	if err != nil {
+		rollback(ctx)
+		return nil, rollback, err
+	}
+
+	return sparseLog, rollback, nil
 }
 
 // SetChangeHook assigns a hook that will be called when a dataset changes
@@ -757,43 +813,25 @@ func (book *Book) latestSavePath(branchLog *oplog.Log) string {
 	return ""
 }
 
-// UserDatasetRef gets a user's log and a dataset reference, the returned log
-// will be a user log with a single dataset log containing all known branches:
+// UserDatasetBranchesLog gets a user's log and a dataset reference.
+// the returned log will be a user log with only one dataset log containing all
+// known branches:
 //   user
 //     dataset
 //       branch
 //       branch
 //       ...
-func (book Book) UserDatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, error) {
-	if ref.Username == "" {
-		return nil, fmt.Errorf("logbook: reference Username is required")
+func (book Book) UserDatasetBranchesLog(ctx context.Context, datasetInitID string) (*oplog.Log, error) {
+	if datasetInitID == "" {
+		return nil, fmt.Errorf("%w: cannot use the empty string as an init id", ErrNotFound)
 	}
-	if ref.Name == "" {
-		return nil, fmt.Errorf("logbook: reference Name is required")
-	}
-
-	// fetch user log
-	author, err := book.store.HeadRef(ctx, ref.Username)
+	dsLog, err := book.store.Get(ctx, datasetInitID)
 	if err != nil {
 		return nil, err
 	}
-
-	// fetch dataset & all branches
-	ds, err := book.store.HeadRef(ctx, ref.Username, ref.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	br, err := book.BranchRef(ctx, ref)
-	if err != nil {
-		return nil, err
-	}
-
-	ds.AddChild(br)
 
 	// construct a sparse oplog of just user, dataset, and branches
-	sparseLog := &oplog.Log{Ops: author.Ops}
-	sparseLog.AddChild(ds)
+	sparseLog := &oplog.Log{Ops: dsLog.Parent().Ops, Logs: []*oplog.Log{dsLog}, Signature: dsLog.Signature}
 	return sparseLog, nil
 }
 
@@ -885,10 +923,6 @@ func (book *Book) MergeLog(ctx context.Context, sender identity.Author, lg *oplo
 	if err := lg.Verify(sender.AuthorPubKey()); err != nil {
 		return err
 	}
-
-	// if lg.ID() != sender.AuthorID() {
-	// 	return fmt.Errorf("authors can only push logs they own")
-	// }
 
 	if err := book.store.MergeLog(ctx, lg); err != nil {
 		return err
@@ -1001,7 +1035,7 @@ func branchToLogItems(blog *BranchLog, ref dsref.Ref, offset, limit int, collaps
 					deleteAtEnd += int(op.Size)
 				}
 			}
-		case PublicationModel:
+		case PushModel:
 			switch op.Type {
 			case oplog.OpTypeInit:
 				for i := 1; i <= int(op.Size); i++ {
@@ -1079,12 +1113,12 @@ func (book Book) LogEntries(ctx context.Context, ref dsref.Ref, offset, limit in
 }
 
 var actionStrings = map[uint32][3]string{
-	AuthorModel:      [3]string{"create profile", "update profile", "delete profile"},
-	DatasetModel:     [3]string{"init dataset", "rename dataset", "delete dataset"},
-	BranchModel:      [3]string{"init branch", "rename branch", "delete branch"},
-	CommitModel:      [3]string{"save commit", "amend commit", "remove commit"},
-	PublicationModel: [3]string{"publish", "", "unpublish"},
-	ACLModel:         [3]string{"update access", "update access", "remove all access"},
+	AuthorModel:  [3]string{"create profile", "update profile", "delete profile"},
+	DatasetModel: [3]string{"init dataset", "rename dataset", "delete dataset"},
+	BranchModel:  [3]string{"init branch", "rename branch", "delete branch"},
+	CommitModel:  [3]string{"save commit", "amend commit", "remove commit"},
+	PushModel:    [3]string{"publish", "", "unpublish"},
+	ACLModel:     [3]string{"update access", "update access", "remove all access"},
 }
 
 func logEntryFromOp(author string, op oplog.Op) LogEntry {
@@ -1112,6 +1146,28 @@ func (book Book) PlainLogs(ctx context.Context) ([]PlainLog, error) {
 		logs[i] = NewPlainLog(l)
 	}
 	return logs, nil
+}
+
+// DiagnosticString prints the entire hierarchy of logbook model/ID/opcount in a
+// single string
+func (book Book) DiagnosticString(ctx context.Context) string {
+	logs, err := book.store.Logs(ctx, 0, -1)
+	if err != nil {
+		return fmt.Sprintf("error getting diagnostics: %q", err)
+	}
+
+	builder := &strings.Builder{}
+	for _, user := range logs {
+		builder.WriteString(fmt.Sprintf("%s %s %d %s\n", ModelString(user.Model()), user.ID(), len(user.Ops), user.Name()))
+		for _, dataset := range user.Logs {
+			builder.WriteString(fmt.Sprintf("  %s %s %d %s\n", ModelString(dataset.Model()), dataset.ID(), len(dataset.Ops), dataset.Name()))
+			for _, branch := range dataset.Logs {
+				builder.WriteString(fmt.Sprintf("    %s %s %d %s\n", ModelString(branch.Model()), branch.ID(), len(branch.Ops), branch.Name()))
+			}
+		}
+	}
+
+	return builder.String()
 }
 
 // PlainLog is a human-oriented representation of oplog.Log intended for serialization

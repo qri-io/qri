@@ -111,9 +111,9 @@ func Example() {
 	// pretend we just published both saved versions of the dataset to the
 	// registry we log that here. Providing a revisions arg of 2 means we've
 	// published two consecutive revisions from head: the latest version, and the
-	// one before it. "registry.qri.cloud" indicates we published to a single
-	// destination with that name.
-	if err := book.WritePublish(ctx, initID, 2, "registry.qri.cloud"); err != nil {
+	// one before it. "registry.qri.cloud" indicates we published to a remote
+	// with that address
+	if _, _, err := book.WriteRemotePush(ctx, initID, 2, "registry.qri.cloud"); err != nil {
 		panic(err)
 	}
 
@@ -218,10 +218,10 @@ func TestNilCallable(t *testing.T) {
 	if err = book.WriteDatasetDelete(ctx, initID); err != logbook.ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.WritePublish(ctx, initID, 0); err != logbook.ErrNoLogbook {
+	if _, _, err = book.WriteRemotePush(ctx, initID, 0, ""); err != logbook.ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.WriteUnpublish(ctx, initID, 0); err != logbook.ErrNoLogbook {
+	if _, _, err = book.WriteRemoteDelete(ctx, initID, 0, ""); err != logbook.ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
 	if err = book.WriteVersionAmend(ctx, initID, nil); err != logbook.ErrNoLogbook {
@@ -286,20 +286,31 @@ func TestBookLogEntries(t *testing.T) {
 	}
 }
 
-func TestUserDatasetRef(t *testing.T) {
+func TestUserDatasetBranchesLog(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
+	tr.WriteWorldBankExample(t)
 	tr.WriteRenameExample(t)
 
-	if _, err := tr.Book.UserDatasetRef(tr.Ctx, dsref.Ref{}); err == nil {
+	if _, err := tr.Book.UserDatasetBranchesLog(tr.Ctx, ""); err == nil {
 		t.Error("expected LogBytes with empty ref to fail")
 	}
-	if _, err := tr.Book.UserDatasetRef(tr.Ctx, dsref.Ref{Username: tr.Username}); err == nil {
-		t.Error("expected LogBytes with empty name ref to fail")
+
+	if _, err := tr.Book.UserDatasetBranchesLog(tr.Ctx, tr.renameInitID); err != nil {
+		t.Errorf("expected LogBytes with proper ref to not return a wrap of logbook.ErrAccessDenied. got: %q", err)
 	}
-	if _, err := tr.Book.UserDatasetRef(tr.Ctx, tr.RenameRef()); err != nil {
-		t.Errorf("expected LogBytes with proper ref to not return a wrap of logbook.ErrAccessDenied. got: %s", err)
+
+	got, err := tr.Book.UserDatasetBranchesLog(tr.Ctx, tr.worldBankInitID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	justWorldBank := logbook.NewPlainLog(got)
+	expect := tr.WorldBankPlainLog()
+
+	if diff := cmp.Diff(expect, justWorldBank); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -308,7 +319,7 @@ func TestLogBytes(t *testing.T) {
 	defer cleanup()
 
 	tr.WriteRenameExample(t)
-	log, err := tr.Book.UserDatasetRef(tr.Ctx, tr.RenameRef())
+	log, err := tr.Book.UserDatasetBranchesLog(tr.Ctx, tr.RenameRef().InitID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -328,8 +339,8 @@ func TestDsRefAliasForLog(t *testing.T) {
 
 	tr.WriteWorldBankExample(t)
 	tr.WriteRenameExample(t)
-	egRef := tr.RenameRef()
-	log, err := tr.Book.UserDatasetRef(tr.Ctx, egRef)
+	egDatasetInitID := tr.RenameRef().InitID
+	log, err := tr.Book.UserDatasetBranchesLog(tr.Ctx, egDatasetInitID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -338,7 +349,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 		t.Error("expected nil ref to error")
 	}
 
-	wrongModelLog, err := tr.Book.UserDatasetRef(tr.Ctx, egRef)
+	wrongModelLog, err := tr.Book.UserDatasetBranchesLog(tr.Ctx, egDatasetInitID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -350,7 +361,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 	}
 
 	// TODO(b5) - not sure this is a proper test of ambiguity
-	ambiguousLog, err := tr.Book.UserDatasetRef(tr.Ctx, egRef)
+	ambiguousLog, err := tr.Book.UserDatasetBranchesLog(tr.Ctx, egDatasetInitID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,8 +377,8 @@ func TestDsRefAliasForLog(t *testing.T) {
 	}
 
 	expect := dsref.Ref{
-		Username: egRef.Username,
-		Name:     egRef.Name,
+		Username: tr.RenameRef().Username,
+		Name:     tr.RenameRef().Name,
 	}
 
 	if diff := cmp.Diff(expect, ref); diff != "" {
@@ -415,12 +426,98 @@ func TestWritePermissions(t *testing.T) {
 	if err := tr.Book.WriteVersionDelete(ctx, initID, 1); !errors.Is(err, logbook.ErrAccessDenied) {
 		t.Errorf("WriteVersionAmend to an oplog the book author doesn't own must return a wrap of logbook.ErrAccessDenied")
 	}
-	if err := tr.Book.WritePublish(ctx, initID, 1, "https://registry.example.com"); !errors.Is(err, logbook.ErrAccessDenied) {
+	if _, _, err := tr.Book.WriteRemotePush(ctx, initID, 1, "https://registry.example.com"); !errors.Is(err, logbook.ErrAccessDenied) {
 		t.Errorf("WritePublish to an oplog the book author doesn't own must return a wrap of logbook.ErrAccessDenied")
 	}
-	if err := tr.Book.WriteUnpublish(ctx, initID, 1, "https://registry.example.com"); !errors.Is(err, logbook.ErrAccessDenied) {
+	if _, _, err := tr.Book.WriteRemoteDelete(ctx, initID, 1, "https://registry.example.com"); !errors.Is(err, logbook.ErrAccessDenied) {
 		t.Errorf("WriteUnpublish to an oplog the book author doesn't own must return a wrap of logbook.ErrAccessDenied")
 	}
+}
+
+func TestPushModel(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	initID, err := tr.Book.WriteDatasetInit(ctx, "publish_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// TODO (b5) - we should have a check like this:
+	// if _, _, err := tr.Book.WriteRemotePush(ctx, initID, 1, "example/remote/address"); err == nil {
+	// 	t.Error("expected writing a push with no available versions to fail, got none")
+	// }
+
+	err = tr.Book.WriteVersionSave(ctx, initID, &dataset.Dataset{
+		Peername: tr.Username,
+		Name:     "atmospheric_particulates",
+		Commit: &dataset.Commit{
+			Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			Title:     "initial commit",
+		},
+		Path: "HashOfVersion1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lg, rollback, err := tr.Book.WriteRemotePush(ctx, initID, 1, "example/remote/address")
+	if err != nil {
+		t.Errorf("error writing push: %q", err)
+	}
+
+	if len(lg.Logs[0].Logs[0].Ops) != 3 {
+		t.Errorf("expected branch log to have 3 operations. got: %d", len(lg.Logs[0].Logs[0].Ops))
+	}
+
+	t.Log(tr.Book.DiagnosticString(ctx) + "\n\n")
+
+	if err = rollback(ctx); err != nil {
+		t.Errorf("rollback error: %q", err)
+	}
+
+	t.Log(tr.Book.DiagnosticString(ctx))
+
+	lg, err = tr.Book.UserDatasetBranchesLog(ctx, initID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(lg.Logs[0].Logs[0].Ops) != 2 {
+		t.Errorf("expected branch log to have 2 operations after rollback. got: %d", len(lg.Logs[0].Logs[0].Ops))
+	}
+
+	_, _, err = tr.Book.WriteRemotePush(ctx, initID, 1, "example/remote/address")
+	if err != nil {
+		t.Errorf("error writing push: %q", err)
+	}
+
+	lg, rollback, err = tr.Book.WriteRemoteDelete(ctx, initID, 1, "example/remote/address")
+	if err != nil {
+		t.Errorf("error writing delete: %q", err)
+	}
+
+	if len(lg.Logs[0].Logs[0].Ops) != 4 {
+		t.Errorf("expected branch log to have 4 operations after writing push & delete push. got: %d", len(lg.Logs[0].Logs[0].Ops))
+	}
+	if err := rollback(ctx); err != nil {
+		t.Errorf("rollback error: %q", err)
+	}
+	if err = rollback(ctx); err != nil {
+		t.Errorf("extra calls to rollback should not error. got: %q", err)
+	}
+
+	lg, err = tr.Book.UserDatasetBranchesLog(ctx, initID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lg.Logs[0].Logs[0].Ops) != 2 {
+		t.Errorf("expected branch log to have 3 operations after writing push & delete push. got: %d", len(lg.Logs[0].Logs[0].Ops))
+	}
+
 }
 
 func TestDatasetLogNaming(t *testing.T) {
@@ -519,7 +616,7 @@ func TestDatasetLogNaming(t *testing.T) {
 	}
 }
 
-func TestBookRawLog(t *testing.T) {
+func TestBookPlainLogs(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
@@ -537,88 +634,7 @@ func TestBookRawLog(t *testing.T) {
 	// t.Logf("%s", string(data))
 
 	expect := []logbook.PlainLog{
-		{
-			Ops: []logbook.PlainOp{
-				{
-					Type:      "init",
-					Model:     "user",
-					Name:      "test_author",
-					AuthorID:  "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-					Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
-				},
-			},
-			Logs: []logbook.PlainLog{
-				logbook.PlainLog{
-					Ops: []logbook.PlainOp{
-						{
-							Type:      "init",
-							Model:     "dataset",
-							Name:      "world_bank_population",
-							AuthorID:  "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q",
-							Timestamp: mustTime("1999-12-31T19:01:00-05:00"),
-						},
-					},
-					Logs: []logbook.PlainLog{
-						logbook.PlainLog{
-							Ops: []logbook.PlainOp{
-								{
-									Type:      "init",
-									Model:     "branch",
-									Name:      "main",
-									AuthorID:  "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q",
-									Timestamp: mustTime("1999-12-31T19:02:00-05:00"),
-								},
-								{
-									Type:      "init",
-									Model:     "commit",
-									Ref:       "QmHashOfVersion1",
-									Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
-									Note:      "initial commit",
-								},
-								{
-									Type:      "init",
-									Model:     "commit",
-									Ref:       "QmHashOfVersion2",
-									Prev:      "QmHashOfVersion1",
-									Timestamp: mustTime("2000-01-01T19:00:00-05:00"),
-									Note:      "added body data",
-								},
-								{
-									Type:  "init",
-									Model: "publication",
-									Relations: []string{
-										"registry.qri.cloud",
-									},
-									Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
-									Size:      2,
-								},
-								{
-									Type:      "remove",
-									Model:     "publication",
-									Relations: []string{"registry.qri.cloud"},
-									Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
-									Size:      2,
-								},
-								{
-									Type:      "remove",
-									Model:     "commit",
-									Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
-									Size:      1,
-								},
-								{
-									Type:      "amend",
-									Model:     "commit",
-									Ref:       "QmHashOfVersion3",
-									Prev:      "QmHashOfVersion1",
-									Timestamp: mustTime("2000-01-02T19:00:00-05:00"),
-									Note:      "added meta info",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+		tr.WorldBankPlainLog(),
 	}
 
 	if diff := cmp.Diff(expect, got); diff != "" {
@@ -633,7 +649,7 @@ func TestLogTransfer(t *testing.T) {
 	tr.WriteWorldBankExample(t)
 	tr.WriteRenameExample(t)
 
-	log, err := tr.Book.UserDatasetRef(tr.Ctx, tr.WorldBankRef())
+	log, err := tr.Book.UserDatasetBranchesLog(tr.Ctx, tr.WorldBankRef().InitID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -813,7 +829,7 @@ func TestConstructDatasetLog(t *testing.T) {
 	name := "to_reconstruct"
 	ref := dsref.Ref{Username: tr.Username, Name: name}
 	history := []*dataset.Dataset{
-		&dataset.Dataset{
+		{
 			Peername: tr.Username,
 			Name:     name,
 			Commit: &dataset.Commit{
@@ -822,7 +838,7 @@ func TestConstructDatasetLog(t *testing.T) {
 			},
 			Path: "HashOfVersion1",
 		},
-		&dataset.Dataset{
+		{
 			Peername: tr.Username,
 			Name:     name,
 			Commit: &dataset.Commit{
@@ -832,7 +848,7 @@ func TestConstructDatasetLog(t *testing.T) {
 			Path:         "HashOfVersion2",
 			PreviousPath: "HashOfVersion1",
 		},
-		&dataset.Dataset{
+		{
 			Peername: tr.Username,
 			Name:     name,
 			Commit: &dataset.Commit{
@@ -880,6 +896,9 @@ type testRunner struct {
 	Fs       qfs.Filesystem
 	Pk       crypto.PrivKey
 	Tick     int
+
+	renameInitID    string
+	worldBankInitID string
 }
 
 func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
@@ -914,7 +933,7 @@ func (tr *testRunner) newTimestamp() int64 {
 }
 
 func (tr *testRunner) WorldBankRef() dsref.Ref {
-	return dsref.Ref{Username: tr.Username, Name: "world_bank_population"}
+	return dsref.Ref{Username: tr.Username, Name: "world_bank_population", InitID: tr.worldBankInitID}
 }
 
 func (tr *testRunner) WorldBankID() string {
@@ -929,6 +948,7 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) string {
 	if err != nil {
 		panic(err)
 	}
+	tr.worldBankInitID = initID
 
 	// pretend we've just created a dataset, these are the only fields the log
 	// will care about
@@ -959,11 +979,11 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) string {
 		t.Fatal(err)
 	}
 
-	if err := book.WritePublish(tr.Ctx, initID, 2, "registry.qri.cloud"); err != nil {
+	if _, _, err := book.WriteRemotePush(tr.Ctx, initID, 2, "registry.qri.cloud"); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := book.WriteUnpublish(tr.Ctx, initID, 2, "registry.qri.cloud"); err != nil {
+	if _, _, err := book.WriteRemoteDelete(tr.Ctx, initID, 2, "registry.qri.cloud"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1016,11 +1036,11 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T, initID string) {
 }
 
 func (tr *testRunner) RenameInitialRef() dsref.Ref {
-	return dsref.Ref{Username: tr.Book.AuthorName(), Name: "dataset"}
+	return dsref.Ref{Username: tr.Book.AuthorName(), Name: "dataset", InitID: tr.renameInitID}
 }
 
 func (tr *testRunner) RenameRef() dsref.Ref {
-	return dsref.Ref{Username: tr.Book.AuthorName(), Name: "renamed_dataset"}
+	return dsref.Ref{Username: tr.Book.AuthorName(), Name: "renamed_dataset", InitID: tr.renameInitID}
 }
 
 func (tr *testRunner) WriteRenameExample(t *testing.T) {
@@ -1032,6 +1052,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	tr.renameInitID = initID
 
 	// pretend we've just created a dataset, these are the only fields the log
 	// will care about
@@ -1083,6 +1104,91 @@ func (tr *testRunner) foreignLogbook(t *testing.T, username string) *logbook.Boo
 	return journal
 }
 
+func (tr *testRunner) WorldBankPlainLog() logbook.PlainLog {
+	return logbook.PlainLog{
+		Ops: []logbook.PlainOp{
+			{
+				Type:      "init",
+				Model:     "user",
+				Name:      "test_author",
+				AuthorID:  "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+				Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
+			},
+		},
+		Logs: []logbook.PlainLog{
+			{
+				Ops: []logbook.PlainOp{
+					{
+						Type:      "init",
+						Model:     "dataset",
+						Name:      "world_bank_population",
+						AuthorID:  "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q",
+						Timestamp: mustTime("1999-12-31T19:01:00-05:00"),
+					},
+				},
+				Logs: []logbook.PlainLog{
+					{
+						Ops: []logbook.PlainOp{
+							{
+								Type:      "init",
+								Model:     "branch",
+								Name:      "main",
+								AuthorID:  "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q",
+								Timestamp: mustTime("1999-12-31T19:02:00-05:00"),
+							},
+							{
+								Type:      "init",
+								Model:     "commit",
+								Ref:       "QmHashOfVersion1",
+								Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
+								Note:      "initial commit",
+							},
+							{
+								Type:      "init",
+								Model:     "commit",
+								Ref:       "QmHashOfVersion2",
+								Prev:      "QmHashOfVersion1",
+								Timestamp: mustTime("2000-01-01T19:00:00-05:00"),
+								Note:      "added body data",
+							},
+							{
+								Type:  "init",
+								Model: "push",
+								Relations: []string{
+									"registry.qri.cloud",
+								},
+								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+								Size:      2,
+							},
+							{
+								Type:      "remove",
+								Model:     "push",
+								Relations: []string{"registry.qri.cloud"},
+								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+								Size:      2,
+							},
+							{
+								Type:      "remove",
+								Model:     "commit",
+								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+								Size:      1,
+							},
+							{
+								Type:      "amend",
+								Model:     "commit",
+								Ref:       "QmHashOfVersion3",
+								Prev:      "QmHashOfVersion1",
+								Timestamp: mustTime("2000-01-02T19:00:00-05:00"),
+								Note:      "added meta info",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 // GenerateExampleOplog makes an example dataset history on a given journal,
 // returning the initID and a signed log
 func GenerateExampleOplog(ctx context.Context, t *testing.T, journal *logbook.Book, dsname, headPath string) (string, *oplog.Log) {
@@ -1108,7 +1214,7 @@ func GenerateExampleOplog(ctx context.Context, t *testing.T, journal *logbook.Bo
 
 	// TODO (b5) - we need UserDatasetRef here b/c it returns the full hierarchy
 	// of oplogs. This method should take an InitID
-	lg, err := journal.UserDatasetRef(ctx, dsref.Ref{Username: username, Name: dsname})
+	lg, err := journal.UserDatasetBranchesLog(ctx, initID)
 	if err != nil {
 		t.Fatal(err)
 	}

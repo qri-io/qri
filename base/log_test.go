@@ -92,7 +92,7 @@ func TestDatasetLogForeign(t *testing.T) {
 	ref.Path = "QmExample"
 	foreignBuilder.Commit(ctx, t, initID, "their commit", ref.Path)
 	foreignBook := foreignBuilder.Logbook()
-	foreignLog, err := foreignBook.UserDatasetRef(ctx, ref)
+	foreignLog, err := foreignBook.UserDatasetBranchesLog(ctx, initID)
 	if err != nil {
 		t.Fatal(err)
 	}
