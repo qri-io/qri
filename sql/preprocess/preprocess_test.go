@@ -56,6 +56,14 @@ func TestPrepropcess(t *testing.T) {
 		},
 
 		{
+			"SELECT * FROM nyc-transit-data/turnstile_daily_counts_2019 t LIMIT 10",
+			"SELECT * FROM nyc_transit_data_turnstile_daily_counts_2019 t LIMIT 10",
+			map[string]string{
+				"nyc_transit_data_turnstile_daily_counts_2019": "nyc-transit-data/turnstile_daily_counts_2019",
+			},
+		},
+
+		{
 			"SELECT (SELECT 1)",
 			"SELECT (SELECT 1)",
 			map[string]string{},
