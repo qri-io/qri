@@ -192,7 +192,8 @@ func (p *processor) processTableRef(text string) error {
 
 func toLegalName(refStr string) string {
 	refStr = strings.Replace(refStr, "@", "_at_", 1)
-	return strings.Replace(refStr, "/", "_", -1)
+	refStr = strings.ReplaceAll(refStr, "/", "_")
+	return strings.ReplaceAll(refStr, "-", "_")
 }
 
 // scan reads one token from the input stream
