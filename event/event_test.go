@@ -3,7 +3,6 @@ package event
 import (
 	"context"
 	"fmt"
-	"testing"
 )
 
 func Example() {
@@ -14,66 +13,34 @@ func Example() {
 	)
 
 	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
 	bus := NewBus(ctx)
-	ch1 := bus.Subscribe(ETMainSaidHello)
-	ch2 := bus.Subscribe(ETMainSaidHello)
-	ch3 := bus.Subscribe(ETMainSaidHello)
 
-	go bus.Publish(ETMainSaidHello, "hello")
-
-	tasks := 3
-
-	for {
-		select {
-		case d := <-ch1:
-			fmt.Println(d.Payload)
-		case d := <-ch2:
-			fmt.Println(d.Payload)
-		case d := <-ch3:
-			fmt.Println(d.Payload)
-		}
-
-		tasks--
-		if tasks == 0 {
-			break
+	makeDoneHandler := func(label string) Handler {
+		return func(ctx context.Context, topic Topic, payload interface{}) error {
+			fmt.Printf("%s handler called\n", label)
+			return nil
 		}
 	}
 
-	opCh := bus.SubscribeOnce(ETMainOpSucceeded, ETMainOpFailed)
+	bus.Subscribe(makeDoneHandler("first"), ETMainSaidHello, ETMainOpSucceeded)
+	bus.Subscribe(makeDoneHandler("second"), ETMainSaidHello)
+	bus.Subscribe(makeDoneHandler("third"), ETMainSaidHello)
 
-	go bus.Publish(ETMainOpFailed, fmt.Errorf("it didn't work?"))
+	bus.Publish(ctx, ETMainSaidHello, "hello")
+	bus.Publish(ctx, ETMainOpSucceeded, "operation worked!")
 
-	event := <-opCh
-	fmt.Println(event.Payload)
-	done()
+	// opCh := bus.SubscribeOnce(ETMainOpSucceeded, ETMainOpFailed)
 
-	// Output: hello
-	// hello
-	// hello
-	// it didn't work?
-}
+	// go bus.Publish(ETMainOpFailed, fmt.Errorf("it didn't work?"))
 
-func TestSubscribeUnsubscribe(t *testing.T) {
-	ctx := context.Background()
-	const testTopic = Topic("test_event")
+	// event := <-opCh
+	// fmt.Println(event.Payload)
+	// done()
 
-	b := NewBus(ctx)
-	ch1 := b.Subscribe(testTopic)
-	ch2 := b.Subscribe(testTopic)
-
-	if b.NumSubscribers() != 2 {
-		t.Errorf("expected 2 subscribers, got %d", b.NumSubscribers())
-	}
-
-	b.Unsubscribe(ch1)
-
-	if b.NumSubscribers() != 1 {
-		t.Errorf("expected 1 subscribers, got %d", b.NumSubscribers())
-	}
-
-	b.Unsubscribe(ch2)
-
-	if b.NumSubscribers() != 0 {
-		t.Errorf("expected 1 subscribers, got %d", b.NumSubscribers())
-	}
+	// Output: first handler called
+	// second handler called
+	// third handler called
+	// first handler called
 }

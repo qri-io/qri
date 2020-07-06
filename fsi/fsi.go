@@ -12,6 +12,7 @@
 package fsi
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -141,6 +142,7 @@ func (fsi *FSI) EnsureRefNotLinked(ref dsref.Ref) error {
 // CreateLink links a working directory to an existing dataset. Returning
 // updated VersionInfo and a rollback function if no error occurs
 func (fsi *FSI) CreateLink(dirPath string, ref dsref.Ref) (vi *dsref.VersionInfo, rollback func(), err error) {
+	ctx := context.TODO()
 	rollback = func() {}
 
 	// todo(arqu): should utilize rollback as other operations bellow
@@ -179,11 +181,14 @@ func (fsi *FSI) CreateLink(dirPath string, ref dsref.Ref) (vi *dsref.VersionInfo
 	}
 
 	// Send an event to the bus about this checkout
-	fsi.pub.Publish(event.ETFSICreateLinkEvent, event.FSICreateLinkEvent{
+	err = fsi.pub.Publish(ctx, event.ETFSICreateLinkEvent, event.FSICreateLinkEvent{
 		FSIPath:  dirPath,
 		Username: vi.Username,
 		Dsname:   vi.Name,
 	})
+	if err != nil {
+		return nil, removeLinkAndRemoveRefFunc, err
+	}
 
 	if fsi.onChangeHook != nil {
 		fsi.onChangeHook(hook.DsChange{
