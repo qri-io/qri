@@ -56,7 +56,7 @@ type VersionInfo struct {
 	// Num of rows in the body
 	BodyRows int `json:"bodyRows,omitempty"`
 	// Format of the body, such as "csv" or "json"
-	BodyFormat string `json:"bodyFromat,omitempty"`
+	BodyFormat string `json:"bodyFormat,omitempty"`
 	// Number of errors from the structure
 	NumErrors int `json:"numErrors,omitempty"`
 	//
