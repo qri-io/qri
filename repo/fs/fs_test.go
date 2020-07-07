@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -37,6 +38,7 @@ func TestRepo(t *testing.T) {
 		}
 
 		ctx := context.Background()
+		bus := event.NewBus(ctx)
 		fs, err := muxfs.New(ctx, []qfs.Config{
 			{Type: "map"},
 			{Type: "mem"},
@@ -46,12 +48,12 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, fs, "/mem/logbook.qfb")
+		book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, "/mem/logbook.qfb")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		cache := dscache.NewDscache(ctx, fs, nil, pro.Peername, "")
+		cache := dscache.NewDscache(ctx, fs, bus, pro.Peername, "")
 
 		r, err := NewRepo(path, fs, book, cache, pro)
 		if err != nil {
@@ -87,6 +89,7 @@ func TestResolveRef(t *testing.T) {
 	}
 
 	ctx := context.Background()
+	bus := event.NewBus(ctx)
 	fs, err := muxfs.New(ctx, []qfs.Config{
 		{Type: "map"},
 		{Type: "mem"},
@@ -96,12 +99,12 @@ func TestResolveRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, fs, "/mem/logbook.qfb")
+	book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cache := dscache.NewDscache(ctx, fs, nil, "", "")
+	cache := dscache.NewDscache(ctx, fs, bus, "", "")
 
 	r, err := NewRepo(path, fs, book, cache, pro)
 	if err != nil {

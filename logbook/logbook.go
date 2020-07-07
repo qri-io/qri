@@ -20,7 +20,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/event/hook"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 )
@@ -97,7 +97,7 @@ type Book struct {
 	fsLocation string
 	fs         qfs.Filesystem
 
-	onChangeHook func(hook.DsChange)
+	publisher event.Publisher
 }
 
 // NewBook creates a book with a user-provided logstore
@@ -108,7 +108,7 @@ func NewBook(pk crypto.PrivKey, store oplog.Logstore) *Book {
 // NewJournal initializes a logbook owned by a single author, reading any
 // existing data at the given filesystem location.
 // logbooks are encrypted at rest with the given private key
-func NewJournal(pk crypto.PrivKey, username string, fs qfs.Filesystem, location string) (*Book, error) {
+func NewJournal(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesystem, location string) (*Book, error) {
 	ctx := context.Background()
 	if pk == nil {
 		return nil, fmt.Errorf("logbook: private key is required")
@@ -119,6 +119,9 @@ func NewJournal(pk crypto.PrivKey, username string, fs qfs.Filesystem, location 
 	if location == "" {
 		return nil, fmt.Errorf("logbook: location is required")
 	}
+	if bus == nil {
+		return nil, fmt.Errorf("logbook: event.Bus is required")
+	}
 
 	book := &Book{
 		store:      &oplog.Journal{},
@@ -126,6 +129,7 @@ func NewJournal(pk crypto.PrivKey, username string, fs qfs.Filesystem, location 
 		pk:         pk,
 		authorName: username,
 		fsLocation: location,
+		publisher:  bus,
 	}
 
 	if err := book.load(ctx); err != nil {
@@ -324,16 +328,16 @@ func (book *Book) WriteDatasetInit(ctx context.Context, dsName string) (string, 
 
 	initID := dsLog.ID()
 
-	if book.onChangeHook != nil {
-		// TODO(dlong): Perhaps in the future, pass the authorID (hash of the author creation
-		// block) to the dscache, use that instead-of or in-addition-to the profileID.
-		book.onChangeHook(hook.DsChange{
-			Type:       hook.DatasetNameInit,
-			InitID:     initID,
-			Username:   book.AuthorName(),
-			ProfileID:  profileID,
-			PrettyName: dsName,
-		})
+	// TODO(dlong): Perhaps in the future, pass the authorID (hash of the author creation
+	// block) to the dscache, use that instead-of or in-addition-to the profileID.
+	err = book.publisher.Publish(ctx, event.ETDatasetNameInit, event.DsChange{
+		InitID:     initID,
+		Username:   book.AuthorName(),
+		ProfileID:  profileID,
+		PrettyName: dsName,
+	})
+	if err != nil {
+		log.Error(err)
 	}
 
 	return initID, book.save(ctx)
@@ -365,13 +369,15 @@ func (book *Book) WriteDatasetRename(ctx context.Context, initID string, newName
 		Name:      newName,
 		Timestamp: NewTimestamp(),
 	})
-	if book.onChangeHook != nil {
-		book.onChangeHook(hook.DsChange{
-			Type:       hook.DatasetRename,
-			InitID:     initID,
-			PrettyName: newName,
-		})
+
+	err = book.publisher.Publish(ctx, event.ETDatasetRename, event.DsChange{
+		InitID:     initID,
+		PrettyName: newName,
+	})
+	if err != nil {
+		log.Error(err)
 	}
+
 	return book.save(ctx)
 }
 
@@ -465,11 +471,12 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, initID string) error {
 		Model:     DatasetModel,
 		Timestamp: NewTimestamp(),
 	})
-	if book.onChangeHook != nil {
-		book.onChangeHook(hook.DsChange{
-			Type:   hook.DatasetDeleteAll,
-			InitID: initID,
-		})
+
+	err = book.publisher.Publish(ctx, event.ETDatasetDeleteAll, event.DsChange{
+		InitID: initID,
+	})
+	if err != nil {
+		log.Error(err)
 	}
 
 	return book.save(ctx)
@@ -501,15 +508,16 @@ func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *datas
 
 	info := dsref.ConvertDatasetToVersionInfo(ds)
 
-	if book.onChangeHook != nil {
-		book.onChangeHook(hook.DsChange{
-			Type:     hook.DatasetCommitChange,
-			InitID:   initID,
-			TopIndex: topIndex,
-			HeadRef:  info.Path,
-			Info:     &info,
-		})
+	err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, event.DsChange{
+		InitID:   initID,
+		TopIndex: topIndex,
+		HeadRef:  info.Path,
+		Info:     &info,
+	})
+	if err != nil {
+		log.Error(err)
 	}
+
 	return nil
 }
 
@@ -591,14 +599,14 @@ func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisio
 
 	if len(items) > 0 {
 		lastItem := items[len(items)-1]
-		if book.onChangeHook != nil {
-			book.onChangeHook(hook.DsChange{
-				Type:     hook.DatasetCommitChange,
-				InitID:   initID,
-				TopIndex: len(items),
-				HeadRef:  lastItem.Path,
-				Info:     &lastItem.VersionInfo,
-			})
+		err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, event.DsChange{
+			InitID:   initID,
+			TopIndex: len(items),
+			HeadRef:  lastItem.Path,
+			Info:     &lastItem.VersionInfo,
+		})
+		if err != nil {
+			log.Error(err)
 		}
 	}
 
@@ -718,11 +726,6 @@ func (book *Book) WriteRemoteDelete(ctx context.Context, initID string, revision
 	}
 
 	return sparseLog, rollback, nil
-}
-
-// SetChangeHook assigns a hook that will be called when a dataset changes
-func (book *Book) SetChangeHook(changeHook func(hook.DsChange)) {
-	book.onChangeHook = changeHook
 }
 
 // ListAllLogs lists all of the logs in the logbook

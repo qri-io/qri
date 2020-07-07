@@ -40,14 +40,6 @@ type Publisher interface {
 	Publish(ctx context.Context, topic Topic, payload interface{}) error
 }
 
-// NilPublisher replaces a nil value, does nothing
-type NilPublisher struct{}
-
-// Publish does nothing with the event
-func (n *NilPublisher) Publish(_ context.Context, _ Topic, _ interface{}) error {
-	return nil
-}
-
 // Bus is a central coordination point for event publication and subscription
 // zero or more subscribers register topics to be notified of, a publisher
 // writes a topic event to the bus, which broadcasts to all subscribers of that
@@ -62,11 +54,34 @@ type Bus interface {
 	NumSubscribers() int
 }
 
+// NilBus replaces a nil value. it implements the bus interface, but does
+// nothing
+var NilBus = nilBus{}
+
+type nilBus struct{}
+
+// assert at compile time that nilBus implements the Bus interface
+var _ Bus = (*nilBus)(nil)
+
+// Publish does nothing with the event
+func (nilBus) Publish(_ context.Context, _ Topic, _ interface{}) error {
+	return nil
+}
+
+func (nilBus) Subscribe(handler Handler, topics ...Topic) {}
+
+func (nilBus) NumSubscribers() int {
+	return 0
+}
+
 type bus struct {
 	lk     sync.RWMutex
 	closed bool
 	subs   map[Topic][]Handler
 }
+
+// assert at compile time that bus implements the Bus interface
+var _ Bus = (*bus)(nil)
 
 // NewBus creates a new event bus. Event busses should be instantiated as a
 // singleton. If the passed in context is cancelled, the bus will stop emitting
@@ -118,23 +133,6 @@ func (b *bus) Subscribe(handler Handler, topics ...Topic) {
 		b.subs[topic] = append(b.subs[topic], handler)
 	}
 }
-
-// // Unsubscribe cleans up a channel that no longer need to receive events
-// func (b *bus) Unsubscribe(unsub Handler, rmTopics ...Topic) {
-// 	b.lk.Lock()
-// 	defer b.lk.Unlock()
-// 	for _, rmTopic := range rmTopics {
-// 		var replace []Handler
-// 		for i, handler := range b.subs[rmTopic] {
-// 			if handler == unsub {
-// 				replace = append(b.subs[rmTopic][:i], b.subs[rmTopic][i+1:]...)
-// 			}
-// 		}
-// 		if replace != nil {
-// 			b.subs[rmTopic] = replace
-// 		}
-// 	}
-// }
 
 // NumSubscribers returns the number of subscribers to the bus's events
 func (b *bus) NumSubscribers() int {

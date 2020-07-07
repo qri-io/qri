@@ -31,14 +31,6 @@ func Example() {
 	bus.Publish(ctx, ETMainSaidHello, "hello")
 	bus.Publish(ctx, ETMainOpSucceeded, "operation worked!")
 
-	// opCh := bus.SubscribeOnce(ETMainOpSucceeded, ETMainOpFailed)
-
-	// go bus.Publish(ETMainOpFailed, fmt.Errorf("it didn't work?"))
-
-	// event := <-opCh
-	// fmt.Println(event.Payload)
-	// done()
-
 	// Output: first handler called
 	// second handler called
 	// third handler called

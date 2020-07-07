@@ -21,12 +21,13 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	qipfs "github.com/qri-io/qfs/qipfs"
 	cfgtest "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/event"
 	qrirepo "github.com/qri-io/qri/repo"
 	profile "github.com/qri-io/qri/repo/profile"
 )
 
 // MakeRepoFromIPFSNode wraps an ipfs node with a mock qri repo
-func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username string) (qrirepo.Repo, error) {
+func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username string, bus event.Bus) (qrirepo.Repo, error) {
 	p := &profile.Profile{
 		ID:       profile.IDFromPeerID(node.Identity),
 		Peername: username,
@@ -49,7 +50,7 @@ func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username str
 		return nil, err
 	}
 
-	return qrirepo.NewMemRepo(ctx, p, mux)
+	return qrirepo.NewMemRepo(ctx, p, mux, bus)
 }
 
 // MakeIPFSNode creates a single mock IPFS Node

@@ -11,7 +11,7 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/event/hook"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -34,7 +34,8 @@ type MemRepo struct {
 }
 
 // NewMemRepo creates a new in-memory repository
-func NewMemRepo(ctx context.Context, p *profile.Profile, fs *muxfs.Mux) (*MemRepo, error) {
+// TODO (b5) - this constructor should have an event.bus argument
+func NewMemRepo(ctx context.Context, p *profile.Profile, fs *muxfs.Mux, bus event.Bus) (*MemRepo, error) {
 	if fs.Filesystem(qfs.MemFilestoreType) == nil {
 		fs.SetFilesystem(qfs.NewMemFS())
 	}
@@ -42,14 +43,14 @@ func NewMemRepo(ctx context.Context, p *profile.Profile, fs *muxfs.Mux) (*MemRep
 		fs.SetFilesystem(cafs.NewMapstore())
 	}
 
-	book, err := logbook.NewJournal(p.PrivKey, p.Peername, fs, "/mem/logbook.qfb")
+	book, err := logbook.NewJournal(p.PrivKey, p.Peername, bus, fs, "/mem/logbook.qfb")
 	if err != nil {
 		return nil, err
 	}
 
 	// NOTE: This dscache won't get change notifications from FSI, because it's not constructed
 	// with the hook for FSI.
-	cache := dscache.NewDscache(ctx, fs, []hook.ChangeNotifier{book}, p.Peername, "")
+	cache := dscache.NewDscache(ctx, fs, bus, p.Peername, "")
 
 	mr := &MemRepo{
 		filesystem:  fs,

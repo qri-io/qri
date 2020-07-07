@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook/oplog"
 )
 
@@ -21,7 +22,9 @@ type BookBuilder struct {
 
 // NewLogbookTempBuilder constructs a logbook tmp BookBuilder
 func NewLogbookTempBuilder(t *testing.T, privKey crypto.PrivKey, username string, fs qfs.Filesystem, rootPath string) BookBuilder {
-	book, err := NewJournal(privKey, username, fs, rootPath)
+	// TODO (b5) - accept an event bus
+	bus := event.NewBus(context.Background())
+	book, err := NewJournal(privKey, username, bus, fs, rootPath)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -13,6 +13,7 @@ import (
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -67,11 +68,11 @@ func TestDscacheAssignSaveAndLoad(t *testing.T) {
 
 	// A dscache that will save when it is assigned
 	dscacheFile := filepath.Join(tmpdir, "dscache.qfb")
-	saveable := NewDscache(ctx, fs, nil, peername, dscacheFile)
+	saveable := NewDscache(ctx, fs, event.NilBus, peername, dscacheFile)
 	saveable.Assign(constructed)
 
 	// Load the dscache from its serialized file, verify it has correct data
-	loadable := NewDscache(ctx, fs, nil, peername, dscacheFile)
+	loadable := NewDscache(ctx, fs, event.NilBus, peername, dscacheFile)
 	if loadable.Root.UsersLength() != 1 {
 		t.Errorf("expected, 1 user, got %d users", loadable.Root.UsersLength())
 	}
@@ -93,7 +94,7 @@ func TestResolveRef(t *testing.T) {
 		t.Errorf("error creating local filesystem: %s", err)
 	}
 	path := filepath.Join(tmpdir, "dscache.qfb")
-	dsc := NewDscache(ctx, fs, nil, "test_resolve_ref_user", path)
+	dsc := NewDscache(ctx, fs, event.NilBus, "test_resolve_ref_user", path)
 
 	dsrefspec.AssertResolverSpec(t, dsc, func(r dsref.Ref, _ identity.Author, _ *oplog.Log) error {
 		builder := NewBuilder()
@@ -119,11 +120,11 @@ func TestCacheRefConsistency(t *testing.T) {
 
 	localUsername := "local_user"
 	localDsName := "local_dataset"
-	book, err := logbook.NewJournal(testPeers.GetTestPeerInfo(0).PrivKey, localUsername, fsys, "/mem/logbook.qfb")
+	book, err := logbook.NewJournal(testPeers.GetTestPeerInfo(0).PrivKey, localUsername, event.NilBus, fsys, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}
-	dsc := NewDscache(ctx, fsys, nil, "", "dscache.qfb")
+	dsc := NewDscache(ctx, fsys, event.NilBus, "", "dscache.qfb")
 
 	_, _, err = dsrefspec.GenerateExampleOplog(ctx, book, localDsName, "/ipfs/QmLocalExample")
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -56,7 +57,7 @@ func newTestRepo(t *testing.T) repo.Repo {
 		t.Fatal(err)
 	}
 
-	mr, err := repo.NewMemRepo(ctx, testPeerProfile, mux)
+	mr, err := repo.NewMemRepo(ctx, testPeerProfile, mux, event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

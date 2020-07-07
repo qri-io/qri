@@ -23,7 +23,6 @@ import (
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
 )
@@ -53,15 +52,14 @@ func RepoPath(repoPath string) string {
 // FSI is a repo-side struct for coordinating file system integration
 type FSI struct {
 	// repository for resolving dataset names
-	repo         repo.Repo
-	pub          event.Publisher
-	onChangeHook func(hook.DsChange)
+	repo repo.Repo
+	pub  event.Publisher
 }
 
 // NewFSI creates an FSI instance from a path to a links flatbuffer file
 func NewFSI(r repo.Repo, pub event.Publisher) *FSI {
 	if pub == nil {
-		pub = &event.NilPublisher{}
+		pub = event.NilBus
 	}
 	return &FSI{repo: r, pub: pub}
 }
@@ -190,14 +188,14 @@ func (fsi *FSI) CreateLink(dirPath string, ref dsref.Ref) (vi *dsref.VersionInfo
 		return nil, removeLinkAndRemoveRefFunc, err
 	}
 
-	if fsi.onChangeHook != nil {
-		fsi.onChangeHook(hook.DsChange{
-			Type:       hook.DatasetCreateLink,
-			InitID:     ref.InitID, // versionInfo probably coming from old Refstore
-			Username:   vi.Username,
-			PrettyName: vi.Name,
-			Dir:        dirPath,
-		})
+	err = fsi.pub.Publish(ctx, event.ETDatasetCreateLink, event.DsChange{
+		InitID:     ref.InitID, // versionInfo probably coming from old Refstore
+		Username:   vi.Username,
+		PrettyName: vi.Name,
+		Dir:        dirPath,
+	})
+	if err != nil {
+		return nil, removeLinkAndRemoveRefFunc, err
 	}
 
 	return vi, removeLinkAndRemoveRefFunc, err
@@ -283,11 +281,6 @@ func (fsi *FSI) RemoveAll(dirPath string) error {
 		log.Errorf("removing directory: %s", err.Error())
 	}
 	return nil
-}
-
-// SetChangeHook assigns a hook that will be called when a dataset changes
-func (fsi *FSI) SetChangeHook(changeHook func(hook.DsChange)) {
-	fsi.onChangeHook = changeHook
 }
 
 func isLowValueFile(f os.FileInfo) bool {

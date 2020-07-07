@@ -13,7 +13,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dscache/dscachefb"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/event/hook"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -40,7 +40,7 @@ type Dscache struct {
 
 // NewDscache will construct a dscache from the given filename, or will construct an empty dscache
 // that will save to the given filename. Using an empty filename will disable loading and saving
-func NewDscache(ctx context.Context, fsys qfs.Filesystem, hooks []hook.ChangeNotifier, username, filename string) *Dscache {
+func NewDscache(ctx context.Context, fsys qfs.Filesystem, bus event.Bus, username, filename string) *Dscache {
 	cache := Dscache{Filename: filename}
 	f, err := fsys.Get(ctx, filename)
 	if err == nil {
@@ -55,9 +55,13 @@ func NewDscache(ctx context.Context, fsys qfs.Filesystem, hooks []hook.ChangeNot
 		}
 	}
 	cache.DefaultUsername = username
-	for _, h := range hooks {
-		h.SetChangeHook(cache.update)
-	}
+	bus.Subscribe(cache.handler,
+		event.ETDatasetNameInit,
+		event.ETDatasetCommitChange,
+		event.ETDatasetDeleteAll,
+		event.ETDatasetRename,
+		event.ETDatasetCreateLink)
+
 	return &cache
 }
 
@@ -232,30 +236,38 @@ func (d *Dscache) validateProfileID(profileID string) bool {
 	return len(profileID) == lengthOfProfileID
 }
 
-func (d *Dscache) update(act hook.DsChange) {
-	switch act.Type {
-	case hook.DatasetNameInit:
+func (d *Dscache) handler(_ context.Context, topic event.Topic, payload interface{}) error {
+	act, ok := payload.(event.DsChange)
+	if !ok {
+		log.Error("dscache got an event with a payload that isn't a event.DsChange type: %v", payload)
+		return nil
+	}
+
+	switch topic {
+	case event.ETDatasetNameInit:
 		if err := d.updateInitDataset(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
-	case hook.DatasetCommitChange:
+	case event.ETDatasetCommitChange:
 		if err := d.updateChangeCursor(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
-	case hook.DatasetDeleteAll:
+	case event.ETDatasetDeleteAll:
 		if err := d.updateDeleteDataset(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
-	case hook.DatasetRename:
+	case event.ETDatasetRename:
 		// TODO(dustmop): Handle renames
-	case hook.DatasetCreateLink:
+	case event.ETDatasetCreateLink:
 		if err := d.updateCreateLink(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
 	}
+
+	return nil
 }
 
-func (d *Dscache) updateInitDataset(act hook.DsChange) error {
+func (d *Dscache) updateInitDataset(act event.DsChange) error {
 	if d.IsEmpty() {
 		// Only create a new dscache if that feature is enabled. This way no one is forced to
 		// use dscache without opting in.
@@ -303,7 +315,7 @@ func (d *Dscache) updateInitDataset(act hook.DsChange) error {
 }
 
 // Copy the entire dscache, except for the matching entry, rebuild that one to modify it
-func (d *Dscache) updateChangeCursor(act hook.DsChange) error {
+func (d *Dscache) updateChangeCursor(act event.DsChange) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
@@ -347,7 +359,7 @@ func (d *Dscache) updateChangeCursor(act hook.DsChange) error {
 }
 
 // Copy the entire dscache, except leave out the matching entry.
-func (d *Dscache) updateDeleteDataset(act hook.DsChange) error {
+func (d *Dscache) updateDeleteDataset(act event.DsChange) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
@@ -370,7 +382,7 @@ func (d *Dscache) updateDeleteDataset(act hook.DsChange) error {
 }
 
 // Copy the entire dscache, except for the matching entry, which is copied then assigned an fsiPath
-func (d *Dscache) updateCreateLink(act hook.DsChange) error {
+func (d *Dscache) updateCreateLink(act event.DsChange) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
