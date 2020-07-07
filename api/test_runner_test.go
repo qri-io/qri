@@ -17,6 +17,7 @@ import (
 )
 
 type APITestRunner struct {
+	cancelCtx    context.CancelFunc
 	Node         *p2p.QriNode
 	NodeTeardown func()
 	Inst         *lib.Instance
@@ -27,11 +28,11 @@ type APITestRunner struct {
 }
 
 func NewAPITestRunner(t *testing.T) *APITestRunner {
-	run := APITestRunner{}
-	run.Node, run.NodeTeardown = newTestNode(t)
-
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	run := APITestRunner{
+		cancelCtx: cancel,
+	}
+	run.Node, run.NodeTeardown = newTestNode(t)
 
 	run.Inst = newTestInstanceWithProfileFromNode(ctx, run.Node)
 
@@ -57,6 +58,7 @@ func NewAPITestRunner(t *testing.T) *APITestRunner {
 func (r *APITestRunner) Delete() {
 	os.RemoveAll(r.TmpDir)
 	APIVersion = r.PrevXformVer
+	r.cancelCtx()
 	r.NodeTeardown()
 }
 

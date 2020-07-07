@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qfs"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -177,7 +178,7 @@ func ConsistentResolvers(t *testing.T, ref dsref.Ref, resolvers ...dsref.Resolve
 func ForeignLogbook(t *testing.T, username string) *logbook.Book {
 	pk := testPeers.GetTestPeerInfo(9).PrivKey
 	ms := qfs.NewMemFS()
-	journal, err := logbook.NewJournal(pk, username, ms, "/mem/logbook.qfb")
+	journal, err := logbook.NewJournal(pk, username, event.NilBus, ms, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}

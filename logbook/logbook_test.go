@@ -15,6 +15,7 @@ import (
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -44,11 +45,12 @@ func Example() {
 	// Create a new journal for b5, passing in:
 	//  * the author private key to encrypt & decrypt the logbook
 	//  * author's current username
+	//  * an event bus (not used in this example)
 	//  * a qfs.Filesystem for reading & writing the logbook
 	//  * a base path on the filesystem to read & write the logbook to
 	// Initializing a logbook ensures the author has an user opset that matches
 	// their current state. It will error if a stored book can't be decrypted
-	book, err := logbook.NewJournal(pk, "b5", fs, "/mem/logbook.qfb")
+	book, err := logbook.NewJournal(pk, "b5", event.NilBus, fs, "/mem/logbook.qfb")
 	if err != nil {
 		panic(err) // real programs don't panic
 	}
@@ -167,20 +169,23 @@ func TestNewJournal(t *testing.T) {
 	pk := testPrivKey(t)
 	fs := qfs.NewMemFS()
 
-	if _, err := logbook.NewJournal(nil, "b5", nil, "/mem/logbook.qfb"); err == nil {
+	if _, err := logbook.NewJournal(nil, "b5", nil, nil, "/mem/logbook.qfb"); err == nil {
 		t.Errorf("expected missing private key arg to error")
 	}
-	if _, err := logbook.NewJournal(pk, "", nil, "/mem/logbook.qfb"); err == nil {
+	if _, err := logbook.NewJournal(pk, "", nil, nil, "/mem/logbook.qfb"); err == nil {
 		t.Errorf("expected missing author arg to error")
 	}
-	if _, err := logbook.NewJournal(pk, "b5", nil, "/mem/logbook.qfb"); err == nil {
+	if _, err := logbook.NewJournal(pk, "b5", nil, nil, "/mem/logbook.qfb"); err == nil {
 		t.Errorf("expected missing filesystem arg to error")
 	}
-	if _, err := logbook.NewJournal(pk, "b5", fs, ""); err == nil {
+	if _, err := logbook.NewJournal(pk, "b5", nil, fs, ""); err == nil {
 		t.Errorf("expected missing location arg to error")
 	}
+	if _, err := logbook.NewJournal(pk, "b5", nil, fs, ""); err == nil {
+		t.Errorf("expected nil event bus to error")
+	}
 
-	_, err := logbook.NewJournal(pk, "b5", fs, "/mem/logbook.qfb")
+	_, err := logbook.NewJournal(pk, "b5", event.NilBus, fs, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -663,7 +668,7 @@ func TestLogTransfer(t *testing.T) {
 
 	pk2 := testPrivKey2(t)
 	fs2 := qfs.NewMemFS()
-	book2, err := logbook.NewJournal(pk2, "user2", fs2, "/mem/fs2_location.qfb")
+	book2, err := logbook.NewJournal(pk2, "user2", tr.bus, fs2, "/mem/fs2_location.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -894,6 +899,7 @@ func mustTime(str string) time.Time {
 
 type testRunner struct {
 	Ctx      context.Context
+	bus      event.Bus
 	Username string
 	Book     *logbook.Book
 	Fs       qfs.Filesystem
@@ -912,12 +918,13 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	prevTs := logbook.NewTimestamp
 	tr = &testRunner{
 		Ctx:      ctx,
+		bus:      event.NewBus(ctx),
 		Username: authorName,
 	}
 	logbook.NewTimestamp = tr.newTimestamp
 
 	var err error
-	tr.Book, err = logbook.NewJournal(pk, authorName, fs, "/mem/logbook.qfb")
+	tr.Book, err = logbook.NewJournal(pk, authorName, tr.bus, fs, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatalf("creating book: %s", err.Error())
 	}
@@ -1099,7 +1106,7 @@ func testPrivKey2(t *testing.T) crypto.PrivKey {
 // ForeignLogbook creates a logbook to use as an external source of oplog data
 func (tr *testRunner) foreignLogbook(t *testing.T, username string) *logbook.Book {
 	ms := qfs.NewMemFS()
-	journal, err := logbook.NewJournal(testPrivKey2(t), username, ms, "/mem/logbook.qfb")
+	journal, err := logbook.NewJournal(testPrivKey2(t), username, event.NilBus, ms, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}

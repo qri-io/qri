@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -210,7 +211,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	book, err := logbook.NewJournal(p.PrivKey, p.Peername, mr.Filesystem(), "/map/logbook.qfb")
+	book, err := logbook.NewJournal(p.PrivKey, p.Peername, event.NilBus, mr.Filesystem(), "/map/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
@@ -290,7 +291,7 @@ func (tr *testRunner) NodeBClient(t *testing.T) Client {
 }
 
 func qriNode(t *testing.T, tr *testRunner, peername string, node *core.IpfsNode, pi *cfgtest.PeerInfo) *p2p.QriNode {
-	repo, err := p2ptest.MakeRepoFromIPFSNode(tr.Ctx, node, peername)
+	repo, err := p2ptest.MakeRepoFromIPFSNode(tr.Ctx, node, peername, event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}

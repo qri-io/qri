@@ -13,6 +13,7 @@ import (
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
@@ -155,7 +156,7 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 		ID:       profile.IDFromPeerID(pi.PeerID),
 		PrivKey:  pi.PrivKey,
 	}
-	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx, ms))
+	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx, ms), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -3,6 +3,8 @@ package p2ptest
 import (
 	"context"
 	"testing"
+
+	"github.com/qri-io/qri/event"
 )
 
 func TestMakeIPFS(t *testing.T) {
@@ -18,7 +20,7 @@ func TestMakeIPFS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err = MakeRepoFromIPFSNode(ctx, nodes[0], "ramfox"); err != nil {
+	if _, err = MakeRepoFromIPFSNode(ctx, nodes[0], "ramfox", event.NilBus); err != nil {
 		t.Fatal(err)
 	}
 }

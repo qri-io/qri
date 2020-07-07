@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
@@ -156,7 +157,7 @@ func TestReceivers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := repo.NewMemRepo(ctx, &profile.Profile{PrivKey: privKey}, fs)
+	r, err := repo.NewMemRepo(ctx, &profile.Profile{PrivKey: privKey}, fs, event.NilBus)
 	if err != nil {
 		t.Errorf("error creating mem repo: %s", err)
 		return

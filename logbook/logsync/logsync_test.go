@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -410,7 +411,7 @@ func newTestbook(username string, pk crypto.PrivKey) (*logbook.Book, error) {
 	// logbook relies on a qfs.Filesystem for read & write. create an in-memory
 	// filesystem we can play with
 	fs := qfs.NewMemFS()
-	return logbook.NewJournal(pk, username, fs, "/mem/logbook.qfb")
+	return logbook.NewJournal(pk, username, event.NilBus, fs, "/mem/logbook.qfb")
 }
 
 func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, err error) {

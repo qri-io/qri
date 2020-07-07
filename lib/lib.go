@@ -26,7 +26,6 @@ import (
 	"github.com/qri-io/qri/dscache"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/event/hook"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/fsi/hiddenfile"
 	"github.com/qri-io/qri/logbook"
@@ -364,7 +363,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.logbook == nil {
-		inst.logbook, err = newLogbook(inst.qfs, cfg, pro, inst.repoPath)
+		inst.logbook, err = newLogbook(inst.qfs, cfg, inst.bus, pro, inst.repoPath)
 		if err != nil {
 			return nil, fmt.Errorf("intializing logbook: %w", err)
 		}
@@ -398,7 +397,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.dscache == nil {
-		inst.dscache, err = newDscache(ctx, inst.qfs, []hook.ChangeNotifier{inst.logbook, inst.fsi}, pro.Peername, inst.repoPath)
+		inst.dscache, err = newDscache(ctx, inst.qfs, inst.bus, pro.Peername, inst.repoPath)
 		if err != nil {
 			return nil, fmt.Errorf("newDsache: %w", err)
 		}
@@ -471,14 +470,14 @@ func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client
 	return nil
 }
 
-func newLogbook(fs qfs.Filesystem, cfg *config.Config, pro *profile.Profile, repoPath string) (book *logbook.Book, err error) {
+func newLogbook(fs qfs.Filesystem, cfg *config.Config, bus event.Bus, pro *profile.Profile, repoPath string) (book *logbook.Book, err error) {
 	logbookPath := filepath.Join(repoPath, "logbook.qfb")
-	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, logbookPath)
+	return logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, logbookPath)
 }
 
-func newDscache(ctx context.Context, fs qfs.Filesystem, hooks []hook.ChangeNotifier, username, repoPath string) (*dscache.Dscache, error) {
+func newDscache(ctx context.Context, fs qfs.Filesystem, bus event.Bus, username, repoPath string) (*dscache.Dscache, error) {
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
-	return dscache.NewDscache(ctx, fs, hooks, username, dscachePath), nil
+	return dscache.NewDscache(ctx, fs, bus, username, dscachePath), nil
 }
 
 func newEventBus(ctx context.Context) event.Bus {
@@ -509,6 +508,12 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 // and options that can be fed to NewInstance
 // This function must only be used for testing purposes
 func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node *p2p.QriNode) *Instance {
+	return NewInstanceFromConfigAndNodeAndBus(ctx, cfg, node, event.NilBus)
+}
+
+// NewInstanceFromConfigAndNodeAndBus adds a bus argument to the horrible, hacky
+// instance construtor
+func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config, node *p2p.QriNode, bus event.Bus) *Instance {
 	ctx, cancel := context.WithCancel(ctx)
 
 	r := node.Repo
@@ -517,9 +522,9 @@ func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node 
 		cancel()
 		panic(err)
 	}
-	bus := event.NewBus(ctx)
+
 	fsint := fsi.NewFSI(r, bus)
-	dc := dscache.NewDscache(ctx, r.Filesystem(), []hook.ChangeNotifier{r.Logbook(), fsint}, pro.Peername, "")
+	dc := dscache.NewDscache(ctx, r.Filesystem(), bus, pro.Peername, "")
 
 	// TODO (b5) - lots of tests pass "DefaultConfigForTesting", which uses a different peername /
 	// identity from what the repo already has. This disagreement is a potential source of bugs

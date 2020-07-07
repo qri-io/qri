@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo/profile"
@@ -29,7 +30,7 @@ func TestMemRepoResolveRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r, err := NewMemRepo(ctx, pro, fs)
+	r, err := NewMemRepo(ctx, pro, fs, event.NilBus)
 	if err != nil {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}

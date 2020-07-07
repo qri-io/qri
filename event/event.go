@@ -5,35 +5,39 @@ package event
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	golog "github.com/ipfs/go-log"
 )
 
-var log = golog.Logger("event")
+var (
+	log = golog.Logger("event")
 
-// Topic is the set of all topics emitted by the bus. Use the topic type to
-// distinguish event names. Event emitters should declare Topics as constants
-// and document the expected data payload type
-type Topic string
+	// ErrBusClosed indicates the event bus is no longer coordinating events
+	// because it's parent context has closed
+	ErrBusClosed = fmt.Errorf("event bus is closed")
+)
 
-// Event is a topic & data payload
-type Event struct {
-	Topic
-	Payload interface{}
-}
+// Type is the set of all kinds of events emitted by the bus. Use the "Type"
+// type to distinguish between different events. Event emitters should
+// declare Types as constants and document the expected payload type.
+type Type string
+
+// Handler is a function that will be called by the event bus whenever a
+// subscribed topic is published. Handler calls are blocking, called in order
+// of subscription. Any error returned by a handler is passed back to the
+// event publisher.
+// The handler context originates from the publisher, and in practice will often
+// be scoped to a "request context" like an HTTP request or CLI command
+// invocation.
+// Generally, even handlers should aim to return quickly, and only delegate to
+// goroutines when the publishing event is firing on a long-running process
+type Handler func(ctx context.Context, t Type, payload interface{}) error
 
 // Publisher is an interface that can only publish an event
 type Publisher interface {
-	Publish(t Topic, data interface{})
-}
-
-// NilPublisher replaces a nil value, does nothing
-type NilPublisher struct {
-}
-
-// Publish does nothing with the event
-func (n *NilPublisher) Publish(t Topic, data interface{}) {
+	Publish(ctx context.Context, t Type, payload interface{}) error
 }
 
 // Bus is a central coordination point for event publication and subscription
@@ -42,36 +46,42 @@ func (n *NilPublisher) Publish(t Topic, data interface{}) {
 // topic
 type Bus interface {
 	// Publish an event to the bus
-	Publish(t Topic, data interface{})
-	// Subscribe to one or more topics
-	Subscribe(topics ...Topic) <-chan Event
-	// Unsubscribe cleans up a channel that no longer need to receive events
-	Unsubscribe(<-chan Event)
-	// SubscribeOnce to one or more topics. the returned channel will only fire
-	// once, when the first event that matches any of the given topics
-	// the common use case for multiple subscriptions is subscribing to both
-	// success and error events
-	SubscribeOnce(types ...Topic) <-chan Event
+	Publish(ctx context.Context, t Type, data interface{}) error
+	// Subscribe to one or more topics with a handler function that will be called
+	// whenever the event topic is published
+	Subscribe(handler Handler, topics ...Type)
 	// NumSubscriptions returns the number of subscribers to the bus's events
 	NumSubscribers() int
 }
 
-type dataChannels []chan Event
+// NilBus replaces a nil value. it implements the bus interface, but does
+// nothing
+var NilBus = nilBus{}
+
+type nilBus struct{}
+
+// assert at compile time that nilBus implements the Bus interface
+var _ Bus = (*nilBus)(nil)
+
+// Publish does nothing with the event
+func (nilBus) Publish(_ context.Context, _ Type, _ interface{}) error {
+	return nil
+}
+
+func (nilBus) Subscribe(handler Handler, topics ...Type) {}
+
+func (nilBus) NumSubscribers() int {
+	return 0
+}
 
 type bus struct {
-	ctx context.Context
-
-	lk   sync.RWMutex
-	subs map[Topic]dataChannels
-
-	onceLk sync.RWMutex
-	onces  []onceSub
+	lk     sync.RWMutex
+	closed bool
+	subs   map[Type][]Handler
 }
 
-type onceSub struct {
-	ch     chan Event
-	topics map[Topic]bool
-}
+// assert at compile time that bus implements the Bus interface
+var _ Bus = (*bus)(nil)
 
 // NewBus creates a new event bus. Event busses should be instantiated as a
 // singleton. If the passed in context is cancelled, the bus will stop emitting
@@ -80,91 +90,47 @@ type onceSub struct {
 // TODO (b5) - finish context-closing cleanup
 func NewBus(ctx context.Context) Bus {
 	b := &bus{
-		ctx:  ctx,
-		subs: map[Topic]dataChannels{},
+		subs: map[Type][]Handler{},
 	}
 
 	go func(b *bus) {
-		<-b.ctx.Done()
+		<-ctx.Done()
 		log.Debugf("close bus")
-		// TODO (b5) - cleanup bus resources, potentially closing channels
-		// properly closing channels will require we keep a set of channels in
-		// addition to the map to avoid double-closing
+		b.lk.Lock()
+		b.closed = true
+		b.lk.Unlock()
 	}(b)
 
 	return b
 }
 
 // Publish sends an event to the bus
-func (b *bus) Publish(topic Topic, data interface{}) {
+func (b *bus) Publish(ctx context.Context, topic Type, data interface{}) error {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
 	log.Debugf("Publish: %s", topic)
 
-	event := Event{Payload: data, Topic: topic}
-
-	if chans, ok := b.subs[topic]; ok {
-		// slices in this map refer to same array even though they are passed by value
-		// creating a new slice preserves locking correctly
-		channels := append(dataChannels{}, chans...)
-		go func(e Event, dataChannelSlices dataChannels) {
-			for _, ch := range dataChannelSlices {
-				ch <- e
-			}
-		}(event, channels)
+	if b.closed {
+		return ErrBusClosed
 	}
 
-	go func(e Event) {
-		b.onceLk.Lock()
-		defer b.onceLk.Unlock()
-
-		for i, sub := range b.onces {
-			if sub.topics[topic] {
-				sub.ch <- event
-				close(sub.ch)
-				log.Debug("closing once ch with topic: %s", topic)
-				// Remove the subscription
-				b.onces[i] = b.onces[len(b.onces)-1] // copy last element to index i
-				b.onces[len(b.onces)-1] = onceSub{}  // erase last element (write zero value)
-				b.onces = b.onces[:len(b.onces)-1]   // truncate slice
-			}
+	for _, handler := range b.subs[topic] {
+		if err := handler(ctx, topic, data); err != nil {
+			return err
 		}
-	}(event)
+	}
+
+	return nil
 }
 
 // Subscribe requests events from the given topic, returning a channel of those events
-func (b *bus) Subscribe(topics ...Topic) <-chan Event {
+func (b *bus) Subscribe(handler Handler, topics ...Type) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	log.Debugf("Subscribe: %v", topics)
 
-	ch := make(chan Event)
-
 	for _, topic := range topics {
-		if prev, ok := b.subs[topic]; ok {
-			b.subs[topic] = append(prev, ch)
-		} else {
-			b.subs[topic] = dataChannels{ch}
-		}
-	}
-
-	return ch
-}
-
-// Unsubscribe cleans up a channel that no longer need to receive events
-func (b *bus) Unsubscribe(unsub <-chan Event) {
-	b.lk.Lock()
-	defer b.lk.Unlock()
-	for topic, channels := range b.subs {
-		var replace dataChannels
-		for i, ch := range channels {
-			if ch == unsub {
-				replace = append(channels[:i], channels[i+1:]...)
-			}
-		}
-		if replace != nil {
-			b.subs[topic] = replace
-		}
+		b.subs[topic] = append(b.subs[topic], handler)
 	}
 }
 
@@ -173,28 +139,8 @@ func (b *bus) NumSubscribers() int {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	total := 0
-	for _, channels := range b.subs {
-		total += len(channels)
+	for _, handlers := range b.subs {
+		total += len(handlers)
 	}
 	return total
-}
-
-// SubscribeOnce will only get one event of the topic, then close itself
-func (b *bus) SubscribeOnce(topics ...Topic) <-chan Event {
-	b.onceLk.Lock()
-	defer b.onceLk.Unlock()
-	log.Debugf("SubscribeOnce: %v", topics)
-
-	topicMap := map[Topic]bool{}
-	for _, t := range topics {
-		topicMap[t] = true
-	}
-
-	ch := make(chan Event)
-	b.onces = append(b.onces, onceSub{
-		ch:     ch,
-		topics: topicMap,
-	})
-
-	return ch
 }

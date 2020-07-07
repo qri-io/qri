@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -70,14 +71,14 @@ func ProfileConfig() *config.ProfilePod {
 }
 
 // NewEmptyTestRepo initializes a test repo with no contents
-func NewEmptyTestRepo() (mr *repo.MemRepo, err error) {
+func NewEmptyTestRepo(bus event.Bus) (mr *repo.MemRepo, err error) {
 	ctx := context.TODO()
 	pro := &profile.Profile{
 		Peername: "peer",
 		ID:       profile.IDB58MustDecode(profileID),
 		PrivKey:  privKey,
 	}
-	return repo.NewMemRepo(ctx, pro, newTestFS(ctx))
+	return repo.NewMemRepo(ctx, pro, newTestFS(ctx), bus)
 }
 
 func newTestFS(ctx context.Context) *muxfs.Mux {
@@ -97,7 +98,7 @@ func newTestFS(ctx context.Context) *muxfs.Mux {
 func NewTestRepo() (mr *repo.MemRepo, err error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
-	mr, err = NewEmptyTestRepo()
+	mr, err = NewEmptyTestRepo(event.NilBus)
 	if err != nil {
 		return
 	}
@@ -119,7 +120,7 @@ func NewTestRepo() (mr *repo.MemRepo, err error) {
 func NewTestRepoWithHistory() (mr *repo.MemRepo, refs []reporef.DatasetRef, err error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
-	mr, err = NewEmptyTestRepo()
+	mr, err = NewEmptyTestRepo(event.NilBus)
 	if err != nil {
 		return
 	}
@@ -163,7 +164,7 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		ID:       id,
 		Peername: fmt.Sprintf("test-repo-%d", peerNum),
 		PrivKey:  pk,
-	}, newTestFS(ctx))
+	}, newTestFS(ctx), event.NilBus)
 	if err != nil {
 		return r, err
 	}
@@ -302,7 +303,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 		return nil, nil, err
 	}
 
-	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx))
+	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx), event.NilBus)
 	if err != nil {
 		return mr, pro.PrivKey, err
 	}
@@ -345,7 +346,7 @@ func NewIPFSRepoFromDir(qriPath, ipfsPath string) (repo.Repo, crypto.PrivKey, er
 	if err != nil {
 		return nil, pro.PrivKey, err
 	}
-	mr, err := repo.NewMemRepo(ctx, pro, fs)
+	mr, err := repo.NewMemRepo(ctx, pro, fs, event.NilBus)
 	if err != nil {
 		return mr, pro.PrivKey, err
 	}

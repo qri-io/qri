@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo/profile"
@@ -59,7 +60,11 @@ func newTestRunner(t *testing.T) *testRunner {
 		t.Fatal(err)
 	}
 
-	mr, err := testrepo.NewEmptyTestRepo()
+	ctx := context.Background()
+
+	bus := event.NewBus(ctx)
+
+	mr, err := testrepo.NewEmptyTestRepo(bus)
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -68,12 +73,11 @@ func newTestRunner(t *testing.T) *testRunner {
 		t.Fatal(err.Error())
 	}
 
-	ctx := context.Background()
 	return &testRunner{
 		Ctx: ctx,
 		// TODO (b5) - move test profile creation into testRunner constructor
 		Profile:  testPeerProfile,
-		Instance: NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node),
+		Instance: NewInstanceFromConfigAndNodeAndBus(ctx, config.DefaultConfigForTesting(), node, bus),
 		TmpDir:   tmpDir,
 		Pwd:      pwd,
 		dsfsTs:   dsfsTsFunc,

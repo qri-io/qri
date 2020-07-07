@@ -42,37 +42,27 @@ func NewFilesysWatcher(ctx context.Context, bus event.Bus) *FilesysWatcher {
 
 	w := FilesysWatcher{Watcher: watcher}
 	if bus != nil {
-		w.subscribe(ctx, bus)
+		bus.Subscribe(w.eventHandler, event.ETFSICreateLinkEvent)
 	}
 	return &w
 }
 
-func (w *FilesysWatcher) subscribe(ctx context.Context, bus event.Bus) {
-	eventsCh := bus.Subscribe(event.ETFSICreateLinkEvent)
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				bus.Unsubscribe(eventsCh)
-				break
-			case e, ok := <-eventsCh:
-				if !ok {
-					// bus is closed, break
-					break
-				}
-				go func() {
-					log.Debugf("bus event: %s\n", e)
-					if fce, ok := e.Payload.(event.FSICreateLinkEvent); ok {
-						w.Add(EventPath{
-							Path:     fce.FSIPath,
-							Username: fce.Username,
-							Dsname:   fce.Dsname,
-						})
-					}
-				}()
+func (w *FilesysWatcher) eventHandler(ctx context.Context, t event.Type, payload interface{}) error {
+	switch t {
+	case event.ETFSICreateLinkEvent:
+		go func() {
+			if fce, ok := payload.(event.FSICreateLinkEvent); ok {
+				log.Debugf("received link event. adding watcher for path: %s", fce.FSIPath)
+				w.Add(EventPath{
+					Path:     fce.FSIPath,
+					Username: fce.Username,
+					Dsname:   fce.Dsname,
+				})
 			}
-		}
-	}()
+		}()
+	}
+
+	return nil
 }
 
 // Begin will start watching the given directory paths

@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dscache"
 	qrierr "github.com/qri-io/qri/errors"
+	"github.com/qri-io/qri/event"
 )
 
 func TestSaveComplete(t *testing.T) {
@@ -563,8 +564,7 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
 	}
 
 	cacheFilename := cache.Filename
-	// TODO(dustmop): Do we need to pass a book?
-	cache = dscache.NewDscache(ctx, fs, nil, run.Username(), cacheFilename)
+	cache = dscache.NewDscache(ctx, fs, event.NilBus, run.Username(), cacheFilename)
 
 	// Dscache should have two entries now. They are alphabetized by pretty name, and have all
 	// the expected data.
@@ -651,7 +651,7 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 	}
 
 	cacheFilename := cache.Filename
-	cache = dscache.NewDscache(ctx, fs, nil, run.Username(), cacheFilename)
+	cache = dscache.NewDscache(ctx, fs, event.NilBus, run.Username(), cacheFilename)
 
 	// Dscache should now have one reference. Now topIndex is 2 because there is another "commit".
 	actual = cache.VerboseString(false)
@@ -740,7 +740,7 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
 		return
 	}
 	cacheFilename := cache.Filename
-	cache = dscache.NewDscache(ctx, fs, nil, run.Username(), cacheFilename)
+	cache = dscache.NewDscache(ctx, fs, event.NilBus, run.Username(), cacheFilename)
 
 	// Dscache should now have one reference.
 	actual = cache.VerboseString(false)
@@ -822,7 +822,7 @@ func TestSaveDscacheThenRemoveVersions(t *testing.T) {
 		t.Errorf("error creating local filesystem: %s", err)
 	}
 	cacheFilename := cache.Filename
-	cache = dscache.NewDscache(ctx, fs, nil, run.Username(), cacheFilename)
+	cache = dscache.NewDscache(ctx, fs, event.NilBus, run.Username(), cacheFilename)
 
 	// Dscache should now have one reference.
 	actual = cache.VerboseString(false)

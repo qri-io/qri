@@ -10,7 +10,6 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/qri/base/component"
-	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/watchfs"
 	"nhooyr.io/websocket"
@@ -72,12 +71,6 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 		}
 		defer srv.Close()
 
-		// Subscribe to FSI link creation events, which will affect filesystem watching
-		// TODO(dlong): A good example of tight coupling causing an issue: The Websocket
-		// implementation doesn't need to know about these events, but the FilesystemWatcher
-		// does. Ideally, this Subscribe call would happen along with the latter, not the former.
-		busEvents := s.Instance.Bus().Subscribe(event.ETFSICreateLinkEvent)
-
 		known := component.GetKnownFilenames()
 
 		// Filesystem events are forwarded to the websocket. In the future, this may be
@@ -86,15 +79,6 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 		go func() {
 			for {
 				select {
-				case e := <-busEvents:
-					log.Debugf("bus event: %s\n", e)
-					if fce, ok := e.Payload.(event.FSICreateLinkEvent); ok {
-						s.Instance.Watcher.Add(watchfs.EventPath{
-							Path:     fce.FSIPath,
-							Username: fce.Username,
-							Dsname:   fce.Dsname,
-						})
-					}
 				case fse := <-fsmessages:
 					if s.filterEvent(fse, known) {
 						log.Debugf("filesys event: %s\n", fse)

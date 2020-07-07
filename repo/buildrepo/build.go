@@ -11,7 +11,7 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
-	"github.com/qri-io/qri/event/hook"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
@@ -23,6 +23,7 @@ type Options struct {
 	Filesystem *muxfs.Mux
 	Logbook    *logbook.Book
 	Dscache    *dscache.Dscache
+	Bus        event.Bus
 }
 
 // New is the canonical method for building a repo
@@ -38,6 +39,9 @@ func New(ctx context.Context, path string, cfg *config.Config, opts ...func(o *O
 			return nil, err
 		}
 	}
+	if o.Bus == nil {
+		o.Bus = event.NilBus
+	}
 
 	pro, err := profile.NewProfile(cfg.Profile)
 	if err != nil {
@@ -47,12 +51,12 @@ func New(ctx context.Context, path string, cfg *config.Config, opts ...func(o *O
 	switch cfg.Repo.Type {
 	case "fs":
 		if o.Logbook == nil {
-			if o.Logbook, err = newLogbook(o.Filesystem, pro, path); err != nil {
+			if o.Logbook, err = newLogbook(o.Filesystem, o.Bus, pro, path); err != nil {
 				return nil, err
 			}
 		}
 		if o.Dscache == nil {
-			if o.Dscache, err = newDscache(ctx, o.Filesystem, o.Logbook, pro.Peername, path); err != nil {
+			if o.Dscache, err = newDscache(ctx, o.Filesystem, o.Bus, o.Logbook, pro.Peername, path); err != nil {
 				return nil, err
 			}
 		}
@@ -60,7 +64,7 @@ func New(ctx context.Context, path string, cfg *config.Config, opts ...func(o *O
 		r, err := fsrepo.NewRepo(path, o.Filesystem, o.Logbook, o.Dscache, pro)
 		return r, err
 	case "mem":
-		return repo.NewMemRepo(ctx, pro, o.Filesystem)
+		return repo.NewMemRepo(ctx, pro, o.Filesystem, o.Bus)
 	default:
 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
 	}
@@ -96,17 +100,16 @@ func NewFilesystem(ctx context.Context, cfg *config.Config) (*muxfs.Mux, error) 
 	return muxfs.New(ctx, cfg.Filesystems)
 }
 
-// TODO (b5) - if we had a better logbook constructor, this wouldn't need to exist
-func newLogbook(fs qfs.Filesystem, pro *profile.Profile, repoPath string) (book *logbook.Book, err error) {
+func newLogbook(fs qfs.Filesystem, bus event.Bus, pro *profile.Profile, repoPath string) (book *logbook.Book, err error) {
 	logbookPath := filepath.Join(repoPath, "logbook.qfb")
-	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, logbookPath)
+	return logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, logbookPath)
 }
 
-func newDscache(ctx context.Context, fs qfs.Filesystem, book *logbook.Book, username, repoPath string) (*dscache.Dscache, error) {
+func newDscache(ctx context.Context, fs qfs.Filesystem, bus event.Bus, book *logbook.Book, username, repoPath string) (*dscache.Dscache, error) {
 	// This seems to be a bug, the repoPath does not end in "qri" in some tests.
 	if !strings.HasSuffix(repoPath, "qri") {
 		return nil, fmt.Errorf("invalid repo path: %q", repoPath)
 	}
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
-	return dscache.NewDscache(ctx, fs, []hook.ChangeNotifier{book}, username, dscachePath), nil
+	return dscache.NewDscache(ctx, fs, bus, username, dscachePath), nil
 }

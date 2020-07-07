@@ -3,13 +3,14 @@ package spec
 import (
 	"testing"
 
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
 func TestNewTestRepo(t *testing.T) {
 	rmf := func(t *testing.T) (repo.Repo, func()) {
-		mr, err := repotest.NewEmptyTestRepo()
+		mr, err := repotest.NewEmptyTestRepo(event.NilBus)
 		if err != nil {
 			t.Fatal(err)
 		}

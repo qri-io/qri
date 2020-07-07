@@ -7,6 +7,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -104,7 +105,7 @@ func TestCreateDataset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := repo.NewMemRepo(ctx, testPeerProfile, fs)
+	r, err := repo.NewMemRepo(ctx, testPeerProfile, fs, event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
