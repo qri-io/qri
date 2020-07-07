@@ -78,7 +78,7 @@ func printlnStringItems(w io.Writer, items []string) (err error) {
 }
 
 func printToPager(w io.Writer, buf *bytes.Buffer) (err error) {
-	if noPrompt {
+	if !stdoutIsTerminal() || noPrompt {
 		fmt.Fprintln(w, buf.String())
 		return
 	}
