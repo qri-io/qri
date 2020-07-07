@@ -7,9 +7,9 @@ import (
 
 func Example() {
 	const (
-		ETMainSaidHello   = Topic("main:SaidHello")
-		ETMainOpSucceeded = Topic("main:OperationSucceeded")
-		ETMainOpFailed    = Topic("main:OperationFailed")
+		ETMainSaidHello   = Type("main:SaidHello")
+		ETMainOpSucceeded = Type("main:OperationSucceeded")
+		ETMainOpFailed    = Type("main:OperationFailed")
 	)
 
 	ctx, done := context.WithCancel(context.Background())
@@ -18,7 +18,7 @@ func Example() {
 	bus := NewBus(ctx)
 
 	makeDoneHandler := func(label string) Handler {
-		return func(ctx context.Context, topic Topic, payload interface{}) error {
+		return func(ctx context.Context, t Type, payload interface{}) error {
 			fmt.Printf("%s handler called\n", label)
 			return nil
 		}

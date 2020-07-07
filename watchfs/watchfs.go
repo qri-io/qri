@@ -47,8 +47,8 @@ func NewFilesysWatcher(ctx context.Context, bus event.Bus) *FilesysWatcher {
 	return &w
 }
 
-func (w *FilesysWatcher) eventHandler(ctx context.Context, topic event.Topic, payload interface{}) error {
-	switch topic {
+func (w *FilesysWatcher) eventHandler(ctx context.Context, t event.Type, payload interface{}) error {
+	switch t {
 	case event.ETFSICreateLinkEvent:
 		go func() {
 			if fce, ok := payload.(event.FSICreateLinkEvent); ok {

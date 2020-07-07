@@ -236,14 +236,14 @@ func (d *Dscache) validateProfileID(profileID string) bool {
 	return len(profileID) == lengthOfProfileID
 }
 
-func (d *Dscache) handler(_ context.Context, topic event.Topic, payload interface{}) error {
+func (d *Dscache) handler(_ context.Context, t event.Type, payload interface{}) error {
 	act, ok := payload.(event.DsChange)
 	if !ok {
 		log.Error("dscache got an event with a payload that isn't a event.DsChange type: %v", payload)
 		return nil
 	}
 
-	switch topic {
+	switch t {
 	case event.ETDatasetNameInit:
 		if err := d.updateInitDataset(act); err != nil && err != ErrNoDscache {
 			log.Error(err)

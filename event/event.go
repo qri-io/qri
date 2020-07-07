@@ -19,10 +19,10 @@ var (
 	ErrBusClosed = fmt.Errorf("event bus is closed")
 )
 
-// Topic is the set of all topics emitted by the bus. Use the topic type to
-// distinguish event names. Event emitters should declare Topics as constants
-// and document the expected data payload type
-type Topic string
+// Type is the set of all kinds of events emitted by the bus. Use the "Type"
+// type to distinguish between different events. Event emitters should
+// declare Types as constants and document the expected payload type.
+type Type string
 
 // Handler is a function that will be called by the event bus whenever a
 // subscribed topic is published. Handler calls are blocking, called in order
@@ -33,11 +33,11 @@ type Topic string
 // invocation.
 // Generally, even handlers should aim to return quickly, and only delegate to
 // goroutines when the publishing event is firing on a long-running process
-type Handler func(ctx context.Context, t Topic, payload interface{}) error
+type Handler func(ctx context.Context, t Type, payload interface{}) error
 
 // Publisher is an interface that can only publish an event
 type Publisher interface {
-	Publish(ctx context.Context, topic Topic, payload interface{}) error
+	Publish(ctx context.Context, t Type, payload interface{}) error
 }
 
 // Bus is a central coordination point for event publication and subscription
@@ -46,10 +46,10 @@ type Publisher interface {
 // topic
 type Bus interface {
 	// Publish an event to the bus
-	Publish(ctx context.Context, t Topic, data interface{}) error
+	Publish(ctx context.Context, t Type, data interface{}) error
 	// Subscribe to one or more topics with a handler function that will be called
 	// whenever the event topic is published
-	Subscribe(handler Handler, topics ...Topic)
+	Subscribe(handler Handler, topics ...Type)
 	// NumSubscriptions returns the number of subscribers to the bus's events
 	NumSubscribers() int
 }
@@ -64,11 +64,11 @@ type nilBus struct{}
 var _ Bus = (*nilBus)(nil)
 
 // Publish does nothing with the event
-func (nilBus) Publish(_ context.Context, _ Topic, _ interface{}) error {
+func (nilBus) Publish(_ context.Context, _ Type, _ interface{}) error {
 	return nil
 }
 
-func (nilBus) Subscribe(handler Handler, topics ...Topic) {}
+func (nilBus) Subscribe(handler Handler, topics ...Type) {}
 
 func (nilBus) NumSubscribers() int {
 	return 0
@@ -77,7 +77,7 @@ func (nilBus) NumSubscribers() int {
 type bus struct {
 	lk     sync.RWMutex
 	closed bool
-	subs   map[Topic][]Handler
+	subs   map[Type][]Handler
 }
 
 // assert at compile time that bus implements the Bus interface
@@ -90,7 +90,7 @@ var _ Bus = (*bus)(nil)
 // TODO (b5) - finish context-closing cleanup
 func NewBus(ctx context.Context) Bus {
 	b := &bus{
-		subs: map[Topic][]Handler{},
+		subs: map[Type][]Handler{},
 	}
 
 	go func(b *bus) {
@@ -105,7 +105,7 @@ func NewBus(ctx context.Context) Bus {
 }
 
 // Publish sends an event to the bus
-func (b *bus) Publish(ctx context.Context, topic Topic, data interface{}) error {
+func (b *bus) Publish(ctx context.Context, topic Type, data interface{}) error {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
 	log.Debugf("Publish: %s", topic)
@@ -124,7 +124,7 @@ func (b *bus) Publish(ctx context.Context, topic Topic, data interface{}) error 
 }
 
 // Subscribe requests events from the given topic, returning a channel of those events
-func (b *bus) Subscribe(handler Handler, topics ...Topic) {
+func (b *bus) Subscribe(handler Handler, topics ...Type) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	log.Debugf("Subscribe: %v", topics)

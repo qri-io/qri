@@ -7,19 +7,19 @@ import (
 const (
 	// ETDatasetNameInit is when a dataset is initialized
 	// payload is a DsChange
-	ETDatasetNameInit = Topic("dataset:Init")
+	ETDatasetNameInit = Type("dataset:Init")
 	// ETDatasetCommitChange is when a dataset changes its newest commit
 	// payload is a DsChange
-	ETDatasetCommitChange = Topic("dataset:CommitChange")
+	ETDatasetCommitChange = Type("dataset:CommitChange")
 	// ETDatasetDeleteAll is when a dataset is entirely deleted
 	// payload is a DsChange
-	ETDatasetDeleteAll = Topic("dataset:DeleteAll")
+	ETDatasetDeleteAll = Type("dataset:DeleteAll")
 	// ETDatasetRename is when a dataset is renamed
 	// payload is a DsChange
-	ETDatasetRename = Topic("dataset:Rename")
+	ETDatasetRename = Type("dataset:Rename")
 	// ETDatasetCreateLink is when a dataset is linked to a working directory
 	// payload is a DsChange
-	ETDatasetCreateLink = Topic("dataset:CreateLink")
+	ETDatasetCreateLink = Type("dataset:CreateLink")
 )
 
 // DsChange represents the result of a change to a dataset
