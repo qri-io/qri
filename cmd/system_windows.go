@@ -10,3 +10,8 @@ func ensureLargeNumOpenFiles() {
 func stdoutIsTerminal() bool {
 	return true
 }
+
+// defaultFilePermMask is 0 because Windows does not use Unix-style file permissions
+func defaultFilePermMask() int {
+	return 0
+}

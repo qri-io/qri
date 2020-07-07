@@ -51,3 +51,10 @@ func ensureLargeNumOpenFiles() {
 func stdoutIsTerminal() bool {
 	return terminal.IsTerminal(syscall.Stdout)
 }
+
+// defaultFilePermMask is the user's default file permissions mask
+func defaultFilePermMask() int {
+	mask := syscall.Umask(0)
+	syscall.Umask(mask)
+	return mask
+}
