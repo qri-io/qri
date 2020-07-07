@@ -662,6 +662,10 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 			log.Errorf("error initializing remote: %s", err.Error())
 			return
 		}
+		if err = inst.remote.StartDsyncServer(ctx); err != nil {
+			log.Errorf("error starting dsync services: %s", err.Error())
+			return
+		}
 	}
 
 	return nil

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
@@ -107,9 +106,9 @@ func newLogbook(fs qfs.Filesystem, bus event.Bus, pro *profile.Profile, repoPath
 
 func newDscache(ctx context.Context, fs qfs.Filesystem, bus event.Bus, book *logbook.Book, username, repoPath string) (*dscache.Dscache, error) {
 	// This seems to be a bug, the repoPath does not end in "qri" in some tests.
-	if !strings.HasSuffix(repoPath, "qri") {
-		return nil, fmt.Errorf("invalid repo path: %q", repoPath)
-	}
+	// if !strings.HasSuffix(repoPath, "qri") {
+	// 	return nil, fmt.Errorf("invalid repo path: %q", repoPath)
+	// }
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
 	return dscache.NewDscache(ctx, fs, bus, username, dscachePath), nil
 }

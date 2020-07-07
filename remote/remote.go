@@ -212,6 +212,12 @@ func Address(cfg *config.Config, name string) (addr string, err error) {
 	return "", fmt.Errorf(`remote name "%s" not found`, name)
 }
 
+// StartDsyncServer starts the remote http dsync server and adds the
+// dsync protocol to the underlying host
+func (r *Remote) StartDsyncServer(ctx context.Context) error {
+	return r.dsync.StartRemote(ctx)
+}
+
 // ResolveHeadRef fetches the current dataset head path for a given peername and dataset name
 func (r *Remote) ResolveHeadRef(ctx context.Context, peername, name string) (*reporef.DatasetRef, error) {
 	ref := &reporef.DatasetRef{
