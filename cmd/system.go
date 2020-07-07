@@ -7,8 +7,8 @@ import (
 	"strings"
 	"syscall"
 
-	"golang.org/x/sys/unix"
 	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/sys/unix"
 )
 
 // preferredNumOpenFiles is the perferred number of open files that the process can have.
