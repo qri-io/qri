@@ -88,6 +88,9 @@ func (cfg Config) SummaryString() (summary string) {
 
 	if cfg.API != nil && cfg.API.Enabled {
 		summary += fmt.Sprintf("API address:\t%s\n", cfg.API.Address)
+		if cfg.API.WebsocketAddress != "" {
+			fmt.Printf("Listening for websocket connection at %s\n", cfg.API.WebsocketAddress)
+		}
 	}
 
 	if cfg.RPC != nil && cfg.RPC.Enabled {

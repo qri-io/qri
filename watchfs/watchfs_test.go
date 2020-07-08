@@ -5,9 +5,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/qri/event"
 )
 
 func TestFilesysWatcher(t *testing.T) {
@@ -17,18 +19,38 @@ func TestFilesysWatcher(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	bus := event.NewBus(ctx)
+
+	var (
+		wg  sync.WaitGroup
+		got event.WatchfsChange
+	)
+
+	wg.Add(1)
+	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
+		t.Logf("got event!")
+		if typ != event.ETCreatedNewFile {
+			t.Errorf("wrong event type. wanted: %q, got: %q", event.ETCreatedNewFile, typ)
+		}
+		got = payload.(event.WatchfsChange)
+		wg.Done()
+		return nil
+	}, event.ETCreatedNewFile)
 
 	// Create a directory, and watch it
 	watchdir := filepath.Join(tmpdir, "watch_me")
 	_ = os.Mkdir(watchdir, 0755)
-	w := NewFilesysWatcher(ctx, nil)
-	messages := w.Begin([]EventPath{
-		{
-			Username: "test_peer",
-			Dsname:   "ds_name",
-			Path:     watchdir,
-		},
+	w, err := NewFilesysWatcher(ctx, bus)
+	if err != nil {
+		t.Error(err)
+	}
+	w.Watch(EventPath{
+		Username: "test_peer",
+		Dsname:   "ds_name",
+		Path:     watchdir,
 	})
 	target := filepath.Join(watchdir, "body.csv")
 
@@ -36,10 +58,10 @@ func TestFilesysWatcher(t *testing.T) {
 	if err := ioutil.WriteFile(target, []byte("test"), os.FileMode(0644)); err != nil {
 		t.Fatal(err)
 	}
-	got := <-messages
 
-	expect := FilesysEvent{
-		Type:        CreateNewFileEvent,
+	wg.Wait()
+
+	expect := event.WatchfsChange{
 		Username:    "test_peer",
 		Dsname:      "ds_name",
 		Source:      target,
