@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
@@ -174,6 +175,22 @@ func OptCheckConfigMigrations(interactive bool) Option {
 			return err
 		}
 
+		return nil
+	}
+}
+
+// OptNoBootstrap ensures the node will not attempt to bootstrap to any other nodes
+// in the network
+func OptNoBootstrap() Option {
+	return func(o *InstanceOptions) error {
+		// ensure qri p2p bootstrap addresses are empty
+		o.Cfg.P2P.BootstrapAddrs = []string{}
+		// if we have a qipfs config, pass the `disableBootstrap` flag
+		for _, qfsCfg := range o.Cfg.Filesystems {
+			if qfsCfg.Type == qipfs.FilestoreType {
+				qfsCfg.Config["disableBootstrap"] = true
+			}
+		}
 		return nil
 	}
 }
