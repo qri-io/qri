@@ -1,4 +1,4 @@
-package api
+package lib
 
 import (
 	"context"
@@ -16,29 +16,31 @@ import (
 
 const qriWebsocketProtocol = "qri-websocket"
 
-// ServeWebsocket creates a websocket that clients can connect to in order to get realtime events
-func (s Server) ServeWebsocket(ctx context.Context) {
-	cfg := s.Config().API
+// ServeWebsocket creates a websocket that clients can connect to in order to
+// get realtime events
+func (inst *Instance) ServeWebsocket(ctx context.Context) {
+	apiCfg := inst.cfg.API
 
-	// Watch the filesystem. Events will be sent to websocket connections.
-	watcher, err := watchfs.NewFilesysWatcher(ctx, s.Instance.Bus())
+	// Watch the filesystem. Events will be sent to websocket connections
+	// TODO (b5) - watchfs constrcution shouldn't happen here
+	watcher, err := watchfs.NewFilesysWatcher(ctx, inst.bus)
 	if err != nil {
 		log.Errorf("Watching filesystem error: %s", err)
 		return
 	}
-	s.Instance.Watcher = watcher
-	if err = s.Instance.Watcher.WatchAllFSIPaths(ctx, s.Repo()); err != nil {
+	inst.watcher = watcher
+	if err = inst.watcher.WatchAllFSIPaths(ctx, inst.repo); err != nil {
 		log.Error(err)
 	}
 
-	addr, err := ma.NewMultiaddr(cfg.WebsocketAddress)
+	addr, err := ma.NewMultiaddr(apiCfg.WebsocketAddress)
 	if err != nil {
-		log.Errorf("cannot start Websocket: error parsing Websocket address %s: %w", cfg.WebsocketAddress, err.Error())
+		log.Errorf("cannot start Websocket: error parsing Websocket address %s: %w", apiCfg.WebsocketAddress, err.Error())
 	}
 
 	mal, err := manet.Listen(addr)
 	if err != nil {
-		log.Infof("Websocket listen on address %d error: %w", cfg.WebsocketAddress, err.Error())
+		log.Infof("Websocket listen on address %d error: %w", apiCfg.WebsocketAddress, err.Error())
 		return
 	}
 	l := manet.NetListener(mal)
@@ -82,7 +84,7 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 		return nil
 	}
 
-	s.Instance.Bus().Subscribe(handler,
+	inst.bus.Subscribe(handler,
 		event.ETFSICreateLinkEvent,
 		event.ETCreatedNewFile,
 		event.ETModifiedFile,
@@ -92,8 +94,19 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 	)
 
 	// Start http server for websocket.
-	err = srv.Serve(l)
-	if err != http.ErrServerClosed {
-		log.Infof("failed to listen and serve: %v", err)
+	go func() {
+		err = srv.Serve(l)
+		if err != http.ErrServerClosed {
+			log.Infof("failed to listen and serve: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	if err = srv.Shutdown(shutdownCtx); err != nil {
+		log.Error(err)
 	}
 }
