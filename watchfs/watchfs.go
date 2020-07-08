@@ -2,12 +2,15 @@ package watchfs
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/repo"
 )
 
 var log = golog.Logger("watchfs")
@@ -28,23 +31,59 @@ type EventPath struct {
 // * One of the folders was removed, which makes it no longer watched
 // TODO(dlong): Folder rename and remove are not supported yet.
 type FilesysWatcher struct {
-	Watcher *fsnotify.Watcher
-	Sender  chan FilesysEvent
-	Assoc   map[string]EventPath
+	watcher *fsnotify.Watcher
+	assoc   map[string]EventPath
+	bus     event.Bus
 }
 
 // NewFilesysWatcher returns a new FilesysWatcher
-func NewFilesysWatcher(ctx context.Context, bus event.Bus) *FilesysWatcher {
+func NewFilesysWatcher(ctx context.Context, bus event.Bus) (*FilesysWatcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
-	w := FilesysWatcher{Watcher: watcher}
-	if bus != nil {
-		bus.Subscribe(w.eventHandler, event.ETFSICreateLinkEvent)
+	if bus == nil {
+		return nil, fmt.Errorf("bus is required")
 	}
-	return &w
+
+	w := &FilesysWatcher{
+		assoc:   map[string]EventPath{},
+		watcher: watcher,
+		bus:     bus,
+	}
+
+	bus.Subscribe(w.eventHandler,
+		event.ETFSICreateLinkEvent,
+	)
+
+	// Dispatch filesystem events
+	go func() {
+		for {
+			select {
+			case fsEvent, ok := <-w.watcher.Events:
+				if !ok {
+					log.Debugf("error getting event")
+					continue
+				}
+				if fsEvent.Op == fsnotify.Chmod {
+					// Don't care about CHMOD, skip it
+					continue
+				}
+				if fsEvent.Op&fsnotify.Write == fsnotify.Write {
+					w.publishEvent(event.ETModifiedFile, fsEvent.Name, "")
+				}
+				if fsEvent.Op&fsnotify.Create == fsnotify.Create {
+					w.publishEvent(event.ETCreatedNewFile, fsEvent.Name, "")
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return w, nil
 }
 
 func (w *FilesysWatcher) eventHandler(ctx context.Context, t event.Type, payload interface{}) error {
@@ -53,7 +92,7 @@ func (w *FilesysWatcher) eventHandler(ctx context.Context, t event.Type, payload
 		go func() {
 			if fce, ok := payload.(event.FSICreateLinkEvent); ok {
 				log.Debugf("received link event. adding watcher for path: %s", fce.FSIPath)
-				w.Add(EventPath{
+				w.Watch(EventPath{
 					Path:     fce.FSIPath,
 					Username: fce.Username,
 					Dsname:   fce.Dsname,
@@ -65,68 +104,68 @@ func (w *FilesysWatcher) eventHandler(ctx context.Context, t event.Type, payload
 	return nil
 }
 
-// Begin will start watching the given directory paths
-func (w *FilesysWatcher) Begin(paths []EventPath) chan FilesysEvent {
-	// Associate paths with additional information
-	assoc := make(map[string]EventPath)
+// WatchAllFSIPaths sets up filesystem watchers for all FSI-linked datasets in
+// a given qri repo
+func (w *FilesysWatcher) WatchAllFSIPaths(ctx context.Context, r repo.Repo) error {
+	refs, err := r.References(0, 100)
+	if err != nil {
+		return err
+	}
+	// Extract fsi paths for all working directories.
+	paths := make([]EventPath, 0, len(refs))
+	for _, ref := range refs {
+		if ref.FSIPath != "" {
+			paths = append(paths, EventPath{
+				Path:     ref.FSIPath,
+				Username: ref.Peername,
+				Dsname:   ref.Name,
+			})
+		}
+	}
 
+	return nil
+}
+
+// Begin will start watching the given directory paths
+func (w *FilesysWatcher) watchPaths(paths []EventPath) {
 	for _, p := range paths {
-		err := w.Watcher.Add(p.Path)
+		err := w.watcher.Add(p.Path)
 		if err != nil {
 			log.Errorf("%s", err)
 		}
-		assoc[p.Path] = p
+		w.assoc[p.Path] = p
 	}
+}
 
-	messages := make(chan FilesysEvent)
-	w.Sender = messages
-	w.Assoc = assoc
+// Watch starts watching an additional path
+func (w *FilesysWatcher) Watch(path EventPath) {
+	w.assoc[path.Path] = path
+	w.watcher.Add(path.Path)
+}
 
-	// Dispatch filesystem events
-	go func() {
-		for {
-			select {
-			case event, ok := <-w.Watcher.Events:
-				if !ok {
-					log.Debugf("error getting event")
-					continue
-				}
+// publishEvent sends a message on the channel about an event
+func (w *FilesysWatcher) publishEvent(etype event.Type, sour, dest string) {
+	if w.filterSource(sour) {
+		log.Debugf("filesystem event %q %s -> %s\n", etype, sour, dest)
 
-				if event.Op == fsnotify.Chmod {
-					// Don't care about CHMOD, skip it
-					continue
-				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					w.sendEvent(ModifyFileEvent, event.Name, "")
-				}
-				if event.Op&fsnotify.Create == fsnotify.Create {
-					w.sendEvent(CreateNewFileEvent, event.Name, "")
-				}
-			}
+		dir := filepath.Dir(sour)
+		ep := w.assoc[dir]
+		event := event.WatchfsChange{
+			Username:    ep.Username,
+			Dsname:      ep.Dsname,
+			Source:      sour,
+			Destination: dest,
+			Time:        time.Now(),
 		}
-	}()
 
-	return messages
-}
-
-// Add starts watching an additional path
-func (w *FilesysWatcher) Add(path EventPath) {
-	w.Assoc[path.Path] = path
-	w.Watcher.Add(path.Path)
-}
-
-// sendEvent sends a message on the channel about an event
-func (w *FilesysWatcher) sendEvent(etype EventType, sour, dest string) {
-	log.Debugf("filesystem event %q %s -> %s\n", etype, sour, dest)
-	dir := filepath.Dir(sour)
-	ep := w.Assoc[dir]
-	event := FilesysEvent{
-		Type:        etype,
-		Username:    ep.Username,
-		Dsname:      ep.Dsname,
-		Source:      sour,
-		Destination: dest,
-		Time:        time.Now(),
+		go func() {
+			if err := w.bus.Publish(context.Background(), etype, event); err != nil {
+				log.Error(err)
+			}
+		}()
 	}
-	w.Sender <- event
+}
+
+func (w *FilesysWatcher) filterSource(sourceFile string) bool {
+	return component.IsKnownFilename(sourceFile, component.GetKnownFilenames())
 }

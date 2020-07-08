@@ -77,6 +77,9 @@ type InstanceOptions struct {
 	remoteMockClient bool
 	// use OptRemoteOptions to set this
 	remoteOptsFunc func(*remote.Options)
+
+	eventHandler event.Handler
+	events       []event.Type
 }
 
 // InstanceContextKey is used by context to set keys for constucting a lib.Instance
@@ -231,6 +234,20 @@ func OptLogbook(bk *logbook.Book) Option {
 	}
 }
 
+// OptEventHandler provides an event handler & list of event types to subscribe
+// to. The canonical list of events a qri instance emits are defined in the
+// github.com/qri-io/qri/event package
+// plase note that event handlers in qri are synchronous. A handler function
+// that takes a long time to return will slow down the performance of qri
+// generally
+func OptEventHandler(handler event.Handler, events ...event.Type) Option {
+	return func(o *InstanceOptions) error {
+		o.eventHandler = handler
+		o.events = events
+		return nil
+	}
+}
+
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
@@ -343,6 +360,10 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	if o.eventHandler != nil && o.events != nil {
+		inst.bus.Subscribe(o.eventHandler, o.events...)
+	}
+
 	if inst.qfs == nil {
 		inst.qfs, err = buildrepo.NewFilesystem(ctx, cfg)
 		if err != nil {
@@ -440,6 +461,12 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	go inst.waitForAllDone()
+	go func() {
+		if err := inst.bus.Publish(ctx, event.ETInstanceConstructed, nil); err != nil {
+			log.Error(err)
+		}
+	}()
+
 	ok = true
 	return
 }
@@ -581,7 +608,7 @@ type Instance struct {
 	logbook      *logbook.Book
 	dscache      *dscache.Dscache
 	bus          event.Bus
-	Watcher      *watchfs.FilesysWatcher
+	watcher      *watchfs.FilesysWatcher
 
 	rpc *rpc.Client
 
@@ -638,14 +665,6 @@ func (inst *Instance) FSI() *fsi.FSI {
 		return nil
 	}
 	return inst.fsi
-}
-
-// Bus returns the event.Bus
-func (inst *Instance) Bus() event.Bus {
-	if inst == nil {
-		return nil
-	}
-	return inst.bus
 }
 
 // ChangeConfig implements the ConfigSetter interface

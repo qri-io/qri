@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -77,7 +78,16 @@ func TestNewInstance(t *testing.T) {
 	}
 	cfg.Repo.Type = "mem"
 
-	got, err := NewInstance(ctx, tr.QriPath, OptConfig(cfg))
+	var firedEventWg sync.WaitGroup
+	firedEventWg.Add(1)
+	handler := func(_ context.Context, t event.Type, _ interface{}) error {
+		if t == event.ETInstanceConstructed {
+			firedEventWg.Done()
+		}
+		return nil
+	}
+
+	got, err := NewInstance(ctx, tr.QriPath, OptConfig(cfg), OptEventHandler(handler, event.ETInstanceConstructed))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,6 +99,8 @@ func TestNewInstance(t *testing.T) {
 	if err = CompareInstances(got, expect); err != nil {
 		t.Error(err)
 	}
+
+	firedEventWg.Wait()
 
 	finished := make(chan struct{})
 	go func() {
