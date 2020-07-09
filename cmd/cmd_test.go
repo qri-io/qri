@@ -628,7 +628,7 @@ func TestListFormatJson(t *testing.T) {
     "path": "/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF",
     "bodySize": 224,
     "bodyRows": 8,
-    "bodyFromat": "csv",
+    "bodyFormat": "csv",
     "numErrors": 1,
     "commitTime": "2001-01-01T01:01:01.000000001Z"
   }

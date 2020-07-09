@@ -158,7 +158,7 @@ type PeersOptions struct {
 	PageSize int
 	Page     int
 
-	UsingRPC     bool
+	UsingRPC    bool
 	PeerMethods *lib.PeerMethods
 }
 

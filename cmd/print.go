@@ -78,8 +78,8 @@ func printlnStringItems(w io.Writer, items []string) (err error) {
 }
 
 func printToPager(w io.Writer, buf *bytes.Buffer) (err error) {
-	if noPrompt {
-		fmt.Fprintln(w, buf.String())
+	if !stdoutIsTerminal() || noPrompt {
+		fmt.Fprint(w, buf.String())
 		return
 	}
 	// TODO (ramfox): This is POSIX specific, need to expand!

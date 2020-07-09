@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"syscall"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -200,8 +199,7 @@ func TestInitStatusSave(t *testing.T) {
 	}
 
 	// File permissions are affected by the user's umask setting.
-	mask := syscall.Umask(0)
-	syscall.Umask(mask)
+	mask := defaultFilePermMask()
 
 	// Verify the permissions for each generated file.
 	files := filesDirectory(workDir)
