@@ -568,6 +568,7 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		node:    node,
 		dscache: dc,
 		stats:   stats.New(nil),
+		logbook: r.Logbook(),
 	}
 
 	inst.remoteClient, err = remote.NewClient(node)

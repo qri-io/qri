@@ -384,7 +384,7 @@ func TestSaveInferName(t *testing.T) {
 
 	// Save again, get an error because the inferred name already exists.
 	err := run.ExecCommand("qri save --body testdata/movies/body_four.json")
-	expectErr := `inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference "me/body_four". To create a new dataset, use --new flag`
+	expectErr := `inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference "test_peer/body_four". To create a new dataset, use --new flag`
 	if err == nil {
 		t.Errorf("error expected, did not get one")
 	}
@@ -395,7 +395,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save but ensure a new dataset is created.
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/body_four_1@/ipfs/QmTrRJ9TJNi47SYNXHUeEAgF3rdJVQf83nNGqpwKyypWLM\n"
+	expect = "dataset saved: test_peer/body_four_2@/ipfs/QmTrRJ9TJNi47SYNXHUeEAgF3rdJVQf83nNGqpwKyypWLM\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -403,7 +403,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save once again.
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/body_four_2@/ipfs/QmWKmbAQyPGYnRTHwNzjLXgrpBt3C8bmH3Nn1oMuze83bY\n"
+	expect = "dataset saved: test_peer/body_four_3@/ipfs/QmWKmbAQyPGYnRTHwNzjLXgrpBt3C8bmH3Nn1oMuze83bY\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}

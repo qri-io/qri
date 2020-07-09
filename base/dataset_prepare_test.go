@@ -3,57 +3,95 @@ package base
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/logbook"
 )
 
-func TestPrepareDatasetSave(t *testing.T) {
-	ctx := context.Background()
+func TestPrepareSaveRef(t *testing.T) {
+	logbook.NewTimestamp = func() int64 { return 0 }
+	defer func() {
+		logbook.NewTimestamp = func() int64 { return time.Now().Unix() }
+	}()
+
 	r := newTestRepo(t)
-	ref := addCitiesDataset(t, r)
 
-	prev, mutable, prevPath, err := PrepareHeadDatasetVersion(ctx, r, ref.Peername, ref.Name)
+	pro, err := r.Profile()
 	if err != nil {
-		t.Errorf("case cities dataset error: %s ", err.Error())
+		t.Fatal(err)
 	}
-	if prev.IsEmpty() {
-		t.Errorf("case cites dataset: previous should not be empty")
-	}
-	if mutable.IsEmpty() {
-		t.Errorf("case cities dataset: mutable should not be empty")
-	}
-	if mutable.Transform != nil {
-		t.Errorf("case cities dataset: mutable.Transform should be nil")
-	}
-	if mutable.Commit != nil {
-		t.Errorf("case cities dataset: mutable.Commit should be nil")
-	}
-	if prev.BodyFile() == nil {
-		t.Errorf("case cities dataset: previous body should not be nil")
-	}
-	if prevPath == "" {
-		t.Errorf("case cities dataset: previous path should not be empty")
+	ctx := context.Background()
+	book := r.Logbook()
+
+	book.WriteDatasetInit(ctx, "cities")
+	book.WriteDatasetInit(ctx, "Bad_Case")
+
+	bad := []struct {
+		refStr, filepath string
+		newName          bool
+		expect           dsref.Ref
+		expectIsNew      bool
+		err              string
+	}{
+		{"me/invalid name", "", false, dsref.Ref{Username: "me", Name: "invalid"}, false, dsref.ErrDescribeValidName.Error()},
+		{"me/cities", "", true, dsref.Ref{Username: "peer", Name: "cities", InitID: "r7kr6djpgu2hm5fprxalfcsgehacoxomqse4c7nubu5mw6qcz57q"}, false, "name already in use"},
+		{"me/cities@/ipfs/foo", "", true, dsref.Ref{Username: "me", Name: "cities", InitID: ""}, false, dsref.ErrNotHumanFriendly.Error()},
+		{"alice/not_this_user", "", true, dsref.Ref{Username: "alice", Name: "not_this_user", InitID: ""}, false, "cannot save using a different username than \"peer\""},
+		{"me/New_Bad_Case", "", false, dsref.Ref{Username: "peer", Name: "New_Bad_Case", InitID: ""}, true, dsref.ErrBadCaseName.Error()},
 	}
 
-	prev, mutable, prevPath, err = PrepareHeadDatasetVersion(ctx, r, "me", "non-existent")
-	if err != nil {
-		t.Errorf("case non-existant previous dataset error: %s ", err.Error())
+	for _, c := range bad {
+		t.Run(fmt.Sprintf("bad_%s", c.refStr), func(t *testing.T) {
+			ref, isNew, err := PrepareSaveRef(ctx, pro, book, book, c.refStr, c.filepath, c.newName)
+			if !c.expect.Equals(ref) {
+				t.Errorf("resulting ref mismatch. want:\n%#v\ngot:\n%#v", c.expect, ref)
+			}
+			if c.expectIsNew != isNew {
+				t.Errorf("isNew result mismatch. want %t got %t", c.expectIsNew, isNew)
+			}
+			if err == nil {
+				t.Fatal("expected error, got none")
+			}
+			if c.err != err.Error() {
+				t.Errorf("error mismatch. want %q got %q", c.err, err.Error())
+			}
+		})
 	}
-	if !prev.IsEmpty() {
-		t.Errorf("case non-existant previous dataset: previous should be empty, got non-empty dataset")
+
+	good := []struct {
+		refStr, filepath string
+		newName          bool
+		expect           dsref.Ref
+		expectIsNew      bool
+	}{
+		{"", "", false, dsref.Ref{Username: "peer", Name: "dataset", InitID: "2fxdc6hvi5gdraujcru5vnaluuuf57x345eirtwwtwitmjhr54ca"}, true},
+		{"me/cities", "", false, dsref.Ref{Username: "peer", Name: "cities", InitID: "r7kr6djpgu2hm5fprxalfcsgehacoxomqse4c7nubu5mw6qcz57q"}, false},
+		{"", "/path/to/data/apples.csv", false, dsref.Ref{Username: "peer", Name: "apples", InitID: "bj2srktro6zxsvork6stjzecq4f4kaii2xg2q2n6b4gwk2robf2q"}, true},
+		{"", "/path/to/data/apples.csv", true, dsref.Ref{Username: "peer", Name: "apples_2", InitID: "tbrfupxauhuc6rwamyejr35w4nw2icgcxvm4f6fnftyaoyeo7ida"}, true},
+		{"me/Bad_Case", "", false, dsref.Ref{Username: "peer", Name: "Bad_Case", InitID: "setbycsqt5gwyg3fmcm4ty37dzk5ohhq4oxk2hif64fkdhi6naca"}, false},
 	}
-	if !mutable.IsEmpty() {
-		t.Errorf("case non-existant previous dataset: mutable should be empty, got non-empty dataset")
+
+	for _, c := range good {
+		t.Run(fmt.Sprintf("good_%s", c.refStr), func(t *testing.T) {
+			ref, isNew, err := PrepareSaveRef(ctx, pro, book, book, c.refStr, c.filepath, c.newName)
+			if err != nil {
+				t.Fatalf("unexpected error: %q", err)
+			}
+			if !c.expect.Equals(ref) {
+				t.Errorf("resulting ref mismatch. want:\n%#v\ngot:\n%#v", c.expect, ref)
+			}
+			if c.expectIsNew != isNew {
+				t.Errorf("isNew result mismatch. want %t got %t", c.expectIsNew, isNew)
+			}
+		})
 	}
-	if prev.BodyFile() != nil {
-		t.Errorf("case non-existant previous dataset: previous body should be nil, got non-nil body")
-	}
-	if prevPath != "" {
-		t.Errorf("case non-existant previous dataset: previous path should be empty, got non-empty path")
-	}
+
 }
 
 func TestInferValues(t *testing.T) {
@@ -69,19 +107,6 @@ func TestInferValues(t *testing.T) {
 	expectAuthorID := `QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt`
 	if diff := cmp.Diff(expectAuthorID, ds.Commit.Author.ID); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
-	}
-}
-
-func TestMaybeInferName(t *testing.T) {
-	ds := &dataset.Dataset{}
-	ds.SetBodyFile(qfs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v")))
-	inferred := MaybeInferName(ds)
-	if inferred == "" {
-		t.Errorf("expected name to be inferred")
-	}
-	expectName := "gabba_gabba_hey"
-	if expectName != inferred {
-		t.Errorf("inferred name mismatch. expected: '%s', got: '%s'", expectName, inferred)
 	}
 }
 

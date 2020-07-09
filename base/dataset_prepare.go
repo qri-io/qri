@@ -3,6 +3,7 @@ package base
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -12,66 +13,119 @@ import (
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/repo"
+	qerr "github.com/qri-io/qri/errors"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// PrepareHeadDatasetVersion prepares to save by loading the head commit, opening the body file,
-// and constructing a mutable version that has no transform or commit.
-func PrepareHeadDatasetVersion(ctx context.Context, r repo.Repo, peername, name string) (curr, mutable *dataset.Dataset, currPath string, err error) {
-	// TODO(dustmop): We should not be calling CanonicalizeDatasetRef here. It's already been
-	// called up in lib, which means that we've thrown information away. Furthermore, we
-	// should be relying on stable identifiers this low down the stack. Instead, load the dataset
-	// head (if it exists) by using the initID, and pass it into base.Save.
+// PrepareSaveRef works out a dataset reference for saving a dataset version.
+// When a dataset exists, resolve the initID & path. When no dataset with that
+// name exists, ensure a locally-unique dataset name  and create a new logbook
+// history & InitID to write to. PrepareSaveRef returns a true boolean value
+// if an initID was created
+// successful calls to PrepareSaveRef always have an InitID, and will have the
+// Path of the current version, if one exists
+func PrepareSaveRef(
+	ctx context.Context,
+	pro *profile.Profile,
+	book *logbook.Book,
+	resolver dsref.Resolver,
+	refStr string,
+	bodyPathNameHint string,
+	wantNewName bool,
+) (dsref.Ref, bool, error) {
 
-	// Determine if the save is creating a new dataset or updating an existing dataset by
-	// seeing if the name can canonicalize to a repo that we know about
-	lookup := &reporef.DatasetRef{Name: name, Peername: peername}
-	if err = repo.CanonicalizeDatasetRef(r, lookup); err == repo.ErrNotFound || lookup.Path == "" {
-		return &dataset.Dataset{}, &dataset.Dataset{}, "", nil
-	}
+	var badCaseErr error
 
-	currPath = lookup.Path
-	log.Debugf("loading currPath: %s. lookup result: %v", currPath, lookup)
-
-	if curr, err = dsfs.LoadDataset(ctx, r.Store(), currPath); err != nil {
-		return
-	}
-	if curr.BodyPath != "" {
-		var body qfs.File
-		body, err = dsfs.LoadBody(ctx, r.Store(), curr)
-		if err != nil {
-			return
+	ref, err := dsref.ParseHumanFriendly(refStr)
+	if errors.Is(err, dsref.ErrBadCaseName) {
+		// save bad case error for later, will fail if dataset is new
+		badCaseErr = err
+	} else if errors.Is(err, dsref.ErrEmptyRef) {
+		// User is calling save but didn't provide a dataset reference. Try to infer a usable name.
+		if bodyPathNameHint == "" {
+			bodyPathNameHint = "dataset"
 		}
-		curr.SetBodyFile(body)
+		basename := filepath.Base(bodyPathNameHint)
+		basename = strings.TrimSuffix(basename, filepath.Ext(bodyPathNameHint))
+		basename = strings.TrimSuffix(basename, ".")
+		ref.Name = dsref.GenerateName(basename, "dataset_")
+
+		// need to use profile username b/c resolver.ResolveRef can't handle "me"
+		// shorthand
+		check := &dsref.Ref{Username: pro.Peername, Name: ref.Name}
+		if _, resolveErr := resolver.ResolveRef(ctx, check); resolveErr == nil {
+			if !wantNewName {
+				// Name was inferred, and has previous version. Unclear if the user meant to create
+				// a brand new dataset or if they wanted to add a new version to the existing dataset.
+				// Raise an error recommending one of these course of actions.
+				return ref, false, fmt.Errorf(`inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference %q. To create a new dataset, use --new flag`, check.Human())
+			}
+			ref.Name = GenerateAvailableName(ctx, pro, resolver, ref.Name)
+		}
+	} else if errors.Is(err, dsref.ErrNotHumanFriendly) {
+		return ref, false, err
+	} else if err != nil {
+		// If some other parse error happened, describe a valid dataset name.
+		return ref, false, dsref.ErrDescribeValidName
 	}
 
-	// Load a mutable copy of the dataset because most of the save path assuming we are doing
-	// a patch update to the current head, and not a full replacement.
-	if mutable, err = dsfs.LoadDataset(ctx, r.Store(), currPath); err != nil {
-		return
+	// Validate that username is our own, it's not valid to try to save a dataset with someone
+	// else's username. Without this check, base will replace the username with our own regardless,
+	// it's better to have an error to display, rather than silently ignore it.
+	if ref.Username != "" && ref.Username != "me" && ref.Username != pro.Peername {
+		return ref, false, fmt.Errorf("cannot save using a different username than %q", pro.Peername)
+	}
+	ref.Username = pro.Peername
+
+	// attempt to resolve the reference
+	if _, resolveErr := resolver.ResolveRef(ctx, &ref); resolveErr != nil {
+		if !errors.Is(resolveErr, dsref.ErrRefNotFound) {
+			return ref, false, resolveErr
+		}
+	} else if resolveErr == nil {
+		if wantNewName {
+			// Name was explicitly given, with the --new flag, but the name is already in use.
+			// This is an error.
+			return ref, false, qerr.New(ErrNameTaken, "dataset name has a previous version, cannot make new dataset")
+		}
+
+		if badCaseErr != nil {
+			// name already exists but is a bad case, log a warning and then continue.
+			log.Error(badCaseErr)
+		}
+
+		// we have a valid previous reference & an initID, return!
+		return ref, false, nil
 	}
 
-	// TODO(dustmop): Stop removing the transform once we move to apply, and untangle the
-	// save command from applying a transform.
-	// remove the Transform & commit
-	// transform & commit must be created from scratch with each new version
-	mutable.Transform = nil
-	mutable.Commit = nil
-	return
+	// at this point we're attempting to create a new dataset.
+	// If dataset name is using bad-case characters, and is not yet in use, fail with error.
+	if badCaseErr != nil {
+		return ref, true, badCaseErr
+	}
+	if !dsref.IsValidName(ref.Name) {
+		return ref, true, fmt.Errorf("invalid dataset name: %s", ref.Name)
+	}
+
+	ref.InitID, err = book.WriteDatasetInit(ctx, ref.Name)
+	return ref, true, err
 }
 
-// MaybeInferName infer a name for the dataset if none is set
-func MaybeInferName(ds *dataset.Dataset) string {
-	if ds.Name == "" {
-		filename := ds.BodyFile().FileName()
-		basename := strings.TrimSuffix(filename, filepath.Ext(filename))
-		return dsref.GenerateName(basename, "dataset_")
+// GenerateAvailableName creates a name for the dataset that is not currently in
+// use. Generated names start with _2, implying the "_1" file is the original
+// no-suffix name.
+func GenerateAvailableName(ctx context.Context, pro *profile.Profile, resolver dsref.Resolver, prefix string) string {
+	lookup := &dsref.Ref{Username: pro.Peername, Name: prefix}
+	counter := 1
+	for {
+		counter++
+		lookup.Name = fmt.Sprintf("%s_%d", prefix, counter)
+		if _, err := resolver.ResolveRef(ctx, lookup); errors.Is(err, dsref.ErrRefNotFound) {
+			return lookup.Name
+		}
 	}
-	return ""
 }
 
 // InferValues populates any missing fields that must exist to create a snapshot
