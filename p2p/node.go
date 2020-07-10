@@ -89,7 +89,7 @@ var _ p2ptest.NodeMakerFunc = NewTestableQriNode
 
 // NewTestableQriNode creates a new node, as a TestablePeerNode, usable by testing utilities.
 func NewTestableQriNode(r repo.Repo, p2pconf *config.P2P) (p2ptest.TestablePeerNode, error) {
-	return NewQriNode(r, p2pconf, &event.NilBus)
+	return NewQriNode(r, p2pconf, event.NilBus)
 }
 
 // NewQriNode creates a new node from a configuration. To get a fully connected

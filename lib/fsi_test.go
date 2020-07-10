@@ -25,7 +25,7 @@ func TestFSIMethodsWrite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), &event.NilBus)
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

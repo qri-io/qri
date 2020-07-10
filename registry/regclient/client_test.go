@@ -60,7 +60,7 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 	}
 
 	// need an actual ipfs repo
-	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), &event.NilBus)
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}

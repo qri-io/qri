@@ -69,7 +69,7 @@ func TestRenderMethodsRender(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	node, err := p2p.NewQriNode(tr, config.DefaultP2PForTesting(), &event.NilBus)
+	node, err := p2p.NewQriNode(tr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -121,7 +121,7 @@ func newRenderTestRunner(t *testing.T, testName string) *renderTestRunner {
 		panic(err)
 	}
 
-	r.Node, err = p2p.NewQriNode(r.Repo, config.DefaultP2PForTesting(), &event.NilBus)
+	r.Node, err = p2p.NewQriNode(r.Repo, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		panic(err)
 	}

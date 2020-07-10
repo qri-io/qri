@@ -10,7 +10,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/flock v0.7.1 // indirect
-	github.com/google/flatbuffers v1.12.0
+	github.com/google/flatbuffers v1.12.1-0.20200706154056-969d0f7a6317
 	github.com/google/go-cmp v0.5.0
 	github.com/ipfs/go-cid v0.0.6
 	github.com/ipfs/go-datastore v0.4.4
