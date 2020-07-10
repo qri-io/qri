@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/event"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 )
@@ -68,6 +69,9 @@ type QriNode struct {
 	// message arrival
 	receivers []chan Message
 
+	// pub is the event publisher on which to publish p2p events
+	pub event.Publisher
+
 	// node keeps a set of IOStreams for "node local" io, often to the
 	// command line, to give feedback to the user. These may be piped to
 	// local http handlers/websockets/stdio, but these streams are meant for
@@ -85,14 +89,14 @@ var _ p2ptest.NodeMakerFunc = NewTestableQriNode
 
 // NewTestableQriNode creates a new node, as a TestablePeerNode, usable by testing utilities.
 func NewTestableQriNode(r repo.Repo, p2pconf *config.P2P) (p2ptest.TestablePeerNode, error) {
-	return NewQriNode(r, p2pconf)
+	return NewQriNode(r, p2pconf, event.NilBus)
 }
 
 // NewQriNode creates a new node from a configuration. To get a fully connected
 // node that's searching for peers call:
 // n, _ := NewQriNode(r, cfg)
 // n.GoOnline()
-func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
+func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (node *QriNode, err error) {
 	pid, err := p2pconf.DecodePeerID()
 	if err != nil {
 		return nil, fmt.Errorf("error decoding peer id: %s", err.Error())
@@ -104,6 +108,7 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
 		Repo:     r,
 		msgState: &sync.Map{},
 		msgChan:  make(chan Message),
+		pub:      pub,
 		// Make sure we always have proper IOStreams, this can be set
 		// later
 		LocalStreams: ioes.NewDiscardIOStreams(),
@@ -182,6 +187,7 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 
 	n.Online = true
 	go n.echoMessages()
+	n.pub.Publish(ctx, event.ETP2PGoneOnline, n.EncapsulatedAddresses())
 
 	return n.startOnlineServices(ctx)
 }

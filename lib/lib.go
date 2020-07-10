@@ -442,7 +442,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.node == nil {
-		if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P); err != nil {
+		if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P, inst.bus); err != nil {
 			log.Error("intializing p2p:", err.Error())
 			return
 		}

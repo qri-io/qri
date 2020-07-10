@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -68,7 +69,7 @@ func TestRenderMethodsRender(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	node, err := p2p.NewQriNode(tr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(tr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -120,7 +121,7 @@ func newRenderTestRunner(t *testing.T, testName string) *renderTestRunner {
 		panic(err)
 	}
 
-	r.Node, err = p2p.NewQriNode(r.Repo, config.DefaultP2PForTesting())
+	r.Node, err = p2p.NewQriNode(r.Repo, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		panic(err)
 	}

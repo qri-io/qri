@@ -26,6 +26,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -40,7 +41,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -246,7 +247,7 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -287,7 +288,7 @@ func TestDatasetRequestsList(t *testing.T) {
 		t.Fatalf("error getting namespace: %s", err)
 	}
 
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -431,7 +432,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -568,7 +569,7 @@ func TestDatasetRequestsGetFSIPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -717,7 +718,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -827,7 +828,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -956,7 +957,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1102,7 +1103,7 @@ Pirates of the Caribbean: At World's End ,foo
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1133,7 +1134,7 @@ func TestDatasetRequestsStats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1208,7 +1209,7 @@ func TestListRawRefs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

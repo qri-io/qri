@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -21,7 +22,7 @@ func TestGetConfig(t *testing.T) {
 		t.Fatalf("error allocating test repo: %s", err)
 		return
 	}
-	node, err := p2p.NewQriNode(mr, cfg.P2P)
+	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +57,7 @@ func TestSaveConfigToFile(t *testing.T) {
 		t.Fatalf("error allocating test repo: %s", err)
 		return
 	}
-	node, err := p2p.NewQriNode(mr, cfg.P2P)
+	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +81,7 @@ func TestSetConfig(t *testing.T) {
 		t.Fatalf("error allocating test repo: %s", err)
 		return
 	}
-	node, err := p2p.NewQriNode(mr, cfg.P2P)
+	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}

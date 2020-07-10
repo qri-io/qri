@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry"
 	regmock "github.com/qri-io/qri/registry/regserver"
@@ -37,7 +38,7 @@ func TestProfileRequestsGet(t *testing.T) {
 	}
 
 	cfg := config.DefaultConfigForTesting()
-	node, err := p2p.NewQriNode(mr, cfg.P2P)
+	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -77,7 +78,7 @@ func TestProfileRequestsSave(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, cfg.P2P)
+	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -126,7 +127,7 @@ func TestSaveProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, cfg.P2P)
+	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -274,7 +275,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, cfg.P2P)
+	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -330,7 +331,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, cfg.P2P)
+	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
