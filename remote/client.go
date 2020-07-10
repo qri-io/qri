@@ -489,17 +489,18 @@ func (c *client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr str
 		}(&refCopy)
 	}
 
-	if node.Online {
-		tasks++
-		go func() {
-			oldRef := reporef.RefFromDsref(*ref)
-			err := base.FetchDataset(fetchCtx, node.Repo, &oldRef, true, true)
-			responses <- addResponse{
-				Ref:   ref,
-				Error: err,
-			}
-		}()
-	}
+	// TODO (b5) - base.FetchDataset has been removed, and this entire process
+	// of fetching via p2p in a parallel goroutine needs a re-think
+	// if node.Online {
+	// 	tasks++
+	// 	go func() {
+	// 		err := base.FetchDataset(fetchCtx, node.Repo, ref, true, true)
+	// 		responses <- addResponse{
+	// 			Ref:   ref,
+	// 			Error: err,
+	// 		}
+	// 	}()
+	// }
 
 	if tasks == 0 {
 		return nil, fmt.Errorf("no registry configured and node is not online")

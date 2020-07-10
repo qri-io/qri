@@ -15,8 +15,6 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestDatasetLog(t *testing.T) {
@@ -31,7 +29,7 @@ func TestDatasetLog(t *testing.T) {
 		t.Errorf("expected lookup for nonexistent log to fail")
 	}
 
-	if log, err = DatasetLog(ctx, mr, reporef.ConvertToDsref(cities), 1, 0, true); err != nil {
+	if log, err = DatasetLog(ctx, mr, cities, 1, 0, true); err != nil {
 		t.Error(err.Error())
 	}
 	if len(log) != 1 {
@@ -140,21 +138,22 @@ func TestDatasetLogForeignTimeout(t *testing.T) {
 	// Test peer
 	username := "test_peer"
 	otherPeerInfo := testPeers.GetTestPeerInfo(1)
-	datasetRef := reporef.DatasetRef{
-		Peername:  username,
-		ProfileID: profile.IDFromPeerID(otherPeerInfo.PeerID),
+	ref := dsref.Ref{
+		Username:  username,
+		ProfileID: otherPeerInfo.PeerID.String(),
 		Name:      "foreign_ds",
 		Path:      "/mem/notLocalPath",
 	}
 
+	vi := dsref.NewVersionInfoFromRef(ref)
 	// Add a reference to the repo which uses a path not in our filestore
-	err := mr.PutRef(datasetRef)
+	err := repo.PutVersionInfoShim(mr, &vi)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Get a dataset log, which should timeout with an error
-	_, err = DatasetLog(ctx, mr, reporef.ConvertToDsref(datasetRef), -1, 0, true)
+	_, err = DatasetLog(ctx, mr, ref, -1, 0, true)
 	if err == nil {
 		t.Fatal("expected lookup for foreign log to fail")
 	}
@@ -171,6 +170,11 @@ func TestStoredHistoricalDatasets(t *testing.T) {
 	head := updateCitiesDataset(t, r, "")
 	expectLen := 2
 
+	citiesDs, err := ReadDataset(ctx, r, head.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	datasets, err := StoredHistoricalDatasets(ctx, r, head.Path, 0, 100, true)
 	if err != nil {
 		t.Error(err)
@@ -178,7 +182,7 @@ func TestStoredHistoricalDatasets(t *testing.T) {
 	if len(datasets) != expectLen {
 		t.Fatalf("log length mismatch. expected: %d, got: %d", expectLen, len(datasets))
 	}
-	if datasets[0].Meta.Title != head.Dataset.Meta.Title {
+	if datasets[0].Meta.Title != citiesDs.Meta.Title {
 		t.Errorf("expected log with loadDataset == true to populate datasets")
 	}
 
@@ -217,15 +221,13 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	}
 	mr.SetLogbook(book)
 
-	cities := reporef.ConvertToDsref(ref)
-
 	// confirm no history exists:
-	if _, err = book.Items(ctx, cities, 0, 100); err == nil {
+	if _, err = book.Items(ctx, ref, 0, 100); err == nil {
 		t.Errorf("expected versions for nonexistent history to fail")
 	}
 
 	// create some history
-	if err := constructDatasetLogFromHistory(ctx, mr, cities); err != nil {
+	if err := constructDatasetLogFromHistory(ctx, mr, ref); err != nil {
 		t.Errorf("building dataset history: %s", err)
 	}
 	expect := []DatasetLogItem{
@@ -253,7 +255,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	}
 
 	// confirm history exists:
-	log, err := DatasetLog(ctx, mr, cities, 100, 0, true)
+	log, err := DatasetLog(ctx, mr, ref, 100, 0, true)
 	if err != nil {
 		t.Error(err)
 	}

@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
 )
 
@@ -184,19 +185,21 @@ continue?`, true) {
 		}
 	}
 
-	res := &reporef.DatasetRef{}
+	res := &dataset.Dataset{}
 	if err = o.DatasetMethods.Save(p, res); err != nil {
 		return err
 	}
 
 	o.StopSpinner()
-	printSuccess(o.ErrOut, "dataset saved: %s", res)
-	if res.Dataset.Structure != nil && res.Dataset.Structure.ErrCount > 0 {
-		printWarning(o.ErrOut, fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))
+	ref := dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
+	ref.ProfileID = ""
+	printSuccess(o.ErrOut, "dataset saved: %s", ref.String())
+	if res.Structure != nil && res.Structure.ErrCount > 0 {
+		printWarning(o.ErrOut, fmt.Sprintf("this dataset has %d validation errors", res.Structure.ErrCount))
 	}
 
 	if o.DryRun {
-		data, err := json.MarshalIndent(res.Dataset, "", "  ")
+		data, err := json.MarshalIndent(res, "", "  ")
 		if err != nil {
 			return err
 		}

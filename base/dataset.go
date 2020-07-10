@@ -260,45 +260,6 @@ func RawDatasetRefs(ctx context.Context, r repo.Repo) (string, error) {
 	return builder.String(), nil
 }
 
-// FetchDataset grabs a dataset from a remote source
-func FetchDataset(ctx context.Context, r repo.Repo, ref *reporef.DatasetRef, pin, load bool) (err error) {
-	key := strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String())
-	// TODO (b5): use a function from a canonical place to produce this path, possibly from dsfs
-	path := key + "/" + dsfs.PackageFileDataset.String()
-
-	fetcher, ok := r.Store().(cafs.Fetcher)
-	if !ok {
-		err = fmt.Errorf("this store cannot fetch from remote sources")
-		return
-	}
-
-	// TODO: This is asserting that the target is Fetch-able, but inside dsfs.LoadDataset,
-	// only Get is called. Clean up the semantics of Fetch and Get to get this expection
-	// more correctly in line with what's actually required.
-	_, err = fetcher.Fetch(ctx, cafs.SourceAny, path)
-	if err != nil {
-		return fmt.Errorf("error fetching file: %s", err.Error())
-	}
-
-	if pin {
-		if err = PinDataset(ctx, r, *ref); err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error pinning root key: %s", err.Error())
-		}
-	}
-
-	if load {
-		ds, err := dsfs.LoadDataset(ctx, r.Store(), path)
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error loading newly saved dataset path: %s", path)
-		}
-		ref.Dataset = ds
-	}
-
-	return
-}
-
 // ReadDataset grabs a dataset from the store
 //
 // Deprecated - use LoadDataset instead
@@ -312,17 +273,17 @@ func ReadDataset(ctx context.Context, r repo.Repo, path string) (ds *dataset.Dat
 }
 
 // PinDataset marks a dataset for retention in a store
-func PinDataset(ctx context.Context, r repo.Repo, ref reporef.DatasetRef) error {
+func PinDataset(ctx context.Context, r repo.Repo, path string) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		return pinner.Pin(ctx, ref.Path, true)
+		return pinner.Pin(ctx, path, true)
 	}
 	return repo.ErrNotPinner
 }
 
 // UnpinDataset unmarks a dataset for retention in a store
-func UnpinDataset(ctx context.Context, r repo.Repo, ref reporef.DatasetRef) error {
+func UnpinDataset(ctx context.Context, r repo.Repo, path string) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		return pinner.Unpin(ctx, ref.Path, true)
+		return pinner.Unpin(ctx, path, true)
 	}
 	return repo.ErrNotPinner
 }

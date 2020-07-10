@@ -10,8 +10,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // DatasetLogItem aliases the type from logbook
@@ -65,14 +63,16 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset i
 	}
 	items := make([]DatasetLogItem, len(datasets))
 	for i, ds := range datasets {
-		ref := &reporef.DatasetRef{
-			// TODO(b5): using the ref.Username & ref.ProfileID here is a hack that assumes single-author histories
-			Peername:  ref.Username,
-			ProfileID: profile.IDB58DecodeOrEmpty(ref.ProfileID),
-			Name:      ref.Name,
-			Dataset:   ds,
+		ds.Name = ref.Name
+		ds.Peername = ref.Username
+		ds.ProfileID = ref.ProfileID
+		items[i] = logbook.DatasetLogItem{
+			VersionInfo: dsref.ConvertDatasetToVersionInfo(ds),
 		}
-		items[i] = reporef.ConvertToDatasetLogItem(ref)
+		if ds.Commit != nil {
+			items[i].CommitTitle = ds.Commit.Title
+			items[i].CommitMessage = ds.Commit.Message
+		}
 	}
 
 	// add a history entry b/c we didn't have one, but repo didn't error

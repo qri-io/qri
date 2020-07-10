@@ -70,7 +70,7 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 
 	datasetRef := reporef.RefFromDsref(ref)
 	datasetRef.Published = true
-	if err = base.SetPublishStatus(r.inst.node.Repo, &datasetRef, datasetRef.Published); err != nil {
+	if err = base.SetPublishStatus(r.inst.node.Repo, ref, true); err != nil {
 		return err
 	}
 
@@ -108,9 +108,7 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 		return err
 	}
 
-	oldRefKind := reporef.RefFromDsref(ref)
-	oldRefKind.Published = false
-	if err = base.SetPublishStatus(r.inst.node.Repo, &oldRefKind, oldRefKind.Published); err != nil {
+	if err = base.SetPublishStatus(r.inst.node.Repo, ref, false); err != nil {
 		return err
 	}
 

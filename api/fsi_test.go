@@ -20,7 +20,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestFSIHandlers(t *testing.T) {
@@ -253,8 +252,8 @@ func TestFSIWrite(t *testing.T) {
 		},
 		BodyPath: "testdata/cities/data.csv",
 	}
-	res := reporef.DatasetRef{}
-	if err := dsm.Save(&saveParams, &res); err != nil {
+	res := &dataset.Dataset{}
+	if err := dsm.Save(&saveParams, res); err != nil {
 		t.Fatal(err)
 	}
 
@@ -340,15 +339,14 @@ func TestCheckoutAndRestore(t *testing.T) {
 		},
 		BodyPath: "testdata/cities/data.csv",
 	}
-	res := reporef.DatasetRef{}
-	if err := dsm.Save(&saveParams, &res); err != nil {
+	res := &dataset.Dataset{}
+	if err := dsm.Save(&saveParams, res); err != nil {
 		t.Fatal(err)
 	}
 
 	// Save the path from reference for later.
 	// TODO(dlong): Support full dataset refs, not just the path.
-	pos := strings.Index(res.String(), "/map/")
-	ref1 := res.String()[pos:]
+	ref1 := strings.TrimPrefix(res.Path, "/map/")
 
 	// Save version 2 with a different title
 	saveParams = lib.SaveParams{
@@ -359,7 +357,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 			},
 		},
 	}
-	if err := dsm.Save(&saveParams, &res); err != nil {
+	if err := dsm.Save(&saveParams, res); err != nil {
 		t.Fatal(err)
 	}
 

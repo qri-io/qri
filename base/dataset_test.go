@@ -7,10 +7,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -38,7 +36,7 @@ func TestListDatasets(t *testing.T) {
 		t.Error("expected no published datasets")
 	}
 
-	if err := SetPublishStatus(r, &ref, true); err != nil {
+	if err := SetPublishStatus(r, ref, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -71,30 +69,12 @@ func TestListDatasets(t *testing.T) {
 	}
 }
 
-func TestFetchDataset(t *testing.T) {
-	ctx := context.Background()
-	r1 := newTestRepo(t)
-	r2 := newTestRepo(t)
-	ref := addCitiesDataset(t, r2)
-
-	// Connect in memory Mapstore's behind the scene to simulate IPFS-like behavior.
-	r1.Store().(*cafs.MapStore).AddConnection(r2.Store().(*cafs.MapStore))
-
-	if err := FetchDataset(ctx, r1, &reporef.DatasetRef{Peername: "foo", Name: "bar"}, true, true); err == nil {
-		t.Error("expected add of invalid ref to error")
-	}
-
-	if err := FetchDataset(ctx, r1, &ref, true, true); err != nil {
-		t.Error(err.Error())
-	}
-}
-
 func TestDatasetPinning(t *testing.T) {
 	ctx := context.Background()
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	if err := PinDataset(ctx, r, ref); err != nil {
+	if err := PinDataset(ctx, r, ref.Path); err != nil {
 		if err == repo.ErrNotPinner {
 			t.Log("repo store doesn't support pinning")
 		} else {
@@ -109,24 +89,24 @@ func TestDatasetPinning(t *testing.T) {
 		return
 	}
 
-	ref2, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), tc.Input, nil, SaveSwitches{ShouldRender: true})
+	ds2, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), tc.Input, nil, SaveSwitches{ShouldRender: true})
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := PinDataset(ctx, r, ref2); err != nil && err != repo.ErrNotPinner {
+	if err := PinDataset(ctx, r, ds2.Path); err != nil && err != repo.ErrNotPinner {
 		// TODO (b5) - not sure what's going on here
 		t.Log(err.Error())
 		return
 	}
 
-	if err := UnpinDataset(ctx, r, ref); err != nil && err != repo.ErrNotPinner {
+	if err := UnpinDataset(ctx, r, ref.Path); err != nil && err != repo.ErrNotPinner {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := UnpinDataset(ctx, r, ref2); err != nil && err != repo.ErrNotPinner {
+	if err := UnpinDataset(ctx, r, ds2.Path); err != nil && err != repo.ErrNotPinner {
 		t.Error(err.Error())
 		return
 	}

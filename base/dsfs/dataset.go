@@ -645,7 +645,7 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 		}
 		err = ds.Readme.OpenScriptFile(ctx, fs)
 		if err != nil {
-			log.Error("ds.Readme.ScriptPath %q open err: %s", ds.Readme.ScriptPath, err)
+			log.Errorf("ds.Readme.ScriptPath %q open err: %s", ds.Readme.ScriptPath, err)
 		} else {
 			tfFile := ds.Readme.ScriptFile()
 			ds.Readme.ScriptBytes, err = ioutil.ReadAll(tfFile)

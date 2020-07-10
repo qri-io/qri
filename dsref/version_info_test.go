@@ -8,6 +8,28 @@ import (
 	"github.com/qri-io/dataset"
 )
 
+func TestNewVersionInfoFromRef(t *testing.T) {
+	ref := Ref{
+		InitID:    "initID",
+		Username:  "username",
+		ProfileID: "pid",
+		Name:      "name",
+		Path:      "path",
+	}
+
+	got := NewVersionInfoFromRef(ref)
+	expect := VersionInfo{
+		InitID:    ref.InitID,
+		Username:  ref.Username,
+		ProfileID: ref.ProfileID,
+		Name:      ref.Name,
+		Path:      ref.Path,
+	}
+	if diff := cmp.Diff(expect, got); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestConvertToVersionInfo(t *testing.T) {
 	ds := &dataset.Dataset{
 		Peername:  "a",

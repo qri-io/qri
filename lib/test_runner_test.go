@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
@@ -18,7 +19,6 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
@@ -142,7 +142,7 @@ func (tr *testRunner) CreateAndChdirToWorkDir(subdir string) string {
 	return tr.WorkDir
 }
 
-func (tr *testRunner) MustSaveFromBody(t *testing.T, dsName, bodyFilename string) dsref.Ref {
+func (tr *testRunner) MustSaveFromBody(t *testing.T, dsName, bodyFilename string) *dataset.Dataset {
 	if !dsref.IsValidName(dsName) {
 		t.Fatalf("invalid dataset name: %q", dsName)
 	}
@@ -151,20 +151,20 @@ func (tr *testRunner) MustSaveFromBody(t *testing.T, dsName, bodyFilename string
 		Ref:      fmt.Sprintf("peer/%s", dsName),
 		BodyPath: bodyFilename,
 	}
-	r := reporef.DatasetRef{}
-	if err := m.Save(&p, &r); err != nil {
+	res := &dataset.Dataset{}
+	if err := m.Save(&p, res); err != nil {
 		t.Fatal(err)
 	}
-	return reporef.ConvertToDsref(r)
+	return res
 }
 
 func (tr *testRunner) SaveWithParams(p *SaveParams) (dsref.Ref, error) {
 	m := NewDatasetMethods(tr.Instance)
-	r := reporef.DatasetRef{}
-	if err := m.Save(p, &r); err != nil {
+	res := &dataset.Dataset{}
+	if err := m.Save(p, res); err != nil {
 		return dsref.Ref{}, err
 	}
-	return reporef.ConvertToDsref(r), nil
+	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef(), nil
 }
 
 func (tr *testRunner) Diff(left, right, selector string) (string, error) {

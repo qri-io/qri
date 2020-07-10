@@ -13,7 +13,6 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 type APITestRunner struct {
@@ -85,8 +84,8 @@ func (r *APITestRunner) SaveDataset(ds *dataset.Dataset, bodyFilename string) {
 		Dataset:  ds,
 		BodyPath: bodyFilename,
 	}
-	res := reporef.DatasetRef{}
-	if err := dsm.Save(&saveParams, &res); err != nil {
+	res := &dataset.Dataset{}
+	if err := dsm.Save(&saveParams, res); err != nil {
 		panic(err)
 	}
 }

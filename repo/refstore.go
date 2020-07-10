@@ -26,6 +26,21 @@ type Refstore interface {
 	RefCount() (int, error)
 }
 
+// ListVersionInfoShim wraps a call to References, converting results to a
+// slice of VersionInfos
+func ListVersionInfoShim(r Repo, offset, limit int) ([]dsref.VersionInfo, error) {
+	refs, err := r.References(offset, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]dsref.VersionInfo, len(refs))
+	for i, rref := range refs {
+		res[i] = reporef.ConvertToVersionInfo(&rref)
+	}
+	return res, nil
+}
+
 // GetVersionInfoShim is a shim for getting away from the old
 // DatasetRef, CanonicalizeDatasetRef, RefStore stack
 func GetVersionInfoShim(r Repo, ref dsref.Ref) (*dsref.VersionInfo, error) {

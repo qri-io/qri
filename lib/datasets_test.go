@@ -95,7 +95,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 
 	for i, c := range good {
-		got := &reporef.DatasetRef{}
+		got := &dataset.Dataset{}
 		err := m.Save(&c.params, got)
 		if err != nil {
 			t.Errorf("case %d: '%s' unexpected error: %s", i, c.description, err.Error())
@@ -104,8 +104,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 
 		if got != nil && c.res != nil {
 			expect := c.res.Dataset
-			gotDs := got.Dataset
-			if err := dataset.CompareDatasets(expect, gotDs); err != nil {
+			if err := dataset.CompareDatasets(expect, got); err != nil {
 				t.Errorf("case %d ds mistmatch: %s", i, err.Error())
 				continue
 			}
@@ -123,7 +122,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 
 	for i, c := range bad {
-		got := &reporef.DatasetRef{}
+		got := &dataset.Dataset{}
 		err := m.Save(&c.params, got)
 		if err == nil {
 			t.Errorf("case %d: '%s' returned no error", i, c.description)
@@ -154,7 +153,7 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
-	res := &reporef.DatasetRef{}
+	res := &dataset.Dataset{}
 	if err := m.Save(&SaveParams{Ref: ref.Alias()}, res); err == nil {
 		t.Error("expected empty save without force flag to error")
 	}
@@ -184,7 +183,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 		os.RemoveAll(metaTwoPath)
 	}()
 
-	res := &reporef.DatasetRef{}
+	res := &dataset.Dataset{}
 	err := m.Save(&SaveParams{
 		Ref:        ref.Alias(),
 		FilePaths:  []string{metaOnePath},
@@ -208,7 +207,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Dataset.Transform == nil {
+	if res.Transform == nil {
 		t.Error("expected transform to exist on recalled save")
 	}
 
@@ -227,7 +226,7 @@ func TestDatasetRequestsSaveRecallDrop(t *testing.T) {
 	if err != nil {
 		t.Fatal("expected bad recall to error")
 	}
-	if res.Dataset.Transform != nil {
+	if res.Transform != nil {
 		t.Error("expected transform be nil")
 	}
 }
@@ -247,19 +246,19 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
-	res := reporef.DatasetRef{}
+	res := &dataset.Dataset{}
 	// TODO (b5): import.zip has a ref.txt file that specifies test_user/test_repo as the dataset name,
 	// save now requires a string reference. we need to pick a behaviour here & write a test that enforces it
-	err = m.Save(&SaveParams{Ref: "me/huh", FilePaths: []string{"testdata/import.zip"}}, &res)
+	err = m.Save(&SaveParams{Ref: "me/huh", FilePaths: []string{"testdata/import.zip"}}, res)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	if res.Dataset.Commit.Title != "Test Title" {
-		t.Fatalf("Expected 'Test Title', got '%s'", res.Dataset.Commit.Title)
+	if res.Commit.Title != "Test Title" {
+		t.Fatalf("Expected 'Test Title', got '%s'", res.Commit.Title)
 	}
-	if res.Dataset.Meta.Title != "Test Repo" {
-		t.Fatalf("Expected 'Test Repo', got '%s'", res.Dataset.Meta.Title)
+	if res.Meta.Title != "Test Repo" {
+		t.Fatalf("Expected 'Test Repo', got '%s'", res.Meta.Title)
 	}
 }
 func TestDatasetRequestsList(t *testing.T) {
@@ -862,7 +861,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 
 	// add a commit to craigslist
-	saveRes := &reporef.DatasetRef{}
+	saveRes := &dataset.Dataset{}
 	if err := dsm.Save(&SaveParams{Ref: "peer/craigslist", Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh word"}}}, saveRes); err != nil {
 		t.Fatal(err)
 	}

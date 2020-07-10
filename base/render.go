@@ -9,8 +9,8 @@ import (
 	"github.com/qri-io/dataset/dsviz"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func init() {
@@ -84,7 +84,7 @@ func MaybeAddDefaultViz(ds *dataset.Dataset) {
 // Render uses go's html/template package to generate html documents from an
 // input dataset. It's API has been adjusted to use lowerCamelCase instead of
 // UpperCamelCase naming conventions
-func Render(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, tmplData []byte) ([]byte, error) {
+func Render(ctx context.Context, r repo.Repo, ref dsref.Ref, tmplData []byte) ([]byte, error) {
 	/*
 		outline: html viz
 			HTML template gives users a number of helper template functions, along
@@ -137,7 +137,7 @@ func Render(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, tmplData [
 	}
 
 	// TODO (b5): plzzzzzzz standardize this into one place
-	ds.Peername = ref.Peername
+	ds.Peername = ref.Username
 	ds.Name = ref.Name
 
 	// TODO(dlong): Deprecated, this should be removed.

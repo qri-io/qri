@@ -6,9 +6,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 type TestRunner struct {
@@ -53,18 +51,20 @@ func (run *TestRunner) SaveDatasetReplace(ds *dataset.Dataset) (dsref.Ref, error
 }
 
 func (run *TestRunner) saveDataset(ds *dataset.Dataset, sw SaveSwitches) (dsref.Ref, error) {
-	headRef := ""
 	book := run.Repo.Logbook()
-	initID, err := book.RefToInitID(dsref.Ref{Username: "peer", Name: ds.Name})
-	if err == nil {
-		got, _ := run.Repo.GetRef(reporef.DatasetRef{Peername: "peer", Name: ds.Name})
-		headRef = got.Path
-	} else if err == logbook.ErrNotFound {
-		initID, err = book.WriteDatasetInit(run.Context, ds.Name)
+	ref := dsref.Ref{Username: "peer", Name: ds.Name}
+	if _, err := book.ResolveRef(context.Background(), &ref); err == dsref.ErrRefNotFound {
+		ref.InitID, err = book.WriteDatasetInit(run.Context, ds.Name)
+		if err != nil {
+			return dsref.Ref{}, err
+		}
+	} else if err != nil {
+		return dsref.Ref{}, err
 	}
+
+	ds, err := SaveDataset(run.Context, run.Repo, run.Repo.Filesystem().DefaultWriteFS(), ref.InitID, ref.Path, ds, sw)
 	if err != nil {
 		return dsref.Ref{}, err
 	}
-	datasetRef, err := SaveDataset(run.Context, run.Repo, run.Repo.Filesystem().DefaultWriteFS(), initID, headRef, ds, sw)
-	return reporef.ConvertToDsref(datasetRef), err
+	return dsref.ConvertDatasetToVersionInfo(ds).SimpleRef(), nil
 }

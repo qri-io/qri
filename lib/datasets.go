@@ -474,7 +474,7 @@ func (p *SaveParams) AbsolutizePaths() error {
 }
 
 // Save adds a history entry, updating a dataset
-func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
+func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 	if m.inst.rpc != nil {
 		p.ScriptOutput = nil
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Save", p, res))
@@ -570,15 +570,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 	}
 
 	if p.Recall != "" {
-		datasetRef := reporef.DatasetRef{
-			Peername: ds.Peername,
-			Name:     ds.Name,
-			// TODO - fix, but really this should be fine for a while because
-			// ProfileID is required to be local when saving
-			// ProfileID: ds.ProfileID,
-			Path: ds.Path,
-		}
-		recall, err := base.Recall(ctx, m.inst.repo, p.Recall, datasetRef)
+		recall, err := base.Recall(ctx, m.inst.qfs.DefaultWriteFS(), ref, p.Recall)
 		if err != nil {
 			return err
 		}
@@ -636,13 +628,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		// reference with an IPFS path and Name, etc. This isn't actually a valid reference,
 		// since nothing is written to the repo, so relying on this is a bit hacky. But using
 		// dry-run to save is going away once `apply` exists, so this is temporary anyway.
-		*res = reporef.DatasetRef{
-			ProfileID: pro.ID,
-			Name:      ds.Name,
-			Peername:  pro.Peername,
-			Path:      ds.Path,
-			Dataset:   ds,
-		}
+		*res = *ds
 		return nil
 	}
 
@@ -665,7 +651,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		NewName:             p.NewName,
 		Drop:                p.Drop,
 	}
-	datasetRef, err := base.SaveDataset(ctx, m.inst.repo, writeDest, ref.InitID, ref.Path, ds, switches)
+	savedDs, err := base.SaveDataset(ctx, m.inst.repo, writeDest, ref.InitID, ref.Path, ds, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
@@ -675,24 +661,27 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 
 	// TODO (b5) - this should be integrated into base.SaveDataset
 	if fsiPath != "" && !p.DryRun {
-		datasetRef.FSIPath = fsiPath
-		if err = m.inst.repo.PutRef(datasetRef); err != nil {
+		vi := dsref.ConvertDatasetToVersionInfo(savedDs)
+		vi.FSIPath = fsiPath
+		if err = repo.PutVersionInfoShim(m.inst.repo, &vi); err != nil {
 			return err
 		}
 	}
 
 	if p.ReturnBody {
-		if err = base.InlineJSONBody(datasetRef.Dataset); err != nil {
+		if err = base.InlineJSONBody(savedDs); err != nil {
 			return err
 		}
 	}
 
-	*res = datasetRef
+	*res = *savedDs
 
 	if fsiPath != "" && !p.DryRun {
 		// Need to pass filesystem here so that we can read the README component and write it
 		// properly back to disk.
-		fsi.WriteComponents(res.Dataset, datasetRef.FSIPath, m.inst.repo.Filesystem())
+		if writeErr := fsi.WriteComponents(savedDs, fsiPath, m.inst.repo.Filesystem()); err != nil {
+			log.Error(writeErr)
+		}
 	}
 	return nil
 }

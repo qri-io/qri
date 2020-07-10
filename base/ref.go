@@ -14,23 +14,24 @@ import (
 
 // InLocalNamespace checks if a dataset ref is local, assumes the reference is
 // already resolved
-func InLocalNamespace(r repo.Repo, ref *reporef.DatasetRef) bool {
+func InLocalNamespace(r repo.Repo, ref dsref.Ref) bool {
 	p, err := r.Profile()
 	if err != nil {
 		return false
 	}
 
-	return p.ID == ref.ProfileID
+	return p.ID.String() == ref.ProfileID
 }
 
 // SetPublishStatus updates the Published field of a dataset ref
-func SetPublishStatus(r repo.Repo, ref *reporef.DatasetRef, published bool) error {
+func SetPublishStatus(r repo.Repo, ref dsref.Ref, published bool) error {
 	if !InLocalNamespace(r, ref) {
 		return fmt.Errorf("can't publish datasets that are not in your namespace")
 	}
 
-	ref.Published = published
-	return r.PutRef(*ref)
+	vi := dsref.NewVersionInfoFromRef(ref)
+	vi.Published = published
+	return repo.PutVersionInfoShim(r, &vi)
 }
 
 // ReplaceRefIfMoreRecent replaces the given ref in the ref store, if
