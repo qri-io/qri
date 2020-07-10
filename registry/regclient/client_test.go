@@ -10,6 +10,7 @@ import (
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
@@ -59,7 +60,7 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 	}
 
 	// need an actual ipfs repo
-	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), &event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}

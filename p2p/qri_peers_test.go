@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/qri-io/qri/p2p/test"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 )
 
 // This test connects four nodes to each other, then connects a fifth node to

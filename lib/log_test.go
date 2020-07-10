@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	reporef "github.com/qri-io/qri/repo/ref"
 	testrepo "github.com/qri-io/qri/repo/test"
@@ -24,7 +25,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		return
 	}
 
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), &event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -102,7 +103,7 @@ func TestHistoryRequestsLogEntries(t *testing.T) {
 		return
 	}
 
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), &event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
