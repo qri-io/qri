@@ -385,7 +385,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 		return
 	}
 
-	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
+	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
 		t.Errorf("error connecting peers: %s", err.Error())
 	}
 
@@ -670,7 +670,7 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 		return
 	}
 
-	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
+	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
 		t.Errorf("error connecting peers: %s", err.Error())
 	}
 
@@ -996,7 +996,7 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 	}
 
 	// Peers exchange Qri profile information.
-	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
+	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
 		t.Errorf("error upgrading to qri connections: %s", err.Error())
 		return
 	}

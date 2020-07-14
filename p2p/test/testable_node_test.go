@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 
 	libp2p "github.com/libp2p/go-libp2p"
@@ -77,7 +78,7 @@ func (n *TestableNode) GoOnline(_ context.Context) error {
 
 // NewTestableNode creates a testable node from a repo and a config.P2P
 // it creates a basic host
-func NewTestableNode(r repo.Repo, p2pconf *config.P2P) (TestablePeerNode, error) {
+func NewTestableNode(r repo.Repo, p2pconf *config.P2P, _ event.Publisher) (TestablePeerNode, error) {
 	ctx := context.Background()
 	ps := pstoremem.NewPeerstore()
 	// this is essentially what is located in the p2p.makeBasicHost function

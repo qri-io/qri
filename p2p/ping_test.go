@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qri-io/qri/p2p/test"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 )
 
 func TestPing(t *testing.T) {
@@ -14,7 +14,7 @@ func TestPing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating network: %s", err.Error())
 	}
-	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
+	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
 		t.Fatalf("error connecting peers: %s", err.Error())
 	}
 

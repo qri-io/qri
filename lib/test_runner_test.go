@@ -62,10 +62,6 @@ func newTestRunner(t *testing.T) *testRunner {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
-
-	bus := event.NewBus(ctx)
-
 	mr, err := testrepo.NewEmptyTestRepo(bus)
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())

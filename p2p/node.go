@@ -64,8 +64,6 @@ type QriNode struct {
 	// receivers is a list of anyone who wants to be notifed on new
 	// message arrival
 	receivers []chan Message
-	// publish events coming from p2p land
-	pub event.Publisher
 
 	// pub is the event publisher on which to publish p2p events
 	pub     event.Publisher
@@ -83,8 +81,8 @@ var _ p2ptest.TestablePeerNode = (*QriNode)(nil)
 var _ p2ptest.NodeMakerFunc = NewTestableQriNode
 
 // NewTestableQriNode creates a new node, as a TestablePeerNode, usable by testing utilities.
-func NewTestableQriNode(r repo.Repo, p2pconf *config.P2P) (p2ptest.TestablePeerNode, error) {
-	return NewQriNode(r, p2pconf, event.NilBus)
+func NewTestableQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (p2ptest.TestablePeerNode, error) {
+	return NewQriNode(r, p2pconf, pub)
 }
 
 // NewQriNode creates a new node from a configuration. To get a fully connected
@@ -376,13 +374,13 @@ func (n *QriNode) SendMessage(ctx context.Context, msg Message, replies chan Mes
 func (n *QriNode) connected(_ net.Network, conn net.Conn) {
 	log.Debugf("connected to peer: %s", conn.RemotePeer())
 	pi := n.Host().Peerstore().PeerInfo(conn.RemotePeer())
-	n.pub.Publish(event.ETP2PPeerConnected, pi)
+	n.pub.Publish(context.Background(), event.ETP2PPeerConnected, pi)
 }
 
 func (n *QriNode) disconnected(_ net.Network, conn net.Conn) {
 	log.Debugf("disconnected from peer: %s", conn.RemotePeer())
 	pi := n.Host().Peerstore().PeerInfo(conn.RemotePeer())
-	n.pub.Publish(event.ETP2PPeerDisconnected, pi)
+	n.pub.Publish(context.Background(), event.ETP2PPeerDisconnected, pi)
 }
 
 // QriStreamHandler is the handler we register with the multistream muxer
@@ -393,9 +391,11 @@ func (n *QriNode) QriStreamHandler(s net.Stream) {
 
 func (n *QriNode) libp2pSubscribe() error {
 	host := n.host
-	sub, err := host.EventBus().Subscribe(
+	sub, err := host.EventBus().Subscribe([]interface{}{
 		new(libp2pevent.EvtPeerIdentificationCompleted),
-		// libp2peventbus.BufSize(1024),
+		new(libp2pevent.EvtPeerIdentificationFailed),
+	},
+	// libp2peventbus.BufSize(1024),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to identify notifications: %w", err)
@@ -405,7 +405,13 @@ func (n *QriNode) libp2pSubscribe() error {
 		for e := range sub.Out() {
 			switch e := e.(type) {
 			case libp2pevent.EvtPeerIdentificationCompleted:
-				n.upgradeToQriConnection(e.Peer)
+				log.Debugf("libp2p identified peer: %s\n", e.Peer)
+				err := n.upgradeToQriConnection(e.Peer)
+				if err != nil {
+					log.Errorf("error upgrading to %s to Qri Connection: %s", e.Peer, err)
+				}
+			case libp2pevent.EvtPeerIdentificationFailed:
+				log.Errorf("libp2p failed to identify peer peer %s: %s", e.Peer, e.Reason)
 			}
 		}
 	}()
@@ -439,7 +445,7 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 			break
 		}
 
-		n.pub.Publish(event.ETP2PMessageReceived, msg)
+		n.pub.Publish(context.Background(), event.ETP2PMessageReceived, msg)
 		go n.writeToReceivers(msg)
 
 		if hangup := handler(ws, msg); hangup {

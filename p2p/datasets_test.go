@@ -15,7 +15,7 @@ func TestRequestDatasetsList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating network: %s", err.Error())
 	}
-	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
+	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
 		t.Fatalf("error connecting peers: %s", err.Error())
 	}
 

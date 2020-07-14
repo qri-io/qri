@@ -6,6 +6,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -41,7 +42,7 @@ func NewTestFactory(ctx context.Context) (tf TestFactory, err error) {
 	}
 
 	cfg := config.DefaultConfigForTesting().Copy()
-	tnode, err := p2p.NewTestableQriNode(repo, cfg.P2P)
+	tnode, err := p2p.NewTestableQriNode(repo, cfg.P2P, event.NilBus)
 	if err != nil {
 		return
 	}
@@ -69,7 +70,7 @@ func NewTestFactoryInstanceOptions(ctx context.Context, opts ...lib.Option) (tf 
 	}
 
 	cfg := config.DefaultConfigForTesting().Copy()
-	tnode, err := p2p.NewTestableQriNode(repo, cfg.P2P)
+	tnode, err := p2p.NewTestableQriNode(repo, cfg.P2P, event.NilBus)
 	if err != nil {
 		return
 	}
