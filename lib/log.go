@@ -171,9 +171,19 @@ func (m *LogMethods) PlainLogs(p *PlainLogsParams, res *PlainLogs) (err error) {
 // LogbookSummary returns a string overview of the logbook
 func (m *LogMethods) LogbookSummary(p *struct{}, res *string) (err error) {
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("LogMethods.Diagnostic", p, res))
+		return checkRPCError(m.inst.rpc.Call("LogMethods.Summary", p, res))
 	}
 	ctx := context.TODO()
 	*res = m.inst.repo.Logbook().SummaryString(ctx)
 	return nil
+}
+
+// Clean runs the logbook cleaning routine
+func (m *LogMethods) Clean(p *struct{}, res *[]string) (err error) {
+	if m.inst.rpc != nil {
+		return checkRPCError(m.inst.rpc.Call("LogMethods.Clean", p, res))
+	}
+	ctx := context.TODO()
+	*res, err = m.inst.repo.Logbook().Clean(ctx)
+	return err
 }

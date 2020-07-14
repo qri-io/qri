@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"sort"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -156,7 +157,6 @@ func (j *Journal) MergeLog(ctx context.Context, l *Log) error {
 }
 
 // RemoveLog removes a log from the journal
-// TODO (b5) - this currently won't work when trying to remove the root log
 func (j *Journal) RemoveLog(ctx context.Context, names ...string) error {
 	if len(names) == 0 {
 		return fmt.Errorf("name is required")
@@ -455,6 +455,17 @@ func (lg Log) Name() string {
 		}
 	}
 	return lg.name
+}
+
+// Latest returns the max timestamp operation in the log
+func (lg Log) Latest() int64 {
+	var latest int64
+	for _, op := range lg.Ops {
+		if op.Timestamp > latest {
+			latest = op.Timestamp
+		}
+	}
+	return latest
 }
 
 // Removed returns true if the log contains a remove operation for the log model
@@ -796,4 +807,70 @@ func UnmarshalOpFlatbuffer(o *logfb.Operation) Op {
 	}
 
 	return op
+}
+
+// Clean checks a journal for bad values
+func Clean(journal *Journal) (changes []string, err error) {
+	changes = []string{}
+	journal.logs = removeAmbiguousNames(journal.logs, &changes)
+
+	return changes, nil
+}
+
+type logCleaningDetails struct {
+	idx     int
+	initID  string
+	opCount int
+	latest  int64
+}
+
+func removeAmbiguousNames(logs []*Log, changes *[]string) (cleaned []*Log) {
+	cleaned = logs[:0]
+	dedup := map[string]logCleaningDetails{}
+
+	for i, lg := range logs {
+		name := lg.Name()
+		entry := logCleaningDetails{
+			idx:     i,
+			initID:  lg.ID(),
+			opCount: len(lg.Ops),
+			latest:  lg.Latest(),
+		}
+
+		if sameName, exists := dedup[name]; exists {
+			// if sameName.opCount < entry.opCount {
+			// 	*changes = append(*changes, fmt.Sprintf("removed %s. ambiguous name %q had %d fewer operation(s) than %s", sameName.initID, name, entry.opCount-sameName.opCount, entry.initID))
+			// 	dedup[name] = entry
+			// } else if sameName.opCount > entry.opCount {
+			// 	*changes = append(*changes, fmt.Sprintf("removed %s. ambiguous name %q had %d fewer operation(s) than %s", entry.initID, name, sameName.opCount-entry.opCount, sameName.initID))
+			// } else
+			if sameName.latest < entry.latest {
+				*changes = append(*changes, fmt.Sprintf("removed %s. ambiguous name %q latest operation was earlier than %s", sameName.initID, name, entry.initID))
+				dedup[name] = entry
+			} else if sameName.latest > entry.latest {
+				*changes = append(*changes, fmt.Sprintf("removed %s. ambiguous name %q latest operation was earlier than %s", entry.initID, name, sameName.initID))
+			} else {
+				// default to keeping later entry in the slice
+				*changes = append(*changes, fmt.Sprintf("removed %s. ambiguous name %q occurs earlier in logbook than %s", entry.initID, name, entry.initID))
+				dedup[name] = entry
+			}
+		} else {
+			dedup[name] = entry
+		}
+	}
+
+	keeps := make([]int, 0, len(logs))
+	for _, entry := range dedup {
+		keeps = append(keeps, entry.idx)
+	}
+	sort.Ints(keeps)
+	for _, idx := range keeps {
+		cleaned = append(cleaned, logs[idx])
+	}
+
+	for i := range cleaned {
+		cleaned[i].Logs = removeAmbiguousNames(cleaned[i].Logs, changes)
+	}
+
+	return cleaned
 }

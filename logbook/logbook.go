@@ -216,6 +216,23 @@ func (book *Book) DeleteAuthor() error {
 	return fmt.Errorf("not finished")
 }
 
+// Clean checks a logbook for problems & cleans it up
+func (book *Book) Clean(ctx context.Context) ([]string, error) {
+	journal, ok := book.store.(*oplog.Journal)
+	if !ok {
+		return nil, fmt.Errorf("cannot clean a logbook that isn't an oplog.Journal")
+	}
+
+	changes, err := oplog.Clean(journal)
+	if err != nil {
+		return nil, err
+	}
+	if err = book.save(ctx); err != nil {
+		return nil, err
+	}
+	return changes, nil
+}
+
 // save writes the book to book.fsLocation
 func (book *Book) save(ctx context.Context) (err error) {
 	if al, ok := book.store.(oplog.AuthorLogstore); ok {

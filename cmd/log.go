@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/ioes"
@@ -157,7 +158,9 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if o.Raw {
+			if o.Clean {
+				return o.CleanLogs()
+			} else if o.Raw {
 				return o.RawLogs()
 			} else if o.Summary {
 				return o.LogbookSummary()
@@ -170,6 +173,7 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
 	cmd.Flags().BoolVar(&o.Raw, "raw", false, "full logbook in raw JSON format. overrides all other flags")
 	cmd.Flags().BoolVar(&o.Summary, "summary", false, "print one oplog per line in the format 'MODEL ID OPCOUNT NAME'. overrides all other flags")
+	cmd.Flags().BoolVar(&o.Clean, "clean", false, "run cleaning")
 
 	return cmd
 }
@@ -182,6 +186,7 @@ type LogbookOptions struct {
 	Page         int
 	Refs         *RefSelect
 	Raw, Summary bool
+	Clean        bool
 
 	LogMethods *lib.LogMethods
 }
@@ -192,7 +197,7 @@ func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf("cannot use summary & raw flags at once")
 	}
 
-	if o.Raw || o.Summary {
+	if o.Raw || o.Summary || o.Clean {
 		if len(args) != 0 {
 			return fmt.Errorf("can't use dataset reference. the raw flag shows the entire logbook")
 		}
@@ -263,5 +268,15 @@ func (o *LogbookOptions) LogbookSummary() error {
 	}
 
 	printToPager(o.Out, bytes.NewBufferString(res))
+	return nil
+}
+
+// CleanLogs runs logbook cleaning
+func (o *LogbookOptions) CleanLogs() error {
+	res := []string{}
+	if err := o.LogMethods.Clean(&struct{}{}, &res); err != nil {
+		return err
+	}
+	printInfo(o.Out, strings.Join(res, "\n"))
 	return nil
 }
