@@ -456,8 +456,10 @@ func Pull(t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
 }
 
 func Preview(t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
+	t.Helper()
 	p := &PreviewParams{
-		Ref: refstr,
+		Ref:        refstr,
+		RemoteName: "",
 	}
 	res := &dataset.Dataset{}
 	if err := NewRemoteMethods(inst).Preview(p, res); err != nil {

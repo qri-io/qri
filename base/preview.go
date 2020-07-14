@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
@@ -11,9 +13,14 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// MaxNumDatasetRowsInPreview is the highest number of rows a dataset preview
-// can contain
-const MaxNumDatasetRowsInPreview = 100
+const (
+	// MaxNumDatasetRowsInPreview is the highest number of rows a dataset preview
+	// can contain
+	MaxNumDatasetRowsInPreview = 100
+	// MaxReadmePreviewBytes determines the maximum amount of bytes a readme
+	// preview can be. three bytes less than 1000 to make room for an elipsis
+	MaxReadmePreviewBytes = 997
+)
 
 // CreatePreview generates a preview for a dataset version
 func CreatePreview(ctx context.Context, r repo.Repo, ref dsref.Ref) (ds *dataset.Dataset, err error) {
@@ -25,6 +32,26 @@ func CreatePreview(ctx context.Context, r repo.Repo, ref dsref.Ref) (ds *dataset
 	if err != nil {
 		log.Errorf("CreatePreview loading dataset: %s", err.Error())
 		return nil, err
+	}
+
+	if ds.Readme != nil {
+		if err := openReadme(ctx, r.Filesystem(), ds); err != nil {
+			log.Errorf("OpeningReadme: %s", err.Error())
+			return nil, err
+		}
+
+		if readmeFile := ds.Readme.ScriptFile(); readmeFile != nil {
+			ds.Readme.ScriptBytes, err = ioutil.ReadAll(io.LimitReader(readmeFile, MaxReadmePreviewBytes))
+			if err != nil {
+				log.Errorf("Reading Readme: %s", err.Error())
+				return nil, err
+			}
+
+			if len(ds.Readme.ScriptBytes) == MaxReadmePreviewBytes {
+				ds.Readme.ScriptBytes = append(ds.Readme.ScriptBytes, []byte(`...`)...)
+			}
+			ds.Readme.SetScriptFile(nil)
+		}
 	}
 
 	if err = ds.OpenBodyFile(ctx, r.Store()); err != nil {

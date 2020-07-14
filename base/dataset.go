@@ -70,21 +70,8 @@ func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) 
 		}
 	}
 
-	if ds.Readme != nil && ds.Readme.ScriptFile() == nil {
-		readmeTimeoutCtx, cancel := context.WithTimeout(ctx, OpenFileTimeoutDuration)
-		defer cancel()
-
-		if err = ds.Readme.OpenScriptFile(readmeTimeoutCtx, fsys); err != nil {
-			if errors.Is(err, context.DeadlineExceeded) {
-				err = nil
-			} else if strings.Contains(err.Error(), "not found") {
-				log.Debug("skipping not-found readme script")
-				err = nil
-			} else {
-				log.Debug(err)
-				return err
-			}
-		}
+	if err = openReadme(ctx, fsys, ds); err != nil {
+		return err
 	}
 
 	if ds.Viz != nil && ds.Viz.RenderedFile() == nil {
@@ -108,6 +95,26 @@ func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) 
 
 func isMerkleDagError(err error) bool {
 	return err.Error() == "merkledag: not found"
+}
+
+func openReadme(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) error {
+	if ds.Readme != nil && ds.Readme.ScriptFile() == nil {
+		readmeTimeoutCtx, cancel := context.WithTimeout(ctx, OpenFileTimeoutDuration)
+		defer cancel()
+
+		if err := ds.Readme.OpenScriptFile(readmeTimeoutCtx, fsys); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				err = nil
+			} else if strings.Contains(err.Error(), "not found") {
+				log.Debug("skipping not-found readme script")
+				err = nil
+			} else {
+				log.Debug(err)
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // CloseDataset ensures all open dataset files are closed
