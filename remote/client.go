@@ -231,10 +231,18 @@ func (c *client) Feed(ctx context.Context, remoteAddr, feedName string, page, pa
 
 // PreviewDatasetVersion fetches a dataset preview from the registry
 func (c *client) PreviewDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
+	if c == nil {
+		return nil, ErrNoRemoteClient
+	}
 	if at := addressType(remoteAddr); at != "http" {
 		return nil, fmt.Errorf("feeds are only supported over HTTP")
 	}
+	log.Debugf("client.PreviewDatasetVersion ref=%q remoteAddr=%q", ref, remoteAddr)
 
+	return c.previewDatasetVersionHTTP(ctx, ref, remoteAddr)
+}
+
+func (c *client) previewDatasetVersionHTTP(ctx context.Context, ref dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/remote/dataset/preview/%s", remoteAddr, ref.String()), nil)
 	if err != nil {
 		return nil, err
@@ -249,8 +257,10 @@ func (c *client) PreviewDatasetVersion(ctx context.Context, ref dsref.Ref, remot
 		if strings.Contains(err.Error(), "no such host") {
 			return nil, ErrRemoteNotFound
 		}
+		log.Errorf("fetching preview from %q: %s", remoteAddr, err)
 		return nil, err
 	}
+
 	// add response to an envelope
 	env := struct {
 		Data *dataset.Dataset

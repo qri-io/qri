@@ -147,6 +147,7 @@ func addNowTransformDataset(t *testing.T, r repo.Repo) dsref.Ref {
 			Schema: dataset.BaseSchemaArray,
 		},
 		Transform: &dataset.Transform{},
+		Readme:    &dataset.Readme{},
 	}
 
 	script := `
@@ -156,6 +157,76 @@ def transform(ds, ctx):
 	ds.set_body([str(time.now())])`
 	ds.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", []byte(script)))
 	ds.SetBodyFile(qfs.NewMemfileBytes("data.json", []byte("[]")))
+
+	readme := "# Oh hey there!\nI'm a readme! hello!\n"
+	ds.Readme.SetScriptFile(qfs.NewMemfileBytes("readme.md", []byte(readme)))
+
+	saved, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return dsref.ConvertDatasetToVersionInfo(saved).SimpleRef()
+}
+
+func addTurnstileDataset(t *testing.T, r repo.Repo) dsref.Ref {
+	ctx := context.Background()
+
+	ds := &dataset.Dataset{
+		Name:     "turnstile_daily_counts_2020",
+		Peername: "peer",
+		Commit: &dataset.Commit{
+			Title: "update data for week ending April 18, 2020",
+		},
+		Meta: &dataset.Meta{
+			Title:       "Turnstile Daily Counts 2020",
+			Description: "NYC Subway Turnstile Counts Data aggregated by day and station complex for the year 2020. Updated weekly.",
+		},
+		Structure: &dataset.Structure{
+			Format: "json",
+			Schema: dataset.BaseSchemaArray,
+		},
+		Transform: &dataset.Transform{},
+		Readme:    &dataset.Readme{},
+	}
+
+	script := `
+load("time.star", "time")
+
+def transform(ds, ctx):
+	ds.set_body([str(time.now())])`
+	ds.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", []byte(script)))
+	ds.SetBodyFile(qfs.NewMemfileBytes("data.json", []byte("[]")))
+
+	readme := `# nyc-transit-data/turnstile_daily_counts_2020
+
+NYC Subway Turnstile Counts Data aggregated by day and station complex for the year 2020.  Updated weekly.
+
+## Where the Data Came From
+
+This aggregation was created from weekly raw turnstile counts published by the New York MTA at [http://web.mta.info/developers/turnstile.html](http://web.mta.info/developers/turnstile.html)
+
+The raw data were imported into a postgresql database for processing, and aggregated to calendar days for each station complex.
+
+The process is outlined in [this blog post](https://medium.com/qri-io/taming-the-mtas-unruly-turnstile-data-c945f5f96ba0), and the code for the data pipeline is [available on github](https://github.com/qri-io/data-stories-scripts/tree/master/nyc-turnstile-counts).
+
+## Caveats
+
+This aggregation is a best-effort to make a clean and usable dataset of station-level counts.  There were some assumptions and important decisions made to arrive at the finished product.
+
+- The dataset excludes turnstile observation windows (4 hours)  that resulted in entries or exits of over 10,000.  This threshold excludes the obviously spurious numbers that come from the counters rolling over, but could include false readings that are within the threshold.
+
+- The turnstile counts were aggregated to calendar day using the timestamp of the *end* of the 4-hour observation window + 2 hours.  An observation window that ends at 2am would count for the same day, but a window ending between midnight and 1:59am would count for the previous day.
+
+- The last date in the dataset contains a small number of entries and exits that will be aggregated into the next week's worth of data, and should not be used.
+
+## PATH and Roosevelt Island Tramway
+
+The dataset also includes turnstile counts for the PATH train system and the Roosevelt Island Tramway
+
+## Spurious Data in early versions
+
+Versions prior to QmPkGqJ318gcok69Noj3gw3coby8FDrab3x1hBisFcU3Yq were built with a pipeline that had a major error, causing inaccurate numbers near the transition between weekly input files.`
+	ds.Readme.SetScriptFile(qfs.NewMemfileBytes("readme.md", []byte(readme)))
 
 	ref, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {

@@ -63,6 +63,9 @@ func TestErrNoClient(t *testing.T) {
 	if err := client.RemoveDataset(ctx, dsref.Ref{}, ""); err != ErrNoRemoteClient {
 		t.Errorf("error mismatch expected: %q, got: %q", ErrNoRemoteClient, err)
 	}
+	if _, err := client.PreviewDatasetVersion(ctx, dsref.Ref{}, ""); err != ErrNoRemoteClient {
+		t.Errorf("error mismatch expected: %q, got: %q", ErrNoRemoteClient, err)
+	}
 	if err := client.RemoveDatasetVersion(ctx, dsref.Ref{}, ""); err != ErrNoRemoteClient {
 		t.Errorf("error mismatch expected: %q, got: %q", ErrNoRemoteClient, err)
 	}
@@ -72,7 +75,6 @@ func TestErrNoClient(t *testing.T) {
 	if err := client.PushDataset(ctx, dsref.Ref{}, ""); err != ErrNoRemoteClient {
 		t.Errorf("error mismatch expected: %q, got: %q", ErrNoRemoteClient, err)
 	}
-
 }
 
 func TestNewRemoteRefResolver(t *testing.T) {
