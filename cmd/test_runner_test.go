@@ -484,6 +484,7 @@ func (run *TestRunner) MustExec(t *testing.T, cmdText string) string {
 
 // MustExec runs a command, returning combined standard output and standard err
 func (run *TestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
+	t.Helper()
 	ctx, cancel := context.WithCancel(run.Context)
 	var shutdown func() <-chan error
 	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(ctx)

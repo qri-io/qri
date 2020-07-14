@@ -8,8 +8,6 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/dsref"
-	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -203,106 +201,4 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 	}
 	ref.Dataset.SetBodyFile(resBody)
 	return
-}
-
-// GenerateAvailableName creates a name for the dataset that is not currently in use
-func GenerateAvailableName(r repo.Repo, prefix string) string {
-	pro, err := r.Profile()
-	if err != nil {
-		log.Errorf("couldn't get profile: %s", err)
-		return ""
-	}
-	peername := pro.Peername
-	counter := 0
-	for {
-		counter++
-		tryName := fmt.Sprintf("%s_%d", prefix, counter)
-		lookup := &reporef.DatasetRef{Name: tryName, Peername: peername}
-		err := repo.CanonicalizeDatasetRef(r, lookup)
-		if err == repo.ErrNotFound {
-			return tryName
-		}
-	}
-}
-
-// DatasetNameExists determines whether the name exists in the repository
-// TODO(dustmop): Add dscache support
-func DatasetNameExists(r repo.Repo, dsName string) bool {
-	pro, err := r.Profile()
-	if err != nil {
-		log.Errorf("couldn't get profile: %s", err)
-		return false
-	}
-	peername := pro.Peername
-	lookup := &reporef.DatasetRef{Name: dsName, Peername: peername}
-	err = repo.CanonicalizeDatasetRef(r, lookup)
-	if err == repo.ErrNotFound {
-		return false
-	}
-	return true
-}
-
-// FinalizeNameAndStableIdentifers determines the final name for the dataset, by inferring one if
-// necessary, and returns a ref with stable identifiers for the full dataset history, and for
-// the most recent version.
-func FinalizeNameAndStableIdentifers(ctx context.Context, r repo.Repo, peername string, dsName string, ds *dataset.Dataset, newName bool) (dsref.Ref, error) {
-	ref := dsref.Ref{}
-
-	inferredName := MaybeInferName(ds)
-	if inferredName != "" {
-		dsName = inferredName
-	}
-	if DatasetNameExists(r, dsName) {
-		if newName && inferredName != "" {
-			// Using --new flag, name was inferred, but it's already in use. Because the --new
-			// flag was given, user is requesting we invent a unique name. Increment a counter
-			// on the name until we find something that's available.
-			dsName = GenerateAvailableName(r, dsName)
-		} else if newName {
-			// Name was explicitly given, with the --new flag, but the name is already in use.
-			// This is an error.
-			// TODO(dlong): Add a test for this case.
-			return ref, qerr.New(ErrNameTaken, "dataset name has a previous version, cannot make new dataset")
-		} else if inferredName != "" {
-			// Name was inferred, and has previous version. Unclear if the user meant to create
-			// a brand new dataset or if they wanted to add a new version to the existing dataset.
-			// Raise an error recommending one of these course of actions.
-			return ref, qerr.New(ErrNameTaken, fmt.Sprintf("inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference \"me/%s\". To create a new dataset, use --new flag", inferredName))
-		}
-	}
-
-	if !dsref.IsValidName(dsName) {
-		return ref, fmt.Errorf("invalid dataset name: %s", dsName)
-	}
-
-	// Whether there is a previous version is equivalent to whether there is an initID here
-	initID, err := r.Logbook().RefToInitID(dsref.Ref{Username: peername, Name: dsName})
-	if err == logbook.ErrNotFound {
-		// If dataset does not exist yet, initialize with the given name
-		initID, err = r.Logbook().WriteDatasetInit(ctx, dsName)
-		if err != nil {
-			return ref, err
-		}
-	} else if err != nil {
-		return ref, err
-	}
-
-	// TODO(dustmop): ProfileID not being set, perhaps could come from Logbook?
-	ref.Username = peername
-	ref.Name = dsName
-	ref.InitID = initID
-	// NOTE: Path may or may not be set, depending on if the dataset exists with history.
-
-	// Get the path for the most recent version of the dataset
-	// TODO(dustmop): Add dscache support
-	lookup := &reporef.DatasetRef{Peername: peername, Name: dsName}
-	err = repo.CanonicalizeDatasetRef(r, lookup)
-	if err == repo.ErrNotFound || err == repo.ErrNoHistory {
-		// Dataset either does not exist yet, or has no history. Not an error.
-		return ref, nil
-	} else if err != nil {
-		return ref, err
-	}
-	ref.Path = lookup.Path
-	return ref, nil
 }

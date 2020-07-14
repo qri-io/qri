@@ -15,6 +15,23 @@ import (
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
+func TestFilesystemPathToLocal(t *testing.T) {
+	cases := []struct {
+		in, expect string
+	}{
+		{"/path/to/local", "/path/to/local"},
+		{"/fsi/path/to/local", "/path/to/local"},
+		{"/fsi/fsi/local", "/fsi/local"},
+	}
+
+	for _, c := range cases {
+		got := FilesystemPathToLocal(c.in)
+		if c.expect != got {
+			t.Errorf("result mismatch\nwant:\t%q\ngot:\t%s", c.expect, got)
+		}
+	}
+}
+
 // TmpPaths holds temporary data to cleanup, and derived values used by tests.
 type TmpPaths struct {
 	homeDir   string

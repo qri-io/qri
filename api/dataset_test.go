@@ -203,7 +203,7 @@ func TestSaveWithInferredNewName(t *testing.T) {
 	h.SaveHandler(w, req)
 	bodyText = resultText(w)
 	// Name is guaranteed to be unique
-	expectText = `"name":"data_1"`
+	expectText = `"name":"data_2"`
 	if !strings.Contains(bodyText, expectText) {
 		t.Errorf("expected, body response to contain %q, not found. got %q", expectText, bodyText)
 	}

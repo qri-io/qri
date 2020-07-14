@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dag"
@@ -245,7 +246,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 	// TODO (b5) - replace this prefix check with a call to qfs.PathKind when it
 	// supports the fsi prefix
 	if strings.HasPrefix(ref.Path, "/fsi") {
-		res.FSIPath = strings.TrimPrefix(ref.Path, "/fsi")
+		res.FSIPath = fsi.FilesystemPathToLocal(ref.Path)
 	}
 	// TODO (b5) - Published field is longer set as part of Reference Resolution
 	// getting publication status should be delegated to a new function
@@ -310,7 +311,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
 			// but no structure, which should infer a schema in order to read the body. Once that
 			// works we can remove the fsi.GetBody call and just use base.ReadBody.
-			res.Bytes, err = fsi.GetBody(strings.TrimPrefix(ref.Path, "/fsi"), df, p.FormatConfig, p.Offset, p.Limit, p.All)
+			res.Bytes, err = fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), df, p.FormatConfig, p.Offset, p.Limit, p.All)
 			if err != nil {
 				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
 				return err
@@ -489,69 +490,18 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		return fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}
 
-	ref, err := dsref.ParseHumanFriendly(p.Ref)
-	if errors.Is(err, dsref.ErrBadCaseName) {
-		// If dataset name is using bad-case characters, and is not yet in use, fail with error.
-		if !m.nameIsInUse(ctx, ref) {
-			return err
-		}
-		// If dataset name already exists, just log a warning and then continue.
-		log.Error(dsref.ErrBadCaseShouldRename)
-	} else if errors.Is(err, dsref.ErrEmptyRef) {
-		// Okay if reference is empty. Later code will try to infer the name from other parameters.
-	} else if errors.Is(err, dsref.ErrNotHumanFriendly) {
-		return err
-	} else if err != nil {
-		// If some other parse error happened, describe a valid dataset name.
-		return dsref.ErrDescribeValidName
+	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
+	if p.UseDscache && !p.DryRun {
+		c := m.inst.dscache
+		c.CreateNewEnabled = true
 	}
 
-	// Validate that username is our own, it's not valid to try to save a dataset with someone
-	// else's username. Without this check, base will replace the username with our own regardless,
-	// it's better to have an error to display, rather than silently ignore it.
-	pro, err := m.inst.repo.Profile()
-	if err != nil {
-		return err
+	// start with dataset fields provided by params
+	ds := p.Dataset
+	if ds == nil {
+		ds = &dataset.Dataset{}
 	}
-	if ref.Username != "" && ref.Username != "me" && ref.Username != pro.Peername {
-		return fmt.Errorf("cannot save using a different username than \"%s\"", pro.Peername)
-	}
-
-	// Parsed human-friendly dsref can only have username and name.
-	datasetRef := reporef.DatasetRef{
-		Peername: ref.Username,
-		Name:     ref.Name,
-	}
-
-	ds := &dataset.Dataset{}
-
-	// TODO(dustmop): In the future, resolve the dataset ref early, get the initID, and use that
-	// everywhere. If dataset has no name, don't bother to canonicalize, instead, call Infer
-	// here. If either ref failed to resolve, or Infer was called, generate a new initID using
-	// logbook immediately. Regardless, stop using the dsref after this point.
-
-	// Check if the dataset has an FSIPath, which requires a different save codepath.
-	err = repo.CanonicalizeDatasetRef(m.inst.repo, &datasetRef)
-	// Ignore errors that happen when saving a new dataset for the first time
-	if err == repo.ErrNotFound || err == repo.ErrEmptyRef {
-		// do nothing
-	} else if err == nil || err == repo.ErrNoHistory {
-		// When saving in an FSI directory, the ref should exist (due to `qri init`), and we
-		// need to load the previous version from the working directory.
-		if datasetRef.FSIPath != "" {
-			ds, err = fsi.ReadDir(datasetRef.FSIPath)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		return err
-	}
-
-	// add param-supplied changes
 	ds.Assign(&dataset.Dataset{
-		Name:     datasetRef.Name,
-		Peername: datasetRef.Peername,
 		BodyPath: p.BodyPath,
 		Commit: &dataset.Commit{
 			Title:   p.Title,
@@ -559,18 +509,65 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		},
 	})
 
-	// TODO(dustmop): A hack! Before, we were only calling CanonializeDatasetRef when saving to
-	// an FSI linked directory, so the Username "me" was not being replaced by the true username.
-	// Somehow this value is getting into IPFS, and a lot of tests break due to ipfs hashes
-	// changing. Fix this in a follow-up change, and verify that usernames are never saved into
-	// filestore.
-	if ref.Username == "me" {
-		ds.Peername = "me"
+	if len(p.FilePaths) > 0 {
+		// TODO (b5): handle this with a qfs.Filesystem
+		dsf, err := ReadDatasetFiles(p.FilePaths...)
+		if err != nil {
+			return err
+		}
+		dsf.Assign(ds)
+		ds = dsf
 	}
 
-	if p.Dataset != nil {
-		p.Dataset.Assign(ds)
-		ds = p.Dataset
+	if p.Ref == "" && ds.Name != "" {
+		p.Ref = fmt.Sprintf("me/%s", ds.Name)
+	}
+
+	resolver, err := m.inst.resolverForMode("local")
+	if err != nil {
+		return err
+	}
+
+	pro, err := m.inst.repo.Profile()
+	if err != nil {
+		return err
+	}
+
+	ref, isNew, err := base.PrepareSaveRef(ctx, pro, m.inst.logbook, resolver, p.Ref, ds.BodyPath, p.NewName)
+	if err != nil {
+		return err
+	}
+
+	success := false
+	defer func() {
+		// if creating a new dataset fails, or we're doing a dry-run on a new dataset
+		// we need to remove the dataset
+		if isNew && (!success || p.DryRun) {
+			log.Debugf("removing unused log for new dataset %s", ref)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+			if err := m.inst.logbook.RemoveLog(ctx, ref); err != nil {
+				log.Errorf("couldn't cleanup unused reference: %q", err)
+			}
+			cancel()
+		}
+	}()
+
+	ds.Name = ref.Name
+	ds.Peername = ref.Username
+
+	var fsiPath string
+	if !isNew {
+		// check for FSI linked data
+		fsiRef := ref.Copy()
+		if err := m.inst.fsi.ResolvedPath(&fsiRef); err == nil {
+			fsiPath = fsi.FilesystemPathToLocal(fsiRef.Path)
+			fsiDs, err := fsi.ReadDir(fsiPath)
+			if err != nil {
+				return err
+			}
+			fsiDs.Assign(ds)
+			ds = fsiDs
+		}
 	}
 
 	if p.Recall != "" {
@@ -590,19 +587,6 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		ds = recall
 	}
 
-	if len(p.FilePaths) > 0 {
-		// TODO (b5): handle this with a qfs.Filesystem
-		dsf, err := ReadDatasetFiles(p.FilePaths...)
-		if err != nil {
-			return err
-		}
-		dsf.Assign(ds)
-		ds = dsf
-	}
-
-	if p.BodyPath == "" && ds.Name == "" {
-		return fmt.Errorf("name or bodypath is required")
-	}
 	if !p.Force && p.Drop == "" &&
 		ds.BodyPath == "" &&
 		ds.Body == nil &&
@@ -663,15 +647,6 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		return nil
 	}
 
-	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
-	if p.UseDscache && !p.DryRun {
-		c := m.inst.dscache
-		c.CreateNewEnabled = true
-	}
-
-	// TODO (b5) - this should be integrated into base.SaveDataset
-	fsiPath := datasetRef.FSIPath
-
 	if fsiPath != "" && p.Drop != "" {
 		return qrierr.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
 	}
@@ -680,18 +655,6 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 	if len(p.FilePaths) > 0 {
 		fileHint = p.FilePaths[0]
 	}
-
-	// Determine dataset name (inferring one for a blank name), and lookup the initID for that
-	// name. Also get the path if the dataset has an existing version.
-	trueRef, err := base.FinalizeNameAndStableIdentifers(ctx, m.inst.repo, pro.Peername, ds.Name, ds, p.NewName)
-	if err != nil {
-		return err
-	}
-	// TODO(dustmop): This is needed temporarily, as base.CreateDataset needs the name field in
-	// order to update the refstore. dsfs will clear this field before the dataset is written to
-	// IPFS. Once everything switches to logbook and dscache, this field assignment will no longer
-	// be needed.
-	ds.Name = trueRef.Name
 
 	switches := base.SaveSwitches{
 		FileHint:            fileHint,
@@ -703,11 +666,13 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		NewName:             p.NewName,
 		Drop:                p.Drop,
 	}
-	datasetRef, err = base.SaveDataset(ctx, m.inst.repo, writeDest, trueRef.InitID, trueRef.Path, ds, switches)
+	datasetRef, err := base.SaveDataset(ctx, m.inst.repo, writeDest, ref.InitID, ref.Path, ds, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
 	}
+
+	success = true
 
 	// TODO (b5) - this should be integrated into base.SaveDataset
 	if fsiPath != "" && !p.DryRun {
@@ -731,24 +696,6 @@ func (m *DatasetMethods) Save(p *SaveParams, res *reporef.DatasetRef) error {
 		fsi.WriteComponents(res.Dataset, datasetRef.FSIPath, m.inst.repo.Filesystem())
 	}
 	return nil
-}
-
-// This is somewhat of a hack, we shouldn't need to lookup anything about the dataset reference
-// before running Save. However, we need to check for now until we solve the problem of
-// dataset names existing with bad-case characters.
-// See this issue: https://github.com/qri-io/qri/issues/1132
-func (m *DatasetMethods) nameIsInUse(ctx context.Context, ref dsref.Ref) bool {
-	res := ref.Copy()
-	_, err := m.inst.ResolveReference(ctx, &res, "local")
-	if errors.Is(err, dsref.ErrRefNotFound) {
-		return false
-	} else if err != nil {
-		// TODO(b5): Unsure if this is correct. If `Get` hits some other error, we aren't
-		// sure if the dataset name is in use. Log the error and assume the dataset does in fact
-		// exist.
-		log.Error(err)
-	}
-	return true
 }
 
 // RenameParams defines parameters for Dataset renaming

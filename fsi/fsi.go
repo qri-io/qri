@@ -36,6 +36,12 @@ var (
 	ErrNoLink = fmt.Errorf("dataset is not linked to the filesystem")
 )
 
+// FilesystemPathToLocal converts a qfs.Filesystem path that has an /fsi prefix
+// to a local path
+func FilesystemPathToLocal(qfsPath string) string {
+	return strings.TrimPrefix(qfsPath, "/fsi")
+}
+
 // GetLinkedFilesysRef returns whether a directory is linked to a dataset in your repo, and
 // a reference to that dataset
 func GetLinkedFilesysRef(dir string) (dsref.Ref, bool) {

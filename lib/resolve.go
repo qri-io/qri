@@ -31,12 +31,12 @@ func (inst *Instance) ParseAndResolveRefWithWorkingDir(ctx context.Context, refS
 		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
 	}
 
-	explicitPath := ref.Path != ""
+	pathProvided := ref.Path != ""
 	resolvedSource, err := inst.ResolveReference(ctx, &ref, source)
 	if err != nil {
 		return ref, resolvedSource, err
 	}
-	if !explicitPath {
+	if !pathProvided {
 		err = inst.fsi.ResolvedPath(&ref)
 		if err == fsi.ErrNoLink {
 			err = nil
