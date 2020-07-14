@@ -213,6 +213,14 @@ func OptRemoteOptions(fn func(opt *remote.Options)) Option {
 	}
 }
 
+// OptEnableRemote enables the remote functionality in the node
+func OptEnableRemote() Option {
+	return func(o *InstanceOptions) error {
+		o.Cfg.Remote.Enabled = true
+		return nil
+	}
+}
+
 // OptQriNode configures bring-your-own qri node
 func OptQriNode(node *p2p.QriNode) Option {
 	return func(o *InstanceOptions) error {
