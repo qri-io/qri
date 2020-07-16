@@ -280,8 +280,8 @@ func TestBookLogEntries(t *testing.T) {
 		"12:02AM\ttest_author\tinit branch\tmain",
 		"12:00AM\ttest_author\tsave commit\tinitial commit",
 		"12:00AM\ttest_author\tsave commit\tadded body data",
-		"12:00AM\ttest_author\tpublish\t",
-		"12:00AM\ttest_author\tunpublish\t",
+		"12:03AM\ttest_author\tpublish\t",
+		"12:04AM\ttest_author\tunpublish\t",
 		"12:00AM\ttest_author\tremove commit\t",
 		"12:00AM\ttest_author\tamend commit\tadded meta info",
 	}
@@ -1167,14 +1167,14 @@ func (tr *testRunner) WorldBankPlainLog() logbook.PlainLog {
 								Relations: []string{
 									"registry.qri.cloud",
 								},
-								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+								Timestamp: mustTime("1999-12-31T19:03:00-05:00"),
 								Size:      2,
 							},
 							{
 								Type:      "remove",
 								Model:     "push",
 								Relations: []string{"registry.qri.cloud"},
-								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+								Timestamp: mustTime("1999-12-31T19:04:00-05:00"),
 								Size:      2,
 							},
 							{

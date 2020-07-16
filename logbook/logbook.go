@@ -633,6 +633,7 @@ func (book *Book) WriteRemotePush(ctx context.Context, initID string, revisions 
 	branchLog.Append(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     PushModel,
+		Timestamp: NewTimestamp(),
 		Size:      int64(revisions),
 		Relations: []string{remoteAddr},
 	})
@@ -693,6 +694,7 @@ func (book *Book) WriteRemoteDelete(ctx context.Context, initID string, revision
 	branchLog.Append(oplog.Op{
 		Type:      oplog.OpTypeRemove,
 		Model:     PushModel,
+		Timestamp: NewTimestamp(),
 		Size:      int64(revisions),
 		Relations: []string{remoteAddr},
 	})

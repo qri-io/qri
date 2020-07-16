@@ -42,7 +42,6 @@ peers & swapping data.`,
 	}
 
 	cmd.Flags().BoolVarP(&o.Setup, "setup", "", false, "run setup if necessary, reading options from environment variables")
-	cmd.Flags().BoolVarP(&o.Migrate, "migrate", "", false, "automatically run migrations if necessary")
 	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "specify registry to setup with. only works when --setup is true")
 
 	return cmd
@@ -54,7 +53,6 @@ type ConnectOptions struct {
 	inst     *lib.Instance
 	Registry string
 	Setup    bool
-	Migrate  bool
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -76,15 +74,6 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 		}
 	} else if !QRIRepoInitialized(repoPath) {
 		return errors.New(repo.ErrNoRepo, "no qri repo exists\nhave you run 'qri setup'?")
-	}
-
-	if o.Migrate {
-		// any required migration by default interrupts all commands with a prompt
-		// users setting the migrate flag are indicating we should skip the migration
-		// prompt, which is this only possible prompt in the `connect` command.
-		// setting noPrompt to true prior to calling init will have the effect
-		// of auto-running migrations
-		noPrompt = true
 	}
 
 	if err = f.Init(); err != nil {
