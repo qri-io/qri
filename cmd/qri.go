@@ -32,6 +32,7 @@ https://github.com/qri-io/qri/issues`,
 	}
 
 	cmd.SetUsageTemplate(rootUsageTemplate)
+	cmd.PersistentFlags().BoolVarP(&opt.Migrate, "migrate", "", false, "automatically run migrations if necessary")
 	cmd.PersistentFlags().BoolVarP(&opt.NoPrompt, "no-prompt", "", false, "disable all interactive prompts")
 	cmd.PersistentFlags().BoolVarP(&opt.NoColor, "no-color", "", false, "disable colorized output")
 	cmd.PersistentFlags().StringVar(&opt.repoPath, "repo", repoPath, "filepath to load qri data from")
@@ -92,6 +93,8 @@ type QriOptions struct {
 	repoPath string
 	// generator is source of generating cryptographic info
 	generator gen.CryptoGenerator
+	// automatically run migrations if necessary
+	Migrate bool
 	// NoPrompt Disables all promt messages
 	NoPrompt bool
 	// NoColor disables colorized output
@@ -120,11 +123,14 @@ func (o *QriOptions) Init() (err error) {
 	if o.inst != nil {
 		return
 	}
+	setNoPrompt(o.NoPrompt)
+
 	opts := []lib.Option{
 		lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
-		lib.OptCheckConfigMigrations(!noPrompt),
+		lib.OptCheckConfigMigrations(o.migrationApproval, (!o.Migrate && !o.NoPrompt)),
 		lib.OptSetLogAll(o.LogAll),
 	}
+
 	o.inst, err = lib.NewInstance(o.ctx, o.repoPath, opts...)
 	if err != nil {
 		return
@@ -141,10 +147,24 @@ func (o *QriOptions) Init() (err error) {
 		shouldColorOutput = false
 	}
 	setNoColor(!shouldColorOutput)
-	setNoPrompt(o.NoPrompt)
+
 	log.Debugf("running cmd %q", os.Args)
 
 	return
+}
+
+// migrationApproval returns a boolen based on either flag-derived state or user
+// input approving the execution of migrations
+func (o *QriOptions) migrationApproval() bool {
+	if o.Migrate {
+		return true
+	} else if o.NoPrompt {
+		return false
+	}
+
+	msg := `Your repo needs updating before qri can start. 
+Run migration now?`
+	return confirm(o.Out, o.In, msg, false)
 }
 
 // Instance returns the instance this options is using

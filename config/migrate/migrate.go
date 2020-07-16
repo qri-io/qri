@@ -30,15 +30,14 @@ var (
 	ErrMigrationSucceeded = errors.New("migration succeeded")
 )
 
-// RunMigrations checks to see if any migrations runs them
-func RunMigrations(streams ioes.IOStreams, cfg *config.Config, interactive bool) (err error) {
+// RunMigrations executes migrations. if a migration is required, the shouldRun
+// func is called, and exits without migrating if shouldRun returns false.
+// if errorOnSuccess is true, a completed migration will return
+// ErrMigrationSucceeded instead of nil
+func RunMigrations(streams ioes.IOStreams, cfg *config.Config, shouldRun func() bool, errorOnSuccess bool) (err error) {
 	if cfg.Revision != config.CurrentConfigRevision {
-		if interactive {
-			msg := `Your repo needs updating before qri can start. 
-Run migration now?`
-			if !confirm(streams.Out, streams.In, msg) {
-				return qerr.New(ErrNeedMigration, `your repo requires migration before it can run`)
-			}
+		if !shouldRun() {
+			return qerr.New(ErrNeedMigration, `your repo requires migration before it can run`)
 		}
 
 		streams.PrintErr("migrating configuration...\n")
@@ -54,9 +53,7 @@ Run migration now?`
 		}
 		streams.PrintErr("done!\n")
 
-		// interactive migration execution returns an error, callers using an
-		// interactive prompt will want to ask users to re-execute their request
-		if interactive {
+		if errorOnSuccess {
 			return ErrMigrationSucceeded
 		}
 	}

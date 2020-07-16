@@ -164,13 +164,13 @@ func OptStdIOStreams() Option {
 
 // OptCheckConfigMigrations checks for any configuration migrations that may
 // need to be run. running & updating config if so
-func OptCheckConfigMigrations(interactive bool) Option {
+func OptCheckConfigMigrations(shouldRunFn func() bool, errOnSuccess bool) Option {
 	return func(o *InstanceOptions) error {
 		if o.Cfg == nil {
 			return fmt.Errorf("no config file to check for migrations")
 		}
 
-		err := migrate.RunMigrations(o.Streams, o.Cfg, interactive)
+		err := migrate.RunMigrations(o.Streams, o.Cfg, shouldRunFn, errOnSuccess)
 		if err != nil {
 			return err
 		}
@@ -300,7 +300,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		// default to a standard composition of Option funcs
 		opts = []Option{
 			OptStdIOStreams(),
-			OptCheckConfigMigrations(false),
+			OptCheckConfigMigrations(func() bool { return true }, false),
 		}
 	}
 	for _, opt := range opts {

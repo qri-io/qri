@@ -44,7 +44,7 @@ func TestOneToTwo(t *testing.T) {
 	}
 
 	// call OneToTwo
-	if err := migrate.RunMigrations(ioes.NewDiscardIOStreams(), cfg, false); err != nil {
+	if err := migrate.RunMigrations(ioes.NewDiscardIOStreams(), cfg, func() bool { return true }, false); err != nil {
 		t.Error(err)
 	}
 

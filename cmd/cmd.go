@@ -57,11 +57,25 @@ func Execute() {
 	<-shutdown()
 }
 
+const (
+	// ExitCodeOK is a 0 exit code. we're good! success! yay!
+	ExitCodeOK = iota
+	// ExitCodeErr is a generic error exit code, all non-special errors occur here
+	ExitCodeErr
+	// ExitCodeNeedMigration indicates a required migration
+	ExitCodeNeedMigration
+)
+
 // ErrExit writes an error to the given io.Writer & exits
 func ErrExit(w io.Writer, err error) {
+	exitCode := ExitCodeErr
+
 	if errors.Is(err, migrate.ErrMigrationSucceeded) {
+		// migration success is a good thing. exit with status 0
 		printSuccess(w, "migration succeeded, re-run your command to continue")
-		os.Exit(0)
+		os.Exit(ExitCodeOK)
+	} else if errors.Is(err, migrate.ErrNeedMigration) {
+		exitCode = ExitCodeNeedMigration
 	}
 
 	log.Debug(err.Error())
@@ -71,7 +85,7 @@ func ErrExit(w io.Writer, err error) {
 	} else {
 		printErr(w, err)
 	}
-	os.Exit(1)
+	os.Exit(exitCode)
 }
 
 // ExitIfErr only calls ErrExit if there is an error present
