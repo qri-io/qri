@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
@@ -52,8 +53,10 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	format := r.FormValue("format")
 	p := lib.GetParams{
 		Refstr: ref.String(),
+		Format: format,
 	}
 	res := lib.GetResult{}
 	err := mh.dsh.Get(&p, &res)
@@ -77,6 +80,14 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 
 	if err := inlineScriptsToBytes(res.Dataset); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if format == "zip" {
+		zipFilename := fmt.Sprintf("%s.zip", ref.Name)
+		w.Header().Set("Content-Type", extensionToMimeType(".zip"))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment: filename=%s", zipFilename))
+		w.Write(res.Bytes)
 		return
 	}
 
