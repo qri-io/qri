@@ -16,15 +16,15 @@ func TestWebsocket(t *testing.T) {
 	}
 	defer tr.Delete()
 
-	instCtx, instCancel := context.WithCancel(context.Background())
-	defer instCancel()
-
 	cfg := config.DefaultConfigForTesting()
 	cfg.Filesystems = []qfs.Config{
 		{Type: "mem"},
 		{Type: "local"},
 	}
 	cfg.Repo.Type = "mem"
+
+	instCtx, instCancel := context.WithCancel(context.Background())
+	defer instCancel()
 
 	inst, err := NewInstance(instCtx, tr.QriPath, OptConfig(cfg))
 	if err != nil {

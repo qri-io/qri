@@ -10,7 +10,6 @@ import (
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
-	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
@@ -44,23 +43,20 @@ type TestRunner struct {
 }
 
 func NewTestRunner(t *testing.T) (*TestRunner, func()) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	// build registry
 	tmpRepo, err := repotest.NewTempRepo("registry", "regclient-tests", repotest.NewTestCrypto())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// IPFSRepo assumes that the tempRepo is pointing to an actual qri config
-	// and an initialized ipfs repo
 	r, err := tmpRepo.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// need an actual ipfs repo
-	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus)
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), r.Bus())
 	if err != nil {
 		t.Fatal(err)
 	}

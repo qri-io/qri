@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -57,6 +58,9 @@ var (
 // is intended to act as the canonical store of state across all peers
 // that this repo may interact with.
 type Repo interface {
+	// repos are created with an event bus, and provid an accessor
+	Bus() event.Bus
+
 	// All repositories wraps a content-addressed filestore as the cannonical
 	// record of this repository's data. Store gives direct access to the
 	// cafs.Filestore instance any given repo is using.

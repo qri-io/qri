@@ -20,6 +20,7 @@ import (
 type MemRepo struct {
 	*MemRefstore
 
+	bus        event.Bus
 	filesystem *muxfs.Mux
 	refCache   *MemRefstore
 	logbook    *logbook.Book
@@ -32,6 +33,8 @@ type MemRepo struct {
 	doneCh  chan struct{}
 	doneErr error
 }
+
+var _ Repo = (*MemRepo)(nil)
 
 // NewMemRepo creates a new in-memory repository
 // TODO (b5) - this constructor should have an event.bus argument
@@ -53,6 +56,7 @@ func NewMemRepo(ctx context.Context, p *profile.Profile, fs *muxfs.Mux, bus even
 	cache := dscache.NewDscache(ctx, fs, bus, p.Peername, "")
 
 	mr := &MemRepo{
+		bus:         bus,
 		filesystem:  fs,
 		MemRefstore: &MemRefstore{},
 		refCache:    &MemRefstore{},
@@ -95,6 +99,11 @@ func (r *MemRepo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 		return "", fmt.Errorf("cannot resolve local references without logbook")
 	}
 	return r.logbook.ResolveRef(ctx, ref)
+}
+
+// Bus accesses the repo's event bus
+func (r *MemRepo) Bus() event.Bus {
+	return r.bus
 }
 
 // Store returns the underlying cafs.Filestore for this repo

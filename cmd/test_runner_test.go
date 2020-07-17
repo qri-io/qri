@@ -77,7 +77,6 @@ func NewTestRunnerWithMockRemoteClient(t *testing.T, peerName, testName string) 
 // NewTestRunnerWithTempRegistry constructs a test runner with a mock registry connection
 func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *TestRunner {
 	t.Helper()
-
 	root, err := repotest.NewTempRepoFixedProfileID(peerName, testName)
 	if err != nil {
 		t.Fatalf("creating temp repo: %s", err)
@@ -406,10 +405,12 @@ func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
 	}
 	datasetRef := reporef.RefFromDsref(dr)
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	r, err := run.RepoRoot.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	err = repo.CanonicalizeDatasetRef(r, &datasetRef)
 	if err != nil {
 		t.Fatal(err)
@@ -424,10 +425,10 @@ func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
 			finished <- r.DoneErr()
 		}()
 
-		cancel()
 		return finished
 	}
 
+	cancel()
 	if err := timedShutdown("ClearFSIPath", shutdown); err != nil {
 		t.Fatal(err)
 	}

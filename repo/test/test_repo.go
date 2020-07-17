@@ -13,7 +13,6 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
-	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
@@ -309,49 +308,6 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	tc, err := dstest.LoadTestCases(path)
-	if err != nil {
-		return mr, pro.PrivKey, err
-	}
-
-	for _, c := range tc {
-		if _, err := createDataset(mr, c); err != nil {
-			return mr, pro.PrivKey, err
-		}
-	}
-
-	return mr, pro.PrivKey, nil
-}
-
-// NewIPFSRepoFromDir reads a director of testCases and calls createDataset
-// on each case with the given privatekey, yeilding a repo where the peer with
-// this pk has created each dataset in question. Uses an IPFS enabled repo.
-// path should be the basepath above the qri and ipfs repos
-func NewIPFSRepoFromDir(qriPath, ipfsPath string) (repo.Repo, crypto.PrivKey, error) {
-	ctx := context.TODO()
-	cfg, err := config.ReadFromFile(filepath.Join(qriPath, "config.yaml"))
-	pro := &profile.Profile{}
-	if err := pro.Decode(cfg.Profile); err != nil {
-		return nil, nil, err
-	}
-	if err := qipfs.LoadIPFSPluginsOnce(ipfsPath); err != nil {
-		return nil, nil, err
-	}
-
-	fs, err := muxfs.New(ctx, []qfs.Config{
-		{Type: "local"},
-		{Type: "http"},
-		{Type: "ipfs", Config: map[string]interface{}{"path": ipfsPath}},
-		{Type: "mem"},
-	})
-	if err != nil {
-		return nil, pro.PrivKey, err
-	}
-	mr, err := repo.NewMemRepo(ctx, pro, fs, event.NilBus)
-	if err != nil {
-		return mr, pro.PrivKey, err
-	}
-
-	tc, err := dstest.LoadTestCases(qriPath)
 	if err != nil {
 		return mr, pro.PrivKey, err
 	}

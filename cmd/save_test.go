@@ -608,6 +608,7 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 	run.MustExec(t, "qri list --use-dscache")
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// Access the dscache
 	r, err := run.RepoRoot.Repo(ctx)
 	if err != nil {

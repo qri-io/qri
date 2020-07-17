@@ -331,11 +331,7 @@ func (tr *NetworkIntegrationTestRunner) InitRegistry(t *testing.T) {
 
 	rr.WriteConfigFile()
 
-	opts := []Option{
-		OptSetIPFSPath(rr.IPFSPath),
-	}
-
-	tr.RegistryInst, err = NewInstance(tr.Ctx, rr.QriPath, opts...)
+	tr.RegistryInst, err = NewInstance(tr.Ctx, rr.QriPath)
 	if err != nil {
 		t.Fatal(err)
 	}
