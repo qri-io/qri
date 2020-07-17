@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -191,60 +190,6 @@ func (h *DatasetHandlers) UnpackHandler(w http.ResponseWriter, r *http.Request) 
 	default:
 		util.NotFoundHandler(w, r)
 	}
-}
-
-// ZipDatasetHandler is the endpoint for getting a zip archive of a dataset
-func (h *DatasetHandlers) ZipDatasetHandler(endpointPath string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "OPTIONS":
-			util.EmptyOkHandler(w, r)
-		case "GET":
-			if h.ReadOnly {
-				readOnlyResponse(w, fmt.Sprintf("%s/", endpointPath))
-				return
-			}
-			h.zipDatasetHandler(w, r, endpointPath)
-		default:
-			util.NotFoundHandler(w, r)
-		}
-	}
-}
-
-func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request, endpointPath string) {
-	ref := HTTPPathToQriPath(r.URL.Path[len(endpointPath):])
-	// default is zipped
-	zipped := r.FormValue("zipped") != "false"
-	format := r.FormValue("format")
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "api_export")
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-	params := lib.ExportParams{Ref: ref, TargetDir: tmpDir, Format: format, Zipped: zipped}
-
-	var fileWritten string
-	req := lib.NewExportRequests(h.node, nil)
-	err = req.Export(&params, &fileWritten)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	f, err := os.Open(filepath.Join(tmpDir, fileWritten))
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-	bytes, err := ioutil.ReadAll(f)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", extensionToMimeType(path.Ext(fileWritten)))
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", path.Base(fileWritten)))
-	w.Write(bytes)
 }
 
 func extensionToMimeType(ext string) string {
