@@ -37,9 +37,6 @@ type Factory interface {
 	SQLMethods() (*lib.SQLMethods, error)
 	FSIMethods() (*lib.FSIMethods, error)
 	RenderMethods() (*lib.RenderMethods, error)
-
-	// TODO (b5) - these should be deprecated:
-	ExportRequests() (*lib.ExportRequests, error)
 }
 
 // StandardRepoPath returns qri paths based on the QRI_PATH environment

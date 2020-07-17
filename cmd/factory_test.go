@@ -155,11 +155,6 @@ func (t TestFactory) LogMethods() (*lib.LogMethods, error) {
 	return lib.NewLogMethods(t.inst), nil
 }
 
-// ExportRequests generates a lib.ExportRequests from internal state
-func (t TestFactory) ExportRequests() (*lib.ExportRequests, error) {
-	return lib.NewExportRequests(t.node, t.rpc), nil
-}
-
 // PeerMethods generates a lib.PeerMethods from internal state
 func (t TestFactory) PeerMethods() (*lib.PeerMethods, error) {
 	return lib.NewPeerMethods(t.inst), nil
