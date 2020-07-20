@@ -27,14 +27,14 @@ func TestAddDataset(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
-	var psClient *PeerSyncClient
+	var client *client
 	var nilClient Client
-	nilClient = psClient
-	if err := nilClient.AddDataset(tr.Ctx, &reporef.DatasetRef{}, ""); err != ErrNoRemoteClient {
+	nilClient = client
+	if _, err := nilClient.AddDataset(tr.Ctx, &dsref.Ref{}, ""); err != ErrNoRemoteClient {
 		t.Errorf("nil add mismatch. expected: '%s', got: '%s'", ErrNoRemoteClient, err)
 	}
 
-	worldBankRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
+	wbpRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 
 	cli, err := NewClient(tr.NodeB)
 	if err != nil {
@@ -44,12 +44,11 @@ func TestAddDataset(t *testing.T) {
 	tr.NodeA.GoOnline(tr.Ctx)
 	tr.NodeB.GoOnline(tr.Ctx)
 
-	if err := cli.AddDataset(tr.Ctx, &reporef.DatasetRef{Peername: "foo", Name: "bar"}, ""); err == nil {
+	if _, err := cli.AddDataset(tr.Ctx, &dsref.Ref{Username: "foo", Name: "bar"}, ""); err == nil {
 		t.Error("expected add of invalid ref to error")
 	}
 
-	wbpRef := reporef.RefFromDsref(worldBankRef)
-	if err := cli.AddDataset(tr.Ctx, &wbpRef, ""); err != nil {
+	if _, err := cli.AddDataset(tr.Ctx, &wbpRef, ""); err != nil {
 		t.Error(err.Error())
 	}
 }
@@ -63,7 +62,6 @@ func TestNewRemoteRefResolver(t *testing.T) {
 	cli := tr.NodeBClient(t)
 	resolver := cli.NewRemoteRefResolver(s.URL)
 
-	t.Skip("TODO(b5) - need to update ResolveHeadRef")
 	dsrefspec.AssertResolverSpec(t, resolver, func(r dsref.Ref, author identity.Author, log *oplog.Log) error {
 		return remA.Node().Repo.Logbook().MergeLog(context.Background(), author, log)
 	})

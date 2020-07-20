@@ -75,10 +75,11 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 	pro, _ := r.inst.Repo().Profile()
 	ref.ProfileID = pro.ID.String()
 
-	datasetRef := reporef.RefFromDsref(ref)
-	if err = r.inst.RemoteClient().PushDataset(ctx, datasetRef, addr); err != nil {
+	if err = r.inst.RemoteClient().PushDatasetVersion(ctx, ref, addr); err != nil {
 		return err
 	}
+
+	datasetRef := reporef.RefFromDsref(ref)
 	datasetRef.Published = true
 	if err = base.SetPublishStatus(r.inst.node.Repo, &datasetRef, datasetRef.Published); err != nil {
 		return err
@@ -94,16 +95,18 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Unpublish", p, res))
 	}
 
-	ref, err := repo.ParseDatasetRef(p.Ref)
+	ref, err := dsref.ParseHumanFriendly(p.Ref)
 	if err != nil {
+		if err == dsref.ErrNotHumanFriendly {
+			return fmt.Errorf("can only unpublish entire dataset. run unpublish without a reference")
+		}
 		return err
 	}
 
-	if ref.Path != "" {
-		return fmt.Errorf("can only unpublish entire dataset, cannot use version %s", ref.Path)
-	}
+	// TODO (b5) - need contexts yo
+	ctx := context.TODO()
 
-	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
+	if _, err := r.inst.ResolveReference(ctx, &ref, "local"); err != nil {
 		return err
 	}
 
@@ -112,37 +115,32 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 		return err
 	}
 
-	// TODO (b5) - need contexts yo
-	ctx := context.TODO()
-
-	// TODO (b5) - we're early in log syncronization days. This is going to fail a bunch
-	// while we work to upgrade the stack. Long term we may want to consider a mechanism
-	// for allowing partial completion where only one of logs or dataset pushing works
-	// by doing both in parallel and reporting issues on both
-	if removeLogsErr := r.inst.RemoteClient().RemoveLogs(ctx, reporef.ConvertToDsref(ref), addr); removeLogsErr != nil {
+	if removeLogsErr := r.inst.RemoteClient().RemoveLogs(ctx, ref, addr); removeLogsErr != nil {
 		log.Errorf("removing logs: %s", removeLogsErr.Error())
+		return err
 	}
 
 	if err := r.inst.RemoteClient().RemoveDataset(ctx, ref, addr); err != nil {
 		return err
 	}
 
-	ref.Published = false
-	if err = base.SetPublishStatus(r.inst.node.Repo, &ref, ref.Published); err != nil {
+	oldRefKind := reporef.RefFromDsref(ref)
+	oldRefKind.Published = false
+	if err = base.SetPublishStatus(r.inst.node.Repo, &oldRefKind, oldRefKind.Published); err != nil {
 		return err
 	}
 
-	*res = reporef.ConvertToDsref(ref)
+	*res = ref
 	return nil
 }
 
-// PullDataset fetches a dataset ref from a remote
-func (r *RemoteMethods) PullDataset(p *PublicationParams, res *bool) error {
+// PullDatasetVersion fetches a dataset version from a remote
+func (r *RemoteMethods) PullDatasetVersion(p *PublicationParams, res *bool) error {
 	if r.inst.rpc != nil {
-		return checkRPCError(r.inst.rpc.Call("RemoteMethods.PullDataset", p, res))
+		return checkRPCError(r.inst.rpc.Call("RemoteMethods.PullDatasetVersion", p, res))
 	}
 
-	ref, err := repo.ParseDatasetRef(p.Ref)
+	ref, err := dsref.Parse(p.Ref)
 	if err != nil {
 		return err
 	}
@@ -150,7 +148,7 @@ func (r *RemoteMethods) PullDataset(p *PublicationParams, res *bool) error {
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
 
-	err = r.inst.RemoteClient().PullDataset(ctx, &ref, p.RemoteName)
+	err = r.inst.RemoteClient().PullDatasetVersion(ctx, &ref, p.RemoteName)
 	return err
 }
 

@@ -125,8 +125,7 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 	} else if ref.Peername == "" || pro.Peername == ref.Peername {
 		refs, err = base.ListDatasets(ctx, m.inst.repo, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
 	} else {
-
-		refs, err = m.inst.remoteClient.ListDatasets(ctx, ref, p.Term, p.Offset, p.Limit)
+		return fmt.Errorf("listing datasets on a peer is not implemented")
 	}
 	if err != nil {
 		return err
@@ -928,32 +927,37 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 	return nil
 }
 
-// AddParams encapsulates parameters to the add command
-type AddParams struct {
+// PullParams encapsulates parameters to the add command
+type PullParams struct {
 	Ref        string
 	LinkDir    string
 	RemoteAddr string // remote to attempt to pull from
 	LogsOnly   bool   // only fetch logbook data
 }
 
-// Add adds an existing dataset to a peer's repository
-func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
+// Pull downloads and stores an existing dataset to a peer's repository via
+// a network connection
+func (m *DatasetMethods) Pull(p *PullParams, res *dataset.Dataset) error {
 	if err := qfs.AbsPath(&p.LinkDir); err != nil {
 		return err
 	}
 
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Add", p, res))
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Pull", p, res))
 	}
 	ctx := context.TODO()
 
-	ref, err := dsref.Parse(p.Ref)
+	ref, source, err := m.inst.ParseAndResolveRef(ctx, p.Ref, "network")
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 
 	if p.RemoteAddr == "" && m.inst != nil && m.inst.cfg.Registry != nil {
 		p.RemoteAddr = m.inst.cfg.Registry.Location
+	} else {
+		// if no registry is configured, use reference resolution source for pulling
+		p.RemoteAddr = source
 	}
 
 	if err := m.inst.remoteClient.CloneLogs(ctx, ref, p.RemoteAddr); err != nil {
@@ -961,12 +965,12 @@ func (m *DatasetMethods) Add(p *AddParams, res *reporef.DatasetRef) error {
 		return err
 	}
 
-	rref := reporef.RefFromDsref(ref)
-	if err = m.inst.remoteClient.AddDataset(ctx, &rref, p.RemoteAddr); err != nil {
+	ds, err := m.inst.remoteClient.AddDataset(ctx, &ref, p.RemoteAddr)
+	if err != nil {
 		return err
 	}
 
-	*res = rref
+	*res = *ds
 
 	if p.LinkDir != "" {
 		checkoutp := &CheckoutParams{

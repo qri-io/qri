@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/identity"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/logsync"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
@@ -29,7 +30,7 @@ var log = golog.Logger("remote")
 
 // Hook is a function called at specific points in the sync cycle
 // hook contexts may be populated with request parameters
-type Hook func(ctx context.Context, pid profile.ID, ref reporef.DatasetRef) error
+type Hook func(ctx context.Context, pid profile.ID, ref dsref.Ref) error
 
 // Options encapsulates runtime configuration for a remote
 type Options struct {
@@ -81,6 +82,8 @@ type Options struct {
 // behalf
 type Remote struct {
 	node    *p2p.QriNode
+	logbook *logbook.Book
+
 	dsync   *dsync.Dsync
 	logsync *logsync.Logsync
 
@@ -114,7 +117,8 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 	}
 
 	r := &Remote{
-		node: node,
+		node:    node,
+		logbook: node.Repo.Logbook(),
 
 		acceptSizeMax:   cfg.AcceptSizeMax,
 		acceptTimeoutMs: cfg.AcceptTimeoutMs,
@@ -172,15 +176,15 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 		return nil, err
 	}
 
-	if book := node.Repo.Logbook(); book != nil {
+	if book := r.logbook; book != nil {
 		r.logsync = logsync.New(book, func(lso *logsync.Options) {
-			lso.PushPreCheck = r.logHook(o.LogPushPreCheck)
-			lso.PushFinalCheck = r.logHook(o.LogPushFinalCheck)
-			lso.Pushed = r.logHook(o.LogPushed)
-			lso.PullPreCheck = r.logHook(o.LogPullPreCheck)
-			lso.Pulled = r.logHook(o.LogPulled)
-			lso.RemovePreCheck = r.logHook(o.LogRemovePreCheck)
-			lso.Removed = r.logHook(o.LogRemoved)
+			lso.PushPreCheck = r.logHook("PushPreCheck", o.LogPushPreCheck)
+			lso.PushFinalCheck = r.logHook("PushFinalCheck", o.LogPushFinalCheck)
+			lso.Pushed = r.logHook("Pushed", o.LogPushed)
+			lso.PullPreCheck = r.logHook("PullPreCheck", o.LogPullPreCheck)
+			lso.Pulled = r.logHook("Pulled", o.LogPulled)
+			lso.RemovePreCheck = r.logHook("RemovePreCheck", o.LogRemovePreCheck)
+			lso.Removed = r.logHook("Removed", o.LogRemoved)
 		})
 	}
 
@@ -215,24 +219,7 @@ func Address(cfg *config.Config, name string) (addr string, err error) {
 // GoOnline abstracts startDsyncServer, which starts the remote http dsync server
 // and adds the dsync protocol to the underlying host
 func (r *Remote) GoOnline(ctx context.Context) error {
-	return r.startDsyncServer(ctx)
-}
-
-// startDsyncServer starts the remote http dsync server and adds the
-// dsync protocol to the underlying host
-func (r *Remote) startDsyncServer(ctx context.Context) error {
 	return r.dsync.StartRemote(ctx)
-}
-
-// ResolveHeadRef fetches the current dataset head path for a given peername and dataset name
-func (r *Remote) ResolveHeadRef(ctx context.Context, peername, name string) (*reporef.DatasetRef, error) {
-	ref := &reporef.DatasetRef{
-		Peername: peername,
-		Name:     name,
-	}
-
-	err := repo.CanonicalizeDatasetRef(r.node.Repo, ref)
-	return ref, err
 }
 
 // RemoveDataset handles requests to remove a dataset
@@ -255,8 +242,8 @@ func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) er
 		}
 	}
 
-	if err := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
-		if err == repo.ErrNotFound {
+	if _, err := r.logbook.ResolveRef(ctx, &ref); err != nil {
+		if err == dsref.ErrRefNotFound {
 			err = nil
 		} else {
 			return err
@@ -264,13 +251,14 @@ func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) er
 	}
 
 	// remove all the versions of this dataset from the store
-	if _, err := base.RemoveNVersionsFromStore(ctx, r.node.Repo, reporef.ConvertToDsref(ref), -1); err != nil {
+	if _, err := base.RemoveNVersionsFromStore(ctx, r.node.Repo, ref, -1); err != nil {
 		return err
 	}
 
-	// remove the dataset reference from the repo
-	if err := r.node.Repo.DeleteRef(ref); err != nil {
-		return err
+	// remove the dataset reference from the repo, errors removing shouldn't block
+	// execution
+	if err := r.node.Repo.DeleteRef(reporef.RefFromDsref(ref)); err != nil {
+		log.Error(err)
 	}
 
 	// run completed hook
@@ -301,11 +289,13 @@ func (r *Remote) dsPushPreCheck(ctx context.Context, info dag.Info, meta map[str
 		}
 	}
 
+	pid, ref, err := r.pidAndRefFromMeta(meta)
+	if err != nil {
+		return err
+	}
+	log.Debugf("pid %s pushing ref %s", pid.String(), ref.String())
+
 	if r.datasetPushPreCheck != nil {
-		pid, ref, err := r.pidAndRefFromMeta(meta)
-		if err != nil {
-			return err
-		}
 		if err := r.datasetPushPreCheck(ctx, pid, ref); err != nil {
 			return err
 		}
@@ -334,8 +324,8 @@ func (r *Remote) dsPushComplete(ctx context.Context, info dag.Info, meta map[str
 		return err
 	}
 
-	if err := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
-		if err == repo.ErrNotFound {
+	if _, err := r.logbook.ResolveRef(ctx, &ref); err != nil {
+		if err == dsref.ErrRefNotFound {
 			err = nil
 		} else {
 			return err
@@ -348,13 +338,13 @@ func (r *Remote) dsPushComplete(ctx context.Context, info dag.Info, meta map[str
 		}
 	}
 
+	vi := ref.VersionInfo()
 	// mark ref as published b/c someone just published to us
-	ref.Published = true
+	vi.Published = true
 
-	// add completed pushed dataset to our refs
 	// TODO (b5) - this could overwrite any FSI links & other ref details,
 	// need to investigate
-	return r.node.Repo.PutRef(ref)
+	return repo.PutVersionInfoShim(r.node.Repo, &vi)
 }
 
 func (r *Remote) dsRemovePreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
@@ -377,6 +367,7 @@ func (r *Remote) dsGetDagInfo(ctx context.Context, into dag.Info, meta map[strin
 		log.Errorf("ref from meta: %s", err.Error())
 		return err
 	}
+	log.Debugf("pid %s pulling ref %s", pid.String(), ref.String())
 
 	if r.datasetPulled != nil {
 		if err = r.datasetPulled(ctx, pid, ref); err != nil {
@@ -387,24 +378,30 @@ func (r *Remote) dsGetDagInfo(ctx context.Context, into dag.Info, meta map[strin
 	return nil
 }
 
-func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, reporef.DatasetRef, error) {
-	ref := reporef.DatasetRef{
-		Peername: meta["peername"],
-		Name:     meta["name"],
-		Path:     meta["path"],
+func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, dsref.Ref, error) {
+	ref := dsref.Ref{
+		Username:  meta["username"],
+		Name:      meta["name"],
+		Path:      meta["path"],
+		ProfileID: meta["profileID"],
 	}
 
-	if pid, decErr := profile.IDB58Decode(meta["profileID"]); decErr == nil {
-		ref.ProfileID = pid
+	// fallback for older versions of remote protocol
+	if ref.Username == "" {
+		ref.Username = meta["peername"]
 	}
 
 	pid, err := profile.IDB58Decode(meta["pid"])
+	if err == nil && ref.ProfileID == "" {
+		ref.ProfileID = pid.String()
+	}
 
 	return pid, ref, err
 }
 
-func (r *Remote) logHook(h Hook) logsync.Hook {
+func (r *Remote) logHook(name string, h Hook) logsync.Hook {
 	return func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error {
+		log.Debugf("logsync %s %s", name, ref)
 		if h != nil {
 			kid, err := identity.KeyIDFromPub(author.AuthorPubKey())
 			if err != nil {
@@ -415,20 +412,10 @@ func (r *Remote) logHook(h Hook) logsync.Hook {
 				return err
 			}
 
-			var r reporef.DatasetRef
-			if ref.String() != "" {
-				r = reporef.DatasetRef{
-					Peername:  ref.Username,
-					ProfileID: profile.IDB58DecodeOrEmpty(ref.ProfileID),
-					Name:      ref.Name,
-					Path:      ref.Path,
-				}
-			}
-
 			// embed the log oplog pointer in our hook
 			ctx = newLogHookContext(ctx, l)
 
-			return h(ctx, pid, r)
+			return h(ctx, pid, ref)
 		}
 
 		return nil
@@ -471,7 +458,7 @@ func (r *Remote) FeedsHTTPHandler() http.HandlerFunc {
 				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
 				return
 			}
-			if err := r.FeedPreCheck(ctx, id, reporef.DatasetRef{}); err != nil {
+			if err := r.FeedPreCheck(ctx, id, dsref.Ref{}); err != nil {
 				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
 				return
 			}
@@ -500,7 +487,7 @@ func (r *Remote) FeedHTTPHandler(prefix string) http.HandlerFunc {
 				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
 				return
 			}
-			if err := r.FeedPreCheck(ctx, id, reporef.DatasetRef{}); err != nil {
+			if err := r.FeedPreCheck(ctx, id, dsref.Ref{}); err != nil {
 				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
 				return
 			}
@@ -526,7 +513,7 @@ func (r *Remote) PreviewHTTPHandler(prefix string) http.HandlerFunc {
 				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
 				return
 			}
-			if err := r.PreviewPreCheck(ctx, id, reporef.DatasetRef{}); err != nil {
+			if err := r.PreviewPreCheck(ctx, id, dsref.Ref{}); err != nil {
 				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
 				return
 			}
@@ -554,11 +541,13 @@ func (r *Remote) RefsHTTPHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		switch req.Method {
 		case "GET":
-			ref := &reporef.DatasetRef{
-				Peername: req.FormValue("peername"),
+			ref := &dsref.Ref{
+				Username: req.FormValue("username"),
 				Name:     req.FormValue("name"),
+				Path:     req.FormValue("path"),
 			}
-			if err := repo.CanonicalizeDatasetRef(r.node.Repo, ref); err != nil {
+
+			if _, err := r.logbook.ResolveRef(req.Context(), ref); err != nil {
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte(err.Error()))
 				return

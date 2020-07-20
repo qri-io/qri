@@ -39,7 +39,6 @@ https://github.com/qri-io/qri/issues`,
 	cmd.PersistentFlags().BoolVarP(&opt.LogAll, "log-all", "", false, "log all activity")
 
 	cmd.AddCommand(
-		NewAddCommand(opt, ioStreams),
 		NewAutocompleteCommand(opt, ioStreams),
 		NewCheckoutCommand(opt, ioStreams),
 		NewConfigCommand(opt, ioStreams),
@@ -53,6 +52,7 @@ https://github.com/qri-io/qri/issues`,
 		NewLogCommand(opt, ioStreams),
 		NewLogbookCommand(opt, ioStreams),
 		NewPublishCommand(opt, ioStreams),
+		NewPullCommand(opt, ioStreams),
 		NewPeersCommand(opt, ioStreams),
 		NewRegistryCommand(opt, ioStreams),
 		NewRemoveCommand(opt, ioStreams),

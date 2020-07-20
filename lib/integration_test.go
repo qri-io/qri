@@ -47,7 +47,6 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	// - hinshun searches the registry for nasim's dataset name, gets a result
 	if results := SearchFor(t, hinshun, "bank"); len(results) < 1 {
 		t.Logf("expected at least one result in registry search")
-		// t.Errorf("expected at least one result in registry search")
 	}
 
 	// - hunshun fetches a preview of nasim's dataset
@@ -55,8 +54,8 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	t.Log(ref.String())
 	Preview(t, hinshun, ref.String())
 
-	// - hinshun clones nasim's dataset
-	Clone(t, hinshun, ref.AliasString())
+	// - hinshun pulls nasim's dataset
+	Pull(t, hinshun, ref.AliasString())
 
 	if err := AssertLogsEqual(nasim, hinshun, ref); err != nil {
 		t.Error(err)
@@ -70,8 +69,8 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
 	dsm := NewDatasetMethods(hinshun)
-	res := &reporef.DatasetRef{}
-	if err := dsm.Add(&AddParams{LogsOnly: true, Ref: ref.String()}, res); err != nil {
+	res := &dataset.Dataset{}
+	if err := dsm.Pull(&PullParams{LogsOnly: true, Ref: ref.String()}, res); err != nil {
 		t.Errorf("cloning logs: %s", err)
 	}
 
@@ -81,8 +80,8 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 
 	// TODO (b5) - assert hinshun DOES NOT have blocks for the latest commit to world bank dataset
 
-	// 8. hinshun clones latest version
-	Clone(t, hinshun, ref.AliasString())
+	// 8. hinshun pulls latest version
+	Pull(t, hinshun, ref.AliasString())
 
 	// TODO (b5) - assert hinshun has world bank dataset blocks
 
@@ -109,10 +108,10 @@ func TestAddCheckoutIntegration(t *testing.T) {
 
 	hinshun := tr.InitHinshun(t)
 	dsm := NewDatasetMethods(hinshun)
-	res := &reporef.DatasetRef{}
+	res := &dataset.Dataset{}
 
 	checkoutPath := filepath.Join(tr.hinshunRepo.RootPath, "wbp")
-	err := dsm.Add(&AddParams{
+	err := dsm.Pull(&PullParams{
 		Ref:     ref.String(),
 		LinkDir: checkoutPath,
 	}, res)
@@ -448,9 +447,10 @@ func SearchFor(t *testing.T, inst *Instance, term string) []SearchResult {
 	return results
 }
 
-func Clone(t *testing.T, inst *Instance, refstr string) *reporef.DatasetRef {
-	res := &reporef.DatasetRef{}
-	if err := NewDatasetMethods(inst).Add(&AddParams{Ref: refstr}, res); err != nil {
+func Pull(t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
+	t.Helper()
+	res := &dataset.Dataset{}
+	if err := NewDatasetMethods(inst).Pull(&PullParams{Ref: refstr}, res); err != nil {
 		t.Fatalf("cloning dataset %s: %s", refstr, err)
 	}
 	return res

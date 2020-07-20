@@ -31,14 +31,14 @@ func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 
 	hooksCalled := []string{}
 	callCheck := func(s string) Hook {
-		return func(ctx context.Context, pid profile.ID, ref reporef.DatasetRef) error {
+		return func(ctx context.Context, pid profile.ID, ref dsref.Ref) error {
 			hooksCalled = append(hooksCalled, s)
 			return nil
 		}
 	}
 
 	requireLogAndRefCallCheck := func(t *testing.T, s string) Hook {
-		return func(ctx context.Context, pid profile.ID, ref reporef.DatasetRef) error {
+		return func(ctx context.Context, pid profile.ID, ref dsref.Ref) error {
 			if ref.String() == "" {
 				t.Errorf("hook %s expected reference to be populated", s)
 			}
@@ -72,24 +72,23 @@ func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 	server := tr.RemoteTestServer(rem)
 	defer server.Close()
 
-	worldBankRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
-
+	wbp := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 	cli := tr.NodeBClient(t)
 
-	relRef := &reporef.DatasetRef{Peername: worldBankRef.Username, Name: worldBankRef.Name}
-	if err := cli.ResolveHeadRef(tr.Ctx, relRef, server.URL); err != nil {
+	relRef := &dsref.Ref{Username: wbp.Username, Name: wbp.Name}
+	if _, err := cli.NewRemoteRefResolver(server.URL).ResolveRef(tr.Ctx, relRef); err != nil {
 		t.Error(err)
 	}
 
-	if !relRef.Equal(reporef.RefFromDsref(worldBankRef)) {
-		t.Errorf("resolve mismatch. expected:\n%s\ngot:\n%s", worldBankRef, relRef)
+	if !relRef.Equals(wbp) {
+		t.Errorf("resolve mismatch. expected:\n%s\ngot:\n%s", wbp, relRef)
 	}
 
-	if _, err := cli.FetchLogs(tr.Ctx, reporef.ConvertToDsref(*relRef), server.URL); err != nil {
+	if _, err := cli.FetchLogs(tr.Ctx, *relRef, server.URL); err != nil {
 		t.Error(err)
 	}
-	wbp := reporef.RefFromDsref(worldBankRef)
-	if err := cli.PullDataset(tr.Ctx, &wbp, server.URL); err != nil {
+
+	if err := cli.PullDatasetVersion(tr.Ctx, &wbp, server.URL); err != nil {
 		t.Error(err)
 	}
 
@@ -98,21 +97,21 @@ func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 	if err := cli.PushLogs(tr.Ctx, videoViewRef, server.URL); err != nil {
 		t.Error(err)
 	}
-	if err := cli.PushDataset(tr.Ctx, reporef.RefFromDsref(videoViewRef), server.URL); err != nil {
+	if err := cli.PushDatasetVersion(tr.Ctx, videoViewRef, server.URL); err != nil {
 		t.Error(err)
 	}
 
 	if err := cli.RemoveLogs(tr.Ctx, videoViewRef, server.URL); err != nil {
 		t.Error(err)
 	}
-	if err := cli.RemoveDataset(tr.Ctx, reporef.RefFromDsref(videoViewRef), server.URL); err != nil {
+	if err := cli.RemoveDataset(tr.Ctx, videoViewRef, server.URL); err != nil {
 		t.Error(err)
 	}
 
 	if _, err := cli.Feeds(tr.Ctx, server.URL); err != nil {
 		t.Error(err)
 	}
-	if _, err := cli.Preview(tr.Ctx, worldBankRef, server.URL); err != nil {
+	if _, err := cli.Preview(tr.Ctx, wbp, server.URL); err != nil {
 		t.Error(err)
 	}
 

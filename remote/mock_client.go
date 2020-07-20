@@ -16,8 +16,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
+	"github.com/qri-io/qri/repo"
 )
 
 // ErrNotImplemented is returned for methods that are not implemented
@@ -29,18 +28,15 @@ type MockClient struct {
 	book *logbook.Book
 }
 
+var _ Client = (*MockClient)(nil)
+
 // NewMockClient returns a mock remote client
 func NewMockClient(node *p2p.QriNode, book *logbook.Book) (c Client, err error) {
 	return &MockClient{node: node, book: book}, nil
 }
 
-// ListDatasets is not implemented
-func (c *MockClient) ListDatasets(ctx context.Context, ds *reporef.DatasetRef, term string, offset, limit int) (res []reporef.DatasetRef, err error) {
-	return nil, ErrNotImplemented
-}
-
-// PushDataset is not implemented
-func (c *MockClient) PushDataset(ctx context.Context, ref reporef.DatasetRef, remoteAddr string) error {
+// PushDatasetVersion is not implemented
+func (c *MockClient) PushDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
@@ -49,7 +45,8 @@ func (c *MockClient) FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr st
 	return nil, ErrNotImplemented
 }
 
-// CloneLogs creates a log from a temp logbook, and merges those into the client's logbook
+// CloneLogs creates a log from a temp logbook, and merges those into the
+// client's logbook
 func (c *MockClient) CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	tmpdir, err := ioutil.TempDir("", "")
 	if err != nil {
@@ -82,17 +79,18 @@ func (c *MockClient) CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr st
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("merging log: %#v", foreignLog)
 
 	return c.book.MergeLog(ctx, sender, foreignLog)
 }
 
 // RemoveDataset is not implemented
-func (c *MockClient) RemoveDataset(ctx context.Context, ref reporef.DatasetRef, remoteAddr string) error {
+func (c *MockClient) RemoveDataset(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
 // AddDataset adds a reference to a dataset using test peer info
-func (c *MockClient) AddDataset(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error {
+func (c *MockClient) AddDataset(ctx context.Context, ref *dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
 	// Get a test peer, but skip the first peer (usually used for tests)
 	info := cfgtest.GetTestPeerInfo(1)
 
@@ -111,18 +109,23 @@ func (c *MockClient) AddDataset(ctx context.Context, ref *reporef.DatasetRef, re
 	sw := dsfs.SaveSwitches{}
 	path, err := dsfs.CreateDataset(ctx, c.node.Repo.Store(), c.node.Repo.Store(), &ds, nil, c.node.Repo.PrivateKey(), sw)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Fill in details for the reference
-	ref.ProfileID = profile.IDFromPeerID(info.PeerID)
-	ref.Path = path
+	vi := &dsref.VersionInfo{
+		Path:      path,
+		ProfileID: info.PeerID.Pretty(),
+		Username:  ref.Username,
+		Name:      ref.Name,
+	}
 
 	// Store ref for a mock dataset.
-	if err := c.node.Repo.PutRef(*ref); err != nil {
-		return err
+	if err := repo.PutVersionInfoShim(c.node.Repo, vi); err != nil {
+		// if err := c.node.Repo.PutRef(*ref); err != nil {
+		return nil, err
 	}
-	return nil
+
+	return dsfs.LoadDataset(ctx, c.node.Repo.Store(), path)
 }
 
 // PushLogs is not implemented
@@ -130,18 +133,13 @@ func (c *MockClient) PushLogs(ctx context.Context, ref dsref.Ref, remoteAddr str
 	return ErrNotImplemented
 }
 
-// PullDataset is not implemented
-func (c *MockClient) PullDataset(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error {
+// PullDatasetVersion is not implemented
+func (c *MockClient) PullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
 // RemoveLogs is not implemented
 func (c *MockClient) RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
-	return ErrNotImplemented
-}
-
-// ResolveHeadRef is not implemented
-func (c *MockClient) ResolveHeadRef(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
@@ -152,6 +150,11 @@ func (c *MockClient) NewRemoteRefResolver(addr string) dsref.Resolver {
 
 // Feeds is not implemented
 func (c *MockClient) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsref.VersionInfo, error) {
+	return nil, ErrNotImplemented
+}
+
+// Feed is not implemented
+func (c *MockClient) Feed(ctx context.Context, remoteAddr, feedName string, page, pageSize int) ([]dsref.VersionInfo, error) {
 	return nil, ErrNotImplemented
 }
 

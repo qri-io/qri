@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/fsi"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // LoadDataset fetches, dereferences and opens a dataset from a reference
@@ -40,8 +39,11 @@ func (inst *Instance) LoadDataset(ctx context.Context, ref dsref.Ref, source str
 		return nil, err
 	}
 
-	rref := reporef.RefFromDsref(ref)
-	if err := inst.remoteClient.AddDataset(ctx, &rref, source); err != nil {
+	// TODO (b5) - it'd be nice to us the returned dataset here, skipping the
+	// loadLocalDataset call entirely. For that to work dsfs.LoadDataset &
+	// inst.loadLocalDataset would have to behave exactly the same, and currently
+	// they don't
+	if _, err := inst.remoteClient.AddDataset(ctx, &ref, source); err != nil {
 		return nil, err
 	}
 

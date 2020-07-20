@@ -29,7 +29,6 @@ func TestResolveRef(t *testing.T) {
 		t.Errorf("expected client to be nil-callable")
 	}
 
-	t.Skip("TODO (b5) - registry is not yet spec-compliant")
 	dsrefspec.AssertResolverSpec(t, tr.Client, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
 		return tr.Reg.Remote.Node().Repo.Logbook().MergeLog(ctx, author, log)
 	})

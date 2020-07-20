@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // Feeds accesses streams of dataset VersionInfo's to browse. Feeds should be
@@ -89,16 +88,16 @@ var _ Previews = (*RepoPreviews)(nil)
 
 // Preview gets a preview for a reference
 func (rp RepoPreviews) Preview(ctx context.Context, _, refStr string) (*dataset.Dataset, error) {
-	ref, err := repo.ParseDatasetRef(refStr)
+	ref, err := dsref.Parse(refStr)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = repo.CanonicalizeDatasetRef(rp.Repo, &ref); err != nil {
+	if _, err := rp.Repo.Logbook().ResolveRef(ctx, &ref); err != nil {
 		return nil, err
 	}
 
-	return base.CreatePreview(ctx, rp.Repo, reporef.ConvertToDsref(ref))
+	return base.CreatePreview(ctx, rp.Repo, ref)
 }
 
 // PreviewComponent gets a component for a reference & component name

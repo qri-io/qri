@@ -67,8 +67,9 @@ func (c *Client) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error)
 	}
 
 	q := u.Query()
-	q.Set("peername", ref.Username)
+	q.Set("username", ref.Username)
 	q.Set("name", ref.Name)
+	q.Set("path", ref.Path)
 	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequest("GET", u.String(), nil)

@@ -358,19 +358,25 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := &lib.AddParams{
+	p := &lib.PullParams{
 		Ref:     ref.String(),
 		LinkDir: r.FormValue("dir"),
 	}
 
-	res := reporef.DatasetRef{}
-	err = h.Add(p, &res)
+	res := &dataset.Dataset{}
+	err = h.Pull(p, res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	util.WriteResponse(w, res)
+	ref = reporef.DatasetRef{
+		Peername: res.Peername,
+		Name:     res.Name,
+		Path:     res.Path,
+		Dataset:  res,
+	}
+	util.WriteResponse(w, ref)
 }
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {

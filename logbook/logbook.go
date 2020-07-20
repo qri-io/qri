@@ -790,12 +790,28 @@ func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 	}
 	ref.InitID = initID
 
+	var branchLog *BranchLog
 	if ref.Path == "" {
-		br, err := book.branchLog(ctx, initID)
+		branchLog, err = book.branchLog(ctx, initID)
 		if err != nil {
 			return "", err
 		}
-		ref.Path = book.latestSavePath(br.l)
+		ref.Path = book.latestSavePath(branchLog.l)
+	}
+
+	if ref.ProfileID == "" {
+		if branchLog == nil {
+			branchLog, err = book.branchLog(ctx, initID)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		authorLog, err := book.store.Get(ctx, branchLog.l.Author())
+		if err != nil {
+			return "", err
+		}
+		ref.ProfileID = authorLog.Ops[0].AuthorID
 	}
 
 	return "", nil
