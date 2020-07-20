@@ -212,9 +212,15 @@ func Address(cfg *config.Config, name string) (addr string, err error) {
 	return "", fmt.Errorf(`remote name "%s" not found`, name)
 }
 
-// StartDsyncServer starts the remote http dsync server and adds the
+// GoOnline abstracts startDsyncServer, which starts the remote http dsync server
+// and adds the dsync protocol to the underlying host
+func (r *Remote) GoOnline(ctx context.Context) error {
+	return r.startDsyncServer(ctx)
+}
+
+// startDsyncServer starts the remote http dsync server and adds the
 // dsync protocol to the underlying host
-func (r *Remote) StartDsyncServer(ctx context.Context) error {
+func (r *Remote) startDsyncServer(ctx context.Context) error {
 	return r.dsync.StartRemote(ctx)
 }
 

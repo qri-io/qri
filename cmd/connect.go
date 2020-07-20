@@ -61,7 +61,8 @@ type ConnectOptions struct {
 func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 	repoPath := f.RepoPath()
 
-	if repoErr := lib.QriRepoExists(repoPath); repoErr != nil && o.Setup {
+	repoErr := lib.QriRepoExists(repoPath)
+	if repoErr != nil && o.Setup {
 		so := &SetupOptions{
 			IOStreams: o.IOStreams,
 			IPFS:      true,

@@ -13,8 +13,8 @@ import (
 	"github.com/qri-io/qri/repo/gen"
 )
 
-// QriRepoExists retursn nile if qri repo is defined at the given path, without
-// opening the repo itself
+// QriRepoExists returns nil if a qri repo is defined at the given path
+// does not attempt to open the repo
 func QriRepoExists(path string) error {
 	// for now this just checks for an existing config file
 	_, err := os.Stat(filepath.Join(path, "config.yaml"))
