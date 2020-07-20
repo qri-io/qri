@@ -16,7 +16,7 @@ func TestAnnounceConnected(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating network: %s", err.Error())
 	}
-	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
+	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
 		t.Fatalf("error connecting peers: %s", err.Error())
 	}
 
@@ -57,7 +57,7 @@ func TestAnnounceConnected(t *testing.T) {
 	}(node.(*QriNode))
 
 	// connected that node to only one member of the network
-	if err := p2ptest.ConnectQriNodes(ctx, []p2ptest.TestablePeerNode{node, testPeers[0]}); err != nil {
+	if err := p2ptest.ConnectNodes(ctx, []p2ptest.TestablePeerNode{node, testPeers[0]}); err != nil {
 		t.Error(err.Error())
 		return
 	}

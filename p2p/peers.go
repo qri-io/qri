@@ -24,7 +24,7 @@ func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
 				pe.Online = true
 				// Build host multiaddress,
 				// TODO - this should be a convenience func
-				hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", conn.RemotePeer().Pretty()))
+				hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", conn.RemotePeer().Pretty()))
 				if err != nil {
 					log.Debug(err.Error())
 					return nil
@@ -184,11 +184,13 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 		return nil, fmt.Errorf("host connect %s failure: %s", pinfo.ID.Pretty(), err)
 	}
 
-	if err := n.UpgradeToQriConnection(pinfo); err != nil {
-		// TODO: if the err is ErrQriProtocolNotSupported, let the user know the
-		// connection has been established, but that the Qri Protocol is not supported
-		return nil, err
-	}
+	// // do an explicit connection upgrade. We're assmun
+	// if err := n.upgradeToQriConnection(pinfo.ID); err != nil {
+	// 	if err == ErrQriProtocolNotSupported {
+	// 		return nil, fmt.Errorf("upgrading p2p connection to a qri connection: %w", err)
+	// 	}
+	// 	return nil, err
+	// }
 
 	return n.Repo.Profiles().PeerProfile(pinfo.ID)
 }
@@ -252,7 +254,7 @@ func (n *QriNode) getPeerInfo(pid peer.ID) (peer.AddrInfo, error) {
 	}
 
 	// attempt to use ipfs routing table to discover peer
-	ipfsnode, err := n.ipfsNode()
+	ipfsnode, err := n.IPFS()
 	if err != nil {
 		log.Debug(err.Error())
 		return peer.AddrInfo{}, err

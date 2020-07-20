@@ -108,7 +108,6 @@ func NewBus(ctx context.Context) Bus {
 func (b *bus) Publish(ctx context.Context, topic Type, data interface{}) error {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
-	log.Debugf("Publish: %s", topic)
 
 	if b.closed {
 		return ErrBusClosed

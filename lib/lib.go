@@ -213,6 +213,14 @@ func OptRemoteOptions(fn func(opt *remote.Options)) Option {
 	}
 }
 
+// OptEnableRemote enables the remote functionality in the node
+func OptEnableRemote() Option {
+	return func(o *InstanceOptions) error {
+		o.Cfg.Remote.Enabled = true
+		return nil
+	}
+}
+
 // OptQriNode configures bring-your-own qri node
 func OptQriNode(node *p2p.QriNode) Option {
 	return func(o *InstanceOptions) error {
@@ -474,6 +482,10 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 				log.Error("intializing remote:", err.Error())
 				return
 			}
+			// TODO (ramfox): we need to preserve these options
+			// for if we need to re initalize the remote & don't have access
+			// to those options again (this happens in the `GoOnline` func below)
+			inst.remoteOptsFunc = o.remoteOptsFunc
 		}
 	}
 
@@ -614,19 +626,20 @@ type Instance struct {
 	repoPath string
 	cfg      *config.Config
 
-	streams      ioes.IOStreams
-	repo         repo.Repo
-	node         *p2p.QriNode
-	qfs          *muxfs.Mux
-	fsi          *fsi.FSI
-	remote       *remote.Remote
-	remoteClient remote.Client
-	registry     *regclient.Client
-	stats        *stats.Stats
-	logbook      *logbook.Book
-	dscache      *dscache.Dscache
-	bus          event.Bus
-	watcher      *watchfs.FilesysWatcher
+	streams        ioes.IOStreams
+	repo           repo.Repo
+	node           *p2p.QriNode
+	qfs            *muxfs.Mux
+	fsi            *fsi.FSI
+	remote         *remote.Remote
+	remoteClient   remote.Client
+	registry       *regclient.Client
+	stats          *stats.Stats
+	logbook        *logbook.Book
+	dscache        *dscache.Dscache
+	bus            event.Bus
+	watcher        *watchfs.FilesysWatcher
+	remoteOptsFunc func(*remote.Options)
 
 	rpc *rpc.Client
 
@@ -644,13 +657,24 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	}
 
 	// for now if we have an IPFS node instance, node.GoOnline has to make a new
-	// instance to connect properly. If remoteClient retains the reference to the
+	// instance to connect properly. If remoteClient or remote retains the reference to the
 	// old instance, we run into issues where the online instance can't "see"
-	// the additions. We fix that by re-initializing the client with the new
+	// the additions. We fix that by re-initializing the client and remote with the new
 	// instance
 	if inst.remoteClient, err = remote.NewClient(inst.node); err != nil {
 		log.Debugf("initializing remote client: %s", err.Error())
 		return
+	}
+	if inst.cfg.Remote != nil && inst.cfg.Remote.Enabled == true {
+		log.Errorf("in connect, config remote: %#v", inst.cfg.Remote)
+		if inst.remote, err = remote.NewRemote(inst.node, inst.cfg.Remote, inst.remoteOptsFunc); err != nil {
+			log.Errorf("error initializing remote: %s", err.Error())
+			return
+		}
+		if err = inst.remote.GoOnline(ctx); err != nil {
+			log.Errorf("error starting dsync services: %s", err.Error())
+			return
+		}
 	}
 
 	return nil

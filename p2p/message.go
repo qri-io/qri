@@ -101,7 +101,6 @@ func NewJSONBodyMessage(initiator peer.ID, t MsgType, body interface{}) (Message
 var alpharunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 // NewMessageID generates a random message identifier
-// TODO - replace with UUIDs
 func NewMessageID() string {
 	b := make([]rune, 10)
 	for i := range b {

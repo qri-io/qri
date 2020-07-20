@@ -4,13 +4,11 @@ import (
 	"context"
 	"time"
 
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-const (
-	// MtPing is a ping/pong message
-	MtPing = MsgType("ping")
-)
+// MtPing is a ping/pong message
+const MtPing = MsgType("ping")
 
 // Ping initiates a ping message from peer to a peer.ID
 func (n *QriNode) Ping(ctx context.Context, peerID peer.ID) (time.Duration, error) {

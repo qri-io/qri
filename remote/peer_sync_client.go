@@ -167,11 +167,13 @@ func (c *PeerSyncClient) PushDataset(ctx context.Context, ref reporef.DatasetRef
 	log.Debugf("pushing dataset %s to %s", ref.Path, remoteAddr)
 	push, err := c.ds.NewPush(ref.Path, remoteAddr, true)
 	if err != nil {
+		log.Errorf("error creating new push: %s", err)
 		return err
 	}
 
 	params, err := sigParams(c.pk, ref)
 	if err != nil {
+		log.Errorf("error adding sigParams: %s", err)
 		return err
 	}
 	push.SetMeta(params)

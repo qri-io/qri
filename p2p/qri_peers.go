@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/repo/profile"
+	"time"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // MtQriPeers is a request to get a list of known qri peers
@@ -23,14 +24,12 @@ type QriPeer struct {
 	NetworkAddrs []string
 }
 
-// UpgradeToQriConnection attempts to open a Qri protocol connection to a peer
+// upgradeToQriConnection attempts to open a Qri protocol connection to a peer
 // it records whether the peer supports Qri in the host Peerstore,
 // returns ErrQriProtocolNotSupported if the connection cannot be upgraded,
 // and sets a priority in the host Connection Manager if the connection is upgraded
-func (n *QriNode) UpgradeToQriConnection(pinfo peer.AddrInfo) error {
+func (n *QriNode) upgradeToQriConnection(pid peer.ID) error {
 	// bail early if we have seen this peer before
-	// OKAY
-	pid := pinfo.ID
 	log.Debugf("%s, attempting to upgrading %s to qri connection", n.ID, pid)
 	if _support, err := n.host.Peerstore().Get(pid, qriSupportKey); err == nil {
 		support, ok := _support.(bool)
@@ -65,13 +64,20 @@ func (n *QriNode) UpgradeToQriConnection(pinfo peer.AddrInfo) error {
 	// tag the connection as more important in the conn manager:
 	n.host.ConnManager().TagPeer(pid, qriSupportKey, qriSupportValue)
 
-	ctx := context.TODO()
-	if _, err := n.RequestProfile(ctx, pid); err != nil {
+	ctx, done := context.WithTimeout(context.Background(), time.Second*20)
+	defer done()
+
+	pro, err := n.RequestProfile(ctx, pid)
+	if err != nil {
 		log.Debug(err.Error())
 		return err
 	}
 
+	n.pub.Publish(ctx, event.ETP2PQriPeerConnected, pro)
+
 	go func() {
+		ctx, done := context.WithTimeout(context.Background(), time.Second*20)
+		defer done()
 		ps, err := n.RequestQriPeers(ctx, pid)
 		if err != nil {
 			log.Debug("error fetching qri peers: %s", err)
@@ -130,8 +136,7 @@ func (n *QriNode) RequestNewPeers(ctx context.Context, peers []QriPeer) {
 	}
 
 	for _, p := range newPeers {
-		// TODO -
-		ID, err := peer.IDB58Decode(strings.TrimPrefix(p.PeerID, "/ipfs/"))
+		ID, err := peer.IDB58Decode(strings.TrimPrefix(strings.TrimPrefix(p.PeerID, "/ipfs/"), "/p2p/"))
 		if err != nil {
 			continue
 		}

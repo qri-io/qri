@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -25,23 +26,28 @@ import (
 // TestablePeerNode is used by tests only. Implemented by QriNode
 type TestablePeerNode interface {
 	Host() host.Host
-	SimplePeerInfo() peer.AddrInfo
-	UpgradeToQriConnection(peer.AddrInfo) error
+	SimpleAddrInfo() peer.AddrInfo
 	GoOnline(ctx context.Context) error
 }
 
 // NodeMakerFunc is a function that constructs a Node from a Repo and options.
-type NodeMakerFunc func(repo.Repo, *config.P2P) (TestablePeerNode, error)
+type NodeMakerFunc func(repo.Repo, *config.P2P, event.Publisher) (TestablePeerNode, error)
 
 // TestNodeFactory can be used to safetly construct nodes for tests
 type TestNodeFactory struct {
 	count int
 	maker NodeMakerFunc
+	pub   event.Publisher
 }
 
 // NewTestNodeFactory returns a new TestNodeFactory
 func NewTestNodeFactory(maker NodeMakerFunc) *TestNodeFactory {
-	return &TestNodeFactory{count: 0, maker: maker}
+	return &TestNodeFactory{count: 0, maker: maker, pub: event.NilBus}
+}
+
+// NewTestNodeFactoryWithBus returns a new TestNodeFactory with non nil buses
+func NewTestNodeFactoryWithBus(maker NodeMakerFunc) *TestNodeFactory {
+	return &TestNodeFactory{count: 0, maker: maker, pub: event.NewBus(context.Background())}
 }
 
 // New creates a new Node for testing
@@ -51,7 +57,7 @@ func (f *TestNodeFactory) New(r repo.Repo) (TestablePeerNode, error) {
 	p2pconf := config.DefaultP2P()
 	p2pconf.PeerID = info.EncodedPeerID
 	p2pconf.PrivKey = info.EncodedPrivKey
-	return f.maker(r, p2pconf)
+	return f.maker(r, p2pconf, f.pub)
 }
 
 // NewWithConf creates a new Node for testing using a configuration
@@ -60,7 +66,7 @@ func (f *TestNodeFactory) NewWithConf(r repo.Repo, p2pconf *config.P2P) (Testabl
 	f.count++
 	p2pconf.PeerID = info.EncodedPeerID
 	p2pconf.PrivKey = info.EncodedPrivKey
-	return f.maker(r, p2pconf)
+	return f.maker(r, p2pconf, f.pub)
 }
 
 // NextInfo gets the PeerInfo for the next test Node to be constructed
@@ -157,54 +163,12 @@ func ConnectNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	for i, s1 := range nodes {
 		for _, s2 := range nodes[i+1:] {
 			wg.Add(1)
-			if err := connect(s1, s2.SimplePeerInfo()); err != nil {
+			if err := connect(s1, s2.SimpleAddrInfo()); err != nil {
 				return err
 			}
 		}
 	}
 	wg.Wait()
-	return nil
-}
-
-// ConnectQriNodes takes a slice of unconnected nodes and returns a slice
-// of connected nodes that have upgraded qri connections:
-// They support the qri protocol and have exchanged profile
-func ConnectQriNodes(ctx context.Context, nodes []TestablePeerNode) error {
-	var wgConnect sync.WaitGroup
-	connect := func(n TestablePeerNode, pinfo peer.AddrInfo) error {
-		if err := n.Host().Connect(ctx, pinfo); err != nil {
-			return fmt.Errorf("error connecting nodes: %s", err)
-		}
-		wgConnect.Done()
-		return nil
-	}
-
-	for i, s1 := range nodes {
-		for _, s2 := range nodes[i+1:] {
-			wgConnect.Add(1)
-			if err := connect(s1, s2.SimplePeerInfo()); err != nil {
-				return err
-			}
-		}
-	}
-	wgConnect.Wait()
-	// previously, we had UpgradeToQriConnection running in separate threads
-	// much like we did with the basic connection
-	// however, UpgradeToQriConnection asks for and sends profile information
-	// from it's various peers. We were running into a race condition where
-	// we would be writing to and requesting a profile at the same time.
-	for _, s1 := range nodes {
-		for _, s2 := range nodes {
-			pinfo := s2.SimplePeerInfo()
-			if s1.SimplePeerInfo().ID == pinfo.ID {
-				continue
-			}
-			if err := s1.UpgradeToQriConnection(pinfo); err != nil {
-				return fmt.Errorf("%s error upgrading connection to %s: %s", s1.SimplePeerInfo().ID, pinfo.ID, err)
-			}
-		}
-	}
-
 	return nil
 }
 

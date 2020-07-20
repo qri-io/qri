@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 
 	libp2p "github.com/libp2p/go-libp2p"
@@ -39,49 +40,12 @@ func (n *TestableNode) Host() host.Host {
 	return n.host
 }
 
-// SimplePeerInfo returns the PeerInfo of the TestableNode
-func (n *TestableNode) SimplePeerInfo() peer.AddrInfo {
+// SimpleAddrInfo returns the PeerInfo of the TestableNode
+func (n *TestableNode) SimpleAddrInfo() peer.AddrInfo {
 	return peer.AddrInfo{
 		ID:    n.host.ID(),
 		Addrs: n.host.Addrs(),
 	}
-}
-
-// UpgradeToQriConnection upgrades the connection from a basic connection
-// to a Qri connection
-func (n *TestableNode) UpgradeToQriConnection(pinfo peer.AddrInfo) error {
-	// bail early if we have seen this peer before
-	if _, err := n.Host().Peerstore().Get(pinfo.ID, TestQriSupportKey); err == nil {
-		return nil
-	}
-
-	// check if this connection supports the qri protocol
-	protos, err := n.Host().Peerstore().SupportsProtocols(pinfo.ID, string(TestQriProtocolID))
-	if err != nil {
-		fmt.Printf("error getting protocols from peerstore: %s", err)
-	}
-
-	support := true
-
-	if len(protos) == 0 {
-		support = false
-	}
-
-	// mark whether or not this connection supports the qri protocol:
-	if err := n.Host().Peerstore().Put(pinfo.ID, string(TestQriSupportKey), support); err != nil {
-		fmt.Printf("error setting qri support flag: %s\n", err)
-		return err
-	}
-	// if it does support the qri protocol
-	// - request profile
-	// - request profiles
-	// - tag as qri connection
-	if !support {
-		return ErrTestQriProtocolNotSupported
-	}
-
-	n.Host().ConnManager().TagPeer(pinfo.ID, TestQriConnManagerTag, TestQriConnManagerValue)
-	return nil
 }
 
 func (n *TestableNode) TestStreamHandler(s net.Stream) {
@@ -114,7 +78,7 @@ func (n *TestableNode) GoOnline(_ context.Context) error {
 
 // NewTestableNode creates a testable node from a repo and a config.P2P
 // it creates a basic host
-func NewTestableNode(r repo.Repo, p2pconf *config.P2P) (TestablePeerNode, error) {
+func NewTestableNode(r repo.Repo, p2pconf *config.P2P, _ event.Publisher) (TestablePeerNode, error) {
 	ctx := context.Background()
 	ps := pstoremem.NewPeerstore()
 	// this is essentially what is located in the p2p.makeBasicHost function

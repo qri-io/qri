@@ -59,7 +59,8 @@ type ConnectOptions struct {
 func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 	repoPath := f.RepoPath()
 
-	if o.Setup && !QRIRepoInitialized(repoPath) {
+	repoErr := lib.QriRepoExists(repoPath)
+	if repoErr != nil && o.Setup {
 		so := &SetupOptions{
 			IOStreams: o.IOStreams,
 			IPFS:      true,
@@ -72,7 +73,7 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 		if err = so.DoSetup(f); err != nil {
 			return err
 		}
-	} else if !QRIRepoInitialized(repoPath) {
+	} else if repoErr != nil {
 		return errors.New(repo.ErrNoRepo, "no qri repo exists\nhave you run 'qri setup'?")
 	}
 
