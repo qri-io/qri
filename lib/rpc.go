@@ -42,9 +42,6 @@ func Receivers(inst *Instance) []Methods {
 		NewSQLMethods(inst),
 		NewRenderMethods(inst),
 		NewFSIMethods(inst),
-
-		// TODO (b5) - deprecate ExportRequests
-		NewExportRequests(inst.Node(), nil),
 	}
 }
 

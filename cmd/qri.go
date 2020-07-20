@@ -46,7 +46,6 @@ https://github.com/qri-io/qri/issues`,
 		NewConnectCommand(opt, ioStreams),
 		NewDAGCommand(opt, ioStreams),
 		NewDiffCommand(opt, ioStreams),
-		NewExportCommand(opt, ioStreams),
 		NewFSICommand(opt, ioStreams),
 		NewGetCommand(opt, ioStreams),
 		NewInitCommand(opt, ioStreams),
@@ -239,14 +238,6 @@ func (o *QriOptions) LogMethods() (*lib.LogMethods, error) {
 		return nil, err
 	}
 	return lib.NewLogMethods(o.inst), nil
-}
-
-// ExportRequests generates a lib.ExportRequests from internal state
-func (o *QriOptions) ExportRequests() (*lib.ExportRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewExportRequests(o.inst.Node(), o.inst.RPC()), nil
 }
 
 // PeerMethods generates a lib.PeerMethods from internal state
