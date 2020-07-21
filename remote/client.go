@@ -51,6 +51,12 @@ type Client interface {
 	FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) (*oplog.Log, error)
 	CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error
 	RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error
+
+	// Done returns a channel that the client will send on when the client is
+	// closed
+	Done() <-chan struct{}
+	// DoneErr gives any error that occured in the shutdown process
+	DoneErr() error
 }
 
 // client talks to a remote in order to sync peer data
@@ -60,10 +66,13 @@ type client struct {
 	logsync *logsync.Logsync
 	capi    coreiface.CoreAPI
 	node    *p2p.QriNode
+
+	doneCh  chan struct{}
+	doneErr error
 }
 
 // NewClient creates a remote client suitable for syncing peers
-func NewClient(node *p2p.QriNode) (c Client, err error) {
+func NewClient(ctx context.Context, node *p2p.QriNode) (c Client, err error) {
 	var ds *dsync.Dsync
 	capi, capiErr := node.IPFSCoreAPI()
 	if capiErr == nil {
@@ -95,13 +104,24 @@ func NewClient(node *p2p.QriNode) (c Client, err error) {
 		})
 	}
 
-	return &client{
+	cli := &client{
 		pk:      node.Repo.PrivateKey(),
 		ds:      ds,
 		logsync: ls,
 		capi:    capi,
 		node:    node,
-	}, nil
+
+		doneCh: make(chan struct{}),
+	}
+
+	go func() {
+		<-ctx.Done()
+		// TODO (b5) - return an error here if client is in the process of pulling anything
+		cli.doneErr = ctx.Err()
+		close(cli.doneCh)
+	}()
+
+	return cli, nil
 }
 
 // FetchLogs pulls logbook data from a remote
@@ -264,6 +284,10 @@ func (c *client) RemoveDataset(ctx context.Context, ref dsref.Ref, remoteAddr st
 
 // NewRemoteRefResolver creates a resolver backed by a remote
 func (c *client) NewRemoteRefResolver(remoteAddr string) dsref.Resolver {
+	if c == nil {
+		return nil
+	}
+	log.Debugf("client.NewRemoteRefResolver addr=%q", remoteAddr)
 	return &remoteRefResolver{cli: c, remoteAddr: remoteAddr}
 }
 
@@ -643,4 +667,14 @@ func (c *client) Preview(ctx context.Context, ref dsref.Ref, remoteAddr string) 
 	}
 
 	return env.Data, nil
+}
+
+// Done returns a channel that the client will send on when finished closing
+func (c *client) Done() <-chan struct{} {
+	return c.doneCh
+}
+
+// DoneErr gives an error that occured during the shutdown process
+func (c *client) DoneErr() error {
+	return c.doneErr
 }

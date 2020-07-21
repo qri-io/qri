@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
@@ -23,6 +24,33 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
+func TestClientDone(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cli, err := NewClient(ctx, tr.NodeA)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testDone := make(chan struct{})
+	go func() {
+		<-cli.Done()
+		if doneErr := cli.DoneErr(); doneErr == nil {
+			t.Errorf("expected a context cancellation error from client done, got nil")
+		}
+		testDone <- struct{}{}
+	}()
+
+	cancel()
+	select {
+	case <-testDone:
+	case <-time.NewTimer(time.Millisecond * 100).C:
+		t.Errorf("test didn't complete within 100 ms oc cancellation")
+	}
+}
+
 func TestAddDataset(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
@@ -36,7 +64,7 @@ func TestAddDataset(t *testing.T) {
 
 	wbpRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 
-	cli, err := NewClient(tr.NodeB)
+	cli, err := NewClient(tr.Ctx, tr.NodeB)
 	if err != nil {
 		t.Fatal(err)
 	}

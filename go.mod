@@ -19,9 +19,7 @@ require (
 	github.com/ipfs/go-ipld-format v0.2.0
 	github.com/ipfs/go-log v1.0.4
 	github.com/ipfs/interface-go-ipfs-core v0.3.0
-	github.com/jessevdk/go-flags v1.4.0 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
-	github.com/kr/pty v1.1.3 // indirect
 	github.com/libp2p/go-libp2p v0.9.6
 	github.com/libp2p/go-libp2p-circuit v0.2.3
 	github.com/libp2p/go-libp2p-connmgr v0.2.4

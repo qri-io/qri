@@ -241,8 +241,9 @@ type testRunner struct {
 
 func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	var err error
+	ctx, cancel := context.WithCancel(context.Background())
 	tr = &testRunner{
-		Ctx: context.Background(),
+		Ctx: ctx,
 	}
 	prevTs := dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time { return time.Time{} }
@@ -257,6 +258,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 
 	cleanup = func() {
 		dsfs.Timestamp = prevTs
+		cancel()
 	}
 	return tr, cleanup
 }
@@ -282,7 +284,7 @@ func (tr *testRunner) RemoteTestServer(rem *Remote) *httptest.Server {
 }
 
 func (tr *testRunner) NodeBClient(t *testing.T) Client {
-	cli, err := NewClient(tr.NodeB)
+	cli, err := NewClient(tr.Ctx, tr.NodeB)
 	if err != nil {
 		t.Fatal(err)
 	}

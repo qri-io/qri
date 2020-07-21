@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
+	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -26,13 +27,39 @@ var ErrNotImplemented = fmt.Errorf("not implemented")
 type MockClient struct {
 	node *p2p.QriNode
 	book *logbook.Book
+
+	storagePath  string
+	foreignBooks map[string]*logbook.Book
+
+	doneCh  chan struct{}
+	doneErr error
 }
 
 var _ Client = (*MockClient)(nil)
 
-// NewMockClient returns a mock remote client
-func NewMockClient(node *p2p.QriNode, book *logbook.Book) (c Client, err error) {
-	return &MockClient{node: node, book: book}, nil
+// NewMockClient returns a mock remote client. context passed to NewMockClient
+// MUST be cancelled externally for proper cleanup
+func NewMockClient(ctx context.Context, node *p2p.QriNode, book *logbook.Book) (c Client, err error) {
+	log.Debug("creating mock remote client")
+	tmpDir, err := ioutil.TempDir("", "qri-mock-remote-client")
+
+	cli := &MockClient{
+		node:         node,
+		book:         book,
+		storagePath:  tmpDir,
+		foreignBooks: map[string]*logbook.Book{},
+		doneCh:       make(chan struct{}),
+	}
+
+	go func() {
+		<-ctx.Done()
+		// TODO (b5) - return an error here if client is in the process of pulling anything
+		cli.doneErr = ctx.Err()
+		os.RemoveAll(cli.storagePath)
+		close(cli.doneCh)
+	}()
+
+	return cli, nil
 }
 
 // PushDatasetVersion is not implemented
@@ -48,40 +75,22 @@ func (c *MockClient) FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr st
 // CloneLogs creates a log from a temp logbook, and merges those into the
 // client's logbook
 func (c *MockClient) CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
-	tmpdir, err := ioutil.TempDir("", "")
+	log.Debug("MockClient.CloneLogs")
+	book, err := c.makeRefExist(ctx, &ref)
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer os.RemoveAll(tmpdir)
-
-	theirBookPath := filepath.Join(tmpdir, "their_logbook.qfs")
-
-	otherUsername := ref.Username
-	otherPeerInfo := cfgtest.GetTestPeerInfo(1)
-	sender := identity.NewAuthor("abc", otherPeerInfo.PubKey)
-
-	fs := qfs.NewMemFS()
-
-	foreignBuilder := logbook.NewLogbookTempBuilder(nil, otherPeerInfo.PrivKey, otherUsername, fs, theirBookPath)
-
-	initID := foreignBuilder.DatasetInit(ctx, nil, ref.Name)
-	// NOTE: Need to assign ProfileID because nothing is resolving the username
-	ref.ProfileID = otherPeerInfo.EncodedPeerID
-	ref.Path = "QmExample"
-	foreignBuilder.Commit(ctx, nil, initID, "their commit", ref.Path)
-	foreignBook := foreignBuilder.Logbook()
-	foreignLog, err := foreignBook.UserDatasetBranchesLog(ctx, initID)
-	if err != nil {
-		panic(err)
+		return err
 	}
 
-	err = foreignBook.SignLog(foreignLog)
+	l, err := book.UserDatasetBranchesLog(ctx, ref.InitID)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	fmt.Printf("merging log: %#v", foreignLog)
 
-	return c.book.MergeLog(ctx, sender, foreignLog)
+	if err = book.SignLog(l); err != nil {
+		return err
+	}
+
+	return c.book.MergeLog(ctx, book.Author(), l)
 }
 
 // RemoveDataset is not implemented
@@ -91,6 +100,7 @@ func (c *MockClient) RemoveDataset(ctx context.Context, ref dsref.Ref, remoteAdd
 
 // AddDataset adds a reference to a dataset using test peer info
 func (c *MockClient) AddDataset(ctx context.Context, ref *dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
+	log.Debugf("MockClient.AddDataset ref=%q", ref)
 	// Get a test peer, but skip the first peer (usually used for tests)
 	info := cfgtest.GetTestPeerInfo(1)
 
@@ -143,9 +153,65 @@ func (c *MockClient) RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr s
 	return ErrNotImplemented
 }
 
-// NewRemoteRefResolver is not implemented
+// NewRemoteRefResolver mocks a ref resolver off a foreign logbook
 func (c *MockClient) NewRemoteRefResolver(addr string) dsref.Resolver {
-	return nil
+	// TODO(b5) - switch based on address input? it would make for a better mock
+	return &writeOnResolver{c: c}
+}
+
+// writeOnResolver creates dataset histories on the fly when
+// ResolveRef is called, storing them for future
+type writeOnResolver struct {
+	c *MockClient
+}
+
+func (r *writeOnResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
+	log.Debugf("MockClient writeOnResolver.ResolveRef ref=%q", ref)
+	_, err := r.c.makeRefExist(ctx, ref)
+	return "", err
+}
+
+func (c *MockClient) makeRefExist(ctx context.Context, ref *dsref.Ref) (*logbook.Book, error) {
+	book, ok := c.foreignBooks[ref.Name]
+	if !ok {
+		fs, err := qfs.NewMemFilesystem(context.Background(), nil)
+		if err != nil {
+			return nil, err
+		}
+		// TODO (b5) - use unique keypairs for each peer
+		otherPeerInfo := cfgtest.GetTestPeerInfo(1)
+		book, err = logbook.NewJournal(otherPeerInfo.PrivKey, ref.Username, event.NilBus, fs, "logbook.qfb")
+		if err != nil {
+			return nil, err
+		}
+		c.foreignBooks[ref.Username] = book
+	}
+
+	if _, resolveErr := book.ResolveRef(ctx, ref); resolveErr == nil {
+		return book, nil
+	}
+
+	var err error
+	ref.InitID, err = book.WriteDatasetInit(ctx, ref.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	zeroTime := time.Time{}
+	ref.Path = "QmExample"
+	err = book.WriteVersionSave(ctx, ref.InitID, &dataset.Dataset{
+		Commit: &dataset.Commit{
+			Timestamp: zeroTime.In(time.UTC),
+			Title:     "their commit",
+		},
+		Path: ref.Path,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	ref.ProfileID, err = identity.KeyIDFromPub(book.AuthorPubKey())
+	return book, err
 }
 
 // Feeds is not implemented
@@ -161,4 +227,14 @@ func (c *MockClient) Feed(ctx context.Context, remoteAddr, feedName string, page
 // Preview is not implemented
 func (c *MockClient) Preview(ctx context.Context, ref dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
 	return nil, ErrNotImplemented
+}
+
+// Done returns a channel that the client will send on when finished closing
+func (c *MockClient) Done() <-chan struct{} {
+	return c.doneCh
+}
+
+// DoneErr gives an error that occured during the shutdown process
+func (c *MockClient) DoneErr() error {
+	return c.doneErr
 }

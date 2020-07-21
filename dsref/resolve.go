@@ -11,7 +11,7 @@ var (
 	ErrRefNotFound = errors.New("reference not found")
 	// ErrPathRequired should be returned by functions that require a reference
 	// have a path value, but got none.
-	// ErrPathRequired should *not* be returned by implentationf of the
+	// ErrPathRequired should *not* be returned by implentations of the
 	// ResolveRef interface
 	ErrPathRequired = errors.New("reference path value is required")
 )

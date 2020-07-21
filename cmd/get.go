@@ -153,6 +153,9 @@ func (o *GetOptions) Run() (err error) {
 		// outputting a zip. lib.Get will also check that we're outputting a zip, this check is
 		// repeated here for clarity.
 		GenFilename: o.Outfile == "" && stdoutIsTerminal() && o.Format == "zip",
+		// currently the "get" command is positioned as an offline-only
+		// command, so we hard code a local resolver
+		Remote: "local",
 	}
 	res := lib.GetResult{}
 	if err = o.DatasetMethods.Get(&p, &res); err != nil {

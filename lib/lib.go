@@ -470,17 +470,28 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	key := InstanceContextKey("RemoteClient")
 	if v := ctx.Value(key); v != nil && v == "mock" && inst.node != nil {
 		inst.node.LocalStreams = o.Streams
-		if inst.remoteClient, err = remote.NewMockClient(inst.node, inst.logbook); err != nil {
+		if inst.remoteClient, err = remote.NewMockClient(ctx, inst.node, inst.logbook); err != nil {
 			return
 		}
+		go func() {
+			inst.releasers.Add(1)
+			<-inst.remoteClient.Done()
+			inst.releasers.Done()
+		}()
+
 	} else if inst.node != nil {
 		inst.node.LocalStreams = o.Streams
 
 		if _, e := inst.node.IPFSCoreAPI(); e == nil {
-			if inst.remoteClient, err = remote.NewClient(inst.node); err != nil {
+			if inst.remoteClient, err = remote.NewClient(ctx, inst.node); err != nil {
 				log.Error("initializing remote client:", err.Error())
 				return
 			}
+			go func() {
+				inst.releasers.Add(1)
+				<-inst.remoteClient.Done()
+				inst.releasers.Done()
+			}()
 		}
 
 		if cfg.Remote != nil && cfg.Remote.Enabled {
@@ -610,11 +621,16 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		logbook: r.Logbook(),
 	}
 
-	inst.remoteClient, err = remote.NewClient(node)
+	inst.remoteClient, err = remote.NewClient(ctx, node)
 	if err != nil {
 		cancel()
 		panic(err)
 	}
+	go func() {
+		inst.releasers.Add(1)
+		<-inst.remoteClient.Done()
+		inst.releasers.Done()
+	}()
 
 	if node != nil && r != nil {
 		inst.repo = r
@@ -661,6 +677,8 @@ type Instance struct {
 
 // Connect takes an instance online
 func (inst *Instance) Connect(ctx context.Context) (err error) {
+	oldRemoteClientExisted := inst.remoteClient != nil
+
 	if err = inst.node.GoOnline(ctx); err != nil {
 		log.Debugf("taking node online: %s", err.Error())
 		return
@@ -671,19 +689,29 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	// old instance, we run into issues where the online instance can't "see"
 	// the additions. We fix that by re-initializing the client and remote with the new
 	// instance
-	if inst.remoteClient, err = remote.NewClient(inst.node); err != nil {
+	if inst.remoteClient, err = remote.NewClient(ctx, inst.node); err != nil {
 		log.Debugf("initializing remote client: %s", err.Error())
 		return
 	}
-	if inst.cfg.Remote != nil && inst.cfg.Remote.Enabled == true {
-		log.Errorf("in connect, config remote: %#v", inst.cfg.Remote)
+	go func() {
+		inst.releasers.Add(1)
+		<-inst.remoteClient.Done()
+		inst.releasers.Done()
+	}()
+	// need to decrement waitgroup for old remote client
+	// TODO (b5) - need to properly clean up old client with a context cancellation
+	if oldRemoteClientExisted {
+		inst.releasers.Done()
+	}
+
+	if inst.cfg.Remote != nil && inst.cfg.Remote.Enabled {
 		if inst.remote, err = remote.NewRemote(inst.node, inst.cfg.Remote, inst.remoteOptsFunc); err != nil {
 			log.Errorf("error initializing remote: %s", err.Error())
-			return
+			return err
 		}
 		if err = inst.remote.GoOnline(ctx); err != nil {
 			log.Errorf("error starting dsync services: %s", err.Error())
-			return
+			return err
 		}
 	}
 

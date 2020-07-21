@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
@@ -15,6 +16,7 @@ import (
 
 // Test rename works if dataset has no history
 func TestRenameNoHistory(t *testing.T) {
+	golog.SetLogLevel("remote", "debug")
 	run := NewFSITestRunner(t, "qri_test_rename_no_history")
 	defer run.Delete()
 
