@@ -477,12 +477,10 @@ func (n *QriNode) SimpleAddrInfo() peer.AddrInfo {
 // MakeHandlers generates a map of MsgTypes to their corresponding handler functions
 func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 	return map[MsgType]HandlerFunc{
-		MtPing:              n.handlePing,
-		MtProfile:           n.handleProfile,
-		MtDatasetInfo:       n.handleDataset,
-		MtDatasets:          n.handleDatasetsList,
-		MtConnected:         n.handleConnected,
-		MtResolveDatasetRef: n.handleResolveDatasetRef,
-		MtQriPeers:          n.handleQriPeers,
+		MtPing:      n.handlePing,
+		MtProfile:   n.handleProfile,
+		MtDatasets:  n.handleDatasetsList,
+		MtConnected: n.handleConnected,
+		MtQriPeers:  n.handleQriPeers,
 	}
 }
