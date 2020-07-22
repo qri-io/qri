@@ -1061,8 +1061,8 @@ github.com/qri-io/jsonpointer v0.1.1/go.mod h1:DnJPaYgiKu56EuDp8TU5wFLdZIcAnb/uH
 github.com/qri-io/jsonschema v0.2.0 h1:is8lirh3HYwTkC0e+4jL/vWEHwzPLojnl4FWkUoeEPU=
 github.com/qri-io/jsonschema v0.2.0/go.mod h1:g7DPkiOsK1xv6T/Ao5scXRkd+yTFygcANPBaaqW+VrI=
 github.com/qri-io/qfs v0.1.1-0.20200623175200-23690284798a/go.mod h1:NP4Va1b0/V4nbyPdX3FmZ4cJTPatn0d5FZF5GBxcIJA=
-github.com/qri-io/qfs v0.5.1-0.20200708234218-75277f16442d h1:HSYcZU/rEjB83fzSzE1etcCgpwEkwjVb2zbUGSxi11o=
-github.com/qri-io/qfs v0.5.1-0.20200708234218-75277f16442d/go.mod h1:NP4Va1b0/V4nbyPdX3FmZ4cJTPatn0d5FZF5GBxcIJA=
+github.com/qri-io/qfs v0.5.1-0.20200722134009-7b5ac5539ce7 h1:sQS0Xx53fjvZGKF7+/S47zVoZJmFY8k+UyGCA8ek6sY=
+github.com/qri-io/qfs v0.5.1-0.20200722134009-7b5ac5539ce7/go.mod h1:NP4Va1b0/V4nbyPdX3FmZ4cJTPatn0d5FZF5GBxcIJA=
 github.com/qri-io/starlib v0.4.2 h1:ZGzmzT9fOqdluezcwhAZAbTn/v6kMg1tC6ALVjQPhpQ=
 github.com/qri-io/starlib v0.4.2/go.mod h1:2xlZ9r2UV4LF4G9mpYPBWo7CtXtdW0h1RoGIkZ8elOE=
 github.com/qri-io/varName v0.1.0 h1:dFP5qZHrxnn5fNoMbjfpMCRBYDrOsoyls7R07r+emk0=
