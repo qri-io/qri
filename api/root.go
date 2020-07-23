@@ -54,9 +54,11 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	format := r.FormValue("format")
+	selector := r.FormValue("component")
 	p := lib.GetParams{
-		Refstr: ref.String(),
-		Format: format,
+		Refstr:   ref.String(),
+		Format:   format,
+		Selector: selector,
 	}
 	res := lib.GetResult{}
 	err := mh.dsh.Get(&p, &res)
