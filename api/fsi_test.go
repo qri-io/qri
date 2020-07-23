@@ -366,7 +366,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 	// Checkout the dataset
 	actualStatusCode, actualBody := APICallWithParams(
 		"POST",
-		"/checkout/peer/fsi_checkout_restore",
+		"/checkout/me/fsi_checkout_restore",
 		map[string]string{
 			"dir": workDir,
 		},
@@ -418,7 +418,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 	// Restore the meta component
 	actualStatusCode, actualBody = APICallWithParams(
 		"POST",
-		"/restore/peer/fsi_checkout_restore",
+		"/restore/me/fsi_checkout_restore",
 		map[string]string{
 			"component": "meta",
 		},

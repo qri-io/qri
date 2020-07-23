@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
-	golog "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -784,7 +783,6 @@ func (c *client) DoneErr() error {
 func PrintProgressBarsOnPushPull(w io.Writer, bus event.Bus) {
 	var lock sync.Mutex
 	progress := map[string]*pb.ProgressBar{}
-	golog.SetLogLevel("dsync", "info")
 
 	// wire up a subscription to print download progress to streams
 	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {

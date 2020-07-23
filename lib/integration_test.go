@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
@@ -261,7 +262,7 @@ func (tr *NetworkIntegrationTestRunner) InitNasim(t *testing.T) *Instance {
 	}
 	tr.nasimRepo = &r
 
-	if tr.Nasim, err = NewInstance(tr.Ctx, r.QriPath); err != nil {
+	if tr.Nasim, err = NewInstance(tr.Ctx, r.QriPath, OptIOStreams(ioes.NewDiscardIOStreams())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -281,7 +282,7 @@ func (tr *NetworkIntegrationTestRunner) InitHinshun(t *testing.T) *Instance {
 	}
 	tr.hinshunRepo = &r
 
-	if tr.Hinshun, err = NewInstance(tr.Ctx, tr.hinshunRepo.QriPath); err != nil {
+	if tr.Hinshun, err = NewInstance(tr.Ctx, tr.hinshunRepo.QriPath, OptIOStreams(ioes.NewDiscardIOStreams())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -301,7 +302,7 @@ func (tr *NetworkIntegrationTestRunner) InitAdnan(t *testing.T) *Instance {
 	}
 	tr.adnanRepo = &r
 
-	if tr.Adnan, err = NewInstance(tr.Ctx, r.QriPath); err != nil {
+	if tr.Adnan, err = NewInstance(tr.Ctx, r.QriPath, OptIOStreams(ioes.NewDiscardIOStreams())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -329,7 +330,7 @@ func (tr *NetworkIntegrationTestRunner) InitRegistry(t *testing.T) {
 
 	rr.WriteConfigFile()
 
-	tr.RegistryInst, err = NewInstance(tr.Ctx, rr.QriPath)
+	tr.RegistryInst, err = NewInstance(tr.Ctx, rr.QriPath, OptIOStreams(ioes.NewDiscardIOStreams()))
 	if err != nil {
 		t.Fatal(err)
 	}
