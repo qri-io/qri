@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	golog "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
@@ -22,6 +23,7 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qfs/qipfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
@@ -158,6 +160,14 @@ func OptIOStreams(streams ioes.IOStreams) Option {
 func OptStdIOStreams() Option {
 	return func(o *InstanceOptions) error {
 		o.Streams = ioes.NewStdIOStreams()
+		return nil
+	}
+}
+
+// OptSetOpenFileTimeout sets a timeout duration for opening files
+func OptSetOpenFileTimeout(d time.Duration) Option {
+	return func(_ *InstanceOptions) error {
+		dsfs.OpenFileTimeoutDuration = d
 		return nil
 	}
 }
