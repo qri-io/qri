@@ -30,7 +30,8 @@ func TestMockClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := c.CloneLogs(tr.Ctx, dsref.MustParse("this/should_get_made_on_the_fly"), ""); err != nil {
+	ref := dsref.MustParse("this/should_get_made_on_the_fly")
+	if _, err := c.PullDataset(tr.Ctx, &ref, ""); err != nil {
 		t.Error(err)
 	}
 
@@ -39,7 +40,8 @@ func TestMockClient(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err = c.CloneLogs(tr.Ctx, dsref.MustParse("wut/create_me"), ""); err != nil {
+	ref = dsref.MustParse("wut/create_me")
+	if _, err = c.PullDataset(tr.Ctx, &ref, ""); err != nil {
 		t.Error(err)
 	}
 }

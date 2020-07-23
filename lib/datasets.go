@@ -960,12 +960,7 @@ func (m *DatasetMethods) Pull(p *PullParams, res *dataset.Dataset) error {
 		p.RemoteAddr = source
 	}
 
-	if err := m.inst.remoteClient.CloneLogs(ctx, ref, p.RemoteAddr); err != nil {
-		log.Error(err)
-		return err
-	}
-
-	ds, err := m.inst.remoteClient.AddDataset(ctx, &ref, p.RemoteAddr)
+	ds, err := m.inst.remoteClient.PullDataset(ctx, &ref, p.RemoteAddr)
 	if err != nil {
 		return err
 	}

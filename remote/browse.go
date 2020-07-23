@@ -78,22 +78,23 @@ type Previews interface {
 	PreviewComponent(ctx context.Context, userID, refStr, component string) (interface{}, error)
 }
 
-// RepoPreviews implements the previews interface with a Repo
-type RepoPreviews struct {
+// LocalPreviews implements the previews interface with a local repo
+type LocalPreviews struct {
 	repo.Repo
+	localResolver dsref.Resolver
 }
 
-// assert at compile time that RepoPreviews implements the Previews interface
-var _ Previews = (*RepoPreviews)(nil)
+// assert at compile time that LocalPreviews implements the Previews interface
+var _ Previews = (*LocalPreviews)(nil)
 
 // Preview gets a preview for a reference
-func (rp RepoPreviews) Preview(ctx context.Context, _, refStr string) (*dataset.Dataset, error) {
+func (rp LocalPreviews) Preview(ctx context.Context, _, refStr string) (*dataset.Dataset, error) {
 	ref, err := dsref.Parse(refStr)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := rp.Repo.Logbook().ResolveRef(ctx, &ref); err != nil {
+	if _, err := rp.localResolver.ResolveRef(ctx, &ref); err != nil {
 		return nil, err
 	}
 
@@ -101,6 +102,6 @@ func (rp RepoPreviews) Preview(ctx context.Context, _, refStr string) (*dataset.
 }
 
 // PreviewComponent gets a component for a reference & component name
-func (rp RepoPreviews) PreviewComponent(ctx context.Context, _, refStr, component string) (interface{}, error) {
+func (rp LocalPreviews) PreviewComponent(ctx context.Context, _, refStr, component string) (interface{}, error) {
 	return nil, fmt.Errorf("not finished")
 }

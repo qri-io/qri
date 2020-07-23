@@ -59,8 +59,6 @@ func (o *PullOptions) Complete(f Factory) (err error) {
 
 // Run adds another peer's dataset to this user's repo
 func (o *PullOptions) Run(args []string) error {
-	o.StartSpinner()
-	defer o.StopSpinner()
 
 	if len(args) == 0 {
 		return fmt.Errorf("nothing to pull")
@@ -90,7 +88,6 @@ func (o *PullOptions) Run(args []string) error {
 
 		refStr := refStringer(asRef)
 		fmt.Fprintf(o.Out, "\n%s", refStr.String())
-		printInfo(o.Out, "Successfully pulled dataset %s", arg)
 	}
 
 	return nil

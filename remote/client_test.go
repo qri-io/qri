@@ -29,7 +29,7 @@ func TestClientDone(t *testing.T) {
 	defer cleanup()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	cli, err := NewClient(ctx, tr.NodeA)
+	cli, err := NewClient(ctx, tr.NodeA, tr.NodeA.Repo.Bus())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,20 +51,20 @@ func TestClientDone(t *testing.T) {
 	}
 }
 
-func TestAddDataset(t *testing.T) {
+func TestPullDataset(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	var client *client
 	var nilClient Client
 	nilClient = client
-	if _, err := nilClient.AddDataset(tr.Ctx, &dsref.Ref{}, ""); err != ErrNoRemoteClient {
+	if _, err := nilClient.PullDataset(tr.Ctx, &dsref.Ref{}, ""); err != ErrNoRemoteClient {
 		t.Errorf("nil add mismatch. expected: '%s', got: '%s'", ErrNoRemoteClient, err)
 	}
 
 	wbpRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 
-	cli, err := NewClient(tr.Ctx, tr.NodeB)
+	cli, err := NewClient(tr.Ctx, tr.NodeB, tr.NodeB.Repo.Bus())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,11 +72,11 @@ func TestAddDataset(t *testing.T) {
 	tr.NodeA.GoOnline(tr.Ctx)
 	tr.NodeB.GoOnline(tr.Ctx)
 
-	if _, err := cli.AddDataset(tr.Ctx, &dsref.Ref{Username: "foo", Name: "bar"}, ""); err == nil {
+	if _, err := cli.PullDataset(tr.Ctx, &dsref.Ref{Username: "foo", Name: "bar"}, ""); err == nil {
 		t.Error("expected add of invalid ref to error")
 	}
 
-	if _, err := cli.AddDataset(tr.Ctx, &wbpRef, ""); err != nil {
+	if _, err := cli.PullDataset(tr.Ctx, &wbpRef, ""); err != nil {
 		t.Error(err.Error())
 	}
 }
@@ -132,7 +132,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 		t.Errorf("feeds result mismatch (-want +got): \n%s", diff)
 	}
 
-	ds, err := cli.Preview(tr.Ctx, worldBankRef, server.URL)
+	ds, err := cli.PreviewDatasetVersion(tr.Ctx, worldBankRef, server.URL)
 	if err != nil {
 		t.Error(err)
 	}

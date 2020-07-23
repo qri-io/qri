@@ -45,7 +45,7 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 		AcceptSizeMax: -1,
 		Enabled:       true,
 		AllowRemoves:  true,
-	})
+	}, r.Logbook())
 	if err != nil {
 		t.Fatal(err)
 	}

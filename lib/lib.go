@@ -483,10 +483,11 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		inst.node.LocalStreams = o.Streams
 
 		if _, e := inst.node.IPFSCoreAPI(); e == nil {
-			if inst.remoteClient, err = remote.NewClient(ctx, inst.node); err != nil {
+			if inst.remoteClient, err = remote.NewClient(ctx, inst.node, inst.bus); err != nil {
 				log.Error("initializing remote client:", err.Error())
 				return
 			}
+			remote.PrintProgressBarsOnPushPull(inst.streams.ErrOut, inst.bus)
 			go func() {
 				inst.releasers.Add(1)
 				<-inst.remoteClient.Done()
@@ -499,7 +500,12 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 				o.remoteOptsFunc = func(*remote.Options) {}
 			}
 
-			if inst.remote, err = remote.NewRemote(inst.node, cfg.Remote, o.remoteOptsFunc); err != nil {
+			localResolver, resolverErr := inst.resolverForMode("local")
+			if resolverErr != nil {
+				return nil, resolverErr
+			}
+
+			if inst.remote, err = remote.NewRemote(inst.node, cfg.Remote, localResolver, o.remoteOptsFunc); err != nil {
 				log.Error("intializing remote:", err.Error())
 				return
 			}
@@ -621,7 +627,14 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		logbook: r.Logbook(),
 	}
 
-	inst.remoteClient, err = remote.NewClient(ctx, node)
+	if node != nil && r != nil {
+		inst.repo = r
+		inst.bus = bus
+		inst.fsi = fsint
+		inst.qfs = r.Filesystem()
+	}
+
+	inst.remoteClient, err = remote.NewClient(ctx, node, inst.bus)
 	if err != nil {
 		cancel()
 		panic(err)
@@ -631,13 +644,6 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		<-inst.remoteClient.Done()
 		inst.releasers.Done()
 	}()
-
-	if node != nil && r != nil {
-		inst.repo = r
-		inst.bus = bus
-		inst.fsi = fsint
-		inst.qfs = r.Filesystem()
-	}
 
 	go inst.waitForAllDone()
 	return inst
@@ -689,7 +695,7 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	// old instance, we run into issues where the online instance can't "see"
 	// the additions. We fix that by re-initializing the client and remote with the new
 	// instance
-	if inst.remoteClient, err = remote.NewClient(ctx, inst.node); err != nil {
+	if inst.remoteClient, err = remote.NewClient(ctx, inst.node, inst.bus); err != nil {
 		log.Debugf("initializing remote client: %s", err.Error())
 		return
 	}
@@ -705,7 +711,11 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	}
 
 	if inst.cfg.Remote != nil && inst.cfg.Remote.Enabled {
-		if inst.remote, err = remote.NewRemote(inst.node, inst.cfg.Remote, inst.remoteOptsFunc); err != nil {
+		localResolver, err := inst.resolverForMode("local")
+		if err != nil {
+			return err
+		}
+		if inst.remote, err = remote.NewRemote(inst.node, inst.cfg.Remote, localResolver, inst.remoteOptsFunc); err != nil {
 			log.Errorf("error initializing remote: %s", err.Error())
 			return err
 		}

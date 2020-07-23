@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/remote"
-	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -65,17 +64,7 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 		return err
 	}
 
-	if err = r.inst.RemoteClient().PushLogs(ctx, ref, addr); err != nil {
-		return err
-	}
-
-	// TODO (b5) - another example of where reference resolution needs to set
-	// the profileID, and isn't. the conversion to a reporef & dataset push will
-	// fail if profileID isn't specified
-	pro, _ := r.inst.Repo().Profile()
-	ref.ProfileID = pro.ID.String()
-
-	if err = r.inst.RemoteClient().PushDatasetVersion(ctx, ref, addr); err != nil {
+	if err = r.inst.RemoteClient().PushDataset(ctx, ref, addr); err != nil {
 		return err
 	}
 
@@ -98,7 +87,7 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 	ref, err := dsref.ParseHumanFriendly(p.Ref)
 	if err != nil {
 		if err == dsref.ErrNotHumanFriendly {
-			return fmt.Errorf("can only unpublish entire dataset. run unpublish without a reference")
+			return fmt.Errorf("can only unpublish entire dataset. run unpublish without a path")
 		}
 		return err
 	}
@@ -112,11 +101,6 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 
 	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
 	if err != nil {
-		return err
-	}
-
-	if removeLogsErr := r.inst.RemoteClient().RemoveLogs(ctx, ref, addr); removeLogsErr != nil {
-		log.Errorf("removing logs: %s", removeLogsErr.Error())
 		return err
 	}
 
@@ -135,7 +119,7 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 }
 
 // PullDatasetVersion fetches a dataset version from a remote
-func (r *RemoteMethods) PullDatasetVersion(p *PublicationParams, res *bool) error {
+func (r *RemoteMethods) PullDatasetVersion(p *PublicationParams, res *dataset.Dataset) error {
 	if r.inst.rpc != nil {
 		return checkRPCError(r.inst.rpc.Call("RemoteMethods.PullDatasetVersion", p, res))
 	}
@@ -148,7 +132,8 @@ func (r *RemoteMethods) PullDatasetVersion(p *PublicationParams, res *bool) erro
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
 
-	err = r.inst.RemoteClient().PullDatasetVersion(ctx, &ref, p.RemoteName)
+	ds, err := r.inst.RemoteClient().PullDataset(ctx, &ref, p.RemoteName)
+	*res = *ds
 	return err
 }
 
@@ -187,7 +172,7 @@ func (r *RemoteMethods) Preview(p *PreviewParams, res *dataset.Dataset) error {
 	}
 	ctx := context.TODO()
 
-	ref, err := repo.ParseDatasetRef(p.Ref)
+	ref, err := dsref.Parse(p.Ref)
 	if err != nil {
 		return err
 	}
@@ -197,7 +182,7 @@ func (r *RemoteMethods) Preview(p *PreviewParams, res *dataset.Dataset) error {
 		return err
 	}
 
-	pre, err := r.inst.RemoteClient().Preview(ctx, reporef.ConvertToDsref(ref), addr)
+	pre, err := r.inst.RemoteClient().PreviewDatasetVersion(ctx, ref, addr)
 	if err != nil {
 		return err
 	}

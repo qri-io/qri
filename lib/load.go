@@ -35,15 +35,11 @@ func (inst *Instance) LoadDataset(ctx context.Context, ref dsref.Ref, source str
 	msg := fmt.Sprintf("pulling dataset from registry: %s ...\n", ref)
 	inst.streams.Out.Write([]byte(msg))
 
-	if err := inst.remoteClient.CloneLogs(ctx, ref, source); err != nil {
-		return nil, err
-	}
-
 	// TODO (b5) - it'd be nice to us the returned dataset here, skipping the
 	// loadLocalDataset call entirely. For that to work dsfs.LoadDataset &
 	// inst.loadLocalDataset would have to behave exactly the same, and currently
 	// they don't
-	if _, err := inst.remoteClient.AddDataset(ctx, &ref, source); err != nil {
+	if _, err := inst.remoteClient.PullDataset(ctx, &ref, source); err != nil {
 		return nil, err
 	}
 

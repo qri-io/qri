@@ -81,8 +81,9 @@ type Options struct {
 // Remote receives requests from other qri nodes to perform actions on their
 // behalf
 type Remote struct {
-	node    *p2p.QriNode
-	logbook *logbook.Book
+	node          *p2p.QriNode
+	logbook       *logbook.Book
+	localResolver dsref.Resolver
 
 	dsync   *dsync.Dsync
 	logsync *logsync.Logsync
@@ -106,7 +107,7 @@ type Remote struct {
 }
 
 // NewRemote creates a remote
-func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) (*Remote, error) {
+func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolver, opts ...func(o *Options)) (*Remote, error) {
 	o := &Options{}
 	for _, opt := range opts {
 		opt(o)
@@ -117,8 +118,9 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 	}
 
 	r := &Remote{
-		node:    node,
-		logbook: node.Repo.Logbook(),
+		node:          node,
+		logbook:       node.Repo.Logbook(),
+		localResolver: localResolver,
 
 		acceptSizeMax:   cfg.AcceptSizeMax,
 		acceptTimeoutMs: cfg.AcceptTimeoutMs,
@@ -144,7 +146,10 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 	if o.Previews != nil {
 		r.Previews = o.Previews
 	} else {
-		r.Previews = RepoPreviews{node.Repo}
+		r.Previews = LocalPreviews{
+			Repo:          node.Repo,
+			localResolver: localResolver,
+		}
 	}
 
 	capi, err := node.IPFSCoreAPI()
@@ -242,7 +247,7 @@ func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) er
 		}
 	}
 
-	if _, err := r.logbook.ResolveRef(ctx, &ref); err != nil {
+	if _, err := r.localResolver.ResolveRef(ctx, &ref); err != nil {
 		if err == dsref.ErrRefNotFound {
 			err = nil
 		} else {
@@ -324,7 +329,7 @@ func (r *Remote) dsPushComplete(ctx context.Context, info dag.Info, meta map[str
 		return err
 	}
 
-	if _, err := r.logbook.ResolveRef(ctx, &ref); err != nil {
+	if _, err := r.localResolver.ResolveRef(ctx, &ref); err != nil {
 		if err == dsref.ErrRefNotFound {
 			err = nil
 		} else {
@@ -547,7 +552,7 @@ func (r *Remote) RefsHTTPHandler() http.HandlerFunc {
 				Path:     req.FormValue("path"),
 			}
 
-			if _, err := r.logbook.ResolveRef(req.Context(), ref); err != nil {
+			if _, err := r.localResolver.ResolveRef(req.Context(), ref); err != nil {
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte(err.Error()))
 				return

@@ -62,95 +62,24 @@ func NewMockClient(ctx context.Context, node *p2p.QriNode, book *logbook.Book) (
 	return cli, nil
 }
 
-// PushDatasetVersion is not implemented
-func (c *MockClient) PushDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
-	return ErrNotImplemented
+// Feeds is not implemented
+func (c *MockClient) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsref.VersionInfo, error) {
+	return nil, ErrNotImplemented
+}
+
+// Feed is not implemented
+func (c *MockClient) Feed(ctx context.Context, remoteAddr, feedName string, page, pageSize int) ([]dsref.VersionInfo, error) {
+	return nil, ErrNotImplemented
+}
+
+// PreviewDatasetVersion is not implemented
+func (c *MockClient) PreviewDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
+	return nil, ErrNotImplemented
 }
 
 // FetchLogs is not implemented
 func (c *MockClient) FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) (*oplog.Log, error) {
 	return nil, ErrNotImplemented
-}
-
-// CloneLogs creates a log from a temp logbook, and merges those into the
-// client's logbook
-func (c *MockClient) CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
-	log.Debug("MockClient.CloneLogs")
-	book, err := c.makeRefExist(ctx, &ref)
-	if err != nil {
-		return err
-	}
-
-	l, err := book.UserDatasetBranchesLog(ctx, ref.InitID)
-	if err != nil {
-		return err
-	}
-
-	if err = book.SignLog(l); err != nil {
-		return err
-	}
-
-	return c.book.MergeLog(ctx, book.Author(), l)
-}
-
-// RemoveDataset is not implemented
-func (c *MockClient) RemoveDataset(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
-	return ErrNotImplemented
-}
-
-// AddDataset adds a reference to a dataset using test peer info
-func (c *MockClient) AddDataset(ctx context.Context, ref *dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
-	log.Debugf("MockClient.AddDataset ref=%q", ref)
-	// Get a test peer, but skip the first peer (usually used for tests)
-	info := cfgtest.GetTestPeerInfo(1)
-
-	// Construct a simple dataset
-	ds := dataset.Dataset{
-		Commit: &dataset.Commit{},
-		Structure: &dataset.Structure{
-			Format: "json",
-			Schema: dataset.BaseSchemaObject,
-		},
-		BodyBytes: []byte("{}"),
-	}
-	_ = ds.OpenBodyFile(ctx, nil)
-
-	// Store with dsfs
-	sw := dsfs.SaveSwitches{}
-	path, err := dsfs.CreateDataset(ctx, c.node.Repo.Store(), c.node.Repo.Store(), &ds, nil, c.node.Repo.PrivateKey(), sw)
-	if err != nil {
-		return nil, err
-	}
-
-	vi := &dsref.VersionInfo{
-		Path:      path,
-		ProfileID: info.PeerID.Pretty(),
-		Username:  ref.Username,
-		Name:      ref.Name,
-	}
-
-	// Store ref for a mock dataset.
-	if err := repo.PutVersionInfoShim(c.node.Repo, vi); err != nil {
-		// if err := c.node.Repo.PutRef(*ref); err != nil {
-		return nil, err
-	}
-
-	return dsfs.LoadDataset(ctx, c.node.Repo.Store(), path)
-}
-
-// PushLogs is not implemented
-func (c *MockClient) PushLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
-	return ErrNotImplemented
-}
-
-// PullDatasetVersion is not implemented
-func (c *MockClient) PullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteAddr string) error {
-	return ErrNotImplemented
-}
-
-// RemoveLogs is not implemented
-func (c *MockClient) RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
-	return ErrNotImplemented
 }
 
 // NewRemoteRefResolver mocks a ref resolver off a foreign logbook
@@ -214,19 +143,99 @@ func (c *MockClient) makeRefExist(ctx context.Context, ref *dsref.Ref) (*logbook
 	return book, err
 }
 
-// Feeds is not implemented
-func (c *MockClient) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsref.VersionInfo, error) {
-	return nil, ErrNotImplemented
+// PushDataset is not implemented
+func (c *MockClient) PushDataset(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	return ErrNotImplemented
 }
 
-// Feed is not implemented
-func (c *MockClient) Feed(ctx context.Context, remoteAddr, feedName string, page, pageSize int) ([]dsref.VersionInfo, error) {
-	return nil, ErrNotImplemented
+// RemoveDataset is not implemented
+func (c *MockClient) RemoveDataset(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	return ErrNotImplemented
 }
 
-// Preview is not implemented
-func (c *MockClient) Preview(ctx context.Context, ref dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
-	return nil, ErrNotImplemented
+// RemoveDatasetVersion is not implemented
+func (c *MockClient) RemoveDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	return ErrNotImplemented
+}
+
+// PullDataset adds a reference to a dataset using test peer info
+func (c *MockClient) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
+	log.Debugf("MockClient.PullDataset ref=%q", ref)
+
+	if err := c.pullLogs(ctx, *ref, remoteAddr); err != nil {
+		return nil, err
+	}
+
+	// Get a test peer, but skip the first peer (usually used for tests)
+	info := cfgtest.GetTestPeerInfo(1)
+	// Construct a simple dataset
+	ds := dataset.Dataset{
+		Commit: &dataset.Commit{},
+		Structure: &dataset.Structure{
+			Format: "json",
+			Schema: dataset.BaseSchemaObject,
+		},
+		BodyBytes: []byte("{}"),
+	}
+	_ = ds.OpenBodyFile(ctx, nil)
+
+	// Store with dsfs
+	sw := dsfs.SaveSwitches{}
+	path, err := dsfs.CreateDataset(ctx, c.node.Repo.Store(), c.node.Repo.Store(), &ds, nil, c.node.Repo.PrivateKey(), sw)
+	if err != nil {
+		return nil, err
+	}
+
+	vi := &dsref.VersionInfo{
+		Path:      path,
+		ProfileID: info.PeerID.Pretty(),
+		Username:  ref.Username,
+		Name:      ref.Name,
+	}
+
+	// Store ref for a mock dataset.
+	if err := repo.PutVersionInfoShim(c.node.Repo, vi); err != nil {
+		// if err := c.node.Repo.PutRef(*ref); err != nil {
+		return nil, err
+	}
+
+	return dsfs.LoadDataset(ctx, c.node.Repo.Store(), path)
+}
+
+// pullLogs creates a log from a temp logbook, and merges those into the
+// client's logbook
+func (c *MockClient) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	log.Debug("MockClient.pullLogs")
+	book, err := c.makeRefExist(ctx, &ref)
+	if err != nil {
+		return err
+	}
+
+	l, err := book.UserDatasetBranchesLog(ctx, ref.InitID)
+	if err != nil {
+		return err
+	}
+
+	if err = book.SignLog(l); err != nil {
+		return err
+	}
+
+	return c.book.MergeLog(ctx, book.Author(), l)
+}
+
+// PushLogs is not implemented
+func (c *MockClient) PushLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	return ErrNotImplemented
+}
+
+// PullDatasetVersion is not implemented
+func (c *MockClient) PullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteAddr string) error {
+	return ErrNotImplemented
+}
+
+// RemoveLogs is not implemented
+func (c *MockClient) RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	return ErrNotImplemented
 }
 
 // Done returns a channel that the client will send on when finished closing

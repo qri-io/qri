@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
+	github.com/cheggaaa/pb/v3 v3.0.4
 	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0

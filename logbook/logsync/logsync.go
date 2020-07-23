@@ -178,7 +178,7 @@ func (lsync *Logsync) remoteClient(ctx context.Context, remoteAddr string) (rem 
 		}
 		return &p2pClient{remotePeerID: id, p2pHandler: lsync.p2pHandler}, nil
 	}
-	return nil, fmt.Errorf("unrecognized push address string: %s", remoteAddr)
+	return nil, fmt.Errorf("unrecognized remote address string: %q", remoteAddr)
 }
 
 // remote is an internal interface for methods available on foreign logbooks
