@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // Feeds accesses streams of dataset VersionInfo's to browse. Feeds should be
@@ -79,29 +78,30 @@ type Previews interface {
 	PreviewComponent(ctx context.Context, userID, refStr, component string) (interface{}, error)
 }
 
-// RepoPreviews implements the previews interface with a Repo
-type RepoPreviews struct {
+// LocalPreviews implements the previews interface with a local repo
+type LocalPreviews struct {
 	repo.Repo
+	localResolver dsref.Resolver
 }
 
-// assert at compile time that RepoPreviews implements the Previews interface
-var _ Previews = (*RepoPreviews)(nil)
+// assert at compile time that LocalPreviews implements the Previews interface
+var _ Previews = (*LocalPreviews)(nil)
 
 // Preview gets a preview for a reference
-func (rp RepoPreviews) Preview(ctx context.Context, _, refStr string) (*dataset.Dataset, error) {
-	ref, err := repo.ParseDatasetRef(refStr)
+func (rp LocalPreviews) Preview(ctx context.Context, _, refStr string) (*dataset.Dataset, error) {
+	ref, err := dsref.Parse(refStr)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = repo.CanonicalizeDatasetRef(rp.Repo, &ref); err != nil {
+	if _, err := rp.localResolver.ResolveRef(ctx, &ref); err != nil {
 		return nil, err
 	}
 
-	return base.CreatePreview(ctx, rp.Repo, reporef.ConvertToDsref(ref))
+	return base.CreatePreview(ctx, rp.Repo, ref)
 }
 
 // PreviewComponent gets a component for a reference & component name
-func (rp RepoPreviews) PreviewComponent(ctx context.Context, _, refStr, component string) (interface{}, error) {
+func (rp LocalPreviews) PreviewComponent(ctx context.Context, _, refStr, component string) (interface{}, error) {
 	return nil, fmt.Errorf("not finished")
 }

@@ -40,9 +40,9 @@ func TestPrepareSaveRef(t *testing.T) {
 		err              string
 	}{
 		{"me/invalid name", "", false, dsref.Ref{Username: "me", Name: "invalid"}, false, dsref.ErrDescribeValidName.Error()},
-		{"me/cities", "", true, dsref.Ref{Username: "peer", Name: "cities", InitID: "r7kr6djpgu2hm5fprxalfcsgehacoxomqse4c7nubu5mw6qcz57q"}, false, "name already in use"},
-		{"me/cities@/ipfs/foo", "", true, dsref.Ref{Username: "me", Name: "cities", InitID: ""}, false, dsref.ErrNotHumanFriendly.Error()},
-		{"alice/not_this_user", "", true, dsref.Ref{Username: "alice", Name: "not_this_user", InitID: ""}, false, "cannot save using a different username than \"peer\""},
+		{"me/cities", "", true, dsref.Ref{Username: "peer", Name: "cities", ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", InitID: "r7kr6djpgu2hm5fprxalfcsgehacoxomqse4c7nubu5mw6qcz57q"}, false, "name already in use"},
+		{"me/cities@/ipfs/foo", "", true, dsref.Ref{Username: "me", Name: "cities", ProfileID: "", InitID: ""}, false, dsref.ErrNotHumanFriendly.Error()},
+		{"alice/not_this_user", "", true, dsref.Ref{Username: "alice", Name: "not_this_user", ProfileID: "", InitID: ""}, false, "cannot save using a different username than \"peer\""},
 		{"me/New_Bad_Case", "", false, dsref.Ref{Username: "peer", Name: "New_Bad_Case", InitID: ""}, true, dsref.ErrBadCaseName.Error()},
 	}
 
@@ -71,10 +71,10 @@ func TestPrepareSaveRef(t *testing.T) {
 		expectIsNew      bool
 	}{
 		{"", "", false, dsref.Ref{Username: "peer", Name: "dataset", InitID: "2fxdc6hvi5gdraujcru5vnaluuuf57x345eirtwwtwitmjhr54ca"}, true},
-		{"me/cities", "", false, dsref.Ref{Username: "peer", Name: "cities", InitID: "r7kr6djpgu2hm5fprxalfcsgehacoxomqse4c7nubu5mw6qcz57q"}, false},
+		{"me/cities", "", false, dsref.Ref{Username: "peer", Name: "cities", ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", InitID: "r7kr6djpgu2hm5fprxalfcsgehacoxomqse4c7nubu5mw6qcz57q"}, false},
 		{"", "/path/to/data/apples.csv", false, dsref.Ref{Username: "peer", Name: "apples", InitID: "bj2srktro6zxsvork6stjzecq4f4kaii2xg2q2n6b4gwk2robf2q"}, true},
 		{"", "/path/to/data/apples.csv", true, dsref.Ref{Username: "peer", Name: "apples_2", InitID: "tbrfupxauhuc6rwamyejr35w4nw2icgcxvm4f6fnftyaoyeo7ida"}, true},
-		{"me/Bad_Case", "", false, dsref.Ref{Username: "peer", Name: "Bad_Case", InitID: "setbycsqt5gwyg3fmcm4ty37dzk5ohhq4oxk2hif64fkdhi6naca"}, false},
+		{"me/Bad_Case", "", false, dsref.Ref{Username: "peer", Name: "Bad_Case", ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", InitID: "setbycsqt5gwyg3fmcm4ty37dzk5ohhq4oxk2hif64fkdhi6naca"}, false},
 	}
 
 	for _, c := range good {

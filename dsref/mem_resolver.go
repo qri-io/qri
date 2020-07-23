@@ -55,6 +55,7 @@ func (m *MemResolver) ResolveRef(ctx context.Context, ref *Ref) (string, error) 
 	}
 
 	ref.InitID = id
+	ref.ProfileID = resolved.ProfileID
 	if ref.Path == "" {
 		ref.Path = resolved.Path
 	}

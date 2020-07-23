@@ -195,6 +195,7 @@ func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 	}
 
 	ref.InitID = vi.InitID
+	ref.ProfileID = vi.ProfileID
 	if ref.Path == "" {
 		ref.Path = vi.Path
 	}

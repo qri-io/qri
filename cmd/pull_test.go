@@ -1,29 +1,67 @@
 package cmd
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/qri/registry/regserver"
+	repotest "github.com/qri-io/qri/repo/test"
 )
 
 // Test add without any parameters returns an error
-func TestAddNoParam(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "no_param")
+func TestPull(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_add")
 	defer run.Delete()
 
-	err := run.ExecCommand("qri add")
-	if err == nil {
-		t.Fatal("expected error, did not get one")
-	}
-	expect := "nothing to add"
-	if expect != err.Error() {
-		t.Errorf("expected %q, got %q", expect, err.Error())
-	}
+	t.Run("no_params", func(t *testing.T) {
+		// add is an old alias for pull, confirm it works by using it:
+		err := run.ExecCommand("qri add")
+		if err == nil {
+			t.Fatal("expected error, did not get one")
+		}
+		expect := "nothing to pull"
+		if expect != err.Error() {
+			t.Errorf("expected %q, got %q", expect, err.Error())
+		}
+	})
+
+	t.Run("create_publish_delete_add", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// TODO(dustmop): Move into test runner
+		reg, cleanup, err := regserver.NewTempRegistry(ctx, "temp_registry", "", repotest.NewTestCrypto())
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer cleanup()
+		// TODO(b5): need to defer in this order. the deferred cleanup command blocks on done,
+		// which is in turn blocked on cancel. deferring in the other order deadlocks.
+		// the smarter way to deal with this is to refactor TempRegistry to use the Done pattern
+		defer cancel()
+
+		// Create a mock registry, point our test runner to its URL
+		_, httpServer := regserver.NewMockServerRegistry(*reg)
+		run.RepoRoot.GetConfig().Registry.Location = httpServer.URL
+		err = run.RepoRoot.WriteConfigFile()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		golog.SetLogLevel("remote", "error")
+
+		// Save one commit
+		run.MustExec(t, "qri save me/one_ds --body testdata/movies/body_ten.csv")
+		run.MustExec(t, "qri publish me/one_ds")
+		run.MustExec(t, "qri remove --all me/one_ds")
+		run.MustExec(t, "qri pull test_peer/one_ds")
+	})
 }
 
 // Test adding a local dataset, and a foreign dataset, then list the references
-func TestAddAndListRefs(t *testing.T) {
+func TestPullAndListRefs(t *testing.T) {
 	run := NewTestRunnerWithMockRemoteClient(t, "test_peer", "add_and_list")
 	defer run.Delete()
 
@@ -44,7 +82,7 @@ func TestAddAndListRefs(t *testing.T) {
 	}
 
 	// Save a foreign dataset
-	run.MustExec(t, "qri add other_peer/their_dataset")
+	run.MustExec(t, "qri pull other_peer/their_dataset")
 
 	output = run.MustExec(t, "qri list --raw")
 	expect = `0 Peername:  other_peer
@@ -66,8 +104,8 @@ func TestAddAndListRefs(t *testing.T) {
 	}
 }
 
-// Test adding a foreign dataset and checking it out
-func TestAddWithCheckout(t *testing.T) {
+// Test pull a foreign dataset and checking it out
+func TestPullWithCheckout(t *testing.T) {
 	msg := `skipping add with checkout b/c remote.MockClient doesn't implement CloneLogs,
 which this test needs. The proper solution is to remove remote.MockClient in 
 favour of a setup closer to lib.TwoActorRegistryIntegrationTest`
@@ -78,7 +116,7 @@ favour of a setup closer to lib.TwoActorRegistryIntegrationTest`
 	run.ChdirToRoot()
 
 	// Add and checkout another peer's dataset
-	run.MustExec(t, "qri add other_peer/their_dataset --link workdir")
+	run.MustExec(t, "qri pull other_peer/their_dataset --link workdir")
 	workDir := filepath.Join(run.RootPath, "workdir")
 
 	// List references, the dataset should be there, and should be checked out

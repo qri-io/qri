@@ -55,7 +55,7 @@ func TestRepo(t *testing.T) {
 
 		cache := dscache.NewDscache(ctx, fs, bus, pro.Peername, "")
 
-		r, err := NewRepo(path, fs, book, cache, pro)
+		r, err := NewRepo(path, fs, book, cache, pro, bus)
 		if err != nil {
 			t.Fatalf("error creating repo: %s", err.Error())
 		}
@@ -106,7 +106,7 @@ func TestResolveRef(t *testing.T) {
 
 	cache := dscache.NewDscache(ctx, fs, bus, "", "")
 
-	r, err := NewRepo(path, fs, book, cache, pro)
+	r, err := NewRepo(path, fs, book, cache, pro, bus)
 	if err != nil {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}

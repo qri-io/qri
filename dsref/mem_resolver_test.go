@@ -19,11 +19,17 @@ func TestMemResolver(t *testing.T) {
 	}
 
 	dsrefspec.AssertResolverSpec(t, m, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+		pid, err := identity.KeyIDFromPub(author.AuthorPubKey())
+		if err != nil {
+			return err
+		}
+
 		m.Put(dsref.VersionInfo{
-			InitID:   ref.InitID,
-			Username: ref.Username,
-			Name:     ref.Name,
-			Path:     ref.Path,
+			InitID:    ref.InitID,
+			ProfileID: pid,
+			Username:  ref.Username,
+			Name:      ref.Name,
+			Path:      ref.Path,
 		})
 		return nil
 	})

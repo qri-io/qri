@@ -8,33 +8,12 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/config"
 	testPeers "github.com/qri-io/qri/config/test"
-	"github.com/qri-io/qri/dsref"
-	dsrefspec "github.com/qri-io/qri/dsref/spec"
-	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/identity"
-	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver/handlers"
 	"github.com/qri-io/qri/remote"
 	repotest "github.com/qri-io/qri/repo/test"
 )
-
-func TestResolveRef(t *testing.T) {
-	tr, cleanup := NewTestRunner(t)
-	defer cleanup()
-
-	ctx := context.Background()
-
-	if _, err := (*Client)(nil).ResolveRef(ctx, nil); err != dsref.ErrRefNotFound {
-		t.Errorf("expected client to be nil-callable")
-	}
-
-	t.Skip("TODO (b5) - registry is not yet spec-compliant")
-	dsrefspec.AssertResolverSpec(t, tr.Client, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
-		return tr.Reg.Remote.Node().Repo.Logbook().MergeLog(ctx, author, log)
-	})
-}
 
 type TestRunner struct {
 	Reg           registry.Registry
@@ -44,23 +23,20 @@ type TestRunner struct {
 }
 
 func NewTestRunner(t *testing.T) (*TestRunner, func()) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	// build registry
 	tmpRepo, err := repotest.NewTempRepo("registry", "regclient-tests", repotest.NewTestCrypto())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// IPFSRepo assumes that the tempRepo is pointing to an actual qri config
-	// and an initialized ipfs repo
 	r, err := tmpRepo.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// need an actual ipfs repo
-	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus)
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), r.Bus())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +45,7 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 		AcceptSizeMax: -1,
 		Enabled:       true,
 		AllowRemoves:  true,
-	})
+	}, r.Logbook())
 	if err != nil {
 		t.Fatal(err)
 	}

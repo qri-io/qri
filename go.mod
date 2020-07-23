@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
+	github.com/cheggaaa/pb/v3 v3.0.4
 	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0
@@ -26,6 +27,7 @@ require (
 	github.com/libp2p/go-libp2p-core v0.5.7
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
 	github.com/libp2p/go-libp2p-swarm v0.2.6
+	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.3

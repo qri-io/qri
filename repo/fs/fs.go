@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -32,6 +33,7 @@ type Repo struct {
 
 	profile *profile.Profile
 
+	bus      event.Bus
 	fsys     *muxfs.Mux
 	logbook  *logbook.Book
 	dscache  *dscache.Dscache
@@ -42,8 +44,10 @@ type Repo struct {
 	doneErr error
 }
 
+var _ repo.Repo = (*Repo)(nil)
+
 // NewRepo creates a new file-based repository
-func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Dscache, pro *profile.Profile) (repo.Repo, error) {
+func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Dscache, pro *profile.Profile, bus event.Bus) (repo.Repo, error) {
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		log.Error(err)
 		return nil, err
@@ -57,6 +61,7 @@ func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Ds
 	r := &Repo{
 		profile: pro,
 
+		bus:      bus,
 		fsys:     fsys,
 		basepath: bp,
 		logbook:  book,
@@ -115,6 +120,11 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 // Path returns the path to the root of the repo directory
 func (r *Repo) Path() string {
 	return string(r.basepath)
+}
+
+// Bus accesses the repo's bus
+func (r *Repo) Bus() event.Bus {
+	return r.bus
 }
 
 // Store returns the underlying cafs.Filestore driving this repo

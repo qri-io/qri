@@ -57,6 +57,7 @@ func init() {
 }
 
 func TestNewInstance(t *testing.T) {
+
 	if _, err := NewInstance(context.Background(), ""); err == nil {
 		t.Error("expected NewInstance to error when provided no repo path")
 	}
@@ -66,9 +67,6 @@ func TestNewInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tr.Delete()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	cfg := config.DefaultConfigForTesting()
 	cfg.Filesystems = []qfs.Config{
@@ -86,6 +84,9 @@ func TestNewInstance(t *testing.T) {
 		}
 		return nil
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	got, err := NewInstance(ctx, tr.QriPath, OptConfig(cfg), OptEventHandler(handler, event.ETInstanceConstructed))
 	if err != nil {

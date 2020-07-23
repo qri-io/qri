@@ -96,15 +96,18 @@ func TestResolveRef(t *testing.T) {
 	path := filepath.Join(tmpdir, "dscache.qfb")
 	dsc := NewDscache(ctx, fs, event.NilBus, "test_resolve_ref_user", path)
 
-	dsrefspec.AssertResolverSpec(t, dsc, func(r dsref.Ref, _ identity.Author, _ *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, dsc, func(r dsref.Ref, author identity.Author, _ *oplog.Log) error {
 		builder := NewBuilder()
-		peerInfo := testPeers.GetTestPeerInfo(0)
-		builder.AddUser(r.Username, peerInfo.EncodedPeerID)
+		pid, err := identity.KeyIDFromPub(author.AuthorPubKey())
+		builder.AddUser(r.Username, pid)
+		if err != nil {
+			return err
+		}
 		builder.AddDsVersionInfo(dsref.VersionInfo{
 			Username:  r.Username,
 			InitID:    r.InitID,
 			Path:      r.Path,
-			ProfileID: peerInfo.EncodedPeerID,
+			ProfileID: pid,
 			Name:      r.Name,
 		})
 		cache := builder.Build()

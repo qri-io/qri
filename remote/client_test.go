@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
@@ -23,20 +24,47 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-func TestAddDataset(t *testing.T) {
+func TestClientDone(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
-	var psClient *PeerSyncClient
+	ctx, cancel := context.WithCancel(context.Background())
+	cli, err := NewClient(ctx, tr.NodeA, tr.NodeA.Repo.Bus())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testDone := make(chan struct{})
+	go func() {
+		<-cli.Done()
+		if doneErr := cli.DoneErr(); doneErr == nil {
+			t.Errorf("expected a context cancellation error from client done, got nil")
+		}
+		testDone <- struct{}{}
+	}()
+
+	cancel()
+	select {
+	case <-testDone:
+	case <-time.NewTimer(time.Millisecond * 100).C:
+		t.Errorf("test didn't complete within 100 ms oc cancellation")
+	}
+}
+
+func TestPullDataset(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	var client *client
 	var nilClient Client
-	nilClient = psClient
-	if err := nilClient.AddDataset(tr.Ctx, &reporef.DatasetRef{}, ""); err != ErrNoRemoteClient {
+	nilClient = client
+	if _, err := nilClient.PullDataset(tr.Ctx, &dsref.Ref{}, ""); err != ErrNoRemoteClient {
 		t.Errorf("nil add mismatch. expected: '%s', got: '%s'", ErrNoRemoteClient, err)
 	}
 
-	worldBankRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
+	wbpRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 
-	cli, err := NewClient(tr.NodeB)
+	cli, err := NewClient(tr.Ctx, tr.NodeB, tr.NodeB.Repo.Bus())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,12 +72,11 @@ func TestAddDataset(t *testing.T) {
 	tr.NodeA.GoOnline(tr.Ctx)
 	tr.NodeB.GoOnline(tr.Ctx)
 
-	if err := cli.AddDataset(tr.Ctx, &reporef.DatasetRef{Peername: "foo", Name: "bar"}, ""); err == nil {
+	if _, err := cli.PullDataset(tr.Ctx, &dsref.Ref{Username: "foo", Name: "bar"}, ""); err == nil {
 		t.Error("expected add of invalid ref to error")
 	}
 
-	wbpRef := reporef.RefFromDsref(worldBankRef)
-	if err := cli.AddDataset(tr.Ctx, &wbpRef, ""); err != nil {
+	if _, err := cli.PullDataset(tr.Ctx, &wbpRef, ""); err != nil {
 		t.Error(err.Error())
 	}
 }
@@ -63,7 +90,6 @@ func TestNewRemoteRefResolver(t *testing.T) {
 	cli := tr.NodeBClient(t)
 	resolver := cli.NewRemoteRefResolver(s.URL)
 
-	t.Skip("TODO(b5) - need to update ResolveHeadRef")
 	dsrefspec.AssertResolverSpec(t, resolver, func(r dsref.Ref, author identity.Author, log *oplog.Log) error {
 		return remA.Node().Repo.Logbook().MergeLog(context.Background(), author, log)
 	})
@@ -106,7 +132,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 		t.Errorf("feeds result mismatch (-want +got): \n%s", diff)
 	}
 
-	ds, err := cli.Preview(tr.Ctx, worldBankRef, server.URL)
+	ds, err := cli.PreviewDatasetVersion(tr.Ctx, worldBankRef, server.URL)
 	if err != nil {
 		t.Error(err)
 	}

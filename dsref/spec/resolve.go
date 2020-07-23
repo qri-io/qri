@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"testing"
 	"time"
 
@@ -36,16 +37,22 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 		journal          = ForeignLogbook(t, username)
 	)
 
+	pubKeyID, err := identity.KeyIDFromPub(journal.AuthorPubKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	initID, log, err := GenerateExampleOplog(ctx, journal, dsname, headPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	expectRef := dsref.Ref{
-		InitID:   initID,
-		Username: username,
-		Name:     dsname,
-		Path:     headPath,
+		InitID:    initID,
+		ProfileID: pubKeyID,
+		Username:  username,
+		Name:      dsname,
+		Path:      headPath,
 	}
 
 	t.Run("dsrefResolverSpec", func(t *testing.T) {
@@ -65,15 +72,19 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 			Name:     dsname,
 		}
 
-		source, err := r.ResolveRef(ctx, &resolveMe)
+		addr, err := r.ResolveRef(ctx, &resolveMe)
 		if err != nil {
 			t.Error(err)
 		}
-		// source should be local, return the empty string
-		expectSource := ""
 
-		if diff := cmp.Diff(expectSource, source); diff != "" {
-			t.Errorf("result source mismatch (-want +got):\n%s", diff)
+		if addr != "" {
+			if _, err := multiaddr.NewMultiaddr(addr); err != nil {
+				if _, urlParseErr := url.Parse(addr); urlParseErr == nil {
+					t.Logf("warning: non-empty source must be a valid multiaddr, but returned a url: %s\nURLS will not be permitted in the future", addr)
+				} else {
+					t.Errorf("non-empty source must be a valid multiaddr.\nmultiaddr parse error: %s", err)
+				}
+			}
 		}
 
 		if diff := cmp.Diff(expectRef, resolveMe); diff != "" {
@@ -87,20 +98,25 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 		}
 
 		expectRef = dsref.Ref{
-			Username: username,
-			Name:     dsname,
-			Path:     "/ill_provide_the_path_thank_you_very_much",
-			InitID:   expectRef.InitID,
+			Username:  username,
+			Name:      dsname,
+			ProfileID: pubKeyID,
+			Path:      "/ill_provide_the_path_thank_you_very_much",
+			InitID:    expectRef.InitID,
 		}
 
-		addr, err := r.ResolveRef(ctx, &resolveMe)
+		addr, err = r.ResolveRef(ctx, &resolveMe)
 		if err != nil {
 			t.Error(err)
 		}
 
 		if addr != "" {
 			if _, err := multiaddr.NewMultiaddr(addr); err != nil {
-				t.Errorf("non-empty source must be a valid multiaddr.\nmultiaddr parse error: %s", err)
+				if _, urlParseErr := url.Parse(addr); urlParseErr == nil {
+					t.Logf("warning: non-empty source must be a valid multiaddr, but returned a url: %s\nURLS will not be permitted in the future", addr)
+				} else {
+					t.Errorf("non-empty source must be a valid multiaddr.\nmultiaddr parse error: %s", err)
+				}
 			}
 		}
 

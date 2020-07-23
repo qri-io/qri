@@ -59,32 +59,26 @@ func TestNewNode(t *testing.T) {
 }
 
 func TestNodeEvents(t *testing.T) {
-	var (
-		bus    event.Bus
-		result = make(chan error, 1)
-		events = []event.Type{
-			// TODO (b5) - can't check onlineness because of the way this test is constructed
-			// event.ETP2PGoneOnline,
-			event.ETP2PGoneOffline,
-			// TODO (ramfox) - the QriPeerConnected is attempted when the `libp2pevent.EvtPeerIdentificationCompleted`
-			// event successfully goes off (which is rare atm, the identification fails
-			// with a "stream reset" error), so I'm commenting that out for now
-			// event.ETP2PQriPeerConnected,
-			// TODO (b5) - this event currently isn't emitted
-			// event.ETP2PQriPeerDisconnected,
-			event.ETP2PPeerConnected,
-			event.ETP2PPeerDisconnected,
-		}
-	)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 
-	ctx, done := context.WithTimeout(context.Background(), time.Second)
-	defer done()
-
-	bus = event.NewBus(ctx)
-	called := map[event.Type]bool{}
-	for _, t := range events {
-		called[t] = false
+	bus := event.NewBus(ctx)
+	result := make(chan error, 1)
+	events := []event.Type{
+		// TODO (b5) - can't check onlineness because of the way this test is constructed
+		// event.ETP2PGoneOnline,
+		event.ETP2PGoneOffline,
+		// TODO (ramfox) - the QriPeerConnected is attempted when the `libp2pevent.EvtPeerIdentificationCompleted`
+		// event successfully goes off (which is rare atm, the identification fails
+		// with a "stream reset" error), so I'm commenting that out for now
+		// event.ETP2PQriPeerConnected,
+		// TODO (b5) - this event currently isn't emitted
+		// event.ETP2PQriPeerDisconnected,
+		event.ETP2PPeerConnected,
+		event.ETP2PPeerDisconnected,
 	}
+
+	called := map[event.Type]bool{}
 	remaining := len(events)
 
 	// TODO (ramfox): when we can figure out the `libp2pevent.EvtPeerIdentificationFailed`
@@ -95,7 +89,7 @@ func TestNodeEvents(t *testing.T) {
 		if called[typ] {
 			// TODO (ramfox): this is commented out currently because I'm not totally
 			// sure why connects and disconnects are fireing multiple times
-			// t.Errorf("expected event %q to only fire once", typ)
+			t.Logf("expected event %q to only fire once", typ)
 			return nil
 		}
 
@@ -107,6 +101,7 @@ func TestNodeEvents(t *testing.T) {
 
 		called[typ] = true
 		remaining--
+		t.Logf("remaining: %d", remaining)
 		if remaining == 0 {
 			result <- nil
 			return nil

@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regclient"
@@ -70,7 +69,7 @@ func NewTempRegistry(ctx context.Context, peername, tmpDirPrefix string, g gen.C
 	p2pCfg := config.DefaultP2P()
 	p2pCfg.PeerID = registryPeerID
 
-	node, err := p2p.NewQriNode(r, p2pCfg, event.NilBus)
+	node, err := p2p.NewQriNode(r, p2pCfg, r.Bus())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -83,7 +82,7 @@ func NewTempRegistry(ctx context.Context, peername, tmpDirPrefix string, g gen.C
 		AllowRemoves:     true,
 	}
 
-	rem, err := remote.NewRemote(node, remoteCfg)
+	rem, err := remote.NewRemote(node, remoteCfg, node.Repo.Logbook())
 	if err != nil {
 		return nil, nil, err
 	}

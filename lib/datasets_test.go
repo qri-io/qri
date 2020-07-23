@@ -935,15 +935,15 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 }
 
-func TestDatasetRequestsAdd(t *testing.T) {
+func TestDatasetRequestsPull(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
 	bad := []struct {
-		p   AddParams
+		p   PullParams
 		err string
 	}{
-		{AddParams{Ref: "abc/hash###"}, "node is not online and no registry is configured"},
+		{PullParams{Ref: "abc/hash###"}, "node is not online and no registry is configured"},
 	}
 
 	mr, err := testrepo.NewTestRepo()
@@ -959,8 +959,8 @@ func TestDatasetRequestsAdd(t *testing.T) {
 	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_case_%d", i), func(t *testing.T) {
-			got := &reporef.DatasetRef{}
-			err := m.Add(&c.p, got)
+			got := &dataset.Dataset{}
+			err := m.Pull(&c.p, got)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -1022,16 +1022,16 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 				index, _ := strconv.ParseInt(num, 10, 32)
 				name := datasets[index]
 				ref := reporef.DatasetRef{Peername: profile.Peername, Name: name}
-				p := &AddParams{
+				p := &PullParams{
 					Ref: ref.AliasString(),
 				}
 
 				// Build requests for peer1 to peer2.
 				inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), p0)
 				dsm := NewDatasetMethods(inst)
-				got := &reporef.DatasetRef{}
+				got := &dataset.Dataset{}
 
-				err := dsm.Add(p, got)
+				err := dsm.Pull(p, got)
 				if err != nil {
 					pro1, _ := p0.Repo.Profile()
 					pro2, _ := p1.Repo.Profile()

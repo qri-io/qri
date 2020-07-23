@@ -2,15 +2,8 @@
 package regclient
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io/ioutil"
 	"net/http"
-	"net/url"
-
-	"github.com/qri-io/qri/dsref"
 )
 
 var (
@@ -44,55 +37,4 @@ type Config struct {
 // NewClient creates a registry from a provided Registry configuration
 func NewClient(cfg *Config) *Client {
 	return &Client{cfg, HTTPClient}
-}
-
-// assert at compile time that Client is a dsref.Resolver
-var _ dsref.Resolver = (*Client)(nil)
-
-// ResolveRef finds the identifier & HEAD path for a dataset reference
-// implements dsref.Resolver interface
-func (c *Client) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
-	if c == nil {
-		return "", dsref.ErrRefNotFound
-	}
-
-	// TODO (b5) - for now we're just using the registry location as the returned source value
-	// value should be a /dnsaddr multiaddress
-	addr := c.cfg.Location
-
-	// TODO (b5) - need to document this endpoint
-	u, err := url.Parse(fmt.Sprintf("%s/remote/refs", addr))
-	if err != nil {
-		return addr, err
-	}
-
-	q := u.Query()
-	q.Set("peername", ref.Username)
-	q.Set("name", ref.Name)
-	u.RawQuery = q.Encode()
-
-	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		return addr, err
-	}
-
-	req = req.WithContext(ctx)
-
-	res, err := c.httpClient.Do(req)
-	if err != nil {
-		return addr, err
-	}
-
-	if res.StatusCode == http.StatusNotFound {
-		return "", dsref.ErrRefNotFound
-	} else if res.StatusCode != http.StatusOK {
-		errMsg, _ := ioutil.ReadAll(res.Body)
-		return addr, fmt.Errorf("resolving dataset ref from registry failed: %s", string(errMsg))
-	}
-
-	if err := json.NewDecoder(res.Body).Decode(ref); err != nil {
-		return addr, err
-	}
-
-	return addr, nil
 }

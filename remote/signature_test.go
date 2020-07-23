@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestVerifySigParams(t *testing.T) {
@@ -20,11 +20,11 @@ func TestVerifySigParams(t *testing.T) {
 		t.Errorf(err.Error())
 		return
 	}
-	ref := reporef.DatasetRef{
+	ref := dsref.Ref{
 		Path:      "foo",
-		Peername:  "bar",
+		Username:  "bar",
 		Name:      "baz",
-		ProfileID: profileID,
+		ProfileID: profileID.String(),
 	}
 	sigParams, err := sigParams(peerInfo0.PrivKey, ref)
 	if err != nil {

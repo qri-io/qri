@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/repo/gen"
@@ -23,12 +24,12 @@ import (
 // TempRepo manages a temporary repository for testing purposes, adding extra
 // methods for testing convenience
 type TempRepo struct {
-	RootPath            string
-	IPFSPath            string
-	QriPath             string
-	TestCrypto          gen.CryptoGenerator
+	RootPath   string
+	IPFSPath   string
+	QriPath    string
+	TestCrypto gen.CryptoGenerator
+
 	cfg                 *config.Config
-	repo                repo.Repo
 	UseMockRemoteClient bool
 }
 
@@ -87,21 +88,20 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 		TestCrypto: g,
 		cfg:        cfg,
 	}
+
 	if err := r.WriteConfigFile(); err != nil {
 		return r, err
 	}
+
 	return r, nil
 }
 
-// Repo accesses the actual repo, building one if it doesn't already exist
+// Repo constructs the repo for use in tests, the passed in context MUST be
+// cancelled when finished. This repo creates it's own event bus
 func (r *TempRepo) Repo(ctx context.Context) (repo.Repo, error) {
-	if r.repo == nil {
-		var err error
-		if r.repo, err = buildrepo.New(ctx, r.QriPath, r.cfg); err != nil {
-			return nil, err
-		}
-	}
-	return r.repo, nil
+	return buildrepo.New(ctx, r.QriPath, r.cfg, func(o *buildrepo.Options) {
+		o.Bus = event.NewBus(ctx)
+	})
 }
 
 // Delete removes the test repo on disk.

@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -31,14 +32,14 @@ func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 
 	hooksCalled := []string{}
 	callCheck := func(s string) Hook {
-		return func(ctx context.Context, pid profile.ID, ref reporef.DatasetRef) error {
+		return func(ctx context.Context, pid profile.ID, ref dsref.Ref) error {
 			hooksCalled = append(hooksCalled, s)
 			return nil
 		}
 	}
 
 	requireLogAndRefCallCheck := func(t *testing.T, s string) Hook {
-		return func(ctx context.Context, pid profile.ID, ref reporef.DatasetRef) error {
+		return func(ctx context.Context, pid profile.ID, ref dsref.Ref) error {
 			if ref.String() == "" {
 				t.Errorf("hook %s expected reference to be populated", s)
 			}
@@ -72,47 +73,63 @@ func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 	server := tr.RemoteTestServer(rem)
 	defer server.Close()
 
-	worldBankRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
-
+	wbp := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 	cli := tr.NodeBClient(t)
 
-	relRef := &reporef.DatasetRef{Peername: worldBankRef.Username, Name: worldBankRef.Name}
-	if err := cli.ResolveHeadRef(tr.Ctx, relRef, server.URL); err != nil {
+	var (
+		firedEvents            []event.Type
+		pushProgressEventFired bool
+		pullProgressEventFired bool
+	)
+	tr.NodeB.Repo.Bus().Subscribe(func(_ context.Context, typ event.Type, _ interface{}) error {
+		switch typ {
+		case event.ETRemoteClientPushVersionProgress:
+			pushProgressEventFired = true
+		case event.ETRemoteClientPullVersionProgress:
+			pullProgressEventFired = true
+		default:
+			firedEvents = append(firedEvents, typ)
+		}
+		return nil
+	},
+		event.ETRemoteClientPushVersionProgress,
+		event.ETRemoteClientPullVersionProgress,
+		event.ETRemoteClientPushVersionCompleted,
+		event.ETRemoteClientPushDatasetCompleted,
+		event.ETRemoteClientPullDatasetCompleted,
+		event.ETRemoteClientRemoveDatasetCompleted,
+	)
+
+	progBuf := &bytes.Buffer{}
+	PrintProgressBarsOnPushPull(progBuf, tr.NodeB.Repo.Bus())
+
+	relRef := &dsref.Ref{Username: wbp.Username, Name: wbp.Name}
+	if _, err := cli.NewRemoteRefResolver(server.URL).ResolveRef(tr.Ctx, relRef); err != nil {
 		t.Error(err)
 	}
 
-	if !relRef.Equal(reporef.RefFromDsref(worldBankRef)) {
-		t.Errorf("resolve mismatch. expected:\n%s\ngot:\n%s", worldBankRef, relRef)
+	if !relRef.Equals(wbp) {
+		t.Errorf("resolve mismatch. expected:\n%s\ngot:\n%s", wbp, relRef)
 	}
 
-	if _, err := cli.FetchLogs(tr.Ctx, reporef.ConvertToDsref(*relRef), server.URL); err != nil {
-		t.Error(err)
-	}
-	wbp := reporef.RefFromDsref(worldBankRef)
-	if err := cli.PullDataset(tr.Ctx, &wbp, server.URL); err != nil {
+	if _, err := cli.PullDataset(tr.Ctx, &wbp, server.URL); err != nil {
 		t.Error(err)
 	}
 
 	videoViewRef := writeVideoViewStats(tr.Ctx, t, tr.NodeB.Repo)
 
-	if err := cli.PushLogs(tr.Ctx, videoViewRef, server.URL); err != nil {
-		t.Error(err)
-	}
-	if err := cli.PushDataset(tr.Ctx, reporef.RefFromDsref(videoViewRef), server.URL); err != nil {
+	if err := cli.PushDataset(tr.Ctx, videoViewRef, server.URL); err != nil {
 		t.Error(err)
 	}
 
-	if err := cli.RemoveLogs(tr.Ctx, videoViewRef, server.URL); err != nil {
-		t.Error(err)
-	}
-	if err := cli.RemoveDataset(tr.Ctx, reporef.RefFromDsref(videoViewRef), server.URL); err != nil {
+	if err := cli.RemoveDataset(tr.Ctx, videoViewRef, server.URL); err != nil {
 		t.Error(err)
 	}
 
 	if _, err := cli.Feeds(tr.Ctx, server.URL); err != nil {
 		t.Error(err)
 	}
-	if _, err := cli.Preview(tr.Ctx, worldBankRef, server.URL); err != nil {
+	if _, err := cli.PreviewDatasetVersion(tr.Ctx, wbp, server.URL); err != nil {
 		t.Error(err)
 	}
 
@@ -135,6 +152,30 @@ func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 
 	if diff := cmp.Diff(expectHooksCallOrder, hooksCalled); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+
+	expectEventsOrder := []event.Type{
+		event.ETRemoteClientPullDatasetCompleted,
+		event.ETRemoteClientPushVersionCompleted,
+		event.ETRemoteClientPushDatasetCompleted,
+		event.ETRemoteClientRemoveDatasetCompleted,
+	}
+
+	if diff := cmp.Diff(expectEventsOrder, firedEvents); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+
+	if !pushProgressEventFired {
+		t.Error("expected push progress event to have fired at least once")
+	}
+	if !pullProgressEventFired {
+		t.Error("expected pull progress event to have fired at least once")
+	}
+
+	if len(progBuf.String()) == 0 {
+		// This is only a warning, mainly b/c some operating systems (linux) run
+		// so quickly progress isn't written to the buffer
+		t.Logf("warning: expected progress to be written to an output buffer, buf is empty")
 	}
 }
 
@@ -190,7 +231,7 @@ func TestFeeds(t *testing.T) {
 		AcceptSizeMax: 10000,
 	}
 
-	rem, err := NewRemote(tr.NodeA, aCfg)
+	rem, err := NewRemote(tr.NodeA, aCfg, tr.NodeA.Repo.Logbook())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,8 +283,9 @@ type testRunner struct {
 
 func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	var err error
+	ctx, cancel := context.WithCancel(context.Background())
 	tr = &testRunner{
-		Ctx: context.Background(),
+		Ctx: ctx,
 	}
 	prevTs := dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time { return time.Time{} }
@@ -253,11 +295,12 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 		t.Fatal(err)
 	}
 
-	tr.NodeA = qriNode(t, tr, "A", nodes[0], cfgtest.GetTestPeerInfo(0))
-	tr.NodeB = qriNode(t, tr, "B", nodes[1], cfgtest.GetTestPeerInfo(1))
+	tr.NodeA = qriNode(ctx, t, tr, "A", nodes[0], cfgtest.GetTestPeerInfo(0))
+	tr.NodeB = qriNode(ctx, t, tr, "B", nodes[1], cfgtest.GetTestPeerInfo(1))
 
 	cleanup = func() {
 		dsfs.Timestamp = prevTs
+		cancel()
 	}
 	return tr, cleanup
 }
@@ -269,7 +312,7 @@ func (tr *testRunner) NodeARemote(t *testing.T, opts ...func(o *Options)) *Remot
 		AcceptSizeMax: 10000,
 	}
 
-	rem, err := NewRemote(tr.NodeA, aCfg, opts...)
+	rem, err := NewRemote(tr.NodeA, aCfg, tr.NodeA.Repo.Logbook(), opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,20 +326,20 @@ func (tr *testRunner) RemoteTestServer(rem *Remote) *httptest.Server {
 }
 
 func (tr *testRunner) NodeBClient(t *testing.T) Client {
-	cli, err := NewClient(tr.NodeB)
+	cli, err := NewClient(tr.Ctx, tr.NodeB, tr.NodeB.Repo.Bus())
 	if err != nil {
 		t.Fatal(err)
 	}
 	return cli
 }
 
-func qriNode(t *testing.T, tr *testRunner, peername string, node *core.IpfsNode, pi *cfgtest.PeerInfo) *p2p.QriNode {
-	repo, err := p2ptest.MakeRepoFromIPFSNode(tr.Ctx, node, peername, event.NilBus)
+func qriNode(ctx context.Context, t *testing.T, tr *testRunner, peername string, node *core.IpfsNode, pi *cfgtest.PeerInfo) *p2p.QriNode {
+	repo, err := p2ptest.MakeRepoFromIPFSNode(tr.Ctx, node, peername, event.NewBus(ctx))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	qriNode, err := p2p.NewQriNode(repo, config.DefaultP2PForTesting(), event.NilBus)
+	qriNode, err := p2p.NewQriNode(repo, config.DefaultP2PForTesting(), repo.Bus())
 	if err != nil {
 		t.Fatal(err)
 	}
