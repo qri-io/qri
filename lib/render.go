@@ -76,7 +76,7 @@ func (m *RenderMethods) RenderViz(p *RenderParams, res *[]byte) (err error) {
 		return err
 	}
 
-	*res, err = base.Render(ctx, m.inst.repo, ref, p.Template)
+	*res, err = base.Render(ctx, m.inst.repo, reporef.ConvertToDsref(ref), p.Template)
 	return err
 }
 

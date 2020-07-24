@@ -13,7 +13,6 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
@@ -140,13 +139,13 @@ func (r *renderTestRunner) Delete() {
 
 // Save saves a version of the dataset with a body
 func (r *renderTestRunner) Save(ref string, ds *dataset.Dataset, bodyPath string) {
-	dsRef := reporef.DatasetRef{}
+	res := &dataset.Dataset{}
 	params := SaveParams{
 		Ref:      ref,
 		Dataset:  ds,
 		BodyPath: bodyPath,
 	}
-	err := r.DatasetReqs.Save(&params, &dsRef)
+	err := r.DatasetReqs.Save(&params, res)
 	if err != nil {
 		panic(err)
 	}

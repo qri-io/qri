@@ -4,7 +4,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	reporef "github.com/qri-io/qri/repo/ref"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/dsref"
 )
 
 func TestDatasetRequestsDiff(t *testing.T) {
@@ -18,23 +19,26 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	djsOnePath := tr.MustWriteTmpFile(t, "djs_1.json", `{ "dj dj booth": { "rating": 1, "uses_soundcloud": true } }`)
 	djsTwoPath := tr.MustWriteTmpFile(t, "djs_2.json", `{ "DJ dj booth": { "rating": 1, "uses_soundcloud": true } }`)
 
-	dsRef1 := reporef.DatasetRef{}
+	ds1 := &dataset.Dataset{}
 	initParams := &SaveParams{
 		Ref:      "me/jobs_ranked_by_automation_prob",
 		BodyPath: jobsOnePath,
 	}
-	if err := req.Save(initParams, &dsRef1); err != nil {
+	if err := req.Save(initParams, ds1); err != nil {
 		t.Fatalf("couldn't save: %s", err.Error())
 	}
 
-	dsRef2 := reporef.DatasetRef{}
+	ds2 := &dataset.Dataset{}
 	initParams = &SaveParams{
 		Ref:      "me/jobs_ranked_by_automation_prob",
 		BodyPath: jobsTwoPath,
 	}
-	if err := req.Save(initParams, &dsRef2); err != nil {
+	if err := req.Save(initParams, ds2); err != nil {
 		t.Fatalf("couldn't save second revision: %s", err.Error())
 	}
+
+	dsRef1 := dsref.ConvertDatasetToVersionInfo(ds1).SimpleRef()
+	dsRef2 := dsref.ConvertDatasetToVersionInfo(ds2).SimpleRef()
 
 	good := []struct {
 		description string
@@ -50,7 +54,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 			8,
 		},
 		{"fill left path from history",
-			dsRef2.AliasString(), dsRef2.AliasString(),
+			dsRef2.Alias(), dsRef2.Alias(),
 			"",
 			&DiffStat{Left: 40, Right: 41, LeftWeight: 2754, RightWeight: 2712, Inserts: 9, Updates: 0, Deletes: 9},
 			8,

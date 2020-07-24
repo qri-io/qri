@@ -12,15 +12,15 @@ func TestParseRevs(t *testing.T) {
 		err string
 	}{
 		{"", []*Rev{}, "unrecognized revision field: "},
-		{"body", []*Rev{&Rev{"bd", 1}}, ""},
-		{"md", []*Rev{&Rev{"md", 1}}, ""},
-		{"ds", []*Rev{&Rev{"ds", 1}}, ""},
-		{"rd", []*Rev{&Rev{"rd", 1}}, ""},
-		{"rm", []*Rev{&Rev{"rm", 1}}, ""},
-		{"1", []*Rev{&Rev{"ds", 1}}, ""},
-		{"2", []*Rev{&Rev{"ds", 2}}, ""},
-		{"3", []*Rev{&Rev{"ds", 3}}, ""},
-		{"all", []*Rev{&Rev{"ds", AllGenerations}}, ""},
+		{"body", []*Rev{{"bd", 1}}, ""},
+		{"md", []*Rev{{"md", 1}}, ""},
+		{"ds", []*Rev{{"ds", 1}}, ""},
+		{"rd", []*Rev{{"rd", 1}}, ""},
+		{"rm", []*Rev{{"rm", 1}}, ""},
+		{"1", []*Rev{{"ds", 1}}, ""},
+		{"2", []*Rev{{"ds", 2}}, ""},
+		{"3", []*Rev{{"ds", 3}}, ""},
+		{"all", []*Rev{{"ds", AllGenerations}}, ""},
 	}
 
 	for i, c := range cases {

@@ -73,8 +73,19 @@ type VersionInfo struct {
 	FSIPath string `json:"fsiPath,omitempty"`
 }
 
+// NewVersionInfoFromRef creates a sparse-populated VersionInfo from a dsref.Ref
+func NewVersionInfoFromRef(ref Ref) VersionInfo {
+	return VersionInfo{
+		InitID:    ref.InitID,
+		Username:  ref.Username,
+		ProfileID: ref.ProfileID,
+		Name:      ref.Name,
+		Path:      ref.Path,
+	}
+}
+
 // SimpleRef returns a simple dsref.Ref
-func (v *VersionInfo) SimpleRef() Ref {
+func (v VersionInfo) SimpleRef() Ref {
 	return Ref{
 		InitID:    v.InitID,
 		Username:  v.Username,

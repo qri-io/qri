@@ -32,7 +32,7 @@ func TestRPCRequest(t *testing.T) {
 
 	res := &GetResult{}
 	err = NewDatasetMethods(adnanInst).Get(&GetParams{
-		Refstr: ref.AliasString(),
+		Refstr: ref.Alias(),
 	}, res)
 
 	if err != nil {

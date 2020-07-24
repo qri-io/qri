@@ -7,7 +7,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestHistoryHandlers(t *testing.T) {
@@ -19,7 +18,7 @@ func TestHistoryHandlers(t *testing.T) {
 
 	inst := lib.NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 
-	res := &reporef.DatasetRef{}
+	res := &dataset.Dataset{}
 	p := &lib.SaveParams{
 		Ref: "me/cities",
 		Dataset: &dataset.Dataset{

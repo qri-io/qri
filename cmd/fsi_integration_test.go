@@ -35,6 +35,7 @@ func NewFSITestRunner(t *testing.T, testName string) *FSITestRunner {
 
 // MustExec runs a command, returning standard output, failing the test if there's an error
 func (run *FSITestRunner) MustExec(t *testing.T, cmdText string) string {
+	t.Helper()
 	if err := run.ExecCommand(cmdText); err != nil {
 		_, callerFile, callerLine, ok := runtime.Caller(1)
 		if !ok {
@@ -961,9 +962,7 @@ func TestRestorePreviousVersion(t *testing.T) {
 	}
 
 	// TODO(dlong): Handle full dataset paths, including peername and dataset name.
-
-	pos := strings.Index(ref2, "/ipfs/")
-	path := ref2[pos:]
+	path := ref2
 
 	// Restore the previous version
 	run.MustExec(t, fmt.Sprintf("qri restore %s", path))

@@ -26,7 +26,6 @@ import (
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -38,7 +37,7 @@ var (
 
 	testPeerProfile = &profile.Profile{
 		Peername: "peer",
-		ID:       "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+		ID:       profile.IDB58DecodeOrEmpty("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"),
 	}
 )
 
@@ -196,6 +195,7 @@ func TestReceivers(t *testing.T) {
 // pulled from base packages
 // TODO - we should probably get a test package going at github.com/qri-io/qri/test
 func addCitiesDataset(t *testing.T, node *p2p.QriNode) dsref.Ref {
+	t.Helper()
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("cities"))
 	if err != nil {
@@ -213,20 +213,19 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) dsref.Ref {
 }
 
 func saveDataset(ctx context.Context, r repo.Repo, ds *dataset.Dataset, sw base.SaveSwitches) (dsref.Ref, error) {
-	headRef := ""
-	book := r.Logbook()
-	initID, err := book.RefToInitID(dsref.Ref{Username: "peer", Name: ds.Name})
-	if err == nil {
-		got, _ := r.GetRef(reporef.DatasetRef{Peername: "peer", Name: ds.Name})
-		headRef = got.Path
-	} else if err == logbook.ErrNotFound {
-		initID, err = book.WriteDatasetInit(ctx, ds.Name)
-	}
+	pro, err := r.Profile()
 	if err != nil {
 		return dsref.Ref{}, err
 	}
-	datasetRef, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), initID, headRef, ds, sw)
-	return reporef.ConvertToDsref(datasetRef), err
+	ref, _, err := base.PrepareSaveRef(ctx, pro, r.Logbook(), r.Logbook(), fmt.Sprintf("%s/%s", pro.Peername, ds.Name), "", false)
+	if err != nil {
+		return dsref.Ref{}, err
+	}
+	res, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ref.InitID, ref.Path, ds, sw)
+	if err != nil {
+		return dsref.Ref{}, err
+	}
+	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef(), nil
 }
 
 func addNowTransformDataset(t *testing.T, node *p2p.QriNode) dsref.Ref {

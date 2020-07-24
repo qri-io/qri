@@ -12,10 +12,10 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -64,21 +64,22 @@ func newTestRepo(t *testing.T) repo.Repo {
 	return mr
 }
 
-func addCitiesDataset(t *testing.T, r repo.Repo) reporef.DatasetRef {
+func addCitiesDataset(t *testing.T, r repo.Repo) dsref.Ref {
+	t.Helper()
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("cities"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ds, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	return ref
+	return dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
 }
 
-func updateCitiesDataset(t *testing.T, r repo.Repo, title string) reporef.DatasetRef {
+func updateCitiesDataset(t *testing.T, r repo.Repo, title string) dsref.Ref {
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("cities"))
 	if err != nil {
@@ -89,7 +90,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) reporef.Datase
 		t.Fatal(err)
 	}
 
-	ref, err := r.GetRef(reporef.DatasetRef{Peername: pro.Peername, Name: tc.Name})
+	ref, err := repo.GetVersionInfoShim(r, dsref.Ref{Username: pro.Peername, Name: tc.Name})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,14 +109,14 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) reporef.Datase
 		tc.Input.PreviousPath = ""
 	}()
 
-	ref, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	res, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	return ref
+	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
 }
 
-func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) reporef.DatasetRef {
+func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) dsref.Ref {
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("flourinated_compounds_in_fast_food_packaging"))
 	if err != nil {
@@ -126,10 +127,10 @@ func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) reporef.DatasetRe
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	return ref
+	return dsref.ConvertDatasetToVersionInfo(ref).SimpleRef()
 }
 
-func addNowTransformDataset(t *testing.T, r repo.Repo) reporef.DatasetRef {
+func addNowTransformDataset(t *testing.T, r repo.Repo) dsref.Ref {
 	ctx := context.Background()
 
 	ds := &dataset.Dataset{
@@ -160,5 +161,6 @@ def transform(ds, ctx):
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	return ref
+
+	return dsref.ConvertDatasetToVersionInfo(ref).SimpleRef()
 }

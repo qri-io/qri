@@ -9,7 +9,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestRecall(t *testing.T) {
@@ -17,12 +16,12 @@ func TestRecall(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addNowTransformDataset(t, r)
 
-	_, err := Recall(ctx, r, "", ref)
+	_, err := Recall(ctx, r.Store(), ref, "")
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = Recall(ctx, r, "tf", ref)
+	_, err = Recall(ctx, r.Store(), ref, "tf")
 	if err != nil {
 		t.Error(err)
 	}
@@ -39,7 +38,7 @@ func TestLoadRevisions(t *testing.T) {
 	}
 
 	cases := []struct {
-		ref  reporef.DatasetRef
+		ref  dsref.Ref
 		revs string
 		ds   *dataset.Dataset
 		err  string
@@ -62,7 +61,7 @@ func TestLoadRevisions(t *testing.T) {
 			continue
 		}
 
-		got, err := LoadRevs(ctx, r, c.ref, revs)
+		got, err := LoadRevs(ctx, r.Store(), c.ref, revs)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 		}

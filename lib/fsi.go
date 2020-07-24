@@ -282,22 +282,19 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	}
 	ctx := context.TODO()
 
-	if p.Ref == "" {
-		return repo.ErrEmptyRef
-	}
-	ref, err := repo.ParseDatasetRef(p.Ref)
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Ref, "local")
 	if err != nil {
-		return fmt.Errorf("'%s' is not a valid dataset reference", p.Ref)
-	}
-	err = repo.CanonicalizeDatasetRef(m.inst.node.Repo, &ref)
-	if err != nil && err != repo.ErrNoHistory {
-		return
+		return err
 	}
 
-	// Directory to write components to can be determined from FSIPath of ref.
-	if p.Dir == "" && ref.FSIPath != "" {
-		p.Dir = ref.FSIPath
+	if p.Dir == "" {
+		fsiRef := ref.Copy()
+		if err = m.inst.fsi.ResolvedPath(&fsiRef); err != nil {
+			return err
+		}
+		p.Dir = fsi.FilesystemPathToLocal(fsiRef.Path)
 	}
+
 	if p.Dir == "" {
 		return fmt.Errorf("no FSIPath or Dir given")
 	}

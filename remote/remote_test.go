@@ -366,7 +366,7 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) ds
 }
 
 func setRefPublished(t *testing.T, r repo.Repo, ref *reporef.DatasetRef) {
-	if err := base.SetPublishStatus(r, ref, true); err != nil {
+	if err := base.SetPublishStatus(r, reporef.ConvertToDsref(*ref), true); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -402,11 +402,11 @@ func saveDataset(ctx context.Context, r repo.Repo, peername string, ds *dataset.
 	if err != nil {
 		panic(err)
 	}
-	datasetRef, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), initID, headRef, ds, base.SaveSwitches{})
+	res, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), initID, headRef, ds, base.SaveSwitches{})
 	if err != nil {
 		panic(err)
 	}
-	ref := reporef.ConvertToDsref(datasetRef)
+	ref := dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
 	ref.InitID = initID
 	return ref
 }

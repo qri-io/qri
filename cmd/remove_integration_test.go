@@ -29,7 +29,7 @@ func TestRemoveOneRevisionFromRepo(t *testing.T) {
 	ref1 := parsePathFromRef(parseRefFromSave(output))
 	dsPath1 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath1 {
-		t.Fatal("ref from first save should match what is in qri repo")
+		t.Fatalf("ref from first save should match what is in qri repo. got %q want %q", ref1, dsPath1)
 	}
 
 	// Save another version
@@ -37,7 +37,7 @@ func TestRemoveOneRevisionFromRepo(t *testing.T) {
 	ref2 := parsePathFromRef(parseRefFromSave(output))
 	dsPath2 := run.GetPathForDataset(t, 0)
 	if ref2 != dsPath2 {
-		t.Fatal("ref from second save should match what is in qri repo")
+		t.Fatalf("ref from second save should match what is in qri repo. got %q want %q", ref2, dsPath2)
 	}
 
 	// Remove one version

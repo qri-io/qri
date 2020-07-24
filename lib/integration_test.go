@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
@@ -15,7 +16,6 @@ import (
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo/gen"
-	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -29,7 +29,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	ref := InitWorldBankDataset(t, nasim)
 
 	// - nasim publishes to the registry
-	PublishToRegistry(t, nasim, ref.AliasString())
+	PublishToRegistry(t, nasim, ref.Alias())
 
 	if err := AssertLogsEqual(nasim, tr.RegistryInst, ref); err != nil {
 		t.Error(err)
@@ -55,7 +55,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	Preview(t, hinshun, ref.String())
 
 	// - hinshun pulls nasim's dataset
-	Pull(t, hinshun, ref.AliasString())
+	Pull(t, hinshun, ref.Alias())
 
 	if err := AssertLogsEqual(nasim, hinshun, ref); err != nil {
 		t.Error(err)
@@ -65,7 +65,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	ref = Commit2WorldBank(t, nasim)
 
 	// 6. nasim re-publishes to the registry
-	PublishToRegistry(t, nasim, ref.AliasString())
+	PublishToRegistry(t, nasim, ref.Alias())
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
 	dsm := NewDatasetMethods(hinshun)
@@ -81,13 +81,13 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	// TODO (b5) - assert hinshun DOES NOT have blocks for the latest commit to world bank dataset
 
 	// 8. hinshun pulls latest version
-	Pull(t, hinshun, ref.AliasString())
+	Pull(t, hinshun, ref.Alias())
 
 	// TODO (b5) - assert hinshun has world bank dataset blocks
 
 	// all three should now have the same HEAD reference & InitID
 	dsrefspec.ConsistentResolvers(t, dsref.Ref{
-		Username: ref.Peername,
+		Username: ref.Username,
 		Name:     ref.Name,
 	},
 		nasim.Repo(),
@@ -104,7 +104,7 @@ func TestAddCheckoutIntegration(t *testing.T) {
 
 	// - nasim creates a dataset, publishes to registry
 	ref := InitWorldBankDataset(t, nasim)
-	PublishToRegistry(t, nasim, ref.AliasString())
+	PublishToRegistry(t, nasim, ref.Alias())
 
 	hinshun := tr.InitHinshun(t)
 	dsm := NewDatasetMethods(hinshun)
@@ -129,11 +129,11 @@ func TestReferencePulling(t *testing.T) {
 
 	// - nasim creates a dataset, publishes to registry
 	ref := InitWorldBankDataset(t, nasim)
-	PublishToRegistry(t, nasim, ref.AliasString())
+	PublishToRegistry(t, nasim, ref.Alias())
 
 	// - nasim's local repo should reflect publication
 	logRes := []DatasetLogItem{}
-	err := NewLogMethods(nasim).Log(&LogParams{Ref: ref.AliasString(), ListParams: ListParams{Limit: 1}}, &logRes)
+	err := NewLogMethods(nasim).Log(&LogParams{Ref: ref.Alias(), ListParams: ListParams{Limit: 1}}, &logRes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,14 +191,14 @@ def transform(ds, ctx):
 			scriptPath,
 		},
 	}
-	res := &reporef.DatasetRef{}
+	res := &dataset.Dataset{}
 	if err := dsm.Save(saveParams, res); err != nil {
 		t.Fatal(err)
 	}
 
 	// - adnan's local repo should reflect nasim's publication
 	logRes = []DatasetLogItem{}
-	err = NewLogMethods(adnan).Log(&LogParams{Ref: ref.AliasString(), ListParams: ListParams{Limit: 1}}, &logRes)
+	err = NewLogMethods(adnan).Log(&LogParams{Ref: ref.Alias(), ListParams: ListParams{Limit: 1}}, &logRes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +262,7 @@ func (tr *NetworkIntegrationTestRunner) InitNasim(t *testing.T) *Instance {
 	}
 	tr.nasimRepo = &r
 
-	if tr.Nasim, err = NewInstance(tr.Ctx, r.QriPath); err != nil {
+	if tr.Nasim, err = NewInstance(tr.Ctx, r.QriPath, OptIOStreams(ioes.NewDiscardIOStreams())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -282,7 +282,7 @@ func (tr *NetworkIntegrationTestRunner) InitHinshun(t *testing.T) *Instance {
 	}
 	tr.hinshunRepo = &r
 
-	if tr.Hinshun, err = NewInstance(tr.Ctx, tr.hinshunRepo.QriPath); err != nil {
+	if tr.Hinshun, err = NewInstance(tr.Ctx, tr.hinshunRepo.QriPath, OptIOStreams(ioes.NewDiscardIOStreams())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -302,7 +302,7 @@ func (tr *NetworkIntegrationTestRunner) InitAdnan(t *testing.T) *Instance {
 	}
 	tr.adnanRepo = &r
 
-	if tr.Adnan, err = NewInstance(tr.Ctx, r.QriPath); err != nil {
+	if tr.Adnan, err = NewInstance(tr.Ctx, r.QriPath, OptIOStreams(ioes.NewDiscardIOStreams())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -330,7 +330,7 @@ func (tr *NetworkIntegrationTestRunner) InitRegistry(t *testing.T) {
 
 	rr.WriteConfigFile()
 
-	tr.RegistryInst, err = NewInstance(tr.Ctx, rr.QriPath)
+	tr.RegistryInst, err = NewInstance(tr.Ctx, rr.QriPath, OptIOStreams(ioes.NewDiscardIOStreams()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -354,15 +354,14 @@ func (tr *NetworkIntegrationTestRunner) InitRegistry(t *testing.T) {
 	_, tr.RegistryHTTPServer = regserver.NewMockServerRegistry(tr.Registry)
 }
 
-func AssertLogsEqual(a, b *Instance, ref *reporef.DatasetRef) error {
-	r := reporef.ConvertToDsref(*ref)
+func AssertLogsEqual(a, b *Instance, ref dsref.Ref) error {
 
-	aLogs, err := a.logbook.DatasetRef(context.Background(), r)
+	aLogs, err := a.logbook.DatasetRef(context.Background(), ref)
 	if err != nil {
 		return fmt.Errorf("fetching logs for a instance: %s", err)
 	}
 
-	bLogs, err := b.logbook.DatasetRef(context.Background(), r)
+	bLogs, err := b.logbook.DatasetRef(context.Background(), ref)
 	if err != nil {
 		return fmt.Errorf("fetching logs for b instance: %s", err)
 	}
@@ -378,8 +377,8 @@ func AssertLogsEqual(a, b *Instance, ref *reporef.DatasetRef) error {
 	return nil
 }
 
-func InitWorldBankDataset(t *testing.T, inst *Instance) *reporef.DatasetRef {
-	res := &reporef.DatasetRef{}
+func InitWorldBankDataset(t *testing.T, inst *Instance) dsref.Ref {
+	res := &dataset.Dataset{}
 	err := NewDatasetMethods(inst).Save(&SaveParams{
 		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
@@ -400,11 +399,11 @@ d,e,f,false,3`),
 		log.Fatalf("saving dataset version: %s", err)
 	}
 
-	return res
+	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
 }
 
-func Commit2WorldBank(t *testing.T, inst *Instance) *reporef.DatasetRef {
-	res := &reporef.DatasetRef{}
+func Commit2WorldBank(t *testing.T, inst *Instance) dsref.Ref {
+	res := &dataset.Dataset{}
 	err := NewDatasetMethods(inst).Save(&SaveParams{
 		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
@@ -422,10 +421,10 @@ g,g,i,true,4`),
 		log.Fatalf("saving dataset version: %s", err)
 	}
 
-	return res
+	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
 }
 
-func PublishToRegistry(t *testing.T, inst *Instance, refstr string) *dsref.Ref {
+func PublishToRegistry(t *testing.T, inst *Instance, refstr string) dsref.Ref {
 	res := dsref.Ref{}
 	err := NewRemoteMethods(inst).Publish(&PublicationParams{
 		Ref: refstr,
@@ -435,7 +434,7 @@ func PublishToRegistry(t *testing.T, inst *Instance, refstr string) *dsref.Ref {
 		log.Fatalf("publishing dataset: %s", err)
 	}
 
-	return &res
+	return res
 }
 
 func SearchFor(t *testing.T, inst *Instance, term string) []SearchResult {

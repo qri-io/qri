@@ -10,8 +10,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // RemoveEntireDataset removes all of the information in the repository about a dataset. It will
@@ -59,16 +57,10 @@ func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, histor
 		}
 	}
 	// remove the ref from the ref store
-	datasetRef := reporef.DatasetRef{
-		Peername:  ref.Username,
-		Name:      ref.Name,
-		Path:      ref.Path,
-		ProfileID: profile.IDB58DecodeOrEmpty(ref.ProfileID),
-	}
-	if _, err := r.GetRef(datasetRef); err == nil {
+	if _, err := repo.GetVersionInfoShim(r, ref); err == nil {
 		didRemove = appendString(didRemove, "refstore")
 	}
-	if err := r.DeleteRef(datasetRef); err != nil {
+	if _, err := repo.DeleteVersionInfoShim(r, ref); err != nil {
 		log.Debugf("Remove, DeleteRef failed, error: %s", err)
 		removeErr = err
 	}
@@ -103,12 +95,7 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 	defer timeoutCancel()
 
 	// Copy the dsref, modify it as we step back through the dataset's history.
-	dest := dsref.Ref{
-		Username:  curr.Username,
-		ProfileID: curr.ProfileID,
-		Name:      curr.Name,
-		Path:      curr.Path,
-	}
+	dest := curr.Copy()
 	i := n
 
 	for i != 0 {
@@ -116,13 +103,7 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 		// blank PreviousPath is found.
 		i--
 		// unpin dataset, ignoring "not pinned" errors
-		datasetRef := reporef.DatasetRef{
-			Peername:  dest.Username,
-			Name:      dest.Name,
-			Path:      dest.Path,
-			ProfileID: profile.IDB58DecodeOrEmpty(dest.ProfileID),
-		}
-		if err = UnpinDataset(ctx, r, datasetRef); err != nil && !strings.Contains(err.Error(), "not pinned") {
+		if err = UnpinDataset(ctx, r, dest.Path); err != nil && !strings.Contains(err.Error(), "not pinned") {
 			return nil, err
 		}
 		// if no previous path, break
@@ -167,9 +148,8 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 		// we're just trying to remove it. Return successfully.
 		return info, nil
 	}
-	err = r.Logbook().WriteVersionDelete(ctx, initID, n)
-	if err == logbook.ErrNoLogbook {
-		err = nil
+	if err = r.Logbook().WriteVersionDelete(ctx, initID, n); err != nil {
+		return info, err
 	}
 
 	return info, nil
@@ -196,59 +176,25 @@ func RewindDatasetRef(ctx context.Context, r repo.Repo, curr, next dsref.Ref) (*
 		return nil, fmt.Errorf("cannot rewind dataset ref with a different name")
 	}
 
-	currProfileID, err := profile.IDB58Decode(curr.ProfileID)
-	if err != nil {
-		if curr.ProfileID == "" {
-			currProfileID = profile.IDRawByteString("")
-		} else {
-			return nil, err
-		}
-	}
-
-	nextProfileID, err := profile.IDB58Decode(next.ProfileID)
-	if err != nil {
-		if next.ProfileID == "" {
-			nextProfileID = profile.IDRawByteString("")
-		} else {
-			return nil, err
-		}
-	}
-
-	currRef := reporef.DatasetRef{
-		Peername:  curr.Username,
-		ProfileID: currProfileID,
-		Name:      curr.Name,
-		Path:      curr.Path,
-	}
-	nextRef := reporef.DatasetRef{
-		Peername:  next.Username,
-		ProfileID: nextProfileID,
-		Name:      next.Name,
-		Path:      next.Path,
-	}
-
-	// Both references need to canonicalize
-	if err := repo.CanonicalizeDatasetRef(r, &currRef); err != nil && err != repo.ErrNoHistory {
+	currVi, err := repo.GetVersionInfoShim(r, curr)
+	if err != nil && err != repo.ErrNoHistory {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error with existing reference: %s", err.Error())
 	}
-	if err := repo.CanonicalizeDatasetRef(r, &nextRef); err != nil && err != repo.ErrNoHistory {
+
+	nextVi, err := repo.GetVersionInfoShim(r, next)
+	if err != nil && err != repo.ErrNoHistory {
 		log.Debug(err.Error())
-		return nil, fmt.Errorf("error with target reference: %s", err.Error())
+		return nil, fmt.Errorf("error with existing reference: %s", err.Error())
 	}
 
-	if err := r.DeleteRef(currRef); err != nil {
-		return nil, err
-	}
-	if err := r.PutRef(nextRef); err != nil {
+	if _, err := repo.DeleteVersionInfoShim(r, currVi.SimpleRef()); err != nil {
 		return nil, err
 	}
 
-	return &dsref.VersionInfo{
-		Username:  nextRef.Peername,
-		ProfileID: nextRef.ProfileID.String(),
-		Name:      nextRef.Name,
-		Path:      nextRef.Path,
-		FSIPath:   nextRef.FSIPath,
-	}, nil
+	nextVi.Path = next.Path
+	if err := repo.PutVersionInfoShim(r, nextVi); err != nil {
+		return nil, err
+	}
+	return nextVi, nil
 }

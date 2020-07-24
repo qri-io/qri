@@ -421,7 +421,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		Peername: ds.Peername,
 	}
 
-	res := &reporef.DatasetRef{}
+	res := &dataset.Dataset{}
 	scriptOutput := &bytes.Buffer{}
 	p := &lib.SaveParams{
 		Ref:          ref.AliasString(),
@@ -456,10 +456,18 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Don't leak paths across the API, it's possible they contain absolute paths or tmp dirs.
-	res.Dataset.BodyPath = filepath.Base(res.Dataset.BodyPath)
+	res.BodyPath = filepath.Base(res.BodyPath)
+
+	resRef := reporef.DatasetRef{
+		Peername:  res.Peername,
+		Name:      res.Name,
+		ProfileID: profile.IDB58DecodeOrEmpty(res.ProfileID),
+		Path:      res.Path,
+		Dataset:   res,
+	}
 
 	msg := scriptOutput.String()
-	util.WriteMessageResponse(w, msg, res)
+	util.WriteMessageResponse(w, msg, resRef)
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {

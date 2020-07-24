@@ -86,6 +86,7 @@ func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, e
 
 	working, err := component.ListDirectoryComponents(dir)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 

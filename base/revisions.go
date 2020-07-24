@@ -5,28 +5,27 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// Recall loads revisions of a dataset from history
-func Recall(ctx context.Context, r repo.Repo, str string, ref reporef.DatasetRef) (*dataset.Dataset, error) {
-	if str == "" {
+// Recall loads revisions of a dataset from history of a resolved dataset
+// reference
+func Recall(ctx context.Context, store cafs.Filestore, ref dsref.Ref, revStr string) (*dataset.Dataset, error) {
+	if revStr == "" {
 		return &dataset.Dataset{}, nil
 	}
+	if ref.Path == "" {
+		return nil, fmt.Errorf("can only recall from a resolved reference with a path value")
+	}
 
-	revs, err := dsref.ParseRevs(str)
+	revs, err := dsref.ParseRevs(revStr)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := repo.CanonicalizeDatasetRef(r, &ref); err != nil {
-		return nil, err
-	}
-
-	res, err := LoadRevs(ctx, r, ref, revs)
+	res, err := LoadRevs(ctx, store, ref, revs)
 	if err != nil {
 		return nil, err
 	}
@@ -36,11 +35,11 @@ func Recall(ctx context.Context, r repo.Repo, str string, ref reporef.DatasetRef
 
 // LoadRevs grabs a component of a dataset that exists <n>th generation ancestor
 // of the referenced version, where presence of a component in a previous snapshot constitutes ancestry
-func LoadRevs(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, revs []*dsref.Rev) (res *dataset.Dataset, err error) {
+func LoadRevs(ctx context.Context, store cafs.Filestore, ref dsref.Ref, revs []*dsref.Rev) (res *dataset.Dataset, err error) {
 	var ds *dataset.Dataset
 	res = &dataset.Dataset{}
 	for {
-		if ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path); err != nil {
+		if ds, err = dsfs.LoadDataset(ctx, store, ref.Path); err != nil {
 			return
 		}
 
