@@ -28,7 +28,7 @@ func TestPull(t *testing.T) {
 		}
 	})
 
-	t.Run("create_publish_delete_add", func(t *testing.T) {
+	t.Run("create_push_delete_add", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		// TODO(dustmop): Move into test runner
@@ -54,7 +54,7 @@ func TestPull(t *testing.T) {
 
 		// Save one commit
 		run.MustExec(t, "qri save me/one_ds --body testdata/movies/body_ten.csv")
-		run.MustExec(t, "qri publish me/one_ds")
+		run.MustExec(t, "qri push me/one_ds")
 		run.MustExec(t, "qri remove --all me/one_ds")
 		run.MustExec(t, "qri pull test_peer/one_ds")
 	})

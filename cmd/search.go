@@ -21,7 +21,7 @@ func NewSearchCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Short: "search the registry for datasets",
 		Long: `Search datasets & peers that match your query. Search pings the qri registry. 
 
-Any dataset that has been published to the registry is available for search.`,
+Any dataset that has been pushed to the registry is available for search.`,
 		Example: `  # Search for datasets featuring "annual population":
   $ qri search "annual population"`,
 		Annotations: map[string]string{

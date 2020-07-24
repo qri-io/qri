@@ -25,6 +25,7 @@ import (
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
 type DatasetHandlers struct {
 	lib.DatasetMethods
+	remote   *lib.RemoteMethods
 	node     *p2p.QriNode
 	repo     repo.Repo
 	ReadOnly bool
@@ -33,7 +34,8 @@ type DatasetHandlers struct {
 // NewDatasetHandlers allocates a DatasetHandlers pointer
 func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
 	dsm := lib.NewDatasetMethods(inst)
-	h := DatasetHandlers{*dsm, inst.Node(), inst.Node().Repo, readOnly}
+	rm := lib.NewRemoteMethods(inst)
+	h := DatasetHandlers{*dsm, rm, inst.Node(), inst.Node().Repo, readOnly}
 	return &h
 }
 
@@ -123,13 +125,13 @@ func (h *DatasetHandlers) PeerListHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// AddHandler is an endpoint for creating new datasets
-func (h *DatasetHandlers) AddHandler(w http.ResponseWriter, r *http.Request) {
+// PullHandler is an endpoint for creating new datasets
+func (h *DatasetHandlers) PullHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "POST", "PUT":
-		h.addHandler(w, r)
+		h.pullHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -345,32 +347,20 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
-	ref, err := DatasetRefFromPath(r.URL.Path[len("/add"):])
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-
-	// TODO (b5) - move this into lib.Add
-	if ref.Peername == "" || ref.Name == "" {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("need peername and dataset name: '/add/[peername]/[datasetname]'"))
-		return
-	}
-
+func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 	p := &lib.PullParams{
-		Ref:     ref.String(),
+		Ref:     HTTPPathToQriPath(r.URL.Path[len("/pull"):]),
 		LinkDir: r.FormValue("dir"),
 	}
 
 	res := &dataset.Dataset{}
-	err = h.Pull(p, res)
+	err := h.Pull(p, res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	ref = reporef.DatasetRef{
+	ref := reporef.DatasetRef{
 		Peername: res.Peername,
 		Name:     res.Name,
 		Path:     res.Path,
@@ -471,8 +461,25 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
+	ref := HTTPPathToQriPath(r.URL.Path[len("/remove"):])
+
+	if remote := r.FormValue("remote"); remote != "" {
+		res := &dsref.Ref{}
+		err := h.remote.Remove(&lib.PushParams{
+			Ref:        ref,
+			RemoteName: remote,
+		}, res)
+		if err != nil {
+			log.Error("deleting dataset from remote: %s", err.Error())
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+		util.WriteResponse(w, res)
+		return
+	}
+
 	p := lib.RemoveParams{
-		Ref:       HTTPPathToQriPath(r.URL.Path[len("/remove"):]),
+		Ref:       ref,
 		Revision:  dsref.Rev{Field: "ds", Gen: -1},
 		KeepFiles: r.FormValue("keep-files") == "true",
 		Force:     r.FormValue("force") == "true",

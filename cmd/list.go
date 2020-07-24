@@ -54,7 +54,7 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json|simple]")
 	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number results, default 1")
-	cmd.Flags().BoolVarP(&o.Published, "published", "p", false, "list only published datasets")
+	cmd.Flags().BoolVarP(&o.Public, "public", "p", false, "list only publically visible")
 	cmd.Flags().BoolVarP(&o.ShowNumVersions, "num-versions", "n", false, "show number of versions")
 	cmd.Flags().StringVar(&o.Peername, "peer", "", "peer whose datasets to list")
 	cmd.MarkFlagCustom("peer", "__qri_get_peer_flag_suggestions")
@@ -73,7 +73,7 @@ type ListOptions struct {
 	Page            int
 	Term            string
 	Peername        string
-	Published       bool
+	Public          bool
 	ShowNumVersions bool
 	Raw             bool
 	UseDscache      bool
@@ -113,7 +113,7 @@ func (o *ListOptions) Run() (err error) {
 		Peername:        o.Peername,
 		Limit:           page.Limit(),
 		Offset:          page.Offset(),
-		Published:       o.Published,
+		Public:          o.Public,
 		ShowNumVersions: o.ShowNumVersions,
 		EnsureFSIExists: true,
 		UseDscache:      o.UseDscache,

@@ -9,9 +9,9 @@ import (
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
-// Test publishing to a mock registry
-func TestPublish(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_registry_publish")
+// Test push to a mock registry
+func TestPush(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_registry_push")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -27,7 +27,7 @@ func TestPublish(t *testing.T) {
 	// the smarter way to deal with this is to refactor TempRegistry to use the Done pattern
 	defer cancel()
 
-	// Create a mock registry, point our test runner to its URL
+	// create a mock registry, point our test runner to its URL
 	_, httpServer := regserver.NewMockServerRegistry(*reg)
 	run.RepoRoot.GetConfig().Registry.Location = httpServer.URL
 	err = run.RepoRoot.WriteConfigFile()
@@ -35,11 +35,11 @@ func TestPublish(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Save one commit
+	// save one commit
 	run.MustExec(t, "qri save me/one_ds --body testdata/movies/body_ten.csv")
 
-	// Publish to the registry
-	run.MustExec(t, "qri publish me/one_ds")
+	// push to the registry
+	run.MustExec(t, "qri push me/one_ds")
 
 	// Search, verify that we get the dataset back
 	results, err := reg.Search.Search(registry.SearchParams{

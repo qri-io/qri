@@ -207,7 +207,7 @@ func (r *Remote) Node() *p2p.QriNode {
 // Address extracts the address of a remote from a configuration for a given
 // remote name
 func Address(cfg *config.Config, name string) (addr string, err error) {
-	if name == "" {
+	if name == "" || name == "registry" {
 		if cfg.Registry != nil && cfg.Registry.Location != "" {
 			return cfg.Registry.Location, nil
 		}

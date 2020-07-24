@@ -123,7 +123,7 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		}
 		// TODO(dlong): Filtered by p.Published flag
 	} else if ref.Peername == "" || pro.Peername == ref.Peername {
-		refs, err = base.ListDatasets(ctx, m.inst.repo, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
+		refs, err = base.ListDatasets(ctx, m.inst.repo, p.Term, p.Limit, p.Offset, p.RPC, p.Public, p.ShowNumVersions)
 	} else {
 		return fmt.Errorf("listing datasets on a peer is not implemented")
 	}

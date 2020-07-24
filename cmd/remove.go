@@ -18,20 +18,39 @@ func NewRemoveCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Use:     "remove [DATASET]",
 		Aliases: []string{"rm", "delete"},
 		Short:   "remove a dataset from your local repository",
-		Long: `Remove gets rid of a dataset from your qri node. After running remove, qri will
-no longer list your dataset as being available locally. By default, remove frees
-up the space taken up by the dataset, but not right away. The IPFS repo that’s
-storing the data will need to garbage-collect that data when it’s good & ready,
-which could be anytime. If you’re running low on space, garbage collection will
-be sooner.
+		Long: `Remove deletes datasets from qri.
 
-Keep in mind that by default your IPFS repo is capped at 10GB in size, if you
-adjust this cap using IPFS, qri will respect it.
+For read-only datasets you've pulled from others, Remove gets rid of a dataset 
+from your qri node. After running remove, qri will no longer list that dataset 
+as being available locally, and may free up the storage space.
 
-In the future we’ll add a flag that’ll force immediate removal of a dataset from
-both qri & IPFS. Promise.`,
-		Example: `  # Remove a dataset named ` + "`annual_pop`" + `:
-  $ qri remove me/annual_pop --all`,
+For datasets you can edit, remove deletes commits from a dataset history.
+Use delete to "correct the record" by erasing commits. Running remove on 
+writable datasets requires a '--revisions' flag, specifying the number of 
+commits to delete. Remove always starts from the latest (HEAD) commit, working 
+backwards toward the first commit.
+
+Remove can also be used to ask remotes to delete datasets with the '--remote'
+flag. Passing the remote flag will run the operation as a network request,
+reporting the results of attempting to remove on the destination remote.
+The remote flag can only be used to completely remove a dataset from a remote.
+To edit history on a remote, run delete locally and use 'qri push' to send the
+updated history to the remote. Any command run with the remote flag has no
+effect on local data.`,
+		Example: `  # delete a dataset cloned from another user
+  $ qri remove user/world_bank_population
+
+  # delete the latest commit from annual_pop
+  $ qri remove me/annual_pop --revisions 1
+
+  # delete the latest two versions from history
+  $ qri remove me/annual_pop --revisions 2
+
+  # destroy a dataset named 'annual_pop'
+  $ qri remove --all me/annual_pop
+
+  # ask the registry to delete a dataset
+  $ qri remove --remote registry me/annual_pop`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -51,7 +70,8 @@ both qri & IPFS. Promise.`,
 	cmd.Flags().StringVarP(&o.RevisionsText, "revisions", "r", "", "revisions to delete")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "synonym for --revisions=all")
 	cmd.Flags().BoolVar(&o.KeepFiles, "keep-files", false, "don't modify files in working directory")
-	cmd.Flags().BoolVarP(&o.Force, "force", "f", false, "remove files even if dirty")
+	cmd.Flags().BoolVarP(&o.Force, "force", "f", false, "remove files even if a working directory is dirty")
+	cmd.Flags().StringVar(&o.Remote, "remote", "", "remote address to remove from")
 
 	return cmd
 }
@@ -62,18 +82,23 @@ type RemoveOptions struct {
 
 	Refs *RefSelect
 
+	Remote        string
 	RevisionsText string
 	Revision      dsref.Rev
 	All           bool
 	KeepFiles     bool
 	Force         bool
 
+	RemoteMethods  *lib.RemoteMethods
 	DatasetMethods *lib.DatasetMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
+		return err
+	}
+	if o.RemoteMethods, err = f.RemoteMethods(); err != nil {
 		return err
 	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
@@ -116,6 +141,10 @@ func (o *RemoveOptions) Validate() error {
 func (o *RemoveOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
+	if o.Remote != "" {
+		return o.RemoveRemote()
+	}
+
 	params := lib.RemoveParams{
 		Ref:       o.Refs.Ref(),
 		Revision:  o.Revision,
@@ -146,5 +175,22 @@ func (o *RemoveOptions) Run() (err error) {
 	if res.Unlinked {
 		printSuccess(o.Out, "removed dataset link")
 	}
+	return nil
+}
+
+// RemoveRemote runs the remove command as a network request to a remote
+func (o *RemoveOptions) RemoveRemote() error {
+	res := &dsref.Ref{}
+	err := o.RemoteMethods.Remove(&lib.PushParams{
+		Ref:        o.Refs.Ref(),
+		RemoteName: o.Remote,
+	}, res)
+	if err != nil {
+		return fmt.Errorf("dataset not removed")
+	}
+
+	// remove profileID info for cleaner output
+	res.ProfileID = ""
+	printSuccess(o.Out, "removed dataset %s from remote %s", res, o.Remote)
 	return nil
 }
