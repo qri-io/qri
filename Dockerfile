@@ -1,4 +1,4 @@
-FROM golang:1.13.7
+FROM golang:1.14.6
 LABEL maintainer="sparkle_pony_2000@qri.io"
 
 ADD . /go/src/github.com/qri-io/qri
