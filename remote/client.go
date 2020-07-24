@@ -452,74 +452,15 @@ func (c *client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr str
 
 	node := c.node
 
-	type addResponse struct {
-		Ref   *dsref.Ref
-		Error error
+	if err := c.pullLogs(ctx, *ref, remoteAddr); err != nil {
+		log.Error(err)
+		return nil, err
 	}
 
-	fetchCtx, cancelFetch := context.WithCancel(ctx)
-	defer cancelFetch()
-	responses := make(chan addResponse)
-	tasks := 0
-
-	if remoteAddr != "" {
-		tasks++
-
-		if err := c.pullLogs(ctx, *ref, remoteAddr); err != nil {
-			log.Error(err)
-			return nil, err
-		}
-
-		refCopy := ref.Copy()
-
-		go func(ref *dsref.Ref) {
-			res := addResponse{Ref: ref}
-
-			// always send on responses channel
-			defer func() {
-				responses <- res
-			}()
-
-			if err := c.pullDatasetVersion(fetchCtx, ref, remoteAddr); err != nil {
-				res.Error = err
-				return
-			}
-			node.LocalStreams.PrintErr("🗼 fetched from registry\n")
-		}(&refCopy)
+	if err := c.pullDatasetVersion(ctx, ref, remoteAddr); err != nil {
+		return nil, err
 	}
-
-	// TODO (b5) - base.FetchDataset has been removed, and this entire process
-	// of fetching via p2p in a parallel goroutine needs a re-think
-	// if node.Online {
-	// 	tasks++
-	// 	go func() {
-	// 		err := base.FetchDataset(fetchCtx, node.Repo, ref, true, true)
-	// 		responses <- addResponse{
-	// 			Ref:   ref,
-	// 			Error: err,
-	// 		}
-	// 	}()
-	// }
-
-	if tasks == 0 {
-		return nil, fmt.Errorf("no registry configured and node is not online")
-	}
-
-	success := false
-	for i := 0; i < tasks; i++ {
-		res := <-responses
-		err = res.Error
-		if err == nil {
-			cancelFetch()
-			success = true
-			*ref = *res.Ref
-			break
-		}
-	}
-
-	if !success {
-		return nil, fmt.Errorf("add failed: %s", err.Error())
-	}
+	node.LocalStreams.PrintErr(fmt.Sprintf("🗼 fetched from remote %q\n", remoteAddr))
 
 	err = c.pub.Publish(ctx, event.ETRemoteClientPullDatasetCompleted, event.RemoteEvent{
 		Ref:        *ref,
@@ -568,10 +509,6 @@ func (c *client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr str
 
 // pullLogs fetches logbook data from a remote & stores it locally
 func (c *client) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
-	if c == nil {
-		return ErrNoRemoteClient
-	}
-
 	if t := addressType(remoteAddr); t == "http" {
 		remoteAddr = remoteAddr + "/remote/logsync"
 	}
@@ -588,9 +525,6 @@ func (c *client) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string)
 
 // pullDatasetVersion fetches a dataset from a remote source
 func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteAddr string) error {
-	if c == nil {
-		return ErrNoRemoteClient
-	}
 	log.Debugf("pulling dataset: %s from %s", ref.String(), remoteAddr)
 
 	if ref.Path == "" {

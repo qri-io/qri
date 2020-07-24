@@ -51,34 +51,28 @@ func TestClientDone(t *testing.T) {
 	}
 }
 
-func TestPullDataset(t *testing.T) {
-	tr, cleanup := newTestRunner(t)
-	defer cleanup()
+func TestErrNoClient(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	var client *client
-	var nilClient Client
-	nilClient = client
-	if _, err := nilClient.PullDataset(tr.Ctx, &dsref.Ref{}, ""); err != ErrNoRemoteClient {
-		t.Errorf("nil add mismatch. expected: '%s', got: '%s'", ErrNoRemoteClient, err)
+	var client Client = (*client)(nil)
+
+	if _, err := client.PullDataset(ctx, &dsref.Ref{}, ""); err != ErrNoRemoteClient {
+		t.Errorf("error mismatch expected: %q, got: %q", ErrNoRemoteClient, err)
+	}
+	if err := client.RemoveDataset(ctx, dsref.Ref{}, ""); err != ErrNoRemoteClient {
+		t.Errorf("error mismatch expected: %q, got: %q", ErrNoRemoteClient, err)
+	}
+	if err := client.RemoveDatasetVersion(ctx, dsref.Ref{}, ""); err != ErrNoRemoteClient {
+		t.Errorf("error mismatch expected: %q, got: %q", ErrNoRemoteClient, err)
+	}
+	if _, err := client.FetchLogs(ctx, dsref.Ref{}, ""); err != ErrNoRemoteClient {
+		t.Errorf("error mismatch expected: %q, got: %q", ErrNoRemoteClient, err)
+	}
+	if err := client.PushDataset(ctx, dsref.Ref{}, ""); err != ErrNoRemoteClient {
+		t.Errorf("error mismatch expected: %q, got: %q", ErrNoRemoteClient, err)
 	}
 
-	wbpRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
-
-	cli, err := NewClient(tr.Ctx, tr.NodeB, tr.NodeB.Repo.Bus())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	tr.NodeA.GoOnline(tr.Ctx)
-	tr.NodeB.GoOnline(tr.Ctx)
-
-	if _, err := cli.PullDataset(tr.Ctx, &dsref.Ref{Username: "foo", Name: "bar"}, ""); err == nil {
-		t.Error("expected add of invalid ref to error")
-	}
-
-	if _, err := cli.PullDataset(tr.Ctx, &wbpRef, ""); err != nil {
-		t.Error(err.Error())
-	}
 }
 
 func TestNewRemoteRefResolver(t *testing.T) {

@@ -346,7 +346,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 
 	// Save the path from reference for later.
 	// TODO(dlong): Support full dataset refs, not just the path.
-	ref1 := strings.TrimPrefix(res.Path, "/map/")
+	ref1Path := res.Path
 
 	// Save version 2 with a different title
 	saveParams = lib.SaveParams{
@@ -444,12 +444,12 @@ func TestCheckoutAndRestore(t *testing.T) {
 	// Restore the previous version of the dataset
 	actualStatusCode, actualBody = APICallWithParams(
 		"POST",
-		"/restore/peer/fsi_checkout_restore",
+		"/restore/me/fsi_checkout_restore",
 		map[string]string{
 			// TODO(dlong): Have to pass "dir" to this method. In the test, the ref does
 			// not have an FSIPath. Might be because we're using /map/, not sure.
 			"dir":  workDir,
-			"path": ref1,
+			"path": ref1Path,
 		},
 		fsiHandler.RestoreHandler("/restore"))
 	if actualStatusCode != 200 {
