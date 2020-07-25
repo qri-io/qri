@@ -631,8 +631,13 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 				log.Errorf("ds.Transform.ScriptPath %q read err: %s", ds.Transform.ScriptPath, err)
 			}
 		}
+		// Reopen the transform file so that WriteDataset will be able to write it to the store.
+		if reopenErr := ds.Transform.OpenScriptFile(ctx, fs); reopenErr != nil {
+			log.Debugf("error reopening transform script file: %q", reopenErr)
+		}
+
 		// re-assign so we have something to save
-		ds.Readme.SetScriptFile(qfs.NewMemfileBytes(ds.Transform.ScriptPath, ds.Transform.ScriptBytes))
+		ds.Readme.SetScriptFile(qfs.NewMemfileBytes(ds.Readme.ScriptPath, ds.Readme.ScriptBytes))
 	}
 
 	// Read the readme files to see if they changed.
@@ -768,11 +773,12 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 	}
 	if prevBody != nil && nextBody != nil {
 		log.Debugf("calculating body statDiff type(prevBody)=%T type(nextBody)=%T", prevBody, nextBody)
-		bodyDiff, bodyStat, err = deepdiff.New().StatDiff(ctx, prevBody, nextBody)
-		if err != nil {
-			log.Debugf("error calculating body statDiff: %q", err)
-			return "", "", err
-		}
+		// bodyDiff, bodyStat, err = deepdiff.New().StatDiff(ctx, prevBody, nextBody)
+		// if err != nil {
+		// 	log.Debugf("error calculating body statDiff: %q", err)
+		// 	return "", "", err
+		// }
+		assumeBodyChanged = true
 	}
 
 	log.Debug("setting diff descriptions")
