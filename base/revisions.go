@@ -127,6 +127,7 @@ func Drop(ds *dataset.Dataset, revStr string) error {
 	if revStr == "" {
 		return nil
 	}
+	log.Debugf("Drop revStr=%q", revStr)
 
 	revs, err := dsref.ParseRevs(revStr)
 	if err != nil {

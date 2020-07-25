@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	logger "github.com/ipfs/go-log"
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/deepdiff"
 )
 
-var log = logger.Logger("friendly")
+var log = golog.Logger("friendly")
 
 const smallNumberOfChangesToBody = 3
 
@@ -23,6 +23,7 @@ type ComponentChanges struct {
 // DiffDescriptions creates a friendly message from diff operations. If there's no differences
 // found, return empty strings.
 func DiffDescriptions(headDeltas, bodyDeltas []*deepdiff.Delta, bodyStats *deepdiff.Stats, assumeBodyChanged bool) (string, string) {
+	log.Debugf("DiffDescriptions len(headDeltas)=%d len(bodyDeltas)=%d bodyStats=%v assumeBodyChanged=%t", len(headDeltas), len(bodyDeltas), bodyStats, assumeBodyChanged)
 	if len(headDeltas) == 0 && len(bodyDeltas) == 0 {
 		return "", ""
 	}
@@ -41,6 +42,7 @@ func DiffDescriptions(headDeltas, bodyDeltas []*deepdiff.Delta, bodyStats *deepd
 	componentsToCheck := []string{"meta", "structure", "readme", "viz", "transform", "body"}
 	for _, compName := range componentsToCheck {
 		if changes, ok := perComponentChanges[compName]; ok {
+			log.Debugf("checking component named=%q", compName)
 			changedComponents = append(changedComponents, compName)
 
 			// Decide heuristically which type of message to use for this component

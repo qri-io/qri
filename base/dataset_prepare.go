@@ -35,6 +35,7 @@ func PrepareSaveRef(
 	bodyPathNameHint string,
 	wantNewName bool,
 ) (dsref.Ref, bool, error) {
+	log.Debugf("PrepareSaveRef refStr=%q bodyPathNameHint=%q wantNewName=%t", refStr, bodyPathNameHint, wantNewName)
 
 	var badCaseErr error
 
@@ -97,6 +98,7 @@ func PrepareSaveRef(
 		}
 
 		// we have a valid previous reference & an initID, return!
+		log.Debugf("PrepareSaveRef found previous initID=%q", ref.InitID)
 		return ref, false, nil
 	}
 
@@ -110,6 +112,7 @@ func PrepareSaveRef(
 	}
 
 	ref.InitID, err = book.WriteDatasetInit(ctx, ref.Name)
+	log.Debugf("PrepareSaveRef created new initID=%q ref.Username=%q ref.Name=%q", ref.InitID, ref.Username, ref.Name)
 	return ref, true, err
 }
 
@@ -189,7 +192,7 @@ func InferValues(pro *profile.Profile, ds *dataset.Dataset) error {
 func ValidateDataset(ds *dataset.Dataset) (err error) {
 	// Ensure that dataset structure is valid
 	if err = validate.Dataset(ds); err != nil {
-		log.Debug(err.Error())
+		log.Debugf("ValidateDataset error=%q", err.Error())
 		err = fmt.Errorf("invalid dataset: %s", err.Error())
 		return
 	}
