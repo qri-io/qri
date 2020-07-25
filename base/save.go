@@ -22,11 +22,11 @@ var ErrNameTaken = fmt.Errorf("name already in use")
 
 // SaveDataset saves a version of the dataset for the given initID at the current path
 func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, initID, prevPath string, changes *dataset.Dataset, sw SaveSwitches) (ds *dataset.Dataset, err error) {
+	log.Debugf("SaveDataset initID=%q prevPath=%q", initID, prevPath)
 	var pro *profile.Profile
 	if pro, err = r.Profile(); err != nil {
-		return
+		return nil, err
 	}
-
 	if initID == "" {
 		return nil, fmt.Errorf("SaveDataset requires an initID")
 	}
@@ -70,7 +70,9 @@ func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ini
 
 	// Handle a change in structure format.
 	if changes.BodyFile() != nil && prev.Structure != nil && changes.Structure != nil && prev.Structure.Format != changes.Structure.Format {
+		log.Debugf("body formats differ. prev=%q new=%q", prev.Structure.Format, changes.Structure.Format)
 		if sw.ConvertFormatToPrev {
+			log.Debugf("changing structure format prev=%q new=%q", prev.Structure.Format, changes.Structure.Format)
 			var f qfs.File
 			f, err = ConvertBodyFormat(changes.BodyFile(), changes.Structure, prev.Structure)
 			if err != nil {
@@ -116,6 +118,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ini
 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating the refstore
 func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ds, dsPrev *dataset.Dataset, sw SaveSwitches) (res *dataset.Dataset, err error) {
+	log.Debugf("CreateDataset ds=%#v dsPrev=%#v", ds, dsPrev)
 	var (
 		pro     *profile.Profile
 		path    string
@@ -135,12 +138,11 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 		return nil, fmt.Errorf("cannot create dataset without a name")
 	}
 	if err = Drop(ds, sw.Drop); err != nil {
-		log.Debugf("dropping components: %s", err)
 		return nil, err
 	}
 
 	if err = ValidateDataset(ds); err != nil {
-		log.Debugf("ValidateDataset: %s", err)
+		log.Debugf("ValidateDataset error: %s", err)
 		return
 	}
 

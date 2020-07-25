@@ -48,10 +48,10 @@ var (
 // LoadDataset reads a dataset from a cafs and dereferences structure, transform, and commitMsg if they exist,
 // returning a fully-hydrated dataset
 func LoadDataset(ctx context.Context, store cafs.Filestore, path string) (*dataset.Dataset, error) {
+	log.Debugf("LoadDataset path=%q", path)
 	// set a timeout to handle long-lived requests when connected to IPFS.
 	// if we don't have the dataset locally, IPFS will reach out onto the d.web to
-	// attempt to resolve previous hashes. capping the duration  to 700 MS yeilds
-	// quick results.
+	// attempt to resolve previous hashes. capping the duration yeilds quicker results.
 	// TODO (b5) - The proper way to solve this is to feed a local-only IPFS store
 	// to this entire function, or have a mechanism for specifying that a fetch
 	// must be local
@@ -74,6 +74,7 @@ func LoadDataset(ctx context.Context, store cafs.Filestore, path string) (*datas
 // LoadDatasetRefs reads a dataset from a content addressed filesystem without dereferencing
 // it's components
 func LoadDatasetRefs(ctx context.Context, store cafs.Filestore, path string) (*dataset.Dataset, error) {
+	log.Debug("LoadDatasetRefs path=%q", path)
 	ds := dataset.NewDatasetRef(path)
 
 	pathWithBasename := PackageFilepath(store, path, PackageFileDataset)
@@ -107,6 +108,7 @@ func LoadDatasetRefs(ctx context.Context, store cafs.Filestore, path string) (*d
 
 // DerefDataset attempts to fully dereference a dataset
 func DerefDataset(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset) error {
+	log.Debugf("DerefDataset path=%q", ds.Path)
 	if err := DerefDatasetMeta(ctx, store, ds); err != nil {
 		return err
 	}
@@ -249,6 +251,7 @@ type SaveSwitches struct {
 // Sw is switches that control how the save happens
 // Returns the immutable path if no error
 func CreateDataset(ctx context.Context, source, destination cafs.Filestore, ds, dsPrev *dataset.Dataset, pk crypto.PrivKey, sw SaveSwitches) (string, error) {
+	log.Debugf("CreateDataset")
 	if pk == nil {
 		return "", fmt.Errorf("private key is required to create a dataset")
 	}
@@ -307,6 +310,7 @@ const (
 // prepareDataset modifies a dataset in preparation for adding to a dsfs
 // it returns a new data file for use in WriteDataset
 func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey crypto.PrivKey, sw SaveSwitches) error {
+	log.Debugf("prepareDataset")
 	var (
 		err error
 		// lock for parallel edits to ds pointer
@@ -400,6 +404,7 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 	ds.SetBodyFile(qfs.NewMemfileBytes("body."+ds.Structure.Format, buf.Bytes()))
 
 	if sw.ShouldRender && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
+		log.Debugf("rendering dataset viz")
 		// render the viz
 		renderedFile, err := dsviz.Render(ds)
 		if err != nil {
@@ -443,6 +448,7 @@ func generateCommit(store cafs.Filestore, prev, ds *dataset.Dataset, privKey cry
 	}
 	ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
 
+	log.Debugf("generateCommit complete. signature=%q", ds.Commit.Signature)
 	return nil
 }
 
@@ -472,6 +478,7 @@ func setErrCount(ds *dataset.Dataset, data qfs.File, mu *sync.Mutex, done chan e
 	ds.Structure.ErrCount = len(validationErrors)
 	mu.Unlock()
 
+	log.Debugf("setErrorCount result ErrCount=%d", ds.Structure.ErrCount)
 	done <- nil
 }
 
@@ -491,7 +498,6 @@ func setDepthAndEntryCount(ds *dataset.Dataset, data qfs.File, mu *sync.Mutex, d
 	var ent dsio.Entry
 	for {
 		if ent, err = er.ReadEntry(); err != nil {
-			log.Debug(err.Error())
 			break
 		}
 		// get the depth of this entry, update depth if larger
@@ -501,7 +507,8 @@ func setDepthAndEntryCount(ds *dataset.Dataset, data qfs.File, mu *sync.Mutex, d
 		entries++
 	}
 	if err.Error() != "EOF" {
-		done <- fmt.Errorf("error reading values at entry %d: %s", entries, err.Error())
+		log.Debugf("reading values at entry=%q err=%s", entries, err.Error())
+		done <- fmt.Errorf("reading values at entry %d: %s", entries, err.Error())
 		return
 	}
 
@@ -510,6 +517,7 @@ func setDepthAndEntryCount(ds *dataset.Dataset, data qfs.File, mu *sync.Mutex, d
 	ds.Structure.Depth = depth + 1 // need to add one for the original enclosure
 	mu.Unlock()
 
+	log.Debugf("set depth and entry count. depth=%d entries=%d", ds.Structure.Depth, ds.Structure.Entries)
 	done <- nil
 }
 
@@ -556,6 +564,7 @@ func setChecksumAndLength(ds *dataset.Dataset, data qfs.File, buf *bytes.Buffer,
 	ds.Structure.Length = len(buf.Bytes())
 	mu.Unlock()
 
+	log.Debugf("set length and checksum. length=%d checksum=%q", ds.Structure.Length, ds.Structure.Checksum)
 	done <- nil
 }
 
@@ -566,6 +575,7 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 	if prev == nil || prev.IsEmpty() {
 		return defaultCreatedDescription, defaultCreatedDescription, nil
 	}
+	log.Debug("generateCommitDescriptions")
 
 	ctx := context.TODO()
 
@@ -574,6 +584,7 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 		// If previous version had bodyfile, read it and assign it
 		if prev.Structure != nil && prev.Structure.Length < BodySizeSmallEnoughToDiff {
 			if prev.BodyFile() != nil {
+				log.Debugf("inlining body file to calulate a diff")
 				prevReader, err := dsio.NewEntryReader(prev.Structure, prev.BodyFile())
 				if err == nil {
 					prevBodyData, err := readAllEntries(prevReader)
@@ -590,6 +601,7 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 	// Read the transform files to see if they changed.
 	// TODO(dustmop): Would be better to get a line-by-line diff
 	if prev.Transform != nil && prev.Transform.ScriptPath != "" {
+		log.Debugf("inlining prev transform ScriptPath=%q", prev.Transform.ScriptPath)
 		err := prev.Transform.OpenScriptFile(ctx, store)
 		if err != nil {
 			log.Error("prev.Transform.ScriptPath %q open err: %s", prev.Transform.ScriptPath, err)
@@ -602,6 +614,7 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 		}
 	}
 	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
+		log.Debugf("inlining next transform ScriptPath=%q", ds.Transform.ScriptPath)
 		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
 		// local here. Is there some way to have a cafs store that works with both?
 		fs, err := localfs.NewFS(nil)
@@ -619,12 +632,15 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 			}
 		}
 		// Reopen the transform file so that WriteDataset will be able to write it to the store.
-		_ = ds.Transform.OpenScriptFile(ctx, fs)
+		if reopenErr := ds.Transform.OpenScriptFile(ctx, fs); reopenErr != nil {
+			log.Debugf("error reopening transform script file: %q", reopenErr)
+		}
 	}
 
 	// Read the readme files to see if they changed.
 	// TODO(dustmop): Would be better to get a line-by-line diff
 	if prev.Readme != nil && prev.Readme.ScriptPath != "" {
+		log.Debugf("inlining prev readme ScriptPath=%q", prev.Readme.ScriptPath)
 		err := prev.Readme.OpenScriptFile(ctx, store)
 		if err != nil {
 			log.Error("prev.Readme.ScriptPath %q open err: %s", prev.Readme.ScriptPath, err)
@@ -637,6 +653,7 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 		}
 	}
 	if ds.Readme != nil && ds.Readme.ScriptPath != "" {
+		log.Debugf("inlining next readme ScriptPath=%q", ds.Readme.ScriptPath)
 		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
 		// local here. Is there some way to have a cafs store that works with both?
 		fs, err := localfs.NewFS(nil)
@@ -645,16 +662,18 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 		}
 		err = ds.Readme.OpenScriptFile(ctx, fs)
 		if err != nil {
-			log.Errorf("ds.Readme.ScriptPath %q open err: %s", ds.Readme.ScriptPath, err)
+			log.Debugf("ds.Readme.ScriptPath %q open err: %s", ds.Readme.ScriptPath, err)
 			err = nil
 		} else {
 			tfFile := ds.Readme.ScriptFile()
 			ds.Readme.ScriptBytes, err = ioutil.ReadAll(tfFile)
 			if err != nil {
-				log.Error("ds.Readme.ScriptPath %q read err: %s", ds.Readme.ScriptPath, err)
+				log.Errorf("ds.Readme.ScriptPath %q read err: %s", ds.Readme.ScriptPath, err)
 			}
 		}
-		_ = ds.Readme.OpenScriptFile(ctx, fs)
+		if reopenErr := ds.Readme.OpenScriptFile(ctx, fs); reopenErr != nil {
+			log.Debugf("error reopening readme script file: %q", reopenErr)
+		}
 	}
 
 	var prevData map[string]interface{}
@@ -751,12 +770,15 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 		return "", "", err
 	}
 	if prevBody != nil && nextBody != nil {
+		log.Debugf("calculating body statDiff type(prevBody)=%T type(nextBody)=%T", prevBody, nextBody)
 		bodyDiff, bodyStat, err = deepdiff.New().StatDiff(ctx, prevBody, nextBody)
 		if err != nil {
+			log.Debugf("error calculating body statDiff: %q", err)
 			return "", "", err
 		}
 	}
 
+	log.Debug("setting diff descriptions")
 	shortTitle, longMessage := friendly.DiffDescriptions(headDiff, bodyDiff, bodyStat, assumeBodyChanged)
 	if shortTitle == "" {
 		if forceIfNoChanges {
@@ -765,6 +787,7 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 		return "", "", fmt.Errorf("no changes")
 	}
 
+	log.Debugf("set friendly diff descriptions. shortTitle=%q", shortTitle)
 	return shortTitle, longMessage, nil
 }
 
@@ -805,6 +828,7 @@ func readAllEntries(reader dsio.EntryReader) (interface{}, error) {
 // This method is currently exported, but 99% of use cases should use CreateDataset instead of this
 // lower-level function
 func WriteDataset(ctx context.Context, destination cafs.Filestore, ds *dataset.Dataset, pin bool) (string, error) {
+	log.Debug("WriteDataset")
 
 	if ds == nil || ds.IsEmpty() {
 		return "", fmt.Errorf("cannot save empty dataset")
@@ -1001,6 +1025,7 @@ func WriteDataset(ctx context.Context, destination cafs.Filestore, ds *dataset.D
 
 			fileTasks--
 			if fileTasks == 0 {
+				log.Debug("no fileTasks remain")
 				if !addedDataset {
 					ds.DropTransientValues()
 					dsdata, err := json.Marshal(ds)
@@ -1009,9 +1034,10 @@ func WriteDataset(ctx context.Context, destination cafs.Filestore, ds *dataset.D
 						return
 					}
 
-					adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileDataset.String(), dsdata))
+					if addErr := adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileDataset.String(), dsdata)); addErr != nil {
+						log.Debugf("error adding dataset file: %q", addErr)
+					}
 				}
-				//
 				if err := adder.Close(); err != nil {
 					done <- err
 					return
@@ -1023,8 +1049,11 @@ func WriteDataset(ctx context.Context, destination cafs.Filestore, ds *dataset.D
 
 	err = <-done
 	if err != nil {
+		log.Debugf("error writing dataset: %q", err)
 		return path, err
 	}
+
+	log.Debugf("dataset written to filesystem. path=%q", path)
 
 	// TODO (b5): currently we're loading to keep the ds pointer hydrated post-write
 	// we should remove that assumption, allowing callers to skip this load step, which may
