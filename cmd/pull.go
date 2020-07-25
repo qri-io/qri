@@ -17,15 +17,17 @@ func NewPullCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Use:     "pull DATASET [DATASET...]",
 		Aliases: []string{"add"},
 		Short:   "fetch & store datasets from other peers",
+		Long: `Pull downloads datasets and stores them locally, fetching the dataset log and
+dataset version(s). By default pull fetches the latest version of a dataset.
+`,
+		Example: `  # download a dataset log and latest version
+  $ qri pull b5/world_bank_population
+
+  # pull a specific version from a remote by hash
+  $ qri pull ramfox b5/world_bank_population@/ipfs/QmFoo...`,
 		Annotations: map[string]string{
-			"group": "dataset",
+			"group": "network",
 		},
-		Long: `Pull retrieves datasets owned by other peers and adds them to your repo. 
-The reference names of the datasets will remain the same, including 
-the name of the peer that originally added the dataset. You must have 
-` + "`qri connect`" + ` running in another terminal to use this command.`,
-		Example: `  # Pull a dataset named their_data, owned by other_peer:
-  $ qri pull other_peer/their_data`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f); err != nil {
 				return err

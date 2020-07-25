@@ -25,7 +25,7 @@ func TestRemoteClientHandlers(t *testing.T) {
 		{"POST", "/publish/me/cities", nil},
 		{"DELETE", "/publish/me/cities", nil},
 	}
-	runHandlerTestCases(t, "publish", h.PublishHandler, publishCases, true)
+	runHandlerTestCases(t, "publish", h.PushHandler, publishCases, true)
 
 	// tests getting a list of logs from a remote
 	fetchCases := []handlerTestCase{

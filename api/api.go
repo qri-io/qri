@@ -217,7 +217,6 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/save/", s.middleware(dsh.SaveHandler))
 	m.Handle("/remove/", s.middleware(dsh.RemoveHandler))
 	m.Handle("/me/", s.middleware(dsh.GetHandler("/me")))
-	m.Handle("/add/", s.middleware(dsh.AddHandler))
 	m.Handle("/rename", s.middleware(dsh.RenameHandler))
 	m.Handle("/diff", s.middleware(dsh.DiffHandler))
 	m.Handle("/body/", s.middleware(dsh.BodyHandler))
@@ -225,7 +224,8 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/unpack/", s.middleware(dsh.UnpackHandler))
 
 	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)
-	m.Handle("/publish/", s.middleware(remClientH.PublishHandler))
+	m.Handle("/push/", s.middleware(remClientH.PushHandler))
+	m.Handle("/pull/", s.middleware(dsh.PullHandler))
 	m.Handle("/feeds", s.middleware(remClientH.FeedsHandler))
 	m.Handle("/preview/", s.middleware(remClientH.DatasetPreviewHandler))
 

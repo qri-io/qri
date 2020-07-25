@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
-	"github.com/qri-io/dag"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -25,8 +24,9 @@ type ListParams struct {
 	// RPC is a horrible hack while we work to replace the net/rpc package
 	// TODO - remove this
 	RPC bool
-	// Published only applies to listing datasets
-	Published bool
+	// Public only applies to listing datasets, shows only datasets that are
+	// set to visible
+	Public bool
 	// ShowNumVersions only applies to listing datasets
 	ShowNumVersions bool
 	// EnsureFSIExists controls whether to ensure references in the repo have correct FSIPaths
@@ -71,32 +71,4 @@ func (lp ListParams) Page() util.Page {
 	}
 	number = lp.Offset/size + 1
 	return util.NewPage(number, size)
-}
-
-// PushParams holds parameters for pushing daginfo to remotes
-type PushParams struct {
-	Ref           string
-	RemoteName    string
-	PinOnComplete bool
-}
-
-// ReceiveParams hold parameters for receiving daginfo's when running as a remote
-type ReceiveParams struct {
-	Peername  string
-	Name      string
-	ProfileID profile.ID
-	DagInfo   *dag.Info
-}
-
-// ReceiveResult is the result of receiving a posted dataset when running as a remote
-type ReceiveResult struct {
-	Success      bool
-	RejectReason string
-	SessionID    string
-	Diff         *dag.Manifest
-}
-
-// CompleteParams holds parameters to send when completing a dsync sent to a remote
-type CompleteParams struct {
-	SessionID string
 }

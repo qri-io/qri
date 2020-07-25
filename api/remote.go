@@ -26,11 +26,11 @@ func NewRemoteClientHandlers(inst *lib.Instance, readOnly bool) *RemoteClientHan
 	}
 }
 
-// PublishHandler facilitates requests to publish or unpublish
-// from the local node to a remote
-func (h *RemoteClientHandlers) PublishHandler(w http.ResponseWriter, r *http.Request) {
+// PushHandler facilitates requests to push dataset data from a local node
+// to a remote. It also supports remove requests to a remote for legacy reasons
+func (h *RemoteClientHandlers) PushHandler(w http.ResponseWriter, r *http.Request) {
 	if h.readOnly {
-		readOnlyResponse(w, "/publish")
+		readOnlyResponse(w, "/push")
 		return
 	}
 
@@ -39,17 +39,17 @@ func (h *RemoteClientHandlers) PublishHandler(w http.ResponseWriter, r *http.Req
 		util.EmptyOkHandler(w, r)
 		return
 	case "GET":
-		h.listPublishedHandler(w, r)
+		h.listPublicHandler(w, r)
 		return
 	}
 
-	ref, err := DatasetRefFromPath(r.URL.Path[len("/publish"):])
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/push"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	p := &lib.PublicationParams{
+	p := &lib.PushParams{
 		Ref:        ref.String(),
 		RemoteName: r.FormValue("remote"),
 	}
@@ -57,14 +57,14 @@ func (h *RemoteClientHandlers) PublishHandler(w http.ResponseWriter, r *http.Req
 	var res dsref.Ref
 	switch r.Method {
 	case "POST":
-		if err := h.Publish(p, &res); err != nil {
+		if err := h.Push(p, &res); err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
 		util.WriteResponse(w, "ok")
 		return
 	case "DELETE":
-		if err := h.Unpublish(p, &res); err != nil {
+		if err := h.Remove(p, &res); err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -125,10 +125,10 @@ func (h *RemoteClientHandlers) previewHandler(w http.ResponseWriter, r *http.Req
 	util.WriteResponse(w, res)
 }
 
-func (h *RemoteClientHandlers) listPublishedHandler(w http.ResponseWriter, r *http.Request) {
+func (h *RemoteClientHandlers) listPublicHandler(w http.ResponseWriter, r *http.Request) {
 	args := lib.ListParamsFromRequest(r)
 	args.OrderBy = "created"
-	args.Published = true
+	args.Public = true
 
 	dsm := lib.NewDatasetMethods(h.inst)
 

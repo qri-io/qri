@@ -29,112 +29,6 @@ func NewRemoteMethods(inst *Instance) *RemoteMethods {
 // CoreRequestsName implements the Requests interface
 func (*RemoteMethods) CoreRequestsName() string { return "remote" }
 
-// PublicationParams encapsulates parmeters for dataset publication
-type PublicationParams struct {
-	Ref        string
-	RemoteName string
-	// All indicates all versions of a dataset and the dataset namespace should
-	// be either published or removed
-	All bool
-}
-
-// Publish posts a dataset version to a remote
-func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
-	if r.inst.rpc != nil {
-		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Publish", p, res))
-	}
-
-	// TODO (b5) - need contexts yo
-	ctx := context.TODO()
-
-	ref, err := dsref.Parse(p.Ref)
-	if err != nil {
-		return err
-	}
-	if ref.Path != "" {
-		return fmt.Errorf("can only publish entire dataset, cannot use version %s", ref.Path)
-	}
-
-	if _, err := r.inst.ResolveReference(ctx, &ref, "local"); err != nil {
-		return err
-	}
-
-	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
-	if err != nil {
-		return err
-	}
-
-	if err = r.inst.RemoteClient().PushDataset(ctx, ref, addr); err != nil {
-		return err
-	}
-
-	datasetRef := reporef.RefFromDsref(ref)
-	datasetRef.Published = true
-	if err = base.SetPublishStatus(r.inst.node.Repo, ref, true); err != nil {
-		return err
-	}
-
-	*res = ref
-	return nil
-}
-
-// Unpublish asks a remote to remove a dataset
-func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
-	if r.inst.rpc != nil {
-		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Unpublish", p, res))
-	}
-
-	ref, err := dsref.ParseHumanFriendly(p.Ref)
-	if err != nil {
-		if err == dsref.ErrNotHumanFriendly {
-			return fmt.Errorf("can only unpublish entire dataset. run unpublish without a path")
-		}
-		return err
-	}
-
-	// TODO (b5) - need contexts yo
-	ctx := context.TODO()
-
-	if _, err := r.inst.ResolveReference(ctx, &ref, "local"); err != nil {
-		return err
-	}
-
-	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
-	if err != nil {
-		return err
-	}
-
-	if err := r.inst.RemoteClient().RemoveDataset(ctx, ref, addr); err != nil {
-		return err
-	}
-
-	if err = base.SetPublishStatus(r.inst.node.Repo, ref, false); err != nil {
-		return err
-	}
-
-	*res = ref
-	return nil
-}
-
-// PullDatasetVersion fetches a dataset version from a remote
-func (r *RemoteMethods) PullDatasetVersion(p *PublicationParams, res *dataset.Dataset) error {
-	if r.inst.rpc != nil {
-		return checkRPCError(r.inst.rpc.Call("RemoteMethods.PullDatasetVersion", p, res))
-	}
-
-	ref, err := dsref.Parse(p.Ref)
-	if err != nil {
-		return err
-	}
-
-	// TODO (b5) - need contexts yo
-	ctx := context.TODO()
-
-	ds, err := r.inst.RemoteClient().PullDataset(ctx, &ref, p.RemoteName)
-	*res = *ds
-	return err
-}
-
 // Feeds returns a listing of datasets from a number of feeds like featured and
 // popular. Each feed is keyed by string in the response
 func (r *RemoteMethods) Feeds(remoteName *string, res *map[string][]dsref.VersionInfo) error {
@@ -186,5 +80,104 @@ func (r *RemoteMethods) Preview(p *PreviewParams, res *dataset.Dataset) error {
 	}
 
 	*res = *pre
+	return nil
+}
+
+// PushParams encapsulates parmeters for dataset publication
+type PushParams struct {
+	Ref        string
+	RemoteName string
+	// All indicates all versions of a dataset and the dataset namespace should
+	// be either published or removed
+	All bool
+}
+
+// Push posts a dataset version to a remote
+func (r *RemoteMethods) Push(p *PushParams, res *dsref.Ref) error {
+	if r.inst.rpc != nil {
+		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Push", p, res))
+	}
+
+	// TODO (b5) - need contexts yo
+	ctx := context.TODO()
+
+	ref, _, err := r.inst.ParseAndResolveRef(ctx, p.Ref, "local")
+	if err != nil {
+		return err
+	}
+
+	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
+	if err != nil {
+		return err
+	}
+
+	if err = r.inst.RemoteClient().PushDataset(ctx, ref, addr); err != nil {
+		return err
+	}
+
+	datasetRef := reporef.RefFromDsref(ref)
+	datasetRef.Published = true
+	if err = base.SetPublishStatus(r.inst.node.Repo, ref, true); err != nil {
+		return err
+	}
+
+	*res = ref
+	return nil
+}
+
+// Pull fetches a dataset version & logbook data from a remote
+func (r *RemoteMethods) Pull(p *PushParams, res *dataset.Dataset) error {
+	if r.inst.rpc != nil {
+		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Pull", p, res))
+	}
+
+	ref, err := dsref.Parse(p.Ref)
+	if err != nil {
+		return err
+	}
+
+	// TODO (b5) - need contexts yo
+	ctx := context.TODO()
+
+	ds, err := r.inst.RemoteClient().PullDataset(ctx, &ref, p.RemoteName)
+	*res = *ds
+	return err
+}
+
+// Remove asks a remote to remove a dataset
+func (r *RemoteMethods) Remove(p *PushParams, res *dsref.Ref) error {
+	if r.inst.rpc != nil {
+		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Remove", p, res))
+	}
+
+	ref, err := dsref.ParseHumanFriendly(p.Ref)
+	if err != nil {
+		if err == dsref.ErrNotHumanFriendly {
+			return fmt.Errorf("can only remove entire dataset. run remove without a path")
+		}
+		return err
+	}
+
+	// TODO (b5) - need contexts yo
+	ctx := context.TODO()
+
+	if _, err := r.inst.ResolveReference(ctx, &ref, "local"); err != nil {
+		return err
+	}
+
+	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
+	if err != nil {
+		return err
+	}
+
+	if err := r.inst.RemoteClient().RemoveDataset(ctx, ref, addr); err != nil {
+		return err
+	}
+
+	if err = base.SetPublishStatus(r.inst.node.Repo, ref, false); err != nil {
+		return err
+	}
+
+	*res = ref
 	return nil
 }

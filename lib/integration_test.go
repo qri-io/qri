@@ -29,7 +29,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	ref := InitWorldBankDataset(t, nasim)
 
 	// - nasim publishes to the registry
-	PublishToRegistry(t, nasim, ref.Alias())
+	PushToRegistry(t, nasim, ref.Alias())
 
 	if err := AssertLogsEqual(nasim, tr.RegistryInst, ref); err != nil {
 		t.Error(err)
@@ -65,7 +65,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	ref = Commit2WorldBank(t, nasim)
 
 	// 6. nasim re-publishes to the registry
-	PublishToRegistry(t, nasim, ref.Alias())
+	PushToRegistry(t, nasim, ref.Alias())
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
 	dsm := NewDatasetMethods(hinshun)
@@ -104,7 +104,7 @@ func TestAddCheckoutIntegration(t *testing.T) {
 
 	// - nasim creates a dataset, publishes to registry
 	ref := InitWorldBankDataset(t, nasim)
-	PublishToRegistry(t, nasim, ref.Alias())
+	PushToRegistry(t, nasim, ref.Alias())
 
 	hinshun := tr.InitHinshun(t)
 	dsm := NewDatasetMethods(hinshun)
@@ -129,7 +129,7 @@ func TestReferencePulling(t *testing.T) {
 
 	// - nasim creates a dataset, publishes to registry
 	ref := InitWorldBankDataset(t, nasim)
-	PublishToRegistry(t, nasim, ref.Alias())
+	PushToRegistry(t, nasim, ref.Alias())
 
 	// - nasim's local repo should reflect publication
 	logRes := []DatasetLogItem{}
@@ -424,9 +424,9 @@ g,g,i,true,4`),
 	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
 }
 
-func PublishToRegistry(t *testing.T, inst *Instance, refstr string) dsref.Ref {
+func PushToRegistry(t *testing.T, inst *Instance, refstr string) dsref.Ref {
 	res := dsref.Ref{}
-	err := NewRemoteMethods(inst).Publish(&PublicationParams{
+	err := NewRemoteMethods(inst).Push(&PushParams{
 		Ref: refstr,
 	}, &res)
 
