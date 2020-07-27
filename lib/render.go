@@ -6,8 +6,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // RenderMethods encapsulates business logic for executing templates, using
@@ -40,6 +38,8 @@ type RenderParams struct {
 	UseFSI bool
 	// Output format. defaults to "html"
 	OutFormat string
+	// remote resolver to use
+	Remote string
 }
 
 // Validate checks if render parameters are valid
@@ -61,22 +61,20 @@ func (m *RenderMethods) RenderViz(p *RenderParams, res *[]byte) (err error) {
 		return err
 	}
 
-	if p.Dataset != nil {
-		return fmt.Errorf("rendering dynamic dataset viz component is not supported")
+	ds := p.Dataset
+	if ds == nil {
+		parseResolveLoad, err := m.inst.NewParseResolveLoadFunc(p.Remote)
+		if err != nil {
+			return err
+		}
+
+		ds, err = parseResolveLoad(ctx, p.Ref)
+		if err != nil {
+			return err
+		}
 	}
 
-	var ref reporef.DatasetRef
-	if ref, err = repo.ParseDatasetRef(p.Ref); err != nil {
-		return
-	}
-
-	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err == repo.ErrNotFound {
-		return fmt.Errorf("unknown dataset '%s'", ref.AliasString())
-	} else if err != nil {
-		return err
-	}
-
-	*res, err = base.Render(ctx, m.inst.repo, reporef.ConvertToDsref(ref), p.Template)
+	*res, err = base.Render(ctx, m.inst.repo, ds, p.Template)
 	return err
 }
 

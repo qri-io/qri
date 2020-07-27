@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	qerr "github.com/qri-io/qri/errors"
 )
 
 func TestDiffComplete(t *testing.T) {
@@ -37,7 +39,7 @@ func TestDiffComplete(t *testing.T) {
 		opt.Complete(f, c.args)
 
 		if c.err != run.ErrStream.String() {
-			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, run.ErrStream.String())
+			t.Errorf("case %d, error mismatch. Expected: %q, Got: %q", i, c.err, run.ErrStream.String())
 			run.IOReset()
 			continue
 		}
@@ -140,12 +142,18 @@ func TestDiffRun(t *testing.T) {
 		err = opt.Run()
 
 		if err == nil {
-			t.Errorf("expected: '%s', got no error", c.err)
+			t.Errorf("expected: %q, got no error", c.err)
 			run.IOReset()
 			continue
 		}
-		if c.err != err.Error() {
-			t.Errorf("error mismatch. expected: '%s', got: '%s'", c.err, err.Error())
+
+		var qerror qerr.Error
+		if errors.As(err, &qerror) {
+			if qerror.Message() != c.err {
+				t.Errorf("qri error mismatch. expected:\n%q\n,got:\n%q", c.err, qerror.Message())
+			}
+		} else if c.err != err.Error() {
+			t.Errorf("error mismatch. expected: %q, got: %q", c.err, err.Error())
 		}
 		run.IOReset()
 	}

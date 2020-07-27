@@ -8,7 +8,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 )
 
-func TestDatasetRequestsDiff(t *testing.T) {
+func TestDatasetMethodsDiff(t *testing.T) {
 	tr := newTestRunner(t)
 	defer tr.Delete()
 
@@ -209,7 +209,6 @@ func TestDiff(t *testing.T) {
 
 	// Save a dataset with one version
 	run.MustSaveFromBody(t, "test_cities", "testdata/cities_2/body.csv")
-
 	// Save a different dataset with one version
 	run.MustSaveFromBody(t, "test_more", "testdata/cities_2/body_more.csv")
 

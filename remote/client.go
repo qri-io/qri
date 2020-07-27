@@ -298,7 +298,7 @@ type remoteRefResolver struct {
 
 // ResolveRef implements the dsref.Resolver interface
 func (rr *remoteRefResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
-	if rr == nil || rr.cli == nil {
+	if rr == nil || rr.cli == nil || rr.remoteAddr == "" {
 		return rr.remoteAddr, dsref.ErrRefNotFound
 	}
 
@@ -343,7 +343,7 @@ func resolveRefHTTP(ctx context.Context, ref *dsref.Ref, remoteAddr string) erro
 		if errMsg == dsref.ErrRefNotFound.Error() {
 			return dsref.ErrRefNotFound
 		}
-		return fmt.Errorf("resolving dataset ref from remote failed: %s", errMsg)
+		return fmt.Errorf("resolving dataset ref from remote %s failed: %s", remoteAddr, errMsg)
 	}
 
 	return json.NewDecoder(res.Body).Decode(ref)

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/errors"
-	"github.com/qri-io/qri/repo"
 )
 
 func TestRenderComplete(t *testing.T) {
@@ -91,8 +91,8 @@ func TestRenderRun(t *testing.T) {
 		err      string
 		msg      string
 	}{
-		{"", "", "", "", repo.ErrEmptyRef.Error(), "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info"},
-		{"peer/bad_dataset", "", "", "", "unknown dataset 'peer/bad_dataset'", ""},
+		{"", "", "", "", dsref.ErrEmptyRef.Error(), "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info"},
+		{"peer/bad_dataset", "", "", "", "reference not found", `reference "peer/bad_dataset" not found`},
 		{"peer/cities", "", "", "<html><h1>peer/cities</h1></html>", "", ""},
 		{"peer/cities", "testdata/template.html", "", "<html><h2>peer/cities</h2><tbody><tr><td>toronto</td><td>40000000</td><td>55.5</td><td>false</td></tr><tr><td>new york</td><td>8500000</td><td>44.4</td><td>true</td></tr></tbody></html>", "", ""},
 	}
@@ -122,18 +122,18 @@ func TestRenderRun(t *testing.T) {
 
 		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
-				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
+				t.Errorf("case %d, mismatched user-friendly message. Expected: %q, Got: %q", i, c.msg, libErr.Message())
 				run.IOReset()
 				continue
 			}
 		} else if c.msg != "" {
-			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
+			t.Errorf("case %d, mismatched user-friendly message. Expected: %q, Got: ''", i, c.msg)
 			run.IOReset()
 			continue
 		}
 
 		if c.expected != run.OutStream.String() {
-			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, run.OutStream.String())
+			t.Errorf("case %d, output mismatch. Expected: %q, Got: %q", i, c.expected, run.OutStream.String())
 			run.IOReset()
 			continue
 		}

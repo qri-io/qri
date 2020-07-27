@@ -33,11 +33,12 @@ func TestRenderMethodsRender(t *testing.T) {
 		err         string
 	}{
 		{"no ref",
-			&RenderParams{}, nil, "repo: empty dataset reference"},
+			&RenderParams{}, nil, "empty reference"},
 		{"invalid ref",
 			&RenderParams{
-				Ref: "foo/invalid_ref",
-			}, nil, "unknown dataset 'foo/invalid_ref'"},
+				Ref:    "foo/invalid_ref",
+				Remote: "local",
+			}, nil, "reference not found"},
 		{"template override just title",
 			&RenderParams{
 				Ref:      "me/movies",
@@ -175,8 +176,8 @@ func TestRenderMethodsRenderViz(t *testing.T) {
 			},
 		},
 	}
-	if err := runner.RenderMethods.RenderViz(&params, &data); err == nil {
-		t.Errorf("expected attempt to dynamic-render viz to fail")
+	if err := runner.RenderMethods.RenderViz(&params, &data); err != nil {
+		t.Error(err)
 	}
 }
 

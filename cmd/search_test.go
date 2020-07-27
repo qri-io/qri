@@ -156,6 +156,7 @@ func TestSearchRun(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	setNoColor(true)
 
 	// mock registry server that returns cached response data
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -252,7 +253,6 @@ var mockResponse = []byte(`{"data":[
 
 var textSearchResponse = `showing 1 results for 'test'
 1   nuun/nuun
-    https://qri.cloud/nuun/nuun
     /ipfs/QmZEnjt3Y5RxXsoZyufJfFzcogicBEwfaimJSyDuC7nySA
     this is a d
     36 B, 3 entries, 0 errors
@@ -263,7 +263,7 @@ var jsonSearchResponse = `[
   {
     "Type": "dataset",
     "ID": "/ipfs/QmZEnjt3Y5RxXsoZyufJfFzcogicBEwfaimJSyDuC7nySA",
-    "URL": "https://qri.cloud/nuun/nuun",
+    "URL": "",
     "Value": {
       "commit": {
         "qri": "cm:0",

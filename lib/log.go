@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // LogMethods extends a lib.Instance with business logic for working with lists
@@ -137,16 +136,13 @@ func (m *LogMethods) Logbook(p *RefListParams, res *[]LogEntry) error {
 	}
 	ctx := context.TODO()
 
-	ref, err := repo.ParseDatasetRef(p.Ref)
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Ref, "local")
 	if err != nil {
-		return err
-	}
-	if err = repo.CanonicalizeDatasetRef(m.inst.node.Repo, &ref); err != nil {
 		return err
 	}
 
 	book := m.inst.node.Repo.Logbook()
-	*res, err = book.LogEntries(ctx, reporef.ConvertToDsref(ref), p.Offset, p.Limit)
+	*res, err = book.LogEntries(ctx, ref, p.Offset, p.Limit)
 	return err
 }
 
