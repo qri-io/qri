@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
+	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 )
@@ -1314,9 +1316,15 @@ func TestDiffBeforeSave(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error trying to init, did not get an error")
 	}
-	expect := `dataset has no versions, nothing to diff against`
-	if err.Error() != expect {
-		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	expect := `dataset test_peer/diff_change has no versions, nothing to diff against`
+
+	var qerror qerr.Error
+	if errors.As(err, &qerror) {
+		if qerror.Message() != expect {
+			t.Errorf("qri error message mismatch. want: %q got: %q", expect, qerror.Message())
+		}
+	} else {
+		t.Errorf("expected a qri error response, got: %#v", err)
 	}
 }
 

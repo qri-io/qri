@@ -770,7 +770,6 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 	if p.Revision.Gen == 0 {
 		return fmt.Errorf("invalid number of revisions to delete: 0")
 	}
-
 	if p.Revision.Field != "ds" {
 		return fmt.Errorf("can only remove whole dataset versions, not individual components")
 	}

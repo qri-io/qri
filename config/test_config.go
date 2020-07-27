@@ -14,6 +14,7 @@ func DefaultConfigForTesting() *Config {
 	cfg.Profile.PrivKey = info.EncodedPrivKey
 	cfg.Profile.ID = info.EncodedPeerID
 	cfg.CLI.ColorizeOutput = false
+	cfg.Registry.Location = ""
 	return cfg
 }
 

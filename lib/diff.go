@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/qri-io/deepdiff"
@@ -9,7 +10,7 @@ import (
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/repo"
+	qerr "github.com/qri-io/qri/errors"
 )
 
 // Delta is an alias for deepdiff.Delta, abstracting the deepdiff implementation
@@ -33,6 +34,49 @@ type DiffParams struct {
 
 	// Which component or part of a dataset to compare
 	Selector string
+
+	Remote string
+}
+
+// diffMode determinse
+func (p *DiffParams) diffMode() (DiffMode, error) {
+	// Check parameters to make sure they fit one of the three cases that diff allows.
+	if p.LeftSide == "" && p.RightSide == "" {
+		return InvalidDiffMode, fmt.Errorf("nothing to diff")
+	} else if p.LeftSide != "" && p.RightSide != "" {
+		// Have two string parameters to compare. Should either both be references, or neither
+		// be references.
+		diffMode := InvalidDiffMode
+		if dsref.IsRefString(p.LeftSide) && dsref.IsRefString(p.RightSide) {
+			diffMode = DatasetRefDiffMode
+		} else if isFilePath(p.LeftSide) && isFilePath(p.RightSide) {
+			diffMode = FilepathDiffMode
+		} else {
+			return InvalidDiffMode, fmt.Errorf("cannot compare a file to dataset, must compare similar things")
+		}
+		// Neither of the flags should be set.
+		if p.WorkingDir != "" {
+			return diffMode, fmt.Errorf("cannot use working directory when comparing two sources")
+		}
+		if p.UseLeftPrevVersion {
+			return diffMode, fmt.Errorf("cannot use previous version when comparing two sources")
+		}
+		return diffMode, nil
+	} else if dsref.IsRefString(p.LeftSide) && p.WorkingDir != "" {
+		// Comparing the contents of a working directory to the dataset it represents
+		// TODO(dustmop): Should verify that the working directory *matches* the dataset
+		if p.UseLeftPrevVersion {
+			return InvalidDiffMode, fmt.Errorf("cannot use both previous version and working directory")
+		}
+		return WorkingDirectoryDiffMode, nil
+	} else if dsref.IsRefString(p.LeftSide) && p.UseLeftPrevVersion {
+		// Comparing a dataset to its previous version
+		if p.WorkingDir != "" {
+			return InvalidDiffMode, fmt.Errorf("cannot use both previous version and working directory")
+		}
+		return PrevVersionDiffMode, nil
+	}
+	return InvalidDiffMode, fmt.Errorf("invalid parameters to diff")
 }
 
 // DiffResponse is the result of a call to diff
@@ -74,47 +118,13 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	}
 
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetRequests.Diff", p, res))
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Diff", p, res))
 	}
 	ctx := context.TODO()
 
-	diffMode := InvalidDiffMode
-
-	// Check parameters to make sure they fit one of the three cases that diff allows.
-	if p.LeftSide == "" && p.RightSide == "" {
-		return fmt.Errorf("nothing to diff")
-	} else if p.LeftSide != "" && p.RightSide != "" {
-		// Have two string parameters to compare. Should either both be references, or neither
-		// be references.
-		if dsref.IsRefString(p.LeftSide) && dsref.IsRefString(p.RightSide) {
-			diffMode = DatasetRefDiffMode
-		} else if isFilePath(p.LeftSide) && isFilePath(p.RightSide) {
-			diffMode = FilepathDiffMode
-		} else {
-			return fmt.Errorf("cannot compare a file to dataset, must compare similar things")
-		}
-		// Neither of the flags should be set.
-		if p.WorkingDir != "" {
-			return fmt.Errorf("cannot use working directory when comparing two sources")
-		}
-		if p.UseLeftPrevVersion {
-			return fmt.Errorf("cannot use previous version when comparing two sources")
-		}
-	} else if dsref.IsRefString(p.LeftSide) && p.WorkingDir != "" {
-		// Comparing the contents of a working directory to the dataset it represents
-		// TODO(dustmop): Should verify that the working directory *matches* the dataset
-		if p.UseLeftPrevVersion {
-			return fmt.Errorf("cannot use both previous version and working directory")
-		}
-		diffMode = WorkingDirectoryDiffMode
-	} else if dsref.IsRefString(p.LeftSide) && p.UseLeftPrevVersion {
-		// Comparing a dataset to its previous version
-		if p.WorkingDir != "" {
-			return fmt.Errorf("cannot use both previous version and working directory")
-		}
-		diffMode = PrevVersionDiffMode
-	} else {
-		return fmt.Errorf("invalid parameters to diff")
+	diffMode, err := p.diffMode()
+	if err != nil {
+		return err
 	}
 
 	if diffMode == FilepathDiffMode {
@@ -142,26 +152,28 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	}
 
 	// Left side of diff loaded into a component
-	ref, err := repo.ParseDatasetRef(p.LeftSide)
+	parseResolveLoad, err := m.inst.NewParseResolveLoadFunc(p.Remote)
 	if err != nil {
 		return err
 	}
-	err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref)
+	ds, err := parseResolveLoad(ctx, p.LeftSide)
 	if err != nil {
-		if err == repo.ErrNoHistory {
-			return fmt.Errorf("dataset has no versions, nothing to diff against")
+		if errors.Is(err, dsref.ErrNoHistory) {
+			return qerr.New(err, fmt.Sprintf("dataset %s has no versions, nothing to diff against", p.LeftSide))
 		}
 		return err
 	}
-	ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
-	if err != nil {
-		return err
-	}
+	// TODO (b5) - setting name & peername to zero values makes tests pass, but
+	// calling ds.DropDerivedValues is overzealous. investigate the right solution
+	ds.Name = ""
+	ds.Peername = ""
 	leftComp := component.ConvertDatasetToComponents(ds, m.inst.repo.Filesystem())
 
 	// Right side of diff laoded into a component
 	var rightComp component.Component
-	if diffMode == WorkingDirectoryDiffMode {
+
+	switch diffMode {
+	case WorkingDirectoryDiffMode:
 		// Working directory, read dataset from the current files.
 		rightComp, err = component.ListDirectoryComponents(p.WorkingDir)
 		if err != nil {
@@ -177,34 +189,27 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
 		if err != nil {
 			return err
 		}
-	} else if diffMode == PrevVersionDiffMode {
+	case PrevVersionDiffMode:
 		// The head version was already loaded, use that for the right side of the diff
 		rightComp = leftComp
 		// Load previous dataset version for the new left side
-		prev := ds.PreviousPath
-		if prev == "" {
+		if ds.PreviousPath == "" {
 			return fmt.Errorf("dataset has only one version, nothing to diff against")
 		}
-		ref.Path = prev
-		ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
+		ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ds.PreviousPath)
 		if err != nil {
 			return err
 		}
 		leftComp = component.ConvertDatasetToComponents(ds, m.inst.repo.Filesystem())
-	} else if diffMode == DatasetRefDiffMode {
-		// Load other dataset as the right side
-		ref, err := repo.ParseDatasetRef(p.RightSide)
+	case DatasetRefDiffMode:
+		ds, err = parseResolveLoad(ctx, p.RightSide)
 		if err != nil {
 			return err
 		}
-		err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref)
-		if err != nil && err != repo.ErrNoHistory {
-			return err
-		}
-		ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
-		if err != nil {
-			return err
-		}
+		// TODO (b5) - setting name & peername to zero values makes tests pass, but
+		// calling ds.DropDerivedValues is overzealous. investigate the right solution
+		ds.Name = ""
+		ds.Peername = ""
 		rightComp = component.ConvertDatasetToComponents(ds, m.inst.repo.Filesystem())
 	}
 

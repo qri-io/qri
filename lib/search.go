@@ -65,11 +65,6 @@ func (m *SearchMethods) Search(p *SearchParams, results *[]SearchResult) error {
 		searchResults[i].Type = "dataset"
 		searchResults[i].ID = result.Path
 		searchResults[i].Value = result
-
-		// TODO (b5) - this is cloud specific, should be generalized
-		if m.inst.Config().Registry.Location == "https://registry.qri.cloud" {
-			searchResults[i].URL = fmt.Sprintf("https://qri.cloud/%s/%s", result.Peername, result.Name)
-		}
 	}
 	*results = searchResults
 	return nil

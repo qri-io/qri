@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -75,6 +76,16 @@ func (inst *Instance) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*dat
 	return ds, nil
 }
 
+// NewParseResolveLoadFunc generates a dsref.ParseResolveLoad function from an
+// instance
+func (inst *Instance) NewParseResolveLoadFunc(remote string) (dsref.ParseResolveLoad, error) {
+	resolver, err := inst.resolverForMode(remote)
+	if err != nil {
+		return nil, err
+	}
+	return NewParseResolveLoadFunc(inst.cfg.Profile.Peername, resolver, inst), nil
+}
+
 // NewParseResolveLoadFunc composes a username, resolver, and loader into a
 // higher-order function that converts strings to full datasets
 // pass the empty string as a username to disable the "me" keyword in references
@@ -96,6 +107,9 @@ Replace "me" with your username for the reference:
 
 		source, err := resolver.ResolveRef(ctx, &ref)
 		if err != nil {
+			if errors.Is(err, dsref.ErrRefNotFound) {
+				return nil, qerr.New(err, fmt.Sprintf("reference %q not found", refStr))
+			}
 			return nil, err
 		}
 

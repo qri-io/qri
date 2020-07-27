@@ -11,7 +11,12 @@ func TestRender(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	_, err := Render(ctx, r, ref, nil)
+	ds, err := NewLocalDatasetLoader(r).LoadDataset(ctx, ref, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Render(ctx, r, ds, nil)
 	if err != nil {
 		t.Error(err.Error())
 	}

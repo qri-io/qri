@@ -160,7 +160,6 @@ func (r searchResultStringer) String() string {
 	ds := r.Value
 
 	fmt.Fprintf(w, "%s/%s", title(ds.Peername), title(ds.Name))
-	fmt.Fprintf(w, "\n%s", r.URL)
 	fmt.Fprintf(w, "\n%s", path(ds.Path))
 
 	if ds != nil && ds.Meta != nil && ds.Meta.Title != "" {
