@@ -49,6 +49,11 @@ func (r Ref) IsEmpty() bool {
 	return r.InitID == "" && r.Username == "" && r.ProfileID == "" && r.Name == "" && r.Path == ""
 }
 
+// Complete returns true if all fields are populated
+func (r Ref) Complete() bool {
+	return r.InitID != "" && r.Username != "" && r.ProfileID != "" && r.Name != "" && r.Path != ""
+}
+
 // Equals returns whether the reference equals another
 func (r Ref) Equals(t Ref) bool {
 	return r.InitID == t.InitID &&

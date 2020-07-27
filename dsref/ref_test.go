@@ -58,3 +58,42 @@ func TestRefString(t *testing.T) {
 		}
 	}
 }
+
+func TestRefComplete(t *testing.T) {
+	compl := Ref{
+		InitID:    "an init id",
+		Username:  "some username",
+		ProfileID: "hey look a profile ID",
+		Name:      "a username. who knows if this is valid",
+		Path:      "a path",
+	}
+	if !compl.Complete() {
+		t.Errorf("expected isComplete to return true when all fields are populated")
+	}
+
+	bad := []Ref{
+		{
+			InitID: "an init id",
+		},
+		{
+			InitID:   "an init id",
+			Username: "some username",
+		},
+		{
+			InitID:    "an init id",
+			Username:  "some username",
+			ProfileID: "hey look a profile ID",
+		},
+		{
+			InitID:    "an init id",
+			Username:  "some username",
+			ProfileID: "hey look a profile ID",
+			Name:      "a username. who knows if this is valid",
+		},
+	}
+	for _, ref := range bad {
+		if ref.Complete() {
+			t.Errorf("expected %s to return false for complete", ref)
+		}
+	}
+}
