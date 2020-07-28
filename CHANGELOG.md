@@ -1,3 +1,101 @@
+<a name="v0.9.10"></a>
+# [v0.9.10](https://github.com/qri-io/qri/compare/v0.9.9...v0.9.10) (2020-07-27)
+
+For this release we focused on clarity, reliability, major fixes, and communication (both between qri and the user, and the different working components of qri as well). The bulk of the changes surround the rename of `publish` and `add` to `push` and `pull`, as well as making the commands more reliable, flexible, and transparent.
+
+### `push` is the new `publish` 
+
+Although qri defaults to publishing datasets to our [qri.cloud](https://qri.cloud) website (if you haven't checked it out recently, it's gone through a major facelift & has new features like dataset issues and vastly improved search!), we still give users tools to create their own services that can host data for others. We call these _remotes_ (qri.cloud is technically a very large, very reliable remote). However, we needed a better way to keep track of where a dataset has been "published", and also allow datasets to be published to different locations. 
+
+We weren't able to correctly convey, "hey this dataset has been published to remote A but not remote B", by using a simple boolean published/unpublished paradigm. We also are working toward a system, where you can push to a _peer_ remote or make your dataset _private_ even though it has been sent to live at a public location.
+
+In all these cases, the name `publish` wasn't cutting it, and was confusing users. 
+
+After debating a few new titles in [RFC0030](https://github.com/qri-io/rfcs/blob/master/text/0030-replace_publish_clone_with_push_pull.md), we settled on `push`. It properly conveys what is happening: you are pushing the dataset from your node to a location that will accept and store it. Qri keeps track of where it has been pushed, so it can be pushed to multiple locations.
+
+It also helps that `git` has a `push` command, that fulfills a similar function in software version control, so using the verb `push` in this way has precident. We've also clarified the command help text: only one version of a dataset is pushed at a time.
+
+### `pull` is the new `add`
+We decided that, for clarity, if we are renaming `qri publish ` to `qri pull`, we should rename it's mirrored action, `qri add` to `qri pull`. Now it's clear: to send a dataset to another source use `qri push`, to get a dataset from another source use `qri pull`!
+
+### use `get` instead of `export`
+`qri export` has been removed. Use `qri get --format zip me/my_dataset` instead. We want more folks to play with `get`, it's a far more powerful version of export, and we had too many folks miss out on `get` because they found `export` first, and it didn't meet their expectations.
+
+### major fix: pushing & pulling historical versions
+`qri push` without a specified version will still default to pushing the _latest version_ and `qri pull` without a specified version will still default to pulling _every version_ of the dataset that is available. However, we've added the ability to push or pull a dataset at _specific versions_ by specifying the dataset version's _path_! You can see a list of a dataset's versions and each version's path by using the `qri log` command.
+
+In the past this would error:
+
+```
+$ qri publish me/dataset@/ipfs/SpecificVersion
+```
+
+With the new push command, this will now work:
+
+```
+$ qri push me/dataset@/ipfs/SpecificVersion
+```
+
+You can use this to push old versions to a remote, same with `pull`!
+
+### events, websockets & progress
+We needed a better way for the different internal qri processes to coordinate. So we beefed up our events and piped the stream of events to a websocket. Now, one qri process can subscribe and get notified about important events that occur in another process. This is also great for users because we can use those events to communicate more information when resource intensive or time consuming actions are running! Check our our progress bars when you `push` and `pull`!
+
+The websocket event API is still a work in progress, but it's a great way to build dynamic functionality on top of qri, using the same events qri uses internally to power things like progress bars and inter-subsystem communication.
+
+### other important changes
+
+- sql now properly handles dashes in dataset names
+- migrations now work on machines across multiple mounts. We fixed a bug that was causing the migration to fail. This was most prevalent on Linux.
+- the global `--no-prompt` flag will disable all interactive prompts, but now falls back on defaults for each interaction.
+- a global `--migrate` flag will auto-run a migration check before continuing with the given command
+- the default when we ask the user to run a migration is now `"No"`. In order to auto-run a migration you need the `--migrate` flag, (_not_ the `--no-prompt` flag, but they can both be use together for "run all migrations and don't bother me")
+- the `remove` now takes the duties of the `--unpublish` flag. run `qri remove --all --remote=registry me/dataset` instead of `qri publish --unpublish me/dataset`. More verbose? Yes. But you're deleting stuff, so it should be a think-before-you-hit-enter type thing.
+- We've made some breaking changes to our API, they're listed below in the YELLY CAPS TEXT below detailing breaking changes
+
+### Bug Fixes
+
+* **cmd:** re-work migration execution ([3bd14f5](https://github.com/qri-io/qri/commit/3bd14f5))
+* **docker:** qri must be built from go 1.14 or higher ([99b267e](https://github.com/qri-io/qri/commit/99b267e))
+* **json:** Fix typo in json serialization for dataset listing ([151fcb1](https://github.com/qri-io/qri/commit/151fcb1))
+* **linux:** migration fix for copying on cross link device ([cd47426](https://github.com/qri-io/qri/commit/cd47426))
+* **logbook:** write timestamps on push & delete operations ([079c759](https://github.com/qri-io/qri/commit/079c759))
+* **logsync:** remove errorneous error check on logsync delete reqs ([1670305](https://github.com/qri-io/qri/commit/1670305))
+* **print:** Write directory to stdout if not using a terminal ([3575349](https://github.com/qri-io/qri/commit/3575349))
+* **sql:** properly handle dashes in dataset names ([dbe472c](https://github.com/qri-io/qri/commit/dbe472c))
+* **windows:** Fix Windows test build by removing file permissions ([b020767](https://github.com/qri-io/qri/commit/b020767))
+* **zip:** Add get format=zip to the root handler ([6c0a00d](https://github.com/qri-io/qri/commit/6c0a00d))
+
+
+### Code Refactoring
+
+* **api:** watchfs sends over event bus, websocket API is an event stream ([3cc9949](https://github.com/qri-io/qri/commit/3cc9949))
+* **clone:** rename clone to pull, use dsrefs in remote, peerIDs in ResolveRef ([51f432d](https://github.com/qri-io/qri/commit/51f432d))
+
+
+### Features
+
+* **dsref:** add Complete method on dsref.Ref ([6bffa72](https://github.com/qri-io/qri/commit/6bffa72))
+* **event:** add p2p events to `events` and event bus to `QriNode` ([#1440](https://github.com/qri-io/qri/issues/1440)) ([c444288](https://github.com/qri-io/qri/commit/c444288))
+* **lib:** `OptNoBootstrap` option func for `NewInstance` ([#1436](https://github.com/qri-io/qri/issues/1436)) ([9530c62](https://github.com/qri-io/qri/commit/9530c62))
+* **lib:** add OptEventHandler for subscribing to events move WS to instance ([889c175](https://github.com/qri-io/qri/commit/889c175))
+* **preview:** preview subcommand ([3303428](https://github.com/qri-io/qri/commit/3303428))
+* **push, remove:** publish -> push rename, remove --remote flag, better docs ([c70c04d](https://github.com/qri-io/qri/commit/c70c04d))
+* **remote:** redo remote client interface, write client events, progress bars ([01b88fc](https://github.com/qri-io/qri/commit/01b88fc))
+
+
+### BREAKING CHANGES
+
+* **push, remove:** * HTTP API: /publish endpoint is now /push
+* HTTP API: /unpublish is now /remove?remote=registry
+* HTTP API: /add is now /pull
+* **clone:** * all remote hooks pass dsref.Ref instead of reporef.DatasetRef arguments
+* ResolveRef spec now requires public key ID be set as part of reference resolution
+* **api:** websocket JSON messages have changed. They're now _always_ an object with "type" and
+"data" keys.
+
+
+
 <a name="v0.9.9"></a>
 # [v0.9.9](https://github.com/qri-io/qri/compare/v0.9.8...v0.9.9) (2020-07-01)
 
@@ -148,7 +246,7 @@ If that wasn't enough, we've added tab completion, nicer automatic commit messag
 
 ## 📊 Run SQL on datasets
 
-Exprimental support for SQL is here! Landing this feature brings qri full circle to the [original whitepaper](http://qri.io/papers/deterministic-querying) we published in 2017. 
+Experimental support for SQL is here! Landing this feature brings qri full circle to the [original whitepaper](http://qri.io/papers/deterministic-querying) we published in 2017. 
 
 We want to live in a world where you can `SELECT * FROM any_qri_dataset`, and we're delighted to say that day is here. 
 
@@ -197,7 +295,7 @@ Finally, a big shout out to one of our biggest open source contributions to date
 * **cmd:** added the email flag to 'registry prove' as it required ([#1200](https://github.com/qri-io/qri/issues/1200)) ([996f3de](https://github.com/qri-io/qri/commit/996f3de))
 * **cmd:** autocomplete failed to handle search ([#1257](https://github.com/qri-io/qri/issues/1257)) ([e48001d](https://github.com/qri-io/qri/commit/e48001d))
 * **cmd:** pass node when not making online request for peers ([#1234](https://github.com/qri-io/qri/issues/1234)) ([2cc7aff](https://github.com/qri-io/qri/commit/2cc7aff))
-* **cmd:** propperly utilize --no-color and --no-prompt ([ff5bdeb](https://github.com/qri-io/qri/commit/ff5bdeb))
+* **cmd:** properly utilize --no-color and --no-prompt ([ff5bdeb](https://github.com/qri-io/qri/commit/ff5bdeb))
 * **cmd:** qri list should match against peername and dataset name ([eb38505](https://github.com/qri-io/qri/commit/eb38505))
 * **cmd:** restrict number of args in fsi commands ([4c8e42c](https://github.com/qri-io/qri/commit/4c8e42c))
 * **cmd:** signup should provide feedback on success ([855ff8f](https://github.com/qri-io/qri/commit/855ff8f))
@@ -213,7 +311,7 @@ Finally, a big shout out to one of our biggest open source contributions to date
 * **rpc:** registered json.RawMessage for gob encoding ([#1232](https://github.com/qri-io/qri/issues/1232)) ([0832292](https://github.com/qri-io/qri/commit/0832292))
 * **save:** Cannot save new datasets if name contains upper-case characters ([ff68b40](https://github.com/qri-io/qri/commit/ff68b40))
 * **save:** If body is too large to diff, compare checksums ([37dc5c7](https://github.com/qri-io/qri/commit/37dc5c7))
-* **save:** Infered name must start with a letter ([86ddca3](https://github.com/qri-io/qri/commit/86ddca3))
+* **save:** Inferred name must start with a letter ([86ddca3](https://github.com/qri-io/qri/commit/86ddca3))
 * **search:** change type from interface to dataset so rpc can serialize ([#1226](https://github.com/qri-io/qri/issues/1226)) ([ebadaec](https://github.com/qri-io/qri/commit/ebadaec))
 * **startf:** script print statements print to stderr ([3b3d6b8](https://github.com/qri-io/qri/commit/3b3d6b8))
 * **transform:** Re-open transform after friendly, so it writes to cafs ([6f30ae5](https://github.com/qri-io/qri/commit/6f30ae5))
@@ -281,7 +379,7 @@ This patch release is focused on a number of API refactors, and sets the stage f
 * **profileID:** Disambiguate profileID construction to avoid subtle bugs ([a41d41a](https://github.com/qri-io/qri/commit/a41d41a))
 * **publish:** Use Refselect for publish, so FSI works. Use dsref, add tests. ([68dfff3](https://github.com/qri-io/qri/commit/68dfff3))
 * **regclient:** update to new search endpoint, fix response ds.Name ([d3fbce4](https://github.com/qri-io/qri/commit/d3fbce4))
-* **registry:** fix inaccurate tests covered by catch-all-200 repsonse regserver handler ([1d30975](https://github.com/qri-io/qri/commit/1d30975))
+* **registry:** fix inaccurate tests covered by catch-all-200 response regserver handler ([1d30975](https://github.com/qri-io/qri/commit/1d30975))
 * **remote:** fetching logs populates VersionInfo.Foreign ([e50cd19](https://github.com/qri-io/qri/commit/e50cd19))
 * **remote:** Handle error in order to avoid nil pointer ([4a88b52](https://github.com/qri-io/qri/commit/4a88b52))
 * **remove:** RemoveEntireDataset is better at cleaning up broken states ([efaf600](https://github.com/qri-io/qri/commit/efaf600))
@@ -314,7 +412,7 @@ This patch release fixes a number of FSI (file system integration) issues and in
 * **fsi:** Remove references that have no path and no working directory. ([f04981b](https://github.com/qri-io/qri/commit/f04981bd8dbd5f2c42aa18bf95b80e00d4bbd8e7))
 * **log:** Add --log-all flag to enable logging everywhere ([c3c30b1](https://github.com/qri-io/qri/commit/c3c30b1b91d87b8f2aff54ee5f8e8a4a82d8a118))
 * **ref:** CanonicalizeDatasetRef sets fsipath even if ref is full. ([2973bfa](https://github.com/qri-io/qri/commit/2973bfaae85b0f1c492f62ba7602f2e25cc27fce))
-* **registry:** update peername and dsrefs on registy signup name change ([8bc151c](https://github.com/qri-io/qri/commit/8bc151c434fc09863d2754a2ab3d027a67314214))
+* **registry:** update peername and dsrefs on registry signup name change ([8bc151c](https://github.com/qri-io/qri/commit/8bc151c434fc09863d2754a2ab3d027a67314214))
 * **remove:** Remove foreign datasets while connected, don't hang ([a93470b](https://github.com/qri-io/qri/commit/a93470b958a57b230e28c72721fc8b5c1498616f))
 * **test:** API tests are stable and pass even when version changes ([2c401e5](https://github.com/qri-io/qri/commit/2c401e5d1af63a74f1f15e70ca3272c04c9b206d))
 * **validate:** Allow either --structure or --schema flag. Add cmd/ tests ([6978113](https://github.com/qri-io/qri/commit/69781137253218d047cfb21750e4f26cfa8a2787))
