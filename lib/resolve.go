@@ -11,6 +11,7 @@ import (
 
 // ParseAndResolveRef combines reference parsing and resolution
 func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
+	log.Debugf("inst.ParseAndResolveRef refStr=%q source=%q", refStr, source)
 	ref, err := dsref.Parse(refStr)
 	if err != nil {
 		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
@@ -48,6 +49,7 @@ func (inst *Instance) ParseAndResolveRefWithWorkingDir(ctx context.Context, refS
 // ResolveReference finds the identifier & HEAD path for a dataset reference.
 // the mode parameter determines which subsystems of Qri to use when resolving
 func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, mode string) (string, error) {
+	log.Debugf("inst.ResolveReference ref=%q mode=%q", ref, mode)
 	if inst == nil {
 		return "", dsref.ErrRefNotFound
 	}
@@ -59,6 +61,7 @@ func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, mode
 
 	resolver, err := inst.resolverForMode(mode)
 	if err != nil {
+		log.Debug("inst.resolverForMode error=%q", err)
 		return "", err
 	}
 

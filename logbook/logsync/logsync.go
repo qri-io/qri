@@ -22,7 +22,7 @@ var (
 	// ErrNoLogsync indicates no logsync pointer has been allocated where one is expected
 	ErrNoLogsync = fmt.Errorf("logsync: does not exist")
 
-	logger = golog.Logger("logsync")
+	log = golog.Logger("logsync")
 )
 
 // Logsync fulfills requests from clients, logsync wraps a logbook.Book, pushing
@@ -88,7 +88,7 @@ func New(book *logbook.Book, opts ...func(*Options)) *Logsync {
 }
 
 // Hook is a function called at specified points in the sync lifecycle
-type Hook func(ctx context.Context, author identity.Author, ref dsref.Ref, log *oplog.Log) error
+type Hook func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error
 
 // Author is the local author of lsync's logbook
 func (lsync *Logsync) Author() identity.Author {
@@ -123,6 +123,7 @@ func (lsync *Logsync) NewPull(ref dsref.Ref, remoteAddr string) (*Pull, error) {
 	if lsync == nil {
 		return nil, ErrNoLogsync
 	}
+	log.Debugf("NewPull ref=%q remoteAddr=%q", ref, remoteAddr)
 
 	rem, err := lsync.remoteClient(context.TODO(), remoteAddr)
 	if err != nil {
@@ -242,39 +243,45 @@ func (lsync *Logsync) put(ctx context.Context, author identity.Author, r io.Read
 
 	if lsync.pushed != nil {
 		if err := lsync.pushed(ctx, author, ref, lg); err != nil {
-			logger.Errorf("pushed hook: %s", err)
+			log.Debugf("pushed hook error=%q", err)
 		}
 	}
 	return nil
 }
 
 func (lsync *Logsync) get(ctx context.Context, author identity.Author, ref dsref.Ref) (identity.Author, io.Reader, error) {
+	log.Debugf("logsync.get author.AuthorID=%q ref=%q", author.AuthorID, ref)
 	if lsync == nil {
 		return nil, nil, ErrNoLogsync
 	}
 
 	if lsync.pullPreCheck != nil {
 		if err := lsync.pullPreCheck(ctx, author, ref, nil); err != nil {
+			log.Debugf("pullPreCheck error=%q author=%q ref=%q", err, author, ref)
 			return nil, nil, err
 		}
 	}
 
 	if _, err := lsync.book.ResolveRef(ctx, &ref); err != nil {
+		log.Debugf("book.ResolveRef error=%q ref=%q ", err, ref)
 		return nil, nil, err
 	}
 
 	l, err := lsync.book.UserDatasetBranchesLog(ctx, ref.InitID)
 	if err != nil {
+		log.Debugf("book.UserDatasetBranchesLog error=%q initID=%q", err, ref.InitID)
 		return lsync.Author(), nil, err
 	}
+
 	data, err := lsync.book.LogBytes(l)
 	if err != nil {
+		log.Debugf("LogBytes error=%q initID=%q", err, ref.InitID)
 		return nil, nil, err
 	}
 
 	if lsync.pulled != nil {
 		if err := lsync.pulled(ctx, author, ref, l); err != nil {
-			logger.Errorf("pulled hook: %s", err)
+			log.Debugf("pulled hook error=%q", err)
 		}
 	}
 
@@ -320,7 +327,7 @@ func (lsync *Logsync) del(ctx context.Context, sender identity.Author, ref dsref
 
 	if lsync.removed != nil {
 		if err := lsync.removed(ctx, sender, ref, nil); err != nil {
-			logger.Errorf("removed hook: %s", err)
+			log.Debugf("removed hook error=%q", err)
 		}
 	}
 
@@ -338,15 +345,15 @@ type Push struct {
 func (p *Push) Do(ctx context.Context) error {
 	// eagerly write a push to the logbook. The log the remote receives will include
 	// the push operation. If anything goes wrong, rollback the write
-	log, rollback, err := p.book.WriteRemotePush(ctx, p.ref.InitID, 1, p.remote.addr())
+	l, rollback, err := p.book.WriteRemotePush(ctx, p.ref.InitID, 1, p.remote.addr())
 	if err != nil {
 		return err
 	}
 
-	data, err := p.book.LogBytes(log)
+	data, err := p.book.LogBytes(l)
 	if err != nil {
 		if rollbackErr := rollback(ctx); rollbackErr != nil {
-			logger.Errorf("rolling back dataset log: %q", rollbackErr.Error())
+			log.Errorf("rolling back dataset log: %q", rollbackErr)
 		}
 		return err
 	}
@@ -355,7 +362,7 @@ func (p *Push) Do(ctx context.Context) error {
 	err = p.remote.put(ctx, p.book.Author(), buf)
 	if err != nil {
 		if rollbackErr := rollback(ctx); rollbackErr != nil {
-			logger.Errorf("rolling back dataset log: %q", rollbackErr.Error())
+			log.Errorf("rolling back dataset log: %q", rollbackErr)
 		}
 		return err
 	}
@@ -374,6 +381,7 @@ type Pull struct {
 
 // Do executes the pull
 func (p *Pull) Do(ctx context.Context) (*oplog.Log, error) {
+	log.Debugf("pull.Do ref=%q", p.ref)
 	sender, r, err := p.remote.get(ctx, p.book.Author(), p.ref)
 	if err != nil {
 		return nil, err

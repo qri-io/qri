@@ -108,6 +108,7 @@ type Remote struct {
 
 // NewRemote creates a remote
 func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolver, opts ...func(o *Options)) (*Remote, error) {
+	log.Debugf("NewRemote cfg=%v len(opts)=%d", cfg, len(opts))
 	o := &Options{}
 	for _, opt := range opts {
 		opt(o)
@@ -406,8 +407,8 @@ func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, dsref.Re
 
 func (r *Remote) logHook(name string, h Hook) logsync.Hook {
 	return func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error {
-		log.Debugf("logsync %s %s", name, ref)
 		if h != nil {
+			log.Debugf("remote.logHook name=%q ref=%q", name, ref)
 			kid, err := identity.KeyIDFromPub(author.AuthorPubKey())
 			if err != nil {
 				return err
@@ -420,7 +421,11 @@ func (r *Remote) logHook(name string, h Hook) logsync.Hook {
 			// embed the log oplog pointer in our hook
 			ctx = newLogHookContext(ctx, l)
 
-			return h(ctx, pid, ref)
+			err = h(ctx, pid, ref)
+			if err != nil {
+				log.Debugf("logsync %s hook error=%q", name, err)
+			}
+			return err
 		}
 
 		return nil
