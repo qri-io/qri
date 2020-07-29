@@ -303,7 +303,7 @@ func TestUserDatasetBranchesLog(t *testing.T) {
 	}
 
 	if _, err := tr.Book.UserDatasetBranchesLog(tr.Ctx, tr.renameInitID); err != nil {
-		t.Errorf("expected LogBytes with proper ref to not return a wrap of logbook.ErrAccessDenied. got: %q", err)
+		t.Error(err)
 	}
 
 	got, err := tr.Book.UserDatasetBranchesLog(tr.Ctx, tr.worldBankInitID)
