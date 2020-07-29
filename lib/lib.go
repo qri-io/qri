@@ -684,6 +684,7 @@ type Instance struct {
 // Connect takes an instance online
 func (inst *Instance) Connect(ctx context.Context) (err error) {
 	oldRemoteClientExisted := inst.remoteClient != nil
+	log.Debugf("inst.Connect oldRemoteClientExisted=%t", oldRemoteClientExisted)
 
 	if err = inst.node.GoOnline(ctx); err != nil {
 		log.Debugf("taking node online: %s", err.Error())
@@ -696,7 +697,7 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	// the additions. We fix that by re-initializing the client and remote with the new
 	// instance
 	if inst.remoteClient, err = remote.NewClient(ctx, inst.node, inst.bus); err != nil {
-		log.Debugf("initializing remote client: %s", err.Error())
+		log.Debugf("remote.NewClient error=%q", err)
 		return
 	}
 	go func() {
@@ -716,11 +717,11 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 			return err
 		}
 		if inst.remote, err = remote.NewRemote(inst.node, inst.cfg.Remote, localResolver, inst.remoteOptsFunc); err != nil {
-			log.Errorf("error initializing remote: %s", err.Error())
+			log.Debugf("remote.NewRemote error=%q", err)
 			return err
 		}
 		if err = inst.remote.GoOnline(ctx); err != nil {
-			log.Errorf("error starting dsync services: %s", err.Error())
+			log.Debugf("remote.GoOnline error=%q", err)
 			return err
 		}
 	}

@@ -31,6 +31,7 @@ func (c *httpClient) addr() string {
 }
 
 func (c *httpClient) put(ctx context.Context, author identity.Author, r io.Reader) error {
+	log.Debug("httpClient.put")
 	req, err := http.NewRequest("PUT", c.URL, r)
 	if err != nil {
 		return err
@@ -56,6 +57,7 @@ func (c *httpClient) put(ctx context.Context, author identity.Author, r io.Reade
 }
 
 func (c *httpClient) get(ctx context.Context, author identity.Author, ref dsref.Ref) (identity.Author, io.Reader, error) {
+	log.Debugf("httpClient.get ref=%q", ref)
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s?ref=%s", c.URL, ref), nil)
 	if err != nil {
 		return nil, nil, err
@@ -63,13 +65,18 @@ func (c *httpClient) get(ctx context.Context, author identity.Author, ref dsref.
 	req = req.WithContext(ctx)
 
 	if err := addAuthorHTTPHeaders(req.Header, author); err != nil {
+		log.Debugf("addAuthorHTTPHeaders error=%q", err)
 		return nil, nil, err
 	}
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Debugf("http.DefaultClient.Do error=%q", err)
 		return nil, nil, err
 	}
+
 	if res.StatusCode != http.StatusOK {
+		log.Debugf("httpClient.get statusCode=%d", res.StatusCode)
 		if errmsg, err := ioutil.ReadAll(res.Body); err == nil {
 			return nil, nil, fmt.Errorf(string(errmsg))
 		}
@@ -138,6 +145,7 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sender, err := senderFromHTTPHeaders(r.Header)
 		if err != nil {
+			log.Debugf("senderFromHTTPHeaders error=%q", err)
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
 			return
@@ -153,16 +161,19 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 			r.Body.Close()
 
 			addAuthorHTTPHeaders(w.Header(), lsync.Author())
+			return
 		case "GET":
-			ref, err := repo.ParseDatasetRef(r.FormValue("ref"))
+			ref, err := dsref.Parse(r.FormValue("ref"))
 			if err != nil {
+				log.Debugf("GET dsref.Parse error=%q", err)
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(err.Error()))
 				return
 			}
 
-			receiver, r, err := lsync.get(r.Context(), sender, reporef.ConvertToDsref(ref))
+			receiver, r, err := lsync.get(r.Context(), sender, ref)
 			if err != nil {
+				log.Debugf("GET error=%q ref=%q", err, ref)
 				// TODO (ramfox): implement a robust error response strategy
 				if errors.Is(err, logbook.ErrNotFound) {
 					w.WriteHeader(http.StatusNotFound)
@@ -173,9 +184,9 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 				w.Write([]byte(err.Error()))
 				return
 			}
-
 			addAuthorHTTPHeaders(w.Header(), receiver)
 			io.Copy(w, r)
+			return
 		case "DELETE":
 			ref, err := repo.ParseDatasetRef(r.FormValue("ref"))
 			if err != nil {
@@ -191,6 +202,11 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 			}
 
 			addAuthorHTTPHeaders(w.Header(), lsync.Author())
+			return
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`not found`))
+			return
 		}
 	}
 }

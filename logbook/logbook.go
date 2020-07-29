@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	logger "github.com/ipfs/go-log"
+	golog "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
@@ -42,8 +42,7 @@ var (
 	// This is mainly here for tests to override
 	NewTimestamp = func() int64 { return time.Now().UnixNano() }
 
-	// package logger
-	log = logger.Logger("logbook")
+	log = golog.Logger("logbook")
 )
 
 const (
@@ -848,11 +847,13 @@ func (book *Book) latestSavePath(branchLog *oplog.Log) string {
 //       branch
 //       ...
 func (book Book) UserDatasetBranchesLog(ctx context.Context, datasetInitID string) (*oplog.Log, error) {
+	log.Debugf("UserDatasetBranchesLog datasetInitID=%q", datasetInitID)
 	if datasetInitID == "" {
 		return nil, fmt.Errorf("%w: cannot use the empty string as an init id", ErrNotFound)
 	}
 	dsLog, err := book.store.Get(ctx, datasetInitID)
 	if err != nil {
+		log.Debugf("store error=%q datasetInitID=%q", err, datasetInitID)
 		return nil, err
 	}
 

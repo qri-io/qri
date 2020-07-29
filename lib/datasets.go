@@ -929,10 +929,10 @@ func (m *DatasetMethods) Pull(p *PullParams, res *dataset.Dataset) error {
 	if err := qfs.AbsPath(&p.LinkDir); err != nil {
 		return err
 	}
-
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Pull", p, res))
 	}
+
 	ctx := context.TODO()
 
 	ref, source, err := m.inst.ParseAndResolveRef(ctx, p.Ref, "network")

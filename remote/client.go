@@ -83,7 +83,7 @@ type client struct {
 	logsync *logsync.Logsync
 	capi    coreiface.CoreAPI
 	node    *p2p.QriNode
-	pub     event.Publisher
+	events  event.Publisher
 
 	doneCh  chan struct{}
 	doneErr error
@@ -128,7 +128,7 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 		logsync: ls,
 		capi:    capi,
 		node:    node,
-		pub:     pub,
+		events:  pub,
 
 		doneCh: make(chan struct{}),
 	}
@@ -145,6 +145,7 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 
 // Feeds fetches the first page of featured & recent feeds in one call
 func (c *client) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsref.VersionInfo, error) {
+	log.Debugf("client.Feeds remoteAddr=%q", remoteAddr)
 	if at := addressType(remoteAddr); at != "http" {
 		return nil, fmt.Errorf("feeds are only supported over HTTP")
 	}
@@ -188,6 +189,7 @@ func (c *client) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsr
 
 // Feeds fetches the first page of featured & recent feeds in one call
 func (c *client) Feed(ctx context.Context, remoteAddr, feedName string, page, pageSize int) ([]dsref.VersionInfo, error) {
+	log.Debugf("client.Feed remoteAddr=%q feedName=%q page=%d pageSize=%d", remoteAddr, feedName, page, pageSize)
 	if at := addressType(remoteAddr); at != "http" {
 		return nil, fmt.Errorf("feeds are only supported over HTTP")
 	}
@@ -231,13 +233,13 @@ func (c *client) Feed(ctx context.Context, remoteAddr, feedName string, page, pa
 
 // PreviewDatasetVersion fetches a dataset preview from the registry
 func (c *client) PreviewDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
+	log.Debugf("client.PreviewDatasetVersion ref=%q remoteAddr=%q", ref, remoteAddr)
 	if c == nil {
 		return nil, ErrNoRemoteClient
 	}
 	if at := addressType(remoteAddr); at != "http" {
 		return nil, fmt.Errorf("feeds are only supported over HTTP")
 	}
-	log.Debugf("client.PreviewDatasetVersion ref=%q remoteAddr=%q", ref, remoteAddr)
 
 	return c.previewDatasetVersionHTTP(ctx, ref, remoteAddr)
 }
@@ -284,10 +286,10 @@ func (c *client) previewDatasetVersionHTTP(ctx context.Context, ref dsref.Ref, r
 
 // NewRemoteRefResolver creates a resolver backed by a remote
 func (c *client) NewRemoteRefResolver(remoteAddr string) dsref.Resolver {
+	log.Debugf("client.NewRemoteRefResolver remoteAddr=%q", remoteAddr)
 	if c == nil {
 		return nil
 	}
-	log.Debugf("client.NewRemoteRefResolver addr=%q", remoteAddr)
 	return &remoteRefResolver{cli: c, remoteAddr: remoteAddr}
 }
 
@@ -298,6 +300,7 @@ type remoteRefResolver struct {
 
 // ResolveRef implements the dsref.Resolver interface
 func (rr *remoteRefResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
+	log.Debugf("client.ResolveRef ref=%q", ref)
 	if rr == nil || rr.cli == nil || rr.remoteAddr == "" {
 		return rr.remoteAddr, dsref.ErrRefNotFound
 	}
@@ -340,6 +343,7 @@ func resolveRefHTTP(ctx context.Context, ref *dsref.Ref, remoteAddr string) erro
 	if res.StatusCode != http.StatusOK {
 		errBytes, _ := ioutil.ReadAll(res.Body)
 		errMsg := string(errBytes)
+		log.Debugf("resolveRefHTTP status code=%d errMsg=%q", res.StatusCode, errMsg)
 		if errMsg == dsref.ErrRefNotFound.Error() {
 			return dsref.ErrRefNotFound
 		}
@@ -351,6 +355,7 @@ func resolveRefHTTP(ctx context.Context, ref *dsref.Ref, remoteAddr string) erro
 
 // FetchLogs pulls logbook data from a remote without persisting it locally
 func (c *client) FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) (*oplog.Log, error) {
+	log.Debugf("client.FetchLogs ref=%q remoteAddr=%q", ref, remoteAddr)
 	if c == nil {
 		return nil, ErrNoRemoteClient
 	}
@@ -369,6 +374,7 @@ func (c *client) FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr string
 
 // PushDataset
 func (c *client) PushDataset(ctx context.Context, ref dsref.Ref, addr string) error {
+	log.Debugf("client.Pushdataset ref=%q addr=%q", ref, addr)
 	if c == nil {
 		return ErrNoRemoteClient
 	}
@@ -380,7 +386,7 @@ func (c *client) PushDataset(ctx context.Context, ref dsref.Ref, addr string) er
 		return err
 	}
 
-	return c.pub.Publish(ctx, event.ETRemoteClientPushDatasetCompleted, event.RemoteEvent{
+	return c.events.Publish(ctx, event.ETRemoteClientPushDatasetCompleted, event.RemoteEvent{
 		Ref:        ref,
 		RemoteAddr: addr,
 	})
@@ -388,11 +394,10 @@ func (c *client) PushDataset(ctx context.Context, ref dsref.Ref, addr string) er
 
 // pushLogs pushes logbook data to a remote address
 func (c *client) pushLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
-
+	log.Debugf("client.pushLogs ref=%q remoteAddr=%q", ref, remoteAddr)
 	if t := addressType(remoteAddr); t == "http" {
 		remoteAddr = remoteAddr + "/remote/logsync"
 	}
-	log.Debugf("pushing logs for %s from %s", ref.Alias(), remoteAddr)
 	push, err := c.logsync.NewPush(ref, remoteAddr)
 	if err != nil {
 		return err
@@ -403,10 +408,10 @@ func (c *client) pushLogs(ctx context.Context, ref dsref.Ref, remoteAddr string)
 
 // PushDatasetVersion pushes the contents of a dataset to a remote
 func (c *client) pushDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	log.Debugf("client.pushDatasetVersion ref=%q remoteAddr=%q", ref, remoteAddr)
 	if t := addressType(remoteAddr); t == "http" {
 		remoteAddr = remoteAddr + "/remote/dsync"
 	}
-	log.Debugf("pushing dataset %s to %s", ref.Path, remoteAddr)
 	push, err := c.ds.NewPush(ref.Path, remoteAddr, true)
 	if err != nil {
 		return err
@@ -429,8 +434,8 @@ func (c *client) pushDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAd
 						RemoteAddr: remoteAddr,
 						Progress:   update,
 					}
-					if err := c.pub.Publish(ctx, event.ETRemoteClientPushVersionProgress, prog); err != nil {
-						log.Error("publishing %q event: %q", event.ETRemoteClientPushVersionProgress, err)
+					if err := c.events.Publish(ctx, event.ETRemoteClientPushVersionProgress, prog); err != nil {
+						log.Debugf("publishing eventType=%q error=%q", event.ETRemoteClientPushVersionProgress, err)
 					}
 				}()
 			case <-ctx.Done():
@@ -443,7 +448,7 @@ func (c *client) pushDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAd
 		return err
 	}
 
-	return c.pub.Publish(ctx, event.ETRemoteClientPushVersionCompleted, event.RemoteEvent{
+	return c.events.Publish(ctx, event.ETRemoteClientPushVersionCompleted, event.RemoteEvent{
 		Ref:        ref,
 		RemoteAddr: remoteAddr,
 	})
@@ -454,25 +459,25 @@ func (c *client) pushDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAd
 // TODO (b5) - remove all p2p calls from here into the p2p subsystem in a future
 // refactor
 func (c *client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr string) (ds *dataset.Dataset, err error) {
+	log.Debugf("client.PullDataset ref=%q addr=%q", ref, remoteAddr)
 	if c == nil {
 		return nil, ErrNoRemoteClient
 	}
 
-	log.Debugf("client.PullDataset ref=%q addr=%q", ref, remoteAddr)
-
 	node := c.node
 
 	if err := c.pullLogs(ctx, *ref, remoteAddr); err != nil {
-		log.Error(err)
+		log.Debugf("client.pullLogs error=%q", err)
 		return nil, err
 	}
 
 	if err := c.pullDatasetVersion(ctx, ref, remoteAddr); err != nil {
+		log.Debugf("client.pullDatasetVersion error=%q", err)
 		return nil, err
 	}
 	node.LocalStreams.PrintErr(fmt.Sprintf("🗼 fetched from remote %q\n", remoteAddr))
 
-	err = c.pub.Publish(ctx, event.ETRemoteClientPullDatasetCompleted, event.RemoteEvent{
+	err = c.events.Publish(ctx, event.ETRemoteClientPullDatasetCompleted, event.RemoteEvent{
 		Ref:        *ref,
 		RemoteAddr: remoteAddr,
 	})
@@ -519,10 +524,10 @@ func (c *client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr str
 
 // pullLogs fetches logbook data from a remote & stores it locally
 func (c *client) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	log.Debugf("client.pullLogs ref=%q remoteAddr=%q", ref, remoteAddr)
 	if t := addressType(remoteAddr); t == "http" {
 		remoteAddr = remoteAddr + "/remote/logsync"
 	}
-	log.Debugf("cloning logs for %s from %s", ref.Alias(), remoteAddr)
 	pull, err := c.logsync.NewPull(ref, remoteAddr)
 	if err != nil {
 		return err
@@ -535,7 +540,7 @@ func (c *client) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string)
 
 // pullDatasetVersion fetches a dataset from a remote source
 func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteAddr string) error {
-	log.Debugf("pulling dataset: %s from %s", ref.String(), remoteAddr)
+	log.Debugf("client.pulldatasetVersion: ref=%q remoteAddr=%q", ref, remoteAddr)
 
 	if ref.Path == "" {
 		if _, err := c.NewRemoteRefResolver(remoteAddr).ResolveRef(ctx, ref); err != nil {
@@ -546,13 +551,13 @@ func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteA
 
 	params, err := sigParams(c.pk, *ref)
 	if err != nil {
-		log.Error("generating sig params: ", err)
+		log.Debugf("generating sig params error=%q ", err)
 		return err
 	}
 
 	pull, err := c.ds.NewPull(ref.Path, remoteAddr+"/remote/dsync", params)
 	if err != nil {
-		log.Error("creating pull: ", err)
+		log.Debugf("NewPull error=%q", err)
 		return err
 	}
 
@@ -567,7 +572,7 @@ func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteA
 						RemoteAddr: remoteAddr,
 						Progress:   update,
 					}
-					if err := c.pub.Publish(ctx, event.ETRemoteClientPullVersionProgress, prog); err != nil {
+					if err := c.events.Publish(ctx, event.ETRemoteClientPullVersionProgress, prog); err != nil {
 						log.Error("publishing %q event: %q", event.ETRemoteClientPullVersionProgress, err)
 					}
 				}()
@@ -588,7 +593,7 @@ func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteA
 		}
 	}
 
-	return c.pub.Publish(ctx, event.ETRemoteClientPullVersionCompleted, event.RemoteEvent{
+	return c.events.Publish(ctx, event.ETRemoteClientPullVersionCompleted, event.RemoteEvent{
 		Ref:        *ref,
 		RemoteAddr: remoteAddr,
 	})
@@ -596,6 +601,7 @@ func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteA
 
 // RemoveDataset requests a remote remove logbook data from an address
 func (c *client) RemoveDataset(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	log.Debugf("client.RemoveDataset ref=%q remoteAddr=%q", ref, remoteAddr)
 	if c == nil {
 		return ErrNoRemoteClient
 	}
@@ -615,7 +621,7 @@ func (c *client) RemoveDataset(ctx context.Context, ref dsref.Ref, remoteAddr st
 		return err
 	}
 
-	return c.pub.Publish(ctx, event.ETRemoteClientRemoveDatasetCompleted, event.RemoteEvent{
+	return c.events.Publish(ctx, event.ETRemoteClientRemoveDatasetCompleted, event.RemoteEvent{
 		Ref:        ref,
 		RemoteAddr: remoteAddr,
 	})
@@ -623,11 +629,11 @@ func (c *client) RemoveDataset(ctx context.Context, ref dsref.Ref, remoteAddr st
 
 // RemoveDatasetVersion asks a remote to remove a dataset version
 func (c *client) RemoveDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	log.Debugf("client.RemoveDatasetVersion ref=%q remoteAddr=%q", ref, remoteAddr)
 	if c == nil {
 		return ErrNoRemoteClient
 	}
 
-	log.Debugf("requesting remove dataset %s from remote %s", ref.Path, remoteAddr)
 	params, err := sigParams(c.pk, ref)
 	if err != nil {
 		return err
