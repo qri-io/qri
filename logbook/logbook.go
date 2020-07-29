@@ -851,15 +851,14 @@ func (book Book) UserDatasetBranchesLog(ctx context.Context, datasetInitID strin
 	if datasetInitID == "" {
 		return nil, fmt.Errorf("%w: cannot use the empty string as an init id", ErrNotFound)
 	}
-	dsLog, err := book.store.Get(ctx, datasetInitID)
+
+	dsLog, err := oplog.GetWithSparseAncestorsAllDescendants(ctx, book.store, datasetInitID)
 	if err != nil {
 		log.Debugf("store error=%q datasetInitID=%q", err, datasetInitID)
 		return nil, err
 	}
 
-	// construct a sparse oplog of just user, dataset, and branches
-	sparseLog := &oplog.Log{Ops: dsLog.Parent().Ops, Logs: []*oplog.Log{dsLog}, Signature: dsLog.Signature}
-	return sparseLog, nil
+	return dsLog.Parent(), nil
 }
 
 // DatasetRef gets a dataset log and all branches. Dataset logs describe
@@ -1140,12 +1139,12 @@ func (book Book) LogEntries(ctx context.Context, ref dsref.Ref, offset, limit in
 }
 
 var actionStrings = map[uint32][3]string{
-	AuthorModel:  [3]string{"create profile", "update profile", "delete profile"},
-	DatasetModel: [3]string{"init dataset", "rename dataset", "delete dataset"},
-	BranchModel:  [3]string{"init branch", "rename branch", "delete branch"},
-	CommitModel:  [3]string{"save commit", "amend commit", "remove commit"},
-	PushModel:    [3]string{"publish", "", "unpublish"},
-	ACLModel:     [3]string{"update access", "update access", "remove all access"},
+	AuthorModel:  {"create profile", "update profile", "delete profile"},
+	DatasetModel: {"init dataset", "rename dataset", "delete dataset"},
+	BranchModel:  {"init branch", "rename branch", "delete branch"},
+	CommitModel:  {"save commit", "amend commit", "remove commit"},
+	PushModel:    {"publish", "", "unpublish"},
+	ACLModel:     {"update access", "update access", "remove all access"},
 }
 
 func logEntryFromOp(author string, op oplog.Op) LogEntry {

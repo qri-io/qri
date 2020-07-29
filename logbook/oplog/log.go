@@ -18,6 +18,7 @@ import (
 	"crypto/rand"
 	"encoding/base32"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 
@@ -92,6 +93,72 @@ type Logstore interface {
 	Descendants(ctx context.Context, l *Log) error
 }
 
+// SparseAncestorsAllDescendantsLogstore is a an extension interface to
+// Logstore with an optimized method for getting a log with sparse parents and
+// all descendants
+type SparseAncestorsAllDescendantsLogstore interface {
+	Logstore
+	// GetSparseAncestorsAllDescendants is a fast-path method for getting a
+	// log that includes sparse parents & complete descendants. "sparse parents"
+	// have the only children given in parent specified
+	// AllDescendants include
+	// the returned log will match the ID of the request, with parents
+	GetSparseAncestorsAllDescendants(ctx context.Context, id string) (*Log, error)
+}
+
+// GetWithSparseAncestorsAllDescendants is a fast-path method for getting a
+// log that includes sparse parents & complete descendants. "sparse parents"
+// means the only children given in parent
+// the returned log will match the ID of the request, with parents
+func GetWithSparseAncestorsAllDescendants(ctx context.Context, store Logstore, id string) (*Log, error) {
+	if sparseLS, ok := store.(SparseAncestorsAllDescendantsLogstore); ok {
+		return sparseLS.GetSparseAncestorsAllDescendants(ctx, id)
+	}
+
+	l, err := store.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO (b5) - this is error prone. logs may exist but not be fetched. This
+	// check is here now because not all implementations support the Descendants
+	// method properly.
+	// in the future remove this check once all implementations we know of have
+	// a working `Descendants` implementation
+	if len(l.Logs) == 0 {
+		if err = store.Descendants(ctx, l); err != nil {
+			return nil, err
+		}
+	}
+
+	cursor := l
+	for cursor.ParentID != "" {
+		parent := cursor.parent
+		if parent == nil {
+			if parent, err = store.Get(ctx, cursor.ParentID); err != nil {
+				return nil, err
+			}
+		}
+
+		// TODO (b5) - hack to carry signatures possibly stored on the child
+		// this is incorrect long term, but has the effect of producing correct
+		// signed logs. Need to switch to log-specific signatures ASAP
+		if parent.Signature == nil {
+			parent.Signature = cursor.Signature
+		}
+
+		cursor.parent = &Log{
+			ParentID:  parent.ParentID,
+			Ops:       parent.Ops,
+			Logs:      []*Log{cursor},
+			Signature: parent.Signature,
+		}
+		cursor = cursor.parent
+	}
+
+	return l, nil
+}
+
 // AuthorLogstore describes a store owned by a single author, it adds encryption
 // methods for safe local persistence as well as owner ID accessors
 type AuthorLogstore interface {
@@ -144,7 +211,7 @@ func (j *Journal) MergeLog(ctx context.Context, l *Log) error {
 
 	found, err := j.Get(ctx, l.ID())
 	if err != nil {
-		if err == ErrNotFound {
+		if errors.Is(err, ErrNotFound) {
 			j.logs = append(j.logs, l)
 			return nil
 		}
@@ -198,7 +265,7 @@ func (j *Journal) Get(_ context.Context, id string) (*Log, error) {
 			return l, nil
 		}
 	}
-	return nil, ErrNotFound
+	return nil, fmt.Errorf("getting log %q %w", id, ErrNotFound)
 }
 
 // HeadRef traverses the log graph & pulls out a log based on named head
@@ -368,6 +435,7 @@ type Log struct {
 	authorID string // authorID value cache. not persisted
 	parent   *Log   // parent link
 
+	ParentID  string // init id of parent Log
 	Signature []byte
 	Ops       []Op
 	Logs      []*Log
@@ -475,6 +543,7 @@ func (lg *Log) DeepCopy() *Log {
 	if err := cp.UnmarshalFlatbufferBytes(lg.FlatbufferBytes()); err != nil {
 		panic(err)
 	}
+	cp.ParentID = lg.ParentID
 	return cp
 }
 
@@ -513,6 +582,7 @@ func (lg *Log) HeadRef(names ...string) (*Log, error) {
 // AddChild appends a log as a direct descendant of this log, controlling
 // for duplicates
 func (lg *Log) AddChild(l *Log) {
+	l.ParentID = lg.ID()
 	l.parent = lg
 	for i, ch := range lg.Logs {
 		if ch.ID() == l.ID() {
@@ -644,6 +714,9 @@ func (lg *Log) UnmarshalFlatbufferBytes(data []byte) error {
 // UnmarshalFlatbuffer populates a logfb.Log from a Log pointer
 func (lg *Log) UnmarshalFlatbuffer(lfb *logfb.Log, parent *Log) (err error) {
 	newLg := Log{parent: parent}
+	if parent != nil {
+		newLg.ParentID = parent.ID()
+	}
 
 	if len(lfb.Signature()) != 0 {
 		newLg.Signature = lfb.Signature()
@@ -664,6 +737,7 @@ func (lg *Log) UnmarshalFlatbuffer(lfb *logfb.Log, parent *Log) (err error) {
 			if lfb.Logs(childfb, i) {
 				newLg.Logs[i] = &Log{}
 				newLg.Logs[i].UnmarshalFlatbuffer(childfb, lg)
+				newLg.Logs[i].ParentID = newLg.ID()
 			}
 		}
 	}

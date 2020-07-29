@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -227,7 +228,7 @@ func TestLogGetID(t *testing.T) {
 	ctx := tr.Ctx
 
 	got, err := tr.Journal.Get(ctx, "nonsense")
-	if err != ErrNotFound {
+	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("expected not-found error for missing ID. got: %s", err)
 	}
 
@@ -280,7 +281,7 @@ func TestLogMerge(t *testing.T) {
 	left := &Log{
 		Signature: []byte{1, 2, 3},
 		Ops: []Op{
-			Op{
+			{
 				Type:     OpTypeInit,
 				Model:    0x1,
 				AuthorID: "author",
@@ -290,13 +291,13 @@ func TestLogMerge(t *testing.T) {
 		Logs: []*Log{
 			{
 				Ops: []Op{
-					Op{
+					{
 						Type:     OpTypeInit,
 						Model:    0x0002,
 						AuthorID: "author",
 						Name:     "child_a",
 					},
-					Op{
+					{
 						Type:  OpTypeInit,
 						Model: 0x0456,
 					},
@@ -307,13 +308,13 @@ func TestLogMerge(t *testing.T) {
 
 	right := &Log{
 		Ops: []Op{
-			Op{
+			{
 				Type:     OpTypeInit,
 				Model:    0x1,
 				AuthorID: "author",
 				Name:     "root",
 			},
-			Op{
+			{
 				Type:  OpTypeInit,
 				Model: 0x0011,
 			},
@@ -321,7 +322,7 @@ func TestLogMerge(t *testing.T) {
 		Logs: []*Log{
 			{
 				Ops: []Op{
-					Op{
+					{
 						Type:     OpTypeInit,
 						Model:    0x0002,
 						AuthorID: "author",
@@ -331,7 +332,7 @@ func TestLogMerge(t *testing.T) {
 			},
 			{
 				Ops: []Op{
-					Op{
+					{
 						Type:     OpTypeInit,
 						Model:    0x0002,
 						AuthorID: "buthor",
@@ -346,13 +347,13 @@ func TestLogMerge(t *testing.T) {
 
 	expect := &Log{
 		Ops: []Op{
-			Op{
+			{
 				Type:     OpTypeInit,
 				Model:    0x1,
 				AuthorID: "author",
 				Name:     "root",
 			},
-			Op{
+			{
 				Type:  OpTypeInit,
 				Model: 0x0011,
 			},
@@ -360,21 +361,22 @@ func TestLogMerge(t *testing.T) {
 		Logs: []*Log{
 			{
 				Ops: []Op{
-					Op{
+					{
 						Type:     OpTypeInit,
 						Model:    0x0002,
 						AuthorID: "author",
 						Name:     "child_a",
 					},
-					Op{
+					{
 						Type:  OpTypeInit,
 						Model: 0x0456,
 					},
 				},
 			},
 			{
+				ParentID: "adguqcqnrpc2rwxdykvsvengsccd5kew3x7jhs52rspg2f5nbina",
 				Ops: []Op{
-					Op{
+					{
 						Type:     OpTypeInit,
 						Model:    0x0002,
 						AuthorID: "buthor",
