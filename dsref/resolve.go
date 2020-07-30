@@ -95,6 +95,10 @@ type sequentialResolver []Resolver
 
 func (sr sequentialResolver) ResolveRef(ctx context.Context, ref *Ref) (string, error) {
 	for _, resolver := range sr {
+		if resolver == nil {
+			continue
+		}
+
 		resolvedSource, err := resolver.ResolveRef(ctx, ref)
 		if err != nil {
 			if errors.Is(err, ErrRefNotFound) {

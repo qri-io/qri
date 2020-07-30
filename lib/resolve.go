@@ -110,5 +110,9 @@ func (inst *Instance) defaultResolver() dsref.Resolver {
 }
 
 func (inst *Instance) registryResolver() dsref.Resolver {
-	return inst.remoteClient.NewRemoteRefResolver(inst.cfg.Registry.Location)
+	var location string
+	if inst.cfg.Registry != nil {
+		location = inst.cfg.Registry.Location
+	}
+	return inst.remoteClient.NewRemoteRefResolver(location)
 }
