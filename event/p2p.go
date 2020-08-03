@@ -27,4 +27,16 @@ var (
 	// from a Qri peer
 	// payload will be a p2p.Message
 	ETP2PMessageReceived = Type("p2p:MessageReceived")
+	// ETP2PProfileExchangeRequestRecieved fires when the profile exchange service
+	// recieves a request to begin a profile exchange
+	ETP2PProfileExchangeRequestRecieved = Type("p2p:Profile exchange request recieved")
+	// ETP2PProfileExchangeRequestSent fires when the node sends a request to another
+	// instance to begin a profiles exchange
+	ETP2PProfileExchangeRequestSent = Type("p2p:Profile exchange request sent")
+	// ETP2PProfileExchangeSuccess fires when the profile exchange service
+	// successfully completes a profile exchange
+	ETP2PProfileExchangeSuccess = Type("p2p:Profile exchange completed successfully")
+	// ETP2PProfileExchangeFailed fires when the profile exchange service
+	// failes tp completes a profile exchange
+	ETP2PProfileExchangeFailed = Type("p2p:Profile exchange failed")
 )

@@ -53,6 +53,10 @@ type QriNode struct {
 	// ipfs node provided by repo
 	Repo repo.Repo
 
+	// ProfileExchangeService listens for requests for profile exchanges and allows
+	// your node to request profile exchanges
+	profileExchangeService *ProfileExchangeService
+
 	// handlers maps this nodes registered handlers. This works in a way
 	// similary to a router in traditional client/server models, but messages
 	// are flying around all over the place instead of a
@@ -170,7 +174,7 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	// setting a stream handler for the QriPrtocolID indicates to peers on
 	// the distributed web that this node supports Qri. for more info on
 	// multistreams  check github.com/multformats/go-multistream
-	n.host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
+	// n.host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
 	// register ourselves as a notifee on connected
 	n.host.Network().Notify(n.notifee)
 	if err := n.libp2pSubscribe(); err != nil {
@@ -188,6 +192,8 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	if err := n.Repo.SetProfile(p); err != nil {
 		return err
 	}
+
+	n.profileExchangeService = NewQriProfileExchangeService(n.host, n.Repo, n.pub)
 
 	n.Online = true
 	n.pub.Publish(ctx, event.ETP2PGoneOnline, n.EncapsulatedAddresses())
@@ -406,7 +412,8 @@ func (n *QriNode) libp2pSubscribe() error {
 			switch e := e.(type) {
 			case libp2pevent.EvtPeerIdentificationCompleted:
 				log.Debugf("libp2p identified peer: %s\n", e.Peer)
-				n.upgradeToQriConnection(e.Peer)
+				// err := n.upgradeToQriConnection(e.Peer)
+				n.profileExchangeService.ProfileExchange(context.Background(), e.Peer)
 			case libp2pevent.EvtPeerIdentificationFailed:
 				log.Debugf("libp2p failed to identify peer peer %s: %s", e.Peer, e.Reason)
 			}
