@@ -53,9 +53,9 @@ type QriNode struct {
 	// ipfs node provided by repo
 	Repo repo.Repo
 
-	// ProfileExchangeService listens for requests for profile exchanges and allows
+	// ProfileService listens for requests for profile exchanges and allows
 	// your node to request profile exchanges
-	profileExchangeService *ProfileExchangeService
+	profileService *ProfileService
 
 	// handlers maps this nodes registered handlers. This works in a way
 	// similary to a router in traditional client/server models, but messages
@@ -115,6 +115,7 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (node *Qr
 		DisconnectedF: node.disconnected,
 	}
 
+	node.profileService = NewQriProfileService(node.Repo, node.pub)
 	return node, nil
 }
 
@@ -170,6 +171,8 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 		}
 	}
 
+	n.profileService.StartProfileService(n.host)
+
 	// add multistream handler for qri protocol to the host
 	// setting a stream handler for the QriPrtocolID indicates to peers on
 	// the distributed web that this node supports Qri. for more info on
@@ -192,8 +195,6 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	if err := n.Repo.SetProfile(p); err != nil {
 		return err
 	}
-
-	n.profileExchangeService = NewQriProfileExchangeService(n.host, n.Repo, n.pub)
 
 	n.Online = true
 	n.pub.Publish(ctx, event.ETP2PGoneOnline, n.EncapsulatedAddresses())
@@ -379,6 +380,7 @@ func (n *QriNode) SendMessage(ctx context.Context, msg Message, replies chan Mes
 // connected is called when a connection opened via the network notifee bundle
 func (n *QriNode) connected(_ net.Network, conn net.Conn) {
 	log.Debugf("connected to peer: %s", conn.RemotePeer())
+
 	pi := n.Host().Peerstore().PeerInfo(conn.RemotePeer())
 	n.pub.Publish(context.Background(), event.ETP2PPeerConnected, pi)
 }
@@ -413,7 +415,7 @@ func (n *QriNode) libp2pSubscribe() error {
 			case libp2pevent.EvtPeerIdentificationCompleted:
 				log.Debugf("libp2p identified peer: %s\n", e.Peer)
 				// err := n.upgradeToQriConnection(e.Peer)
-				n.profileExchangeService.ProfileExchange(context.Background(), e.Peer)
+				n.profileService.ProfileRequest(context.Background(), e.Peer)
 			case libp2pevent.EvtPeerIdentificationFailed:
 				log.Debugf("libp2p failed to identify peer peer %s: %s", e.Peer, e.Reason)
 			}

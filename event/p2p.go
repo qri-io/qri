@@ -27,16 +27,22 @@ var (
 	// from a Qri peer
 	// payload will be a p2p.Message
 	ETP2PMessageReceived = Type("p2p:MessageReceived")
-	// ETP2PProfileExchangeRequestRecieved fires when the profile exchange service
+	// ETP2PProfileRequestReceived fires when the profile exchange service
 	// recieves a request to begin a profile exchange
-	ETP2PProfileExchangeRequestRecieved = Type("p2p:Profile exchange request recieved")
-	// ETP2PProfileExchangeRequestSent fires when the node sends a request to another
+	ETP2PProfileRequestReceived = Type("p2p:Profile exchange request  received")
+	// ETP2PProfileRequestSent fires when the node sends a request to another
 	// instance to begin a profiles exchange
-	ETP2PProfileExchangeRequestSent = Type("p2p:Profile exchange request sent")
-	// ETP2PProfileExchangeSuccess fires when the profile exchange service
+	ETP2PProfileRequestSent = Type("p2p:Profile exchange request sent")
+	// ETP2PProfileSendSuccess fires when the profile exchange service
 	// successfully completes a profile exchange
-	ETP2PProfileExchangeSuccess = Type("p2p:Profile exchange completed successfully")
-	// ETP2PProfileExchangeFailed fires when the profile exchange service
+	ETP2PProfileSendSuccess = Type("p2p:Profile sent successfully")
+	// ETP2PProfileSendFailed fires when the profile exchange service
 	// failes tp completes a profile exchange
-	ETP2PProfileExchangeFailed = Type("p2p:Profile exchange failed")
+	ETP2PProfileSendFailed = Type("p2p:Profile send failed")
+	// ETP2PProfileReceiveSuccess fires when the profile exchange service
+	// successfully completes a profile exchange
+	ETP2PProfileReceiveSuccess = Type("p2p:Profile received successfully")
+	// ETP2PProfileReceiveFailed fires when the profile exchange service
+	// failes tp completes a profile exchange
+	ETP2PProfileReceiveFailed = Type("p2p:Profile receive failed")
 )
