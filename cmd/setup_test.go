@@ -50,6 +50,10 @@ func TestSetupGimmeDoggo(t *testing.T) {
 	}
 }
 
+// NOTE: These tests below do not use the TestRunner. This is because the TestRunner creates
+// its own MockRepo, which removes the need to run `qri setup`. Since the whole idea here is
+// to test `qri setup`'s behavior, we cannot use that functionality.
+
 // Test that setup with no input will use the suggested username
 func TestSetupWithNoInput(t *testing.T) {
 	ctx := context.Background()
@@ -278,6 +282,13 @@ func createTmpQriHome(t *testing.T) string {
 	}
 
 	err = os.Setenv("QRI_PATH", qriHome)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Clear this envvar in order to get tests to pass on continuous build. If this
+	// envvar is set, it will override other configuration.
+	err = os.Setenv("QRI_SETUP_CONFIG_DATA", "")
 	if err != nil {
 		t.Fatal(err)
 	}
