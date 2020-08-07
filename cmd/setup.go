@@ -7,12 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/qri-io/doggos"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo/gen"
 	"github.com/spf13/cobra"
 )
@@ -36,9 +34,9 @@ running setup. If setup has already been run, by default Qri won’t let you
 overwrite this info.
 
 Use the ` + "`--remove`" + ` to remove your Qri repo. This deletes your entire repo, 
-including all your datasets, and de-registers your peername from the registry.`,
-		Example: `  # Run setup with a peername of your choosing:
-  $ qri setup --peername=your_great_peername`,
+including all your datasets, and de-registers your username from the registry.`,
+		Example: `  # Run setup with a username of your choosing:
+  $ qri setup --username=your_great_username`,
 		Annotations: map[string]string{
 			"group": "other",
 		},
@@ -51,12 +49,12 @@ including all your datasets, and de-registers your peername from the registry.`,
 		},
 	}
 
-	cmd.Flags().BoolVarP(&o.Anonymous, "anonymous", "a", false, "use an auto-generated peername")
+	cmd.Flags().BoolVarP(&o.Anonymous, "anonymous", "a", false, "use an auto-generated username")
 	cmd.Flags().BoolVarP(&o.Overwrite, "overwrite", "", false, "overwrite repo if one exists")
 	cmd.Flags().BoolVarP(&o.IPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
 	cmd.Flags().BoolVarP(&o.Remove, "remove", "", false, "permanently remove qri, overrides all setup options")
 	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "override default registry URL, set to 'none' to remove registry")
-	cmd.Flags().StringVarP(&o.Peername, "peername", "", "", "choose your desired peername")
+	cmd.Flags().StringVarP(&o.Username, "username", "", "", "choose your desired username")
 	cmd.Flags().StringVarP(&o.IPFSConfigData, "ipfs-config", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
 	cmd.Flags().StringVarP(&o.ConfigData, "config-data", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
 	cmd.Flags().BoolVar(&o.GimmeDoggo, "gimme-doggo", false, "create and display a doggo name only")
@@ -74,7 +72,7 @@ type SetupOptions struct {
 	Overwrite      bool
 	IPFS           bool
 	Remove         bool
-	Peername       string
+	Username       string
 	Registry       string
 	IPFSConfigData string
 	ConfigData     string
@@ -136,21 +134,25 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 
 		err = json.Unmarshal([]byte(o.ConfigData), cfg)
 		if cfg.Profile != nil {
-			o.Peername = cfg.Profile.Peername
+			o.Username = cfg.Profile.Peername
 		}
 		if err != nil {
 			return err
 		}
 	}
 
-	if o.Peername != "" {
-		cfg.Profile.Peername = o.Peername
-	} else if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !o.Anonymous {
-		cfg.Profile.Peername = inputText(o.Out, o.In, "choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
+	// Handle the --username flag, or prompt the user for a username
+	if o.Username != "" {
+		cfg.Profile.Peername = o.Username
+	} else if !o.Anonymous {
+		cfg.Profile.Peername = prompt(o.Out, o.In, "choose username (leave empty to generate a default name):")
 	}
 
-	if err := dsref.EnsureValidUsername(cfg.Profile.Peername); err != nil {
-		return err
+	// If a username was passed with the --username flag or entered by prompt, make sure its valid
+	if cfg.Profile.Peername != "" {
+		if err := dsref.EnsureValidUsername(cfg.Profile.Peername); err != nil {
+			return err
+		}
 	}
 
 	if o.Registry == "none" {
@@ -174,20 +176,7 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		p.SetupIPFSConfigData = []byte(o.IPFSConfigData)
 	}
 
-	for {
-		err := lib.Setup(p)
-		if err != nil {
-			if err == registry.ErrUsernameTaken {
-				printWarning(o.Out, "peername '%s' already taken", cfg.Profile.Peername)
-				cfg.Profile.Peername = inputText(o.Out, o.In, "choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
-				continue
-			} else {
-				return err
-			}
-		}
-		break
-	}
-	return nil
+	return lib.Setup(p)
 }
 
 // CreateAndDisplayDoggo creates and display a doggo name

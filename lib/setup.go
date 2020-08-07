@@ -68,6 +68,8 @@ func Setup(p SetupParams) error {
 	if cfg.Profile.PrivKey == "" {
 		cfg.Profile.PrivKey = cfg.P2P.PrivKey
 		cfg.Profile.ID = cfg.P2P.PeerID
+	}
+	if cfg.Profile.Peername == "" {
 		cfg.Profile.Peername = p.Generator.GenerateNickname(cfg.P2P.PeerID)
 	}
 
