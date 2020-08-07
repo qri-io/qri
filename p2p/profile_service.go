@@ -104,8 +104,25 @@ func (ps *ProfileService) ProfileHandler(s network.Stream) {
 // }
 
 // ProfileRequest requests a profile from a specific peer
-func (ps *ProfileService) ProfileRequest(ctx context.Context, p peer.ID) {
-	<-ps.ProfileWait(ctx, p)
+func (ps *ProfileService) ProfileRequest(ctx context.Context, pid peer.ID) {
+
+	protocols, err := ps.Host.Peerstore().GetProtocols(pid)
+	if err == nil {
+		// if we successfully get the protocols, see if
+		// the peer speaks the qri profile protocol
+		speaksProfileService := false
+		for _, prot := range protocols {
+			if prot == ProfileProtocolID {
+				speaksProfileService = true
+				break
+			}
+		}
+		if !speaksProfileService {
+			log.Debugf("peer %q does not speak qri profile protocol", pid)
+			return
+		}
+	}
+	<-ps.ProfileWait(ctx, pid)
 	return
 }
 
@@ -157,7 +174,7 @@ func (ps *ProfileService) profileRequest(ctx context.Context, p peer.ID, signal 
 
 	s, err := ps.Host.NewStream(ctx, p, ProfileProtocolID)
 	if err != nil {
-		log.Errorf("error opening profile stream: %s", err)
+		log.Errorf("error opening profile stream to %q: %s", p, err)
 		return
 	}
 

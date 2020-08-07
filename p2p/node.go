@@ -413,11 +413,11 @@ func (n *QriNode) libp2pSubscribe() error {
 		for e := range sub.Out() {
 			switch e := e.(type) {
 			case libp2pevent.EvtPeerIdentificationCompleted:
-				log.Debugf("libp2p identified peer: %s\n", e.Peer)
+				log.Debugf("libp2p identified peer: %s", e.Peer)
 				// err := n.upgradeToQriConnection(e.Peer)
 				n.profileService.ProfileRequest(context.Background(), e.Peer)
 			case libp2pevent.EvtPeerIdentificationFailed:
-				log.Debugf("libp2p failed to identify peer peer %s: %s", e.Peer, e.Reason)
+				log.Debugf("libp2p failed to identify peer %s: %s", e.Peer, e.Reason)
 			}
 		}
 	}()
