@@ -145,7 +145,7 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 	if o.Username != "" {
 		cfg.Profile.Peername = o.Username
 	} else if !o.Anonymous {
-		cfg.Profile.Peername = inputText(o.Out, o.In, "choose username (leave empty to generate a default name):", "")
+		cfg.Profile.Peername = prompt(o.Out, o.In, "choose username (leave empty to generate a default name):")
 	}
 
 	// If a username was passed with the --username flag or entered by prompt, make sure its valid

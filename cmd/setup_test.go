@@ -121,6 +121,40 @@ func TestSetupUsernameOnStdin(t *testing.T) {
 	}
 }
 
+// Test that setup doesn't prompt if given anonymous flag
+func TestSetupAnonymousIgnoresStdin(t *testing.T) {
+	ctx := context.Background()
+	info := test_peers.GetTestPeerInfo(0)
+
+	qriHome := createTmpQriHome(t)
+	stdinText := "qri_test_name"
+	cmd, shutdown := newCommandWithStdin(ctx, qriHome, stdinText, repotest.NewTestCrypto())
+
+	cmdText := "qri setup --anonymous"
+	if err := executeCommand(cmd, cmdText); err != nil {
+		timedShutdown(fmt.Sprintf("ExecCommand: %q\n", cmdText), shutdown)
+		t.Fatal(err)
+	}
+
+	configData := readConfigFile(t, qriHome)
+
+	username := configData["Profile"].(map[string]interface{})["peername"]
+	expect := "testnick"
+	if username != expect {
+		t.Errorf("setup didn't create correct username, expect: %s, got: %s", expect, username)
+	}
+
+	profileID := configData["Profile"].(map[string]interface{})["id"]
+	if profileID != info.EncodedPeerID {
+		t.Errorf("setup didn't create correct profileID, expect: %s, got: %s", info.EncodedPeerID, profileID)
+	}
+
+	privkey := configData["Profile"].(map[string]interface{})["privkey"]
+	if privkey != info.EncodedPrivKey {
+		t.Errorf("setup didn't create correct private key")
+	}
+}
+
 // Test that setup with the --username flag will use that value
 func TestSetupUsernameFlag(t *testing.T) {
 	ctx := context.Background()
