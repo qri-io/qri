@@ -20,7 +20,7 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError'
   /{peername}/{datasetName}:
     get:
-      summary: Get dataset info from a peer's dataset using the `peername` and `dataset_name`
+      summary: Get dataset info from a peer’s dataset using the `peername` and `dataset_name`
       operationId: getDataset
       parameters:
         - $ref: '#/components/parameters/peername'
@@ -67,8 +67,8 @@ paths:
                     maxItems: 0
   /me:
     get: 
-      summary: Get this Qri node's profile
-      operationId: getProfile
+      summary: Get this Qri node’s profile
+      operationId: getMyProfile
       responses:
         '200':
           $ref: '#/components/responses/ProfileResponse'
@@ -79,8 +79,8 @@ paths:
         '500':
           $ref: '#/components/responses/StatusInternalServerError'
     post:
-      summary: Save changes to this peer's profile
-      operationId: saveProfile
+      summary: Save changes to this peer’s profile
+      operationId: saveMyProfile
       requestBody:
         description: required profile described in json
         required: true
@@ -99,7 +99,7 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError' 
   /profile:
     get: 
-      summary: Get this Qri node's profile
+      summary: Get this Qri node’s profile
       operationId: getProfile
       responses:
         '200':
@@ -111,7 +111,7 @@ paths:
         '500':
           $ref: '#/components/responses/StatusInternalServerError'
     post:
-      summary: Save changes to this peer's profile
+      summary: Save changes to this peer’s profile
       operationId: saveProfile
       requestBody:
         description: Profile with changes
@@ -131,7 +131,7 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError' 
   /peers:
     get:
-      summary: Get the list of this node's peers
+      summary: Get the list of this node’s peers
       operationId: getPeersList
       responses:
         '200':
@@ -159,7 +159,7 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError'  
   /list:
     get:
-      summary: Get the list of this peer's datasets
+      summary: Get the list of this peer’s datasets
       operationId: getDatasetList
       responses:
         '200':
@@ -179,7 +179,7 @@ paths:
         schema:
           type: string
     get:
-      summary: Get the list a specific peer's datasets
+      summary: Get the list a specific peer’s datasets
       operationId: getPeersDatasetList
       responses:
         '200':
@@ -193,7 +193,7 @@ paths:
   /save:
     post:
       summary: Save and update to a dataset head
-      operationId: saveDataset
+      operationId: saveDatasetFromRoot
       requestBody:
         description: Updated dataset head
         required: true
@@ -237,7 +237,7 @@ paths:
       - $ref: '#/components/parameters/datasetRef'
     post:
       summary: Remove a dataset
-      operationId: removeDataset
+      operationId: removeDatasetPost
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
@@ -249,7 +249,7 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError'
     delete:
       summary: Remove a dataset
-      operationId: removeDataset
+      operationId: removeDatasetDelete
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
@@ -264,7 +264,7 @@ paths:
       - $ref: '#/components/parameters/datasetRef'
     get:
       summary: Get the head of your own dataset
-      operationId: getDataset
+      operationId: getMyDataset
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
@@ -278,8 +278,8 @@ paths:
     parameters:
       - $ref: '#/components/parameters/datasetRef'
     put:
-      summary: Add a peer's dataset to your node
-      operationId: addDataset
+      summary: Add a peer’s dataset to your node
+      operationId: addDatasetPut
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
@@ -290,8 +290,8 @@ paths:
         '500':
           $ref: '#/components/responses/StatusInternalServerError'
     post:
-      summary: Add a peer's dataset to your node
-      operationId: addDataset
+      summary: Add a peer’s dataset to your node
+      operationId: addDatasetPost
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
@@ -313,7 +313,7 @@ paths:
         name: format
         type: string
     get:
-      summary: Get a dataset's body. By default (with no parameters), the body will be returned as paginated json.
+      summary: Get a dataset’s body. By default (with no parameters), the body will be returned as paginated json.
       operationId: getBody
       responses:
         '200':
@@ -344,7 +344,7 @@ paths:
       - $ref: '#/components/parameters/datasetRef'
     put:
       summary: Publish this dataset to the registry
-      operationId: publishDataset
+      operationId: publishDatasetPut
       responses:
         '200':
           $ref: '#/components/responses/RegistryResponse'
@@ -356,7 +356,7 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError'
     post:
       summary: Publish this dataset to the registry
-      operationId: publishDataset
+      operationId: publishDatasetPost
       responses:
         '200':
           $ref: '#/components/responses/RegistryResponse'
@@ -487,7 +487,7 @@ paths:
           description: peer id
           schema:
             $ref: '#/components/schemas/ID'
-      summary: Get your profile photo or a peer's profile photo
+      summary: Get your profile photo or a peer’s profile photo
       operationId: getProfilePhoto
       responses:
         '200':
@@ -500,7 +500,7 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError'  
     put:
       summary: Set your profile photo
-      operationId: setProfilePhoto
+      operationId: setProfilePhotoPut
       requestBody:
         content:
           multipart/form-data:
@@ -520,7 +520,7 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError'
     post:
       summary: Set your profile photo
-      operationId: setProfilePhoto
+      operationId: setProfilePhotoPost
       requestBody:
         content:
           multipart/form-data:
@@ -551,7 +551,7 @@ paths:
           description: peer id
           schema:
             $ref: '#/components/schemas/ID'
-      summary: Get your profile poster or a peer's profile poster
+      summary: Get your profile poster or a peer’s profile poster
       operationId: getProfilePoster
       responses:
         '200':
@@ -564,7 +564,7 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError'  
     put:
       summary: Set your profile poster
-      operationId: setProfilePoster
+      operationId: setProfilePosterPut
       requestBody:
         content:
           multipart/form-data:
@@ -584,7 +584,7 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError'
     post:
       summary: Set your profile poster
-      operationId: setProfilePoster
+      operationId: setProfilePosterPost
       requestBody:
         content:
           multipart/form-data:
@@ -705,7 +705,7 @@ paths:
   /new:
     put:
       summary: Create a new dataset
-      operationId: newDataset
+      operationId: newDatasetPut
       requestBody:
         content:
           application/json:
@@ -737,7 +737,7 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError' 
     post:
       summary: Create a new dataset
-      operationId: newDataset
+      operationId: newDatasetPost
       requestBody:
         content:
           application/json:
@@ -815,7 +815,7 @@ components:
   schemas:
     Dataset:
       type: object
-      description: Dataset is a document for describing & storing structured data. Dataset documents are designed to satisfy the FAIR principle of being Findable, Accessible, Interoperable, and Reproducible, in relation to other dataset documents, and related-but-separate technologies such as data catalogs, HTTP API's, and data package formats Datasets are designed to be stored and distributed on content-addressed (identify-by-hash) systems The dataset document definition is built from a research-first principle, valuing direct interoperability with existing standards over novel definitions or specifications
+      description: Dataset is a document for describing & storing structured data. Dataset documents are designed to satisfy the FAIR principle of being Findable, Accessible, Interoperable, and Reproducible, in relation to other dataset documents, and related-but-separate technologies such as data catalogs, HTTP APIs, and data package formats Datasets are designed to be stored and distributed on content-addressed (identify-by-hash) systems The dataset document definition is built from a research-first principle, valuing direct interoperability with existing standards over novel definitions or specifications
       properties:
         commit:
           $ref: '#/components/schemas/Commit'
@@ -995,7 +995,7 @@ components:
           description: ErrCount is the number of errors returned by validating data against this schema. required
           type: integer
         entries:
-          description: Entries is number of top-level entries in the dataset. With tablular datanthis is the same as the number of `rows`
+          description: Entries is number of top-level entries in the dataset. With tabular data this is the same as the number of `rows`
           type: integer
         format:
           description: Format specifies the format of the raw data MIME type
@@ -1026,7 +1026,7 @@ components:
           description: the path to the script that created this visualization
     Transform:
       type: object
-      description: Transform is a record of executing a transformation on data. Transforms can theoretically be anything for an SQL query, a jupyter notebook, the state of an ETL pipeline, etc, so long as the input is zero or more datasets, and the output is a single dataset. Ideally, transforms should contain all the machine-necessary bits to deterministicly execute the algorithm referenced in ScriptPath
+      description: Transform is a record of executing a transformation on data. Transforms can theoretically be anything for an SQL query, a jupyter notebook, the state of an ETL pipeline, etc, so long as the input is zero or more datasets, and the output is a single dataset. Ideally, transforms should contain all the machine-necessary bits to deterministically execute the algorithm referenced in ScriptPath
       properties:
         qri:
           $ref: '#/components/schemas/Qri'
@@ -1113,7 +1113,7 @@ components:
       properties: 
         type:
           type: string
-          description: dataset body's top level structure, either object or array
+          description: dataset body’s top level structure, either object or array
           enum: [array, object]
     MetaResponse:
       type: object
