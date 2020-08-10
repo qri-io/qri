@@ -177,7 +177,10 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	// setting a stream handler for the QriPrtocolID indicates to peers on
 	// the distributed web that this node supports Qri. for more info on
 	// multistreams  check github.com/multformats/go-multistream
-	// n.host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
+	// note: even though we are phasing out the old qri protocol, we
+	// should still handle it for now, since this is what old nodes will
+	// be relying on
+	n.host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
 	// register ourselves as a notifee on connected
 	n.host.Network().Notify(n.notifee)
 	if err := n.libp2pSubscribe(); err != nil {
@@ -389,6 +392,13 @@ func (n *QriNode) disconnected(_ net.Network, conn net.Conn) {
 	log.Debugf("disconnected from peer: %s", conn.RemotePeer())
 	pi := n.Host().Peerstore().PeerInfo(conn.RemotePeer())
 	n.pub.Publish(context.Background(), event.ETP2PPeerDisconnected, pi)
+
+	if n.profileService.IsQriPeer(pi.ID) {
+		pro, err := n.Repo.Profiles().PeerProfile(pi.ID)
+		if err == nil {
+			n.pub.Publish(context.Background(), event.ETP2PPeerDisconnected, pro)
+		}
+	}
 }
 
 // QriStreamHandler is the handler we register with the multistream muxer
