@@ -21,7 +21,13 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan peer.Addr
 	}
 
 	pinfos := toPeerInfos(peers)
-	for _, p := range randomSubsetOfPeers(pinfos, 4) {
+	// TODO (ramfox): this randomSubsetOfPeers func is currently always
+	// returning the same 4 peers. Right now, I think it's okay to attempt to
+	// connect to all 7 of the bootstrap peers
+	// when we have more bootstraps in the future, then we can add back
+	// only dialing to a random subset
+	// for _, p := range randomSubsetOfPeers(pinfos, 4) {
+	for _, p := range pinfos {
 		go func(p peer.AddrInfo) {
 			log.Debugf("boostrapping to: %s", p.ID.Pretty())
 			if err := n.host.Connect(context.Background(), p); err == nil {
@@ -88,6 +94,9 @@ func toPeerInfos(addrs []ma.Multiaddr) []peer.AddrInfo {
 	return peers
 }
 
+// TODO (ramfox): this is always returning the same bootstrap peers
+// since the length of the list of peers that is given are always
+// the same
 // randomSubsetOfPeers samples up to max from a slice of PeerInfos
 func randomSubsetOfPeers(in []peer.AddrInfo, max int) []peer.AddrInfo {
 	n := int(math.Min(float64(max), float64(len(in))))
