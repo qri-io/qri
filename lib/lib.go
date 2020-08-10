@@ -683,8 +683,8 @@ type Instance struct {
 
 // Connect takes an instance online
 func (inst *Instance) Connect(ctx context.Context) (err error) {
-	oldRemoteClientExisted := inst.remoteClient != nil
-	log.Debugf("inst.Connect oldRemoteClientExisted=%t", oldRemoteClientExisted)
+	// oldRemoteClientExisted := inst.remoteClient != nil
+	// log.Debugf("inst.Connect oldRemoteClientExisted=%t", oldRemoteClientExisted)
 
 	if err = inst.node.GoOnline(ctx); err != nil {
 		log.Debugf("taking node online: %s", err.Error())
@@ -707,9 +707,9 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	}()
 	// need to decrement waitgroup for old remote client
 	// TODO (b5) - need to properly clean up old client with a context cancellation
-	if oldRemoteClientExisted {
-		inst.releasers.Done()
-	}
+	// if oldRemoteClientExisted {
+	// 	inst.releasers.Done()
+	// }
 
 	if inst.cfg.Remote != nil && inst.cfg.Remote.Enabled {
 		localResolver, err := inst.resolverForMode("local")
