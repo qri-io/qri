@@ -1,3 +1,17 @@
+<a name="v0.9.11"></a>
+# [v0.9.11](https://github.com/qri-io/qri/compare/v0.9.10...v0.9.11) (2020-08-10)
+
+This patch release addresses a critical error in `qri setup`, and removes overly-verbose output when running `qri connect`.
+
+### Bug Fixes
+
+* **lib:** don't panic when resolving without a registry ([2708801](https://github.com/qri-io/qri/commit/2708801))
+* **p2p:** some clean up around `qri peers connect` and `upgradeToQriConnection` ([#1489](https://github.com/qri-io/qri/issues/1489)) ([b7bb076](https://github.com/qri-io/qri/commit/b7bb076))
+* **setup:** Fix prompt, add a test for --anonymous ([3b2c58a](https://github.com/qri-io/qri/commit/3b2c58a))
+* **setup:** Fix setup, add many unit tests ([b88d084](https://github.com/qri-io/qri/commit/b88d084))
+
+
+
 <a name="v0.9.10"></a>
 # [v0.9.10](https://github.com/qri-io/qri/compare/v0.9.9...v0.9.10) (2020-07-27)
 
