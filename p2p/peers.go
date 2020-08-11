@@ -42,18 +42,7 @@ func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
 
 // ConnectedQriPeerIDs returns a slice of peer.IDs this peer is currently connected to
 func (n *QriNode) ConnectedQriPeerIDs() []peer.ID {
-	peers := []peer.ID{}
-	if n.host == nil {
-		return peers
-	}
-	conns := n.host.Network().Conns()
-	for _, c := range conns {
-		id := c.RemotePeer()
-		if _, err := n.Repo.Profiles().PeerProfile(id); err == nil {
-			peers = append(peers, id)
-		}
-	}
-	return peers
+	return n.profiles.ConnectedQriPeers()
 }
 
 // ClosestConnectedQriPeers checks if a peer is connected, and if so adds it to the top

@@ -54,6 +54,17 @@ func NewQriProfileService(r repo.Repo, p event.Publisher) *ProfileService {
 	return ps
 }
 
+// ConnectedQriPeers returns a list of currently connected peers
+func (ps *ProfileService) ConnectedQriPeers() []peer.ID {
+	ps.peersMu.Lock()
+	defer ps.peersMu.Unlock()
+	peers := []peer.ID{}
+	for pid := range ps.peers {
+		peers = append(peers, pid)
+	}
+	return peers
+}
+
 // HandleQriPeerDisconnect checks if a given peer is a qri peer.
 // If so, it will wait until all profile exchanging has finished
 // Then remove the peer from the peers map, as well as publish
