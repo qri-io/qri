@@ -683,9 +683,6 @@ type Instance struct {
 
 // Connect takes an instance online
 func (inst *Instance) Connect(ctx context.Context) (err error) {
-	// oldRemoteClientExisted := inst.remoteClient != nil
-	// log.Debugf("inst.Connect oldRemoteClientExisted=%t", oldRemoteClientExisted)
-
 	if err = inst.node.GoOnline(ctx); err != nil {
 		log.Debugf("taking node online: %s", err.Error())
 		return
@@ -694,8 +691,11 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	// for now if we have an IPFS node instance, node.GoOnline has to make a new
 	// instance to connect properly. If remoteClient or remote retains the reference to the
 	// old instance, we run into issues where the online instance can't "see"
-	// the additions. We fix that by re-initializing the client and remote with the new
-	// instance
+	// the additions. We fix that by shutting down the previous client and
+	// re-initializing the client and remote with the new instance
+	if inst.remoteClient != nil {
+		<-inst.remoteClient.Shutdown()
+	}
 	if inst.remoteClient, err = remote.NewClient(ctx, inst.node, inst.bus); err != nil {
 		log.Debugf("remote.NewClient error=%q", err)
 		return
@@ -705,11 +705,6 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 		<-inst.remoteClient.Done()
 		inst.releasers.Done()
 	}()
-	// need to decrement waitgroup for old remote client
-	// TODO (b5) - need to properly clean up old client with a context cancellation
-	// if oldRemoteClientExisted {
-	// 	inst.releasers.Done()
-	// }
 
 	if inst.cfg.Remote != nil && inst.cfg.Remote.Enabled {
 		localResolver, err := inst.resolverForMode("local")
