@@ -51,7 +51,7 @@ func NewMockClient(ctx context.Context, node *p2p.QriNode, book *logbook.Book) (
 		storagePath:  tmpDir,
 		foreignBooks: map[string]*logbook.Book{},
 		doneCh:       make(chan struct{}),
-		close:        cancel,
+		shutdown:     cancel,
 	}
 
 	go func() {

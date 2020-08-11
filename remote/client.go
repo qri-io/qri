@@ -100,6 +100,7 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 	if capiErr == nil {
 		lng, err := dsync.NewLocalNodeGetter(capi)
 		if err != nil {
+			cancel()
 			return nil, err
 		}
 
@@ -111,6 +112,7 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 			dsyncConfig.PinAPI = capi.Pin()
 		})
 		if err != nil {
+			cancel()
 			return nil, err
 		}
 	} else {
