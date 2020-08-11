@@ -25,6 +25,12 @@ const (
 	ProfileTimeout = time.Minute * 2
 )
 
+var (
+	// ErrPeerNotFound is returned when the profile service cannot find the
+	// peer in question
+	ErrPeerNotFound = fmt.Errorf("peer not found")
+)
+
 // ProfileService manages the profile exchange. This exchange should happen
 // whenever a node connects to a new peer
 type ProfileService struct {
@@ -44,22 +50,50 @@ func NewQriProfileService(r repo.Repo, p event.Publisher) *ProfileService {
 		peersMu: &sync.Mutex{},
 		peers:   map[peer.ID]chan struct{}{},
 	}
-	// h.SetStreamHandler(ProfileProtocolID, ps.ProfileHandler)
+
 	return ps
 }
 
-// IsQriPeer returns true if the given peer ID is a peer we
-// have connected to this session
-func (ps *ProfileService) IsQriPeer(pid peer.ID) bool {
+// HandleQriPeerDisconnect checks if a given peer is a qri peer.
+// If so, it will wait until all profile exchanging has finished
+// Then remove the peer from the peers map, as well as publish
+// that the peer has disconnected.
+func (ps *ProfileService) HandleQriPeerDisconnect(pid peer.ID) {
+	ps.peersMu.Lock()
+	wait, ok := ps.peers[pid]
+	ps.peersMu.Unlock()
+	if !ok {
+		return
+	}
+	<-wait
+
+	ps.pub.Publish(context.Background(), event.ETP2PPeerDisconnected, ps.PeerProfile(pid))
+
+	ps.peersMu.Lock()
+	delete(ps.peers, pid)
+	ps.peersMu.Unlock()
+}
+
+// PeerProfile returns a profile if that peer id refers to a peer that
+// we have connected to this session.
+func (ps *ProfileService) PeerProfile(pid peer.ID) *profile.Profile {
 	ps.peersMu.Lock()
 	_, ok := ps.peers[pid]
 	ps.peersMu.Unlock()
-	return ok
+	if !ok {
+		return nil
+	}
+	pro, err := ps.repo.Profiles().PeerProfile(pid)
+	if err != nil {
+		log.Debugf("error getting peer profile: %s", err)
+		return nil
+	}
+	return pro
 }
 
-// StartProfileService adds a host and a profile handler to the host
+// Start adds a host and a profile handler to the host
 // to the profile service
-func (ps *ProfileService) StartProfileService(h host.Host) {
+func (ps *ProfileService) Start(h host.Host) {
 	ps.host = h
 	h.SetStreamHandler(ProfileProtocolID, ps.ProfileHandler)
 }
@@ -77,6 +111,8 @@ func (ps *ProfileService) ProfileHandler(s network.Stream) {
 	p := s.Conn().RemotePeer()
 
 	defer func() {
+		// close the stream, and wait for the other end of the stream to close as well
+		// this won't close the underlying connection
 		helpers.FullClose(s)
 	}()
 

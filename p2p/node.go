@@ -55,7 +55,7 @@ type QriNode struct {
 
 	// ProfileService listens for requests for profile exchanges and allows
 	// your node to request profile exchanges
-	profileService *ProfileService
+	profiles *ProfileService
 
 	// handlers maps this nodes registered handlers. This works in a way
 	// similary to a router in traditional client/server models, but messages
@@ -115,7 +115,7 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (node *Qr
 		DisconnectedF: node.disconnected,
 	}
 
-	node.profileService = NewQriProfileService(node.Repo, node.pub)
+	node.profiles = NewQriProfileService(node.Repo, node.pub)
 	return node, nil
 }
 
@@ -171,7 +171,7 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 		}
 	}
 
-	n.profileService.StartProfileService(n.host)
+	n.profiles.Start(n.host)
 
 	// add multistream handler for qri protocol to the host
 	// setting a stream handler for the QriPrtocolID indicates to peers on
@@ -179,7 +179,8 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	// multistreams  check github.com/multformats/go-multistream
 	// note: even though we are phasing out the old qri protocol, we
 	// should still handle it for now, since this is what old nodes will
-	// be relying on
+	// be relying on. We will drop support for the old qri protocol
+	// in the release of v0.10.0
 	n.host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
 	// register ourselves as a notifee on connected
 	n.host.Network().Notify(n.notifee)
@@ -393,12 +394,7 @@ func (n *QriNode) disconnected(_ net.Network, conn net.Conn) {
 	pi := n.Host().Peerstore().PeerInfo(conn.RemotePeer())
 	n.pub.Publish(context.Background(), event.ETP2PPeerDisconnected, pi)
 
-	if n.profileService.IsQriPeer(pi.ID) {
-		pro, err := n.Repo.Profiles().PeerProfile(pi.ID)
-		if err == nil {
-			n.pub.Publish(context.Background(), event.ETP2PPeerDisconnected, pro)
-		}
-	}
+	n.profiles.HandleQriPeerDisconnect(pi.ID)
 }
 
 // QriStreamHandler is the handler we register with the multistream muxer
@@ -424,8 +420,7 @@ func (n *QriNode) libp2pSubscribe() error {
 			switch e := e.(type) {
 			case libp2pevent.EvtPeerIdentificationCompleted:
 				log.Debugf("libp2p identified peer: %s", e.Peer)
-				// err := n.upgradeToQriConnection(e.Peer)
-				n.profileService.ProfileRequest(context.Background(), e.Peer)
+				n.profiles.ProfileRequest(context.Background(), e.Peer)
 			case libp2pevent.EvtPeerIdentificationFailed:
 				log.Debugf("libp2p failed to identify peer %s: %s", e.Peer, e.Reason)
 			}
