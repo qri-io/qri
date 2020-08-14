@@ -13,7 +13,7 @@ import (
 // Bootstrap samples a subset of peers & requests their peers list
 // This is a naive version of IPFS bootstrapping, which we'll add in once
 // qri's settled on a shared-state implementation
-func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan peer.AddrInfo) {
+func (n *QriNode) Bootstrap(boostrapAddrs []string) {
 	peers, err := ParseMultiaddrs(boostrapAddrs)
 	if err != nil {
 		log.Info("error parsing bootstrap addresses:", err.Error())
@@ -30,9 +30,7 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan peer.Addr
 	for _, p := range pinfos {
 		go func(p peer.AddrInfo) {
 			log.Debugf("boostrapping to: %s", p.ID.Pretty())
-			if err := n.host.Connect(context.Background(), p); err == nil {
-				boostrapPeers <- p
-			} else {
+			if err := n.host.Connect(context.Background(), p); err != nil {
 				log.Infof("error connecting to host: %s", err.Error())
 			}
 		}(p)
