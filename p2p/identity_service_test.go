@@ -14,8 +14,31 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
+// Hello fellow devs. Let my pain be your comfort and plz use my notes here
+// as a guide on how to not pull out your hair when testing the p2p connections
+// things to note:
+//   - once a libp2p connection has been established, the QriIdentityService will
+//   check if that remote peers speaks qri. If it does, it will protect that
+//   connection, add it to a list of current qri connections, and ask that peer
+//   for it's qri profile. It will then emit a `event.ETP2PQriPeerConnected` event
+//   - if a libp2p connection has been broken, aka disconnected, the QriIdentity-
+//   Service will remove that connection from the current qri connections and
+//   emit a `event.ETP2PQriPeerDisconnected` event
+//   - we can use these events to coordinate on
+//   - QriNodes have a Discovery process that the peers use to find each other
+//   in the "wild". This is why you may see connections to peers that you haven't
+//   explicitly connected to. When this is happening locally, it may happen so
+//   quickly that the connections can collide causing errors. Unless you are
+//   specifically testing that the peers can find themselves on their own, it
+//   may be best to disable Discovery by calling `node.Discovery.Close()`
+//   - when coordinating on events, ensure that you are using a mutex lock to
+//   prevent any race conditions
+//   - use channels to wait for all connections or disconnections to occur. a
+//   closed channel never blocks!
+
 func TestQriIdentityService(t *testing.T) {
 	ctx := context.Background()
+	numNodes := 5 // number of nodes we want (besides the main test node) in this test
 	// create a network of connected nodes
 	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestDirNetwork(ctx, factory)
@@ -27,20 +50,29 @@ func TestQriIdentityService(t *testing.T) {
 	nodes := make([]*QriNode, len(testPeers))
 	for i, node := range testPeers {
 		nodes[i] = node.(*QriNode)
+		// closing the discovery process prevents situations where another peer finds
+		// our node in the wild and attempts to connect to it while we are trying
+		// to connect to that node at the same time. This causes a dial failure.
+		nodes[i].Discovery.Close()
 	}
+
+	expectedPeers := peer.IDSlice{}
+	for _, node := range nodes {
+		expectedPeers = append(expectedPeers, node.host.ID())
+	}
+	sort.Sort(peer.IDSlice(expectedPeers))
+	t.Logf("expected nodes: %v", expectedPeers)
 
 	// set up bus & listener for `ETP2PQriPeerConnected` events
 	// this is how we will be sure that all the nodes have exchanged qri profiles
 	// before moving forward
 	bus := event.NewBus(ctx)
-	numConns := len(nodes)
 	qriPeerConnWaitCh := make(chan struct{})
 	connectedPeersMu := sync.Mutex{}
 	connectedPeers := peer.IDSlice{}
 
 	disconnectedPeers := peer.IDSlice{}
 	disconnectedPeersMu := sync.Mutex{}
-	numDisconnects := len(nodes)
 	disconnectsCh := make(chan struct{})
 
 	watchP2PQriEvents := func(_ context.Context, typ event.Type, payload interface{}) error {
@@ -50,8 +82,20 @@ func TestQriIdentityService(t *testing.T) {
 			return fmt.Errorf("payload for event.ETP2PQriPeerConnected not a *profile.Profile as expected")
 		}
 		pid := pro.PeerIDs[0]
+		expectedPeer := false
+		for _, id := range expectedPeers {
+			if pid == id {
+				expectedPeer = true
+				break
+			}
+		}
+		if !expectedPeer {
+			t.Logf("peer %q connected but not an expected peer", pid)
+			return nil
+		}
 		if typ == event.ETP2PQriPeerConnected {
 			connectedPeersMu.Lock()
+			defer connectedPeersMu.Unlock()
 			t.Log("Qri Peer Connected: ", pid)
 			for _, id := range connectedPeers {
 				if pid == id {
@@ -60,14 +104,13 @@ func TestQriIdentityService(t *testing.T) {
 				}
 			}
 			connectedPeers = append(connectedPeers, pid)
-			numConns--
-			if numConns == 0 {
+			if len(connectedPeers) == numNodes {
 				close(qriPeerConnWaitCh)
 			}
-			connectedPeersMu.Unlock()
 		}
 		if typ == event.ETP2PQriPeerDisconnected {
 			disconnectedPeersMu.Lock()
+			defer disconnectedPeersMu.Unlock()
 			t.Log("Qri Peer Disconnected: ", pid)
 			for _, id := range disconnectedPeers {
 				if pid == id {
@@ -76,11 +119,9 @@ func TestQriIdentityService(t *testing.T) {
 				}
 			}
 			disconnectedPeers = append(disconnectedPeers, pid)
-			numDisconnects--
-			if numDisconnects == 0 {
+			if len(disconnectedPeers) == numNodes {
 				close(disconnectsCh)
 			}
-			disconnectedPeersMu.Unlock()
 		}
 		return nil
 	}
@@ -89,37 +130,41 @@ func TestQriIdentityService(t *testing.T) {
 	// create a new, disconnected node
 	testnode, err := p2ptest.NewNodeWithBus(ctx, factory, bus)
 	if err != nil {
-		t.Error(err.Error())
-		return
+		t.Fatal(err)
 	}
 	node := testnode.(*QriNode)
+	// closing the discovery process prevents situations where another peer finds
+	// our node in the wild and attempts to connect to it while we are trying
+	// to connect to that node at the same time. This causes a dial failure.
+	node.Discovery.Close()
+	defer node.GoOffline()
 	t.Log("node id: ", node.host.ID())
-
-	expectedPeers := peer.IDSlice{}
-	for _, node := range nodes {
-		expectedPeers = append(expectedPeers, node.host.ID())
-	}
-	sort.Sort(peer.IDSlice(expectedPeers))
-	t.Logf("expected nodes: %v", expectedPeers)
 
 	connectedPeers = node.qis.ConnectedQriPeers()
 	if len(connectedPeers) != 0 {
 		t.Errorf("expected 0 peers to be connected to the isolated node, but got %d connected qri peers instead", len(connectedPeers))
 	}
 
+	// explicitly connect the main test node to each other node in the network
 	for _, groupNode := range nodes {
-		err := node.Host().Connect(context.Background(), groupNode.SimpleAddrInfo())
+		addrInfo := peer.AddrInfo{
+			ID:    groupNode.Host().ID(),
+			Addrs: groupNode.Host().Addrs(),
+		}
+		err := node.Host().Connect(context.Background(), addrInfo)
 		if err != nil {
 			t.Logf("error connecting to peer %q: %s", groupNode.Host().ID(), err)
 		}
 	}
+
 	// wait for all nodes to upgrade to qri peers
 	<-qriPeerConnWaitCh
 
+	// get a list of connected peers, according to the QriIdentityService
 	connectedPeers = node.qis.ConnectedQriPeers()
 	sort.Sort(peer.IDSlice(connectedPeers))
-	// ensure each peer in the expected list shows up in the connected list
 
+	// ensure the lists are the same
 	if len(connectedPeers) == 0 {
 		t.Errorf("error exchange qri identities: expected number of connected peers to be %d, got %d", len(expectedPeers), len(connectedPeers))
 	}
@@ -139,33 +184,33 @@ func TestQriIdentityService(t *testing.T) {
 		t.Errorf("expected list of connected peers different then the given list of connected peers: \n  expected: %v\n  got: %v", expectedPeers, connectedPeers)
 	}
 
+	// check that each connection is protected, and the we have a profile for each
 	for _, id := range connectedPeers {
 		if protected := node.host.ConnManager().IsProtected(id, qriSupportKey); !protected {
 			t.Errorf("expected peer %q to have a protected connection, but it does not", id)
 		}
-	}
-	for _, id := range connectedPeers {
 		pro := node.qis.ConnectedPeerProfile(id)
 		if pro == nil {
 			t.Errorf("expected to have peer %q's qri profile, but wasn't able to receive it", id)
 		}
 	}
 
+	// disconnect each node
 	for _, node := range nodes {
 		node.GoOffline()
 	}
+
 	<-disconnectsCh
+	// get a list of connected qri peers according to the QriIdentityService
 	connectedPeers = node.qis.ConnectedQriPeers()
 
 	if len(connectedPeers) != 0 {
 		t.Errorf("error with catching disconnects, expected 0 remaining connections, got %d to peers %v", len(connectedPeers), connectedPeers)
 	}
-
-	node.GoOffline()
 }
 
-func TestConnection(t *testing.T) {
-	t.Skip("enable this test to see if nodes will find each other on your machine without explicitily connecting")
+func TestDiscoveryConnection(t *testing.T) {
+	t.Skip("enable this test to see if nodes will find each other on your machine using their Discovery methods without getting orders to explicitily connect")
 	ctx := context.Background()
 	// create a network of connected nodes
 	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)

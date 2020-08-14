@@ -82,6 +82,9 @@ type QriNode struct {
 	// local http handlers/websockets/stdio, but these streams are meant for
 	// local feedback as opposed to p2p connections
 	LocalStreams ioes.IOStreams
+
+	// shutdown is the function used to cancel the context of the qri node
+	shutdown context.CancelFunc
 }
 
 // Assert that conversions needed by the tests are valid.
@@ -132,12 +135,17 @@ func (n *QriNode) Host() host.Host {
 // GoOnline puts QriNode on the distributed web, ensuring there's an active peer-2-peer host
 // participating in a peer-2-peer network, and kicks off requests to connect to known bootstrap
 // peers that support the QriProtocol
-func (n *QriNode) GoOnline(ctx context.Context) (err error) {
+func (n *QriNode) GoOnline(c context.Context) (err error) {
+	ctx, cancel := context.WithCancel(c)
+	n.shutdown = cancel
+
 	log.Debugf("going online")
 	if !n.cfg.Enabled {
+		cancel()
 		return fmt.Errorf("p2p connection is disabled")
 	}
 	if n.Online {
+		cancel()
 		return nil
 	}
 
@@ -148,6 +156,7 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 		log.Debugf("using IPFS p2p Host")
 		if !ipfsfs.Online() {
 			if err := ipfsfs.GoOnline(ctx); err != nil {
+				cancel()
 				return err
 			}
 		}
@@ -165,6 +174,7 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 		ps := pstoremem.NewPeerstore()
 		n.host, err = makeBasicHost(ctx, ps, n.cfg)
 		if err != nil {
+			cancel()
 			return fmt.Errorf("error creating host: %s", err.Error())
 		}
 
@@ -189,19 +199,22 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	n.host.SetStreamHandler(depQriProtocolID, n.QriStreamHandler)
 	// register ourselves as a notifee on connected
 	n.host.Network().Notify(n.notifee)
-	if err := n.libp2pSubscribe(); err != nil {
+	if err := n.libp2pSubscribe(ctx); err != nil {
+		cancel()
 		return err
 	}
 
 	p, err := n.Repo.Profile()
 	if err != nil {
 		log.Errorf("error getting repo profile: %s\n", err.Error())
+		cancel()
 		return err
 	}
 	p.PeerIDs = []peer.ID{n.host.ID()}
 
 	// update profile with our p2p addresses
 	if err := n.Repo.SetProfile(p); err != nil {
+		cancel()
 		return err
 	}
 
@@ -219,28 +232,18 @@ func (n *QriNode) startOnlineServices(ctx context.Context) error {
 	}
 	log.Debugf("starting online services")
 
-	bsPeers := make(chan peer.AddrInfo, len(n.cfg.BootstrapAddrs))
-
-	go func() {
-		// block until we have at least one successful bootstrap connection
-		<-bsPeers
-
-		if err := n.AnnounceConnected(ctx); err != nil {
-			log.Infof("error announcing connected: %s", err.Error())
-		}
-	}()
-
 	// Boostrap off of default addresses
-	go n.Bootstrap(n.cfg.QriBootstrapAddrs, bsPeers)
+	go n.Bootstrap(n.cfg.QriBootstrapAddrs)
 	// Bootstrap to IPFS network if this node is using an IPFS fs
 	go n.BootstrapIPFS()
-
 	return nil
 }
 
 // GoOffline shuts down this peer
 func (n *QriNode) GoOffline() error {
 	err := n.Host().Close()
+	// clean up the "GoOnline" context
+	n.shutdown()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	n.pub.Publish(ctx, event.ETP2PGoneOffline, nil)
@@ -413,7 +416,7 @@ func (n *QriNode) QriStreamHandler(s net.Stream) {
 	n.handleStream(WrapStream(s), nil)
 }
 
-func (n *QriNode) libp2pSubscribe() error {
+func (n *QriNode) libp2pSubscribe(ctx context.Context) error {
 	host := n.host
 	sub, err := host.EventBus().Subscribe([]interface{}{
 		new(libp2pevent.EvtPeerIdentificationCompleted),
@@ -430,7 +433,7 @@ func (n *QriNode) libp2pSubscribe() error {
 			switch e := e.(type) {
 			case libp2pevent.EvtPeerIdentificationCompleted:
 				log.Debugf("libp2p identified peer: %s", e.Peer)
-				n.qis.QriIdentityRequest(context.Background(), e.Peer)
+				n.qis.QriIdentityRequest(ctx, e.Peer)
 			case libp2pevent.EvtPeerIdentificationFailed:
 				log.Debugf("libp2p failed to identify peer %s: %s", e.Peer, e.Reason)
 			}
@@ -498,10 +501,9 @@ func (n *QriNode) SimpleAddrInfo() peer.AddrInfo {
 // MakeHandlers generates a map of MsgTypes to their corresponding handler functions
 func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 	return map[MsgType]HandlerFunc{
-		MtPing:      n.handlePing,
-		MtProfile:   n.handleProfile,
-		MtDatasets:  n.handleDatasetsList,
-		MtConnected: n.handleConnected,
-		MtQriPeers:  n.handleQriPeers,
+		MtPing:     n.handlePing,
+		MtProfile:  n.handleProfile,
+		MtDatasets: n.handleDatasetsList,
+		MtQriPeers: n.handleQriPeers,
 	}
 }
