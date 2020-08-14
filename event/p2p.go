@@ -16,6 +16,8 @@ var (
 	// ETP2PQriPeerDisconnected fires whenever a qri peer-2-peer connection
 	// is closed
 	// payload is a *profile.Profile
+	// a nil payload means we never successfully obtained the peer's profile
+	// information
 	// subscribers cannot block the publisher
 	ETP2PQriPeerDisconnected = Type("p2p:QriPeerDisconnected")
 	// ETP2PPeerConnected occurs after any peer has connected to this node

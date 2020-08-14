@@ -53,9 +53,11 @@ type QriNode struct {
 	// ipfs node provided by repo
 	Repo repo.Repo
 
-	// ProfileService listens for requests for profile exchanges and allows
-	// your node to request profile exchanges
-	profiles *ProfileService
+	// QriIdentityService allows your node to examine a peer & protect the
+	// connections to that peer if it "speaks" the qri protocol
+	// it also manages requests for that peer's qri profile and handles
+	// requests for this node's profile
+	qis *QriIdentityService
 
 	// handlers maps this nodes registered handlers. This works in a way
 	// similary to a router in traditional client/server models, but messages
@@ -115,7 +117,7 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (node *Qr
 		DisconnectedF: node.disconnected,
 	}
 
-	node.profiles = NewQriProfileService(node.Repo, node.pub)
+	node.qis = NewQriIdentityService(node.Repo, node.pub)
 	return node, nil
 }
 
@@ -171,7 +173,7 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 		}
 	}
 
-	n.profiles.Start(n.host)
+	n.qis.Start(n.host)
 
 	// add multistream handler for qri protocol to the host
 	// setting a stream handler for the QriPrtocolID indicates to peers on
@@ -181,7 +183,7 @@ func (n *QriNode) GoOnline(ctx context.Context) (err error) {
 	// should still handle it for now, since this is what old nodes will
 	// be relying on. We will drop support for the old qri protocol
 	// in the release of v0.10.0
-	n.host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
+	n.host.SetStreamHandler(depQriProtocolID, n.QriStreamHandler)
 	// register ourselves as a notifee on connected
 	n.host.Network().Notify(n.notifee)
 	if err := n.libp2pSubscribe(); err != nil {
@@ -354,6 +356,9 @@ func makeBasicHost(ctx context.Context, ps peerstore.Peerstore, p2pconf *config.
 }
 
 // SendMessage opens a stream & sends a message from p to one ore more peerIDs
+// TODO (ramfox): this relies on the soon to be removed `depQriProtocolID`
+// one option: send message can be refactored to be protocol agnostic, so it can
+// be used to send messages regardless of protocol.
 func (n *QriNode) SendMessage(ctx context.Context, msg Message, replies chan Message, pids ...peer.ID) error {
 	for _, peerID := range pids {
 		if peerID == n.ID {
@@ -361,7 +366,7 @@ func (n *QriNode) SendMessage(ctx context.Context, msg Message, replies chan Mes
 			continue
 		}
 
-		s, err := n.host.NewStream(ctx, peerID, QriProtocolID)
+		s, err := n.host.NewStream(ctx, peerID, depQriProtocolID)
 		if err != nil {
 			return fmt.Errorf("error opening stream: %s", err.Error())
 		}
@@ -384,17 +389,15 @@ func (n *QriNode) SendMessage(ctx context.Context, msg Message, replies chan Mes
 // connected is called when a connection opened via the network notifee bundle
 func (n *QriNode) connected(_ net.Network, conn net.Conn) {
 	log.Debugf("connected to peer: %s", conn.RemotePeer())
-
 	pi := n.Host().Peerstore().PeerInfo(conn.RemotePeer())
 	n.pub.Publish(context.Background(), event.ETP2PPeerConnected, pi)
 }
 
 func (n *QriNode) disconnected(_ net.Network, conn net.Conn) {
-	log.Debugf("disconnected from peer: %s", conn.RemotePeer())
 	pi := n.Host().Peerstore().PeerInfo(conn.RemotePeer())
 	n.pub.Publish(context.Background(), event.ETP2PPeerDisconnected, pi)
 
-	n.profiles.HandleQriPeerDisconnect(pi.ID)
+	n.qis.HandleQriPeerDisconnect(pi.ID)
 }
 
 // QriStreamHandler is the handler we register with the multistream muxer
@@ -420,7 +423,7 @@ func (n *QriNode) libp2pSubscribe() error {
 			switch e := e.(type) {
 			case libp2pevent.EvtPeerIdentificationCompleted:
 				log.Debugf("libp2p identified peer: %s", e.Peer)
-				n.profiles.ProfileRequest(context.Background(), e.Peer)
+				n.qis.QriIdentityRequest(context.Background(), e.Peer)
 			case libp2pevent.EvtPeerIdentificationFailed:
 				log.Debugf("libp2p failed to identify peer %s: %s", e.Peer, e.Reason)
 			}

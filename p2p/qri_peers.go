@@ -42,7 +42,7 @@ func (n *QriNode) upgradeToQriConnection(pid peer.ID) error {
 	}
 
 	// check if this connection supports the qri protocol
-	support, err := n.supportsQriProtocol(pid)
+	support, err := n.supportsDepQriProtocol(pid)
 	if err != nil {
 		log.Debugf("error checking for qri support: %s", err)
 		return err
@@ -88,16 +88,16 @@ func (n *QriNode) upgradeToQriConnection(pid peer.ID) error {
 	return nil
 }
 
-// supportsQriProtocol checks to see if this peer supports the qri
-// streaming protocol, returns
-func (n *QriNode) supportsQriProtocol(peer peer.ID) (bool, error) {
+// supportsDepQriProtocol checks to see if this peer supports the old qri
+// streaming protocol
+func (n *QriNode) supportsDepQriProtocol(peer peer.ID) (bool, error) {
 	protos, err := n.host.Peerstore().GetProtocols(peer)
 	if err != nil {
 		return false, err
 	}
 
 	for _, p := range protos {
-		if p == string(QriProtocolID) {
+		if p == string(depQriProtocolID) {
 			return true, nil
 		}
 	}

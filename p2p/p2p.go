@@ -23,8 +23,13 @@ var (
 )
 
 const (
-	// QriProtocolID is the top level Protocol Identifier
-	QriProtocolID = protocol.ID("/qri")
+	// depQriProtocolID is the top level Protocol Identifier
+	// TODO (ramfox): soon to be removed - protocols now use semantic versioning
+	depQriProtocolID = protocol.ID("/qri")
+	// QriProtocolID is the protocol we use to determing if a node speaks qri
+	// if it speaks the qri protocol, we assume it speaks any of the qri protocols
+	// that we support
+	QriProtocolID = protocol.ID("/qri/0.1.0")
 	// default value to give qri peer connections in connmanager, one hunnit
 	qriSupportValue = 100
 	// qriSupportKey is the key we store the flag for qri support under in Peerstores and in ConnManager()
