@@ -147,7 +147,7 @@ func TestQriIdentityService(t *testing.T) {
 	for _, id := range connectedPeers {
 		pro := node.qis.ConnectedPeerProfile(id)
 		if pro == nil {
-			t.Errorf("expected to have peer %q's qri profile, but wasn't able to recieve it", id)
+			t.Errorf("expected to have peer %q's qri profile, but wasn't able to receive it", id)
 		}
 	}
 

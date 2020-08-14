@@ -49,7 +49,7 @@ type QriIdentityService struct {
 	// peersMu is the mutext lock for the peers map
 	peersMu *sync.Mutex
 	// peers is a map of peers to a channel
-	// that channel is closed once the profile has been recieved
+	// that channel is closed once the profile has been received
 	// it only tracks peers we are currently connected to
 	peers map[peer.ID]chan struct{}
 }

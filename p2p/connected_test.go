@@ -34,8 +34,11 @@ func TestAnnounceConnected(t *testing.T) {
 	// before moving forward
 	bus := event.NewBus(ctx)
 	numConns := len(nodes)
+	numConnsMu := sync.Mutex{}
 	qriPeerConnWaitCh := make(chan struct{})
 	watchP2PQriPeersConnected := func(_ context.Context, typ event.Type, payload interface{}) error {
+		numConnsMu.Lock()
+		defer numConnsMu.Unlock()
 		if typ == event.ETP2PQriPeerConnected {
 			pro, ok := payload.(*profile.Profile)
 			if !ok {

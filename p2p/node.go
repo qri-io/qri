@@ -70,6 +70,8 @@ type QriNode struct {
 	// receivers is a list of anyone who wants to be notifed on new
 	// message arrival
 	receivers []chan Message
+	// receiversMu is the lock for the receivers list
+	receiversMu sync.Mutex
 
 	// pub is the event publisher on which to publish p2p events
 	pub     event.Publisher
@@ -102,11 +104,12 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (node *Qr
 	}
 
 	node = &QriNode{
-		ID:       pid,
-		cfg:      p2pconf,
-		Repo:     r,
-		msgState: &sync.Map{},
-		pub:      pub,
+		ID:          pid,
+		cfg:         p2pconf,
+		Repo:        r,
+		msgState:    &sync.Map{},
+		pub:         pub,
+		receiversMu: sync.Mutex{},
 		// Make sure we always have proper IOStreams, this can be set
 		// later
 		LocalStreams: ioes.NewDiscardIOStreams(),
@@ -246,12 +249,16 @@ func (n *QriNode) GoOffline() error {
 
 // ReceiveMessages adds a listener for newly received messages
 func (n *QriNode) ReceiveMessages() chan Message {
+	n.receiversMu.Lock()
+	defer n.receiversMu.Unlock()
 	r := make(chan Message)
 	n.receivers = append(n.receivers, r)
 	return r
 }
 
 func (n *QriNode) writeToReceivers(msg Message) {
+	n.receiversMu.Lock()
+	defer n.receiversMu.Unlock()
 	for _, r := range n.receivers {
 		r <- msg
 	}
@@ -467,7 +474,7 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 		}
 	}
 
-	ws.stream.Close()
+	// ws.stream.Close()
 }
 
 // Keys returns the KeyBook for the node.
