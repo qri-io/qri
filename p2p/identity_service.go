@@ -158,23 +158,23 @@ func (q *QriIdentityService) ProfileHandler(s network.Stream) {
 // QriIdentityRequest determine if the remote peer speaks the qri protocol
 // if it does, it protects the connection and sends a request for the
 // QriIdentifyService to get the peer's qri profile information
-func (q *QriIdentityService) QriIdentityRequest(ctx context.Context, pid peer.ID) {
+func (q *QriIdentityService) QriIdentityRequest(ctx context.Context, pid peer.ID) error {
 	protocols, err := q.host.Peerstore().SupportsProtocols(pid, expectedProtocols...)
 	if err != nil {
 		log.Debugf("error examining the protocols for peer %s: %w", pid, err)
-		return
+		return fmt.Errorf("error examining the protocols for peer %s: %w", pid, err)
 	}
 
 	if len(protocols) == len(expectedProtocols) {
 		log.Debugf("peer %q does not speak the expected qri protocols", pid)
-		return
+		return fmt.Errorf("peer %q does not speak the expected qri protocols", pid)
 	}
 
 	// protect the connection from pruning
 	q.host.ConnManager().Protect(pid, qriSupportKey)
 	// get the peer's profile information
 	<-q.profileWait(ctx, pid)
-	return
+	return nil
 }
 
 // ProfileWait checks to see if a request to this peer is already in progress
@@ -217,7 +217,7 @@ func (q *QriIdentityService) profileRequest(ctx context.Context, pid peer.ID, si
 		if err == nil {
 			pro, err := q.repo.Profiles().PeerProfile(pid)
 			if err != nil {
-				log.Errorf("error getting profile from profile store: %s", err)
+				log.Debugf("error getting profile from profile store: %s", err)
 			}
 			q.pub.Publish(ctx, event.ETP2PQriPeerConnected, pro)
 		}
@@ -225,7 +225,7 @@ func (q *QriIdentityService) profileRequest(ctx context.Context, pid peer.ID, si
 
 	s, err := q.host.NewStream(ctx, pid, ProfileProtocolID)
 	if err != nil {
-		log.Errorf("error opening profile stream to %q: %s", pid, err)
+		log.Debugf("error opening profile stream to %q: %s", pid, err)
 		return
 	}
 

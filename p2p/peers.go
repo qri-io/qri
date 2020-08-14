@@ -174,18 +174,18 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 	}
 
 	// do an explicit connection upgrade
-	// TODO (ramfox): when we refactor this, we should really
-	// be handing back a channel that will notify us when
-	// the profile exchange is complete, so we know it's safe
-	// to request the profile
-	if err := n.upgradeToQriConnection(pinfo.ID); err != nil {
-		if err == ErrQriProtocolNotSupported {
-			return nil, fmt.Errorf("upgrading p2p connection to a qri connection: %w", err)
-		}
-		return nil, err
+	// this will block until the peer's profile has been
+	if err := n.qis.QriIdentityRequest(ctx, pinfo.ID); err != nil {
+		return nil, fmt.Errorf("error establishing qri connections: %w", err)
 	}
 
-	return n.Repo.Profiles().PeerProfile(pinfo.ID)
+	// ConnectedPeerProfile will return nil if the profile is not found
+	pro := n.qis.ConnectedPeerProfile(pinfo.ID)
+	if err == nil {
+		return nil, fmt.Errorf("unable to get profile from peer %q", pinfo.ID)
+	}
+
+	return pro, nil
 }
 
 // DisconnectFromPeer explicitly closes a connection to a peer
