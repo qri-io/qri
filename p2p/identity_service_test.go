@@ -75,6 +75,10 @@ func TestQriIdentityService(t *testing.T) {
 	disconnectedPeersMu := sync.Mutex{}
 	disconnectsCh := make(chan struct{})
 
+	node := &QriNode{}
+
+	unexpectedPeers := peer.IDSlice{}
+
 	watchP2PQriEvents := func(_ context.Context, typ event.Type, payload interface{}) error {
 		pro, ok := payload.(*profile.Profile)
 		if !ok {
@@ -90,7 +94,8 @@ func TestQriIdentityService(t *testing.T) {
 			}
 		}
 		if !expectedPeer {
-			t.Logf("peer %q connected but not an expected peer", pid)
+			t.Logf("peer %q event occured, but not an expected peer", pid)
+			unexpectedPeers = append(unexpectedPeers, pid)
 			return nil
 		}
 		if typ == event.ETP2PQriPeerConnected {
@@ -132,7 +137,7 @@ func TestQriIdentityService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	node := testnode.(*QriNode)
+	node = testnode.(*QriNode)
 	// closing the discovery process prevents situations where another peer finds
 	// our node in the wild and attempts to connect to it while we are trying
 	// to connect to that node at the same time. This causes a dial failure.
@@ -169,8 +174,27 @@ func TestQriIdentityService(t *testing.T) {
 		t.Errorf("error exchange qri identities: expected number of connected peers to be %d, got %d", len(expectedPeers), len(connectedPeers))
 	}
 
+	if len(unexpectedPeers) != 0 {
+		t.Errorf("unexpected peers found: %v", unexpectedPeers)
+		for _, pid := range unexpectedPeers {
+			protocols, err := node.host.Peerstore().GetProtocols(pid)
+			if err != nil {
+				t.Errorf("error getting peer %q protocols: %s", pid, err)
+			} else {
+				t.Logf("peer %q speaks protocols: %v", pid, protocols)
+			}
+		}
+	}
+
 	if len(expectedPeers) != len(connectedPeers) {
 		t.Errorf("expected list of connected peers different then the given list of connected peers: \n  expected: %v\n  got: %v", expectedPeers, connectedPeers)
+		for _, peer := range connectedPeers {
+			pro, err := node.Repo.Profiles().PeerProfile(peer)
+			if err != nil {
+				t.Errorf("error getting peer %q profile: %s", peer, err)
+			}
+			t.Logf("%s, %v", peer, pro)
+		}
 		return
 	}
 	different := false

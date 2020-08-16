@@ -57,7 +57,8 @@ type TestRunner struct {
 
 // NewTestRunner constructs a new TestRunner
 func NewTestRunner(t *testing.T, peerName, testName string) *TestRunner {
-	root, err := repotest.NewTempRepoFixedProfileID(peerName, testName)
+	peername := fmt.Sprintf("%s_%s", peerName, testName)
+	root, err := repotest.NewTempRepoFixedProfileID(peername, testName)
 	if err != nil {
 		t.Fatalf("creating temp repo: %s", err)
 	}
