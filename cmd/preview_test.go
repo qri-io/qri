@@ -10,7 +10,7 @@ import (
 )
 
 func TestPreviewCommand(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_preview_command")
+	run := NewTestRunner(t, "test_peer_preview_command", "qri_test_preview_command")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -38,7 +38,7 @@ func TestPreviewCommand(t *testing.T) {
 	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv --file testdata/movies/meta_override.yaml --file testdata/movies/about_movies.md me/movies_preview_test")
 
 	// Publish to the registry
-	run.MustExec(t, "qri publish test_peer/movies_preview_test")
+	run.MustExec(t, "qri publish test_peer_preview_command/movies_preview_test")
 	run.MustExec(t, "qri delete --all me/movies_preview_test")
 
 	// Search, verify that we get the dataset back
@@ -55,6 +55,6 @@ func TestPreviewCommand(t *testing.T) {
 		t.Errorf("expected: 1 result, got %d results", len(results))
 	}
 
-	result := run.MustExecCombinedOutErr(t, "qri preview test_peer/movies_preview_test")
+	result := run.MustExecCombinedOutErr(t, "qri preview test_peer_preview_command/movies_preview_test")
 	t.Log(result)
 }

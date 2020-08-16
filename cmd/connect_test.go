@@ -17,7 +17,7 @@ func TestConnect(t *testing.T) {
 	}
 
 	// Setup the test repo so that connect can run
-	run := NewTestRunner(t, "test_peer", "qri_test_connect")
+	run := NewTestRunner(t, "test_peer_qri_test_connect", "qri_test_connect")
 	defer run.Delete()
 
 	// Construct a mock registry to pass to the connect command

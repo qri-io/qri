@@ -136,7 +136,7 @@ func TestDatasetLogForeignTimeout(t *testing.T) {
 	mr := newTestRepo(t).(*repo.MemRepo)
 
 	// Test peer
-	username := "test_peer"
+	username := "test_peer_1"
 	otherPeerInfo := testPeers.GetTestPeerInfo(1)
 	ref := dsref.Ref{
 		Username:  username,

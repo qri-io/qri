@@ -21,7 +21,7 @@ import (
 )
 
 func TestSaveComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_complete")
+	run := NewTestRunner(t, "test_peer_save_complete", "qri_test_save_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -194,11 +194,11 @@ func TestSaveRun(t *testing.T) {
 }
 
 func TestSaveState(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_state")
+	run := NewTestRunner(t, "test_peer_save_state", "qri_test_save_state")
 	defer run.Delete()
 
 	// Save a csv file
-	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_state/my_ds")
 
 	// Read dataset from IPFS and compare it to the expected value
 	dsPath := run.GetPathForDataset(t, 0)
@@ -225,7 +225,7 @@ Tangled ,100
 	}
 
 	// Check the log matches what is expected
-	actual = run.MustExec(t, "qri log test_peer/my_ds")
+	actual = run.MustExec(t, "qri log test_peer_save_state/my_ds")
 	expect = `1   Commit:  /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
     Date:    Sun Dec 31 20:01:01 EST 2000
     Storage: local
@@ -267,32 +267,32 @@ func TestSaveBasicCommands(t *testing.T) {
 		{
 			"dataset file infer name",
 			"qri save --file dataset.yaml",
-			"dataset saved: test_peer/ten_movies@/ipfs/QmenbziAWh7yM2sXHCKHcr7uT8uDZYtGiZAQ1cNGLRUf6A\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer_save_basic/ten_movies@/ipfs/QmenbziAWh7yM2sXHCKHcr7uT8uDZYtGiZAQ1cNGLRUf6A\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"dataset file me ref",
 			"qri save --file dataset.yaml me/my_dataset",
-			"dataset saved: test_peer/my_dataset@/ipfs/QmenbziAWh7yM2sXHCKHcr7uT8uDZYtGiZAQ1cNGLRUf6A\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer_save_basic/my_dataset@/ipfs/QmenbziAWh7yM2sXHCKHcr7uT8uDZYtGiZAQ1cNGLRUf6A\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"dataset file explicit ref",
-			"qri save --file dataset.yaml test_peer/my_dataset",
-			"dataset saved: test_peer/my_dataset@/ipfs/QmenbziAWh7yM2sXHCKHcr7uT8uDZYtGiZAQ1cNGLRUf6A\nthis dataset has 1 validation errors\n",
+			"qri save --file dataset.yaml test_peer_save_basic/my_dataset",
+			"dataset saved: test_peer_save_basic/my_dataset@/ipfs/QmenbziAWh7yM2sXHCKHcr7uT8uDZYtGiZAQ1cNGLRUf6A\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"body file infer name",
 			"qri save --body body_ten.csv",
-			"dataset saved: test_peer/body_ten@/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer_save_basic/body_ten@/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"body file me ref",
 			"qri save --body body_ten.csv me/my_dataset",
-			"dataset saved: test_peer/my_dataset@/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer_save_basic/my_dataset@/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"body file explicit ref",
-			"qri save --body body_ten.csv test_peer/my_dataset",
-			"dataset saved: test_peer/my_dataset@/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF\nthis dataset has 1 validation errors\n",
+			"qri save --body body_ten.csv test_peer_save_basic/my_dataset",
+			"dataset saved: test_peer_save_basic/my_dataset@/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF\nthis dataset has 1 validation errors\n",
 		},
 		// TODO(dustmop): It's intended that a user can save a dataset with a structure but no
 		// body. At some point that functionality broke, because there was no test for it. Fix that
@@ -304,14 +304,14 @@ func TestSaveBasicCommands(t *testing.T) {
 		//},
 		//{
 		//	"structure file explicit ref",
-		//	"qri save --file structure.json test_peer/my_dataset",
+		//	"qri save --file structure.json test_peer_save_basic/my_dataset",
 		//	"TODO(dustmop): Should be possible to save a dataset with structure and no body",
 		//},
 	}
 	for _, c := range goodCases {
 		t.Run(c.description, func(t *testing.T) {
 			// TODO(dustmop): Would be preferable to instead have a way to clear the refstore
-			run := NewTestRunner(t, "test_peer", "qri_test_save_basic")
+			run := NewTestRunner(t, "test_peer_save_basic", "qri_test_save_basic")
 			defer run.Delete()
 
 			err := run.ExecCommandCombinedOutErr(c.command)
@@ -334,7 +334,7 @@ func TestSaveBasicCommands(t *testing.T) {
 		{
 			"dataset file other username",
 			"qri save --file dataset.yaml other/my_dataset",
-			"cannot save using a different username than \"test_peer\"",
+			"cannot save using a different username than \"qri_test_save_basic_bad_cases\"",
 		},
 		{
 			"dataset file explicit version",
@@ -349,12 +349,12 @@ func TestSaveBasicCommands(t *testing.T) {
 		{
 			"body file other username",
 			"qri save --body body_ten.csv other/my_dataset",
-			"cannot save using a different username than \"test_peer\"",
+			"cannot save using a different username than \"qri_test_save_basic_bad_cases\"",
 		},
 	}
 	for _, c := range badCases {
 		t.Run(c.description, func(t *testing.T) {
-			run := NewTestRunner(t, "test_peer", "qri_test_save_basic")
+			run := NewTestRunner(t, "qri_test_save_basic_bad_cases", "qri_test_save_basic_bad_cases")
 			defer run.Delete()
 
 			err := run.ExecCommand(c.command)
@@ -371,20 +371,20 @@ func TestSaveBasicCommands(t *testing.T) {
 }
 
 func TestSaveInferName(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_infer_name")
+	run := NewTestRunner(t, "test_peer_save_infer_name", "qri_test_save_infer_name")
 	defer run.Delete()
 
 	// Save a dataset with an inferred name.
 	output := run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json")
 	actual := parseDatasetRefFromOutput(output)
-	expect := "dataset saved: test_peer/body_four@/ipfs/QmWmiSMc3HyWYDZLuNLBTaJcu35NfG3GM8MVDtgUXhNHqT\n"
+	expect := "dataset saved: test_peer_save_infer_name/body_four@/ipfs/QmWmiSMc3HyWYDZLuNLBTaJcu35NfG3GM8MVDtgUXhNHqT\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
 
 	// Save again, get an error because the inferred name already exists.
 	err := run.ExecCommand("qri save --body testdata/movies/body_four.json")
-	expectErr := `inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference "test_peer/body_four". To create a new dataset, use --new flag`
+	expectErr := `inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference "test_peer_save_infer_name/body_four". To create a new dataset, use --new flag`
 	if err == nil {
 		t.Errorf("error expected, did not get one")
 	}
@@ -395,7 +395,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save but ensure a new dataset is created.
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/body_four_2@/ipfs/QmTrRJ9TJNi47SYNXHUeEAgF3rdJVQf83nNGqpwKyypWLM\n"
+	expect = "dataset saved: test_peer_save_infer_name/body_four_2@/ipfs/QmTrRJ9TJNi47SYNXHUeEAgF3rdJVQf83nNGqpwKyypWLM\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -403,7 +403,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save once again.
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/body_four_3@/ipfs/QmWKmbAQyPGYnRTHwNzjLXgrpBt3C8bmH3Nn1oMuze83bY\n"
+	expect = "dataset saved: test_peer_save_infer_name/body_four_3@/ipfs/QmWKmbAQyPGYnRTHwNzjLXgrpBt3C8bmH3Nn1oMuze83bY\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -411,7 +411,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save a dataset whose body filename starts with a number
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/2018_winners.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/dataset_2018_winners@/ipfs/QmSRbJRp8gAwBwQqSvhdUy8kRszBHoPphbu1UbFHpzfTNJ\n"
+	expect = "dataset saved: test_peer_save_infer_name/dataset_2018_winners@/ipfs/QmSRbJRp8gAwBwQqSvhdUy8kRszBHoPphbu1UbFHpzfTNJ\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -419,7 +419,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save a dataset whose body filename is non-alphabetic
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/2015-09-16--2016-09-30.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/dataset_2015-09-16--2016-09-30@/ipfs/QmdLJqAFwRftRL9WmRxatiDcKqEKug8TgNj1p3udz7rcuX\n"
+	expect = "dataset saved: test_peer_save_infer_name/dataset_2015-09-16--2016-09-30@/ipfs/QmdLJqAFwRftRL9WmRxatiDcKqEKug8TgNj1p3udz7rcuX\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -427,7 +427,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save using a CamelCased body filename
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/TenMoviesAndLengths.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/ten_movies_and_lengths@/ipfs/QmXSE3yzYv46aCwZ3NMVL3v4aZwueN8nonFE1PuWqjgHNU\nthis dataset has 1 validation errors\n"
+	expect = "dataset saved: test_peer_save_infer_name/ten_movies_and_lengths@/ipfs/QmXSE3yzYv46aCwZ3NMVL3v4aZwueN8nonFE1PuWqjgHNU\nthis dataset has 1 validation errors\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -435,14 +435,14 @@ func TestSaveInferName(t *testing.T) {
 	// Save using a body filename that contains unicode
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/pira\u00f1a_data.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer/pirana_data@/ipfs/QmTntvwSmpAMCKbTWPJ7zksMtqNkGevxhEZfva2BGvSpgK\n"
+	expect = "dataset saved: test_peer_save_infer_name/pirana_data@/ipfs/QmTntvwSmpAMCKbTWPJ7zksMtqNkGevxhEZfva2BGvSpgK\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
 }
 
 func TestSaveFilenameUsedForCommitMessage(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_commit")
+	run := NewTestRunner(t, "test_peer_save_commit", "qri_test_save_commit")
 	defer run.Delete()
 
 	// Save a dataset with a bodyfile.
@@ -479,7 +479,7 @@ func TestSaveFilenameUsedForCommitMessage(t *testing.T) {
 }
 
 func TestSaveDrop(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_drop")
+	run := NewTestRunner(t, "test_peer_save_drop", "qri_test_save_drop")
 	defer run.Delete()
 
 	run.MustExec(t, "qri save --body testdata/movies/body_two.json me/drop_stuff")
@@ -495,7 +495,7 @@ func TestSaveDrop(t *testing.T) {
 }
 
 func TestSaveFilenameMeta(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_filename_meta")
+	run := NewTestRunner(t, "test_peer_save_filename_meta", "qri_test_save_filename_meta")
 	defer run.Delete()
 
 	// Save a dataset with a bodyfile.
@@ -513,7 +513,7 @@ func TestSaveFilenameMeta(t *testing.T) {
 }
 
 func TestSaveDscacheFirstCommit(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_dscache_first")
+	run := NewTestRunner(t, "test_peer_dscache_first", "qri_test_dscache_first")
 	defer run.Delete()
 
 	// Save a dataset with one version.
@@ -533,9 +533,9 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
 	actual := cache.VerboseString(false)
 	expect := `Dscache:
  Dscache.Users:
-  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_dscache_first profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID        = 6qb7scluxlyfizyxytuqgnk7uoozhzto5l2ytsnitplxypdtnt7q
+  0) initID        = m3wkm4dsizgba52qn6ais7lnn5cz67z5e7ztinj3znn4v4kd3k3a
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 1
      cursorIndex   = 1
@@ -571,9 +571,9 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
 	actual = cache.VerboseString(false)
 	expect = `Dscache:
  Dscache.Users:
-  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_dscache_first profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID        = gfc6ex6sym6p27cpqyq2tpg6dajogxjngom3zz6olo7uqp6lepia
+  0) initID        = 5m7avnilayu76zrvhfec6vw6loyvdfs622eagqvfioikqxte5paa
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 1
      cursorIndex   = 1
@@ -582,7 +582,7 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
      bodyRows      = 4
      commitTime    = 978310921
      headRef       = /ipfs/QmTrRJ9TJNi47SYNXHUeEAgF3rdJVQf83nNGqpwKyypWLM
-  1) initID        = 6qb7scluxlyfizyxytuqgnk7uoozhzto5l2ytsnitplxypdtnt7q
+  1) initID        = m3wkm4dsizgba52qn6ais7lnn5cz67z5e7ztinj3znn4v4kd3k3a
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 1
      cursorIndex   = 1
@@ -598,7 +598,7 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
 }
 
 func TestSaveDscacheExistingDataset(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_dscache")
+	run := NewTestRunner(t, "test_peer_save_dscache_existing_dataset", "qri_test_save_dscache_existing_dataset")
 	defer run.Delete()
 
 	// Save a dataset with one version.
@@ -621,9 +621,9 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 	actual := cache.VerboseString(false)
 	expect := `Dscache:
  Dscache.Users:
-  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_existing_dataset profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID        = 6qb7scluxlyfizyxytuqgnk7uoozhzto5l2ytsnitplxypdtnt7q
+  0) initID        = 47gqzvfhitq4prj4omvbjl3cjfta4wt7ywno4dc6e5ad5gp3uopq
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 1
      cursorIndex   = 1
@@ -658,9 +658,9 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 	actual = cache.VerboseString(false)
 	expect = `Dscache:
  Dscache.Users:
-  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_existing_dataset profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID        = 6qb7scluxlyfizyxytuqgnk7uoozhzto5l2ytsnitplxypdtnt7q
+  0) initID        = 47gqzvfhitq4prj4omvbjl3cjfta4wt7ywno4dc6e5ad5gp3uopq
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 2
      cursorIndex   = 2
@@ -676,7 +676,7 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 }
 
 func TestSaveDscacheThenRemoveAll(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_dscache_remove")
+	run := NewTestRunner(t, "test_peer_save_dscache_remove_all", "qri_test_save_dscache_remove_all")
 	defer run.Delete()
 
 	// Save a dataset with one version.
@@ -701,9 +701,9 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
 	actual := cache.VerboseString(false)
 	expect := `Dscache:
  Dscache.Users:
-  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_remove_all profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID        = gfc6ex6sym6p27cpqyq2tpg6dajogxjngom3zz6olo7uqp6lepia
+  0) initID        = g55pf2kd46giewayohfi5qtyxn4evqf3btsupbjopzukmajqfbla
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 1
      cursorIndex   = 1
@@ -713,7 +713,7 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
      commitTime    = 978310921
      numErrors     = 1
      headRef       = /ipfs/QmXZnsLPRy9i3xFH2dzHkWG1Pkbs8AWqdhTHCYLCX76BjT
-  1) initID        = 6qb7scluxlyfizyxytuqgnk7uoozhzto5l2ytsnitplxypdtnt7q
+  1) initID        = otbpnqlrxi2fkb7spfhuys7owxf3nq4k7v7kc2wj725nq4ouccwa
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 1
      cursorIndex   = 1
@@ -747,9 +747,9 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
 	actual = cache.VerboseString(false)
 	expect = `Dscache:
  Dscache.Users:
-  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_remove_all profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID        = 6qb7scluxlyfizyxytuqgnk7uoozhzto5l2ytsnitplxypdtnt7q
+  0) initID        = otbpnqlrxi2fkb7spfhuys7owxf3nq4k7v7kc2wj725nq4ouccwa
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 1
      cursorIndex   = 1
@@ -765,7 +765,7 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
 }
 
 func TestSaveDscacheThenRemoveVersions(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_dscache_remove")
+	run := NewTestRunner(t, "test_peer_save_dscache_remove", "qri_test_save_dscache_remove")
 	defer run.Delete()
 
 	// Save a dataset with one version.
@@ -793,9 +793,9 @@ func TestSaveDscacheThenRemoveVersions(t *testing.T) {
 	actual := cache.VerboseString(false)
 	expect := `Dscache:
  Dscache.Users:
-  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_remove profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID        = 6qb7scluxlyfizyxytuqgnk7uoozhzto5l2ytsnitplxypdtnt7q
+  0) initID        = lht43zmspwsj3oukq3ivqz6m3yro5qc7wmckmxbgugy3oqrfdgsa
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 3
      cursorIndex   = 3
@@ -829,9 +829,9 @@ func TestSaveDscacheThenRemoveVersions(t *testing.T) {
 	actual = cache.VerboseString(false)
 	expect = `Dscache:
  Dscache.Users:
-  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_remove profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID        = 6qb7scluxlyfizyxytuqgnk7uoozhzto5l2ytsnitplxypdtnt7q
+  0) initID        = lht43zmspwsj3oukq3ivqz6m3yro5qc7wmckmxbgugy3oqrfdgsa
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 2
      cursorIndex   = 2
@@ -848,11 +848,11 @@ func TestSaveDscacheThenRemoveVersions(t *testing.T) {
 }
 
 func TestSaveBadCaseCantBeUsedForNewDatasets(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_save_bad_case")
+	run := NewTestRunner(t, "test_peer_save_bad_case", "qri_save_bad_case")
 	defer run.Delete()
 
 	// Try to save a new dataset, but its name has upper-case characters.
-	err := run.ExecCommand("qri save --body testdata/movies/body_two.json test_peer/a_New_Dataset")
+	err := run.ExecCommand("qri save --body testdata/movies/body_two.json test_peer_save_bad_case/a_New_Dataset")
 	if err == nil {
 		t.Fatal("expected error trying to save, did not get an error")
 	}
@@ -871,10 +871,10 @@ func TestSaveBadCaseCantBeUsedForNewDatasets(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[[\"one\",2],[\"three\",4]]")))
 
 	// Add the dataset to the repo directly, which avoids the name validation check.
-	run.AddDatasetToRefstore(t, "test_peer/a_New_Dataset", &ds)
+	run.AddDatasetToRefstore(t, "test_peer_save_bad_case/a_New_Dataset", &ds)
 
 	// Save the dataset, which will work now that a version already exists.
-	run.MustExec(t, "qri save --body testdata/movies/body_two.json test_peer/a_New_Dataset")
+	run.MustExec(t, "qri save --body testdata/movies/body_two.json test_peer_save_bad_case/a_New_Dataset")
 }
 
 func parseDatasetRefFromOutput(text string) string {
@@ -897,7 +897,7 @@ func copyFile(t *testing.T, source, destin string) {
 }
 
 func TestSaveLargeBodyIsSame(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_large_body")
+	run := NewTestRunner(t, "test_peer_save_large_body", "qri_test_save_large_body")
 	defer run.Delete()
 
 	prevBodySizeLimit := dsfs.BodySizeSmallEnoughToDiff
@@ -905,10 +905,10 @@ func TestSaveLargeBodyIsSame(t *testing.T) {
 	dsfs.BodySizeSmallEnoughToDiff = 100
 
 	// Save a first version
-	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_large_body/my_ds")
 
 	// Try to save another, but no changes
-	err := run.ExecCommand("qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+	err := run.ExecCommand("qri save --body testdata/movies/body_ten.csv test_peer_save_large_body/my_ds")
 	if err == nil {
 		t.Fatal("expected error trying to save, did not get an error")
 	}
@@ -918,9 +918,9 @@ func TestSaveLargeBodyIsSame(t *testing.T) {
 	}
 
 	// Save a second version by making changes
-	run.MustExec(t, "qri save --body testdata/movies/body_twenty.csv test_peer/my_ds")
+	run.MustExec(t, "qri save --body testdata/movies/body_twenty.csv test_peer_save_large_body/my_ds")
 
-	output := run.MustExec(t, "qri log test_peer/my_ds")
+	output := run.MustExec(t, "qri log test_peer_save_large_body/my_ds")
 	expect = `1   Commit:  /ipfs/QmX1dBZv8SM8fuAbHE4K5usH1v4aFuZEfi226QDpiNJbjj
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
@@ -942,17 +942,17 @@ func TestSaveLargeBodyIsSame(t *testing.T) {
 }
 
 func TestSaveTwiceWithTransform(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_twice_with_xform")
+	run := NewTestRunner(t, "test_peer_save_twice_with_xform", "qri_test_save_twice_with_xform")
 	defer run.Delete()
 
 	// Save a first version with a normal body
-	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_twice_with_xform/my_ds")
 
 	// Save a second version with a transform
-	run.MustExec(t, "qri save --file testdata/movies/tf_one_movie.star test_peer/my_ds")
+	run.MustExec(t, "qri save --file testdata/movies/tf_one_movie.star test_peer_save_twice_with_xform/my_ds")
 
 	// Get the saved transform, make sure it matches the source file
-	output := run.MustExec(t, "qri get transform.script test_peer/my_ds")
+	output := run.MustExec(t, "qri get transform.script test_peer_save_twice_with_xform/my_ds")
 	golden, _ := ioutil.ReadFile("testdata/movies/tf_one_movie.star")
 	expect := strings.TrimSpace(string(golden))
 	actual := strings.TrimSpace(output)
@@ -962,14 +962,14 @@ func TestSaveTwiceWithTransform(t *testing.T) {
 }
 
 func TestSaveTransformUsingPrev(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_using_prev")
+	run := NewTestRunner(t, "test_peer_save_using_prev", "qri_test_save_using_prev")
 	defer run.Delete()
 
 	// Save a first version with a normal body
-	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_using_prev/my_ds")
 
 	// Save a second version with a transform
-	run.MustExec(t, "qri save --file testdata/movies/tf_set_len.star test_peer/my_ds")
+	run.MustExec(t, "qri save --file testdata/movies/tf_set_len.star test_peer_save_using_prev/my_ds")
 
 	// Read body from the dataset that was saved.
 	dsPath := run.GetPathForDataset(t, 0)
@@ -985,11 +985,11 @@ func TestSaveTransformUsingPrev(t *testing.T) {
 }
 
 func TestSaveTransformUsingConfigSecret(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_twice_with_xform")
+	run := NewTestRunner(t, "test_peer_save_twice_with_xform", "qri_test_save_twice_with_xform")
 	defer run.Delete()
 
 	// Save a version with a transform that has config and secret data
-	run.MustExec(t, "qri save --file testdata/movies/tf_using_config_secret.json --secrets animal_sound,meow test_peer/my_ds")
+	run.MustExec(t, "qri save --file testdata/movies/tf_using_config_secret.json --secrets animal_sound,meow test_peer_save_twice_with_xform/my_ds")
 
 	// Read body from the dataset that was saved.
 	dsPath := run.GetPathForDataset(t, 0)
@@ -1005,14 +1005,14 @@ func TestSaveTransformUsingConfigSecret(t *testing.T) {
 }
 
 func TestSaveTransformSetMeta(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_set_meta")
+	run := NewTestRunner(t, "test_peer_save_set_meta", "qri_test_save_set_meta")
 	defer run.Delete()
 
 	// Save a first version with a normal body
-	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_set_meta/my_ds")
 
 	// Save another version with a transform that sets the meta
-	run.MustExec(t, "qri save --file testdata/movies/tf_set_meta.star test_peer/my_ds")
+	run.MustExec(t, "qri save --file testdata/movies/tf_set_meta.star test_peer_save_set_meta/my_ds")
 
 	// Read body from the dataset that was saved.
 	dsPath := run.GetPathForDataset(t, 0)
@@ -1028,28 +1028,28 @@ func TestSaveTransformSetMeta(t *testing.T) {
 }
 
 func TestSaveTransformChangeMetaAndBody(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_set_meta")
+	run := NewTestRunner(t, "test_peer_save_set_meta_and_body", "qri_test_save_set_meta_and_body")
 	defer run.Delete()
 
 	// Save a first version with a normal body
-	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_set_meta_and_body/my_ds")
 
 	// Save another version with a transform that sets the body and a manual meta change
-	err := run.ExecCommand("qri save --file testdata/movies/tf_set_len.star --file testdata/movies/meta_override.yaml test_peer/my_ds")
+	err := run.ExecCommand("qri save --file testdata/movies/tf_set_len.star --file testdata/movies/meta_override.yaml test_peer_save_set_meta_and_body/my_ds")
 	if err != nil {
 		t.Errorf("unexpected error: %q", err)
 	}
 }
 
 func TestSaveTransformConflictWithBody(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_set_meta")
+	run := NewTestRunner(t, "test_peer_save_conflict_with_body", "qri_test_save_conflict_with_body")
 	defer run.Delete()
 
 	// Save a first version with a normal body
-	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_conflict_with_body/my_ds")
 
 	// Save another version with a transform that sets the body and a manual body change
-	err := run.ExecCommand("qri save --file testdata/movies/tf_set_len.star --body testdata/movies/body_twenty.csv test_peer/my_ds")
+	err := run.ExecCommand("qri save --file testdata/movies/tf_set_len.star --body testdata/movies/body_twenty.csv test_peer_save_conflict_with_body/my_ds")
 	if err == nil {
 		t.Fatal("expected error trying to save, did not get an error")
 	}
@@ -1060,14 +1060,14 @@ func TestSaveTransformConflictWithBody(t *testing.T) {
 }
 
 func TestSaveTransformConflictWithMeta(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_save_set_meta")
+	run := NewTestRunner(t, "test_peer_save_conflict_with_meta", "qri_test_save_conflict_with_meta")
 	defer run.Delete()
 
 	// Save a first version with a normal body
-	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_conflict_with_meta/my_ds")
 
 	// Save another version with a transform that sets the meta and a manual meta change
-	err := run.ExecCommand("qri save --file testdata/movies/tf_set_meta.star --file testdata/movies/meta_override.yaml test_peer/my_ds")
+	err := run.ExecCommand("qri save --file testdata/movies/tf_set_meta.star --file testdata/movies/meta_override.yaml test_peer_save_conflict_with_meta/my_ds")
 	if err == nil {
 		t.Fatal("expected error trying to save, did not get an error")
 	}
@@ -1080,18 +1080,18 @@ func TestSaveTransformConflictWithMeta(t *testing.T) {
 // TODO(dustmop): Test that if the result has a different shape than the previous version,
 // the error message should be reasonable and understandable
 //func TestSaveWithBadShape(t *testing.T) {
-//	run := NewTestRunner(t, "test_peer", "qri_test_save_with_xform")
+//	run := NewTestRunner(t, "qri_test_save_with_bad_shape", "qri_test_save_with_bad_shape")
 //	defer run.Delete()
 //
 //	// Save a first version with a normal body
-//	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer/my_ds")
+//	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv qri_test_save_with_bad_shape/my_ds")
 //	// Save with a transform that results in a different shape (non tabular)
-//	run.MustExec(t, "qri save --file testdata/movies/tf_123.star test_peer/my_ds")
+//	run.MustExec(t, "qri save --file testdata/movies/tf_123.star qri_test_save_with_bad_shape/my_ds")
 //}
 
 // Test that saving with only a readme change will succeed
 func TestSaveWithReadmeFiles(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_save_readme_files")
+	run := NewFSITestRunner(t, "test_peer_save_readme_files", "qri_test_save_readme_files")
 	defer run.Delete()
 
 	err := run.ExecCommand("qri save --body testdata/movies/body_ten.csv me/with_readme")

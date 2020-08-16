@@ -13,7 +13,7 @@ import (
 
 // Test add without any parameters returns an error
 func TestPull(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_add")
+	run := NewTestRunner(t, "test_peer_add", "qri_test_add")
 	defer run.Delete()
 
 	t.Run("no_params", func(t *testing.T) {
@@ -56,20 +56,20 @@ func TestPull(t *testing.T) {
 		run.MustExec(t, "qri save me/one_ds --body testdata/movies/body_ten.csv")
 		run.MustExec(t, "qri push me/one_ds")
 		run.MustExec(t, "qri remove --all me/one_ds")
-		run.MustExec(t, "qri pull test_peer/one_ds")
+		run.MustExec(t, "qri pull test_peer_add/one_ds")
 	})
 }
 
 // Test adding a local dataset, and a foreign dataset, then list the references
 func TestPullAndListRefs(t *testing.T) {
-	run := NewTestRunnerWithMockRemoteClient(t, "test_peer", "add_and_list")
+	run := NewTestRunnerWithMockRemoteClient(t, "test_peer_add_and_list", "add_and_list")
 	defer run.Delete()
 
 	// Save a local dataset
 	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/my_dataset")
 
 	output := run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer
+	expect := `0 Peername:  test_peer_add_and_list
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      my_dataset
   Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
@@ -91,7 +91,7 @@ func TestPullAndListRefs(t *testing.T) {
   Path:      /ipfs/QmeD7XLpUoz6EKzBBGHQ4dMEsA8veRJDz4Ky2WAjkBM5kt
   FSIPath:   
   Published: false
-1 Peername:  test_peer
+1 Peername:  test_peer_add_and_list
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      my_dataset
   Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
@@ -110,7 +110,7 @@ func TestPullWithCheckout(t *testing.T) {
 which this test needs. The proper solution is to remove remote.MockClient in 
 favour of a setup closer to lib.TwoActorRegistryIntegrationTest`
 	t.Skip(msg)
-	run := NewFSITestRunnerWithMockRemoteClient(t, "add_fsi_checkout")
+	run := NewFSITestRunnerWithMockRemoteClient(t, "test_peer_add_fsi_checkout", "add_fsi_checkout")
 	defer run.Delete()
 
 	run.ChdirToRoot()

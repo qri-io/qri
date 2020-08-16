@@ -30,8 +30,8 @@ type FSITestRunner struct {
 }
 
 // NewFSITestRunner returns a new FSITestRunner.
-func NewFSITestRunner(t *testing.T, testName string) *FSITestRunner {
-	inner := NewTestRunner(t, "test_peer", testName)
+func NewFSITestRunner(t *testing.T, peerName string, testName string) *FSITestRunner {
+	inner := NewTestRunner(t, peerName, testName)
 	return newFSITestRunnerFromInner(t, inner)
 }
 
@@ -97,8 +97,8 @@ func (run *FSITestRunner) niceifyTempDirs(text string) string {
 }
 
 // NewFSITestRunnerWithMockRemoteClient returns a new FSITestRunner.
-func NewFSITestRunnerWithMockRemoteClient(t *testing.T, testName string) *FSITestRunner {
-	inner := NewTestRunnerWithMockRemoteClient(t, "test_peer", testName)
+func NewFSITestRunnerWithMockRemoteClient(t *testing.T, peerName string, testName string) *FSITestRunner {
+	inner := NewTestRunnerWithMockRemoteClient(t, peerName, testName)
 	return newFSITestRunnerFromInner(t, inner)
 }
 
@@ -167,7 +167,7 @@ func (run *FSITestRunner) CreateAndChdirToWorkDir(subdir string) string {
 
 // Test using "init" with invalid names will return an error
 func TestInitBadName(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_init_invalid_name")
+	run := NewFSITestRunner(t, "test_peer_init_invalid_name", "qri_test_init_invalid_name")
 	defer run.Delete()
 
 	_ = run.CreateAndChdirToWorkDir("invalid_dataset_name")
@@ -186,7 +186,7 @@ func TestInitBadName(t *testing.T) {
 // Test using "init" to create a new linked directory, using status to see the added files,
 // then saving to create the dataset, leading to a clean status in the directory.
 func TestInitStatusSave(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_init_status_save")
+	run := NewFSITestRunner(t, "test_peer_init_status_save", "qri_test_init_status_save")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("brand_new")
@@ -227,7 +227,7 @@ func TestInitStatusSave(t *testing.T) {
 
 	// Status, check that the working directory has added files.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/brand_new]
+	expect := `for linked dataset [test_peer_init_status_save/brand_new]
 
   add: meta (source: meta.json)
   add: structure (source: structure.json)
@@ -247,21 +247,21 @@ run ` + "`qri save`" + ` to commit this dataset
 	// Verify that the .qri-ref contains the full path for the saved dataset.
 	contents := run.MustReadFile(t, ".qri-ref")
 	// TODO(dlong): Fix me, should write the updated FSI link with the dsref head
-	expect = "test_peer/brand_new"
+	expect = "test_peer_init_status_save/brand_new"
 	if diff := cmp.Diff(expect, contents); diff != "" {
 		t.Errorf(".qri-ref contents (-want +got):\n%s", diff)
 	}
 
 	// Status again, check that the working directory is clean.
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/brand_new"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_init_status_save/brand_new"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 }
 
 // Test init command can use an explicit directory
 func TestInitExplicitDirectory(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_init_explicit_dir")
+	run := NewFSITestRunner(t, "test_peer_init_explicit_dir", "qri_test_init_explicit_dir")
 	defer run.Delete()
 
 	run.ChdirToRoot()
@@ -278,7 +278,7 @@ func TestInitExplicitDirectory(t *testing.T) {
 
 // Test init command can build dscache
 func TestInitDscache(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_init_dscache")
+	run := NewFSITestRunner(t, "test_peer_init_dscache", "qri_test_init_dscache")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("init_dscache")
@@ -310,9 +310,9 @@ func TestInitDscache(t *testing.T) {
 	actual := run.niceifyTempDirs(cache.VerboseString(false))
 	expect := `Dscache:
  Dscache.Users:
-  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_init_dscache profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID        = hlrkcslkt6q37sgc356x4oy4farbcwz35tgprvhzphptjsblgkpa
+  0) initID        = yjsaeh355fdo5tojty3sxwgvfdg2wvol4455so4e36pcz5c6c6ga
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
      topIndex      = 0
      cursorIndex   = 0
@@ -327,7 +327,7 @@ func TestInitDscache(t *testing.T) {
 
 // Test that status cannot accept a dataset reference
 func TestStatusCannotUseRef(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_fsi_repo")
+	run := NewFSITestRunner(t, "test_peer_fsi_repo", "qri_test_fsi_repo")
 	defer run.Delete()
 
 	_ = run.CreateAndChdirToWorkDir("fsi_repo")
@@ -348,7 +348,7 @@ func TestStatusCannotUseRef(t *testing.T) {
 
 // Test that we can get the body even if structure has been deleted.
 func TestGetBodyWithoutStructure(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_get_body_without_structure")
+	run := NewFSITestRunner(t, "test_peer_get_body_without_structure", "qri_test_get_body_without_structure")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("body_only")
@@ -370,7 +370,7 @@ func TestGetBodyWithoutStructure(t *testing.T) {
 
 	// Get the body, even though there's no structure. One will be inferred.
 	output := run.MustExecCombinedOutErr(t, "qri get body")
-	expectBody := "for linked dataset [test_peer/body_only]\n\none,two,3\nfour,five,6\n\n"
+	expectBody := "for linked dataset [test_peer_get_body_without_structure/body_only]\n\none,two,3\nfour,five,6\n\n"
 	if diff := cmp.Diff(expectBody, output); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
@@ -378,7 +378,7 @@ func TestGetBodyWithoutStructure(t *testing.T) {
 
 // Test init command can create a json body using the format flag
 func TestInitForJsonBody(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_init_json_body")
+	run := NewFSITestRunner(t, "test_peer_init_json_body", "qri_test_init_json_body")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("json_body")
@@ -396,7 +396,7 @@ func TestInitForJsonBody(t *testing.T) {
 
 // Test init command can create a json body from a source body
 func TestInitWithJsonSourceBodyPath(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_init_json_body")
+	run := NewFSITestRunner(t, "test_peer_init_json_body_source_path", "qri_test_init_json_body_source_path")
 	defer run.Delete()
 
 	sourceFile, err := filepath.Abs("testdata/movies/body_four.json")
@@ -419,7 +419,7 @@ func TestInitWithJsonSourceBodyPath(t *testing.T) {
 
 // Test that init can use a source-body-path named "body.csv" without error
 func TestInitSourceBodyFileNamedBody(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_init_named_body")
+	run := NewFSITestRunner(t, "test_peer_init_named_body", "qri_test_init_named_body")
 	defer run.Delete()
 
 	sourceFile, err := filepath.Abs("testdata/movies/body_ten.csv")
@@ -446,7 +446,7 @@ func TestInitSourceBodyFileNamedBody(t *testing.T) {
 // Test that checkout, used on a simple dataset with a body.json and no meta, creates a
 // working directory with a clean status.
 func TestCheckoutSimpleStatus(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_checkout_simple_status")
+	run := NewFSITestRunner(t, "test_peer_checkout_simple_status", "qri_test_checkout_simple_status")
 	defer run.Delete()
 
 	// Save a dataset containing a body.json, no meta, nothing special.
@@ -468,7 +468,7 @@ func TestCheckoutSimpleStatus(t *testing.T) {
 
 	// Status, check that the working directory is clean.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/two_movies"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_checkout_simple_status/two_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -477,7 +477,7 @@ func TestCheckoutSimpleStatus(t *testing.T) {
 
 	// Status again, check that the body is changed.
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/two_movies]
+	expect := `for linked dataset [test_peer_checkout_simple_status/two_movies]
 
   modified: body (source: body.json)
 
@@ -492,7 +492,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 	// Status yet again, check that the meta is added.
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	expect = `for linked dataset [test_peer/two_movies]
+	expect = `for linked dataset [test_peer_checkout_simple_status/two_movies]
 
   add: meta (source: meta.json)
   modified: body (source: body.json)
@@ -506,7 +506,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test checking out a dataset with a schema, and body.csv.
 func TestCheckoutWithStructure(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_checkout_with_structure")
+	run := NewFSITestRunner(t, "test_peer_checkout_with_structure", "qri_test_checkout_with_structure")
 	defer run.Delete()
 
 	// Save a dataset containing a body.csv and meta.
@@ -528,7 +528,7 @@ func TestCheckoutWithStructure(t *testing.T) {
 
 	// Status, check that the working directory is clean.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/ten_movies"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_checkout_with_structure/ten_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -537,7 +537,7 @@ func TestCheckoutWithStructure(t *testing.T) {
 
 	// Status again, check that the body is changed.
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/ten_movies]
+	expect := `for linked dataset [test_peer_checkout_with_structure/ten_movies]
 
   modified: body (source: body.csv)
 
@@ -552,7 +552,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 	// Status yet again, check that the meta is changed.
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	expect = `for linked dataset [test_peer/ten_movies]
+	expect = `for linked dataset [test_peer_checkout_with_structure/ten_movies]
 
   modified: meta (source: meta.json)
   modified: body (source: body.csv)
@@ -570,7 +570,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 	// Status one last time, check that the meta was removed.
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	expect = `for linked dataset [test_peer/ten_movies]
+	expect = `for linked dataset [test_peer_checkout_with_structure/ten_movies]
 
   removed:  meta
   modified: body (source: body.csv)
@@ -584,7 +584,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test checkout and modifying structure & schema, then checking status.
 func TestCheckoutAndModifyStructure(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_checkout_and_modify_schema")
+	run := NewFSITestRunner(t, "test_peer_checkout_and_modify_schema", "qri_test_checkout_and_modify_schema")
 	defer run.Delete()
 
 	// Save a dataset containing a body.csv, no meta, nothing special.
@@ -606,7 +606,7 @@ func TestCheckoutAndModifyStructure(t *testing.T) {
 
 	// Status, check that the working directory is clean.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/more_movies"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_checkout_and_modify_schema/more_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -615,7 +615,7 @@ func TestCheckoutAndModifyStructure(t *testing.T) {
 
 	// Status again, check that the body is changed.
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/more_movies]
+	expect := `for linked dataset [test_peer_checkout_and_modify_schema/more_movies]
 
   modified: structure (source: structure.json)
 
@@ -628,7 +628,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test that status displays parse errors correctly
 func TestStatusParseError(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_status_parse_error")
+	run := NewFSITestRunner(t, "test_peer_status_parse_error", "qri_test_status_parse_error")
 	defer run.Delete()
 
 	// Save a dataset containing a body.json and meta component
@@ -647,7 +647,7 @@ func TestStatusParseError(t *testing.T) {
 
 	// Status, check that status shows the parse error.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/bad_movies]
+	expect := `for linked dataset [test_peer_status_parse_error/bad_movies]
 
   parse error: meta (source: meta.json)
 
@@ -660,7 +660,7 @@ fix these problems before saving this dataset
 
 // Test that status displays parse errors even for the body component
 func TestBodyParseError(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_status_parse_error")
+	run := NewFSITestRunner(t, "test_peer_body_parse_error", "qri_test_body_parse_error")
 	defer run.Delete()
 
 	// Save a dataset containing a body.json and meta component
@@ -679,7 +679,7 @@ func TestBodyParseError(t *testing.T) {
 
 	// Status, check that status shows the parse error.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/bad_body]
+	expect := `for linked dataset [test_peer_body_parse_error/bad_body]
 
   parse error: body (source: body.json)
 
@@ -692,7 +692,7 @@ fix these problems before saving this dataset
 
 // Test that parse errors are also properly shown for structure.
 func TestStatusParseErrorForStructure(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_status_parse_error_for_structure")
+	run := NewFSITestRunner(t, "test_peer_status_parse_error_for_structure", "qri_test_status_parse_error_for_structure")
 	defer run.Delete()
 
 	// Save a dataset containing a body.json and meta component
@@ -710,7 +710,7 @@ func TestStatusParseErrorForStructure(t *testing.T) {
 
 	// Status, check that status shows the parse error.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/ten_movies]
+	expect := `for linked dataset [test_peer_status_parse_error_for_structure/ten_movies]
 
   parse error: structure (source: structure.json)
 
@@ -722,7 +722,7 @@ fix these problems before saving this dataset
 }
 
 func TestFSISaveDeniesDrop(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_fsi_save_denies_drop_flag")
+	run := NewFSITestRunner(t, "test_peer_fsi_save_denies_drop_flag", "qri_test_fsi_save_denies_drop_flag")
 	defer run.Delete()
 
 	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/ten_movies")
@@ -738,7 +738,7 @@ func TestFSISaveDeniesDrop(t *testing.T) {
 
 // Test what changed command
 func TestWhatChanged(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_status_at_version")
+	run := NewFSITestRunner(t, "test_peer_status_at_version", "qri_test_status_at_version")
 	defer run.Delete()
 
 	// TODO(dustmop): Investigate why `qri save` writes the dataset ref to stderr, writes nothing
@@ -802,7 +802,7 @@ func TestWhatChanged(t *testing.T) {
 
 // Test checking out, modifying components, then using restore to undo the modification.
 func TestCheckoutAndRestore(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_checkout_and_restore")
+	run := NewFSITestRunner(t, "test_peer_checkout_and_restore", "qri_test_checkout_and_restore")
 	defer run.Delete()
 
 	// Save a dataset containing a body.csv and meta.
@@ -820,7 +820,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 
 	// Status to check that the meta is changed.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/ten_movies]
+	expect := `for linked dataset [test_peer_checkout_and_restore/ten_movies]
 
   modified: meta (source: meta.json)
 
@@ -835,7 +835,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 	// Status again, to validate that meta is no longer changed.
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/ten_movies"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_checkout_and_restore/ten_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -844,7 +844,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 	// Status to check that the schema is changed.
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	expect = `for linked dataset [test_peer/ten_movies]
+	expect = `for linked dataset [test_peer_checkout_and_restore/ten_movies]
 
   modified: structure (source: structure.json)
 
@@ -859,14 +859,14 @@ run ` + "`qri save`" + ` to commit this dataset
 
 	// Status again, to validate that schema is no longer changed.
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/ten_movies"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_checkout_and_restore/ten_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 }
 
 // Test that get for a previous version works for checked out datasets
 func TestGetPreviousVersionExplicitPath(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_get_prev_version")
+	run := NewFSITestRunner(t, "test_peer_get_prev_version", "qri_test_get_prev_version")
 	defer run.Delete()
 
 	// First version has only a body
@@ -928,7 +928,7 @@ title: different title
 
 // Test restoring previous version
 func TestRestorePreviousVersion(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_restore_prev_version")
+	run := NewFSITestRunner(t, "test_peer_restore_prev_version", "qri_test_restore_prev_version")
 	defer run.Delete()
 
 	// First version has only a body
@@ -952,7 +952,7 @@ func TestRestorePreviousVersion(t *testing.T) {
 
 	// Verify that the status is clean
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/prev_ver"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_restore_prev_version/prev_ver"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -979,7 +979,7 @@ func TestRestorePreviousVersion(t *testing.T) {
 
 // Test that restore deletes a component that didn't exist before
 func TestRestoreDeleteComponent(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_restore_delete_component")
+	run := NewFSITestRunner(t, "test_peer_restore_delete_component", "qri_test_restore_delete_component")
 	defer run.Delete()
 
 	// First version has only a body
@@ -1010,7 +1010,7 @@ func TestRestoreDeleteComponent(t *testing.T) {
 
 	// Status, check that the working directory has added files.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/del_cmp]
+	expect := `for linked dataset [test_peer_restore_delete_component/del_cmp]
 
   modified: body (source: body.csv)
 
@@ -1023,7 +1023,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test that restore deletes a component if there was no previous version
 func TestRestoreWithNoHistory(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_restore_no_history")
+	run := NewFSITestRunner(t, "test_peer_restore_no_history", "qri_test_restore_no_history")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("new_folder")
@@ -1043,7 +1043,7 @@ func TestRestoreWithNoHistory(t *testing.T) {
 
 	// Status, check that the working directory has added files.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/new_folder]
+	expect := `for linked dataset [test_peer_restore_no_history/new_folder]
 
   add: structure (source: structure.json)
   add: body (source: body.csv)
@@ -1057,7 +1057,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test creating a readme and then rendering it.
 func TestRenderReadme(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_render_readme")
+	run := NewFSITestRunner(t, "test_peer_render_readme", "qri_test_render_readme")
 	defer run.Delete()
 
 	_ = run.CreateAndChdirToWorkDir("render_readme")
@@ -1070,7 +1070,7 @@ func TestRenderReadme(t *testing.T) {
 
 	// Status, check that the working directory has added files including readme.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/render_readme]
+	expect := `for linked dataset [test_peer_render_readme/render_readme]
 
   add: meta (source: meta.json)
   add: structure (source: structure.json)
@@ -1088,13 +1088,13 @@ run ` + "`qri save`" + ` to commit this dataset
 
 	// Status again, check that the working directory is clean.
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/render_readme"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_render_readme/render_readme"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
 	// Render the readme, check the html.
 	output = run.MustExecCombinedOutErr(t, "qri render")
-	expectBody := `for linked dataset [test_peer/render_readme]
+	expectBody := `for linked dataset [test_peer_render_readme/render_readme]
 
 <h1>hi</h1>
 
@@ -1107,7 +1107,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test using "init" with a source body path
 func TestInitWithSourceBodyPath(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_init_source_body_path")
+	run := NewFSITestRunner(t, "test_peer_init_source_body_path", "qri_test_init_source_body_path")
 	defer run.Delete()
 
 	sourceFile, err := filepath.Abs("testdata/days_of_week.csv")
@@ -1159,7 +1159,7 @@ func TestInitWithSourceBodyPath(t *testing.T) {
 
 	// Status, check that the working directory has added files.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/init_source]
+	expect := `for linked dataset [test_peer_init_source_body_path/init_source]
 
   add: meta (source: meta.json)
   add: structure (source: structure.json)
@@ -1190,7 +1190,7 @@ Saturdy," sábado"
 
 // Test init with a directory will create that directory
 func TestInitWithDirectory(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_init_with_directory")
+	run := NewFSITestRunner(t, "test_peer_init_with_directory", "qri_test_init_with_directory")
 	defer run.Delete()
 
 	run.ChdirToRoot()
@@ -1210,7 +1210,7 @@ func TestInitWithDirectory(t *testing.T) {
 
 	// Status, check that the working directory has added files.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/init_dir]
+	expect := `for linked dataset [test_peer_init_with_directory/init_dir]
 
   add: meta (source: meta.json)
   add: structure (source: structure.json)
@@ -1225,7 +1225,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test making changes, then using diff to see those changes
 func TestDiffAfterChange(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_diff_after_change")
+	run := NewFSITestRunner(t, "test_peer_diff_after_change", "qri_test_diff_after_change")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("diff_change")
@@ -1253,7 +1253,7 @@ four,five,321
 
 	// Status to see changes
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/diff_change]
+	expect := `for linked dataset [test_peer_diff_after_change/diff_change]
 
   modified: meta (source: meta.json)
   modified: body (source: body.csv)
@@ -1266,7 +1266,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 	// Diff to see changes
 	output = run.MustExecCombinedOutErr(t, "qri diff")
-	expect = `for linked dataset [test_peer/diff_change]
+	expect = `for linked dataset [test_peer_diff_after_change/diff_change]
 
 +1 element. 5 inserts. 4 deletes.
 
@@ -1296,7 +1296,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test that diff before save leads to a reasonable error message
 func TestDiffBeforeSave(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_diff_before_save")
+	run := NewFSITestRunner(t, "test_peer_diff_before_save", "qri_test_diff_before_save")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("diff_before")
@@ -1316,7 +1316,7 @@ func TestDiffBeforeSave(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error trying to init, did not get an error")
 	}
-	expect := `dataset test_peer/diff_change has no versions, nothing to diff against`
+	expect := `dataset test_peer_diff_before_save/diff_change has no versions, nothing to diff against`
 
 	var qerror qerr.Error
 	if errors.As(err, &qerror) {
@@ -1330,7 +1330,7 @@ func TestDiffBeforeSave(t *testing.T) {
 
 // Test that if the meta component fails to write, init will rollback
 func TestInitMetaFailsToWrite(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_init_meta_fail")
+	run := NewFSITestRunner(t, "test_peer_init_meta_fail", "qri_test_init_meta_fail")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("meta_fail")
@@ -1379,7 +1379,7 @@ func TestInitMetaFailsToWrite(t *testing.T) {
 
 // Test that if source-body-path doesn't exist, init will rollback
 func TestInitSourceBodyPathDoesNotExist(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_init_source_not_found")
+	run := NewFSITestRunner(t, "test_peer_init_source_not_found", "qri_test_init_source_not_found")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("source_not_found")
@@ -1404,7 +1404,7 @@ func TestInitSourceBodyPathDoesNotExist(t *testing.T) {
 
 // Test that moving a directory causes the fsi path to update
 func TestMoveWorkingDirectory(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_move_dir")
+	run := NewFSITestRunner(t, "test_peer_move_dir", "qri_test_move_dir")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("move_dir")
@@ -1428,13 +1428,13 @@ func TestMoveWorkingDirectory(t *testing.T) {
 
 	// Status again, check that the working directory is clean.
 	output := run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/move_dir"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_move_dir/move_dir"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
 	// The FSIPath has been set to the new directory
 	output = run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer
+	expect := `0 Peername:  test_peer_move_dir
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      move_dir
   Path:      /ipfs/QmRqiBr4Ubomaikg19VohhTvngqCkVMyPYhpWmHFYCSY9S
@@ -1449,7 +1449,7 @@ func TestMoveWorkingDirectory(t *testing.T) {
 
 // Test that removing a directory will remove the fsi path from the repo
 func TestRemoveWorkingDirectory(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_dir")
+	run := NewFSITestRunner(t, "test_peer_remove_dir", "qri_test_remove_dir")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_dir")
@@ -1472,7 +1472,7 @@ func TestRemoveWorkingDirectory(t *testing.T) {
 
 	// List datasets, the removed directory is no longer linked
 	output := run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer
+	expect := `0 Peername:  test_peer_remove_dir
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      remove_dir
   Path:      /ipfs/QmRqiBr4Ubomaikg19VohhTvngqCkVMyPYhpWmHFYCSY9S
@@ -1487,7 +1487,7 @@ func TestRemoveWorkingDirectory(t *testing.T) {
 
 // Test that removing a directory before ever saving will remove the reference entirely
 func TestRemoveWithoutAnyHistory(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_no_hist")
+	run := NewFSITestRunner(t, "test_peer_remove_no_hist", "qri_test_remove_no_hist")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_no_hist")
@@ -1515,7 +1515,7 @@ func TestRemoveWithoutAnyHistory(t *testing.T) {
 
 // Test that a reference with an FSIPath, and link file, gets unlinked
 func TestUnlinkBasic(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	run := NewFSITestRunner(t, "test_peer_fsi_unlink", "qri_test_fsi_unlink")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("unlink_me")
@@ -1528,7 +1528,7 @@ func TestUnlinkBasic(t *testing.T) {
 
 	// Unlink the dataset
 	output := run.MustExec(t, "qri workdir unlink me/unlink_me")
-	if output != "unlinked: test_peer/unlink_me\n" {
+	if output != "unlinked: test_peer_fsi_unlink/unlink_me\n" {
 		t.Errorf("expected output mismatch, got %q", output)
 	}
 
@@ -1549,7 +1549,7 @@ func TestUnlinkBasic(t *testing.T) {
 
 // Test that a reference with an FSIPath, but a missing .qri-ref file, can be unlinked
 func TestUnlinkMissingLinkFile(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	run := NewFSITestRunner(t, "test_peer_fsi_missing_link_file", "qri_test_fsi_missing_link_file")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("unlink_me")
@@ -1567,7 +1567,7 @@ func TestUnlinkMissingLinkFile(t *testing.T) {
 
 	// Unlink the dataset
 	output := run.MustExec(t, "qri workdir unlink me/unlink_me")
-	if output != "unlinked: test_peer/unlink_me\n" {
+	if output != "unlinked: test_peer_fsi_missing_link_file/unlink_me\n" {
 		t.Errorf("expected output mismatch, got %q", output)
 	}
 
@@ -1588,7 +1588,7 @@ func TestUnlinkMissingLinkFile(t *testing.T) {
 
 // Test that a reference with an FSIPath, but no history, can be unlinked which removes it
 func TestUnlinkNoHistory(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	run := NewFSITestRunner(t, "test_peer_fsi_unlink_no_history", "qri_test_fsi_unlink_no_history")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("unlink_me")
@@ -1598,7 +1598,7 @@ func TestUnlinkNoHistory(t *testing.T) {
 
 	// Unlink the dataset
 	output := run.MustExec(t, "qri workdir unlink me/unlink_me")
-	if output != "unlinked: test_peer/unlink_me\n" {
+	if output != "unlinked: test_peer_fsi_unlink_no_history/unlink_me\n" {
 		t.Errorf("expected output mismatch, got %q", output)
 	}
 
@@ -1616,7 +1616,7 @@ func TestUnlinkNoHistory(t *testing.T) {
 
 // Test that a dataset can be unlinked using an implicit reference
 func TestUnlinkImplicitRef(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	run := NewFSITestRunner(t, "test_peer_fsi_unlink_implicit_ref", "qri_test_fsi_unlink_implicit_ref")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("unlink_me")
@@ -1629,9 +1629,9 @@ func TestUnlinkImplicitRef(t *testing.T) {
 
 	// Unlink the dataset
 	output := run.MustExecCombinedOutErr(t, "qri workdir unlink")
-	expect := `for linked dataset [test_peer/unlink_me]
+	expect := `for linked dataset [test_peer_fsi_unlink_implicit_ref/unlink_me]
 
-unlinked: test_peer/unlink_me
+unlinked: test_peer_fsi_unlink_implicit_ref/unlink_me
 `
 	if output != expect {
 		t.Errorf("expected output mismatch, got %q", output)
@@ -1655,7 +1655,7 @@ unlinked: test_peer/unlink_me
 // Test that if the FSIPath is somehow removed (can happen if the folder is duplicated), then
 // trying to unlink using the reference will fail
 func TestUnlinkLinkFileButNoFSIPath(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	run := NewFSITestRunner(t, "test_peer_file_but_no_fsi_path", "qri_test_fsi_unlink_file_but_no_fsi_path")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("unlink_me")
@@ -1671,7 +1671,7 @@ func TestUnlinkLinkFileButNoFSIPath(t *testing.T) {
 
 	// Unlink the dataset
 	output := run.MustExecCombinedOutErr(t, "qri workdir unlink me/unlink_me")
-	expect := "test_peer/unlink_me is not linked to a working directory\n"
+	expect := "test_peer_file_but_no_fsi_path/unlink_me is not linked to a working directory\n"
 	if expect != output {
 		t.Errorf("output mismatch. expected %q  got %q", expect, output)
 	}
@@ -1694,7 +1694,7 @@ func TestUnlinkLinkFileButNoFSIPath(t *testing.T) {
 // Test that if the FSIPath is somehow removed (can happen if the folder is duplicated), then
 // the .qri-ref link file may still be removed using the implicit reference
 func TestUnlinkLinkFileWithNoFSIPathUsingImplicit(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	run := NewFSITestRunner(t, "test_peer_fsi_unlink_file_no_fsi_path_implicit", "qri_test_fsi_unlink_file_no_fsi_path_implicit")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("unlink_me")
@@ -1710,9 +1710,9 @@ func TestUnlinkLinkFileWithNoFSIPathUsingImplicit(t *testing.T) {
 
 	// Unlink the dataset
 	output := run.MustExecCombinedOutErr(t, "qri workdir unlink")
-	if output != `for linked dataset [test_peer/unlink_me]
+	if output != `for linked dataset [test_peer_fsi_unlink_file_no_fsi_path_implicit/unlink_me]
 
-unlinked: test_peer/unlink_me
+unlinked: test_peer_fsi_unlink_file_no_fsi_path_implicit/unlink_me
 ` {
 		t.Errorf("expected output mismatch, got %q", output)
 	}
@@ -1735,7 +1735,7 @@ unlinked: test_peer/unlink_me
 // Test that if the reference is not found, the .qri-ref link file still exists, and FSIPath is
 // unmodified
 func TestUnlinkDirectoryButRefNotFound(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	run := NewFSITestRunner(t, "test_peer_fsi_unlink_dir_but_no_ref", "qri_test_fsi_unlink_dir_but_no_ref")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("unlink_me")
@@ -1770,7 +1770,7 @@ func TestUnlinkDirectoryButRefNotFound(t *testing.T) {
 
 // Test that saving with readme changes work correctly
 func TestSaveWithReadmeChange(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_save_readme_change")
+	run := NewFSITestRunner(t, "test_peer_save_readme_change", "qri_test_save_readme_change")
 	defer run.Delete()
 
 	_ = run.CreateAndChdirToWorkDir("readme_change")
@@ -1787,7 +1787,7 @@ func TestSaveWithReadmeChange(t *testing.T) {
 	}
 
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/readme_change"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_save_readme_change/readme_change"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -1799,7 +1799,7 @@ func TestSaveWithReadmeChange(t *testing.T) {
 	}
 
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/readme_change"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_save_readme_change/readme_change"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -1811,7 +1811,7 @@ func TestSaveWithReadmeChange(t *testing.T) {
 	}
 
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	if diff := cmpTextLines(cleanStatusMessage("test_peer/readme_change"), output); diff != "" {
+	if diff := cmpTextLines(cleanStatusMessage("test_peer_save_readme_change/readme_change"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 

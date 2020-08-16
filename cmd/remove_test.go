@@ -10,7 +10,7 @@ import (
 )
 
 func TestRemoveComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_remove_complete")
+	run := NewTestRunner(t, "test_peer_remove_complete", "qri_test_remove_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -86,7 +86,7 @@ func TestRemoveValidate(t *testing.T) {
 }
 
 func TestRemoveRun(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_dag_info")
+	run := NewTestRunner(t, "test_peer_dag_info", "qri_test_dag_info")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())

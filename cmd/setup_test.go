@@ -19,7 +19,7 @@ import (
 
 // Test that setup command object can be created
 func TestSetupComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_setup_complete")
+	run := NewTestRunner(t, "test_peer_setup_complete", "qri_test_setup_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -40,7 +40,7 @@ func TestSetupComplete(t *testing.T) {
 
 // Test that setup run with --gimme-doggo command returns a default nickname
 func TestSetupGimmeDoggo(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_gimme_doggo")
+	run := NewTestRunner(t, "test_peer_gimme_doggo", "qri_test_gimme_doggo")
 	defer run.Delete()
 
 	actual := run.MustExec(t, "qri setup --gimme-doggo")

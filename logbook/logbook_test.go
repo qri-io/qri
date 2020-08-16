@@ -546,7 +546,7 @@ func TestDatasetLogNaming(t *testing.T) {
 	if err = tr.Book.WriteDatasetRename(tr.Ctx, firstInitID, "iata_airport_codes"); err != nil {
 		t.Errorf("unexpected error renaming dataset: %s", err)
 	}
-	if _, err = tr.Book.RefToInitID(dsref.Ref{Username: "test_peer", Name: "airport_codes"}); err == nil {
+	if _, err = tr.Book.RefToInitID(dsref.Ref{Username: "test_peer_dataset_log_naming", Name: "airport_codes"}); err == nil {
 		t.Error("expected finding the original name to error")
 	}
 	// Init another dataset with the old name, which is now available due to rename.

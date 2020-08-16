@@ -8,7 +8,7 @@ import (
 )
 
 func TestStatsComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_stats_complete")
+	run := NewTestRunner(t, "test_peer_stats_complete", "qri_test_stats_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -77,7 +77,7 @@ func TestStatsComplete(t *testing.T) {
 }
 
 func TestStatsRun(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_stats_run")
+	run := NewTestRunner(t, "test_peer_stats_run", "qri_test_stats_run")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -145,7 +145,7 @@ func TestStatsRun(t *testing.T) {
 }
 
 func TestStatsFSI(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_stats_fsi")
+	run := NewFSITestRunner(t, "test_peer_test_stats_fsi", "qri_test_stats_fsi")
 	defer run.Delete()
 
 	run.CreateAndChdirToWorkDir("stats_fsi")
@@ -157,7 +157,7 @@ func TestStatsFSI(t *testing.T) {
 
 	output := run.MustExecCombinedOutErr(t, "qri stats")
 
-	expect := `for linked dataset [test_peer/move_dir]
+	expect := `for linked dataset [test_peer_test_stats_fsi/move_dir]
 
 [{"count":2,"maxLength":4,"minLength":3,"type":"string","unique":2},{"count":2,"maxLength":4,"minLength":3,"type":"string","unique":2},{"count":2,"histogram":{"bins":[3,3.4,3.8,4.2,4.6,5,5.4,5.800000000000001,6.2,6.6,7],"frequencies":[1,0,0,0,0,0,0,1,0,0]},"max":6,"mean":4.5,"median":4.5,"min":3,"type":"numeric"}]
 
@@ -169,7 +169,7 @@ func TestStatsFSI(t *testing.T) {
 
 	output = run.MustExecCombinedOutErr(t, "qri stats --pretty")
 
-	expect = `for linked dataset [test_peer/move_dir]
+	expect = `for linked dataset [test_peer_test_stats_fsi/move_dir]
 
 [
   {

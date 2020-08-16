@@ -16,7 +16,7 @@ import (
 )
 
 func TestSearchComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_search_complete")
+	run := NewTestRunner(t, "test_peer_search_complete", "qri_test_search_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())

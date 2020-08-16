@@ -10,7 +10,7 @@ import (
 )
 
 func TestUseComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_use_complete")
+	run := NewTestRunner(t, "test_peer_use_complete", "qri_test_use_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -94,7 +94,7 @@ func TestUseValidate(t *testing.T) {
 }
 
 func TestUseRun(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_use_run")
+	run := NewTestRunner(t, "test_peer_use_run", "qri_test_use_run")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())

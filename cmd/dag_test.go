@@ -52,7 +52,7 @@ func TestAbbrFieldToFull(t *testing.T) {
 }
 
 func TestDAGComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_dag_complete")
+	run := NewTestRunner(t, "test_peer_dag_complete", "qri_test_dag_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -112,7 +112,7 @@ func TestDAGComplete(t *testing.T) {
 }
 
 func TestDAGInfo(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_dag_info")
+	run := NewTestRunner(t, "test_peer_dag_info", "qri_test_dag_info")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
