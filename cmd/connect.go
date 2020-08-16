@@ -101,6 +101,7 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 // Run executes the connect command with currently configured state
 func (o *ConnectOptions) Run() error {
 	ctx := context.Background()
+	// NOTE: the `Serve` context is not tied to the context of the instance itself
 	err := api.New(o.inst).Serve(ctx)
 	if err != nil && err.Error() == "http: Server closed" {
 		return nil

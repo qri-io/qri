@@ -696,6 +696,11 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	if inst.remoteClient != nil {
 		<-inst.remoteClient.Shutdown()
 	}
+	// NOTE: the previous remote client got its context from the context that is
+	// tied to the life of the instance. This one is tied to the life of the
+	// `Connect` function. The instance is responsible for cleaning up the
+	// remoteClient, since it cannot rely on this context to cancel at the same
+	// time as the context of the instance does
 	if inst.remoteClient, err = remote.NewClient(ctx, inst.node, inst.bus); err != nil {
 		log.Debugf("remote.NewClient error=%q", err)
 		return
@@ -737,6 +742,13 @@ func (inst *Instance) Config() *config.Config {
 // timeout
 func (inst *Instance) Shutdown() <-chan error {
 	errCh := make(chan error)
+	// NOTE: the remote client may have gotten its context from the `Connect` func
+	// not the context that the instance itself was built around.
+	// The instance must clean up the remoteClient, since it cannot rely on the
+	// remote client's context to cancel at the same time as the instance's context
+	if inst.remoteClient != nil {
+		<-inst.remoteClient.Shutdown()
+	}
 	go func() {
 		<-inst.doneCh
 		errCh <- inst.doneErr
