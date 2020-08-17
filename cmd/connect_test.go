@@ -17,7 +17,7 @@ func TestConnect(t *testing.T) {
 	}
 
 	// Setup the test repo so that connect can run
-	run := NewTestRunner(t, "test_peer", "qri_test_connect")
+	run := NewTestRunner(t, "test_peer_qri_test_connect", "qri_test_connect")
 	defer run.Delete()
 
 	// Construct a mock registry to pass to the connect command
@@ -32,16 +32,16 @@ func TestConnect(t *testing.T) {
 
 	cmd := "qri connect --registry=" + fmt.Sprintf("/ip4/127.0.0.1/tcp/%s", strings.Split(u.Host, ":")[1])
 
-	// Run the command for 1 second
-	ctx, done := context.WithTimeout(context.Background(), time.Second)
-	defer done()
-
 	defer func() {
 		if e := recover(); e != nil {
 			t.Errorf("unexpected panic:\n%s\n%s", cmd, e)
 			return
 		}
 	}()
+
+	// Run the command for 1 second
+	ctx, done := context.WithTimeout(context.Background(), time.Second)
+	defer done()
 
 	err := run.ExecCommandWithContext(ctx, cmd)
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 )
 
 func TestRenameComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_rename_complete")
+	run := NewTestRunner(t, "test_peer_rename_complete", "qri_test_rename_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -102,7 +102,7 @@ func TestRenameValidate(t *testing.T) {
 }
 
 func TestRenameRun(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_rename_run")
+	run := NewTestRunner(t, "test_peer_rename_run", "qri_test_rename_run")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())

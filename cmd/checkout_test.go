@@ -5,7 +5,7 @@ import (
 )
 
 func TestDoubleCheckout(t *testing.T) {
-	runner := NewFSITestRunner(t, "double_checkout")
+	runner := NewFSITestRunner(t, "test_peer_double_checkout", "double_checkout")
 	defer runner.Delete()
 
 	_ = runner.CreateAndChdirToWorkDir("checkout_dir")

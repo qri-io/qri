@@ -12,7 +12,7 @@ import (
 
 func TestMemResolver(t *testing.T) {
 	ctx := context.Background()
-	m := dsref.NewMemResolver("test_peer")
+	m := dsref.NewMemResolver("test_peer_mem_resolver")
 
 	if _, err := (*dsref.MemResolver)(nil).ResolveRef(ctx, nil); err != dsref.ErrRefNotFound {
 		t.Errorf("ResolveRef must be nil-callable. expected: %q, got %v", dsref.ErrRefNotFound, err)

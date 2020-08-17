@@ -55,11 +55,11 @@ func TestParseFull(t *testing.T) {
 }
 
 func TestParseBadUpperCase(t *testing.T) {
-	ref, err := Parse("test_peer/a_New_Dataset")
+	ref, err := Parse("test_peer_bad_upper_case/a_New_Dataset")
 	if err != ErrBadCaseName {
 		t.Errorf("expected to get error %s, but got %s", ErrBadCaseName, err)
 	}
-	expect := Ref{Username: "test_peer", Name: "a_New_Dataset"}
+	expect := Ref{Username: "test_peer_bad_upper_case", Name: "a_New_Dataset"}
 	if !ref.Equals(expect) {
 		t.Errorf("mismatch: expect %s, got %s", expect, ref)
 	}

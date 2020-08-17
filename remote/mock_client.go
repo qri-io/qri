@@ -31,16 +31,18 @@ type MockClient struct {
 	storagePath  string
 	foreignBooks map[string]*logbook.Book
 
-	doneCh  chan struct{}
-	doneErr error
+	doneCh   chan struct{}
+	doneErr  error
+	shutdown context.CancelFunc
 }
 
 var _ Client = (*MockClient)(nil)
 
 // NewMockClient returns a mock remote client. context passed to NewMockClient
-// MUST be cancelled externally for proper cleanup
+// MUST use the `Shutdown` method or cancel externally for proper cleanup
 func NewMockClient(ctx context.Context, node *p2p.QriNode, book *logbook.Book) (c Client, err error) {
 	log.Debug("creating mock remote client")
+	ctx, cancel := context.WithCancel(ctx)
 	tmpDir, err := ioutil.TempDir("", "qri-mock-remote-client")
 
 	cli := &MockClient{
@@ -49,6 +51,7 @@ func NewMockClient(ctx context.Context, node *p2p.QriNode, book *logbook.Book) (
 		storagePath:  tmpDir,
 		foreignBooks: map[string]*logbook.Book{},
 		doneCh:       make(chan struct{}),
+		shutdown:     cancel,
 	}
 
 	go func() {
@@ -246,4 +249,10 @@ func (c *MockClient) Done() <-chan struct{} {
 // DoneErr gives an error that occured during the shutdown process
 func (c *MockClient) DoneErr() error {
 	return c.doneErr
+}
+
+// Shutdown allows you to close the client before the parent context closes
+func (c *MockClient) Shutdown() <-chan struct{} {
+	c.shutdown()
+	return c.Done()
 }

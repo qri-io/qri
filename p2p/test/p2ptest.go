@@ -93,6 +93,28 @@ func NewTestNetwork(ctx context.Context, f *TestNodeFactory, num int) ([]Testabl
 	return nodes, nil
 }
 
+// NewNodeWithBus constructs the next node in the factory, but with
+// the given bus, helpful for tests where you need to subscribe to specific
+// events in order to coordiate timing
+func NewNodeWithBus(ctx context.Context, f *TestNodeFactory, bus event.Publisher) (TestablePeerNode, error) {
+	prevBus := f.pub
+	defer func() {
+		f.pub = prevBus
+	}()
+	info := f.NextInfo()
+	r, err := test.NewTestRepoFromProfileID(profile.IDFromPeerID(info.PeerID), 0, 0)
+	if err != nil {
+		return nil, fmt.Errorf("error creating test repo: %s", err.Error())
+	}
+
+	f.pub = bus
+	node, err := NewAvailableTestNode(ctx, r, f)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
 // NewTestDirNetwork constructs nodes from the testdata directory, for p2p testing
 // Peers are pulled from the "testdata" directory, and come pre-populated with datasets
 // no peers are connected.
@@ -169,6 +191,7 @@ func ConnectNodes(ctx context.Context, nodes []TestablePeerNode) error {
 		}
 	}
 	wg.Wait()
+	// wait for
 	return nil
 }
 

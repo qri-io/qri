@@ -6,7 +6,7 @@ import (
 )
 
 func TestSQLRun(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_sql_command")
+	run := NewTestRunner(t, "test_peer_sql_command", "qri_test_sql_command")
 	defer run.Delete()
 
 	run.MustExec(t, "qri save me/one_ds --body testdata/movies/body_ten.csv")

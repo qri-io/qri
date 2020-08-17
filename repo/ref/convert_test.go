@@ -11,7 +11,7 @@ import (
 
 func TestRefFromDsref(t *testing.T) {
 	d := dsref.Ref{
-		Username:  "test_peer",
+		Username:  "test_peer_ref_from_dsref",
 		ProfileID: "",
 		Name:      "my_ds",
 		Path:      "/mem/QmExaMpLe",
@@ -19,7 +19,7 @@ func TestRefFromDsref(t *testing.T) {
 
 	ref := RefFromDsref(d)
 	expectRef := DatasetRef{
-		Peername:  "test_peer",
+		Peername:  "test_peer_ref_from_dsref",
 		ProfileID: profile.IDRawByteString(""),
 		Name:      "my_ds",
 		Path:      "/mem/QmExaMpLe",

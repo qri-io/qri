@@ -9,7 +9,7 @@ import (
 )
 
 func TestValidateComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_validate_complete")
+	run := NewTestRunner(t, "test_peer_validate_complete", "qri_test_validate_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -63,7 +63,7 @@ func TestValidateComplete(t *testing.T) {
 }
 
 func TestValidateRun(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_validate_complete")
+	run := NewTestRunner(t, "test_peer_validate_run", "qri_test_validate_run")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -148,7 +148,7 @@ var movieOutput = `0: /4/1: "" type should be integer, got string
 `
 
 func TestValidateCommandlineFlags(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_validate_commandline_flags")
+	run := NewTestRunner(t, "test_peer_validate_commandline_flags", "qri_test_validate_commandline_flags")
 	defer run.Delete()
 
 	output := run.MustExec(t, "qri validate --body=testdata/movies/body_ten.csv --structure=testdata/movies/structure_override.json")

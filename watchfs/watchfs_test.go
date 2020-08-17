@@ -48,7 +48,7 @@ func TestFilesysWatcher(t *testing.T) {
 		t.Error(err)
 	}
 	w.Watch(EventPath{
-		Username: "test_peer",
+		Username: "test_peer_filesys_watcher",
 		Dsname:   "ds_name",
 		Path:     watchdir,
 	})
@@ -62,7 +62,7 @@ func TestFilesysWatcher(t *testing.T) {
 	wg.Wait()
 
 	expect := event.WatchfsChange{
-		Username:    "test_peer",
+		Username:    "test_peer_filesys_watcher",
 		Dsname:      "ds_name",
 		Source:      target,
 		Destination: "",

@@ -11,7 +11,7 @@ import (
 
 // Test push to a mock registry
 func TestPush(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_registry_push")
+	run := NewTestRunner(t, "test_peer_registry_push", "qri_test_registry_push")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())

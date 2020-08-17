@@ -10,7 +10,7 @@ import (
 )
 
 func TestDiffComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_diff_complete")
+	run := NewTestRunner(t, "test_peer_diff_complete", "qri_test_diff_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -54,7 +54,7 @@ func TestDiffComplete(t *testing.T) {
 }
 
 func TestDiffRun(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_dag_info")
+	run := NewTestRunner(t, "test_peer_qri_test_dag_info", "qri_test_dag_info")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -161,7 +161,7 @@ func TestDiffRun(t *testing.T) {
 
 // Test that we can compare bodies of different dataset revisions.
 func TestDiffPrevRevision(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_diff_revisions")
+	run := NewTestRunner(t, "test_peer_diff_prev_revisions", "qri_test_diff_revisions")
 	defer run.Delete()
 
 	// Save three versions, then diff the last two
@@ -212,7 +212,7 @@ func TestDiffKnownFilenameComponent(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_diff_revisions")
+	run := NewTestRunner(t, "test_peer_diff_known_filename_component", "qri_test_diff_revisions")
 	defer run.Delete()
 
 	// Save two versions with a change to the structure

@@ -10,7 +10,7 @@ import (
 )
 
 func TestRenderComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_render_complete")
+	run := NewTestRunner(t, "test_peer_render_complete", "qri_test_render_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -60,7 +60,7 @@ func TestRenderComplete(t *testing.T) {
 }
 
 func TestRenderRun(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_render_run")
+	run := NewTestRunner(t, "test_peer_render_run", "qri_test_render_run")
 	defer run.Delete()
 
 	// set Default Template to something easier to work with, then

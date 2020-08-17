@@ -7,7 +7,7 @@ import (
 )
 
 func TestFSILinkingCommands(t *testing.T) {
-	runner := NewFSITestRunner(t, "fsi_commands")
+	runner := NewFSITestRunner(t, "test_peer_fsi_commands", "fsi_commands")
 	defer runner.Delete()
 
 	pwd := runner.CreateAndChdirToWorkDir("save_and_unlink")

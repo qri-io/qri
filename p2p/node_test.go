@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -79,6 +80,7 @@ func TestNodeEvents(t *testing.T) {
 	}
 
 	called := map[event.Type]bool{}
+	calledMu := sync.Mutex{}
 	remaining := len(events)
 
 	// TODO (ramfox): when we can figure out the `libp2pevent.EvtPeerIdentificationFailed`
@@ -86,6 +88,8 @@ func TestNodeEvents(t *testing.T) {
 	// qriPeerConnectedCh := make(chan struct{}, 1)
 
 	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
+		calledMu.Lock()
+		defer calledMu.Unlock()
 		if called[typ] {
 			// TODO (ramfox): this is commented out currently because I'm not totally
 			// sure why connects and disconnects are fireing multiple times
@@ -114,12 +118,14 @@ func TestNodeEvents(t *testing.T) {
 		case <-ctx.Done():
 			ok := true
 			uncalled := ""
+			calledMu.Lock()
 			for tp, called := range called {
 				if !called {
 					uncalled += fmt.Sprintf("%s\n", tp)
 					ok = false
 				}
 			}
+			calledMu.Unlock()
 			if !ok {
 				result <- fmt.Errorf("context cancelled before all events could fire. Uncalled Events:\n%s", uncalled)
 				return

@@ -74,6 +74,8 @@ type Client interface {
 	Done() <-chan struct{}
 	// DoneErr gives any error that occured in the shutdown process
 	DoneErr() error
+	// Shutdown ends the client process early
+	Shutdown() <-chan struct{}
 }
 
 // client talks to a remote in order to sync peer data
@@ -85,17 +87,20 @@ type client struct {
 	node    *p2p.QriNode
 	events  event.Publisher
 
-	doneCh  chan struct{}
-	doneErr error
+	doneCh   chan struct{}
+	doneErr  error
+	shutdown context.CancelFunc
 }
 
 // NewClient creates a remote client suitable for syncing peers
 func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c Client, err error) {
+	ctx, cancel := context.WithCancel(ctx)
 	var ds *dsync.Dsync
 	capi, capiErr := node.IPFSCoreAPI()
 	if capiErr == nil {
 		lng, err := dsync.NewLocalNodeGetter(capi)
 		if err != nil {
+			cancel()
 			return nil, err
 		}
 
@@ -107,6 +112,7 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 			dsyncConfig.PinAPI = capi.Pin()
 		})
 		if err != nil {
+			cancel()
 			return nil, err
 		}
 	} else {
@@ -130,7 +136,8 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 		node:    node,
 		events:  pub,
 
-		doneCh: make(chan struct{}),
+		doneCh:   make(chan struct{}),
+		shutdown: cancel,
 	}
 
 	go func() {
@@ -141,6 +148,13 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 	}()
 
 	return cli, nil
+}
+
+// Shutdown closes the client process and returns a channel that will signal
+// when it has completely closed and cleaned up
+func (c *client) Shutdown() <-chan struct{} {
+	c.shutdown()
+	return c.Done()
 }
 
 // Feeds fetches the first page of featured & recent feeds in one call

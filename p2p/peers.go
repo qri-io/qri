@@ -42,18 +42,7 @@ func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
 
 // ConnectedQriPeerIDs returns a slice of peer.IDs this peer is currently connected to
 func (n *QriNode) ConnectedQriPeerIDs() []peer.ID {
-	peers := []peer.ID{}
-	if n.host == nil {
-		return peers
-	}
-	conns := n.host.Network().Conns()
-	for _, c := range conns {
-		id := c.RemotePeer()
-		if _, err := n.Repo.Profiles().PeerProfile(id); err == nil {
-			peers = append(peers, id)
-		}
-	}
-	return peers
+	return n.qis.ConnectedQriPeers()
 }
 
 // ClosestConnectedQriPeers checks if a peer is connected, and if so adds it to the top
@@ -78,7 +67,7 @@ func (n *QriNode) ClosestConnectedQriPeers(profileID profile.ID, max int) (pid [
 	if len(pid) == 0 {
 		for _, conn := range n.host.Network().Conns() {
 			peerID := conn.RemotePeer()
-			protocols, err := n.host.Peerstore().SupportsProtocols(peerID, string(QriProtocolID))
+			protocols, err := n.host.Peerstore().SupportsProtocols(peerID, string(depQriProtocolID))
 			if err != nil {
 				continue
 			}
@@ -185,18 +174,18 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 	}
 
 	// do an explicit connection upgrade
-	// TODO (ramfox): when we refactor this, we should really
-	// be handing back a channel that will notify us when
-	// the profile exchange is complete, so we know it's safe
-	// to request the profile
-	if err := n.upgradeToQriConnection(pinfo.ID); err != nil {
-		if err == ErrQriProtocolNotSupported {
-			return nil, fmt.Errorf("upgrading p2p connection to a qri connection: %w", err)
-		}
-		return nil, err
+	// this will block until the peer's profile has been
+	if err := n.qis.QriProfileRequest(ctx, pinfo.ID); err != nil {
+		return nil, fmt.Errorf("error establishing qri connections: %w", err)
 	}
 
-	return n.Repo.Profiles().PeerProfile(pinfo.ID)
+	// ConnectedPeerProfile will return nil if the profile is not found
+	pro := n.qis.ConnectedPeerProfile(pinfo.ID)
+	if err == nil {
+		return nil, fmt.Errorf("unable to get profile from peer %q", pinfo.ID)
+	}
+
+	return pro, nil
 }
 
 // DisconnectFromPeer explicitly closes a connection to a peer

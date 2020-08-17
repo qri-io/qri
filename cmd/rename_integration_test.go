@@ -15,7 +15,7 @@ import (
 
 // Test rename works if dataset has no history
 func TestRenameNoHistory(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_rename_no_history")
+	run := NewFSITestRunner(t, "test_peer_rename_no_history", "qri_test_rename_no_history")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_no_history")
@@ -25,7 +25,7 @@ func TestRenameNoHistory(t *testing.T) {
 
 	// Read .qri-ref file, it contains the reference this directory is linked to
 	actual := run.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
-	expect := "test_peer/remove_no_history"
+	expect := "test_peer_rename_no_history/remove_no_history"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("qri list (-want +got):\n%s", diff)
 	}
@@ -55,14 +55,14 @@ func TestRenameNoHistory(t *testing.T) {
 
 	// Read .qri-ref file, it contains the new reference name
 	actual = run.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
-	expect = "test_peer/remove_second_name"
+	expect = "test_peer_rename_no_history/remove_second_name"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("qri list (-want +got):\n%s", diff)
 	}
 
 	// Test that `qri list` will only show the new ref. Still linked to the old directory name.
 	output := run.MustExec(t, "qri list")
-	expect = `1   test_peer/remove_second_name
+	expect = `1   test_peer_rename_no_history/remove_second_name
     linked: /tmp/remove_no_history
     0 B, 0 entries, 0 errors
 
@@ -74,7 +74,7 @@ func TestRenameNoHistory(t *testing.T) {
 
 // Test rename updates the qri-ref link
 func TestRenameUpdatesLink(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_rename_update_link")
+	run := NewFSITestRunner(t, "test_peer_rename_update_link", "qri_test_rename_update_link")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_update_link")
@@ -87,7 +87,7 @@ func TestRenameUpdatesLink(t *testing.T) {
 
 	// Read .qri-ref file, it contains the reference this directory is linked to
 	actual := run.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
-	expect := "test_peer/remove_update_link"
+	expect := "test_peer_rename_update_link/remove_update_link"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("qri list (-want +got):\n%s", diff)
 	}
@@ -101,7 +101,7 @@ func TestRenameUpdatesLink(t *testing.T) {
 
 	// Test that `qri list` will only show the new ref. Still linked to the old directory name.
 	output := run.MustExec(t, "qri list")
-	expect = `1   test_peer/remove_second_name
+	expect = `1   test_peer_rename_update_link/remove_second_name
     linked: /tmp/remove_update_link
     22 B, 2 entries, 0 errors
 
@@ -112,7 +112,7 @@ func TestRenameUpdatesLink(t *testing.T) {
 
 	// Read .qri-ref file, it contains the new dataset reference
 	actual = run.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
-	expect = "test_peer/remove_second_name"
+	expect = "test_peer_rename_update_link/remove_second_name"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("read .qri-ref (-want +got):\n%s", diff)
 	}
@@ -120,7 +120,7 @@ func TestRenameUpdatesLink(t *testing.T) {
 
 // Test that rename command only works with human-friendly references, those without paths
 func TestRenameNeedsHumanName(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "rename_human")
+	run := NewTestRunner(t, "test_peer_rename_human", "rename_human")
 	defer run.Delete()
 
 	// Create a dataset and get the resolved reference to it
@@ -132,11 +132,11 @@ func TestRenameNeedsHumanName(t *testing.T) {
 	}
 
 	// Parse error for the land-hand-side
-	err := run.ExecCommand("qri rename test_peer/invalid+name test_peer/second_name")
+	err := run.ExecCommand("qri rename test_peer_rename_human/invalid+name test_peer_rename_human/second_name")
 	if err == nil {
 		t.Fatal("expected error, did not get one")
 	}
-	expectErr := `original name: unexpected character at position 17: '+'`
+	expectErr := `original name: unexpected character at position 30: '+'`
 	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -144,7 +144,7 @@ func TestRenameNeedsHumanName(t *testing.T) {
 	lhs := ref.Copy()
 
 	// Given a resolved reference for the left-hand-side is an error
-	err = run.ExecCommand(fmt.Sprintf("qri rename %s test_peer/second_name", lhs))
+	err = run.ExecCommand(fmt.Sprintf("qri rename %s test_peer_rename_human/second_name", lhs))
 	if err == nil {
 		t.Fatal("expected error, did not get one")
 	}
@@ -157,7 +157,7 @@ func TestRenameNeedsHumanName(t *testing.T) {
 	lhs.Path = ""
 
 	// Parse error for the right-hand-side
-	err = run.ExecCommand(fmt.Sprintf("qri rename %s test_peer/invalid+name", lhs))
+	err = run.ExecCommand(fmt.Sprintf("qri rename %s test_peer_rename_human/invalid+name", lhs))
 	if err == nil {
 		t.Fatal("expected error, did not get one")
 	}
@@ -193,14 +193,14 @@ func TestRenameNeedsHumanName(t *testing.T) {
 // Test that rename can be used on names with bad upper-case characters, but only to rename them
 // to be valid instead
 func TestRenameAwayFromBadCase(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "rename_human")
+	run := NewTestRunner(t, "test_peer_rename_away_from_bad_case", "rename_away_from_bad_case")
 	defer run.Delete()
 
 	// Create a dataset with a valid name
 	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/first_name")
 
 	// Cannot rename the dataset to a name with bad upper-case characters
-	err := run.ExecCommand("qri rename test_peer/first_name test_peer/useUpperCase")
+	err := run.ExecCommand("qri rename test_peer_rename_away_from_bad_case/first_name test_peer_rename_away_from_bad_case/useUpperCase")
 	if err == nil {
 		t.Fatal("expected error, did not get one")
 	}
@@ -219,10 +219,10 @@ func TestRenameAwayFromBadCase(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[[\"one\",2],[\"three\",4]]")))
 
 	// Add the dataset to the repo directly, which avoids the name validation check.
-	run.AddDatasetToRefstore(t, "test_peer/a_New_Dataset", &ds)
+	run.AddDatasetToRefstore(t, "test_peer_rename_away_from_bad_case/a_New_Dataset", &ds)
 
 	// Cannot rename the dataset to a name with bad upper-case characters still
-	err = run.ExecCommand("qri rename test_peer/a_New_Dataset test_peer/useUpperCase")
+	err = run.ExecCommand("qri rename test_peer_rename_away_from_bad_case/a_New_Dataset test_peer_rename_away_from_bad_case/useUpperCase")
 	if err == nil {
 		t.Fatal("expected error, did not get one")
 	}
@@ -232,7 +232,7 @@ func TestRenameAwayFromBadCase(t *testing.T) {
 	}
 
 	// Okay to rename a name with bad upper-case characters to a new valid name
-	err = run.ExecCommand("qri rename test_peer/a_New_Dataset test_peer/a_new_dataset")
+	err = run.ExecCommand("qri rename test_peer_rename_away_from_bad_case/a_New_Dataset test_peer_rename_away_from_bad_case/a_new_dataset")
 	if err != nil {
 		t.Errorf("got error: %s", err)
 	}

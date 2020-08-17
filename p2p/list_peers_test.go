@@ -8,6 +8,7 @@ import (
 )
 
 func TestListPeers(t *testing.T) {
+	t.Skip("ramfox: flakey test until ConnectNodes is refactored")
 	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 6)

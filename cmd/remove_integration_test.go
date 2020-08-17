@@ -21,7 +21,7 @@ func parsePathFromRef(ref string) string {
 
 // Test that adding two versions, then deleting one, ends up with only the first version
 func TestRemoveOneRevisionFromRepo(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_remove_one_rev_from_repo")
+	run := NewTestRunner(t, "test_peer_remote_one_rev_from_repo", "qri_test_remove_one_rev_from_repo")
 	defer run.Delete()
 
 	// Save a dataset containing a body.json, no meta, nothing special.
@@ -53,7 +53,7 @@ func TestRemoveOneRevisionFromRepo(t *testing.T) {
 
 // Test that adding two versions, then deleting all will end up with nothing left
 func TestRemoveAllRevisionsFromRepo(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_remove_all_rev_from_repo")
+	run := NewTestRunner(t, "test_peer_remove_all_rev_", "qri_test_remove_all_rev_from_repo")
 	defer run.Delete()
 
 	// Save a dataset containing a body.json, no meta, nothing special.
@@ -84,7 +84,7 @@ func TestRemoveAllRevisionsFromRepo(t *testing.T) {
 
 // Test that remove from a repo can't be used with --keep-files flag
 func TestRemoveRepoCantUseKeepFiles(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_remove_repo_cant_use_keep_files")
+	run := NewTestRunner(t, "test_peer_remove_repo_cant_use_keep_files", "qri_test_remove_repo_cant_use_keep_files")
 	defer run.Delete()
 
 	// Save a dataset containing a body.json, no meta, nothing special.
@@ -116,7 +116,7 @@ func TestRemoveRepoCantUseKeepFiles(t *testing.T) {
 
 // Test removing a revision from a linked directory
 func TestRemoveOneRevisionFromWorkingDirectory(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_one_work_dir")
+	run := NewFSITestRunner(t, "test_peer_remove_one_work_dir", "qri_test_remove_one_work_dir")
 	defer run.Delete()
 
 	_ = run.CreateAndChdirToWorkDir("remove_one")
@@ -176,7 +176,7 @@ func TestRemoveOneRevisionFromWorkingDirectory(t *testing.T) {
 
 	// Verify that status is clean
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	expect = `for linked dataset [test_peer/remove_one]
+	expect = `for linked dataset [test_peer_remove_one_work_dir/remove_one]
 
 working directory clean
 `
@@ -187,14 +187,14 @@ working directory clean
 	// Verify that we can access the working directory. This would not be the case if the
 	// delete operation caused the FSIPath to be moved from the dataset ref in the repo.
 	actual = run.MustExecCombinedOutErr(t, "qri get")
-	expect = `for linked dataset [test_peer/remove_one]
+	expect = `for linked dataset [test_peer_remove_one_work_dir/remove_one]
 
 bodyPath: /tmp/remove_one/body.csv
 meta:
   qri: md:0
   title: one
 name: remove_one
-peername: test_peer
+peername: test_peer_remove_one_work_dir
 qri: ds:0
 structure:
   format: csv
@@ -221,7 +221,7 @@ structure:
 
 // Test removing a revision which added a component will cause that component's file to be removed
 func TestRemoveOneRevisionWillDeleteFilesThatWereNotThereBefore(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_one_that_wasnt_there")
+	run := NewFSITestRunner(t, "test_peer_remove_one_that_wasnt_there", "qri_test_remove_one_that_wasnt_there")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_one")
@@ -261,7 +261,7 @@ func TestRemoveOneRevisionWillDeleteFilesThatWereNotThereBefore(t *testing.T) {
 
 	// Verify that status is clean
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	expect := `for linked dataset [test_peer/remove_one]
+	expect := `for linked dataset [test_peer_remove_one_that_wasnt_there/remove_one]
 
 working directory clean
 `
@@ -281,7 +281,7 @@ working directory clean
 
 // Test removing a dataset with no history works
 func TestRemoveNoHistory(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_no_history")
+	run := NewFSITestRunner(t, "test_peer_remove_no_history", "qri_test_remove_no_history")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_no_history")
@@ -316,7 +316,7 @@ func TestRemoveNoHistory(t *testing.T) {
 
 // Test removing a revision while keeping the files the same
 func TestRemoveKeepFiles(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_one_keep_files")
+	run := NewFSITestRunner(t, "test_peer_remove_one_keep_files", "qri_test_remove_one_keep_files")
 	defer run.Delete()
 
 	_ = run.CreateAndChdirToWorkDir("remove_one")
@@ -382,7 +382,7 @@ func TestRemoveKeepFiles(t *testing.T) {
 
 	// Verify that status is dirty because we kept the files
 	output = run.MustExecCombinedOutErr(t, "qri status")
-	expect = `for linked dataset [test_peer/remove_one]
+	expect = `for linked dataset [test_peer_remove_one_keep_files/remove_one]
 
   modified: body (source: body.csv)
 
@@ -395,7 +395,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test removing all versions from a working directory
 func TestRemoveAllVersionsWorkingDirectory(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_all_work_dir")
+	run := NewFSITestRunner(t, "test_peer_remove_all_work_dir", "qri_test_remove_all_work_dir")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_all")
@@ -439,7 +439,7 @@ func TestRemoveAllVersionsWorkingDirectory(t *testing.T) {
 
 // Test removing all versions from a working directory with low value files
 func TestRemoveAllVersionsWorkingDirectoryLowValueFiles(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_all_work_dir")
+	run := NewFSITestRunner(t, "test_peer_remove_all_work_low_value_files", "qri_test_remove_all_work_dir_low_value_files")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_all")
@@ -508,7 +508,7 @@ func TestRemoveAllVersionsWorkingDirectoryLowValueFiles(t *testing.T) {
 
 // Test removing all versions from a working directory with --force due to low value files
 func TestRemoveAllForceVersionsWorkingDirectoryLowValueFiles(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_all_work_dir")
+	run := NewFSITestRunner(t, "test_peer_remove_all_work_dir_force", "qri_test_remove_all_work_dir_force")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_all")
@@ -577,7 +577,7 @@ func TestRemoveAllForceVersionsWorkingDirectoryLowValueFiles(t *testing.T) {
 
 // Test removing all versions while keeping files
 func TestRemoveAllAndKeepFiles(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_all_keep_files")
+	run := NewFSITestRunner(t, "test_peer_remove_all_keep_files", "qri_test_remove_all_keep_files")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_all")
@@ -623,7 +623,7 @@ func TestRemoveAllAndKeepFiles(t *testing.T) {
 
 // Test removing all versions and files
 func TestRemoveAllForce(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_all_force")
+	run := NewFSITestRunner(t, "test_peer_remove_all_force", "qri_test_remove_all_force")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_all")
@@ -671,7 +671,7 @@ func TestRemoveAllForce(t *testing.T) {
 // Test removing all versions and files, should fail to remove the directory
 // if other files are present (not including low value files)
 func TestRemoveAllForceShouldFailIfDirty(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_all_force")
+	run := NewFSITestRunner(t, "test_peer_remove_all_force_fail_if_dirty", "qri_test_remove_all_force_fail_if_dirty")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_all")
@@ -726,7 +726,7 @@ func TestRemoveAllForceShouldFailIfDirty(t *testing.T) {
 
 // Test removing a linked dataset after the working directory has already been deleted.
 func TestRemoveIfWorkingDirectoryIsNotFound(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_no_wd")
+	run := NewFSITestRunner(t, "test_peer_remove_no_wd", "qri_test_remove_no_wd")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_no_wd")
@@ -755,7 +755,7 @@ func TestRemoveIfWorkingDirectoryIsNotFound(t *testing.T) {
 
 // Test that a dataset can be removed even if the logbook is missing
 func TestRemoveEvenIfLogbookGone(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_no_logbook")
+	run := NewFSITestRunner(t, "test_peer_remove_no_logbook", "qri_test_remove_no_logbook")
 	defer run.Delete()
 
 	workDir := run.CreateAndChdirToWorkDir("remove_no_logbook")
@@ -788,14 +788,14 @@ func TestRemoveEvenIfLogbookGone(t *testing.T) {
 
 // Test that an added dataset can be removed, which removes it from the logbook
 func TestRemoveEvenIfForeignDataset(t *testing.T) {
-	run := NewTestRunnerWithMockRemoteClient(t, "test_peer", "remove_foreign")
+	run := NewTestRunnerWithMockRemoteClient(t, "test_peer_remove_foreign", "remove_foreign")
 	defer run.Delete()
 
 	// Regex that replaces the timestamp with just static text
 	fixTs := regexp.MustCompile(`"(timestamp|commitTime)":\s?"[0-9TZ.:+-]*?"`)
 
 	output := run.MustExec(t, "qri logbook --raw")
-	expectEmpty := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]}]`
+	expectEmpty := `[{"ops":[{"type":"init","model":"user","name":"test_peer_remove_foreign","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]}]`
 	actual := string(fixTs.ReplaceAll([]byte(output), []byte(`"timestamp":"ts"`)))
 	if diff := cmp.Diff(expectEmpty, actual); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
@@ -805,7 +805,7 @@ func TestRemoveEvenIfForeignDataset(t *testing.T) {
 	run.MustExec(t, "qri add other_peer/their_dataset")
 
 	output = run.MustExec(t, "qri logbook --raw")
-	expectHasForiegn := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"ts"}],"logs":[{"ops":[{"type":"init","model":"dataset","name":"their_dataset","authorID":"sizb4wwisfvzr7vkduml5e7ivp6igi6eykqnhfyy5po3wtq5r7sa","timestamp":"ts"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"sizb4wwisfvzr7vkduml5e7ivp6igi6eykqnhfyy5po3wtq5r7sa","timestamp":"ts"},{"type":"init","model":"commit","ref":"QmExample","timestamp":"ts","note":"their commit"}]}]}]}]`
+	expectHasForiegn := `[{"ops":[{"type":"init","model":"user","name":"test_peer_remove_foreign","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"ts"}],"logs":[{"ops":[{"type":"init","model":"dataset","name":"their_dataset","authorID":"sizb4wwisfvzr7vkduml5e7ivp6igi6eykqnhfyy5po3wtq5r7sa","timestamp":"ts"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"sizb4wwisfvzr7vkduml5e7ivp6igi6eykqnhfyy5po3wtq5r7sa","timestamp":"ts"},{"type":"init","model":"commit","ref":"QmExample","timestamp":"ts","note":"their commit"}]}]}]}]`
 	actual = string(fixTs.ReplaceAll([]byte(output), []byte(`"timestamp":"ts"`)))
 	if diff := cmp.Diff(expectHasForiegn, actual); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
@@ -818,7 +818,7 @@ func TestRemoveEvenIfForeignDataset(t *testing.T) {
 
 	output = run.MustExec(t, "qri logbook --raw")
 	// Log is removed for the database, but author init still remains
-	expectEmptyAuthor := `[{"ops":[{"type":"init","model":"user","name":"test_peer","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"ts"}]}]`
+	expectEmptyAuthor := `[{"ops":[{"type":"init","model":"user","name":"test_peer_remove_foreign","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"ts"}]},{"ops":[{"type":"init","model":"user","name":"other_peer","authorID":"QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD","timestamp":"ts"}]}]`
 	actual = string(fixTs.ReplaceAll([]byte(output), []byte(`"timestamp":"ts"`)))
 	if diff := cmp.Diff(expectEmptyAuthor, actual); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
@@ -827,7 +827,7 @@ func TestRemoveEvenIfForeignDataset(t *testing.T) {
 
 // Test that an added dataset can be removed even if the logbook is missing
 func TestRemoveEvenIfForeignDatasetWithNoOplog(t *testing.T) {
-	run := NewTestRunnerWithMockRemoteClient(t, "test_peer", "remove_no_oplog")
+	run := NewTestRunnerWithMockRemoteClient(t, "test_peer_no_oplog", "remove_no_oplog")
 	defer run.Delete()
 
 	// Save a foreign dataset
@@ -851,7 +851,7 @@ func TestRemoveEvenIfForeignDatasetWithNoOplog(t *testing.T) {
 
 // Test that remove can cleanup datasets in an inconsistent state
 func TestRemoveWorksAfterDeletingWorkingDirectoryFromInit(t *testing.T) {
-	run := NewFSITestRunner(t, "qri_test_remove_rm_wd_from_init")
+	run := NewFSITestRunner(t, "test_peer_remove_rm_wd_from_init", "qri_test_remove_rm_wd_from_init")
 	defer run.Delete()
 
 	sourceFile, err := filepath.Abs("testdata/movies/body_ten.csv")

@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetComplete(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_get_complete")
+	run := NewTestRunner(t, "test_peer_get", "qri_test_get_complete")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -86,7 +86,7 @@ commit:
   title: body changed by 54%
 name: my_ds
 path: /ipfs/QmRbGnuVAh83wSwa45Kc1L2erMuV5PfGxTeeft4sNeZdtx
-peername: test_peer
+peername: test_peer_get
 previousPath: /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
 qri: ds:0
 structure:
@@ -123,7 +123,7 @@ commit:
   title: created dataset from body_ten.csv
 name: my_ds
 path: /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
-peername: test_peer
+peername: test_peer_get
 qri: ds:0
 structure:
   checksum: QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf
@@ -181,7 +181,7 @@ Tangled ,100
 `
 	currHeadFSI = `bodyPath: /tmp/my_ds/my_ds/body.csv
 name: my_ds
-peername: test_peer
+peername: test_peer_get
 qri: ds:0
 structure:
   format: csv
@@ -204,7 +204,7 @@ structure:
 )
 
 func TestGetDatasetFromRepo(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "get_dataset_head")
+	run := NewTestRunner(t, "test_peer_get", "get_dataset_head")
 	defer run.Delete()
 
 	// Save two versions.
@@ -242,7 +242,7 @@ func TestGetDatasetFromRepo(t *testing.T) {
 }
 
 func TestGetDatasetCheckedOut(t *testing.T) {
-	run := NewFSITestRunner(t, "get_dataset_checked_out")
+	run := NewFSITestRunner(t, "test_peer_get", "get_dataset_checked_out")
 	defer run.Delete()
 
 	// Save two versions.
@@ -284,7 +284,7 @@ func TestGetDatasetCheckedOut(t *testing.T) {
 }
 
 func TestGetDatasetUsingDscache(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "get_dataset_head")
+	run := NewTestRunner(t, "test_peer_get", "get_dataset_head")
 	defer run.Delete()
 
 	// Save two versions, using dscache.
@@ -322,7 +322,7 @@ func TestGetDatasetUsingDscache(t *testing.T) {
 }
 
 func TestGetDatasetCheckedOutUsingDscache(t *testing.T) {
-	run := NewFSITestRunner(t, "get_dataset_checked_out")
+	run := NewFSITestRunner(t, "test_peer_get", "get_dataset_checked_out_using_dscache")
 	defer run.Delete()
 
 	// Save two versions.

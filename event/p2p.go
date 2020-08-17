@@ -8,14 +8,17 @@ var (
 	// a peer-2-peer network
 	// payload will be nil
 	ETP2PGoneOffline = Type("p2p:GoneOffline")
-	// ETP2PQriPeerConnected occurs after a qri peer has connected to this node
-	// payload will be a fully hydrated *profile.Profile from
-	// "github.com/qri-io/qri/repo/profile"
+	// ETP2PQriPeerConnected fires whenever a peer-2-peer connection that
+	// supports the qri protocol is established
+	// payload is a *profile.Profile
+	// subscribers cannot block the publisher
 	ETP2PQriPeerConnected = Type("p2p:QriPeerConnected")
-	// ETP2PQriPeerDisconnected occurs after a qri peer has connected to this node
-	// payload will be a fully hydrated *profile.Profile from
-	// "github.com/qri-io/qri/repo/profile"
-	// NOTE: not currently firing
+	// ETP2PQriPeerDisconnected fires whenever a qri peer-2-peer connection
+	// is closed
+	// payload is a *profile.Profile
+	// a nil payload means we never successfully obtained the peer's profile
+	// information
+	// subscribers cannot block the publisher
 	ETP2PQriPeerDisconnected = Type("p2p:QriPeerDisconnected")
 	// ETP2PPeerConnected occurs after any peer has connected to this node
 	// payload will be a libp2p.peerInfo

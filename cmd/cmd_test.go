@@ -107,7 +107,7 @@ func TestSaveRelativeBodyPath(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_save_relative_body")
+	run := NewTestRunner(t, "test_peer_save_relative_body", "qri_test_save_relative_body")
 	defer run.Delete()
 
 	// Save a dataset which has a body as a relative path
@@ -134,7 +134,7 @@ func TestRemoveOnlyTwoRevisions(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_remove_only_two_revisions")
+	run := NewTestRunner(t, "test_peer_remove_only_two_revisions", "qri_test_remove_only_two_revisions")
 	defer run.Delete()
 
 	// Save three revisions, then remove two
@@ -164,7 +164,7 @@ func TestRemoveAllRevisionsLongForm(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_remove_only_one_revision")
+	run := NewTestRunner(t, "test_peer_remove_all_revisions_long_form", "qri_test_remove_all_revisions_long_form")
 	defer run.Delete()
 
 	// Save three versions, then remove all of them.
@@ -186,7 +186,7 @@ func TestRemoveAllRevisionsShortForm(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_remove_only_one_revision")
+	run := NewTestRunner(t, "test_peer_remove_all_revisions_short_form", "qri_test_remove_all_revisions_short_form")
 	defer run.Delete()
 
 	// Save three versions, then remove all of them, using the --all flag.
@@ -208,7 +208,7 @@ func TestSaveThenOverrideMetaComponent(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	run := NewTestRunner(t, "test_peer_save_then_override_meta", "qri_test_save_then_override_meta")
 	defer run.Delete()
 
 	// Save a version, then save another with a new meta component.
@@ -232,7 +232,7 @@ func TestSaveWithBodyThenAddMetaComponent(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	run := NewTestRunner(t, "test_peer_save_with_body_then_override_meta", "qri_test_save_with_body_then_override_meta")
 	defer run.Delete()
 
 	// Save a version with a csv body, then another with a new meta component.
@@ -256,7 +256,7 @@ func TestSaveWithBodyThenAddMetaAndSmallBodyChange(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	run := NewTestRunner(t, "test_peer_save_then_override_meta_and_body", "qri_test_save_then_override_meta_and_body")
 	defer run.Delete()
 
 	// Save a version with a csv body, then another with a new meta component and different body.
@@ -280,7 +280,7 @@ func TestSaveTwoComponents(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	run := NewTestRunner(t, "test_peer_save_two_components", "qri_test_save_two_component")
 	defer run.Delete()
 
 	// Save a version, then same another with two components at once
@@ -305,7 +305,7 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_save_file_transform")
+	run := NewTestRunner(t, "test_peer_save_file_transform", "qri_test_save_file_transform")
 	defer run.Delete()
 
 	// Save a version, then save another with a transform
@@ -329,7 +329,7 @@ func TestSaveThenOverrideViz(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_save_file_transform")
+	run := NewTestRunner(t, "test_peer_save_file_viz", "qri_test_save_file_viz")
 	defer run.Delete()
 
 	// Save a version, then save another with a viz template
@@ -341,7 +341,7 @@ func TestSaveThenOverrideViz(t *testing.T) {
 	actual := run.DatasetMarshalJSON(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added viz section
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"viz added","path":"/ipfs/QmfGaBvAhXK91S7aXTQhhLgrNNSJcnjZThJzBKjRasW7t2","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"viz added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/Qmf4YCk6w8CD4E4J4cUiGtSUbn2md6UL3WRmBKniHExZRR","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmeetH9Vn1YZqDzpYF7HWrAr2AWGKzH196FxEmZRcksBLX","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"viz added","path":"/ipfs/QmfGaBvAhXK91S7aXTQhhLgrNNSJcnjZThJzBKjRasW7t2","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"viz added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmUf8ZtDTwWj2d94biAnRSDxEnDJK4LQXaAbAXEpGdNrfC","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmdkMb5K7rEUDegPe3Pibi7dk3xdvBq6UFfuD5PDkLRytV","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -353,7 +353,7 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_save_file_transform")
+	run := NewTestRunner(t, "test_peer_save_then_override_meta_transform_viz", "qri_test_save_then_override_meta_transfrom_viz")
 	defer run.Delete()
 
 	// Save a version, then save another with three components at once
@@ -365,7 +365,7 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 	actual := run.DatasetMarshalJSON(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added meta component, and transform, and viz
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nviz added\ntransform added","path":"/ipfs/QmW66PYuz128VP4gds4HgxB7q9LKUfuZUkX3VYQY8rhk4n","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta, viz, and transform"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/Qma2vuWcRjh8upYcVPKt5ojaZammLBRKFsUfcX6KaerfJP","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmeetH9Vn1YZqDzpYF7HWrAr2AWGKzH196FxEmZRcksBLX","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nviz added\ntransform added","path":"/ipfs/QmW66PYuz128VP4gds4HgxB7q9LKUfuZUkX3VYQY8rhk4n","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta, viz, and transform"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmYd9vnBJYS3SZzMfrGfxQdL9dckgkmc51b7rsMnZaDLnA","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmW3V8zbPU4wAnzv2zbCjkiTuo7NcsVmaLfFrnHJV1fpKV","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -377,7 +377,7 @@ func TestSaveDatasetWithComponentError(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	run := NewTestRunner(t, "test_peer_with_component_error", "qri_test_save_with_component_error")
 	defer run.Delete()
 
 	// Try to save with two conflicting components, but this returns an error
@@ -397,7 +397,7 @@ func TestSaveConflictingComponents(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	run := NewTestRunner(t, "test_peer_save_conflicting_components", "qri_test_save_conflicting_components")
 	defer run.Delete()
 
 	// Save two versions, but second has a conflict error
@@ -418,7 +418,7 @@ func TestSaveTransformWithoutChanges(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_transform_same")
+	run := NewTestRunner(t, "test_peer_transform_without_changes", "qri_test_transform_without_changes")
 	defer run.Delete()
 
 	// Save a version, then another with no changes
@@ -445,7 +445,7 @@ func TestTransformUsingGetBodyAndSetBody(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_save_transform_get_body")
+	run := NewTestRunner(t, "test_peer_save_transform_using_get_and_set_body", "qri_test_save_transform_get_and_set_body")
 	defer run.Delete()
 
 	// Save two versions, the second of which uses get_body in a transformation
@@ -469,7 +469,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	run := NewTestRunner(t, "test_peer", "qri_test_transform_modified")
+	run := NewTestRunner(t, "test_peer_transform_modified", "qri_test_transform_modified")
 	defer run.Delete()
 
 	// Save a version
@@ -507,7 +507,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
 
 // Test that save can be called with a readme file
 func TestSaveReadmeFromFile(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "save_readme_file")
+	run := NewTestRunner(t, "test_peer_save_readme_file", "qri_test_save_readme_file")
 	defer run.Delete()
 
 	// Save two versions, one with a body, the second with a readme
@@ -539,7 +539,7 @@ This is a dataset about movies
 
 // Test that renaming a dataset after registration (which changes the username) works correctly
 func TestRenameAfterRegistration(t *testing.T) {
-	run := NewTestRunnerWithTempRegistry(t, "test_peer", "rename_after_reg")
+	run := NewTestRunnerWithTempRegistry(t, "test_peer_rename_after_reg", "rename_after_reg")
 	defer run.Delete()
 
 	// Create a dataset, using the "anonymous" generated username.
@@ -547,7 +547,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 
 	// Verify the raw references in the repo
 	output := run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer
+	expect := `0 Peername:  test_peer_rename_after_reg
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      first_name
   Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
@@ -613,7 +613,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 
 // Test that list can format output as json
 func TestListFormatJson(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "list_format_json")
+	run := NewTestRunner(t, "test_peer_list_format_json", "list_format_json")
 	defer run.Delete()
 
 	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/my_ds")
@@ -622,7 +622,7 @@ func TestListFormatJson(t *testing.T) {
 	output := run.MustExec(t, "qri list --format json")
 	expect := `[
   {
-    "username": "test_peer",
+    "username": "test_peer_list_format_json",
     "profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
     "name": "my_ds",
     "path": "/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF",
@@ -641,7 +641,7 @@ func TestListFormatJson(t *testing.T) {
 // Test that a dataset name with bad upper-case characters, if it already exists, produces a
 // warning but not an error when you try to Get it
 func TestBadCaseIsJustWarning(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_get_bad_case")
+	run := NewTestRunner(t, "test_peer_qri_get_bad_case", "qri_get_bad_case")
 	defer run.Delete()
 
 	// Construct a dataset in order to have an existing version in the repo.
@@ -654,10 +654,10 @@ func TestBadCaseIsJustWarning(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[[\"one\",2],[\"three\",4]]")))
 
 	// Add the dataset to the repo directly, which avoids the name validation check.
-	run.AddDatasetToRefstore(t, "test_peer/a_New_Dataset", &ds)
+	run.AddDatasetToRefstore(t, "test_peer_qri_get_bad_case/a_New_Dataset", &ds)
 
 	// Save the dataset, which will work now that a version already exists.
-	err := run.ExecCommand("qri get test_peer/a_New_Dataset")
+	err := run.ExecCommand("qri get test_peer_qri_get_bad_case/a_New_Dataset")
 	if err != nil {
 		t.Errorf("expect no error (just a warning), got %q", err)
 	}

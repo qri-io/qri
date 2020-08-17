@@ -6,7 +6,7 @@ import (
 
 // Test that deleting an entire dataset works properly with the logbook.
 func TestLogAndDeletes(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "qri_test_log_and_deletes")
+	run := NewTestRunner(t, "test_peer_log_and_deletes", "qri_test_log_and_deletes")
 	defer run.Delete()
 
 	// Save a dataset containing a body.json, no meta, nothing special.

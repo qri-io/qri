@@ -266,12 +266,12 @@ func shutdownRepoGraceful(cancel context.CancelFunc, r repo.Repo) error {
 // ExecCommandWithContext executes the given command with a context
 func (run *TestRunner) ExecCommandWithContext(ctx context.Context, cmdText string) error {
 	var shutdown func() <-chan error
-	run.CmdR, shutdown = run.CreateCommandRunner(run.Context)
+	run.CmdR, shutdown = run.CreateCommandRunner(ctx)
 	if err := executeCommand(run.CmdR, cmdText); err != nil {
 		return err
 	}
 
-	return timedShutdown(fmt.Sprintf("ExecCommandWith ontext: %q\n", cmdText), shutdown)
+	return timedShutdown(fmt.Sprintf("ExecCommandWithContext: %q\n", cmdText), shutdown)
 }
 
 func (run *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText string) string {
