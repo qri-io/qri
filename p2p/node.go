@@ -241,7 +241,7 @@ func (n *QriNode) startOnlineServices(ctx context.Context) error {
 
 // GoOffline takes the peer offline and shuts it down
 func (n *QriNode) GoOffline() error {
-	if n.Online {
+	if n != nil && n.Online {
 		err := n.Host().Close()
 		// clean up the "GoOnline" context
 		n.shutdown()
