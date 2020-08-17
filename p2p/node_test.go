@@ -60,7 +60,6 @@ func TestNewNode(t *testing.T) {
 }
 
 func TestNodeEvents(t *testing.T) {
-	t.Skip("for TestQriIdentity test")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 

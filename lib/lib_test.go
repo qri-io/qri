@@ -161,7 +161,6 @@ func CompareInstances(a, b *Instance) error {
 }
 
 func TestReceivers(t *testing.T) {
-	t.Skip("for TestQriIdentity test")
 	ctx := context.Background()
 	fs, err := muxfs.New(ctx, []qfs.Config{
 		{Type: "map"},

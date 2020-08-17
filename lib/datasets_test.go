@@ -364,7 +364,6 @@ func compareVersionInfoAsSimple(a, b dsref.VersionInfo) error {
 }
 
 func TestDatasetRequestsListP2p(t *testing.T) {
-	t.Skip("for TestQriIdentity test")
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
@@ -650,7 +649,6 @@ func bodyToPrettyString(component interface{}) string {
 }
 
 func TestDatasetRequestsGetP2p(t *testing.T) {
-	t.Skip("for TestQriIdentity test")
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 

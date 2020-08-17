@@ -8,7 +8,6 @@ import (
 )
 
 func TestPing(t *testing.T) {
-	t.Skip("for TestQriIdentity test")
 	ctx := context.Background()
 	f := p2ptest.NewTestNodeFactory(NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, f, 3)

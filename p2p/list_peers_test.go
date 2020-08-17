@@ -8,7 +8,6 @@ import (
 )
 
 func TestListPeers(t *testing.T) {
-	t.Skip("for TestQriIdentity test")
 	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 6)
