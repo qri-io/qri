@@ -54,8 +54,7 @@ type QriIdentityService struct {
 	peers map[peer.ID]chan struct{}
 }
 
-// NewQriIdentityService creates an profile exchange service and adds
-// the `ProfileHandler` to the host
+// NewQriIdentityService creates an profile exchange service
 func NewQriIdentityService(r repo.Repo, p event.Publisher) *QriIdentityService {
 	q := &QriIdentityService{
 		repo:     r,
@@ -92,7 +91,15 @@ func (q *QriIdentityService) HandleQriPeerDisconnect(pid peer.ID) {
 	}
 	<-wait
 
-	q.pub.Publish(context.Background(), event.ETP2PQriPeerDisconnected, q.ConnectedPeerProfile(pid))
+	go func() {
+		pro, err := q.profiles.PeerProfile(pid)
+		if err != nil {
+			log.Debugf("error getting peer's profile. pid=%q err=%q", pid, err)
+		}
+		if err := q.pub.Publish(context.Background(), event.ETP2PQriPeerDisconnected, pro); err != nil {
+			log.Debugf("error publishing ETP2PQriPeerDisconnected event. pid=%q err=%q", pid, err)
+		}
+	}()
 
 	q.peersMu.Lock()
 	delete(q.peers, pid)
@@ -110,14 +117,13 @@ func (q *QriIdentityService) ConnectedPeerProfile(pid peer.ID) *profile.Profile 
 	}
 	pro, err := q.profiles.PeerProfile(pid)
 	if err != nil {
-		log.Debugf("error getting peer profile: %s", err)
+		log.Debugf("error getting peer profile: pid=%q err=%q", pid, err)
 		return nil
 	}
 	return pro
 }
 
-// Start adds a host and a profile handler to the host
-// to the profile service
+// Start adds a profile handler to the host, retains a local reference to the host
 func (q *QriIdentityService) Start(h host.Host) {
 	q.host = h
 	h.SetStreamHandler(ProfileProtocolID, q.ProfileHandler)
@@ -219,7 +225,11 @@ func (q *QriIdentityService) profileRequest(ctx context.Context, pid peer.ID, si
 			if err != nil {
 				log.Debugf("error getting profile from profile store: %s", err)
 			}
-			q.pub.Publish(ctx, event.ETP2PQriPeerConnected, pro)
+			go func() {
+				if err := q.pub.Publish(ctx, event.ETP2PQriPeerConnected, pro); err != nil {
+					log.Debugf("error publishing ETP2PQriPeerConnected event. pid=%q err=%q", pid, err)
+				}
+			}()
 		}
 	}()
 

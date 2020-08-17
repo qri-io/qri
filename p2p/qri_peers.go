@@ -73,7 +73,11 @@ func (n *QriNode) upgradeToQriConnection(pid peer.ID) error {
 		return err
 	}
 
-	n.pub.Publish(ctx, event.ETP2PQriPeerConnected, pro)
+	go func() {
+		if err := n.pub.Publish(ctx, event.ETP2PQriPeerConnected, pro); err != nil {
+			log.Debugf("error publishing ETP2PQriPeerConnected event. pid=%q err=%q", pid, err)
+		}
+	}()
 
 	go func() {
 		ctx, done := context.WithTimeout(context.Background(), time.Second*20)

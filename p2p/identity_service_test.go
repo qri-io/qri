@@ -85,6 +85,10 @@ func TestQriIdentityService(t *testing.T) {
 			t.Error("payload for event.ETP2PQriPeerConnected not a *profile.Profile as expected")
 			return fmt.Errorf("payload for event.ETP2PQriPeerConnected not a *profile.Profile as expected")
 		}
+		if pro == nil {
+			t.Error("error: event payload is a nil profile")
+			return fmt.Errorf("err: event payload is a nil profile")
+		}
 		pid := pro.PeerIDs[0]
 		expectedPeer := false
 		for _, id := range expectedPeers {
@@ -276,4 +280,6 @@ func TestDiscoveryConnection(t *testing.T) {
 
 	t.Errorf("nodeA's connections: %v", nodeA.ConnectedQriPeerIDs())
 	t.Errorf("nodeB's connections: %v", nodeB.ConnectedQriPeerIDs())
+	nodeA.GoOffline()
+	nodeB.GoOffline()
 }
