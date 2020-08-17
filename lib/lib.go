@@ -749,6 +749,10 @@ func (inst *Instance) Shutdown() <-chan error {
 	if inst.remoteClient != nil {
 		<-inst.remoteClient.Shutdown()
 	}
+	// NOTE: when the QriNode goes "Online" it creates a new context, like the
+	// above remote client, we have to explicitly "GoOffline" in order to make
+	// sure we are releasing all resources
+	inst.node.GoOffline()
 	go func() {
 		<-inst.doneCh
 		errCh <- inst.doneErr

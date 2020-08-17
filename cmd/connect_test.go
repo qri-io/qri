@@ -48,5 +48,4 @@ func TestConnect(t *testing.T) {
 		t.Errorf("unexpected error executing command\n%s\n%s", cmd, err.Error())
 		return
 	}
-	run.Delete()
 }

@@ -239,15 +239,19 @@ func (n *QriNode) startOnlineServices(ctx context.Context) error {
 	return nil
 }
 
-// GoOffline shuts down this peer
+// GoOffline takes the peer offline and shuts it down
 func (n *QriNode) GoOffline() error {
-	err := n.Host().Close()
-	// clean up the "GoOnline" context
-	n.shutdown()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	n.pub.Publish(ctx, event.ETP2PGoneOffline, nil)
-	return err
+	if n.Online {
+		err := n.Host().Close()
+		// clean up the "GoOnline" context
+		n.shutdown()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		n.pub.Publish(ctx, event.ETP2PGoneOffline, nil)
+		n.Online = false
+		return err
+	}
+	return nil
 }
 
 // ReceiveMessages adds a listener for newly received messages
