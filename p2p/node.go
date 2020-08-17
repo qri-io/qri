@@ -53,11 +53,11 @@ type QriNode struct {
 	// ipfs node provided by repo
 	Repo repo.Repo
 
-	// QriIdentityService allows your node to examine a peer & protect the
+	// QriProfileService allows your node to examine a peer & protect the
 	// connections to that peer if it "speaks" the qri protocol
 	// it also manages requests for that peer's qri profile and handles
 	// requests for this node's profile
-	qis *QriIdentityService
+	qis *QriProfileService
 
 	// handlers maps this nodes registered handlers. This works in a way
 	// similary to a router in traditional client/server models, but messages
@@ -123,7 +123,7 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (node *Qr
 		DisconnectedF: node.disconnected,
 	}
 
-	node.qis = NewQriIdentityService(node.Repo, node.pub)
+	node.qis = NewQriProfileService(node.Repo, node.pub)
 	return node, nil
 }
 
@@ -437,7 +437,7 @@ func (n *QriNode) libp2pSubscribe(ctx context.Context) error {
 			switch e := e.(type) {
 			case libp2pevent.EvtPeerIdentificationCompleted:
 				log.Debugf("libp2p identified peer: %s", e.Peer)
-				n.qis.QriIdentityRequest(ctx, e.Peer)
+				n.qis.QriProfileRequest(ctx, e.Peer)
 			case libp2pevent.EvtPeerIdentificationFailed:
 				log.Debugf("libp2p failed to identify peer %s: %s", e.Peer, e.Reason)
 			}

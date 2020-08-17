@@ -37,9 +37,9 @@ var (
 	ErrPeerNotFound = fmt.Errorf("peer not found")
 )
 
-// QriIdentityService manages the profile exchange. This exchange should happen
+// QriProfileService manages the profile exchange. This exchange should happen
 // whenever a node connects to a new peer
-type QriIdentityService struct {
+type QriProfileService struct {
 	host host.Host
 	repo repo.Repo
 	pub  event.Publisher
@@ -54,9 +54,9 @@ type QriIdentityService struct {
 	peers map[peer.ID]chan struct{}
 }
 
-// NewQriIdentityService creates an profile exchange service
-func NewQriIdentityService(r repo.Repo, p event.Publisher) *QriIdentityService {
-	q := &QriIdentityService{
+// NewQriProfileService creates an profile exchange service
+func NewQriProfileService(r repo.Repo, p event.Publisher) *QriProfileService {
+	q := &QriProfileService{
 		repo:     r,
 		pub:      p,
 		profiles: r.Profiles(),
@@ -68,7 +68,7 @@ func NewQriIdentityService(r repo.Repo, p event.Publisher) *QriIdentityService {
 }
 
 // ConnectedQriPeers returns a list of currently connected peers
-func (q *QriIdentityService) ConnectedQriPeers() []peer.ID {
+func (q *QriProfileService) ConnectedQriPeers() []peer.ID {
 	q.peersMu.Lock()
 	defer q.peersMu.Unlock()
 	peers := []peer.ID{}
@@ -82,7 +82,7 @@ func (q *QriIdentityService) ConnectedQriPeers() []peer.ID {
 // If so, it will wait until all profile exchanging has finished
 // Then remove the peer from the peers map, as well as publish
 // that the peer has disconnected.
-func (q *QriIdentityService) HandleQriPeerDisconnect(pid peer.ID) {
+func (q *QriProfileService) HandleQriPeerDisconnect(pid peer.ID) {
 	q.peersMu.Lock()
 	wait, ok := q.peers[pid]
 	q.peersMu.Unlock()
@@ -108,7 +108,7 @@ func (q *QriIdentityService) HandleQriPeerDisconnect(pid peer.ID) {
 
 // ConnectedPeerProfile returns a profile if that peer id refers to a peer that
 // we have connected to this session.
-func (q *QriIdentityService) ConnectedPeerProfile(pid peer.ID) *profile.Profile {
+func (q *QriProfileService) ConnectedPeerProfile(pid peer.ID) *profile.Profile {
 	q.peersMu.Lock()
 	_, ok := q.peers[pid]
 	q.peersMu.Unlock()
@@ -124,7 +124,7 @@ func (q *QriIdentityService) ConnectedPeerProfile(pid peer.ID) *profile.Profile 
 }
 
 // Start adds a profile handler to the host, retains a local reference to the host
-func (q *QriIdentityService) Start(h host.Host) {
+func (q *QriProfileService) Start(h host.Host) {
 	q.host = h
 	h.SetStreamHandler(ProfileProtocolID, q.ProfileHandler)
 }
@@ -132,7 +132,7 @@ func (q *QriIdentityService) Start(h host.Host) {
 // ProfileHandler listens for profile requests
 // it sends it's node's profile on the given stream
 // whenever a request comes in
-func (q *QriIdentityService) ProfileHandler(s network.Stream) {
+func (q *QriProfileService) ProfileHandler(s network.Stream) {
 	var (
 		err error
 		pro *profile.Profile
@@ -161,10 +161,10 @@ func (q *QriIdentityService) ProfileHandler(s network.Stream) {
 	}
 }
 
-// QriIdentityRequest determine if the remote peer speaks the qri protocol
+// QriProfileRequest determine if the remote peer speaks the qri protocol
 // if it does, it protects the connection and sends a request for the
 // QriIdentifyService to get the peer's qri profile information
-func (q *QriIdentityService) QriIdentityRequest(ctx context.Context, pid peer.ID) error {
+func (q *QriProfileService) QriProfileRequest(ctx context.Context, pid peer.ID) error {
 	protocols, err := q.host.Peerstore().SupportsProtocols(pid, expectedProtocols...)
 	if err != nil {
 		log.Debugf("error examining the protocols for peer %s: %w", pid, err)
@@ -187,7 +187,7 @@ func (q *QriIdentityService) QriIdentityRequest(ctx context.Context, pid peer.ID
 // if not, it sends a profile request to the peer
 // either way it returns a channel to wait on until the profile request has
 // been completed
-func (q *QriIdentityService) profileWait(ctx context.Context, p peer.ID) <-chan struct{} {
+func (q *QriProfileService) profileWait(ctx context.Context, p peer.ID) <-chan struct{} {
 	log.Debugf("%s initiating peer profile request to %s", ProfileProtocolID, p)
 	q.peersMu.Lock()
 	wait, found := q.peers[p]
@@ -215,7 +215,7 @@ func (q *QriIdentityService) profileWait(ctx context.Context, p peer.ID) <-chan 
 
 // profileRequest requests creates a stream, adds the ProfileProtocol
 // then it handles the profile response from the peer
-func (q *QriIdentityService) profileRequest(ctx context.Context, pid peer.ID, signal chan struct{}) {
+func (q *QriProfileService) profileRequest(ctx context.Context, pid peer.ID, signal chan struct{}) {
 	var err error
 
 	defer func() {
@@ -246,7 +246,7 @@ func (q *QriIdentityService) profileRequest(ctx context.Context, pid peer.ID, si
 
 // receiveAndStoreProfile takes a stream, receives a profile off the stream,
 // and stores it in the Repo's ProfileStore
-func (q *QriIdentityService) receiveAndStoreProfile(ctx context.Context, s network.Stream) {
+func (q *QriProfileService) receiveAndStoreProfile(ctx context.Context, s network.Stream) {
 	defer func() {
 		go helpers.FullClose(s)
 	}()

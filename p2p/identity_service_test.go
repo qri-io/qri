@@ -17,11 +17,11 @@ import (
 // Hello fellow devs. Let my pain be your comfort and plz use my notes here
 // as a guide on how to not pull out your hair when testing the p2p connections
 // things to note:
-//   - once a libp2p connection has been established, the QriIdentityService will
+//   - once a libp2p connection has been established, the QriProfileService will
 //   check if that remote peers speaks qri. If it does, it will protect that
 //   connection, add it to a list of current qri connections, and ask that peer
 //   for it's qri profile. It will then emit a `event.ETP2PQriPeerConnected` event
-//   - if a libp2p connection has been broken, aka disconnected, the QriIdentity-
+//   - if a libp2p connection has been broken, aka disconnected, the QriProfile-
 //   Service will remove that connection from the current qri connections and
 //   emit a `event.ETP2PQriPeerDisconnected` event
 //   - we can use these events to coordinate on
@@ -36,7 +36,7 @@ import (
 //   - use channels to wait for all connections or disconnections to occur. a
 //   closed channel never blocks!
 
-func TestQriIdentityService(t *testing.T) {
+func TestQriProfileService(t *testing.T) {
 	ctx := context.Background()
 	numNodes := 5 // number of nodes we want (besides the main test node) in this test
 	// create a network of connected nodes
@@ -169,7 +169,7 @@ func TestQriIdentityService(t *testing.T) {
 	// wait for all nodes to upgrade to qri peers
 	<-qriPeerConnWaitCh
 
-	// get a list of connected peers, according to the QriIdentityService
+	// get a list of connected peers, according to the QriProfileService
 	connectedPeers = node.qis.ConnectedQriPeers()
 	sort.Sort(peer.IDSlice(connectedPeers))
 
@@ -229,7 +229,7 @@ func TestQriIdentityService(t *testing.T) {
 	}
 
 	<-disconnectsCh
-	// get a list of connected qri peers according to the QriIdentityService
+	// get a list of connected qri peers according to the QriProfileService
 	connectedPeers = node.qis.ConnectedQriPeers()
 
 	if len(connectedPeers) != 0 {

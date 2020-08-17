@@ -175,7 +175,7 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 
 	// do an explicit connection upgrade
 	// this will block until the peer's profile has been
-	if err := n.qis.QriIdentityRequest(ctx, pinfo.ID); err != nil {
+	if err := n.qis.QriProfileRequest(ctx, pinfo.ID); err != nil {
 		return nil, fmt.Errorf("error establishing qri connections: %w", err)
 	}
 
