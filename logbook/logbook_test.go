@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
 	"testing"
 	"time"
 

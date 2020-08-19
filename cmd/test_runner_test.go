@@ -76,6 +76,17 @@ func NewTestRunnerWithMockRemoteClient(t *testing.T, peerName, testName string) 
 	return newTestRunnerFromRoot(&root)
 }
 
+// NewTestRunnerUsingPeerInfoWithMockRemoteClient constructs a test runner using an
+// explicit testPeer, as well as a mock remote client
+func NewTestRunnerUsingPeerInfoWithMockRemoteClient(t *testing.T, peerInfoNum int, peerName, testName string) *TestRunner {
+	root, err := repotest.NewTempRepoUsingPeerInfo(peerInfoNum, peerName, testName)
+	if err != nil {
+		t.Fatalf("creating temp repo: %s", err)
+	}
+	root.UseMockRemoteClient = true
+	return newTestRunnerFromRoot(&root)
+}
+
 // NewTestRunnerWithTempRegistry constructs a test runner with a mock registry connection
 func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *TestRunner {
 	t.Helper()
@@ -371,7 +382,7 @@ func (run *TestRunner) LookupVersionInfo(t *testing.T, refStr string) *dsref.Ver
 	}
 
 	if _, err := r.ResolveRef(ctx, &dr); err != nil {
-		t.Fatal(err)
+		return nil
 	}
 
 	// TODO(b5): TestUnlinkNoHistory relies on a nil-return versionInfo, so

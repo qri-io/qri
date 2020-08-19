@@ -12,7 +12,7 @@ import (
 
 // Test add without any parameters returns an error
 func TestPullNoParams(t *testing.T) {
-	run := NewTestRunner(t, "test_peer_add_no_params", "qri_test_add")
+	run := NewTestRunner(t, "test_peer_pull_no_params", "qri_test_add")
 	defer run.Delete()
 
 	// add is an old alias for pull, confirm it works by using it:
@@ -28,7 +28,7 @@ func TestPullNoParams(t *testing.T) {
 
 // Test pull with a temporary registry that we spin up, and push to
 func TestPullWithTempRegistry(t *testing.T) {
-	run := NewTestRunner(t, "test_peer_add_with_temp_reg", "qri_test_add")
+	run := NewTestRunner(t, "test_peer_pull_with_temp_reg", "qri_test_add")
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -56,21 +56,21 @@ func TestPullWithTempRegistry(t *testing.T) {
 	run.MustExec(t, "qri save me/one_ds --body testdata/movies/body_ten.csv")
 	run.MustExec(t, "qri push me/one_ds")
 	run.MustExec(t, "qri remove --all me/one_ds")
-	run.MustExec(t, "qri pull test_peer_add_with_temp_reg/one_ds")
+	run.MustExec(t, "qri pull test_peer_pull_with_temp_reg/one_ds")
 	// TODO(dustmop): Actually validate that the command did something, that
 	// the dataset was removed from the local repo but now exists again.
 }
 
 // Test saving a local dataset, and pulling a foreign dataset, then list the references
 func TestPullAndListRefs(t *testing.T) {
-	run := NewTestRunnerWithMockRemoteClient(t, "test_peer_add_and_list", "add_and_list")
+	run := NewTestRunnerWithMockRemoteClient(t, "test_peer_pull_and_list", "pull_and_list")
 	defer run.Delete()
 
 	// Save a local dataset
 	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/my_dataset")
 
 	output := run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer_add_and_list
+	expect := `0 Peername:  test_peer_pull_and_list
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      my_dataset
   Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
@@ -92,7 +92,7 @@ func TestPullAndListRefs(t *testing.T) {
   Path:      /ipfs/QmQ5292CNJFPsTkodSSwEqgjRdrvBB38k1ZdiUJxvahGgE
   FSIPath:   
   Published: false
-1 Peername:  test_peer_add_and_list
+1 Peername:  test_peer_pull_and_list
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      my_dataset
   Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
@@ -107,7 +107,7 @@ func TestPullAndListRefs(t *testing.T) {
 
 // Test adding a foreign dataset, and then getting it
 func TestPullAndGet(t *testing.T) {
-	run := NewTestRunnerWithMockRemoteClient(t, "test_peer", "add_and_list")
+	run := NewTestRunnerWithMockRemoteClient(t, "test_peer_pull_and_get", "pull_and_get")
 	defer run.Delete()
 
 	// Pull a foreign dataset
@@ -143,7 +143,7 @@ structure:
 
 // Test pull a foreign dataset and check it out to a working directory
 func TestPullWithCheckout(t *testing.T) {
-	run := NewFSITestRunnerWithMockRemoteClient(t, "test_peer_add_fsi_checkout", "pull_with_checkout")
+	run := NewFSITestRunnerWithMockRemoteClient(t, "test_peer_pull_fsi_checkout", "pull_with_checkout")
 	defer run.Delete()
 
 	run.ChdirToRoot()
@@ -172,4 +172,26 @@ func TestPullWithCheckout(t *testing.T) {
 	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
+}
+
+// TestPullWithDivergentAuthorID tests that logbooks that disagree about their creation
+// can be merged and will resolve locally after being merged
+func TestPullWithDivergentAuthorID(t *testing.T) {
+	// The MockRemoteClient uses peer 1. By using the same peer, we end up with nodes
+	// that have the same profileID, but different logbook data.
+	testPeerNum := 1
+	run := NewTestRunnerUsingPeerInfoWithMockRemoteClient(t, testPeerNum, "test_peer_pull_divergent", "pull_divergent")
+	defer run.Delete()
+
+	// Save our dataset
+	run.MustExec(t, "qri save test_peer_pull_divergent/one_ds --body testdata/movies/body_ten.csv")
+
+	// Pull a dataset made by the same profileID
+	run.MustExec(t, "qri pull test_peer_pull_divergent/two_ds")
+
+	// Get the first dataset
+	run.MustExec(t, "qri get me/one_ds")
+
+	// Get the second dataset
+	run.MustExec(t, "qri get me/two_ds")
 }

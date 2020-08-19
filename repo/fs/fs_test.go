@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/test/spec"
 )
 
@@ -112,6 +113,11 @@ func TestResolveRef(t *testing.T) {
 	}
 
 	dsrefspec.AssertResolverSpec(t, r, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+		datasetRef := reporef.RefFromDsref(ref)
+		err := r.PutRef(datasetRef)
+		if err != nil {
+			t.Fatal(err)
+		}
 		return r.Logbook().MergeLog(ctx, author, log)
 	})
 }
