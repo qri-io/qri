@@ -25,7 +25,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		return
 	}
 
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -103,7 +103,7 @@ func TestHistoryRequestsLogEntries(t *testing.T) {
 		return
 	}
 
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

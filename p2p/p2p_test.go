@@ -38,7 +38,7 @@ func (tr *testRunner) IPFSBackedQriNode(t *testing.T, username string) *QriNode 
 	if err != nil {
 		t.Fatal(err)
 	}
-	node, err := NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus)
+	node, err := NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

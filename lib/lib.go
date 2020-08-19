@@ -460,7 +460,11 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.node == nil {
-		if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P, inst.bus); err != nil {
+		localResolver, e := inst.resolverForMode("local")
+		if e != nil {
+			log.Debug("error creating localResolver, qrinode cannot resolve locally: %s", e)
+		}
+		if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P, inst.bus, localResolver); err != nil {
 			log.Error("intializing p2p:", err.Error())
 			return
 		}

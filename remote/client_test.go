@@ -182,7 +182,7 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

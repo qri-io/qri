@@ -248,16 +248,19 @@ func (q *QriProfileService) profileRequest(ctx context.Context, pid peer.ID, sig
 // and stores it in the Repo's ProfileStore
 func (q *QriProfileService) receiveAndStoreProfile(ctx context.Context, s network.Stream) {
 	defer func() {
+		// helpers.FullClose will close the stream from this end and wait until the other
+		// end has also closed
+		// This closes the stream not the underlying connection
 		go helpers.FullClose(s)
 	}()
 
-	log.Debugf("%s received profile message from %s %s", s.Protocol(), s.Conn().RemotePeer(), s.Conn().RemoteMultiaddr())
-
 	pro, err := receiveProfile(s)
 	if err != nil {
-		log.Errorf("%s error reading profile message from %s: %s", s.Protocol(), s.Conn().RemotePeer(), err)
+		log.Errorf("%s error reading profile message from %q: %s", s.Protocol(), s.Conn().RemotePeer(), err)
 		return
 	}
+
+	log.Debugf("%s received profile message from %q %s", s.Protocol(), s.Conn().RemotePeer(), s.Conn().RemoteMultiaddr())
 
 	q.repo.Profiles().PutProfile(pro)
 	return
