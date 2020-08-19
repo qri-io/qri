@@ -204,21 +204,33 @@ func (j *Journal) SetID(ctx context.Context, id string) error {
 }
 
 // MergeLog adds a log to the journal
-func (j *Journal) MergeLog(ctx context.Context, l *Log) error {
-	if l.ID() == "" {
+func (j *Journal) MergeLog(ctx context.Context, incoming *Log) error {
+	if incoming.ID() == "" {
 		return fmt.Errorf("oplog: log ID cannot be empty")
 	}
 
-	found, err := j.Get(ctx, l.ID())
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			j.logs = append(j.logs, l)
-			return nil
-		}
+	// Find a log with a matching id
+	found, err := j.Get(ctx, incoming.ID())
+	if err == nil {
+		// If found, merge it
+		found.Merge(incoming)
+		return nil
+	} else if !errors.Is(err, ErrNotFound) {
+		// Okay if log is not found by id, but any other error should be returned
 		return err
 	}
 
-	found.Merge(l)
+	// Find a user log with a matching profileID
+	for _, lg := range j.logs {
+		if lg.FirstOpAuthorID() == incoming.FirstOpAuthorID() {
+			found = lg
+			found.Merge(incoming)
+			return nil
+		}
+	}
+
+	// Append to the end
+	j.logs = append(j.logs, incoming)
 	return nil
 }
 
@@ -493,7 +505,9 @@ func (lg Log) Model() uint32 {
 	return lg.Ops[0].Model
 }
 
-// Author returns the name and identifier this log is attributed to
+// Author returns one of two different things: either the user's ProfileID,
+// or the has of the first Op for the UserLog, depending on if they have
+// ever changed their username.
 func (lg Log) Author() (identifier string) {
 	if lg.authorID == "" {
 		m := lg.Model()
@@ -504,6 +518,17 @@ func (lg Log) Author() (identifier string) {
 		}
 	}
 	return lg.authorID
+}
+
+// FirstOpAuthorID returns the authorID of the first Op. For UserLog, this is ProfileID
+func (lg Log) FirstOpAuthorID() string {
+	m := lg.Model()
+	for _, o := range lg.Ops {
+		if o.Model == m && o.AuthorID != "" {
+			return o.AuthorID
+		}
+	}
+	return ""
 }
 
 // Parent returns this log's parent if one exists

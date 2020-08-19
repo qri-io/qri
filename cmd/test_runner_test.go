@@ -26,6 +26,7 @@ import (
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/gen"
 	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/startf"
@@ -51,6 +52,7 @@ type TestRunner struct {
 	CmdR          *cobra.Command
 	Teardown      func()
 	CmdDoneCh     chan struct{}
+	TestCrypto    gen.CryptoGenerator
 
 	registry *registry.Registry
 }
@@ -83,6 +85,8 @@ func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *Tes
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	// TODO(dustmop): Switch to root.TestCrypto. Until then, we're reusing the
+	// same testPeers, leading to different nodes with the same profileID
 	g := repotest.NewTestCrypto()
 	reg, teardownRegistry, err := regserver.NewTempRegistry(ctx, "registry", testName+"_registry", g)
 	if err != nil {
@@ -120,6 +124,7 @@ func newTestRunnerFromRoot(root *repotest.TempRepo) *TestRunner {
 		RepoPath:    filepath.Join(root.RootPath, "qri"),
 		Context:     ctx,
 		ContextDone: cancel,
+		TestCrypto:  root.TestCrypto,
 	}
 
 	// TmpDir will be removed recursively, only if it is non-empty

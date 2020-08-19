@@ -8,7 +8,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/registry/regserver"
-	repotest "github.com/qri-io/qri/repo/test"
 )
 
 // Test add without any parameters returns an error
@@ -33,7 +32,7 @@ func TestPullWithTempRegistry(t *testing.T) {
 	defer run.Delete()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	reg, cleanup, err := regserver.NewTempRegistry(ctx, "temp_registry", "", repotest.NewTestCrypto())
+	reg, cleanup, err := regserver.NewTempRegistry(ctx, "temp_registry", "", run.TestCrypto)
 	if err != nil {
 		t.Fatal(err)
 	}

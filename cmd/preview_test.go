@@ -6,7 +6,6 @@ import (
 
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
-	repotest "github.com/qri-io/qri/repo/test"
 )
 
 func TestPreviewCommand(t *testing.T) {
@@ -15,8 +14,7 @@ func TestPreviewCommand(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// TODO(dustmop): Move into test runner
-	reg, cleanup, err := regserver.NewTempRegistry(ctx, "temp_registry", "", repotest.NewTestCrypto())
+	reg, cleanup, err := regserver.NewTempRegistry(ctx, "temp_registry", "", run.TestCrypto)
 	if err != nil {
 		t.Fatal(err)
 	}
