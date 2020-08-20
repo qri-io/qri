@@ -41,7 +41,7 @@ func TestNewNode(t *testing.T) {
 	}, event.ETP2PGoneOnline)
 
 	p2pconf := config.DefaultP2PForTesting()
-	n, err := NewQriNode(r, p2pconf, bus)
+	n, err := NewQriNode(r, p2pconf, bus, nil)
 	if err != nil {
 		t.Errorf("error creating qri node: %s", err.Error())
 		return

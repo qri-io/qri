@@ -134,9 +134,6 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher, resolver 
 		DisconnectedF: node.disconnected,
 	}
 
-	// add ref resolution capabilities:
-	node.host.SetStreamHandler(ResolveRefProtocolID, node.resolveRefHandler)
-
 	node.qis = NewQriProfileService(node.Repo, node.pub)
 	return node, nil
 }
@@ -211,6 +208,10 @@ func (n *QriNode) GoOnline(c context.Context) (err error) {
 	// be relying on. We will drop support for the old qri protocol
 	// in the release of v0.10.0
 	n.host.SetStreamHandler(depQriProtocolID, n.QriStreamHandler)
+
+	// add ref resolution capabilities:
+	n.host.SetStreamHandler(ResolveRefProtocolID, n.resolveRefHandler)
+
 	// register ourselves as a notifee on connected
 	n.host.Network().Notify(n.notifee)
 	if err := n.libp2pSubscribe(ctx); err != nil {

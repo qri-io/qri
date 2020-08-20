@@ -41,7 +41,7 @@ func TestQriProfileService(t *testing.T) {
 	numNodes := 5 // number of nodes we want (besides the main test node) in this test
 	// create a network of connected nodes
 	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)
-	testPeers, err := p2ptest.NewTestDirNetwork(ctx, factory)
+	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, numNodes)
 	if err != nil {
 		t.Fatalf("error creating network: %s", err.Error())
 	}

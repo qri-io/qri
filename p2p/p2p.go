@@ -37,6 +37,6 @@ const (
 )
 
 func init() {
-	// golog.SetLogLevel("qrip2p", "debug")
+	golog.SetLogLevel("qrip2p", "debug")
 	identify.ClientVersion = QriServiceTag
 }

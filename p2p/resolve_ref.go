@@ -36,6 +36,7 @@ func (rr *p2pRefResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (strin
 	if rr == nil || rr.node == nil {
 		return "", dsref.ErrRefNotFound
 	}
+	refCp := ref.Copy()
 	streamCtx, cancel := context.WithTimeout(ctx, p2pRefResolverTimeout)
 	defer cancel()
 
@@ -47,24 +48,28 @@ func (rr *p2pRefResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (strin
 
 	resCh := make(chan resolveRefRes, numReqs)
 	for _, pid := range connectedPids {
-		go func(pid peer.ID) {
-			source := rr.resolveRefRequest(streamCtx, pid, ref)
+		reqRef := refCp.Copy()
+		go func(pid peer.ID, reqRef *dsref.Ref) {
+			source := rr.resolveRefRequest(streamCtx, pid, reqRef)
 			resCh <- resolveRefRes{
-				ref:    ref,
+				ref:    reqRef,
 				source: source,
 			}
-		}(pid)
+		}(pid, &reqRef)
 	}
 
 	for {
 		select {
 		case res := <-resCh:
 			numReqs--
+			if res.ref == nil {
+				log.Debug("nil ref!!")
+			}
 			if res.ref == nil && numReqs == 0 {
 				return "", dsref.ErrRefNotFound
 			}
 			if res.ref != nil {
-				ref = res.ref
+				*ref = *res.ref
 				return res.source, nil
 			}
 		case <-streamCtx.Done():
@@ -87,17 +92,25 @@ func (rr *p2pRefResolver) resolveRefRequest(ctx context.Context, pid peer.ID, re
 		go helpers.FullClose(s)
 	}()
 
+	log.Debug("p2p.ResolveRef - sending ref request to ", pid)
 	s, err = rr.node.Host().NewStream(ctx, pid, ResolveRefProtocolID)
 	if err != nil {
 		log.Debugf("p2p.ResolveRef - error opening resolve ref stream to peer %q: %s", pid, err)
 		return ""
 	}
 
-	ref, err = receiveRef(s)
+	err = sendRef(s, ref)
 	if err != nil {
-		log.Errorf("p2p.ResolveRef - error reading ref message from %q: %s", pid, err)
+		log.Debugf("p2p.ResolveRef - error sending request ref to %q: %s", pid, err)
 		return ""
 	}
+
+	receivedRef, err := receiveRef(s)
+	if err != nil {
+		log.Debugf("p2p.ResolveRef - error reading ref message from %q: %s", pid, err)
+		return ""
+	}
+	*ref = *receivedRef
 	return s.Conn().RemoteMultiaddr().String()
 }
 
@@ -149,16 +162,24 @@ func (q *QriNode) resolveRefHandler(s network.Stream) {
 	}()
 
 	p := s.Conn().RemotePeer()
-	log.Debugf("p2p.ResolveRef received a ref request from %s %s", p, s.Conn().RemoteMultiaddr())
+	log.Debugf("p2p.resolveRefHandler received a ref request from %s %s", p, s.Conn().RemoteMultiaddr())
+
+	// get ref from stream
+	ref, err = receiveRef(s)
+	if err != nil {
+		log.Debugf("p2p.resolveRefHandler - error reading ref message from %q: %s", p, err)
+		return
+	}
 
 	// try to resolve this ref locally
 	_, err = q.localResolver.ResolveRef(ctx, ref)
 	if err != nil {
-		log.Debugf("p2p.ResolveRef - error resolving ref locally: %s", err)
+		log.Debugf("p2p.resolveRefHandler - error resolving ref locally: %s", err)
 		// if there was any error, return a nil ref
 		ref = nil
 	}
 
+	log.Debugf("p2p.resolveRefHandler %q sending ref %v to peer %q", q.host.ID(), ref, p)
 	err = sendRef(s, ref)
 	if err != nil {
 		log.Debugf("p2p.ResolveRef - error sending ref to %q: %s", p, err)
