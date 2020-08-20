@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"testing"
 	"time"
 
@@ -747,8 +748,12 @@ func TestMergeWithDivergentLogbookAuthorID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	actual := string(data)
-	expect := `[{"ops":[{"type":"init","model":"user","name":"test_user","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"1999-12-31T19:01:00-05:00"}],"logs":[{"ops":[{"type":"init","model":"dataset","name":"first_ds","authorID":"ftl4xgy5pvhfehd4h5wo5wggbac3m5dfywvp2rcohb5ayzgg6gja","timestamp":"1999-12-31T19:02:00-05:00"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"ftl4xgy5pvhfehd4h5wo5wggbac3m5dfywvp2rcohb5ayzgg6gja","timestamp":"1999-12-31T19:03:00-05:00"},{"type":"init","model":"commit","ref":"QmHashOfVersion1","timestamp":"1999-12-31T19:04:00-05:00","note":"first commit"}]}]},{"ops":[{"type":"init","model":"dataset","name":"second_ds","authorID":"i2smhmm5qrkf242wycim34ffvw4tjoxopk5bwbhleecbn4ojh4aq","timestamp":"1999-12-31T19:06:00-05:00"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"i2smhmm5qrkf242wycim34ffvw4tjoxopk5bwbhleecbn4ojh4aq","timestamp":"1999-12-31T19:07:00-05:00"},{"type":"init","model":"commit","ref":"QmHashOfVersion2","timestamp":"1999-12-31T19:08:00-05:00","note":"second commit"}]}]}]}]`
+	output := string(data)
+
+	// Regex that replaces timestamps with just static text
+	fixTs := regexp.MustCompile(`"(timestamp|commitTime)":\s?"[0-9TZ.:+-]*?"`)
+	actual := string(fixTs.ReplaceAll([]byte(output), []byte(`"timestamp":"timeStampHere"`)))
+	expect := `[{"ops":[{"type":"init","model":"user","name":"test_user","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"timeStampHere"}],"logs":[{"ops":[{"type":"init","model":"dataset","name":"first_ds","authorID":"ftl4xgy5pvhfehd4h5wo5wggbac3m5dfywvp2rcohb5ayzgg6gja","timestamp":"timeStampHere"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"ftl4xgy5pvhfehd4h5wo5wggbac3m5dfywvp2rcohb5ayzgg6gja","timestamp":"timeStampHere"},{"type":"init","model":"commit","ref":"QmHashOfVersion1","timestamp":"timeStampHere","note":"first commit"}]}]},{"ops":[{"type":"init","model":"dataset","name":"second_ds","authorID":"i2smhmm5qrkf242wycim34ffvw4tjoxopk5bwbhleecbn4ojh4aq","timestamp":"timeStampHere"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"i2smhmm5qrkf242wycim34ffvw4tjoxopk5bwbhleecbn4ojh4aq","timestamp":"timeStampHere"},{"type":"init","model":"commit","ref":"QmHashOfVersion2","timestamp":"timeStampHere","note":"second commit"}]}]}]}]`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
