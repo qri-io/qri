@@ -36,7 +36,7 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 		t.Fatal(err)
 	}
 
-	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), r.Bus())
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), r.Bus(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

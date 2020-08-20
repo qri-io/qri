@@ -66,7 +66,7 @@ func newTestRunner(t *testing.T) *testRunner {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), bus)
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), bus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

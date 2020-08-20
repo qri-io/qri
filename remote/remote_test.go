@@ -339,7 +339,7 @@ func qriNode(ctx context.Context, t *testing.T, tr *testRunner, peername string,
 		t.Fatal(err)
 	}
 
-	qriNode, err := p2p.NewQriNode(repo, config.DefaultP2PForTesting(), repo.Bus())
+	qriNode, err := p2p.NewQriNode(repo, config.DefaultP2PForTesting(), repo.Bus(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

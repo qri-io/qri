@@ -42,7 +42,7 @@ func NewTestFactory(ctx context.Context) (tf TestFactory, err error) {
 	}
 
 	cfg := config.DefaultConfigForTesting().Copy()
-	tnode, err := p2p.NewTestableQriNode(repo, cfg.P2P, event.NilBus, nil)
+	tnode, err := p2p.NewTestableQriNode(repo, cfg.P2P, event.NilBus)
 	if err != nil {
 		return
 	}
@@ -70,7 +70,7 @@ func NewTestFactoryInstanceOptions(ctx context.Context, opts ...lib.Option) (tf 
 	}
 
 	cfg := config.DefaultConfigForTesting().Copy()
-	tnode, err := p2p.NewTestableQriNode(repo, cfg.P2P, event.NilBus, nil)
+	tnode, err := p2p.NewTestableQriNode(repo, cfg.P2P, event.NilBus)
 	if err != nil {
 		return
 	}

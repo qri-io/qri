@@ -33,6 +33,11 @@ func TestResolveRef(t *testing.T) {
 		// to connect to that node at the same time. This causes a dial failure.
 		nodes[i].Discovery.Close()
 	}
+	defer func() {
+		for _, node := range nodes {
+			node.GoOffline()
+		}
+	}()
 
 	// ref := &dsref.Ref{}
 	nodeWithRef := nodes[numNodes-1]

@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/helpers"
@@ -43,12 +44,15 @@ func (rr *p2pRefResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (strin
 	connectedPids := rr.node.ConnectedQriPeerIDs()
 	numReqs := len(connectedPids)
 	if numReqs == 0 {
-		return "", fmt.Errorf("p2p.ResolveRef error: no connected peers")
+		return "", dsref.ErrRefNotFound
 	}
 
+	refMu := sync.Mutex{}
 	resCh := make(chan resolveRefRes, numReqs)
 	for _, pid := range connectedPids {
+		refMu.Lock()
 		reqRef := refCp.Copy()
+		refMu.Unlock()
 		go func(pid peer.ID, reqRef *dsref.Ref) {
 			source := rr.resolveRefRequest(streamCtx, pid, reqRef)
 			resCh <- resolveRefRes{
@@ -62,13 +66,10 @@ func (rr *p2pRefResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (strin
 		select {
 		case res := <-resCh:
 			numReqs--
-			if res.ref == nil {
-				log.Debug("nil ref!!")
-			}
-			if res.ref == nil && numReqs == 0 {
+			if !res.ref.Complete() && numReqs == 0 {
 				return "", dsref.ErrRefNotFound
 			}
-			if res.ref != nil {
+			if res.ref.Complete() {
 				*ref = *res.ref
 				return res.source, nil
 			}
@@ -175,8 +176,6 @@ func (q *QriNode) resolveRefHandler(s network.Stream) {
 	_, err = q.localResolver.ResolveRef(ctx, ref)
 	if err != nil {
 		log.Debugf("p2p.resolveRefHandler - error resolving ref locally: %s", err)
-		// if there was any error, return a nil ref
-		ref = nil
 	}
 
 	log.Debugf("p2p.resolveRefHandler %q sending ref %v to peer %q", q.host.ID(), ref, p)
