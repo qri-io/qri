@@ -112,7 +112,7 @@ func (rr *p2pRefResolver) resolveRefRequest(ctx context.Context, pid peer.ID, re
 		return ""
 	}
 	*ref = *receivedRef
-	return s.Conn().RemoteMultiaddr().String()
+	return pid.Pretty()
 }
 
 func sendRef(s network.Stream, ref *dsref.Ref) error {
