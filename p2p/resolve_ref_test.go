@@ -7,11 +7,14 @@ import (
 	"testing"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
+	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/identity"
+	"github.com/qri-io/qri/logbook/oplog"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestResolveRef(t *testing.T) {
@@ -39,30 +42,7 @@ func TestResolveRef(t *testing.T) {
 		}
 	}()
 
-	// ref := &dsref.Ref{}
 	nodeWithRef := nodes[numNodes-1]
-
-	repoRefs, err := nodeWithRef.Repo.References(0, 1)
-	if err != nil {
-		t.Fatalf("error getting ref from nodeWithRef %q: %s", nodeWithRef.ID, err)
-	}
-	if len(repoRefs) == 0 {
-		t.Fatal("expected node to have at least one dataset:")
-	}
-
-	expectedRef := reporef.ConvertToDsref(repoRefs[0])
-
-	if _, err := nodeWithRef.Repo.ResolveRef(ctx, &expectedRef); err != nil {
-		t.Fatalf("expected to be able to resolve the given ref locally: %s", err)
-	}
-
-	t.Logf("expected reference: %v", expectedRef)
-	t.Logf("from peer %q", nodeWithRef.host.ID())
-
-	ref := &dsref.Ref{
-		Username: expectedRef.Username,
-		Name:     expectedRef.Name,
-	}
 
 	// set up bus & listener for `ETP2PQriPeerConnected` events
 	// this is how we will be sure that all the nodes have exchanged qri profiles
@@ -142,28 +122,30 @@ func TestResolveRef(t *testing.T) {
 
 	<-qriPeerConnWaitCh
 
-	refResolver := node.NewP2PRefResolver()
+	p2pRefResolver := node.NewP2PRefResolver()
 
-	source, err := refResolver.ResolveRef(ctx, ref)
-	if err != nil {
-		t.Fatalf("error resolving ref: %s", err)
-	}
-
-	if !ref.Equals(expectedRef) {
-		t.Errorf("error comparing refs, expected: %v, got %v\n", expectedRef, ref)
-	}
-	if ref.InitID != expectedRef.InitID {
-		t.Errorf("error different initIDs: expected: %s, got: %s", expectedRef.InitID, ref.InitID)
-	}
-	if ref.Username != expectedRef.Username {
-		t.Errorf("error different usernames: expected: %s, got: %s", expectedRef.Username, ref.Username)
-	}
-	if ref.Name != expectedRef.Name {
-		t.Errorf("error different dataset names: expected: %s, got: %s", expectedRef.Name, ref.Name)
-	}
-	if ref.ProfileID != expectedRef.ProfileID {
-		t.Errorf("error different profileIDs: expected: %s, got: %s", expectedRef.ProfileID, ref.ProfileID)
-	}
-
-	t.Log("source is: ", source)
+	dsrefspec.AssertResolverSpec(t, p2pRefResolver, func(r dsref.Ref, author identity.Author, _ *oplog.Log) error {
+		builder := dscache.NewBuilder()
+		pid, err := identity.KeyIDFromPub(author.AuthorPubKey())
+		builder.AddUser(r.Username, pid)
+		if err != nil {
+			return err
+		}
+		builder.AddDsVersionInfo(dsref.VersionInfo{
+			Username:  r.Username,
+			InitID:    r.InitID,
+			Path:      r.Path,
+			ProfileID: pid,
+			Name:      r.Name,
+		})
+		cache := builder.Build()
+		nodeWithRef.Repo.Dscache().Assign(cache)
+		testResolveRef := &dsref.Ref{
+			Username: r.Username,
+			Name:     r.Name,
+		}
+		nodeWithRef.Repo.Dscache().ResolveRef(ctx, testResolveRef)
+		t.Logf("test resolve ref %v\n", testResolveRef)
+		return nil
+	})
 }

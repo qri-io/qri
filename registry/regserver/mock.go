@@ -69,7 +69,7 @@ func NewTempRegistry(ctx context.Context, peername, tmpDirPrefix string, g gen.C
 	p2pCfg := config.DefaultP2P()
 	p2pCfg.PeerID = registryPeerID
 
-	node, err := p2p.NewQriNode(r, p2pCfg, r.Bus(), nil)
+	node, err := p2p.NewQriNode(r, p2pCfg, r.Bus())
 	if err != nil {
 		return nil, nil, err
 	}

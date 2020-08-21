@@ -11,7 +11,7 @@ package lib
 // 	// Set a seed so that the sessionID is deterministic
 // 	rand.Seed(5678)
 
-// 	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus, nil)
+// 	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 // 	if err != nil {
 // 		t.Fatal(err.Error())
 // 	}
@@ -96,7 +96,7 @@ package lib
 // 		t.Fatalf("error getting namespace: %s", err.Error())
 // 	}
 
-// 	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+// 	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
 // 	if err != nil {
 // 		t.Fatal(err.Error())
 // 	}

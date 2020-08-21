@@ -22,7 +22,7 @@ func TestGetConfig(t *testing.T) {
 		t.Fatalf("error allocating test repo: %s", err)
 		return
 	}
-	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestSaveConfigToFile(t *testing.T) {
 		t.Fatalf("error allocating test repo: %s", err)
 		return
 	}
-	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestSetConfig(t *testing.T) {
 		t.Fatalf("error allocating test repo: %s", err)
 		return
 	}
-	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}
