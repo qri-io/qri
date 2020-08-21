@@ -39,6 +39,21 @@ func NewTempRepoFixedProfileID(peername, prefix string) (r TempRepo, err error) 
 	return newTempRepo(peername, prefix, NewTestCrypto())
 }
 
+// NewTempRepoUsingPeerInfo creates a temp repo using the given peerInfo
+func NewTempRepoUsingPeerInfo(peerInfoNum int, peername, prefix string) (r TempRepo, err error) {
+	crypto := NewTestCrypto()
+	for i := 0; i < peerInfoNum; i++ {
+		// TestCrypto uses a list of pre-generated private / public keys pairs, for performance
+		// reasons and to make tests deterministic. Each time TestCrypt.GeneratePrivate... is
+		// called, it will return the next peer info in this list. Most tests should always be
+		// using different peer info, but may occassionally want them to match (to test conflicts).
+		// This function can be used to skip a certain number of peer infos in order to get
+		// a certain private key / profile ID that a test needs.
+		_, _ = crypto.GeneratePrivateKeyAndPeerID()
+	}
+	return newTempRepo(peername, prefix, crypto)
+}
+
 // NewTempRepo constructs the test repo and initializes everything as cheaply
 // as possible. This function is non-deterministic. Each successive call to
 // TempRepo will use different PKI credentials

@@ -74,7 +74,7 @@ func LoadDataset(ctx context.Context, store cafs.Filestore, path string) (*datas
 // LoadDatasetRefs reads a dataset from a content addressed filesystem without dereferencing
 // it's components
 func LoadDatasetRefs(ctx context.Context, store cafs.Filestore, path string) (*dataset.Dataset, error) {
-	log.Debug("LoadDatasetRefs path=%q", path)
+	log.Debugf("LoadDatasetRefs path=%q", path)
 	ds := dataset.NewDatasetRef(path)
 
 	pathWithBasename := PackageFilepath(store, path, PackageFileDataset)

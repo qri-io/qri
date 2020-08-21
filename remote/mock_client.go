@@ -3,9 +3,6 @@ package remote
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
@@ -13,23 +10,31 @@ import (
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	repotest "github.com/qri-io/qri/repo/test"
 )
 
 // ErrNotImplemented is returned for methods that are not implemented
 var ErrNotImplemented = fmt.Errorf("not implemented")
+
+// OtherPeer represents another peer which the MockClient connects to
+type OtherPeer struct {
+	info     *cfgtest.PeerInfo
+	repoRoot *repotest.TempRepo
+	book     *logbook.Book
+	resolver map[string]string
+	dscache  map[string]string
+}
 
 // MockClient is a remote client suitable for tests
 type MockClient struct {
 	node *p2p.QriNode
 	book *logbook.Book
 
-	storagePath  string
-	foreignBooks map[string]*logbook.Book
+	otherPeers map[string]*OtherPeer
 
 	doneCh   chan struct{}
 	doneErr  error
@@ -43,22 +48,19 @@ var _ Client = (*MockClient)(nil)
 func NewMockClient(ctx context.Context, node *p2p.QriNode, book *logbook.Book) (c Client, err error) {
 	log.Debug("creating mock remote client")
 	ctx, cancel := context.WithCancel(ctx)
-	tmpDir, err := ioutil.TempDir("", "qri-mock-remote-client")
 
 	cli := &MockClient{
-		node:         node,
-		book:         book,
-		storagePath:  tmpDir,
-		foreignBooks: map[string]*logbook.Book{},
-		doneCh:       make(chan struct{}),
-		shutdown:     cancel,
+		node:       node,
+		book:       book,
+		otherPeers: map[string]*OtherPeer{},
+		doneCh:     make(chan struct{}),
+		shutdown:   cancel,
 	}
 
 	go func() {
 		<-ctx.Done()
 		// TODO (b5) - return an error here if client is in the process of pulling anything
 		cli.doneErr = ctx.Err()
-		os.RemoveAll(cli.storagePath)
 		close(cli.doneCh)
 	}()
 
@@ -99,51 +101,7 @@ type writeOnResolver struct {
 
 func (r *writeOnResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	log.Debugf("MockClient writeOnResolver.ResolveRef ref=%q", ref)
-	_, err := r.c.makeRefExist(ctx, ref)
-	return "", err
-}
-
-func (c *MockClient) makeRefExist(ctx context.Context, ref *dsref.Ref) (*logbook.Book, error) {
-	book, ok := c.foreignBooks[ref.Name]
-	if !ok {
-		fs, err := qfs.NewMemFilesystem(context.Background(), nil)
-		if err != nil {
-			return nil, err
-		}
-		// TODO (b5) - use unique keypairs for each peer
-		otherPeerInfo := cfgtest.GetTestPeerInfo(1)
-		book, err = logbook.NewJournal(otherPeerInfo.PrivKey, ref.Username, event.NilBus, fs, "logbook.qfb")
-		if err != nil {
-			return nil, err
-		}
-		c.foreignBooks[ref.Username] = book
-	}
-
-	if _, resolveErr := book.ResolveRef(ctx, ref); resolveErr == nil {
-		return book, nil
-	}
-
-	var err error
-	ref.InitID, err = book.WriteDatasetInit(ctx, ref.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	zeroTime := time.Time{}
-	ref.Path = "QmExample"
-	err = book.WriteVersionSave(ctx, ref.InitID, &dataset.Dataset{
-		Commit: &dataset.Commit{
-			Timestamp: zeroTime.In(time.UTC),
-			Title:     "their commit",
-		},
-		Path: ref.Path,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	ref.ProfileID, err = identity.KeyIDFromPub(book.AuthorPubKey())
-	return book, err
+	return "", r.c.createTheirDataset(ctx, ref)
 }
 
 // PushDataset is not implemented
@@ -165,12 +123,48 @@ func (c *MockClient) RemoveDatasetVersion(ctx context.Context, ref dsref.Ref, re
 func (c *MockClient) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
 	log.Debugf("MockClient.PullDataset ref=%q", ref)
 
+	// Create the dataset on the foreign side.
+	if err := c.createTheirDataset(ctx, ref); err != nil {
+		return nil, err
+	}
+
+	// Get the logs for that dataset, merge them into our own.
 	if err := c.pullLogs(ctx, *ref, remoteAddr); err != nil {
 		return nil, err
 	}
 
-	// Get a test peer, but skip the first peer (usually used for tests)
-	info := cfgtest.GetTestPeerInfo(1)
+	// Put the dataset into our repo as well
+	vi, err := c.mockDagSync(ctx, *ref)
+	if err != nil {
+		return nil, err
+	}
+
+	return dsfs.LoadDataset(ctx, c.node.Repo.Store(), vi.Path)
+}
+
+func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) error {
+	other := c.otherPeer(ref.Username)
+
+	// Check if the dataset already exists
+	if initID, exists := other.resolver[ref.Human()]; exists {
+		if dsPath, ok := other.dscache[initID]; ok {
+			ref.InitID = initID
+			ref.ProfileID = other.info.EncodedPeerID
+			ref.Path = dsPath
+			return nil
+		}
+	}
+
+	// TODO(dlong): HACK: This mockClient adds dataset to the *local* IPFS repo, instead
+	// of the *foreign* IPFS repo. This is because there's no easy way to copy blocks
+	// from one repo to another in tests. For now, this behavior works okay for our
+	// existing tests, but will break if we need a test the expects different blocks to
+	// exist on our repo versus theirs. The pull command is still doing useful work,
+	// since the mockClient is producing different logbook and refstore info on each peer.
+	// To fix this, create the dataset in the other.repoRoot.Repo.store instead, and
+	// then down in mockDagSync copy the IPFS blocks from that store to the local store.
+	store := c.node.Repo.Store()
+
 	// Construct a simple dataset
 	ds := dataset.Dataset{
 		Commit: &dataset.Commit{},
@@ -180,50 +174,115 @@ func (c *MockClient) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr
 		},
 		BodyBytes: []byte("{}"),
 	}
-	_ = ds.OpenBodyFile(ctx, nil)
+	err := ds.OpenBodyFile(ctx, store)
+	if err != nil {
+		return err
+	}
+
+	// Allocate an initID for this dataset
+	ref.InitID, err = other.book.WriteDatasetInit(ctx, ref.Name)
+	if err != nil {
+		return err
+	}
 
 	// Store with dsfs
 	sw := dsfs.SaveSwitches{}
-	path, err := dsfs.CreateDataset(ctx, c.node.Repo.Store(), c.node.Repo.Store(), &ds, nil, c.node.Repo.PrivateKey(), sw)
+	path, err := dsfs.CreateDataset(ctx, store, store, &ds, nil, other.info.PrivKey, sw)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	vi := &dsref.VersionInfo{
-		Path:      path,
-		ProfileID: info.PeerID.Pretty(),
-		Username:  ref.Username,
-		Name:      ref.Name,
+	// Save the IPFS path with our fake refstore
+	other.resolver[ref.Human()] = ref.InitID
+	other.dscache[ref.InitID] = path
+	ref.ProfileID = other.info.EncodedPeerID
+
+	// Add a save operation to logbook
+	err = other.book.WriteVersionSave(ctx, ref.InitID, &ds)
+	if err != nil {
+		return err
 	}
 
-	// Store ref for a mock dataset.
-	if err := repo.PutVersionInfoShim(c.node.Repo, vi); err != nil {
-		// if err := c.node.Repo.PutRef(*ref); err != nil {
-		return nil, err
-	}
+	return nil
+}
 
-	return dsfs.LoadDataset(ctx, c.node.Repo.Store(), path)
+func (c *MockClient) otherPeer(username string) *OtherPeer {
+	other, ok := c.otherPeers[username]
+	if !ok {
+		// Get test peer info, skipping 0th peer because many tests already use that one
+		i := len(c.otherPeers) + 1
+		info := cfgtest.GetTestPeerInfo(i)
+		// Construct a tempRepo to hold IPFS data (not used, see HACK note above).
+		tempRepo, err := repotest.NewTempRepoFixedProfileID(username, "")
+		if err != nil {
+			panic(err)
+		}
+		// Construct logbook
+		fs, err := qfs.NewMemFilesystem(context.Background(), nil)
+		if err != nil {
+			panic(err)
+		}
+		book, err := logbook.NewJournal(info.PrivKey, username, event.NilBus, fs, "logbook.qfb")
+		if err != nil {
+			panic(err)
+		}
+		// Other peer represents a peer with the given username
+		other = &OtherPeer{
+			resolver: map[string]string{},
+			dscache:  map[string]string{},
+			info:     info,
+			repoRoot: &tempRepo,
+			book:     book,
+		}
+		c.otherPeers[username] = other
+	}
+	return other
 }
 
 // pullLogs creates a log from a temp logbook, and merges those into the
 // client's logbook
 func (c *MockClient) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	log.Debug("MockClient.pullLogs")
-	book, err := c.makeRefExist(ctx, &ref)
+
+	// Get other peer to retrieve its logbook
+	other := c.otherPeer(ref.Username)
+	theirBook := other.book
+	theirLog, err := theirBook.UserDatasetBranchesLog(ctx, ref.InitID)
 	if err != nil {
 		return err
 	}
 
-	l, err := book.UserDatasetBranchesLog(ctx, ref.InitID)
-	if err != nil {
+	// Merge their logbook into ours
+	if err = theirBook.SignLog(theirLog); err != nil {
 		return err
 	}
+	return c.book.MergeLog(ctx, theirBook.Author(), theirLog)
+}
 
-	if err = book.SignLog(l); err != nil {
-		return err
+// mockDagSync immitates a dagsync, pulling a dataset from a peer, and saving it with our refs
+func (c *MockClient) mockDagSync(ctx context.Context, ref dsref.Ref) (*dsref.VersionInfo, error) {
+	other := c.otherPeer(ref.Username)
+
+	// Resolve the ref using the other peer's information
+	initID := other.resolver[ref.Human()]
+	dsPath := other.dscache[initID]
+
+	// TODO(dustmop): HACK: Because we created the dataset to our own IPFS repo, there's no
+	// need to copy the blocks. We should instead have added them to other.repoRoot, and here
+	// copy the blocks to our own repo.
+
+	// Add to our repository
+	vi := dsref.VersionInfo{
+		Path:      dsPath,
+		ProfileID: ref.ProfileID,
+		Username:  ref.Username,
+		Name:      ref.Name,
+	}
+	if err := repo.PutVersionInfoShim(c.node.Repo, &vi); err != nil {
+		return nil, err
 	}
 
-	return c.book.MergeLog(ctx, book.Author(), l)
+	return &vi, nil
 }
 
 // PushLogs is not implemented

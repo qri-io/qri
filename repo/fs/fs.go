@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 var log = golog.Logger("fsrepo")
@@ -114,7 +115,28 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	if r.logbook == nil {
 		return "", fmt.Errorf("cannot resolve local references without logbook")
 	}
-	return r.logbook.ResolveRef(ctx, ref)
+
+	// Preserve the input ref path, and convert to the old style dataset ref for repo.
+	origPath := ref.Path
+	datasetRef := reporef.DatasetRef{
+		Peername: ref.Username,
+		Name:     ref.Name,
+	}
+
+	// Get the reference from the refstore. This has everything but initID
+	match, err := r.GetRef(datasetRef)
+	if err != nil {
+		return "", dsref.ErrRefNotFound
+	}
+	// Create our resolved reference. If the input ref had a path, reassign that
+	*ref = reporef.ConvertToDsref(match)
+	if origPath != "" {
+		ref.Path = origPath
+	}
+
+	// Get just the initID from logbook
+	ref.InitID, err = r.logbook.RefToInitID(*ref)
+	return "", err
 }
 
 // Path returns the path to the root of the repo directory

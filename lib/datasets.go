@@ -957,7 +957,7 @@ func (m *DatasetMethods) Pull(p *PullParams, res *dataset.Dataset) error {
 
 	if p.LinkDir != "" {
 		checkoutp := &CheckoutParams{
-			Ref: ref.String(),
+			Ref: ref.Human(),
 			Dir: p.LinkDir,
 		}
 		m := NewFSIMethods(m.inst)

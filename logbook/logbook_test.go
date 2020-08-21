@@ -3,8 +3,11 @@ package logbook_test
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"regexp"
 	"testing"
 	"time"
 
@@ -694,6 +697,68 @@ func TestLogTransfer(t *testing.T) {
 	}
 }
 
+// Test a particularly tricky situation: a user authored and pushed a dataset to a remote. Then,
+// they reinitialize their repository with the same profileID. This creates a new logbook entry,
+// thus they have the same profileID but a different userCreateID. Then they push again to the
+// same remote. Test that a client is able to pull this new dataset, and it will merge into their
+// logbook, instead of creating two entries for the same user.
+func TestMergeWithDivergentLogbookAuthorID(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+	_ = tr
+
+	ctx := context.Background()
+
+	ref := dsref.MustParse("test_user/first_ds")
+	firstInfo := testPeers.GetTestPeerInfo(0)
+	firstBook := makeLogbookOneCommit(ctx, t, ref, "first commit", "QmHashOfVersion1", firstInfo.PrivKey)
+
+	ref = dsref.MustParse("test_user/second_ds")
+	// NOTE: Purposefully use the same crypto key pairs. This will lead to the same
+	// profileID, but different logbook userCreateIDs.
+	secondInfo := testPeers.GetTestPeerInfo(0)
+	secondBook := makeLogbookOneCommit(ctx, t, ref, "second commit", "QmHashOfVersion2", secondInfo.PrivKey)
+
+	// Get the log for the newly pushed dataset by initID.
+	secondInitID, err := secondBook.RefToInitID(dsref.MustParse("test_user/second_ds"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondLog, err := secondBook.UserDatasetBranchesLog(ctx, secondInitID)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(secondLog.Logs) != 1 {
+		t.Errorf("expected UserDatasetRef to only return one dataset log. got: %d", len(secondLog.Logs))
+	}
+
+	if err := secondBook.SignLog(secondLog); err != nil {
+		t.Error(err)
+	}
+
+	if err := firstBook.MergeLog(ctx, secondBook.Author(), secondLog); err != nil {
+		t.Fatal(err)
+	}
+
+	revs, err := firstBook.PlainLogs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := json.Marshal(revs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := string(data)
+
+	// Regex that replaces timestamps with just static text
+	fixTs := regexp.MustCompile(`"(timestamp|commitTime)":\s?"[0-9TZ.:+-]*?"`)
+	actual := string(fixTs.ReplaceAll([]byte(output), []byte(`"timestamp":"timeStampHere"`)))
+	expect := `[{"ops":[{"type":"init","model":"user","name":"test_user","authorID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","timestamp":"timeStampHere"}],"logs":[{"ops":[{"type":"init","model":"dataset","name":"first_ds","authorID":"ftl4xgy5pvhfehd4h5wo5wggbac3m5dfywvp2rcohb5ayzgg6gja","timestamp":"timeStampHere"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"ftl4xgy5pvhfehd4h5wo5wggbac3m5dfywvp2rcohb5ayzgg6gja","timestamp":"timeStampHere"},{"type":"init","model":"commit","ref":"QmHashOfVersion1","timestamp":"timeStampHere","note":"first commit"}]}]},{"ops":[{"type":"init","model":"dataset","name":"second_ds","authorID":"i2smhmm5qrkf242wycim34ffvw4tjoxopk5bwbhleecbn4ojh4aq","timestamp":"timeStampHere"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"i2smhmm5qrkf242wycim34ffvw4tjoxopk5bwbhleecbn4ojh4aq","timestamp":"timeStampHere"},{"type":"init","model":"commit","ref":"QmHashOfVersion2","timestamp":"timeStampHere","note":"second commit"}]}]}]}]`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestRenameAuthor(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
@@ -1234,4 +1299,17 @@ func GenerateExampleOplog(ctx context.Context, t *testing.T, journal *logbook.Bo
 	}
 
 	return initID, lg
+}
+
+func makeLogbookOneCommit(ctx context.Context, t *testing.T, ref dsref.Ref, commitMessage, dsPath string, privKey crypto.PrivKey) *logbook.Book {
+	rootPath, err := ioutil.TempDir("", "create_logbook")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fs := qfs.NewMemFS()
+
+	builder := logbook.NewLogbookTempBuilder(t, privKey, ref.Username, fs, rootPath)
+	id := builder.DatasetInit(ctx, t, ref.Name)
+	builder.Commit(ctx, t, id, commitMessage, dsPath)
+	return builder.Logbook()
 }
