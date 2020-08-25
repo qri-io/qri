@@ -216,7 +216,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/save", s.middleware(dsh.SaveHandler))
 	m.Handle("/save/", s.middleware(dsh.SaveHandler))
 	m.Handle("/remove/", s.middleware(dsh.RemoveHandler))
-	m.Handle("/me/", s.middleware(dsh.GetHandler("/me")))
+	m.Handle("/get/", s.middleware(dsh.GetHandler))
 	m.Handle("/rename", s.middleware(dsh.RenameHandler))
 	m.Handle("/diff", s.middleware(dsh.DiffHandler))
 	m.Handle("/body/", s.middleware(dsh.BodyHandler))
@@ -253,9 +253,6 @@ func NewServerRoutes(s Server) *http.ServeMux {
 
 	sqlh := NewSQLHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/sql", s.middleware(sqlh.QueryHandler("/sql")))
-
-	rh := NewRootHandler(dsh, ph)
-	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.Handler)))
 
 	return m
 }

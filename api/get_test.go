@@ -20,7 +20,7 @@ func TestGetZip(t *testing.T) {
 
 	// Get a zip file binary over the API
 	dsHandler := NewDatasetHandlers(run.Inst, false)
-	gotStatusCode, gotBodyString := APICall("/peer/test_ds?format=zip", dsHandler.GetHandler(""))
+	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler)
 	if gotStatusCode != 200 {
 		t.Fatalf("expected status code 200, got %d", gotStatusCode)
 	}

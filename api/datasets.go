@@ -80,20 +80,14 @@ func (h *DatasetHandlers) RemoveHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetHandler is a dataset single endpoint
-func (h *DatasetHandlers) GetHandler(endpointPath string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "OPTIONS":
-			util.EmptyOkHandler(w, r)
-		case "GET":
-			if h.ReadOnly {
-				readOnlyResponse(w, fmt.Sprintf("%s/", endpointPath))
-				return
-			}
-			h.getHandler(w, r, endpointPath)
-		default:
-			util.NotFoundHandler(w, r)
-		}
+func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.getHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
 	}
 }
 
@@ -226,19 +220,16 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TODO (ramfox): we have two places where `get` is happening, here and at root.go
-// we should deprecate the `/me` endpoint (and this handler)
-// and have the root check to see if `me` is the peername
-// if we are in read-only mode, we should error,
-// otherwise, resolve the peername and proceed as normal
-func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request, endpointPath string) {
-	path := r.URL.Path
-	if !strings.HasPrefix("/me/", r.URL.Path) {
-		path = r.URL.Path[len(endpointPath):]
-	}
+func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/get/")
 	ref, err := dsref.Parse(HTTPPathToQriPath(path))
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if ref.Username == "me" {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("username \"me\" not allowed"))
 		return
 	}
 
@@ -583,7 +574,8 @@ func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.Get
 }
 
 func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
-	refStr := HTTPPathToQriPath(r.URL.Path[len("/body/"):])
+	reqPath := strings.TrimPrefix(r.URL.Path, "/body/")
+	refStr := HTTPPathToQriPath(reqPath)
 	p, err := getParamsFromRequest(r, h.ReadOnly, refStr)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
