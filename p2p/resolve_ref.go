@@ -3,7 +3,6 @@ package p2p
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/helpers"
@@ -17,7 +16,7 @@ const (
 	// p2pRefResolverTimeout is the length of time we will wait for a
 	// RefResolverRequest response before cancelling the context
 	// this can potentially be a config option in the future
-	p2pRefResolverTimeout = time.Second * 60
+	p2pRefResolverTimeout = time.Second * 20
 	// ResolveRefProtocolID is the protocol on which qri nodes communicate to
 	// resolve references
 	ResolveRefProtocolID = protocol.ID("/qri/ref/0.1.0")
@@ -47,19 +46,15 @@ func (rr *p2pRefResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (strin
 		return "", dsref.ErrRefNotFound
 	}
 
-	refMu := sync.Mutex{}
 	resCh := make(chan resolveRefRes, numReqs)
 	for _, pid := range connectedPids {
-		refMu.Lock()
-		reqRef := refCp.Copy()
-		refMu.Unlock()
-		go func(pid peer.ID, reqRef *dsref.Ref) {
-			source := rr.resolveRefRequest(streamCtx, pid, reqRef)
+		go func(pid peer.ID, reqRef dsref.Ref) {
+			source := rr.resolveRefRequest(streamCtx, pid, &reqRef)
 			resCh <- resolveRefRes{
-				ref:    reqRef,
+				ref:    &reqRef,
 				source: source,
 			}
-		}(pid, &reqRef)
+		}(pid, refCp.Copy())
 	}
 
 	for {
@@ -74,8 +69,8 @@ func (rr *p2pRefResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (strin
 				return res.source, nil
 			}
 		case <-streamCtx.Done():
-			log.Debug("p2p.ResolveRef request timed out before resolving ref")
-			return "", fmt.Errorf("p2p.ResolveRef request timed out before resolving ref")
+			log.Debug("p2p.ResolveRef context canceled or timed out before resolving ref")
+			return "", fmt.Errorf("p2p.ResolveRef context: %w", streamCtx.Err())
 		}
 	}
 }
@@ -87,10 +82,12 @@ func (rr *p2pRefResolver) resolveRefRequest(ctx context.Context, pid peer.ID, re
 	)
 
 	defer func() {
-		// helpers.FullClose will close the stream from this end and wait until the other
-		// end has also closed
-		// This closes the stream not the underlying connection
-		go helpers.FullClose(s)
+		if s != nil {
+			// helpers.FullClose will close the stream from this end and wait until the other
+			// end has also closed
+			// This closes the stream not the underlying connection
+			go helpers.FullClose(s)
+		}
 	}()
 
 	log.Debug("p2p.ResolveRef - sending ref request to ", pid)
@@ -156,9 +153,11 @@ func (q *QriNode) resolveRefHandler(s network.Stream) {
 	)
 	ctx, cancel := context.WithTimeout(context.Background(), p2pRefResolverTimeout)
 	defer func() {
-		// close the stream, and wait for the other end of the stream to close as well
-		// this won't close the underlying connection
-		helpers.FullClose(s)
+		if s != nil {
+			// close the stream, and wait for the other end of the stream to close as well
+			// this won't close the underlying connection
+			helpers.FullClose(s)
+		}
 		cancel()
 	}()
 

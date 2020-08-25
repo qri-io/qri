@@ -145,7 +145,6 @@ func TestResolveRef(t *testing.T) {
 			Name:     r.Name,
 		}
 		nodeWithRef.Repo.Dscache().ResolveRef(ctx, testResolveRef)
-		t.Logf("test resolve ref %v\n", testResolveRef)
 		return nil
 	})
 }

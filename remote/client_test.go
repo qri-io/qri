@@ -182,7 +182,8 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus)
+	localResolver := dsref.SequentialResolver(mr.Dscache(), mr)
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, localResolver)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

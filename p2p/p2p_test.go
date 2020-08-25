@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -38,7 +39,8 @@ func (tr *testRunner) IPFSBackedQriNode(t *testing.T, username string) *QriNode 
 	if err != nil {
 		t.Fatal(err)
 	}
-	node, err := NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus)
+	localResolver := dsref.SequentialResolver(r.Dscache(), r)
+	node, err := NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus, localResolver)
 	if err != nil {
 		t.Fatal(err)
 	}

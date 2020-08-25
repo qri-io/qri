@@ -27,6 +27,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/dsref"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
@@ -460,7 +461,12 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.node == nil {
-		if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P, inst.bus); err != nil {
+		var localResolver dsref.Resolver
+		localResolver, err = inst.resolverForMode("local")
+		if err != nil {
+			return
+		}
+		if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P, inst.bus, localResolver); err != nil {
 			log.Error("intializing p2p:", err.Error())
 			return
 		}
