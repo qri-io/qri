@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/qri-io/apiutil"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
+	"github.com/qri-io/qri/access"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
@@ -31,6 +34,9 @@ var log = golog.Logger("remote")
 // Hook is a function called at specific points in the sync cycle
 // hook contexts may be populated with request parameters
 type Hook func(ctx context.Context, pid profile.ID, ref dsref.Ref) error
+
+// OptionsFunc
+type OptionsFunc func(o *Options)
 
 // Options encapsulates runtime configuration for a remote
 type Options struct {
@@ -76,6 +82,8 @@ type Options struct {
 	// Use a custom previews interface implementation. Default creates a
 	// Previews instance from node.Repo
 	Previews
+	// Policy defines the access control for the remote
+	Policy *access.Policy
 }
 
 // Remote receives requests from other qri nodes to perform actions on their
@@ -104,10 +112,43 @@ type Remote struct {
 	datasetPulled         Hook
 	FeedPreCheck          Hook
 	PreviewPreCheck       Hook
+
+	// policy defines the access control for the remote
+	policy *access.Policy
+}
+
+// OptPolicy adds a policy to the remote options
+// primarily used for testing
+func OptPolicy(p *access.Policy) OptionsFunc {
+	return func(o *Options) {
+		o.Policy = p
+	}
+}
+
+// OptLoadPolicyFileIfExists checks for a policy at the given path and populates
+// the remote.Options.Policy if so
+func OptLoadPolicyFileIfExists(filename string) OptionsFunc {
+	return func(o *Options) {
+		_, err := os.Stat(filename)
+		if os.IsNotExist(err) {
+			return
+		}
+		data, err := ioutil.ReadFile(filename)
+		if err != nil {
+			log.Errorf("error reading policy file: %s", err)
+			return
+		}
+		p := &access.Policy{}
+		if err := json.Unmarshal(data, p); err != nil {
+			log.Errorf("error unmarshalling policy file: %s", err)
+			return
+		}
+		o.Policy = p
+	}
 }
 
 // NewRemote creates a remote
-func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolver, opts ...func(o *Options)) (*Remote, error) {
+func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolver, opts ...OptionsFunc) (*Remote, error) {
 	log.Debugf("NewRemote cfg=%v len(opts)=%d", cfg, len(opts))
 	o := &Options{}
 	for _, opt := range opts {
@@ -133,6 +174,7 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolv
 		datasetRemoved:        o.DatasetRemoved,
 		datasetPullPreCheck:   o.DatasetPullPreCheck,
 		datasetPulled:         o.DatasetPulled,
+		policy:                o.Policy,
 
 		FeedPreCheck:    o.FeedPreCheck,
 		PreviewPreCheck: o.PreviewPreCheck,
@@ -184,12 +226,12 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolv
 
 	if book := r.logbook; book != nil {
 		r.logsync = logsync.New(book, func(lso *logsync.Options) {
-			lso.PushPreCheck = r.logHook("PushPreCheck", o.LogPushPreCheck)
+			lso.PushPreCheck = r.logPreCheckHook("PushPreCheck", "remote:push", o.LogPushPreCheck)
 			lso.PushFinalCheck = r.logHook("PushFinalCheck", o.LogPushFinalCheck)
 			lso.Pushed = r.logHook("Pushed", o.LogPushed)
-			lso.PullPreCheck = r.logHook("PullPreCheck", o.LogPullPreCheck)
+			lso.PullPreCheck = r.logPreCheckHook("PullPreCheck", "remote:pull", o.LogPullPreCheck)
 			lso.Pulled = r.logHook("Pulled", o.LogPulled)
-			lso.RemovePreCheck = r.logHook("RemovePreCheck", o.LogRemovePreCheck)
+			lso.RemovePreCheck = r.logPreCheckHook("RemovePreCheck", "remote:remove", o.LogRemovePreCheck)
 			lso.Removed = r.logHook("Removed", o.LogRemoved)
 		})
 	}
@@ -235,11 +277,18 @@ func (r *Remote) GoOnline(ctx context.Context) error {
 // the dataset ref from the refstore and add the (n + 1)th to the refstore
 // gen = -1 should indicate that we remove all the dataset versions
 func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) error {
-	pid, ref, err := r.pidAndRefFromMeta(params)
+	subj, ref, err := r.subjAndRefFromMeta(params)
 	if err != nil {
 		return err
 	}
 	log.Debugf("remove dataset %s", ref)
+
+	pid := subj.ID
+	if r.policy != nil {
+		if err := r.policy.Enforce(subj, strings.Join([]string{"dataset", ref.Username, ref.Name}, ":"), "remote:remove"); err != nil {
+			return err
+		}
+	}
 
 	// run pre check hook
 	if r.datasetRemovePreCheck != nil {
@@ -277,6 +326,18 @@ func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) er
 }
 
 func (r *Remote) dsPushPreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
+	subj, ref, err := r.subjAndRefFromMeta(meta)
+	if err != nil {
+		return err
+	}
+
+	pid := subj.ID
+	if r.policy != nil {
+		if err := r.policy.Enforce(subj, strings.Join([]string{"dataset", ref.Username, ref.Name}, ":"), "remote:push"); err != nil {
+			return err
+		}
+	}
+
 	if r.acceptSizeMax == 0 {
 		return fmt.Errorf("not accepting any datasets")
 	}
@@ -295,10 +356,6 @@ func (r *Remote) dsPushPreCheck(ctx context.Context, info dag.Info, meta map[str
 		}
 	}
 
-	pid, ref, err := r.pidAndRefFromMeta(meta)
-	if err != nil {
-		return err
-	}
 	log.Debugf("pid %s pushing ref %s", pid.String(), ref.String())
 
 	if r.datasetPushPreCheck != nil {
@@ -312,10 +369,11 @@ func (r *Remote) dsPushPreCheck(ctx context.Context, info dag.Info, meta map[str
 
 func (r *Remote) dsPushFinalCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
 	if r.datasetPushFinalCheck != nil {
-		pid, ref, err := r.pidAndRefFromMeta(meta)
+		subj, ref, err := r.subjAndRefFromMeta(meta)
 		if err != nil {
 			return err
 		}
+		pid := subj.ID
 		if err := r.datasetPushFinalCheck(ctx, pid, ref); err != nil {
 			return err
 		}
@@ -325,11 +383,12 @@ func (r *Remote) dsPushFinalCheck(ctx context.Context, info dag.Info, meta map[s
 }
 
 func (r *Remote) dsPushComplete(ctx context.Context, info dag.Info, meta map[string]string) error {
-	pid, ref, err := r.pidAndRefFromMeta(meta)
+	subj, ref, err := r.subjAndRefFromMeta(meta)
 	if err != nil {
 		return err
 	}
 
+	pid := subj.ID
 	if _, err := r.localResolver.ResolveRef(ctx, &ref); err != nil {
 		if err == dsref.ErrRefNotFound {
 			err = nil
@@ -354,9 +413,17 @@ func (r *Remote) dsPushComplete(ctx context.Context, info dag.Info, meta map[str
 }
 
 func (r *Remote) dsRemovePreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
-	pid, ref, err := r.pidAndRefFromMeta(meta)
+	subj, ref, err := r.subjAndRefFromMeta(meta)
 	if err != nil {
 		return err
+	}
+
+	pid := subj.ID
+
+	if r.policy != nil {
+		if err := r.policy.Enforce(subj, strings.Join([]string{"dataset", ref.Username, ref.Name}, ":"), "remote:remove"); err != nil {
+			return err
+		}
 	}
 
 	if r.datasetRemovePreCheck != nil {
@@ -368,11 +435,12 @@ func (r *Remote) dsRemovePreCheck(ctx context.Context, info dag.Info, meta map[s
 }
 
 func (r *Remote) dsGetDagInfo(ctx context.Context, into dag.Info, meta map[string]string) error {
-	pid, ref, err := r.pidAndRefFromMeta(meta)
+	subj, ref, err := r.subjAndRefFromMeta(meta)
 	if err != nil {
 		log.Errorf("ref from meta: %s", err.Error())
 		return err
 	}
+	pid := subj.ID
 	log.Debugf("pid %s pulling ref %s", pid.String(), ref.String())
 
 	if r.datasetPulled != nil {
@@ -384,7 +452,7 @@ func (r *Remote) dsGetDagInfo(ctx context.Context, into dag.Info, meta map[strin
 	return nil
 }
 
-func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, dsref.Ref, error) {
+func (r *Remote) subjAndRefFromMeta(meta map[string]string) (*profile.Profile, dsref.Ref, error) {
 	ref := dsref.Ref{
 		Username:  meta["username"],
 		Name:      meta["name"],
@@ -402,7 +470,12 @@ func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, dsref.Re
 		ref.ProfileID = pid.String()
 	}
 
-	return pid, ref, err
+	pro := &profile.Profile{
+		ID:       pid,
+		Peername: meta["subject"],
+	}
+
+	return pro, ref, err
 }
 
 func (r *Remote) logHook(name string, h Hook) logsync.Hook {
@@ -428,6 +501,41 @@ func (r *Remote) logHook(name string, h Hook) logsync.Hook {
 			return err
 		}
 
+		return nil
+	}
+}
+
+func (r *Remote) logPreCheckHook(name string, action string, h Hook) logsync.Hook {
+	return func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error {
+		log.Debugf("remote.logPreCheckHook hook=%q ref=%q", name, ref)
+		kid, err := identity.KeyIDFromPub(author.AuthorPubKey())
+		if err != nil {
+			return err
+		}
+		pid, err := profile.IDB58Decode(kid)
+		if err != nil {
+			return err
+		}
+
+		if r.policy != nil {
+			pro := &profile.Profile{
+				ID:       pid,
+				Peername: author.AuthorName(),
+			}
+			resource := access.ResourceStrFromRef(ref)
+			if err = r.policy.Enforce(pro, resource, action); err != nil {
+				return err
+			}
+		}
+
+		if h != nil {
+			ctx = newLogHookContext(ctx, l)
+			err = h(ctx, pid, ref)
+			if err != nil {
+				log.Debugf("logsync %q hook error=%q", name, err)
+			}
+			return err
+		}
 		return nil
 	}
 }

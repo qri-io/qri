@@ -26,7 +26,7 @@ func TestVerifySigParams(t *testing.T) {
 		Name:      "baz",
 		ProfileID: profileID.String(),
 	}
-	sigParams, err := sigParams(peerInfo0.PrivKey, ref)
+	sigParams, err := sigParams(peerInfo0.PrivKey, "bar", ref)
 	if err != nil {
 		panic(err)
 	}
