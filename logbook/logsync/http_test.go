@@ -106,7 +106,7 @@ func TestHTTPClientErrors(t *testing.T) {
 		t.Error("expected error to exist")
 	}
 
-	if err := c.put(tr.Ctx, tr.A.Author(), nil); err == nil {
+	if err := c.put(tr.Ctx, tr.A.Author(), dsref.Ref{}, nil); err == nil {
 		t.Error("expected error to exist")
 	}
 
@@ -124,7 +124,7 @@ func TestHTTPClientErrors(t *testing.T) {
 		t.Error("expected error to exist")
 	}
 
-	if err := c.put(tr.Ctx, tr.A.Author(), nil); err == nil {
+	if err := c.put(tr.Ctx, tr.A.Author(), dsref.Ref{}, nil); err == nil {
 		t.Error("expected error to exist")
 	}
 
