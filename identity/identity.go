@@ -13,19 +13,22 @@ import (
 type Author interface {
 	AuthorID() string
 	AuthorPubKey() crypto.PubKey
+	AuthorName() string
 }
 
 type author struct {
 	id     string
 	pubKey crypto.PubKey
+	name   string
 }
 
 // NewAuthor creates an Author interface implementation, allowing outside
 // packages needing to satisfy the Author interface
-func NewAuthor(id string, pubKey crypto.PubKey) Author {
+func NewAuthor(id string, pubKey crypto.PubKey, name string) Author {
 	return author{
 		id:     id,
 		pubKey: pubKey,
+		name:   name,
 	}
 }
 
@@ -39,6 +42,10 @@ func (a author) AuthorPubKeyID() crypto.PubKey {
 
 func (a author) AuthorPubKey() crypto.PubKey {
 	return a.pubKey
+}
+
+func (a author) AuthorName() string {
+	return a.name
 }
 
 // KeyIDFromPriv is a wrapper for calling KeyIDFromPub on a private key
