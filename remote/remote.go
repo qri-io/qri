@@ -35,7 +35,7 @@ var log = golog.Logger("remote")
 // hook contexts may be populated with request parameters
 type Hook func(ctx context.Context, pid profile.ID, ref dsref.Ref) error
 
-// OptionsFunc
+// OptionsFunc is a type of function that takes an Options
 type OptionsFunc func(o *Options)
 
 // Options encapsulates runtime configuration for a remote

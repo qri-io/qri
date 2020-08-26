@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
-func ExampleRemotePolicy() {
+func ExamplePolicy() {
 
 	const examplePolicy = `
 [

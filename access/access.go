@@ -47,6 +47,7 @@ type Rule struct {
 
 type rule Rule
 
+// UnmarshalJSON unmarshals the slice of bytes into a Rule
 func (r *Rule) UnmarshalJSON(d []byte) error {
 	_rule := rule{}
 	if err := json.Unmarshal(d, &_rule); err != nil {
@@ -160,10 +161,12 @@ func ParseResource(str string) (Resource, error) {
 	return rsc, nil
 }
 
+// MarshalJSON marshals the resource into a string separated by ":"
 func (r Resource) MarshalJSON() ([]byte, error) {
 	return []byte(strings.Join(r, ":")), nil
 }
 
+// UnmarshalJSON unmarshals a slice of bytes into a Resource
 func (r *Resource) UnmarshalJSON(data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
@@ -179,6 +182,12 @@ func (r *Resource) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Contains determins if the subject is referenced in the resource
+// returns true if the rule's resource contains the `matchAll` symbol
+// and returns true if the rule's resource contains the `matchSubject`
+// and the subjectUsername is in the given resource (allows us to create rules
+// that say, "only allow subjects to do this action, if the resource matches
+// the subject's name"
 func (r Resource) Contains(b Resource, subjectUsername string) bool {
 	if len(r) > len(b) {
 		return false
@@ -205,8 +214,10 @@ func ResourceStrFromRef(ref dsref.Ref) string {
 	return strings.Join([]string{"dataset", ref.Username, ref.Name}, ":")
 }
 
+// Actions is a slice of Action
 type Actions []Action
 
+// Contains determines if the given action is contained by the Actions
 func (as Actions) Contains(b Action) bool {
 	for _, a := range as {
 		if a.Contains(b) {
@@ -216,8 +227,12 @@ func (as Actions) Contains(b Action) bool {
 	return false
 }
 
+// Action is a description of the action the Subject is attempting to take on
+// the Resource
 type Action []string
 
+// MustParseAction parses a string into an Action. It panics if the string
+// cannot be parsed correctly
 func MustParseAction(str string) Action {
 	rsc, err := ParseAction(str)
 	if err != nil {
@@ -226,6 +241,7 @@ func MustParseAction(str string) Action {
 	return rsc
 }
 
+// ParseAction parses a string into an Action
 func ParseAction(str string) (Action, error) {
 	if str == "" {
 		return nil, fmt.Errorf("action string cannot be empty")
@@ -248,10 +264,12 @@ func ParseAction(str string) (Action, error) {
 	return rsc, nil
 }
 
+// MarshalJSON marshals the Action into a string separated by ":"
 func (a Action) MarshalJSON() ([]byte, error) {
 	return []byte(strings.Join(a, ":")), nil
 }
 
+// UnmarshalJSON unmarshals the given slice of bytes into an Action
 func (a *Action) UnmarshalJSON(data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
@@ -267,12 +285,14 @@ func (a *Action) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (r Action) Contains(b Action) bool {
-	if len(r) > len(b) {
+// Contains determines if the given action is described in the rule's Action
+// it returns true if the action matches using the glob `*` pattern
+func (a Action) Contains(b Action) bool {
+	if len(a) > len(b) {
 		return false
 	}
 
-	for i, aName := range r {
+	for i, aName := range a {
 		if aName == matchAll {
 			return true
 		}
@@ -281,5 +301,5 @@ func (r Action) Contains(b Action) bool {
 		}
 	}
 
-	return len(r) == len(b)
+	return len(a) == len(b)
 }
