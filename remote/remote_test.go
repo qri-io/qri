@@ -3,6 +3,7 @@ package remote
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/access"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
@@ -276,6 +278,133 @@ func TestFeeds(t *testing.T) {
 
 }
 
+func TestAccess(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	// add datasets to both nodes
+	aRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
+	bRef := writeVideoViewStats(tr.Ctx, t, tr.NodeB.Repo)
+	// establish nodeB as the client
+	cli := tr.NodeBClient(t)
+	// empty policy should allow no actions
+	rem := tr.NodeARemote(t, OptPolicy(&access.Policy{}))
+	server := tr.RemoteTestServer(rem)
+	defer server.Close()
+
+	if err := cli.PushDataset(tr.Ctx, bRef, server.URL); err.Error() != access.ErrAccessDenied.Error() {
+		t.Errorf("expected %q when trying to push dataset to a remote that does not allow pushes, got %q instead", access.ErrAccessDenied, err)
+	}
+
+	const allowPushJSON = `
+	[
+		{
+			"title": "allow subject to push its own datasets",
+			"effect": "allow",
+			"subject": "*",
+			"resources": [
+				"dataset:_subject:*"
+			],
+			"actions": [
+				"remote:push"
+			]
+		}
+	]
+`
+	allowPushPolicy := &access.Policy{}
+	if err := json.Unmarshal([]byte(allowPushJSON), allowPushPolicy); err != nil {
+		t.Fatalf("error unmarshalling 'allowPushPolicy': %q", err)
+	}
+	rem.policy = allowPushPolicy
+
+	if err := cli.PushDataset(tr.Ctx, bRef, server.URL); err != nil {
+		t.Errorf("unexpected error when trying to push dataset to a remote that allows pushes: %q", err)
+	}
+
+	if err := cli.RemoveDataset(tr.Ctx, bRef, server.URL); err.Error() != access.ErrAccessDenied.Error() {
+		t.Errorf("expected %q when trying to remove dataset from a remote that does not allow removes, got %q instead", access.ErrAccessDenied, err)
+	}
+
+	const allowPushRemoveJSON = `
+		[
+			{
+				"title": "allow subject to push and remove its own datasets",
+				"effect": "allow",
+				"subject": "*",
+				"resources": [
+					"dataset:_subject:*"
+				],
+				"actions": [
+					"remote:push",
+					"remote:remove"
+				]
+			}
+		]
+	`
+	allowPushRemovePolicy := &access.Policy{}
+	if err := json.Unmarshal([]byte(allowPushRemoveJSON), allowPushRemovePolicy); err != nil {
+		t.Fatalf("error unmarshalling 'allowPushRemovePolicy': %q", err)
+	}
+	rem.policy = allowPushRemovePolicy
+
+	if err := cli.RemoveDataset(tr.Ctx, bRef, server.URL); err != nil {
+		t.Errorf("unexpected error when trying to remove a dataset from a remote that allows removes: %q", err)
+	}
+
+	if _, err := cli.PullDataset(tr.Ctx, &aRef, server.URL); err.Error() != access.ErrAccessDenied.Error() {
+		t.Errorf("expected %q when trying to pull a dataset from a remote that does not allow pulls, got %q instead", access.ErrAccessDenied, err)
+	}
+	const allowPullOwnJSON = `
+		[
+			{
+				"title": "allow subjects to pull datasets that are their own",
+				"effect": "allow",
+				"subject": "*",
+				"resources": [
+					"dataset:_subject:*"
+				],
+				"actions": [
+					"remote:pull"
+				]
+			}
+		]
+	`
+	allowPullOwnPolicy := &access.Policy{}
+	if err := json.Unmarshal([]byte(allowPullOwnJSON), allowPullOwnPolicy); err != nil {
+		t.Fatalf("error unmarshalling 'allowPullOwnPolicy': %q", err)
+	}
+	rem.policy = allowPullOwnPolicy
+
+	if _, err := cli.PullDataset(tr.Ctx, &aRef, server.URL); err.Error() != access.ErrAccessDenied.Error() {
+		t.Errorf("expected %q when trying to pull a dataset from a remote that does not allow pulls, got %q instead", access.ErrAccessDenied, err)
+	}
+
+	const allowAllPullsJSON = `
+	[
+		{
+			"title": "allow pulls of all datasets",
+			"effect": "allow",
+			"subject": "*",
+			"resources": [
+				"dataset:*"
+			],
+			"actions": [
+				"remote:pull"
+			]
+		}
+	]
+	`
+	allowAllPullsPolicy := &access.Policy{}
+	if err := json.Unmarshal([]byte(allowAllPullsJSON), allowAllPullsPolicy); err != nil {
+		t.Fatalf("error unmarshalling 'allowAllPullsPolicy': %q", err)
+	}
+	rem.policy = allowAllPullsPolicy
+
+	if _, err := cli.PullDataset(tr.Ctx, &aRef, server.URL); err != nil {
+		t.Errorf("unexpected error when trying to pull a dataset from a remote that allows all pulls: %q", err)
+	}
+}
+
 type testRunner struct {
 	Ctx          context.Context
 	NodeA, NodeB *p2p.QriNode
@@ -305,7 +434,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	return tr, cleanup
 }
 
-func (tr *testRunner) NodeARemote(t *testing.T, opts ...func(o *Options)) *Remote {
+func (tr *testRunner) NodeARemote(t *testing.T, opts ...OptionsFunc) *Remote {
 	aCfg := &config.Remote{
 		Enabled:       true,
 		AllowRemoves:  true,
