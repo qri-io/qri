@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -61,7 +62,7 @@ func (r *Rule) UnmarshalJSON(d []byte) error {
 	return nil
 }
 
-// Valide returns a descriptive error if the rule is not well-formed
+// Validate returns a descriptive error if the rule is not well-formed
 func (r *Rule) Validate() error {
 	if r.Subject == "" {
 		return fmt.Errorf("rule.Subject is required")
@@ -196,6 +197,12 @@ func (r Resource) Contains(b Resource, subjectUsername string) bool {
 	}
 
 	return len(r) == len(b)
+}
+
+// ResourceStrFromRef takes a dsref.Ref and returns a string that can be parsed
+// as a resource
+func ResourceStrFromRef(ref dsref.Ref) string {
+	return strings.Join([]string{"dataset", ref.Username, ref.Name}, ":")
 }
 
 type Actions []Action

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -202,6 +203,25 @@ func TestActionContains(t *testing.T) {
 			got := actA.Contains(actB)
 			if c.expect != got {
 				t.Errorf("result mismatch expected %q.Contains(%q) == %t", c.a, c.b, c.expect)
+			}
+		})
+	}
+}
+
+func TestResourceStrFromRef(t *testing.T) {
+	cases := []struct {
+		ref    dsref.Ref
+		expect string
+	}{
+		{dsref.Ref{Username: "foo", Name: "bar"}, "dataset:foo:bar"},
+	}
+
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("ref_%s_becomes_resource_%s", c.ref, c.expect), func(t *testing.T) {
+
+			got := ResourceStrFromRef(c.ref)
+			if c.expect != got {
+				t.Errorf("result mismatch expected ResourceStrFromRef(%s) == %s", c.ref, c.expect)
 			}
 		})
 	}
