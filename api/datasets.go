@@ -190,6 +190,8 @@ func (h *DatasetHandlers) UnpackHandler(w http.ResponseWriter, r *http.Request) 
 
 func extensionToMimeType(ext string) string {
 	switch ext {
+	case ".csv":
+		return "text/csv"
 	case ".json":
 		return "application/json"
 	case ".yaml":
@@ -541,6 +543,9 @@ func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.Get
 	if download {
 		format = r.FormValue("format")
 	}
+	if arrayContains(r.Header["Accept"], "text/csv") {
+		format = "csv"
+	}
 	// if download is not set, and format is set, make sure the user knows that
 	// setting format won't do anything
 	if !download && r.FormValue("format") != "" && r.FormValue("format") != "json" {
@@ -592,13 +597,23 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	download := r.FormValue("download") == "true"
-	if download {
+	justBodyBytes := r.FormValue("download") == "true"
+	if arrayContains(r.Header["Accept"], "text/csv") {
+		justBodyBytes = true
+	}
+	if justBodyBytes {
 		filename, err := archive.GenerateFilename(result.Dataset, p.Format)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
+		// TODO(dustmop): Fix this. When using ?download=true, p.Format is empty so this
+		// uses an empty string for a mime type. Should be calculating the format by
+		// checking 3 things:
+		// 1) Accept header
+		// 2) p.Format (input parameter)
+		// 3) result.Dataset.Structure.Format
+		// Need tests for each case
 		w.Header().Set("Content-Type", extensionToMimeType("."+p.Format))
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
 		w.Write(result.Bytes)
@@ -656,4 +671,13 @@ func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 	util.WriteResponse(w, json.RawMessage(data))
+}
+
+func arrayContains(subject []string, target string) bool {
+	for _, v := range subject {
+		if v == target {
+			return true
+		}
+	}
+	return false
 }
