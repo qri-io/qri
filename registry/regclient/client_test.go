@@ -8,6 +8,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/config"
 	testPeers "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver/handlers"
@@ -36,7 +37,8 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 		t.Fatal(err)
 	}
 
-	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), r.Bus())
+	localResolver := dsref.SequentialResolver(r.Dscache(), r)
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), r.Bus(), localResolver)
 	if err != nil {
 		t.Fatal(err)
 	}

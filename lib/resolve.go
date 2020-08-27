@@ -78,12 +78,14 @@ func (inst *Instance) resolverForMode(mode string) (dsref.Resolver, error) {
 			inst.repo,
 		), nil
 	case "network":
-		// TODO(b5) - one day use registry & p2p in parallel here
-		return inst.registryResolver(), nil
+		return dsref.ParallelResolver(
+			inst.registryResolver(),
+			inst.p2pResolver(),
+		), nil
 	case "registry":
 		return inst.registryResolver(), nil
 	case "p2p":
-		return nil, fmt.Errorf("p2p network cannot be used to resolve references")
+		return inst.p2pResolver(), nil
 	}
 
 	// TODO (b5) - mode could be one of:
@@ -115,4 +117,8 @@ func (inst *Instance) registryResolver() dsref.Resolver {
 		location = inst.cfg.Registry.Location
 	}
 	return inst.remoteClient.NewRemoteRefResolver(location)
+}
+
+func (inst *Instance) p2pResolver() dsref.Resolver {
+	return inst.node.NewP2PRefResolver()
 }

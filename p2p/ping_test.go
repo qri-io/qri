@@ -20,6 +20,9 @@ func TestPing(t *testing.T) {
 
 	// Convert from test nodes to non-test nodes.
 	peers := asQriNodes(testPeers)
+	for _, peer := range peers {
+		peer.Discovery.Close()
+	}
 
 	for i, p1 := range peers {
 		for _, p2 := range peers[i+1:] {

@@ -569,7 +569,11 @@ func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteA
 		return err
 	}
 
-	pull, err := c.ds.NewPull(ref.Path, remoteAddr+"/remote/dsync", params)
+	if t := addressType(remoteAddr); t == "http" {
+		remoteAddr = remoteAddr + "/remote/dsync"
+	}
+
+	pull, err := c.ds.NewPull(ref.Path, remoteAddr, params)
 	if err != nil {
 		log.Debugf("NewPull error=%q", err)
 		return err

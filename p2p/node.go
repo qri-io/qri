@@ -24,6 +24,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -59,6 +60,9 @@ type QriNode struct {
 	// requests for this node's profile
 	qis *QriProfileService
 
+	// localResolver allows the node to resolve local dataset references
+	localResolver dsref.Resolver
+
 	// handlers maps this nodes registered handlers. This works in a way
 	// similary to a router in traditional client/server models, but messages
 	// are flying around all over the place instead of a
@@ -93,30 +97,33 @@ var _ p2ptest.NodeMakerFunc = NewTestableQriNode
 
 // NewTestableQriNode creates a new node, as a TestablePeerNode, usable by testing utilities.
 func NewTestableQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (p2ptest.TestablePeerNode, error) {
-	return NewQriNode(r, p2pconf, pub)
+	localResolver := dsref.SequentialResolver(r.Dscache(), r)
+	return NewQriNode(r, p2pconf, pub, localResolver)
 }
 
 // NewQriNode creates a new node from a configuration. To get a fully connected
 // node that's searching for peers call:
 // n, _ := NewQriNode(r, cfg)
 // n.GoOnline()
-func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (node *QriNode, err error) {
+func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher, localResolver dsref.Resolver) (node *QriNode, err error) {
 	pid, err := p2pconf.DecodePeerID()
 	if err != nil {
 		return nil, fmt.Errorf("error decoding peer id: %s", err.Error())
 	}
 
 	node = &QriNode{
-		ID:          pid,
-		cfg:         p2pconf,
-		Repo:        r,
-		msgState:    &sync.Map{},
-		pub:         pub,
-		receiversMu: sync.Mutex{},
-		// Make sure we always have proper IOStreams, this can be set
-		// later
+		ID:            pid,
+		cfg:           p2pconf,
+		Repo:          r,
+		msgState:      &sync.Map{},
+		pub:           pub,
+		receiversMu:   sync.Mutex{},
+		localResolver: localResolver,
+		// Make sure we always have proper IOStreams, this can be set later
 		LocalStreams: ioes.NewDiscardIOStreams(),
 	}
+
+	// TODO (ramfox): remove `MakeHandlers` when we phase out older p2p functions
 	node.handlers = MakeHandlers(node)
 	node.notifee = &net.NotifyBundle{
 		ConnectedF:    node.connected,
@@ -197,6 +204,10 @@ func (n *QriNode) GoOnline(c context.Context) (err error) {
 	// be relying on. We will drop support for the old qri protocol
 	// in the release of v0.10.0
 	n.host.SetStreamHandler(depQriProtocolID, n.QriStreamHandler)
+
+	// add ref resolution capabilities:
+	n.host.SetStreamHandler(ResolveRefProtocolID, n.resolveRefHandler)
+
 	// register ourselves as a notifee on connected
 	n.host.Network().Notify(n.notifee)
 	if err := n.libp2pSubscribe(ctx); err != nil {

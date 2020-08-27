@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 
@@ -21,9 +22,10 @@ import (
 // TestableNode satisfies the TestablePeerNode interface
 // It is used for testing inside the p2ptest package
 type TestableNode struct {
-	host host.Host
-	cfg  *config.P2P
-	Repo repo.Repo
+	host          host.Host
+	cfg           *config.P2P
+	Repo          repo.Repo
+	localResolver dsref.Resolver
 }
 
 // TestQriProtocolID is the key used to set the stream handler to our
@@ -103,10 +105,12 @@ func NewTestableNode(r repo.Repo, p2pconf *config.P2P, _ event.Publisher) (Testa
 	if err != nil {
 		return nil, err
 	}
+	localResolver := dsref.SequentialResolver(r.Dscache(), r)
 	return &TestableNode{
-		host: basicHost,
-		Repo: r,
-		cfg:  p2pconf,
+		host:          basicHost,
+		Repo:          r,
+		cfg:           p2pconf,
+		localResolver: localResolver,
 	}, nil
 }
 

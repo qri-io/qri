@@ -81,7 +81,7 @@ func newTestInstanceWithProfileFromNode(ctx context.Context, node *p2p.QriNode) 
 func newTestNodeWithNumDatasets(t *testing.T, _ int) (node *p2p.QriNode, teardown func()) {
 	var r repo.Repo
 	r, teardown = newTestRepo(t)
-	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus)
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -204,7 +204,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		cfg.API.ReadOnly = false
 	}()
 
-	node, err := p2p.NewQriNode(r, cfg.P2P, event.NilBus)
+	node, err := p2p.NewQriNode(r, cfg.P2P, event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
