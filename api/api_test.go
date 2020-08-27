@@ -148,16 +148,7 @@ func confirmQriNotRunning() error {
 	return nil
 }
 
-func TestServerRoutes(t *testing.T) {
-	run := NewAPITestRunner(t)
-
-	h := NewRootHandler(NewDatasetHandlers(run.Inst, false), NewPeerHandlers(run.Inst, false))
-	rootCases := []handlerTestCase{
-		{"OPTIONS", "/", nil},
-		{"GET", "/", nil},
-	}
-	runHandlerTestCases(t, "root", h.Handler, rootCases, true)
-
+func TestHealthCheck(t *testing.T) {
 	healthCheckCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
@@ -224,8 +215,8 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"GET", "/ipns/", 403},
 		{"GET", "/profile", 403},
 		{"POST", "/profile", 403},
-		{"GET", "/me", 403},
-		{"POST", "/me", 403},
+		{"GET", "/get", 400},
+		{"POST", "/get", 400},
 		{"POST", "/profile/photo", 403},
 		{"PUT", "/profile/photo", 403},
 		{"POST", "/profile/poster", 403},
@@ -240,15 +231,14 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"PUT", "/save/", 403},
 		{"POST", "/remove/", 403},
 		{"DELETE", "/remove/", 403},
-		{"GET", "/me/", 403},
-		{"POST", "/add/", 403},
-		{"PUT", "/add/", 403},
+		{"POST", "/add/", 404},
+		{"PUT", "/add/", 404},
 		{"POST", "/rename", 403},
 		{"PUT", "/rename", 403},
 		{"POST", "/diff", 403},
 		{"GET", "/diff", 403},
 		{"GET", "/body/", 403},
-		{"POST", "/registry/", 403},
+		{"POST", "/registry/", 404},
 		{"GET", "/checkout", 403},
 		{"GET", "/status", 403},
 		{"GET", "/init", 403},
@@ -262,7 +252,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		// {"GET", "/peer", 200},
 		{"GET", "/profile/photo?peername=me", 200},
 		{"GET", "/profile/poster?peername=me", 200},
-		{"GET", "/peer/movies", 200},
+		{"GET", "/get/peer/movies", 200},
 		{"GET", "/history/peer/movies", 200},
 	}
 

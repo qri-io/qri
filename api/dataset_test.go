@@ -48,27 +48,27 @@ func TestDatasetHandlers(t *testing.T) {
 
 	getCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
-		{"GET", "/me/family_relationships", nil},
-		{"GET", "/me/family_relationships/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
-		{"GET", "/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
+		{"GET", "/get/peer/family_relationships", nil},
+		{"GET", "/get/peer/family_relationships/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
+		{"GET", "/get/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
 		// test that when fsi=true parameter doesn't affect the api response
-		{"GET", "/me/family_relationships?fsi=true", nil},
+		{"GET", "/get/peer/family_relationships?fsi=true", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "get", h.GetHandler(""), getCases, true)
+	runHandlerTestCases(t, "get", h.GetHandler, getCases, true)
 
 	bodyCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
-		{"GET", "/body/me/family_relationships", nil},
-		{"GET", "/body/me/family_relationships?download=true", nil},
+		{"GET", "/body/peer/family_relationships", nil},
+		{"GET", "/body/peer/family_relationships?download=true", nil},
 		{"DELETE", "/", nil},
 	}
 	runHandlerTestCases(t, "body", h.BodyHandler, bodyCases, true)
 
 	statsCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
-		{"GET", "/stats/me/craigslist", nil},
-		{"GET", "/stats/me/family_relationships/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
+		{"GET", "/stats/peer/craigslist", nil},
+		{"GET", "/stats/peer/family_relationships/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
 	}
 	runHandlerTestCases(t, "stats", h.StatsHandler, statsCases, false)
 
@@ -89,7 +89,7 @@ func TestDatasetHandlers(t *testing.T) {
 
 	diffCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
-		{"GET", "/?left_path=me/family_relationships&right_path=me/cities", nil},
+		{"GET", "/?left_path=peer/family_relationships&right_path=peer/cities", nil},
 		{"DELETE", "/", nil},
 	}
 	runHandlerTestCases(t, "diff", h.DiffHandler, diffCases, false)
@@ -97,13 +97,13 @@ func TestDatasetHandlers(t *testing.T) {
 	removeCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
-		{"POST", "/remove/me/cities", nil},
+		{"POST", "/remove/peer/cities", nil},
 		{"POST", "/remove/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", nil},
 	}
 	runHandlerTestCases(t, "remove", h.RemoveHandler, removeCases, true)
 
 	removeMimeCases := []handlerMimeMultipartTestCase{
-		{"POST", "/remove/me/cities",
+		{"POST", "/remove/peer/cities",
 			map[string]string{},
 			map[string]string{},
 		},

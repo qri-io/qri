@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -44,15 +43,5 @@ func (s *Server) addCORSHeaders(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			return
 		}
-	}
-}
-
-func (s *Server) datasetRefMiddleware(handler http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if ref, _ := DatasetRefFromReq(r); !ref.IsEmpty() {
-			ctx := context.WithValue(r.Context(), DatasetRefCtxKey, ref)
-			r = r.WithContext(ctx)
-		}
-		handler(w, r)
 	}
 }
