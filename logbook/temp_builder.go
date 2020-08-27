@@ -15,9 +15,9 @@ import (
 
 // BookBuilder builds a logbook in a convenient way
 type BookBuilder struct {
-	Book       *Book
-	AuthorName string
-	Dsrefs     map[string][]string
+	Book     *Book
+	Username string
+	Dsrefs   map[string][]string
 }
 
 // NewLogbookTempBuilder constructs a logbook tmp BookBuilder
@@ -29,9 +29,9 @@ func NewLogbookTempBuilder(t *testing.T, privKey crypto.PrivKey, username string
 		t.Fatal(err)
 	}
 	builder := BookBuilder{
-		Book:       book,
-		AuthorName: username,
-		Dsrefs:     make(map[string][]string),
+		Book:     book,
+		Username: username,
+		Dsrefs:   make(map[string][]string),
 	}
 	return builder
 }
@@ -52,7 +52,7 @@ func (b *BookBuilder) DatasetRename(ctx context.Context, t *testing.T, initID, n
 		t.Fatal(err)
 	}
 	ref := dsref.Ref{}
-	return dsref.Ref{Username: b.AuthorName, Name: newName, Path: ref.Path}
+	return dsref.Ref{Username: b.Username, Name: newName, Path: ref.Path}
 }
 
 // DatasetDelete deletes a dataset

@@ -39,7 +39,7 @@ func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, histor
 		log.Debugf("Remove, logbook.RefToInitID failed, error: %s", err)
 		removeErr = err
 	}
-	if ref.Username == book.AuthorName() {
+	if ref.Username == book.Username() {
 		// TOOD(dustmop): Logbook should validate the fact that author's should only be able to
 		// write to their own logs. Trying to write to another user's log should throw an error.
 		if err := book.WriteDatasetDelete(ctx, initID); err == nil {

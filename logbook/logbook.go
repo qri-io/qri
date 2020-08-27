@@ -155,7 +155,7 @@ func (book *Book) initialize(ctx context.Context) error {
 	userActions := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     AuthorModel,
-		Name:      book.AuthorName(),
+		Name:      book.Username(),
 		AuthorID:  keyID,
 		Timestamp: NewTimestamp(),
 	})
@@ -190,8 +190,8 @@ func (book *Book) Author() identity.Author {
 	return book
 }
 
-// AuthorName returns the human-readable name of the author
-func (book *Book) AuthorName() string {
+// Username returns the human-readable name of the author
+func (book *Book) Username() string {
 	return book.authorName
 }
 
@@ -294,7 +294,7 @@ func (book *Book) WriteDatasetInit(ctx context.Context, dsName string) (string, 
 	if !dsref.IsValidName(dsName) {
 		return "", fmt.Errorf("logbook: dataset name %q invalid", dsName)
 	}
-	if _, err := book.DatasetRef(ctx, dsref.Ref{Username: book.AuthorName(), Name: dsName}); err == nil {
+	if _, err := book.DatasetRef(ctx, dsref.Ref{Username: book.Username(), Name: dsName}); err == nil {
 		return "", fmt.Errorf("logbook: dataset named %q already exists", dsName)
 	}
 
@@ -331,7 +331,7 @@ func (book *Book) WriteDatasetInit(ctx context.Context, dsName string) (string, 
 	// block) to the dscache, use that instead-of or in-addition-to the profileID.
 	err = book.publisher.Publish(ctx, event.ETDatasetNameInit, event.DsChange{
 		InitID:     initID,
-		Username:   book.AuthorName(),
+		Username:   book.Username(),
 		ProfileID:  profileID,
 		PrettyName: dsName,
 	})

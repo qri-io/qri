@@ -112,7 +112,7 @@ func addAuthorP2PHeaders(h []string, author identity.Author) ([]string, error) {
 	}
 	pubKey := base64.StdEncoding.EncodeToString(pkb)
 
-	return append(h, "author_id", author.AuthorID(), "pub_key", pubKey, "author_name", author.AuthorName()), nil
+	return append(h, "author_id", author.AuthorID(), "pub_key", pubKey, "author_username", author.Username()), nil
 }
 
 func authorFromP2PHeaders(msg p2putil.Message) (identity.Author, error) {
@@ -126,7 +126,7 @@ func authorFromP2PHeaders(msg p2putil.Message) (identity.Author, error) {
 		return nil, fmt.Errorf("decoding public key: %s", err)
 	}
 
-	return identity.NewAuthor(msg.Header("author_id"), pub, msg.Header("author_name")), nil
+	return identity.NewAuthor(msg.Header("author_id"), pub, msg.Header("author_username")), nil
 }
 
 // p2pHandler implements logsync as a libp2p protocol handler

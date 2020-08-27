@@ -296,7 +296,8 @@ func TestAccess(t *testing.T) {
 		t.Errorf("expected %q when trying to push dataset to a remote that does not allow pushes, got %q instead", access.ErrAccessDenied, err)
 	}
 
-	const allowPushJSON = `
+	allowPushPolicy := &access.Policy{}
+	mustJSON(`
 	[
 		{
 			"title": "allow subject to push its own datasets",
@@ -310,11 +311,7 @@ func TestAccess(t *testing.T) {
 			]
 		}
 	]
-`
-	allowPushPolicy := &access.Policy{}
-	if err := json.Unmarshal([]byte(allowPushJSON), allowPushPolicy); err != nil {
-		t.Fatalf("error unmarshalling 'allowPushPolicy': %q", err)
-	}
+`, allowPushPolicy)
 	rem.policy = allowPushPolicy
 
 	if err := cli.PushDataset(tr.Ctx, bRef, server.URL); err != nil {
@@ -325,26 +322,23 @@ func TestAccess(t *testing.T) {
 		t.Errorf("expected %q when trying to remove dataset from a remote that does not allow removes, got %q instead", access.ErrAccessDenied, err)
 	}
 
-	const allowPushRemoveJSON = `
-		[
-			{
-				"title": "allow subject to push and remove its own datasets",
-				"effect": "allow",
-				"subject": "*",
-				"resources": [
-					"dataset:_subject:*"
-				],
-				"actions": [
-					"remote:push",
-					"remote:remove"
-				]
-			}
-		]
-	`
 	allowPushRemovePolicy := &access.Policy{}
-	if err := json.Unmarshal([]byte(allowPushRemoveJSON), allowPushRemovePolicy); err != nil {
-		t.Fatalf("error unmarshalling 'allowPushRemovePolicy': %q", err)
-	}
+	mustJSON(`
+	[
+		{
+			"title": "allow subject to push and remove its own datasets",
+			"effect": "allow",
+			"subject": "*",
+			"resources": [
+				"dataset:_subject:*"
+			],
+			"actions": [
+				"remote:push",
+				"remote:remove"
+			]
+		}
+	]
+`, allowPushRemovePolicy)
 	rem.policy = allowPushRemovePolicy
 
 	if err := cli.RemoveDataset(tr.Ctx, bRef, server.URL); err != nil {
@@ -354,32 +348,31 @@ func TestAccess(t *testing.T) {
 	if _, err := cli.PullDataset(tr.Ctx, &aRef, server.URL); err.Error() != access.ErrAccessDenied.Error() {
 		t.Errorf("expected %q when trying to pull a dataset from a remote that does not allow pulls, got %q instead", access.ErrAccessDenied, err)
 	}
-	const allowPullOwnJSON = `
-		[
-			{
-				"title": "allow subjects to pull datasets that are their own",
-				"effect": "allow",
-				"subject": "*",
-				"resources": [
-					"dataset:_subject:*"
-				],
-				"actions": [
-					"remote:pull"
-				]
-			}
-		]
-	`
+
 	allowPullOwnPolicy := &access.Policy{}
-	if err := json.Unmarshal([]byte(allowPullOwnJSON), allowPullOwnPolicy); err != nil {
-		t.Fatalf("error unmarshalling 'allowPullOwnPolicy': %q", err)
-	}
+	mustJSON(`
+	[
+		{
+			"title": "allow subjects to pull datasets that are their own",
+			"effect": "allow",
+			"subject": "*",
+			"resources": [
+				"dataset:_subject:*"
+			],
+			"actions": [
+				"remote:pull"
+			]
+		}
+	]
+`, allowPullOwnPolicy)
 	rem.policy = allowPullOwnPolicy
 
 	if _, err := cli.PullDataset(tr.Ctx, &aRef, server.URL); err.Error() != access.ErrAccessDenied.Error() {
 		t.Errorf("expected %q when trying to pull a dataset from a remote that does not allow pulls, got %q instead", access.ErrAccessDenied, err)
 	}
 
-	const allowAllPullsJSON = `
+	allowAllPullsPolicy := &access.Policy{}
+	mustJSON(`
 	[
 		{
 			"title": "allow pulls of all datasets",
@@ -393,11 +386,7 @@ func TestAccess(t *testing.T) {
 			]
 		}
 	]
-	`
-	allowAllPullsPolicy := &access.Policy{}
-	if err := json.Unmarshal([]byte(allowAllPullsJSON), allowAllPullsPolicy); err != nil {
-		t.Fatalf("error unmarshalling 'allowAllPullsPolicy': %q", err)
-	}
+	`, allowAllPullsPolicy)
 	rem.policy = allowAllPullsPolicy
 
 	if _, err := cli.PullDataset(tr.Ctx, &aRef, server.URL); err != nil {
@@ -434,7 +423,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	return tr, cleanup
 }
 
-func (tr *testRunner) NodeARemote(t *testing.T, opts ...OptionsFunc) *Remote {
+func (tr *testRunner) NodeARemote(t *testing.T, opts ...RemoteOptionsFunc) *Remote {
 	aCfg := &config.Remote{
 		Enabled:       true,
 		AllowRemoves:  true,
@@ -539,4 +528,10 @@ func saveDataset(ctx context.Context, r repo.Repo, peername string, ds *dataset.
 	ref := dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
 	ref.InitID = initID
 	return ref
+}
+
+func mustJSON(data string, v interface{}) {
+	if err := json.Unmarshal([]byte(data), v); err != nil {
+		panic(err)
+	}
 }

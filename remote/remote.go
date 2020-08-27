@@ -35,8 +35,9 @@ var log = golog.Logger("remote")
 // hook contexts may be populated with request parameters
 type Hook func(ctx context.Context, pid profile.ID, ref dsref.Ref) error
 
-// OptionsFunc is a type of function that takes an Options
-type OptionsFunc func(o *Options)
+// RemoteOptionsFunc adjusts the behavior of the a remote when passed to
+// NewRemote
+type RemoteOptionsFunc func(o *Options)
 
 // Options encapsulates runtime configuration for a remote
 type Options struct {
@@ -118,8 +119,7 @@ type Remote struct {
 }
 
 // OptPolicy adds a policy to the remote options
-// primarily used for testing
-func OptPolicy(p *access.Policy) OptionsFunc {
+func OptPolicy(p *access.Policy) RemoteOptionsFunc {
 	return func(o *Options) {
 		o.Policy = p
 	}
@@ -127,7 +127,7 @@ func OptPolicy(p *access.Policy) OptionsFunc {
 
 // OptLoadPolicyFileIfExists checks for a policy at the given path and populates
 // the remote.Options.Policy if so
-func OptLoadPolicyFileIfExists(filename string) OptionsFunc {
+func OptLoadPolicyFileIfExists(filename string) RemoteOptionsFunc {
 	return func(o *Options) {
 		_, err := os.Stat(filename)
 		if os.IsNotExist(err) {
@@ -148,7 +148,7 @@ func OptLoadPolicyFileIfExists(filename string) OptionsFunc {
 }
 
 // NewRemote creates a remote
-func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolver, opts ...OptionsFunc) (*Remote, error) {
+func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolver, opts ...RemoteOptionsFunc) (*Remote, error) {
 	log.Debugf("NewRemote cfg=%v len(opts)=%d", cfg, len(opts))
 	o := &Options{}
 	for _, opt := range opts {
@@ -285,7 +285,7 @@ func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) er
 
 	pid := subj.ID
 	if r.policy != nil {
-		if err := r.policy.Enforce(subj, strings.Join([]string{"dataset", ref.Username, ref.Name}, ":"), "remote:remove"); err != nil {
+		if err := r.policy.Enforce(subj, access.ResourceStrFromRef(ref), "remote:remove"); err != nil {
 			return err
 		}
 	}
@@ -333,7 +333,7 @@ func (r *Remote) dsPushPreCheck(ctx context.Context, info dag.Info, meta map[str
 
 	pid := subj.ID
 	if r.policy != nil {
-		if err := r.policy.Enforce(subj, strings.Join([]string{"dataset", ref.Username, ref.Name}, ":"), "remote:push"); err != nil {
+		if err := r.policy.Enforce(subj, access.ResourceStrFromRef(ref), "remote:push"); err != nil {
 			return err
 		}
 	}
@@ -421,7 +421,7 @@ func (r *Remote) dsRemovePreCheck(ctx context.Context, info dag.Info, meta map[s
 	pid := subj.ID
 
 	if r.policy != nil {
-		if err := r.policy.Enforce(subj, strings.Join([]string{"dataset", ref.Username, ref.Name}, ":"), "remote:remove"); err != nil {
+		if err := r.policy.Enforce(subj, access.ResourceStrFromRef(ref), "remote:remove"); err != nil {
 			return err
 		}
 	}
@@ -472,7 +472,7 @@ func (r *Remote) subjAndRefFromMeta(meta map[string]string) (*profile.Profile, d
 
 	pro := &profile.Profile{
 		ID:       pid,
-		Peername: meta["subject"],
+		Peername: meta["subject_username"],
 	}
 
 	return pro, ref, err
@@ -520,7 +520,7 @@ func (r *Remote) logPreCheckHook(name string, action string, h Hook) logsync.Hoo
 		if r.policy != nil {
 			pro := &profile.Profile{
 				ID:       pid,
-				Peername: author.AuthorName(),
+				Peername: author.Username(),
 			}
 			resource := access.ResourceStrFromRef(ref)
 			if err = r.policy.Enforce(pro, resource, action); err != nil {

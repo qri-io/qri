@@ -422,7 +422,7 @@ func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, er
 	}
 
 	ds := &dataset.Dataset{
-		Peername: book.AuthorName(),
+		Peername: book.Username(),
 		Name:     name,
 		Commit: &dataset.Commit{
 			Timestamp: time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC),
@@ -444,7 +444,7 @@ func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, er
 	}
 
 	return dsref.Ref{
-		Username: book.AuthorName(),
+		Username: book.Username(),
 		Name:     name,
 		InitID:   initID,
 	}, nil
@@ -458,7 +458,7 @@ func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref,
 	}
 
 	ds := &dataset.Dataset{
-		Peername: book.AuthorName(),
+		Peername: book.Username(),
 		Name:     name,
 		Commit: &dataset.Commit{
 			Timestamp: time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC),
@@ -487,7 +487,7 @@ func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref,
 	}
 
 	return dsref.Ref{
-		Username: book.AuthorName(),
+		Username: book.Username(),
 		Name:     name,
 		InitID:   initID,
 	}, nil
