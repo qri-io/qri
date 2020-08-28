@@ -210,7 +210,7 @@ func GenerateExampleOplog(ctx context.Context, journal *logbook.Book, dsname, he
 		return "", nil, err
 	}
 
-	username := journal.AuthorName()
+	username := journal.Username()
 	err = journal.WriteVersionSave(ctx, initID, &dataset.Dataset{
 		Peername: username,
 		Name:     dsname,

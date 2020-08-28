@@ -26,6 +26,7 @@ require (
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
 	github.com/libp2p/go-libp2p-core v0.5.7
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
+	github.com/libp2p/go-libp2p-quic-transport v0.8.0 // indirect
 	github.com/libp2p/go-libp2p-swarm v0.2.6
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2
@@ -53,7 +54,7 @@ require (
 	github.com/ugorji/go/codec v1.1.7
 	go.starlark.net v0.0.0-20200619143648-50ca820fafb9
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20200625001655-4c5254603344
+	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 	golang.org/x/text v0.3.3
 	gonum.org/v1/gonum v0.7.0

@@ -567,11 +567,11 @@ func TestLogID(t *testing.T) {
 }
 
 type testRunner struct {
-	Ctx        context.Context
-	AuthorName string
-	PrivKey    crypto.PrivKey
-	Journal    *Journal
-	gen        *opGenerator
+	Ctx      context.Context
+	Username string
+	PrivKey  crypto.PrivKey
+	Journal  *Journal
+	gen      *opGenerator
 }
 
 type testFailer interface {
@@ -585,11 +585,11 @@ func newTestRunner(t testFailer) (tr testRunner, cleanup func()) {
 	pk := testPrivKey(t)
 
 	tr = testRunner{
-		Ctx:        ctx,
-		AuthorName: authorName,
-		PrivKey:    pk,
-		Journal:    &Journal{},
-		gen:        &opGenerator{ctx: ctx, NoopProb: 60},
+		Ctx:      ctx,
+		Username: authorName,
+		PrivKey:  pk,
+		Journal:  &Journal{},
+		gen:      &opGenerator{ctx: ctx, NoopProb: 60},
 	}
 	cleanup = func() {
 		// noop

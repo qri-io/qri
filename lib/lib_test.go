@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/access"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
@@ -24,6 +25,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
+	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	repotest "github.com/qri-io/qri/repo/test"
@@ -288,5 +290,83 @@ func TestInstanceEventSubscription(t *testing.T) {
 		}
 	case <-ctx.Done():
 		t.Error("expected event before context deadline, got none")
+	}
+}
+
+func TestNewInstanceWithAccessControlPolicy(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tempDir, err := ioutil.TempDir("", "TestNewInstanceWithAccessControlPolicy")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	qriPath := filepath.Join(tempDir, "qri")
+	ipfsPath := filepath.Join(qriPath, "ipfs")
+	t.Logf(tempDir)
+
+	testCrypto := repotest.NewTestCrypto()
+	if err = testCrypto.GenerateEmptyIpfsRepo(ipfsPath, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := config.DefaultConfigForTesting()
+	cfg.Filesystems = []qfs.Config{
+		{Type: "ipfs", Config: map[string]interface{}{"path": ipfsPath}},
+		{Type: "local"},
+		{Type: "http"},
+	}
+
+	cfg.Remote = &config.Remote{
+		Enabled: true,
+	}
+
+	proID := profile.ID("foo")
+	acpPath := filepath.Join(qriPath, access.DefaultAccessControlPolicyFilename)
+	acp := []byte(`
+	[
+		{
+			"title": "pull foo:bar dataset",
+			"effect": "allow",
+			"subject": "` + proID.String() + `",
+			"resources": [
+				"dataset:foo:bar"
+			],
+			"actions": [
+				"remote:pull"
+			]
+		}
+	]
+`)
+
+	if err := ioutil.WriteFile(acpPath, acp, 0644); err != nil {
+		t.Fatalf("error writing access control policy: %s", err)
+	}
+
+	got, err := NewInstance(
+		ctx,
+		qriPath,
+		OptConfig(cfg),
+		OptRemoteOptions(
+			[]remote.OptionsFunc{
+				remote.OptLoadPolicyFileIfExists(acpPath),
+			}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p := got.remote.Policy()
+	if p == nil {
+		t.Fatal("expected remote policy to exist, got nil")
+	}
+
+	if err != nil {
+		t.Fatal("error creating profileID:", err)
+	}
+	if err := p.Enforce(&profile.Profile{ID: proID, Peername: "foo"}, "dataset:foo:bar", "remote:pull"); err != nil {
+		t.Errorf("expected no policy enforce error, got: %s", err)
 	}
 }

@@ -50,13 +50,16 @@ func (c *p2pClient) addr() string {
 	return c.remotePeerID.Pretty()
 }
 
-func (c *p2pClient) put(ctx context.Context, author identity.Author, r io.Reader) (err error) {
+func (c *p2pClient) put(ctx context.Context, author identity.Author, ref dsref.Ref, r io.Reader) (err error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
 	}
 
-	headers := []string{"phase", "request"}
+	headers := []string{
+		"phase", "request",
+		"ref", ref.String(),
+	}
 	headers, err = addAuthorP2PHeaders(headers, author)
 	if err != nil {
 		return err
@@ -109,7 +112,7 @@ func addAuthorP2PHeaders(h []string, author identity.Author) ([]string, error) {
 	}
 	pubKey := base64.StdEncoding.EncodeToString(pkb)
 
-	return append(h, "author_id", author.AuthorID(), "pub_key", pubKey), nil
+	return append(h, "author_id", author.AuthorID(), "pub_key", pubKey, "author_username", author.Username()), nil
 }
 
 func authorFromP2PHeaders(msg p2putil.Message) (identity.Author, error) {
@@ -123,7 +126,7 @@ func authorFromP2PHeaders(msg p2putil.Message) (identity.Author, error) {
 		return nil, fmt.Errorf("decoding public key: %s", err)
 	}
 
-	return identity.NewAuthor(msg.Header("author_id"), pub), nil
+	return identity.NewAuthor(msg.Header("author_id"), pub, msg.Header("author_username")), nil
 }
 
 // p2pHandler implements logsync as a libp2p protocol handler
@@ -162,7 +165,12 @@ func (c *p2pHandler) HandlePut(ws *p2putil.WrappedStream, msg p2putil.Message) (
 			return true
 		}
 
-		if err = c.logsync.put(ctx, author, bytes.NewReader(msg.Body)); err != nil {
+		ref, err := dsref.Parse(msg.Header("ref"))
+		if err != nil {
+			return true
+		}
+
+		if err = c.logsync.put(ctx, author, ref, bytes.NewReader(msg.Body)); err != nil {
 			return true
 		}
 

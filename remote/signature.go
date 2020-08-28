@@ -15,7 +15,7 @@ var (
 	nowFunc = time.Now
 )
 
-func sigParams(pk crypto.PrivKey, ref dsref.Ref) (map[string]string, error) {
+func sigParams(pk crypto.PrivKey, subjectUsername string, ref dsref.Ref) (map[string]string, error) {
 	pid, err := calcProfileID(pk)
 	if err != nil {
 		return nil, err
@@ -35,9 +35,12 @@ func sigParams(pk crypto.PrivKey, ref dsref.Ref) (map[string]string, error) {
 		"profileID": ref.ProfileID,
 		"path":      ref.Path,
 
-		"pid":       pid,
-		"timestamp": now,
-		"signature": b64Sig,
+		"pid": pid,
+		// subject_username is the client node's username, will be used
+		// on the remote side to determine access control
+		"subject_username": subjectUsername,
+		"timestamp":        now,
+		"signature":        b64Sig,
 	}, nil
 }
 
@@ -62,6 +65,10 @@ func VerifySigParams(pubkey crypto.PubKey, params map[string]string) (bool, erro
 	signature, ok := params["signature"]
 	if !ok {
 		return false, fmt.Errorf("params need key 'signature'")
+	}
+	_, ok = params["subject_username"]
+	if !ok {
+		return false, fmt.Errorf("params need key 'subject_username'")
 	}
 
 	sigBytes, err := base64.StdEncoding.DecodeString(signature)

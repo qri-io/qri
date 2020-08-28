@@ -30,9 +30,9 @@ func (c *httpClient) addr() string {
 	return c.URL
 }
 
-func (c *httpClient) put(ctx context.Context, author identity.Author, r io.Reader) error {
+func (c *httpClient) put(ctx context.Context, author identity.Author, ref dsref.Ref, r io.Reader) error {
 	log.Debug("httpClient.put")
-	req, err := http.NewRequest("PUT", c.URL, r)
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s?ref=%s", c.URL, ref), r)
 	if err != nil {
 		return err
 	}
@@ -116,6 +116,7 @@ func (c *httpClient) del(ctx context.Context, author identity.Author, ref dsref.
 
 func addAuthorHTTPHeaders(h http.Header, author identity.Author) error {
 	h.Set("ID", author.AuthorID())
+	h.Set("username", author.Username())
 
 	pubByteStr, err := author.AuthorPubKey().Bytes()
 	if err != nil {
@@ -136,7 +137,7 @@ func senderFromHTTPHeaders(h http.Header) (identity.Author, error) {
 		return nil, fmt.Errorf("decoding public key: %s", err)
 	}
 
-	return identity.NewAuthor(h.Get("ID"), pub), nil
+	return identity.NewAuthor(h.Get("ID"), pub, h.Get("username")), nil
 }
 
 // HTTPHandler exposes a Dsync remote over HTTP by exposing a HTTP handler
@@ -153,7 +154,14 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 
 		switch r.Method {
 		case "PUT":
-			if err := lsync.put(r.Context(), sender, r.Body); err != nil {
+			ref, err := dsref.Parse(r.FormValue("ref"))
+			if err != nil {
+				log.Debugf("PUT dsref.Parse error=%q", err)
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(err.Error()))
+				return
+			}
+			if err := lsync.put(r.Context(), sender, ref, r.Body); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(err.Error()))
 				return

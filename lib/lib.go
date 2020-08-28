@@ -80,7 +80,7 @@ type InstanceOptions struct {
 
 	remoteMockClient bool
 	// use OptRemoteOptions to set this
-	remoteOptsFunc func(*remote.Options)
+	remoteOptsFuncs []remote.OptionsFunc
 
 	eventHandler event.Handler
 	events       []event.Type
@@ -217,9 +217,9 @@ func OptSetLogAll(logAll bool) Option {
 // OptRemoteOptions provides options to the instance remote
 // the provided configuration function is called with the Qri configuration-derived
 // remote settings applied, allowing partial-overrides.
-func OptRemoteOptions(fn func(opt *remote.Options)) Option {
+func OptRemoteOptions(fns []remote.OptionsFunc) Option {
 	return func(o *InstanceOptions) error {
-		o.remoteOptsFunc = fn
+		o.remoteOptsFuncs = fns
 		return nil
 	}
 }
@@ -502,8 +502,8 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 
 		if cfg.Remote != nil && cfg.Remote.Enabled {
-			if o.remoteOptsFunc == nil {
-				o.remoteOptsFunc = func(*remote.Options) {}
+			if o.remoteOptsFuncs == nil {
+				o.remoteOptsFuncs = []remote.OptionsFunc{}
 			}
 
 			localResolver, resolverErr := inst.resolverForMode("local")
@@ -511,14 +511,14 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 				return nil, resolverErr
 			}
 
-			if inst.remote, err = remote.NewRemote(inst.node, cfg.Remote, localResolver, o.remoteOptsFunc); err != nil {
+			if inst.remote, err = remote.NewRemote(inst.node, cfg.Remote, localResolver, o.remoteOptsFuncs...); err != nil {
 				log.Error("intializing remote:", err.Error())
 				return
 			}
 			// TODO (ramfox): we need to preserve these options
 			// for if we need to re initalize the remote & don't have access
 			// to those options again (this happens in the `GoOnline` func below)
-			inst.remoteOptsFunc = o.remoteOptsFunc
+			inst.remoteOptsFuncs = o.remoteOptsFuncs
 		}
 	}
 
@@ -664,20 +664,20 @@ type Instance struct {
 	repoPath string
 	cfg      *config.Config
 
-	streams        ioes.IOStreams
-	repo           repo.Repo
-	node           *p2p.QriNode
-	qfs            *muxfs.Mux
-	fsi            *fsi.FSI
-	remote         *remote.Remote
-	remoteClient   remote.Client
-	registry       *regclient.Client
-	stats          *stats.Stats
-	logbook        *logbook.Book
-	dscache        *dscache.Dscache
-	bus            event.Bus
-	watcher        *watchfs.FilesysWatcher
-	remoteOptsFunc func(*remote.Options)
+	streams         ioes.IOStreams
+	repo            repo.Repo
+	node            *p2p.QriNode
+	qfs             *muxfs.Mux
+	fsi             *fsi.FSI
+	remote          *remote.Remote
+	remoteClient    remote.Client
+	registry        *regclient.Client
+	stats           *stats.Stats
+	logbook         *logbook.Book
+	dscache         *dscache.Dscache
+	bus             event.Bus
+	watcher         *watchfs.FilesysWatcher
+	remoteOptsFuncs []remote.OptionsFunc
 
 	rpc *rpc.Client
 
@@ -722,7 +722,7 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 		if err != nil {
 			return err
 		}
-		if inst.remote, err = remote.NewRemote(inst.node, inst.cfg.Remote, localResolver, inst.remoteOptsFunc); err != nil {
+		if inst.remote, err = remote.NewRemote(inst.node, inst.cfg.Remote, localResolver, inst.remoteOptsFuncs...); err != nil {
 			log.Debugf("remote.NewRemote error=%q", err)
 			return err
 		}

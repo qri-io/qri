@@ -27,6 +27,7 @@ import (
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/version"
 )
@@ -80,6 +81,7 @@ type Client interface {
 
 // client talks to a remote in order to sync peer data
 type client struct {
+	profile *profile.Profile
 	pk      crypto.PrivKey
 	ds      *dsync.Dsync
 	logsync *logsync.Logsync
@@ -128,8 +130,14 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 		})
 	}
 
+	pro, err := node.Repo.Profile()
+	if err != nil {
+		log.Debug("cannot get profile from repo, need username for access control on the remote to function")
+	}
+
 	cli := &client{
 		pk:      node.Repo.PrivateKey(),
+		profile: pro,
 		ds:      ds,
 		logsync: ls,
 		capi:    capi,
@@ -431,7 +439,7 @@ func (c *client) pushDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAd
 		return err
 	}
 
-	params, err := sigParams(c.pk, ref)
+	params, err := sigParams(c.pk, c.profile.Peername, ref)
 	if err != nil {
 		return err
 	}
@@ -563,7 +571,7 @@ func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteA
 		}
 	}
 
-	params, err := sigParams(c.pk, *ref)
+	params, err := sigParams(c.pk, c.profile.Peername, *ref)
 	if err != nil {
 		log.Debugf("generating sig params error=%q ", err)
 		return err
@@ -652,7 +660,7 @@ func (c *client) RemoveDatasetVersion(ctx context.Context, ref dsref.Ref, remote
 		return ErrNoRemoteClient
 	}
 
-	params, err := sigParams(c.pk, ref)
+	params, err := sigParams(c.pk, c.profile.Peername, ref)
 	if err != nil {
 		return err
 	}

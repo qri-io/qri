@@ -775,8 +775,8 @@ func TestRenameAuthor(t *testing.T) {
 		t.Fatalf("error renaming author: %s", err)
 	}
 
-	if rename != tr.Book.AuthorName() {
-		t.Errorf("authorname mismatch. expected: %s, got: %s", rename, tr.Book.AuthorName())
+	if rename != tr.Book.Username() {
+		t.Errorf("authorname mismatch. expected: %s, got: %s", rename, tr.Book.Username())
 	}
 
 	// fetching dataset for original author should NOT work
@@ -1111,11 +1111,11 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T, initID string) {
 }
 
 func (tr *testRunner) RenameInitialRef() dsref.Ref {
-	return dsref.Ref{Username: tr.Book.AuthorName(), Name: "dataset", InitID: tr.renameInitID}
+	return dsref.Ref{Username: tr.Book.Username(), Name: "dataset", InitID: tr.renameInitID}
 }
 
 func (tr *testRunner) RenameRef() dsref.Ref {
-	return dsref.Ref{Username: tr.Book.AuthorName(), Name: "renamed_dataset", InitID: tr.renameInitID}
+	return dsref.Ref{Username: tr.Book.Username(), Name: "renamed_dataset", InitID: tr.renameInitID}
 }
 
 func (tr *testRunner) WriteRenameExample(t *testing.T) {
@@ -1272,7 +1272,7 @@ func GenerateExampleOplog(ctx context.Context, t *testing.T, journal *logbook.Bo
 		t.Fatal(err)
 	}
 
-	username := journal.AuthorName()
+	username := journal.Username()
 	err = journal.WriteVersionSave(ctx, initID, &dataset.Dataset{
 		Peername: username,
 		Name:     dsname,

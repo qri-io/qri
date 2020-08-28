@@ -189,7 +189,7 @@ func (lsync *Logsync) remoteClient(ctx context.Context, remoteAddr string) (rem 
 // client protocol
 type remote interface {
 	addr() string
-	put(ctx context.Context, author identity.Author, r io.Reader) error
+	put(ctx context.Context, author identity.Author, ref dsref.Ref, r io.Reader) error
 	get(ctx context.Context, author identity.Author, ref dsref.Ref) (sender identity.Author, data io.Reader, err error)
 	del(ctx context.Context, author identity.Author, ref dsref.Ref) error
 }
@@ -202,13 +202,13 @@ func (lsync *Logsync) addr() string {
 	panic("cannot get the address of logsync itself")
 }
 
-func (lsync *Logsync) put(ctx context.Context, author identity.Author, r io.Reader) error {
+func (lsync *Logsync) put(ctx context.Context, author identity.Author, ref dsref.Ref, r io.Reader) error {
 	if lsync == nil {
 		return ErrNoLogsync
 	}
 
 	if lsync.pushPreCheck != nil {
-		if err := lsync.pushPreCheck(ctx, author, dsref.Ref{}, nil); err != nil {
+		if err := lsync.pushPreCheck(ctx, author, ref, nil); err != nil {
 			return err
 		}
 	}
@@ -226,7 +226,7 @@ func (lsync *Logsync) put(ctx context.Context, author identity.Author, r io.Read
 		return err
 	}
 
-	ref, err := logbook.DsrefAliasForLog(lg)
+	ref, err = logbook.DsrefAliasForLog(lg)
 	if err != nil {
 		return err
 	}
@@ -359,7 +359,7 @@ func (p *Push) Do(ctx context.Context) error {
 	}
 
 	buf := bytes.NewBuffer(data)
-	err = p.remote.put(ctx, p.book.Author(), buf)
+	err = p.remote.put(ctx, p.book.Author(), p.ref, buf)
 	if err != nil {
 		if rollbackErr := rollback(ctx); rollbackErr != nil {
 			log.Errorf("rolling back dataset log: %q", rollbackErr)
