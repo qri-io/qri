@@ -35,9 +35,9 @@ var log = golog.Logger("remote")
 // hook contexts may be populated with request parameters
 type Hook func(ctx context.Context, pid profile.ID, ref dsref.Ref) error
 
-// RemoteOptionsFunc adjusts the behavior of the a remote when passed to
+// OptionsFunc adjusts the behavior of the a remote when passed to
 // NewRemote
-type RemoteOptionsFunc func(o *Options)
+type OptionsFunc func(o *Options)
 
 // Options encapsulates runtime configuration for a remote
 type Options struct {
@@ -119,7 +119,7 @@ type Remote struct {
 }
 
 // OptPolicy adds a policy to the remote options
-func OptPolicy(p *access.Policy) RemoteOptionsFunc {
+func OptPolicy(p *access.Policy) OptionsFunc {
 	return func(o *Options) {
 		o.Policy = p
 	}
@@ -127,7 +127,7 @@ func OptPolicy(p *access.Policy) RemoteOptionsFunc {
 
 // OptLoadPolicyFileIfExists checks for a policy at the given path and populates
 // the remote.Options.Policy if so
-func OptLoadPolicyFileIfExists(filename string) RemoteOptionsFunc {
+func OptLoadPolicyFileIfExists(filename string) OptionsFunc {
 	return func(o *Options) {
 		_, err := os.Stat(filename)
 		if os.IsNotExist(err) {
@@ -148,7 +148,7 @@ func OptLoadPolicyFileIfExists(filename string) RemoteOptionsFunc {
 }
 
 // NewRemote creates a remote
-func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolver, opts ...RemoteOptionsFunc) (*Remote, error) {
+func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolver, opts ...OptionsFunc) (*Remote, error) {
 	log.Debugf("NewRemote cfg=%v len(opts)=%d", cfg, len(opts))
 	o := &Options{}
 	for _, opt := range opts {
@@ -245,6 +245,14 @@ func (r *Remote) Node() *p2p.QriNode {
 		return nil
 	}
 	return r.node
+}
+
+// Policy exposes this remote's access control policy
+func (r *Remote) Policy() *access.Policy {
+	if r == nil {
+		return nil
+	}
+	return r.policy
 }
 
 // Address extracts the address of a remote from a configuration for a given

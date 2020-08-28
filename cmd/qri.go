@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"net/rpc"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/access"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo/gen"
 	"github.com/spf13/cobra"
 )
@@ -129,6 +132,10 @@ func (o *QriOptions) Init() (err error) {
 		lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
 		lib.OptCheckConfigMigrations(o.migrationApproval, (!o.Migrate && !o.NoPrompt)),
 		lib.OptSetLogAll(o.LogAll),
+		lib.OptRemoteOptions([]remote.OptionsFunc{
+			// look for a remote policy
+			remote.OptLoadPolicyFileIfExists(filepath.Join(o.repoPath, access.DefaultAccessControlPolicyFilename)),
+		}),
 	}
 
 	o.inst, err = lib.NewInstance(o.ctx, o.repoPath, opts...)

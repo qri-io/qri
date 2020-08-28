@@ -423,7 +423,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	return tr, cleanup
 }
 
-func (tr *testRunner) NodeARemote(t *testing.T, opts ...RemoteOptionsFunc) *Remote {
+func (tr *testRunner) NodeARemote(t *testing.T, opts ...OptionsFunc) *Remote {
 	aCfg := &config.Remote{
 		Enabled:       true,
 		AllowRemoves:  true,

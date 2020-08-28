@@ -20,6 +20,9 @@ var (
 	// ErrAccessDenied is returned by policy enforce
 	ErrAccessDenied = fmt.Errorf("access denied")
 	log             = golog.Logger("access")
+	// DefaultAccessControlPolicyFilename is the file name for the policy
+	// expected file is format yaml
+	DefaultAccessControlPolicyFilename = "access_control_policy.yaml"
 )
 
 // Effect is the set of outcomes a rule can have
