@@ -97,7 +97,7 @@ The following packages are not under Qri, but are important dependencies, so we 
 
 | Package | Version |
 |--------|-------|
-| `ipfs` | [![ipfs version](https://img.shields.io/badge/ipfs-v0.4.22-blue.svg)](https://github.com/ipfs/go-ipfs/) |
+| `ipfs` | [![ipfs version](https://img.shields.io/badge/ipfs-v0.6.0-blue.svg)](https://github.com/ipfs/go-ipfs/) |
 
 <a id="build"></a>
 ## Building From Source
