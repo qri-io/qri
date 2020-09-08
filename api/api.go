@@ -9,8 +9,8 @@ import (
 	"time"
 
 	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/apiutil"
 	"github.com/qri-io/qfs/cafs"
+	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/version"
 )

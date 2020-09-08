@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
