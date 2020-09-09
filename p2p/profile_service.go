@@ -225,11 +225,11 @@ func (q *QriProfileService) profileRequest(ctx context.Context, pid peer.ID, sig
 			if err != nil {
 				log.Debugf("error getting profile from profile store: %s", err)
 			}
-			go func() {
+			go func(pro *profile.Profile) {
 				if err := q.pub.Publish(ctx, event.ETP2PQriPeerConnected, pro); err != nil {
 					log.Debugf("error publishing ETP2PQriPeerConnected event. pid=%q err=%q", pid, err)
 				}
-			}()
+			}(pro)
 		}
 	}()
 

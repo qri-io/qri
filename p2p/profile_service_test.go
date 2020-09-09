@@ -86,8 +86,8 @@ func TestQriProfileService(t *testing.T) {
 			return fmt.Errorf("payload for event.ETP2PQriPeerConnected not a *profile.Profile as expected")
 		}
 		if pro == nil {
-			t.Error("error: event payload is a nil profile")
-			return fmt.Errorf("err: event payload is a nil profile")
+			t.Errorf("%q event payload is a nil profile", typ)
+			return fmt.Errorf("event payload is a nil profile")
 		}
 		pid := pro.PeerIDs[0]
 		expectedPeer := false
