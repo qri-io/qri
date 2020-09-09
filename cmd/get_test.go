@@ -367,3 +367,29 @@ func TestGetDatasetCheckedOutUsingDscache(t *testing.T) {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 }
+
+func TestGetRemoteDataset(t *testing.T) {
+	run := NewTestRunnerWithMockRemoteClient(t, "test_peer_pull_and_list", "pull_and_list")
+	defer run.Delete()
+
+	expect := "cannot use '--offline' and '--remote' flags together"
+	err := run.ExecCommand("qri get --remote=registry --offline other_peer/their_dataset")
+	if expect != err.Error() {
+		t.Errorf("response mismatch\nwant: %q\n got: %q", expect, err)
+	}
+
+	expect = "reference not found"
+	err = run.ExecCommand("qri get --offline other_peer/their_dataset")
+	if expect != err.Error() {
+		t.Errorf("response mismatch\nwant: %q\n got: %q", expect, err)
+	}
+
+	// TODO (b5) - this fails at the moment with:
+	// error loading dataset: error getting file bytes: invalid path "/ipfs//dataset.json": not enough path components
+	// need to fix
+	// expect = ""
+	// out := run.MustExec(t, "qri get --remote=registry other_peer/their_dataset")
+	// if expect != out {
+	// 	t.Errorf("response mismatch\nwant: %q\n got: %q", expect, out)
+	// }
+}
