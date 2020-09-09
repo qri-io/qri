@@ -19,6 +19,21 @@ func TestPrepropcess(t *testing.T) {
 			},
 		},
 		{
+			"select foo from b5/country_codes",
+			"select ds.foo from b5_country_codes ds",
+			map[string]string{
+				"b5_country_codes": "b5/country_codes",
+			},
+		},
+		{
+			"select * from b5/country_codes, b5/world_bank_population",
+			"select * from b5_country_codes ds, b5_world_bank_population ds2",
+			map[string]string{
+				"b5_country_codes":         "b5/country_codes",
+				"b5_world_bank_population": "b5/world_bank_population",
+			},
+		},
+		{
 			"select * from b5/covid_19_confirmed c limit 1",
 			"select * from b5_covid_19_confirmed c limit 1",
 			map[string]string{
@@ -27,7 +42,7 @@ func TestPrepropcess(t *testing.T) {
 		},
 		{
 			"select 'from' from b5/country_codes@/ipfs/QmFoo as t1",
-			"select 'from' from b5_country_codes_at__ipfs_QmFoo as t1",
+			"select t1.from from b5_country_codes_at__ipfs_QmFoo as t1",
 			map[string]string{
 				"b5_country_codes_at__ipfs_QmFoo": "b5/country_codes@/ipfs/QmFoo",
 			},
@@ -78,6 +93,15 @@ func TestPrepropcess(t *testing.T) {
 			},
 		},
 		{
+			"SELECT 1 FROM (SELECT 2 FROM (SELECT 3 FROM foo/dataset), peer/dataset b) AS c, b5/world_bank_population",
+			"SELECT 1 FROM (SELECT 2 FROM (SELECT 3 FROM foo_dataset ds) ds2, peer_dataset b) AS c, b5_world_bank_population ds3",
+			map[string]string{
+				"foo_dataset":              "foo/dataset",
+				"peer_dataset":             "peer/dataset",
+				"b5_world_bank_population": "b5/world_bank_population",
+			},
+		},
+		{
 			`SELECT 'c.province/state', 'c.country/region', 'c.lat', 'c.long', 'c.3/12/20' FROM b5/covid_19_confirmed as c`,
 			`SELECT 'c.province/state', 'c.country/region', 'c.lat', 'c.long', 'c.3/12/20' FROM b5_covid_19_confirmed as c`,
 			map[string]string{
@@ -85,12 +109,12 @@ func TestPrepropcess(t *testing.T) {
 			},
 		},
 		{
-			`SELECT 'confirmed' as 'type', 'c.province/state', 'c.country/region', 'c.lat', 'c.long', 'c.3/12/20' FROM b5/covid_19_confirmed as c
+			`SELECT 'c.confirmed' as 'type', 'c.province/state', 'c.country/region', 'c.lat', 'c.long', 'c.3/12/20' FROM b5/covid_19_confirmed as c
 			 UNION
-			 SELECT 'recovered' as 'type', 'r.province/state', 'r.country/region', 'r.lat', 'r.long', 'c.3/12/20' FROM b5/covid_19_recovered as r`,
-			`SELECT 'confirmed' as 'type', 'c.province/state', 'c.country/region', 'c.lat', 'c.long', 'c.3/12/20' FROM b5_covid_19_confirmed as c
+			 SELECT 'r.recovered' as 'type', 'r.province/state', 'r.country/region', 'r.lat', 'r.long', 'c.3/12/20' FROM b5/covid_19_recovered as r`,
+			`SELECT 'c.confirmed' as 'type', 'c.province/state', 'c.country/region', 'c.lat', 'c.long', 'c.3/12/20' FROM b5_covid_19_confirmed as c
 			 UNION
-			 SELECT 'recovered' as 'type', 'r.province/state', 'r.country/region', 'r.lat', 'r.long', 'c.3/12/20' FROM b5_covid_19_recovered as r`,
+			 SELECT 'r.recovered' as 'type', 'r.province/state', 'r.country/region', 'r.lat', 'r.long', 'c.3/12/20' FROM b5_covid_19_recovered as r`,
 			map[string]string{
 				"b5_covid_19_confirmed": "b5/covid_19_confirmed",
 				"b5_covid_19_recovered": "b5/covid_19_recovered",
@@ -121,8 +145,8 @@ func TestPreprocessErrors(t *testing.T) {
 		input, err string
 	}{
 		{
-			"SELECT * FROM foo,,",
-			"alias is required for reference 'foo'",
+			"SELECT * FROM foo b, bar b",
+			`duplicate reference alias 'b'`,
 		},
 		{
 			"SELECT * FROM foo b,,",
