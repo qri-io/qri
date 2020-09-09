@@ -268,6 +268,10 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 	h.replyWithGetResponse(w, r, params, result, args)
 }
 
+// replyWithGetResponse writes an http response back to the client, based upon what sort of
+// response they requested. Handles raw file downloads (without response wrappers), zip downloads,
+// body pagination, as well as normal head responses. Input logic has already been handled
+// before this function, so errors should not commonly happen.
 func (h *DatasetHandlers) replyWithGetResponse(w http.ResponseWriter, r *http.Request, params *lib.GetParams, result *lib.GetResult, args *GetReqArgs) {
 
 	// Convert components with scriptPaths (transform, readme, viz) in scriptBytes
@@ -584,7 +588,7 @@ type DataResponse struct {
 	Data json.RawMessage `json:"data"`
 }
 
-// GetReqArgs ...
+// GetReqArgs is the result of parsing parameters and other control options from the http request
 type GetReqArgs struct {
 	Params      lib.GetParams
 	Ref         dsref.Ref
