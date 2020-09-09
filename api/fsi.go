@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"

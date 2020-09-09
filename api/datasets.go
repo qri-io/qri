@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
@@ -223,60 +223,113 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, "/get/")
-	ref, err := dsref.Parse(HTTPPathToQriPath(path))
+	reqPath := strings.TrimPrefix(r.URL.Path, "/get/")
+	args, err := parseGetReqArgs(r, reqPath)
 	if err != nil {
+		util.RespondWithError(w, err)
+		return
+	}
+
+	params := &args.Params
+	result := &lib.GetResult{}
+	err = h.Get(params, result)
+	if err != nil {
+		util.RespondWithError(w, err)
+		return
+	}
+
+	h.replyWithGetResponse(w, r, params, result, args)
+}
+
+func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
+	reqPath := strings.TrimPrefix(r.URL.Path, "/body/")
+	args, err := parseGetReqArgs(r, reqPath)
+	if err != nil {
+		util.RespondWithError(w, err)
+		return
+	}
+
+	params := &args.Params
+	// When using the old /body endpoint, it's invalid to specify a different component
+	if params.Selector != "" && params.Selector != "body" {
+		err := fmt.Errorf("cannot specify component %q for /body", params.Selector)
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
+	params.Selector = "body"
 
-	if ref.Username == "me" {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("username \"me\" not allowed"))
-		return
-	}
-
-	format := r.FormValue("format")
-	selector := r.FormValue("component")
-	p := lib.GetParams{
-		Refstr:   ref.String(),
-		Format:   format,
-		Selector: selector,
-	}
-	res := lib.GetResult{}
-	err = h.Get(&p, &res)
+	result := &lib.GetResult{}
+	err = h.Get(params, result)
 	if err != nil {
-		if err == repo.ErrNoHistory {
-			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
-			return
-		}
+		util.RespondWithError(w, err)
+		return
+	}
+
+	h.replyWithGetResponse(w, r, params, result, args)
+}
+
+// replyWithGetResponse writes an http response back to the client, based upon what sort of
+// response they requested. Handles raw file downloads (without response wrappers), zip downloads,
+// body pagination, as well as normal head responses. Input logic has already been handled
+// before this function, so errors should not commonly happen.
+func (h *DatasetHandlers) replyWithGetResponse(w http.ResponseWriter, r *http.Request, params *lib.GetParams, result *lib.GetResult, args *GetReqArgs) {
+
+	// Convert components with scriptPaths (transform, readme, viz) in scriptBytes
+	if err := inlineScriptsToBytes(result.Dataset); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	if err := inlineScriptsToBytes(res.Dataset); err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
+	resultFormat := params.Format
+	if resultFormat == "" {
+		resultFormat = result.Dataset.Structure.Format
 	}
 
-	// Handle getting a zip file as binary data
-	if format == "zip" {
-		zipFilename := fmt.Sprintf("%s.zip", ref.Name)
+	// Format zip returns zip file without a json wrapper
+	if resultFormat == "zip" {
+		zipFilename := fmt.Sprintf("%s.zip", args.Ref.Name)
 		w.Header().Set("Content-Type", extensionToMimeType(".zip"))
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", zipFilename))
-		w.Write(res.Bytes)
+		w.Write(result.Bytes)
+		return
+	}
+
+	// RawDownload is true if download=true or the "Accept: text/csv" header is set
+	if args.RawDownload {
+		filename, err := archive.GenerateFilename(result.Dataset, resultFormat)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		w.Header().Set("Content-Type", extensionToMimeType("."+resultFormat))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+		w.Write(result.Bytes)
+		return
+	}
+
+	if params.Selector == "body" {
+		page := util.PageFromRequest(r)
+		dataResponse := DataResponse{
+			Path: result.Dataset.BodyPath,
+			Data: json.RawMessage(result.Bytes),
+		}
+		if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
+			log.Infof("error writing response: %s", err.Error())
+		}
 		return
 	}
 
 	// TODO (b5) - remove this. res.Ref should be used instead
 	datasetRef := reporef.DatasetRef{
-		Peername:  res.Dataset.Peername,
-		ProfileID: profile.IDB58DecodeOrEmpty(res.Dataset.ProfileID),
-		Name:      res.Dataset.Name,
-		Path:      res.Dataset.Path,
-		FSIPath:   res.FSIPath,
-		Published: res.Published,
-		Dataset:   res.Dataset,
+		Peername:  result.Dataset.Peername,
+		ProfileID: profile.IDB58DecodeOrEmpty(result.Dataset.ProfileID),
+		Name:      result.Dataset.Name,
+		Path:      result.Dataset.Path,
+		FSIPath:   result.FSIPath,
+		Published: result.Published,
+		Dataset:   result.Dataset,
 	}
+
 	util.WriteResponse(w, datasetRef)
 }
 
@@ -528,108 +581,93 @@ func loadFileIfPath(path string) (file *os.File, err error) {
 	return os.Open(path)
 }
 
-// DataResponse is the struct used to respond to api requests made to the /data endpoint
+// DataResponse is the struct used to respond to api requests made to the /body endpoint
 // It is necessary because we need to include the 'path' field in the response
 type DataResponse struct {
 	Path string          `json:"path"`
 	Data json.RawMessage `json:"data"`
 }
 
-// getParamsFromRequest creates getParams from a request. It's currently only used for paginating dataset bodies
-func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.GetParams, error) {
-	listParams := lib.ListParamsFromRequest(r)
-	download := r.FormValue("download") == "true"
-	format := "json"
-	if download {
-		format = r.FormValue("format")
-	}
-	if arrayContains(r.Header["Accept"], "text/csv") {
-		format = "csv"
-	}
-	// if download is not set, and format is set, make sure the user knows that
-	// setting format won't do anything
-	if !download && r.FormValue("format") != "" && r.FormValue("format") != "json" {
-		return nil, fmt.Errorf("the format must be json if used without the download parameter")
-	}
-
-	p := &lib.GetParams{
-		Refstr:   path,
-		Format:   format,
-		Selector: "body",
-		Limit:    listParams.Limit,
-		Offset:   listParams.Offset,
-		All:      r.FormValue("all") == "true" && !readOnly,
-	}
-
-	if !readOnly {
-		p.Offset = util.ReqParamInt(r, "offset", 0)
-		p.Limit = util.ReqParamInt(r, "limit", lib.DefaultPageSize)
-		if p.Limit > util.DefaultMaxPageSize {
-			p.Limit = util.DefaultMaxPageSize
-		}
-
-		if p.Limit == -1 && p.Offset == 0 {
-			p.All = true
-		}
-		// if we request all explicitly, or if offset is zero and limit is -1
-		// return all rows
-		p.All = r.FormValue("all") == "true" || (p.Offset == 0 && p.Limit == -1)
-	}
-	return p, nil
+// GetReqArgs is the result of parsing parameters and other control options from the http request
+type GetReqArgs struct {
+	Params      lib.GetParams
+	Ref         dsref.Ref
+	RawDownload bool
 }
 
-func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
-	reqPath := strings.TrimPrefix(r.URL.Path, "/body/")
+// parseGetReqArgs creates getParams from a request
+func parseGetReqArgs(r *http.Request, reqPath string) (*GetReqArgs, error) {
+	hasBodyCsvSuffix := false
+	if strings.HasSuffix(reqPath, "/body.csv") {
+		reqPath = strings.TrimSuffix(reqPath, "/body.csv")
+		hasBodyCsvSuffix = true
+	}
+
 	refStr := HTTPPathToQriPath(reqPath)
-	p, err := getParamsFromRequest(r, h.ReadOnly, refStr)
+	ref, err := dsref.Parse(refStr)
 	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
+		return nil, err
 	}
 
-	result := &lib.GetResult{}
-	if err := h.Get(p, result); err != nil {
-		if err == repo.ErrNoHistory {
-			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
-			return
+	if ref.Username == "me" {
+		return nil, util.NewAPIError(http.StatusBadRequest, "username \"me\" not allowed")
+	}
+
+	// page and pageSize
+	listParams := lib.ListParamsFromRequest(r)
+
+	rawDownload := r.FormValue("download") == "true"
+	format := r.FormValue("format")
+	component := r.FormValue("component")
+
+	getAll := r.FormValue("all") == "true"
+	offset := listParams.Offset
+	limit := listParams.Limit
+	if offset == 0 && limit == -1 {
+		getAll = true
+	}
+
+	// Two ways to specify the client wants to download raw csv file from API
+	if hasBodyCsvSuffix || arrayContains(r.Header["Accept"], "text/csv") {
+		format = "csv"
+		rawDownload = true
+	}
+
+	// API is a json api, so the default format is json
+	if format == "" {
+		format = "json"
+	}
+
+	// Raw download must mean the body
+	if rawDownload {
+		if component != "" && component != "body" {
+			return nil, util.NewAPIError(http.StatusBadRequest, "cannot download component aside from \"body\"")
 		}
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
+		component = "body"
 	}
 
-	justBodyBytes := r.FormValue("download") == "true"
-	if arrayContains(r.Header["Accept"], "text/csv") {
-		justBodyBytes = true
-	}
-	if justBodyBytes {
-		filename, err := archive.GenerateFilename(result.Dataset, p.Format)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
+	// Setting any other format, without it being a raw download, is an error
+	if !rawDownload {
+		if format != "json" && format != "zip" {
+			return nil, util.NewAPIError(http.StatusBadRequest, "only supported formats are \"json\" and \"zip\", unless using download parameter or Accept header is set to \"text/csv\"")
 		}
-		// TODO(dustmop): Fix this. When using ?download=true, p.Format is empty so this
-		// uses an empty string for a mime type. Should be calculating the format by
-		// checking 3 things:
-		// 1) Accept header
-		// 2) p.Format (input parameter)
-		// 3) result.Dataset.Structure.Format
-		// Need tests for each case
-		w.Header().Set("Content-Type", extensionToMimeType("."+p.Format))
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
-		w.Write(result.Bytes)
-		return
 	}
 
-	page := util.PageFromRequest(r)
-	path := result.Dataset.BodyPath
+	params := lib.GetParams{
+		Refstr:   ref.String(),
+		Format:   format,
+		Selector: component,
+		Limit:    listParams.Limit,
+		Offset:   listParams.Offset,
+		All:      getAll,
+	}
+	args := GetReqArgs{
+		Ref:         ref,
+		RawDownload: rawDownload,
+		Params:      params,
+	}
 
-	dataResponse := DataResponse{
-		Path: path,
-		Data: json.RawMessage(result.Bytes),
-	}
-	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
-		log.Infof("error writing response: %s", err.Error())
-	}
+	return &args, nil
 }
 
 func (h DatasetHandlers) statsHandler(w http.ResponseWriter, r *http.Request) {
