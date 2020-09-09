@@ -31,8 +31,12 @@ type API struct {
 	AllowedOrigins []string `json:"allowedorigins"`
 	// whether to allow requests from addresses other than localhost
 	ServeRemoteTraffic bool `json:"serveremotetraffic"`
-	// APIWebsocketAddress specifies the multiaddress to listen for websocket
+	// WebsocketAddress specifies the multiaddress to listen for websocket
 	WebsocketAddress string `json:"websocketaddress"`
+	// DisableWebui when true stops qri from serving the webui when the node is online
+	// TODO (ramfox): when we next have a config migration, we should probably rename this to
+	// EnableWebui and default to true. the double negative here can be confusing.
+	DisableWebui bool `json:"disablewebui"`
 }
 
 // SetArbitrary is an interface implementation of base/fill/struct in order to safely
@@ -71,6 +75,10 @@ func (a API) Validate() error {
         "description": "time in seconds to stop the server after",
         "type": "integer"
       },
+      "disablewebui": {
+        "description": "when true, disables qri from serving the webui when the node is online",
+        "type": "boolean"
+      },
       "allowedorigins": {
         "description": "Support CORS signing from a list of origins",
         "type": "array",
@@ -94,6 +102,7 @@ func DefaultAPI() *API {
 			"http://app.qri.io",
 			"https://app.qri.io",
 		},
+		DisableWebui: false,
 	}
 }
 
@@ -106,6 +115,7 @@ func (a *API) Copy() *API {
 		ReadOnly:           a.ReadOnly,
 		DisconnectAfter:    a.DisconnectAfter,
 		ServeRemoteTraffic: a.ServeRemoteTraffic,
+		DisableWebui:       a.DisableWebui,
 	}
 	if a.AllowedOrigins != nil {
 		res.AllowedOrigins = make([]string, len(a.AllowedOrigins))
