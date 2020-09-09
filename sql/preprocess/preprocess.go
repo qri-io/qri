@@ -2,10 +2,10 @@
 // table references, converting illegal table names to legal SQL in the process.
 //
 // As an example the statemnent:
-// SELECT * FROM illegal/name
+// SELECT * FROM illegal_sql/name
 //
 // will be converted to:
-// SELECT * FROM illegal_name as t1
+// SELECT * FROM illegal_sql_name as ds
 // and return a map keying "illegal_name": "illegal/name"
 //
 // preprocess exists to cover the ways in which Qri deviates from the SQL spec,
@@ -17,6 +17,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -57,16 +58,19 @@ type processor struct {
 	err       error
 }
 
-func (p *processor) newTableName() string {
-	p.autoAliased++
-	return fmt.Sprintf("t%d", p.autoAliased)
-}
-
 func (p *processor) Process() error {
-	return p.processStatement()
+	if err := p.processReferences(); err != nil {
+		return err
+	}
+
+	str := p.processed.String()
+	p.processed = strings.Builder{}
+	p.r = bufio.NewReader(strings.NewReader(str))
+
+	return p.processSelects()
 }
 
-func (p *processor) processStatement() error {
+func (p *processor) processReferences() error {
 	nesting := p.nesting
 
 	for {
@@ -81,7 +85,7 @@ func (p *processor) processStatement() error {
 		case leftParenTok:
 			p.processed.WriteString(tok.Text)
 			p.nesting++
-			if err := p.processStatement(); err != nil {
+			if err := p.processReferences(); err != nil {
 				return err
 			}
 		case rightParenTok:
@@ -127,7 +131,7 @@ func (p *processor) processTableRefs() error {
 
 			case leftParenTok:
 				p.nesting++
-				if err := p.processStatement(); err != nil {
+				if err := p.processReferences(); err != nil {
 					return err
 				}
 			case rightParenTok:
@@ -173,20 +177,106 @@ func (p *processor) processTableRef(text string) error {
 			if _, ok := p.aliases[alias]; ok {
 				return fmt.Errorf("duplicate reference alias '%s'", alias)
 			}
+			p.aliases[alias] = struct{}{}
 			p.processed.WriteString(tok.Text)
 		default:
 			if alias == "" {
-				return fmt.Errorf("alias is required for reference '%s'", text)
+				alias = p.newTableName()
+				p.processed.WriteString(" ")
+				p.processed.WriteString(alias)
 			}
-
 			switch tok.Type {
-			case commaTok, whitespaceTok:
+			case commaTok:
 				p.processed.WriteString(tok.Text)
 			default:
 				p.unscan(tok)
 			}
 			return nil
 		}
+	}
+}
+
+func (p *processor) processSelects() error {
+	for {
+		tok := p.scan()
+		switch tok.Type {
+		case selectTok:
+			p.processed.WriteString(tok.Text)
+			if err := p.processSelectCols(); err != nil {
+				return err
+			}
+		case eofTok:
+			return nil
+		default:
+			p.processed.WriteString(tok.Text)
+		}
+	}
+}
+
+func (p *processor) processSelectCols() error {
+	for {
+		tok := p.scan()
+
+		if tok.IsKeyword() {
+			p.unscan(tok)
+			return nil
+		}
+
+		switch tok.Type {
+		case textTok:
+			if err := p.processColumnReference(tok); err != nil {
+				return err
+			}
+		case eofTok:
+			return nil
+		default:
+			p.processed.WriteString(tok.Text)
+		}
+	}
+}
+
+func (p *processor) processColumnReference(tok token) error {
+
+	if tok.IsNumeric() {
+		p.processed.WriteString(tok.Text)
+		return nil
+	}
+
+	colName := tok.Text
+	switch strings.Count(colName, ".") {
+	case 0:
+		if len(p.aliases) != 1 {
+			return fmt.Errorf("ambiguous column: %q, in statement that references multiple datasets. use aliases to distinguish datasets", colName)
+		}
+		alias := ""
+		for col := range p.aliases {
+			alias = col
+		}
+
+		p.processed.WriteString(fmt.Sprintf("%s.%s", alias, strings.Trim(colName, "'\"")))
+	case 1:
+		// column name contains an alias reference
+		p.processed.WriteString(colName)
+	default:
+		return fmt.Errorf("illegal column reference: %q", colName)
+	}
+	return nil
+}
+
+func (p *processor) newTableName() string {
+	for {
+		p.autoAliased++
+		alias := fmt.Sprintf("ds%d", p.autoAliased)
+		if p.autoAliased == 1 {
+			alias = "ds"
+		}
+
+		if _, ok := p.aliases[alias]; ok {
+			continue
+		}
+
+		p.aliases[alias] = struct{}{}
+		return alias
 	}
 }
 
@@ -253,6 +343,8 @@ func (p *processor) scan() token {
 				return p.newTextualTok()
 			}
 			return t
+		case '*':
+			return token{Type: starTok, Text: "*"}
 		case '\t':
 			return token{Type: whitespaceTok, Text: "\t"}
 		case ' ':
@@ -303,6 +395,8 @@ func (p *processor) newTextualTok() token {
 
 	// identify keywords
 	switch strings.ToLower(t.Text) {
+	case selectTok.String():
+		t.Type = selectTok
 	case asTok.String():
 		t.Type = asTok
 	case byTok.String():
@@ -338,13 +432,26 @@ type token struct {
 	Text string
 }
 
-type position struct {
-	Line, Col int
+func (t token) IsKeyword() bool {
+	return t.Type > keywordBegin && t.Type < keywordEnd
+}
+
+func (t token) IsLiteral() bool {
+	return t.Type > literalBegin && t.Type < literalEnd
+}
+
+func (t token) IsNumeric() bool {
+	_, err := strconv.ParseFloat(t.Text, 64)
+	return err == nil
 }
 
 // String implements the stringer interface for token
 func (t token) String() string {
 	return t.Text
+}
+
+type position struct {
+	Line, Col int
 }
 
 // tokenType enumerates the different types of tokens
@@ -362,11 +469,13 @@ const (
 	commaTok      // a "," character
 	leftParenTok  // "("
 	rightParenTok // ")"
+	starTok       // "*"
 	whitespaceTok // spaces, tabs, newlines
 	quoteTok      // a single quote: '
 	literalEnd    // marks the end of literal tokens in the token enumeration
 
 	keywordBegin // keywordBegin marks the start of SQL keyword tokens in the token enumeration
+	selectTok
 	asTok
 	byTok
 	fromTok
@@ -389,6 +498,10 @@ func (t tokenType) String() string {
 	case whitespaceTok:
 		return "WS"
 
+	case starTok:
+		return "*"
+	case selectTok:
+		return "select"
 	case asTok:
 		return "as"
 	case byTok:
