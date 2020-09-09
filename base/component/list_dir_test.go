@@ -65,6 +65,7 @@ func TestIsKnownFilename(t *testing.T) {
 		{"body csv file", "body.csv"},
 		{"meta json file", "meta.json"},
 		{"readme file", "readme.md"},
+		{"readme file - uppercase", "README.md"},
 		{"transform file", "transform.star"},
 		{"dataset json", "dataset.json"},
 		{"dataset yaml", "dataset.yaml"},

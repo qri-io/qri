@@ -35,7 +35,7 @@ func ListDirectoryComponents(dir string) (Component, error) {
 	// should depend on list order.
 	for _, fi := range finfos {
 		ext := filepath.Ext(fi.Name())
-		componentName := strings.TrimSuffix(fi.Name(), ext)
+		componentName := strings.ToLower(strings.TrimSuffix(fi.Name(), ext))
 		allowedExtensions, ok := knownFilenames[componentName]
 		if !ok {
 			// If a file in this directory is not a known filename, ignore it
@@ -229,7 +229,7 @@ func IsKnownFilename(fullpath string, known map[string][]string) bool {
 	}
 	basename := filepath.Base(fullpath)
 	ext := filepath.Ext(basename)
-	onlybase := basename[:len(basename)-len(ext)]
+	onlybase := strings.ToLower(basename[:len(basename)-len(ext)])
 	allowedExtensions, ok := known[onlybase]
 	if !ok {
 		return false
