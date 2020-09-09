@@ -21,9 +21,7 @@ var (
 	APIVersion = version.String
 )
 
-// LocalHostIP is the IP address for localhost
 const (
-	LocalHostIP = "127.0.0.1"
 	// DefaultTemplateHash is the hash of the default render template
 	DefaultTemplateHash = "/ipfs/QmeqeRTf2Cvkqdx4xUdWi1nJB2TgCyxmemsL3H4f1eTBaw"
 	// TemplateUpdateAddress is the URI for the template update
@@ -219,6 +217,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/get/", s.middleware(dsh.GetHandler))
 	m.Handle("/rename", s.middleware(dsh.RenameHandler))
 	m.Handle("/diff", s.middleware(dsh.DiffHandler))
+	// Deprecated, use /get/username/name?component=body or /get/username/name/body.csv
 	m.Handle("/body/", s.middleware(dsh.BodyHandler))
 	m.Handle("/stats/", s.middleware(dsh.StatsHandler))
 	m.Handle("/unpack/", s.middleware(dsh.UnpackHandler))

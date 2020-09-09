@@ -78,7 +78,7 @@ func Parse(text string) (Ref, error) {
 	} else if err == ErrUnexpectedChar {
 		// This error must only be returned when the topic string is non-empty, so it's safe to
 		// index it at position 0.
-		return r, fmt.Errorf("%s at position %d: '%c'", err, len(text)-len(remain), remain[0])
+		return r, NewParseError("%s at position %d: '%c'", err, len(text)-len(remain), remain[0])
 	} else if err != ErrParseError {
 		return r, err
 	}
@@ -94,7 +94,7 @@ func Parse(text string) (Ref, error) {
 
 	if text != "" {
 		pos := origLength - len(text)
-		return r, fmt.Errorf("unexpected character at position %d: '%c'", pos, text[0])
+		return r, NewParseError("unexpected character at position %d: '%c'", pos, text[0])
 	}
 
 	// Dataset names are not supposed to contain upper-case characters. For now, return an error
@@ -130,7 +130,7 @@ func ParseHumanFriendly(text string) (Ref, error) {
 			return r, ErrNotHumanFriendly
 		}
 		pos := origLength - len(text)
-		return r, fmt.Errorf("unexpected character at position %d: '%c'", pos, text[0])
+		return r, NewParseError("unexpected character at position %d: '%c'", pos, text[0])
 	}
 
 	// Dataset names are not supposed to contain upper-case characters. For now, return an error
@@ -142,6 +142,21 @@ func ParseHumanFriendly(text string) (Ref, error) {
 	}
 
 	return r, nil
+}
+
+// ParseError is an error for when a dataset reference fails to parse
+type ParseError struct {
+	Message string
+}
+
+// Error renders the ParseError as a string
+func (e *ParseError) Error() string {
+	return e.Message
+}
+
+// NewParseError returns a new ParseError, its parameters are a format string and arguments
+func NewParseError(template string, args ...interface{}) error {
+	return &ParseError{Message: fmt.Sprintf(template, args...)}
 }
 
 // MustParse parses a dsref from a string, or panics if it fails
@@ -205,7 +220,7 @@ func parseHumanFriendlyPortion(text string) (string, Ref, error) {
 	text = text[len(match):]
 	// Check if the remaining text is empty, or there's not a slash next
 	if text == "" {
-		return text, r, fmt.Errorf("need username separated by '/' from dataset name")
+		return text, r, NewParseError("need username separated by '/' from dataset name")
 	} else if text[0] != '/' {
 		return text, r, ErrUnexpectedChar
 	}
@@ -213,7 +228,7 @@ func parseHumanFriendlyPortion(text string) (string, Ref, error) {
 	// Parse as many alphaNumeric characters as possible for the dataset name
 	match = validName.FindString(text)
 	if match == "" {
-		return text, r, fmt.Errorf("did not find valid dataset name")
+		return text, r, NewParseError("did not find valid dataset name")
 	}
 	r.Name = match
 	text = text[len(match):]
@@ -228,18 +243,18 @@ func parseConcretePath(text string) (string, Ref, error) {
 		return text, r, ErrParseError
 	}
 	if len(matches) != 4 {
-		return text, r, fmt.Errorf("unexpected number of regex matches %d", len(matches))
+		return text, r, NewParseError("unexpected number of regex matches %d", len(matches))
 	}
 	if matches[2] != "map" && matches[2] != "ipfs" {
-		return text, r, fmt.Errorf("invalid network")
+		return text, r, NewParseError("invalid network")
 	}
 	matchedLen := len(matches[0])
 	if matches[1] != "" && b58StrictCheck.FindString(matches[1]) == "" {
-		return text, r, fmt.Errorf("profileID contains invalid base58 characters")
+		return text, r, NewParseError("profileID contains invalid base58 characters")
 	}
 	r.ProfileID = matches[1]
 	if matches[3] != "" && b58StrictCheck.FindString(matches[3]) == "" {
-		return text, r, fmt.Errorf("path contains invalid base58 characters")
+		return text, r, NewParseError("path contains invalid base58 characters")
 	}
 	r.Path = fmt.Sprintf("/%s/%s", matches[2], matches[3])
 	return text[matchedLen:], r, nil
