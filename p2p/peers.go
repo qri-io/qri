@@ -18,6 +18,8 @@ func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
 	if n.host == nil {
 		return peers
 	}
+	// TODO (ramfox): refactor to rely on `ConnectedQriPeerIDs` & add GetNetworkAddrs
+	// convenience func
 	for _, conn := range n.host.Network().Conns() {
 		if p, err := n.Repo.Profiles().PeerProfile(conn.RemotePeer()); err == nil {
 			if pe, err := p.Encode(); err == nil {

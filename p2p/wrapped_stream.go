@@ -45,19 +45,24 @@ func WrapStream(s net.Stream) *WrappedStream {
 	}
 }
 
-// receiveMessage reads and decodes a message from the stream
-func (ws *WrappedStream) receiveMessage() (msg Message, err error) {
-	err = ws.dec.Decode(&msg)
-	msg.provider = ws.stream.Conn().RemotePeer()
-	log.Debugf("%s '%s' <- %s", ws.stream.Conn().LocalPeer(), msg.Type, ws.stream.Conn().RemotePeer())
-	return
-}
+// TODO (ramfox): currently, each protocol (except for the one marked for deprecation)
+// has its own `receiveMessage` and `sendMessage` functions, that ensure the
+// messages get encoded and decoded to the structures they need. We should figure out
+// how to generalize so that each protocol can pass in the way they want to
+// be able to encode and decode the stream to suit their data needs
+// // receiveMessage reads and decodes a message from the stream
+// func (ws *WrappedStream) receiveMessage() (msg Message, err error) {
+// 	err = ws.dec.Decode(&msg)
+// 	msg.provider = ws.stream.Conn().RemotePeer()
+// 	log.Debugf("%s '%s' <- %s", ws.stream.Conn().LocalPeer(), msg.Type, ws.stream.Conn().RemotePeer())
+// 	return
+// }
 
-// sendMessage encodes and writes a message to the stream
-func (ws *WrappedStream) sendMessage(msg Message) error {
-	err := ws.enc.Encode(&msg)
-	// Because output is buffered with bufio, we need to flush!
-	ws.w.Flush()
-	log.Debugf("%s '%s' -> %s", ws.stream.Conn().LocalPeer(), msg.Type, ws.stream.Conn().RemotePeer())
-	return err
-}
+// // sendMessage encodes and writes a message to the stream
+// func (ws *WrappedStream) sendMessage(msg Message) error {
+// 	err := ws.enc.Encode(&msg)
+// 	// Because output is buffered with bufio, we need to flush!
+// 	ws.w.Flush()
+// 	log.Debugf("%s '%s' -> %s", ws.stream.Conn().LocalPeer(), msg.Type, ws.stream.Conn().RemotePeer())
+// 	return err
+// }
