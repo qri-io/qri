@@ -369,7 +369,7 @@ func TestGetDatasetCheckedOutUsingDscache(t *testing.T) {
 }
 
 func TestGetRemoteDataset(t *testing.T) {
-	run := NewTestRunnerWithMockRemoteClient(t, "test_peer_pull_and_list", "pull_and_list")
+	run := NewTestRunnerWithMockRemoteClient(t, "test_get_remote_dataset", "get_remote_dataset")
 	defer run.Delete()
 
 	expect := "cannot use '--offline' and '--remote' flags together"
@@ -384,12 +384,9 @@ func TestGetRemoteDataset(t *testing.T) {
 		t.Errorf("response mismatch\nwant: %q\n got: %q", expect, err)
 	}
 
-	// TODO (b5) - this fails at the moment with:
-	// error loading dataset: error getting file bytes: invalid path "/ipfs//dataset.json": not enough path components
-	// need to fix
-	// expect = ""
-	// out := run.MustExec(t, "qri get --remote=registry other_peer/their_dataset")
-	// if expect != out {
-	// 	t.Errorf("response mismatch\nwant: %q\n got: %q", expect, out)
-	// }
+	expect = "bodyPath: /ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb\ncommit:\n  message: created dataset\n  path: /ipfs/QmUEtKXFs6Eaz7wxUVpN9riULsnj1hXAoBeHRT79yWL7ze\n  qri: cm:0\n  signature: ZHoSiqRVGLBKmkRcGaTuaiUGvbaS1Yu+13KtIlYFOnBzDAzZ/pfD1iAykEYp/vMCtKLhFb8s6P7Bnggf2erZQSX5Vd1sQBLKXt7F4fAZ0tS7J5bdalZh4chc6WjvI4VSnk/H4k/ldl5KSYvP3rN7SFY7S/X8zKkirr+aRQRLW+LqcMbYP1h27JsojIM94NIzBBwUkTYLXMaNForx2SxQamWD6Rkcy5Uz82hTjrNVnczJXeCrMR1zyi+LHThoaLDuYfUxIgkprJDrjb0x4fGM3M5DbfuSKlH1iOrXuxzJXDedmEc6Eb48dqgZ/6bpQ8Ij7rc3PtJOu6izLv6MZ3s57g==\n  timestamp: \"2001-01-01T01:01:01.000000001Z\"\n  title: created dataset\nname: their_dataset\npath: /ipfs/QmW8PjK4a3gJgbFr7mHzseCYaPLmhpfphjv5cgXFFDAMtk\npeername: other_peer\nqri: ds:0\nstructure:\n  checksum: QmSvPd3sHK7iWgZuW47fyLy4CaZQe2DwxvRhrJ39VpBVMK\n  depth: 1\n  format: json\n  length: 2\n  qri: st:0\n  schema:\n    type: object\n\n"
+	out := run.MustExec(t, "qri get --remote=registry other_peer/their_dataset")
+	if expect != out {
+		t.Errorf("response mismatch\nwant: %q\n got: %q", expect, out)
+	}
 }
