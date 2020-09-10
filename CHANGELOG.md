@@ -1,3 +1,46 @@
+# [v0.9.12](https://github.com/qri-io/qri/compare/v0.9.11...v) (2020-09-10)
+
+Patch release 0.9.12 features a number of fixes to various qri features, most aimed at improving general quality-of-life of the tool, and some others that lay the groundwork for future changes.
+
+## HTTP API Changes
+Changed the qri api so that the `/get` endpoint gets dataset heads and bodies. `/body` still exists but is now deprecated.
+
+## P2P and Collaboration
+A new way to resolve peers and references on the p2p network.
+The start of access control added to our remote communication API.
+Remotes serve a simple web ui.
+
+## General polish
+Fix ref resolution with divergent logbook user data.
+Working directories allow case-insensitive filenames.
+Improve sql support so that dataset names don't need an explicit table alias.
+The `get` command can fetch datasets from cloud.
+
+### Bug Fixes
+
+* **api:** Accept header can be used to download just body bytes ([ed7aaf4](https://github.com/qri-io/qri/commit/ed7aaf474f74f090f432cdc0bae32bfa03877af8))
+* **api:** Additional comments for api/datasets functions ([0883afa](https://github.com/qri-io/qri/commit/0883afad1b8addc09518dcc3af29d850d93159be))
+* **api:** Preview endpoint can handle IPFS paths ([c404756](https://github.com/qri-io/qri/commit/c40475675786d7a830ef6ab8e1ce877b6b870b4c))
+* **cmd:** fix context passing error in test runner ([f76de25](https://github.com/qri-io/qri/commit/f76de25603a9fd616f1cc083663efd1782188d89))
+* **fsi:** component filenames are case-insensitive ([9cc6f0e](https://github.com/qri-io/qri/commit/9cc6f0ef44ebda74910380461f517ac89b33e6fb)), closes [#1509](https://github.com/qri-io/qri/issues/1509)
+* **get:** get command auto-fetches ([db88c6c](https://github.com/qri-io/qri/commit/db88c6c2911bb385bc5a7443e38b34be1bc1f195))
+* **lib:** `oldRemoteClientExisted` causing waitgroup panic ([e2e23fb](https://github.com/qri-io/qri/commit/e2e23fb4b87ea20e2cb445a552b9330eae526812))
+* **lib:** bring the node `Offline` when shutting down the instance ([12a9614](https://github.com/qri-io/qri/commit/12a9614fa76ea42da8608e63ddeb989d6b1d2361))
+* **lib:** explicitly shutdown `remoteClient` on `inst.Shutdown()` ([8154dc3](https://github.com/qri-io/qri/commit/8154dc3c323919dbb0e3bcbccfc426e5862b82d0))
+* **logbook:** Switch merge to use ProfileID, not UserCreateID ([e5c39d8](https://github.com/qri-io/qri/commit/e5c39d849bae9f14a82bd097a3d28bbd8bb4b0ce))
+* **remote:** Remote MockClient adds IPFS blocks ([267a073](https://github.com/qri-io/qri/commit/267a073c6138d47380920f2d3ba464be05e54e45))
+* **resolve:** Resolve refs after merging logbook by profileID ([be76f29](https://github.com/qri-io/qri/commit/be76f29698add4dc68accf3c713ad44eba5e64f7))
+
+
+### Features
+
+* **access:** access defines a policy grammer for access control ([63172c7](https://github.com/qri-io/qri/commit/63172c779a314215bdcb4a10df5f6dbd4cc8e11d))
+* **api:** qri can serve a simple webui ([3db8daa](https://github.com/qri-io/qri/commit/3db8daa45383c0b15a81badbb6d23b55e9b2f489))
+* **lib:** pass remote options when creating `NewInstance` ([d2b8b8f](https://github.com/qri-io/qri/commit/d2b8b8fb45de0003808a43035d91db410fddd877))
+* **pull:** set pulling source with remote flag on CLI & API ([0dc9890](https://github.com/qri-io/qri/commit/0dc9890b53f31bb6043312ae34e95a6f632335ce))
+
+
+
 <a name="v0.9.11"></a>
 # [v0.9.11](https://github.com/qri-io/qri/compare/v0.9.10...v0.9.11) (2020-08-10)
 
