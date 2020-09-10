@@ -223,8 +223,7 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
-	reqPath := strings.TrimPrefix(r.URL.Path, "/get/")
-	args, err := parseGetReqArgs(r, reqPath)
+	args, err := parseGetReqArgs(r, strings.TrimPrefix(r.URL.Path, "/get/"))
 	if err != nil {
 		util.RespondWithError(w, err)
 		return
@@ -242,8 +241,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
-	reqPath := strings.TrimPrefix(r.URL.Path, "/body/")
-	args, err := parseGetReqArgs(r, reqPath)
+	args, err := parseGetReqArgs(r, strings.TrimPrefix(r.URL.Path, "/body/"))
 	if err != nil {
 		util.RespondWithError(w, err)
 		return
@@ -395,7 +393,7 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 
 func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 	p := &lib.PullParams{
-		Ref:     HTTPPathToQriPath(r.URL.Path[len("/pull"):]),
+		Ref:     HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/pull/")),
 		LinkDir: r.FormValue("dir"),
 		Remote:  r.FormValue("remote"),
 	}
@@ -508,7 +506,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	ref := HTTPPathToQriPath(r.URL.Path[len("/remove"):])
+	ref := HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/remove/"))
 
 	if remote := r.FormValue("remote"); remote != "" {
 		res := &dsref.Ref{}
@@ -674,7 +672,7 @@ func parseGetReqArgs(r *http.Request, reqPath string) (*GetReqArgs, error) {
 
 func (h DatasetHandlers) statsHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.GetParams{
-		Refstr:   HTTPPathToQriPath(r.URL.Path[len("/stats/"):]),
+		Refstr:   HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/stats/")),
 		Selector: "stats",
 	}
 	res := lib.GetResult{}

@@ -51,7 +51,8 @@ func HTTPPathToQriPath(path string) string {
 	if paramIndex != -1 {
 		path = path[:paramIndex]
 	}
-	path = strings.Replace(path, "/at", "@", 1)
+	// TODO(dustmop): If a user has a dataset named "at", this breaks
+	path = strings.Replace(path, "/at/", "@/", 1)
 	path = strings.TrimPrefix(path, "/")
 	return path
 }
