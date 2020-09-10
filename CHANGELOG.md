@@ -1,11 +1,11 @@
-# [](https://github.com/qri-io/qri/compare/v0.9.11...v) (2020-09-10)
+# [v0.9.12](https://github.com/qri-io/qri/compare/v0.9.11...v) (2020-09-10)
 
 Patch release 0.9.12 features a number of fixes to various qri features, most aimed at improving general quality-of-life of the tool, and some others that lay the groundwork for future changes.
 
 ## HTTP API Changes
 Changed the qri api so that the `/get` endpoint gets dataset heads and bodies. `/body` still exists but is now deprecated.
 
-## P2P and Collaberation
+## P2P and Collaboration
 A new way to resolve peers and references on the p2p network.
 The start of access control added to our remote communication API.
 Remotes serve a simple web ui.
