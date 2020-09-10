@@ -16,6 +16,7 @@ import (
 
 // LoadDataset fetches, dereferences and opens a dataset from a reference
 // implements the dsfs.Loader interface
+// this function expects the passed in reference is fully resolved
 func (inst *Instance) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
 	if inst == nil {
 		return nil, fmt.Errorf("no instance")
@@ -24,16 +25,20 @@ func (inst *Instance) LoadDataset(ctx context.Context, ref dsref.Ref, source str
 		return inst.loadLocalDataset(ctx, ref)
 	}
 
-	// TODO(b5) - for now we're assuming any non-local source must fetch from the registry
-	if inst.cfg.Registry == nil {
-		return nil, fmt.Errorf("can't fetch remote dataset %q without a configured registry", ref)
-	} else if inst.cfg.Registry.Location == "" {
-		return nil, fmt.Errorf("can't fetch remote dataset %q without a configured registry", ref)
+	// empty source assumes the registry
+	// TODO (b5) - not sure we should even allow an empty source if it's expected
+	// the ref is already resolved. The only case I can think of is a user-provided,
+	// fully-resolved reference. Spec on Loading needs work
+	if source == "" {
+		if inst.cfg.Registry == nil {
+			return nil, fmt.Errorf("can't fetch remote dataset %q without a configured registry", ref)
+		} else if inst.cfg.Registry.Location == "" {
+			return nil, fmt.Errorf("can't fetch remote dataset %q without a configured registry", ref)
+		}
+		source = inst.cfg.Registry.Location
 	}
 
-	source = inst.cfg.Registry.Location
-
-	msg := fmt.Sprintf("pulling dataset from registry: %s ...\n", ref)
+	msg := fmt.Sprintf("pulling %s from %s ...\n", ref.Human(), source)
 	inst.streams.Out.Write([]byte(msg))
 
 	// TODO (b5) - it'd be nice to us the returned dataset here, skipping the
