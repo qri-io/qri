@@ -196,6 +196,7 @@ func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) err
 	other.resolver[ref.Human()] = ref.InitID
 	other.dscache[ref.InitID] = path
 	ref.ProfileID = other.info.EncodedPeerID
+	ref.Path = path
 
 	// Add a save operation to logbook
 	err = other.book.WriteVersionSave(ctx, ref.InitID, &ds)

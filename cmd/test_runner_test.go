@@ -54,7 +54,7 @@ type TestRunner struct {
 	CmdDoneCh     chan struct{}
 	TestCrypto    gen.CryptoGenerator
 
-	registry *registry.Registry
+	Registry *registry.Registry
 }
 
 // NewTestRunner constructs a new TestRunner
@@ -109,6 +109,7 @@ func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *Tes
 	_, server := regserver.NewMockServerRegistry(*reg)
 
 	runner := newTestRunnerFromRoot(&root)
+	runner.Registry = reg
 	prevTeardown := runner.Teardown
 	runner.Teardown = func() {
 		cancel()

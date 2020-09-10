@@ -56,6 +56,9 @@ dataset and its fields.`,
 	cmd.Flags().BoolVarP(&o.All, "all", "a", true, "for body, whether to get all entries")
 	cmd.Flags().StringVarP(&o.Outfile, "outfile", "o", "", "file to write output to")
 
+	cmd.Flags().BoolVar(&o.Offline, "offline", false, "prevent network access")
+	cmd.Flags().StringVar(&o.Remote, "remote", "", "name to get any remote data from")
+
 	return cmd
 }
 
@@ -74,6 +77,9 @@ type GetOptions struct {
 	Pretty    bool
 	HasPretty bool
 	Outfile   string
+
+	Offline bool
+	Remote  string
 
 	DatasetMethods *lib.DatasetMethods
 }
@@ -130,6 +136,13 @@ func (o *GetOptions) Run() (err error) {
 		fc = &opt
 	}
 
+	if o.Offline {
+		if o.Remote != "" {
+			return fmt.Errorf("cannot use '--offline' and '--remote' flags together")
+		}
+		o.Remote = "local"
+	}
+
 	// TODO(dustmop): Consider setting o.Format if o.Outfile has an extension and o.Format
 	// is not assigned anything
 
@@ -153,9 +166,7 @@ func (o *GetOptions) Run() (err error) {
 		// outputting a zip. lib.Get will also check that we're outputting a zip, this check is
 		// repeated here for clarity.
 		GenFilename: o.Outfile == "" && stdoutIsTerminal() && o.Format == "zip",
-		// currently the "get" command is positioned as an offline-only
-		// command, so we hard code a local resolver
-		Remote: "local",
+		Remote:      o.Remote,
 	}
 	res := lib.GetResult{}
 	if err = o.DatasetMethods.Get(&p, &res); err != nil {

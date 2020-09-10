@@ -661,6 +661,7 @@ func parseGetReqArgs(r *http.Request, reqPath string) (*GetReqArgs, error) {
 		Limit:    listParams.Limit,
 		Offset:   listParams.Offset,
 		All:      getAll,
+		Remote:   r.FormValue("remote"),
 	}
 	args := GetReqArgs{
 		Ref:         ref,
