@@ -917,10 +917,10 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 
 // PullParams encapsulates parameters to the add command
 type PullParams struct {
-	Ref        string
-	LinkDir    string
-	RemoteAddr string // remote to attempt to pull from
-	LogsOnly   bool   // only fetch logbook data
+	Ref      string
+	LinkDir  string
+	Remote   string // remote to attempt to pull from
+	LogsOnly bool   // only fetch logbook data
 }
 
 // Pull downloads and stores an existing dataset to a peer's repository via
@@ -935,20 +935,18 @@ func (m *DatasetMethods) Pull(p *PullParams, res *dataset.Dataset) error {
 
 	ctx := context.TODO()
 
-	ref, source, err := m.inst.ParseAndResolveRef(ctx, p.Ref, "network")
+	source := p.Remote
+	if source == "" {
+		source = "network"
+	}
+
+	ref, source, err := m.inst.ParseAndResolveRef(ctx, p.Ref, source)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
 
-	if p.RemoteAddr == "" && m.inst != nil && m.inst.cfg.Registry != nil {
-		p.RemoteAddr = m.inst.cfg.Registry.Location
-	} else {
-		// if no registry is configured, use reference resolution source for pulling
-		p.RemoteAddr = source
-	}
-
-	ds, err := m.inst.remoteClient.PullDataset(ctx, &ref, p.RemoteAddr)
+	ds, err := m.inst.remoteClient.PullDataset(ctx, &ref, source)
 	if err != nil {
 		return err
 	}

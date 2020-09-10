@@ -397,6 +397,7 @@ func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 	p := &lib.PullParams{
 		Ref:     HTTPPathToQriPath(r.URL.Path[len("/pull"):]),
 		LinkDir: r.FormValue("dir"),
+		Remote:  r.FormValue("remote"),
 	}
 
 	res := &dataset.Dataset{}
