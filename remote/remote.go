@@ -4,6 +4,7 @@ package remote
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -306,8 +307,15 @@ func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) er
 	}
 
 	if _, err := r.localResolver.ResolveRef(ctx, &ref); err != nil {
-		if err == dsref.ErrRefNotFound {
-			err = nil
+		// At this point in the dataset removal process, we may have
+		// already removed the associated logbook data or other identifying
+		// information that another system relies on to resolve
+		// the reference. However, the ResolveRef process might have
+		// partially resolved the reference, enough that other subsystems
+		// can still perform the delete
+		// we nullify these errors to give other subsystems a chance to delete
+		if errors.Is(err, dsref.ErrRefNotFound) || errors.Is(err, logbook.ErrNotFound) {
+			log.Warnf("couldn't resolve %q before removing the dataset. attempting to remove anyway.", ref)
 		} else {
 			return err
 		}
