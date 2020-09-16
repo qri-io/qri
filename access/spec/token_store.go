@@ -71,7 +71,7 @@ func AssertTokenStoreSpec(t *testing.T, newTokenStore func(context.Context) acce
 	}
 
 	p2 := &profile.Profile{
-		ID:       profile.IDB58DecodeOrEmpty(cfgtest.GetTestPeerInfo(1).EncodedPeerID),
+		ID:       profile.IDB58DecodeOrEmpty(cfgtest.GetTestPeerInfo(2).EncodedPeerID),
 		Peername: "user_2",
 	}
 	t2Raw, err := tokens.CreateToken(p2, time.Millisecond*10)
@@ -99,7 +99,7 @@ func AssertTokenStoreSpec(t *testing.T, newTokenStore func(context.Context) acce
 		},
 		{
 			Key: secondKey,
-			Raw: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOi02MjEzNTU5NjgwMCwic3ViIjoiUW1XWWdENDlyOUhudVhFcHBRRXExYTdTVVVyeWphNFFOczlFNlhDSDJQYXlDRCIsInVzZXJuYW1lIjoidXNlcl8yIn0.V4ZlinPrjRBf6EiZPylrigXHEQ-5k8e54-G5o1OQEu9hAWmZAGlm5OdcAfWRLueWR8bk_9NFYwAzg7CaSvM0suPqHlFbCXS0tQynG3m9ptu_bucfEAaDdoNmBMyPrB7w6rLauFVh0TcwiTRV3KkrzbeKdo0Q6fDoRFy5ZuP5zPDxt_UOC50zIpdw5F4MH3OBbfjjfpR0XA8Q1tslOg5JWh21pCR-C8gyC5jJ9ilNsdwggXY0mkHl9f0utwMewPfC6b7i01t9kVtknI5Wg6dq_CuZlDuOs83LcL6xThRBiosmFZ-2I3b8nSPxfg_gouOBOSa5yFOcYxJsHHDKe-RIfw",
+			Raw: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOi02MjEzNTU5NjgwMCwic3ViIjoiUW1QZUZUTkhjWkRyM1pGRWZGZmVweFM1UHFIQW1mQlJHUU5QSjM4OUN3aDFhcyIsInVzZXJuYW1lIjoidXNlcl8yIn0.WbQzurEYlJ6bdacO6vmcNgDWfrAvwiZXzmdtcRnFLdcAvWafgAEwbJBvqPGIbe_xujNVBExQ9JMu1-TuwhY3889bMuHtDJy7U9vQq9lAXUUNwEbN7I9sRoSfJV_zT6MIleSBUS48HqTrE0_w0Y3qcU53OpfZrOEa1axioKmdTQbsQCOj-J6l25KCSbIYaWju2kNGv3weTkQDbhUBoW_Z9pcuXuMNF6eQeZHNL1hIXz1sVQUE7aB-f_KDbK8XN_sZvNS4CiQfsIw9ig65YRs-mNF04VcDzAZFc-9FGeO0nnRjV9DVhocRCYq4rz4SsT1WFdUbI9lsEXd9t2wz6QUsIQ",
 		},
 	}
 
