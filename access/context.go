@@ -16,12 +16,12 @@ func CtxWithToken(ctx context.Context, t Token) context.Context {
 	return context.WithValue(ctx, TokenCtxKey, t)
 }
 
-// TokenFromCtx extracts a Dataset reference from a given
+// TokenFromCtx extracts the JWT from a given
 // context if one is set, returning nil otherwise
-func TokenFromCtx(ctx context.Context) Token {
+func TokenFromCtx(ctx context.Context) *Token {
 	iface := ctx.Value(TokenCtxKey)
 	if ref, ok := iface.(Token); ok {
-		return ref
+		return &ref
 	}
-	return Token{}
+	return nil
 }

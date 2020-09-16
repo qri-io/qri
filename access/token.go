@@ -51,6 +51,7 @@ func ParseToken(tokenString string, tokens TokenSource) (*Token, error) {
 // in the spec subpackage
 type TokenSource interface {
 	CreateToken(pro *profile.Profile, ttl time.Duration) (string, error)
+	CreateTokenWithClaims(claims jwt.MapClaims, ttl time.Duration) (string, error)
 	// VerifyKey returns the verification key for a given token
 	VerificationKey(t *Token) (interface{}, error)
 }
@@ -62,7 +63,7 @@ type pkTokenSource struct {
 	signKey       *rsa.PrivateKey
 }
 
-// assert pkTokenSource implements tokens at compile time
+// assert pkTokenSource implements TokenSource at compile time
 var _ TokenSource = (*pkTokenSource)(nil)
 
 // NewPrivKeyTokenSource creates an authentication interface backed by a single
@@ -135,8 +136,28 @@ func (a *pkTokenSource) CreateToken(pro *profile.Profile, ttl time.Duration) (st
 	return t.SignedString(a.signKey)
 }
 
+// CreateToken returns a new JWT token from provided claims
+func (a *pkTokenSource) CreateTokenWithClaims(claims jwt.MapClaims, ttl time.Duration) (string, error) {
+	// create a signer for rsa 256
+	t := jwt.New(a.signingMethod)
+
+	var exp int64
+	if ttl != time.Duration(0) {
+		exp = Timestamp().Add(ttl).In(time.UTC).Unix()
+	}
+	claims["exp"] = exp
+	t.Claims = claims
+
+	// Creat token string
+	return t.SignedString(a.signKey)
+}
+
 // VerifyKey returns the verification key
+// its packaged as an interface for easy extensibility in the future
 func (a *pkTokenSource) VerificationKey(t *Token) (interface{}, error) {
+	if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+		return nil, fmt.Errorf("Unexpected signing method: %v", t.Header["alg"])
+	}
 	return a.verifyKey, nil
 }
 
@@ -188,6 +209,13 @@ func NewTokenStore(filepath string, fs qfs.Filesystem) (TokenStore, error) {
 		for _, t := range rawToks {
 			toks[t.Key] = t.Raw
 		}
+	} else {
+		if err.Error() == "path not found" {
+			log.Errorf("path not found")
+			// TODO(arqu): handle Not Found
+		} else {
+			return nil, fmt.Errorf("error creating token store: %w", err)
+		}
 	}
 
 	return &qfsTokenStore{
@@ -233,7 +261,7 @@ func (st *qfsTokenStore) DeleteToken(ctx context.Context, key string) (err error
 }
 
 func (st *qfsTokenStore) ListTokens(ctx context.Context, offset, limit int) ([]RawToken, error) {
-	var results []RawToken
+	results := make([]RawToken, 0, limit+1)
 
 	toks := st.toRawTokens()
 	for i := 0; i < len(toks); i++ {
