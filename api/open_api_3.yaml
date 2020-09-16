@@ -158,6 +158,25 @@ paths:
         '500':
           $ref: '#/components/responses/StatusInternalServerError'  
   /list:
+    parameters: 
+      - name: page 
+        in: query 
+        description: Page number
+        required: false 
+        schema:
+          type: integer
+      - name: pageSize
+        in: query 
+        description: Page size
+        required: false 
+        schema:
+          type: integer
+      - name: term
+        in: query 
+        description: Search term for listed datasets
+        required: false 
+        schema:
+          type: string
     get:
       summary: Get the list of this peer’s datasets
       operationId: getDatasetList
@@ -179,7 +198,7 @@ paths:
         schema:
           type: string
     get:
-      summary: Get the list a specific peer’s datasets
+      summary: Get the list of a specific peer’s datasets
       operationId: getPeersDatasetList
       responses:
         '200':
