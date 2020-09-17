@@ -159,18 +159,8 @@ paths:
           $ref: '#/components/responses/StatusInternalServerError'  
   /list:
     parameters: 
-      - name: page 
-        in: query 
-        description: Page number
-        required: false 
-        schema:
-          type: integer
-      - name: pageSize
-        in: query 
-        description: Page size
-        required: false 
-        schema:
-          type: integer
+      - $ref: '#/components/parameters/page'
+      - $ref: '#/components/parameters/pageSize'
       - name: term
         in: query 
         description: Search term for listed datasets
@@ -1177,6 +1167,20 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/ID'
+    page:
+      name: page 
+      in: query 
+      description: Page number
+      required: false 
+      schema:
+        type: integer
+    pageSize:
+      name: pageSize
+      in: query 
+      description: Page size
+      required: false 
+      schema:
+        type: integer
           
   responses:
     StatusInternalServerError:
