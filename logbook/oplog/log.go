@@ -93,6 +93,10 @@ type Logstore interface {
 	Descendants(ctx context.Context, l *Log) error
 }
 
+type ToFlatbuffer interface {
+	Flatbuffer(ctx context.Context) ([]byte, error)
+}
+
 // SparseAncestorsAllDescendantsLogstore is a an extension interface to
 // Logstore with an optimized method for getting a log with sparse parents and
 // all descendants
@@ -388,6 +392,10 @@ func (j Journal) decrypt(pk crypto.PrivKey, data []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
+func (j Journal) Flatbuffer(ctx context.Context) ([]byte, error) {
+	return j.flatbufferBytes(), nil
+}
+
 // flatbufferBytes formats book as a flatbuffer byte slice
 func (j Journal) flatbufferBytes() []byte {
 	builder := flatbuffers.NewBuilder(0)
@@ -438,6 +446,26 @@ func (j *Journal) unmarshalFlatbuffer(b *logfb.Book) error {
 
 	*j = newBook
 	return nil
+}
+
+// UnmarshalFlatbufferLogs does stuff
+func UnmarshalFlatbufferLogs(data []byte) ([]*Log, error) {
+	b := logfb.GetRootAsBook(data, 0)
+
+	var logs []*Log
+	count := b.LogsLength()
+	lfb := &logfb.Log{}
+	for i := 0; i < count; i++ {
+		if b.Logs(lfb, i) {
+			l := &Log{}
+			if err := l.UnmarshalFlatbuffer(lfb, nil); err != nil {
+				return nil, err
+			}
+			logs = append(logs, l)
+		}
+	}
+
+	return logs, nil
 }
 
 // Log is a causally-ordered set of operations performed by a single author.

@@ -215,6 +215,14 @@ func (book *Book) DeleteAuthor() error {
 	return fmt.Errorf("not finished")
 }
 
+// PublicLogsFlatbuffer marshals
+func (book *Book) PublicLogsFlatbuffer(ctx context.Context) ([]byte, error) {
+	if fbs, ok := book.store.(oplog.ToFlatbuffer); ok {
+		return fbs.Flatbuffer(ctx)
+	}
+	return nil, fmt.Errorf("this logbook can't create public flatbuffer bytes")
+}
+
 // save writes the book to book.fsLocation
 func (book *Book) save(ctx context.Context) (err error) {
 	if al, ok := book.store.(oplog.AuthorLogstore); ok {
@@ -925,9 +933,9 @@ func DsrefAliasForLog(log *oplog.Log) (dsref.Ref, error) {
 	if log.Model() != AuthorModel {
 		return ref, fmt.Errorf("logbook: log isn't rooted as an author")
 	}
-	if len(log.Logs) != 1 {
-		return ref, fmt.Errorf("logbook: ambiguous dataset reference")
-	}
+	// if len(log.Logs) != 1 {
+	// 	return ref, fmt.Errorf("logbook: ambiguous dataset reference")
+	// }
 
 	ref = dsref.Ref{
 		Username: log.Name(),
@@ -950,6 +958,14 @@ func (book *Book) MergeLog(ctx context.Context, sender identity.Author, lg *oplo
 		return err
 	}
 
+	if err := book.store.MergeLog(ctx, lg); err != nil {
+		return err
+	}
+
+	return book.save(ctx)
+}
+
+func (book *Book) MergeLogUnsafe(ctx context.Context, lg *oplog.Log) error {
 	if err := book.store.MergeLog(ctx, lg); err != nil {
 		return err
 	}
