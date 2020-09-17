@@ -5,12 +5,12 @@ info:
   version: 0.5.1
 
 paths:
-  /{peername}:
+  /{username}:
     get:
-      summary: Get the profile of a peer using the `peername`
-      operationId: getPeername
+      summary: Get the profile of a peer using the `username`
+      operationId: getUsername
       parameters:
-        - $ref: '#/components/parameters/peername'
+        - $ref: '#/components/parameters/username'
       responses:
         '200':
           $ref: '#/components/responses/ProfileResponse'
@@ -18,12 +18,12 @@ paths:
           $ref: '#/components/responses/StatusNotFound'
         '500':
           $ref: '#/components/responses/StatusInternalServerError'
-  /{peername}/{datasetName}:
+  /{username}/{datasetName}:
     get:
-      summary: Get dataset info from a peer’s dataset using the `peername` and `dataset_name`
+      summary: Get dataset info from a peer’s dataset using the `username` and `dataset_name`
       operationId: getDataset
       parameters:
-        - $ref: '#/components/parameters/peername'
+        - $ref: '#/components/parameters/username'
         - name: datasetName
           in: path
           description: Dataset name
@@ -402,7 +402,7 @@ paths:
           enum:
             - $ref: '#/components/schemas/Path'
             - $ref: '#/components/schemas/ID'
-            - $ref: '#/components/schemas/Peername'
+            - $ref: '#/components/schemas/Username'
             - $ref: '#/components/schemas/Multiaddr'
     get:
       summary: Create an explicit connection to another peer
@@ -476,11 +476,11 @@ paths:
   /profile/photo:
     get:
       parameters:
-        - name: peername
+        - name: username
           in: query
-          description: peername
+          description: username
           schema:
-            $ref: '#/components/schemas/Peername'
+            $ref: '#/components/schemas/Username'
         - name: id
           in: query
           description: peer id
@@ -540,11 +540,11 @@ paths:
   /profile/poster:
     get:
       parameters:
-        - name: peername
+        - name: username
           in: query
-          description: peername
+          description: username
           schema:
-            $ref: '#/components/schemas/Peername'
+            $ref: '#/components/schemas/Username'
         - name: id
           in: query
           description: peer id
@@ -714,8 +714,8 @@ paths:
             schema:
               type: object
               properties:
-                peername:
-                  $ref: '#/components/schemas/Peername'
+                username:
+                  $ref: '#/components/schemas/Username'
                 name:
                   type: string
                   description: name of the dataset
@@ -746,8 +746,8 @@ paths:
             schema:
               type: object
               properties:
-                peername:
-                  $ref: '#/components/schemas/Peername'
+                username:
+                  $ref: '#/components/schemas/Username'
                 name:
                   type: string
                   description: name of the dataset
@@ -825,8 +825,8 @@ components:
           type: string
         path:
           $ref: '#/components/schemas/Path'
-        peername:
-          $ref: '#/components/schemas/Peername'
+        username:
+          $ref: '#/components/schemas/Username'
         profileID:
           $ref: '#/components/schemas/ID'
         meta:
@@ -849,8 +849,8 @@ components:
           $ref: '#/components/schemas/ID'
         privKey:
           type: string
-        peername:
-          $ref: '#/components/schemas/Peername'
+        username:
+          $ref: '#/components/schemas/Username'
         created:
           $ref: '#/components/schemas/Created'
         updated:
@@ -1051,9 +1051,9 @@ components:
       maxLength: 46
       minLength: 46
       pattern: '^[a-zA-Z0-9]{46}'
-    Peername:
+    Username:
       type: string
-      description: The peername associated with a particular qri node
+      description: The username associated with a particular qri node
       not:
         enum: [me, status, at, add, history, remove, export, profile, list, peers, connections, new, log, registry, diff, validate]
     Created:
@@ -1150,10 +1150,10 @@ components:
       required: true
       schema:
         type: string
-    peername:
-      name: peername
+    username:
+      name: username
       in: path
-      description: Peername
+      description: Username
       required: true
       schema:
         type: string
