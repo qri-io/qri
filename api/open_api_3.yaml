@@ -199,10 +199,48 @@ paths:
           $ref: '#/components/responses/StatusNotFound'
         '500':
           $ref: '#/components/responses/StatusInternalServerError'
+    put:
+      summary: Save and update to a dataset head
+      operationId: saveDatasetFromRoot
+      requestBody:
+        description: Updated dataset head
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dataset'       
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
   /save/{datasetRef}:
     parameters:
       - $ref: '#/components/parameters/datasetRef'
     post:
+      summary: Save and update to a dataset head
+      operationId: saveDataset
+      requestBody:
+        description: Updated dataset head
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dataset'       
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+    put:
       summary: Save and update to a dataset head
       operationId: saveDataset
       requestBody:
@@ -1141,17 +1179,17 @@ components:
       type: object
       properties:
         current:
-          description: Dataset name (<handle>/<dataset_name>)
+          description: Dataset name (<username>/<dataset_name>)
           type: string
         next:
-          description: Dataset name (<handle>/<dataset_name>)
+          description: Dataset name (<username>/<dataset_name>)
           type: string
       
   parameters:
     datasetRef:
       name: datasetRef
       in: path
-      description: Dataset Reference
+      description: Dataset Reference (<username>/<dataset_name> or <username>/<dataset_name>/at/<some_hash>)
       required: true
       schema:
         type: string
@@ -1199,13 +1237,13 @@ components:
     current:
       name: current
       in: query
-      description: Dataset name (<handle>/<dataset_name>)
+      description: Dataset name (<username>/<dataset_name>)
       schema:
         type: string
     new:
       name: new
       in: query
-      description: Dataset name (<handle>/<dataset_name>)
+      description: Dataset name (<username>/<dataset_name>)
       schema:
         type: string
           
