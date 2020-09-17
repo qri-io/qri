@@ -17,6 +17,7 @@ func asQriNodes(testPeers []p2ptest.TestablePeerNode) []*QriNode {
 	return peers
 }
 
+// this test is the poster child for re-vamping how we do our p2p test networks
 func TestConnectedQriProfiles(t *testing.T) {
 	t.Skip("TODO (ramfox): test is flakey.  See comments for full details")
 	ctx := context.Background()

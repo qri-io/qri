@@ -1,5 +1,8 @@
 package p2p
 
+// TODO (ramfox): relies on old `depQriProtocolID`
+// Should have its own protocol & protobuf & not rely on the Message struct
+
 import (
 	"context"
 	"encoding/json"
@@ -45,14 +48,22 @@ func (n *QriNode) RequestDatasetsList(ctx context.Context, pid peer.ID, p Datase
 
 	req = req.WithHeaders("phase", "request")
 
-	replies := make(chan Message)
-	err = n.SendMessage(ctx, req, replies, pid)
+	s, err := n.host.NewStream(ctx, pid, depQriProtocolID)
 	if err != nil {
-		log.Debug(err.Error())
-		return nil, fmt.Errorf("send dataset info message error: %s", err.Error())
+		return nil, fmt.Errorf("error opening stream: %s", err.Error())
+	}
+	defer s.Close()
+
+	ws := WrapStream(s)
+	if err := ws.sendMessage(req); err != nil {
+		return nil, err
 	}
 
-	res := <-replies
+	res, err := ws.receiveMessage()
+	if err != nil {
+		return nil, err
+	}
+
 	ref := []reporef.DatasetRef{}
 	err = json.Unmarshal(res.Body, &ref)
 	return ref, err

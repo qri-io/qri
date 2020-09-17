@@ -63,12 +63,6 @@ type QriNode struct {
 	// localResolver allows the node to resolve local dataset references
 	localResolver dsref.Resolver
 
-	// handlers maps this nodes registered handlers. This works in a way
-	// similary to a router in traditional client/server models, but messages
-	// are flying around all over the place instead of a
-	// request/response pattern
-	handlers map[MsgType]HandlerFunc
-
 	// msgState keeps a "scratch pad" of message IDS & timeouts
 	msgState *sync.Map
 	// receivers is a list of anyone who wants to be notifed on new
@@ -123,8 +117,6 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher, localReso
 		LocalStreams: ioes.NewDiscardIOStreams(),
 	}
 
-	// TODO (ramfox): remove `MakeHandlers` when we phase out older p2p functions
-	node.handlers = MakeHandlers(node)
 	node.notifee = &net.NotifyBundle{
 		ConnectedF:    node.connected,
 		DisconnectedF: node.disconnected,
@@ -200,10 +192,12 @@ func (n *QriNode) GoOnline(c context.Context) (err error) {
 	// the distributed web that this node supports Qri. for more info on
 	// multistreams  check github.com/multformats/go-multistream
 	// note: even though we are phasing out the old qri protocol, we
-	// should still handle it for now, since this is what old nodes will
-	// be relying on. We will drop support for the old qri protocol
-	// in the release of v0.10.0
-	n.host.SetStreamHandler(depQriProtocolID, n.QriStreamHandler)
+	// we are still handling 3 different cases on the `depQriProtocolID`, using
+	// the previous style of message communication:
+	// * profile requests handler - the older `upgradeToQriConnection` function emits this request
+	// * dataset list requests handler - the current `lib.Peers` actions depend on this functioning
+	// * all other cases get a "sorry please upgrade your version of Qri" response
+	n.host.SetStreamHandler(depQriProtocolID, n.depQriStreamHandler)
 
 	// add ref resolution capabilities:
 	n.host.SetStreamHandler(ResolveRefProtocolID, n.resolveRefHandler)
@@ -263,23 +257,6 @@ func (n *QriNode) GoOffline() error {
 		return err
 	}
 	return nil
-}
-
-// ReceiveMessages adds a listener for newly received messages
-func (n *QriNode) ReceiveMessages() chan Message {
-	n.receiversMu.Lock()
-	defer n.receiversMu.Unlock()
-	r := make(chan Message)
-	n.receivers = append(n.receivers, r)
-	return r
-}
-
-func (n *QriNode) writeToReceivers(msg Message) {
-	n.receiversMu.Lock()
-	defer n.receiversMu.Unlock()
-	for _, r := range n.receivers {
-		r <- msg
-	}
 }
 
 // IPFS exposes the core.IPFS node if one exists.
@@ -380,37 +357,6 @@ func makeBasicHost(ctx context.Context, ps peerstore.Peerstore, p2pconf *config.
 	return libp2p.New(ctx, opts...)
 }
 
-// SendMessage opens a stream & sends a message from p to one ore more peerIDs
-// TODO (ramfox): this relies on the soon to be removed `depQriProtocolID`
-// one option: send message can be refactored to be protocol agnostic, so it can
-// be used to send messages regardless of protocol.
-func (n *QriNode) SendMessage(ctx context.Context, msg Message, replies chan Message, pids ...peer.ID) error {
-	for _, peerID := range pids {
-		if peerID == n.ID {
-			// can't send messages to yourself, silly
-			continue
-		}
-
-		s, err := n.host.NewStream(ctx, peerID, depQriProtocolID)
-		if err != nil {
-			return fmt.Errorf("error opening stream: %s", err.Error())
-		}
-		defer s.Close()
-
-		// now that we have a confirmed working connection
-		// tag this peer as supporting the qri protocol in the connection manager
-		n.host.ConnManager().TagPeer(peerID, qriSupportKey, qriSupportValue)
-
-		ws := WrapStream(s)
-		go n.handleStream(ws, replies)
-		if err := ws.sendMessage(msg); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // connected is called when a connection opened via the network notifee bundle
 func (n *QriNode) connected(_ net.Network, conn net.Conn) {
 	log.Debugf("connected to peer: %s", conn.RemotePeer())
@@ -423,12 +369,6 @@ func (n *QriNode) disconnected(_ net.Network, conn net.Conn) {
 	n.pub.Publish(context.Background(), event.ETP2PPeerDisconnected, pi)
 
 	n.qis.HandleQriPeerDisconnect(pi.ID)
-}
-
-// QriStreamHandler is the handler we register with the multistream muxer
-func (n *QriNode) QriStreamHandler(s net.Stream) {
-	// defer s.Close()
-	n.handleStream(WrapStream(s), nil)
 }
 
 func (n *QriNode) libp2pSubscribe(ctx context.Context) error {
@@ -457,44 +397,6 @@ func (n *QriNode) libp2pSubscribe(ctx context.Context) error {
 	return nil
 }
 
-// handleStream is a for loop which receives and handles messages
-// When Message.HangUp is true, it exits. This will close the stream
-// on one of the sides. The other side's receiveMessage() will error
-// with EOF, thus also breaking out from the loop.
-func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
-	for {
-		// Loop forever, receiving messages until the other end hangs up
-		// or something goes wrong
-		msg, err := ws.receiveMessage()
-		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-			log.Debugf("error receiving message: %s", err.Error())
-			break
-		}
-
-		if replies != nil {
-			go func() { replies <- msg }()
-		}
-
-		handler, ok := n.handlers[msg.Type]
-		if !ok {
-			log.Infof("peer %s sent unrecognized message type '%s', hanging up", n.ID, msg.Type)
-			break
-		}
-
-		n.pub.Publish(context.Background(), event.ETP2PMessageReceived, msg)
-		go n.writeToReceivers(msg)
-
-		if hangup := handler(ws, msg); hangup {
-			break
-		}
-	}
-
-	// ws.stream.Close()
-}
-
 // Keys returns the KeyBook for the node.
 func (n *QriNode) Keys() peerstore.KeyBook {
 	return n.host.Peerstore()
@@ -510,15 +412,5 @@ func (n *QriNode) SimpleAddrInfo() peer.AddrInfo {
 	return peer.AddrInfo{
 		ID:    n.host.ID(),
 		Addrs: n.host.Addrs(),
-	}
-}
-
-// MakeHandlers generates a map of MsgTypes to their corresponding handler functions
-func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
-	return map[MsgType]HandlerFunc{
-		MtPing:     n.handlePing,
-		MtProfile:  n.handleProfile,
-		MtDatasets: n.handleDatasetsList,
-		MtQriPeers: n.handleQriPeers,
 	}
 }

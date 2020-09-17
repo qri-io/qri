@@ -9,7 +9,7 @@ import (
 )
 
 func TestRequestDatasetsList(t *testing.T) {
-	t.Skip("ramfox: flakey test & RequestDatasetsList no longer being referenced")
+	t.Skip("ramfox: flakey test")
 	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestDirNetwork(ctx, factory)
