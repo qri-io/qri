@@ -658,30 +658,35 @@ paths:
   /rename:
     put:
       summary: Rename a dataset
-      operationId: renameDataset
+      operationId: renameDatasetPut
       parameters:
-        - name: new
-          in: query
-          description: Dataset name (<handle>/<dataset_name>)
-          schema:
-            type: string
-        - name: current
-          in: query
-          description: Dataset name (<handle>/<dataset_name>)
-          schema:
-            type: string
+        - $ref: '#/components/parameters/current'
+        - $ref: '#/components/parameters/new'
       requestBody:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                current:
-                  description: Dataset name (<handle>/<dataset_name>)
-                  type: string
-                new:
-                  description: Dataset name (<handle>/<dataset_name>)
-                  type: string
+              $ref: '#/components/schemas/DatasetRename'
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+    post:
+      summary: Rename a dataset
+      operationId: renameDatasetPost
+      parameters:
+        - $ref: '#/components/parameters/current'
+        - $ref: '#/components/parameters/new'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetRename'
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
@@ -1131,6 +1136,16 @@ components:
           oneOf:
             - $ref: '#/components/schemas/Dataset'
             - $ref: '#/components/schemas/Profile'
+    DatasetRename:
+      description: The fields required to rename a dataset
+      type: object
+      properties:
+        current:
+          description: Dataset name (<handle>/<dataset_name>)
+          type: string
+        next:
+          description: Dataset name (<handle>/<dataset_name>)
+          type: string
       
   parameters:
     datasetRef:
@@ -1181,6 +1196,18 @@ components:
       required: false 
       schema:
         type: integer
+    current:
+      name: current
+      in: query
+      description: Dataset name (<handle>/<dataset_name>)
+      schema:
+        type: string
+    new:
+      name: new
+      in: query
+      description: Dataset name (<handle>/<dataset_name>)
+      schema:
+        type: string
           
   responses:
     StatusInternalServerError:
