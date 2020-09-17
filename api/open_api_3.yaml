@@ -189,26 +189,6 @@ paths:
           $ref: '#/components/responses/StatusNotFound'
         '500':
           $ref: '#/components/responses/StatusInternalServerError'   
-  /list/{peername}:
-    parameters:
-      - name: peername
-        in: path
-        description: Peername
-        required: true
-        schema:
-          type: string
-    get:
-      summary: Get the list of a specific peer’s datasets
-      operationId: getPeersDatasetList
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetsResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'  
   /save:
     post:
       summary: Save and update to a dataset head
