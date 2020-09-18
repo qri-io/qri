@@ -165,13 +165,18 @@ func (o *ValidateOptions) Run() (err error) {
 }
 
 func tabularValidationData(st *dataset.Structure, errs []jsonschema.KeyError) ([]string, [][]string) {
-	header := []string{"#", "path", "error"}
-	data := make([][]string, len(errs))
+	var (
+		header []string
+		data   = make([][]string, len(errs))
+	)
 
 	if st.Depth == 2 {
 		header = []string{"#", "row", "col", "value", "error"}
 		for i, e := range errs {
 			paths := strings.Split(e.PropertyPath, "/")
+			if len(paths) < 3 {
+				paths = []string{"", "", ""}
+			}
 			data[i] = []string{strconv.FormatInt(int64(i), 10), paths[1], paths[2], valStr(e.InvalidValue), e.Message}
 		}
 	} else {
