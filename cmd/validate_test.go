@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/errors"
 )
 
@@ -26,38 +28,38 @@ func TestValidateComplete(t *testing.T) {
 		bodyFilepath   string
 		schemaFilepath string
 		expect         string
+		format         string
 		err            string
 	}{
-		{[]string{}, "filepath", "schemafilepath", "", ""},
-		{[]string{"test"}, "", "", "test", ""},
+		{[]string{}, "filepath", "schemafilepath", "", "table", ""},
+		{[]string{"test/foo"}, "", "", "", "", `"" is not a valid output format. Please use one of: "table", "json", "csv"`},
+		{[]string{"test/foo"}, "", "", "test/foo", "table", ""},
 	}
 
 	for i, c := range cases {
-		opt := &ValidateOptions{
-			IOStreams:      run.Streams,
-			BodyFilepath:   c.bodyFilepath,
-			SchemaFilepath: c.schemaFilepath,
-		}
-		opt.Complete(f, c.args)
+		t.Run(fmt.Sprintf("case_%d", i), func(t *testing.T) {
+			defer run.IOReset()
 
-		if c.err != run.ErrStream.String() {
-			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, run.ErrStream.String())
-			run.IOReset()
-			continue
-		}
+			opt := &ValidateOptions{
+				IOStreams:      run.Streams,
+				BodyFilepath:   c.bodyFilepath,
+				SchemaFilepath: c.schemaFilepath,
+				Format:         c.format,
+			}
+			if err := opt.Complete(f, c.args); err != nil {
+				if c.err != err.Error() {
+					t.Fatalf("unexpected error. %q != %q", c.err, err.Error())
+				}
+			}
 
-		if c.expect != opt.Refs.Ref() {
-			t.Errorf("case %d, opt.Refs not set correctly. Expected: '%s', Got: '%s'", i, c.expect, opt.Refs.Ref())
-			run.IOReset()
-			continue
-		}
+			if c.expect != opt.Refs.Ref() {
+				t.Errorf("case %d, opt.Refs not set correctly. Expected: %q, Got: %q", i, c.expect, opt.Refs.Ref())
+			}
 
-		if opt.DatasetMethods == nil {
-			t.Errorf("case %d, opt.DatasetMethods not set.", i)
-			run.IOReset()
-			continue
-		}
-		run.IOReset()
+			if opt.DatasetMethods == nil {
+				t.Fatalf("case %d, opt.DatasetMethods not set.", i)
+			}
+		})
 	}
 
 }
@@ -75,92 +77,133 @@ func TestValidateRun(t *testing.T) {
 		return
 	}
 
-	cases := []struct {
-		description    string
-		ref            string
-		bodyFilePath   string
-		schemaFilePath string
-		url            string
-		expected       string
-		err            string
-		msg            string
-	}{
-		{"bad args", "", "", "", "", "", "bad arguments provided", "please provide a dataset name, or a supply the --body and --schema or --structure flags"},
-		// TODO: add back when we again support validating from a URL
-		// {"", "", "", "url", "", "bad arguments provided", "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"},
-		{"movie problems", "peer/movies", "", "", "", movieOutput, "", ""},
-		{"dataset not found", "peer/bad_dataset", "", "", "", "", "cannot find dataset: peer/bad_dataset", ""},
-		{"body file not found", "", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "error opening body file: bad/filepath", ""},
-		{"schema file not found", "", "testdata/days_of_week.csv", "bad/schema_filepath", "", "", "error opening schema file: bad/schema_filepath", ""},
-		{"validate successfully", "", "testdata/days_of_week.csv", "testdata/days_of_week_schema.json", "", "✔ All good!\n", "", ""},
-		// TODO: pull from url
+	dsm, err := f.DatasetMethods()
+	if err != nil {
+		t.Fatalf("error creating dataset request: %s", err)
 	}
 
-	for i, c := range cases {
-		dsm, err := f.DatasetMethods()
-		if err != nil {
-			t.Errorf("case %d, error creating dataset request: %s", i, err)
-			continue
-		}
+	bad := []struct {
+		ref           string
+		bodyPath      string
+		schemaPath    string
+		structurePath string
+		format        string
 
-		opt := &ValidateOptions{
-			IOStreams:      run.Streams,
-			Refs:           NewExplicitRefSelect(c.ref),
-			BodyFilepath:   c.bodyFilePath,
-			SchemaFilepath: c.schemaFilePath,
-			URL:            c.url,
-			DatasetMethods: dsm,
-		}
+		err     string
+		message string
+	}{
+		{"", "", "", "", "table",
+			"bad arguments provided", "please provide a dataset name, or a supply the --body and --schema or --structure flags"},
+		{"peer/bad_dataset", "", "", "", "table",
+			"cannot find dataset: peer/bad_dataset", ""},
+		{"", "bad/filepath", "", "table", "testdata/days_of_week_schema.json",
+			"error opening body file: bad/filepath", ""},
+		{"", "testdata/days_of_week.csv", "bad/schema_filepath", "", "",
+			"error opening schema file: bad/schema_filepath", ""},
+	}
 
-		err = opt.Run()
-		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
-			run.IOReset()
-			continue
-		}
+	for _, c := range bad {
+		t.Run(c.err, func(t *testing.T) {
+			defer run.IOReset()
 
-		if libErr, ok := err.(errors.Error); ok {
-			if libErr.Message() != c.msg {
-				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
-				run.IOReset()
-				continue
+			opt := &ValidateOptions{
+				IOStreams:         run.Streams,
+				Refs:              NewExplicitRefSelect(c.ref),
+				BodyFilepath:      c.bodyPath,
+				SchemaFilepath:    c.schemaPath,
+				StructureFilepath: c.structurePath,
+				Format:            c.format,
+				DatasetMethods:    dsm,
 			}
-		} else if c.msg != "" {
-			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
-			run.IOReset()
-			continue
-		}
 
-		if c.expected != run.OutStream.String() {
-			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, run.OutStream.String())
-			run.IOReset()
-			continue
-		}
+			err := opt.Run()
+			if err == nil {
+				t.Errorf("expected error, got none")
+				return
+			}
+			if c.err != err.Error() {
+				t.Errorf("error mismatch.\nwant: %q\ngot:  %q", c.err, err.Error())
+			}
 
-		run.IOReset()
+			if libErr, ok := err.(errors.Error); ok {
+				if libErr.Message() != c.message {
+					t.Errorf("mismatched user-friendly message. Expected: '%s', Got: '%s'", c.message, libErr.Message())
+					return
+				}
+			}
+		})
+	}
+
+	good := []struct {
+		ref           string
+		bodyPath      string
+		schemaPath    string
+		structurePath string
+		format        string
+
+		output string
+	}{
+		{"peer/movies", "", "", "", "table",
+			`#  ROW   COL  VALUE  ERROR                              
+0  4     1           type should be integer, got string  
+1  199   1           type should be integer, got string  
+2  206   1           type should be integer, got string  
+3  1510  1           type should be integer, got string  
+`},
+		{"peer/movies", "", "", "", "csv", `#,row,col,value,error
+0,4,1,,"type should be integer, got string"
+1,199,1,,"type should be integer, got string"
+2,206,1,,"type should be integer, got string"
+3,1510,1,,"type should be integer, got string"
+`},
+		{"peer/movies", "", "", "", "json",
+			`[{"propertyPath":"/4/1","invalidValue":"","message":"type should be integer, got string"},{"propertyPath":"/199/1","invalidValue":"","message":"type should be integer, got string"},{"propertyPath":"/206/1","invalidValue":"","message":"type should be integer, got string"},{"propertyPath":"/1510/1","invalidValue":"","message":"type should be integer, got string"}]
+`},
+		{"", "testdata/days_of_week.csv", "testdata/days_of_week_schema.json", "", "table",
+			"✔ All good!\n"},
+		{"", "testdata/days_of_week.csv", "testdata/days_of_week_schema.json", "", "json",
+			"[]\n"},
+	}
+
+	for i, c := range good {
+		t.Run(fmt.Sprintf("good_%d", i), func(t *testing.T) {
+			defer run.IOReset()
+
+			opt := &ValidateOptions{
+				IOStreams:         run.Streams,
+				Refs:              NewExplicitRefSelect(c.ref),
+				BodyFilepath:      c.bodyPath,
+				SchemaFilepath:    c.schemaPath,
+				StructureFilepath: c.structurePath,
+				Format:            c.format,
+				DatasetMethods:    dsm,
+			}
+
+			if err := opt.Run(); err != nil {
+				t.Errorf("unexpected error: %s", err)
+			}
+
+			if diff := cmp.Diff(c.output, run.OutStream.String()); diff != "" {
+				t.Errorf("output mismatch (-want +got):\n%s", diff)
+			}
+		})
 	}
 }
-
-var movieOutput = `0: /4/1: "" type should be integer, got string
-1: /199/1: "" type should be integer, got string
-2: /206/1: "" type should be integer, got string
-3: /1510/1: "" type should be integer, got string
-`
 
 func TestValidateCommandlineFlags(t *testing.T) {
 	run := NewTestRunner(t, "test_peer_validate_commandline_flags", "qri_test_validate_commandline_flags")
 	defer run.Delete()
 
 	output := run.MustExec(t, "qri validate --body=testdata/movies/body_ten.csv --structure=testdata/movies/structure_override.json")
-	expectContain := `/4/1: "" type should be integer`
+	expectContain := `/4/1         type should be integer, got string`
 
 	if !strings.Contains(output, expectContain) {
 		t.Errorf("expected output to contain %q, got %q", expectContain, output)
 	}
 
 	output = run.MustExec(t, "qri validate --body=testdata/movies/body_ten.csv --schema=testdata/movies/schema_only.json")
-	expectContain = `/0/1: "duration" type should be integer, got string
-1: /5/1: "" type should be integer, got string`
+	expectContain = `/0/1  duration  type should be integer, got string  
+1  /5/1            type should be integer, got string`
 
 	if !strings.Contains(output, expectContain) {
 		t.Errorf("expected output to contain %q, got %q", expectContain, output)

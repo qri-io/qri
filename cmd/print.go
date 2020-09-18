@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/deepdiff"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
@@ -210,4 +211,22 @@ func printRefSelect(w io.Writer, refset *RefSelect) {
 	}
 	printInfo(w, refset.String())
 	fmt.Fprintln(w, "")
+}
+
+func renderTable(writer io.Writer, header []string, data [][]string) {
+	table := tablewriter.NewWriter(writer)
+	table.SetHeader(header)
+	table.SetAutoWrapText(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetCenterSeparator("")
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetHeaderLine(false)
+	table.SetBorder(false)
+	table.SetTablePadding("  ")
+	table.SetNoWhiteSpace(true)
+	table.AppendBulk(data)
+	table.Render()
 }

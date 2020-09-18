@@ -1,8 +1,15 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/csv"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/lib"
@@ -72,10 +79,11 @@ if these flags are provided.`,
 	// cmd.Flags().StringVarP(&o.URL, "url", "u", "", "url to file to initialize from")
 	cmd.Flags().StringVarP(&o.BodyFilepath, "body", "b", "", "body file to validate")
 	cmd.MarkFlagFilename("body")
-	cmd.Flags().StringVarP(&o.SchemaFilepath, "schema", "", "", "json schema file to use for validation")
+	cmd.Flags().StringVar(&o.SchemaFilepath, "schema", "", "json schema file to use for validation")
 	cmd.MarkFlagFilename("schema", "json")
 	cmd.Flags().StringVarP(&o.StructureFilepath, "structure", "", "", "json structure file to use for validation")
 	cmd.MarkFlagFilename("structure", "json")
+	cmd.Flags().StringVar(&o.Format, "format", "table", "output format. One of: [table|json|csv]")
 
 	return cmd
 }
@@ -88,7 +96,7 @@ type ValidateOptions struct {
 	BodyFilepath      string
 	SchemaFilepath    string
 	StructureFilepath string
-	URL               string
+	Format            string
 
 	DatasetMethods *lib.DatasetMethods
 }
@@ -99,8 +107,12 @@ func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
 		return
 	}
 
+	if o.Format != "table" && o.Format != "json" && o.Format != "csv" {
+		return fmt.Errorf(`%q is not a valid output format. Please use one of: "table", "json", "csv"`, o.Format)
+	}
+
 	o.Refs, err = GetCurrentRefSelect(f, args, 1, nil)
-	if err == repo.ErrEmptyRef {
+	if errors.Is(err, repo.ErrEmptyRef) {
 		// It is not an error to call validate without a dataset reference. Might be
 		// validating a body file against a schema file directly.
 		o.Refs = NewEmptyRefSelect()
@@ -117,29 +129,79 @@ func (o *ValidateOptions) Run() (err error) {
 	defer o.StopSpinner()
 
 	ref := o.Refs.Ref()
-	p := &lib.ValidateDatasetParams{
-		Ref: ref,
-		// TODO: restore
-		// URL:          addDsURL,
+	p := &lib.ValidateParams{
+		Ref:               ref,
 		BodyFilename:      o.BodyFilepath,
 		SchemaFilename:    o.SchemaFilepath,
 		StructureFilename: o.StructureFilepath,
 	}
 
-	res := []jsonschema.KeyError{}
-	if err = o.DatasetMethods.Validate(p, &res); err != nil {
+	res := &lib.ValidateResponse{}
+	if err = o.DatasetMethods.Validate(p, res); err != nil {
 		return err
 	}
 
 	o.StopSpinner()
 
-	if len(res) == 0 {
-		printSuccess(o.Out, "✔ All good!")
-		return
-	}
-
-	for i, err := range res {
-		fmt.Fprintf(o.Out, "%d: %s\n", i, err.Error())
+	switch o.Format {
+	case "table":
+		if len(res.Errors) == 0 {
+			printSuccess(o.Out, "✔ All good!")
+			return nil
+		}
+		header, data := tabularValidationData(res.Structure, res.Errors)
+		buf := &bytes.Buffer{}
+		renderTable(buf, header, data)
+		printToPager(o.Out, buf)
+	case "csv":
+		header, data := tabularValidationData(res.Structure, res.Errors)
+		csv.NewWriter(o.Out).WriteAll(append([][]string{header}, data...))
+	case "json":
+		if err := json.NewEncoder(o.Out).Encode(res.Errors); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func tabularValidationData(st *dataset.Structure, errs []jsonschema.KeyError) ([]string, [][]string) {
+	header := []string{"#", "path", "error"}
+	data := make([][]string, len(errs))
+
+	if st.Depth == 2 {
+		header = []string{"#", "row", "col", "value", "error"}
+		for i, e := range errs {
+			paths := strings.Split(e.PropertyPath, "/")
+			data[i] = []string{strconv.FormatInt(int64(i), 10), paths[1], paths[2], valStr(e.InvalidValue), e.Message}
+		}
+	} else {
+		header = []string{"#", "path", "value", "error"}
+		for i, e := range errs {
+			data[i] = []string{strconv.FormatInt(int64(i), 10), e.PropertyPath, valStr(e.InvalidValue), e.Message}
+		}
+	}
+
+	return header, data
+}
+
+func valStr(v interface{}) string {
+	switch x := v.(type) {
+	case string:
+		if len(x) > 20 {
+			x = x[:17] + "..."
+		}
+		return x
+	case int:
+		return strconv.FormatInt(int64(x), 10)
+	case int64:
+		return strconv.FormatInt(x, 10)
+	case float64:
+		return strconv.FormatFloat(x, 'E', -1, 64)
+	case bool:
+		return strconv.FormatBool(x)
+	case nil:
+		return "NULL"
+	default:
+		return "<unknown>"
+	}
 }

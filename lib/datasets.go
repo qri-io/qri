@@ -968,27 +968,28 @@ func (m *DatasetMethods) Pull(p *PullParams, res *dataset.Dataset) error {
 	return nil
 }
 
-// ValidateDatasetParams defines parameters for dataset
-// data validation
-type ValidateDatasetParams struct {
-	Ref string
-	// URL          string
+// ValidateParams defines parameters for dataset data validation
+type ValidateParams struct {
+	Ref               string
 	BodyFilename      string
 	SchemaFilename    string
 	StructureFilename string
 }
 
+// ValidateResponse is the result of running validate against a dataset
+type ValidateResponse struct {
+	// Structure used to perform validation
+	Structure *dataset.Structure
+	// Validation Errors
+	Errors []jsonschema.KeyError
+}
+
 // Validate gives a dataset of errors and issues for a given dataset
-func (m *DatasetMethods) Validate(p *ValidateDatasetParams, valerrs *[]jsonschema.KeyError) error {
+func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) error {
 	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Validate", p, valerrs))
+		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Validate", p, res))
 	}
 	ctx := context.TODO()
-
-	// TODO: restore validating data from a URL
-	// if p.URL != "" && ref.IsEmpty() && o.Schema == nil {
-	//   return (qrierr.New(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
-	// }
 
 	// Schema can come from either schema.json or structure.json, or the dataset itself.
 	// schemaFlagType determines which of these three contains the schema.
@@ -1096,8 +1097,16 @@ func (m *DatasetMethods) Validate(p *ValidateDatasetParams, valerrs *[]jsonschem
 		}
 	}
 
-	*valerrs, err = base.Validate(ctx, m.inst.repo, body, st)
-	return err
+	valerrs, err := base.Validate(ctx, m.inst.repo, body, st)
+	if err != nil {
+		return err
+	}
+
+	*res = ValidateResponse{
+		Structure: st,
+		Errors:    valerrs,
+	}
+	return nil
 }
 
 // Manifest generates a manifest for a dataset path

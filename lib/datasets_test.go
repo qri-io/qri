@@ -20,7 +20,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
@@ -1079,16 +1078,16 @@ Pirates of the Caribbean: At World's End ,foo
 	run.MustWriteFile(t, schemaFilename, schemaB)
 
 	cases := []struct {
-		p         ValidateDatasetParams
+		p         ValidateParams
 		numErrors int
 		err       string
 	}{
-		{ValidateDatasetParams{Ref: ""}, 0, "bad arguments provided"},
-		{ValidateDatasetParams{Ref: "me"}, 0, "cannot find dataset: peer"},
-		{ValidateDatasetParams{Ref: "me/movies"}, 4, ""},
-		{ValidateDatasetParams{Ref: "me/movies", BodyFilename: bodyFilename}, 1, ""},
-		{ValidateDatasetParams{Ref: "me/movies", SchemaFilename: schemaFilename}, 5, ""},
-		{ValidateDatasetParams{SchemaFilename: schemaFilename, BodyFilename: bodyFilename}, 1, ""},
+		{ValidateParams{Ref: ""}, 0, "bad arguments provided"},
+		{ValidateParams{Ref: "me"}, 0, "cannot find dataset: peer"},
+		{ValidateParams{Ref: "me/movies"}, 4, ""},
+		{ValidateParams{Ref: "me/movies", BodyFilename: bodyFilename}, 1, ""},
+		{ValidateParams{Ref: "me/movies", SchemaFilename: schemaFilename}, 5, ""},
+		{ValidateParams{SchemaFilename: schemaFilename, BodyFilename: bodyFilename}, 1, ""},
 	}
 
 	mr, err := testrepo.NewTestRepo()
@@ -1103,16 +1102,15 @@ Pirates of the Caribbean: At World's End ,foo
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 	for i, c := range cases {
-		got := []jsonschema.KeyError{}
-		err := m.Validate(&c.p, &got)
+		res := &ValidateResponse{}
+		err := m.Validate(&c.p, res)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err.Error())
 			continue
 		}
 
-		if len(got) != c.numErrors {
-			t.Errorf("case %d error count mismatch. expected: %d, got: %d", i, c.numErrors, len(got))
-			t.Log(got)
+		if len(res.Errors) != c.numErrors {
+			t.Errorf("case %d error count mismatch. expected: %d, got: %d", i, c.numErrors, len(res.Errors))
 			continue
 		}
 	}
