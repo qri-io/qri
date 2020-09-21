@@ -133,7 +133,7 @@ to create a working directory for an existing dataset`
 			}
 		}, rollback)
 
-	// Derive format from --source-body-path if provided.
+	// Derive format from --body if provided.
 	if p.Format == "" && p.SourceBodyPath != "" {
 		ext := filepath.Ext(p.SourceBodyPath)
 		if len(ext) > 0 {
@@ -239,7 +239,7 @@ to create a working directory for an existing dataset`
 
 // CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not
 func (fsi *FSI) CanInitDatasetWorkDir(dir, sourceBodyPath string) error {
-	// Get the source-body-path relative to the directory that we're initializing.
+	// Get the body relative to the directory that we're initializing.
 	relBodyPath := sourceBodyPath
 	if strings.HasPrefix(relBodyPath, dir) {
 		relBodyPath = strings.TrimPrefix(relBodyPath, dir)
