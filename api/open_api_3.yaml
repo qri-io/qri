@@ -265,6 +265,12 @@ paths:
     post:
       summary: Remove a dataset
       operationId: removeDatasetPost
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetRemove'
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
@@ -277,6 +283,12 @@ paths:
     delete:
       summary: Remove a dataset
       operationId: removeDatasetDelete
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetRemove'
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
@@ -322,29 +334,6 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /body/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
-      - description: returns the body as a stream of data
-        in: query
-        name: download
-        type: boolean
-      - description: format should only be set when used with the download flag. This allows you to export the body of the dataset in a different format. Options are json, xlsx, csv, cbor
-        in: query
-        name: format
-        type: string
-    get:
-      summary: Get a dataset’s body. By default (with no parameters), the body will be returned as paginated json.
-      operationId: getBody
-      responses:
-        '200':
-          $ref: '#/components/responses/BodyResponse'
         '403':
           $ref: '#/components/responses/StatusForbidden'
         '404':
@@ -1175,7 +1164,7 @@ components:
             - $ref: '#/components/schemas/Dataset'
             - $ref: '#/components/schemas/Profile'
     DatasetRename:
-      description: The fields required to rename a dataset
+      description: Properties to rename a dataset
       type: object
       properties:
         current:
@@ -1183,8 +1172,22 @@ components:
           type: string
         next:
           description: Dataset name (<username>/<dataset_name>)
+          type: string 
+    DatasetRemove:
+      type: object
+      properties:
+        remote:
+          description: Remote name
           type: string
-      
+        keep-files:
+          type: boolean
+        force:
+          description: Force a delete of dataset
+          type: boolean
+        all:
+          description: Indicates all versions of a dataset
+          type: boolean
+
   parameters:
     datasetRef:
       name: datasetRef
