@@ -18,9 +18,22 @@ func NewInitCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init [PATH]",
 		Short: "initialize a dataset directory",
-		Long: `'initialize' creates a new dataset, links it to the current or specified
-directory, and creates starter files for the dataset's components.`,
-		Example: ``,
+		Long: `'initialize' creates a new dataset, links it to the current directory,
+and creates starter files for the dataset's components. You can also specify an
+already existing body file using the 'body' flag.`,
+		Example: `  # initialize a new dataset, linking it to the current directory:
+
+  $ mkdir earthquakes && cd earthquakes
+  $ qri init
+  Name of new dataset [earthquakes]: 
+  Format of dataset, csv or json [csv]: csv
+  initialized working directory for new dataset user/earthquakes
+	
+	# initialize a new dataset, specifying a file to use as the body of the dataset:
+	
+  $ qri init --body /Users/datasets/earthquakes.csv --name earthquakes
+  initialized working directory for new dataset user/earthquakes
+`,
 		Annotations: map[string]string{
 			"group": "workdir",
 		},
@@ -34,7 +47,7 @@ directory, and creates starter files for the dataset's components.`,
 
 	cmd.Flags().StringVar(&o.Name, "name", "", "name of the dataset")
 	cmd.Flags().StringVar(&o.Format, "format", "", "format of dataset")
-	cmd.Flags().StringVar(&o.SourceBodyPath, "source-body-path", "", "path to the body file")
+	cmd.Flags().StringVar(&o.SourceBodyPath, "body", "", "path to the body file")
 	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "experimental: build and use dscache if none exists")
 
 	return cmd
@@ -99,7 +112,7 @@ func (o *InitOptions) Run() (err error) {
 		return err
 	}
 
-	// If --source-body-path flag is set, use that to figure out the format
+	// If --body flag is set, use that to figure out the format
 	if o.SourceBodyPath != "" {
 		ext := filepath.Ext(o.SourceBodyPath)
 		if strings.HasPrefix(ext, ".") {

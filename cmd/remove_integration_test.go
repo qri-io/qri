@@ -862,7 +862,7 @@ func TestRemoveWorksAfterDeletingWorkingDirectoryFromInit(t *testing.T) {
 	workDir := run.CreateAndChdirToWorkDir("remove_rm_wd")
 
 	// Init as a linked directory.
-	run.MustExec(t, fmt.Sprintf("qri init --name remove_rm_wd --source-body-path %s", sourceFile))
+	run.MustExec(t, fmt.Sprintf("qri init --name remove_rm_wd --body %s", sourceFile))
 
 	// Go up one directory
 	parentDir := filepath.Dir(workDir)
@@ -886,7 +886,7 @@ func TestRemoveWorksAfterDeletingWorkingDirectoryFromInit(t *testing.T) {
 	workDir = run.CreateAndChdirToWorkDir("remove_rm_wd")
 
 	// Init as a linked directory.
-	err = run.ExecCommand(fmt.Sprintf("qri init --name remove_rm_wd --source-body-path %s", sourceFile))
+	err = run.ExecCommand(fmt.Sprintf("qri init --name remove_rm_wd --body %s", sourceFile))
 	if err != nil {
 		t.Errorf("should be able to init dataset with the removed name, got %q", err)
 	}

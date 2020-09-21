@@ -407,7 +407,7 @@ func TestInitWithJsonSourceBodyPath(t *testing.T) {
 	workDir := run.CreateAndChdirToWorkDir("json_body")
 
 	// Init as a linked directory.
-	run.MustExec(t, fmt.Sprintf("qri init --name json_body --source-body-path %s", sourceFile))
+	run.MustExec(t, fmt.Sprintf("qri init --name json_body --body %s", sourceFile))
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
@@ -417,7 +417,7 @@ func TestInitWithJsonSourceBodyPath(t *testing.T) {
 	}
 }
 
-// Test that init can use a source-body-path named "body.csv" without error
+// Test that init can use a --body named "body.csv" without error
 func TestInitSourceBodyFileNamedBody(t *testing.T) {
 	run := NewFSITestRunner(t, "test_peer_init_named_body", "qri_test_init_named_body")
 	defer run.Delete()
@@ -433,7 +433,7 @@ func TestInitSourceBodyFileNamedBody(t *testing.T) {
 	copyFile(t, sourceFile, "body.csv")
 
 	// Init as a linked directory.
-	run.MustExec(t, fmt.Sprintf("qri init --name init-named-body --source-body-path body.csv"))
+	run.MustExec(t, fmt.Sprintf("qri init --name init-named-body --body body.csv"))
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
@@ -1118,7 +1118,7 @@ func TestInitWithSourceBodyPath(t *testing.T) {
 	workDir := run.CreateAndChdirToWorkDir("init_source")
 
 	// Init with a source body path.
-	run.MustExec(t, fmt.Sprintf("qri init --name init_source --source-body-path %s", sourceFile))
+	run.MustExec(t, fmt.Sprintf("qri init --name init_source --body %s", sourceFile))
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
@@ -1377,7 +1377,7 @@ func TestInitMetaFailsToWrite(t *testing.T) {
 	}
 }
 
-// Test that if source-body-path doesn't exist, init will rollback
+// Test that if body doesn't exist, init will rollback
 func TestInitSourceBodyPathDoesNotExist(t *testing.T) {
 	run := NewFSITestRunner(t, "test_peer_init_source_not_found", "qri_test_init_source_not_found")
 	defer run.Delete()
@@ -1385,7 +1385,7 @@ func TestInitSourceBodyPathDoesNotExist(t *testing.T) {
 	workDir := run.CreateAndChdirToWorkDir("source_not_found")
 
 	// Init as a linked directory.
-	err := run.ExecCommand("qri init --name source_not_found --source-body-path not_found.json")
+	err := run.ExecCommand("qri init --name source_not_found --body not_found.json")
 	if err == nil {
 		t.Fatal("expected error trying to init, did not get an error")
 	}
