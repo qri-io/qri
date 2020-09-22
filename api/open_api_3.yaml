@@ -5,30 +5,77 @@ info:
   version: 0.5.1
 
 paths:
-  /{peername}:
+  /get/{username}/{datasetName}:
     get:
-      summary: Get the profile of a peer using the `peername`
-      operationId: getPeername
+      summary: Get dataset info from a peer’s dataset using the `username` and `dataset_name`
+      operationId: getDataset
       parameters:
-        - $ref: '#/components/parameters/peername'
+        - $ref: '#/components/parameters/username'
+        - $ref: '#/components/parameters/datasetName'
+        - name: rawDownload
+          in: query 
+          description: download the dataset body
+          required: false 
+          schema:
+            type: boolean
+        - name: format
+          in: query 
+          description: dataset format, default is json
+          required: false
+          schema:
+            type: string
+        - name: component 
+          in: query 
+          description: dataset component
+          required: false 
+          schema:
+            type: string
+            enum: [body]
+        - name: all
+          in: query 
+          description: fetch all results without pagination
+          required: false
+          schema:
+            type: boolean
+        - name: remote
+          in: query 
+          description: Remote name, e.g. registry or local
+          required: false 
+          schema: 
+            type: string
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - name: Accept
+          in: header 
+          description: file type to download from API, e.g. "text/csv"
+          required: false 
+          schema:
+            type: string
       responses:
         '200':
-          $ref: '#/components/responses/ProfileResponse'
+          $ref: '#/components/responses/DatasetResponse'
         '404':
           $ref: '#/components/responses/StatusNotFound'
         '500':
           $ref: '#/components/responses/StatusInternalServerError'
-  /{peername}/{datasetName}:
+  /get/{username}/{datasetName}/body.csv:
     get:
-      summary: Get dataset info from a peer’s dataset using the `peername` and `dataset_name`
-      operationId: getDataset
+      summary: Get dataset body as raw csv for download
+      operationId: getDatasetBody
       parameters:
-        - $ref: '#/components/parameters/peername'
-        - name: datasetName
-          in: path
-          description: Dataset name
-          required: true
+        - $ref: '#/components/parameters/username'
+        - $ref: '#/components/parameters/datasetName'
+        - name: all
+          in: query 
+          description: fetch all results without pagination
+          required: false
           schema:
+            type: boolean
+        - name: remote
+          description: Remote name, e.g. registry or local
+          in: query 
+          required: false 
+          schema: 
             type: string
       responses:
         '200':
@@ -158,6 +205,15 @@ paths:
         '500':
           $ref: '#/components/responses/StatusInternalServerError'  
   /list:
+    parameters: 
+      - $ref: '#/components/parameters/page'
+      - $ref: '#/components/parameters/pageSize'
+      - name: term
+        in: query 
+        description: Search term for listed datasets
+        required: false 
+        schema:
+          type: string
     get:
       summary: Get the list of this peer’s datasets
       operationId: getDatasetList
@@ -170,28 +226,27 @@ paths:
           $ref: '#/components/responses/StatusNotFound'
         '500':
           $ref: '#/components/responses/StatusInternalServerError'   
-  /list/{peername}:
-    parameters:
-      - name: peername
-        in: path
-        description: Peername
+  /save:
+    post:
+      summary: Save and update to a dataset head
+      operationId: saveDatasetFromRoot
+      requestBody:
+        description: Updated dataset head
         required: true
-        schema:
-          type: string
-    get:
-      summary: Get the list a specific peer’s datasets
-      operationId: getPeersDatasetList
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dataset'       
       responses:
         '200':
-          $ref: '#/components/responses/DatasetsResponse'
+          $ref: '#/components/responses/DatasetResponse'
         '403':
           $ref: '#/components/responses/StatusForbidden'
         '404':
           $ref: '#/components/responses/StatusNotFound'
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'  
-  /save:
-    post:
+          $ref: '#/components/responses/StatusInternalServerError'
+    put:
       summary: Save and update to a dataset head
       operationId: saveDatasetFromRoot
       requestBody:
@@ -232,12 +287,37 @@ paths:
           $ref: '#/components/responses/StatusNotFound'
         '500':
           $ref: '#/components/responses/StatusInternalServerError'
+    put:
+      summary: Save and update to a dataset head
+      operationId: saveDataset
+      requestBody:
+        description: Updated dataset head
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dataset'       
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
   /remove/{datasetRef}:
     parameters:
       - $ref: '#/components/parameters/datasetRef'
     post:
       summary: Remove a dataset
       operationId: removeDatasetPost
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetRemove'
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
@@ -250,6 +330,12 @@ paths:
     delete:
       summary: Remove a dataset
       operationId: removeDatasetDelete
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetRemove'
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
@@ -295,29 +381,6 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /body/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
-      - description: returns the body as a stream of data
-        in: query
-        name: download
-        type: boolean
-      - description: format should only be set when used with the download flag. This allows you to export the body of the dataset in a different format. Options are json, xlsx, csv, cbor
-        in: query
-        name: format
-        type: string
-    get:
-      summary: Get a dataset’s body. By default (with no parameters), the body will be returned as paginated json.
-      operationId: getBody
-      responses:
-        '200':
-          $ref: '#/components/responses/BodyResponse'
         '403':
           $ref: '#/components/responses/StatusForbidden'
         '404':
@@ -403,7 +466,7 @@ paths:
           enum:
             - $ref: '#/components/schemas/Path'
             - $ref: '#/components/schemas/ID'
-            - $ref: '#/components/schemas/Peername'
+            - $ref: '#/components/schemas/Username'
             - $ref: '#/components/schemas/Multiaddr'
     get:
       summary: Create an explicit connection to another peer
@@ -477,11 +540,11 @@ paths:
   /profile/photo:
     get:
       parameters:
-        - name: peername
+        - name: username
           in: query
-          description: peername
+          description: username
           schema:
-            $ref: '#/components/schemas/Peername'
+            $ref: '#/components/schemas/Username'
         - name: id
           in: query
           description: peer id
@@ -541,11 +604,11 @@ paths:
   /profile/poster:
     get:
       parameters:
-        - name: peername
+        - name: username
           in: query
-          description: peername
+          description: username
           schema:
-            $ref: '#/components/schemas/Peername'
+            $ref: '#/components/schemas/Username'
         - name: id
           in: query
           description: peer id
@@ -612,28 +675,26 @@ paths:
             schema:
               type: object
               properties:
-                left:
+                LeftSide:
                   description: a dataset reference
                   type: string
-                right:
+                RightSide:
                   description: a dataset reference
                   type: string
-                format:
-                  type: string
-                  enum: [simple, listKeys, plusMinusColor, plusMinus]
+                Selector:
+                  $ref: '#/components/schemas/DatasetComponent'
           multipart/form-data:
             schema:
               type: object
               properties:
-                left:
+                left_path:
                   description: a dataset reference
                   type: string
-                right:
+                right_path:
                   type: string
                   description: a dataset reference
-                format:
-                  type: string
-                  enum: [simple, listKeys, plusMinusColor, plusMinus] 
+                selector:
+                  $ref: '#/components/schemas/DatasetComponent'
       responses:
         '200':
           $ref: '#/components/responses/DiffResponse'
@@ -644,19 +705,21 @@ paths:
         '500':
           $ref: '#/components/responses/StatusInternalServerError' 
   /export/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
-      - description: defaults to true. When true, data payload is a zipped file.
-        in: query
-        name: zipped
-        type: boolean
-      - description: format the dataset should be converted to. Options are json, yaml, xlsx
-        in: query
-        name: format
-        type: string
     get:
       summary: Export a dataset header and body as a zip
       operationId: zipDataset
+      parameters:
+        - $ref: '#/components/parameters/datasetRef'
+        - name: zipped
+          description: defaults to true. When true, data payload is a zipped file.
+          in: query
+          schema:
+            type: boolean
+        - name: format
+          description: format the dataset should be converted to. Options are json, yaml, xlsx
+          in: query
+          schema:
+            type: string
       responses:
         '200':
           $ref: '#/components/responses/ZipResponse'
@@ -669,30 +732,35 @@ paths:
   /rename:
     put:
       summary: Rename a dataset
-      operationId: renameDataset
+      operationId: renameDatasetPut
       parameters:
-        - name: new
-          in: query
-          description: Dataset name (<handle>/<dataset_name>)
-          schema:
-            type: string
-        - name: current
-          in: query
-          description: Dataset name (<handle>/<dataset_name>)
-          schema:
-            type: string
+        - $ref: '#/components/parameters/current'
+        - $ref: '#/components/parameters/new'
       requestBody:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                current:
-                  description: Dataset name (<handle>/<dataset_name>)
-                  type: string
-                new:
-                  description: Dataset name (<handle>/<dataset_name>)
-                  type: string
+              $ref: '#/components/schemas/DatasetRename'
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+    post:
+      summary: Rename a dataset
+      operationId: renameDatasetPost
+      parameters:
+        - $ref: '#/components/parameters/current'
+        - $ref: '#/components/parameters/new'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetRename'
       responses:
         '200':
           $ref: '#/components/responses/DatasetResponse'
@@ -715,8 +783,8 @@ paths:
             schema:
               type: object
               properties:
-                peername:
-                  $ref: '#/components/schemas/Peername'
+                username:
+                  $ref: '#/components/schemas/Username'
                 name:
                   type: string
                   description: name of the dataset
@@ -747,8 +815,8 @@ paths:
             schema:
               type: object
               properties:
-                peername:
-                  $ref: '#/components/schemas/Peername'
+                username:
+                  $ref: '#/components/schemas/Username'
                 name:
                   type: string
                   description: name of the dataset
@@ -810,6 +878,43 @@ paths:
           $ref: '#/components/responses/StatusNotFound'
         '500':
           $ref: '#/components/responses/StatusInternalServerError'
+  /stats/{username}/{datasetName}:
+    get:
+      summary: Get dataset stats
+      operationId: stats
+      parameters:
+        - $ref: '#/components/parameters/username'
+        - $ref: '#/components/parameters/datasetName'
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /unpack:
+    post:
+      summary: Unpack a zip file and return its contents as json
+      operationId: unpack
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
           
 components:
   schemas:
@@ -826,8 +931,8 @@ components:
           type: string
         path:
           $ref: '#/components/schemas/Path'
-        peername:
-          $ref: '#/components/schemas/Peername'
+        username:
+          $ref: '#/components/schemas/Username'
         profileID:
           $ref: '#/components/schemas/ID'
         meta:
@@ -850,8 +955,8 @@ components:
           $ref: '#/components/schemas/ID'
         privKey:
           type: string
-        peername:
-          $ref: '#/components/schemas/Peername'
+        username:
+          $ref: '#/components/schemas/Username'
         created:
           $ref: '#/components/schemas/Created'
         updated:
@@ -1052,9 +1157,9 @@ components:
       maxLength: 46
       minLength: 46
       pattern: '^[a-zA-Z0-9]{46}'
-    Peername:
+    Username:
       type: string
-      description: The peername associated with a particular qri node
+      description: The username associated with a particular qri node
       not:
         enum: [me, status, at, add, history, remove, export, profile, list, peers, connections, new, log, registry, diff, validate]
     Created:
@@ -1142,19 +1247,46 @@ components:
           oneOf:
             - $ref: '#/components/schemas/Dataset'
             - $ref: '#/components/schemas/Profile'
-      
+    DatasetComponent:
+      type: string 
+      enum: [body, readme, meta, commit, structure, transform]
+    DatasetRename:
+      description: The fields required to rename a dataset
+      type: object
+      properties:
+        current:
+          description: Dataset name (<username>/<dataset_name>)
+          type: string
+        next:
+          description: Dataset name (<username>/<dataset_name>)
+          type: string
+    DatasetRemove:
+      type: object
+      properties:
+        remote:
+          description: Remote name, e.g. registry or local
+          type: string
+        keep-files:
+          type: boolean
+        force:
+          description: Force a delete of dataset
+          type: boolean
+        all:
+          description: Indicates all versions of a dataset
+          type: boolean
+
   parameters:
     datasetRef:
       name: datasetRef
       in: path
-      description: Dataset Reference
+      description: Dataset Reference (<username>/<dataset_name> or <username>/<dataset_name>/at/<some_hash>)
       required: true
       schema:
         type: string
-    peername:
-      name: peername
+    username:
+      name: username
       in: path
-      description: Peername
+      description: Username
       required: true
       schema:
         type: string
@@ -1178,6 +1310,32 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/ID'
+    page:
+      name: page 
+      in: query 
+      description: Page number
+      required: false 
+      schema:
+        type: integer
+    pageSize:
+      name: pageSize
+      in: query 
+      description: Page size
+      required: false 
+      schema:
+        type: integer
+    current:
+      name: current
+      in: query
+      description: Dataset name (<username>/<dataset_name>)
+      schema:
+        type: string
+    new:
+      name: new
+      in: query
+      description: Dataset name (<username>/<dataset_name>)
+      schema:
+        type: string
           
   responses:
     StatusInternalServerError:
@@ -1299,30 +1457,29 @@ components:
           schema:
             type: object
             properties:
-        properties:
-          data:
-            type: object
-            properties:
-              a: 
-                $ref: '#/components/schemas/Dataset'
-              b:
-                $ref: '#/components/schemas/Dataset'
-              diff:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    path:
-                      type: string
-                    type:
-                      type: string
-                    value: 
+              data:
+                type: object
+                properties:
+                  a: 
+                    $ref: '#/components/schemas/Dataset'
+                  b:
+                    $ref: '#/components/schemas/Dataset'
+                  diff:
+                    type: array
+                    items:
                       type: object
                       properties:
-                        title:
+                        path:
                           type: string
                         type:
                           type: string
+                        value: 
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            type:
+                              type: string
               stat:
                 type: object
                 properties:
@@ -1340,8 +1497,8 @@ components:
                     type: integer
                   updates:
                     type: integer
-          meta:
-            $ref: '#/components/schemas/MetaResponse'
+              meta:
+                $ref: '#/components/schemas/MetaResponse'
     ZipResponse:
       description: Zip Response
       content:
