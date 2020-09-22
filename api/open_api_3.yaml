@@ -894,6 +894,27 @@ paths:
           $ref: '#/components/responses/StatusNotFound'
         '500':
           $ref: '#/components/responses/StatusInternalServerError'
+  /unpack:
+    post:
+      summary: Unpack a zip file and return its contents as json
+      operationId: unpack
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
           
 components:
   schemas:
