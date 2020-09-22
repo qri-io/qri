@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/rpc"
 	"os"
@@ -127,6 +128,11 @@ func (o *QriOptions) Init() (err error) {
 		return
 	}
 	setNoPrompt(o.NoPrompt)
+
+	repoErr := lib.QriRepoExists(o.repoPath)
+	if repoErr != nil {
+		return errors.New("no qri repo exists\nhave you run 'qri setup'?")
+	}
 
 	opts := []lib.Option{
 		lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
