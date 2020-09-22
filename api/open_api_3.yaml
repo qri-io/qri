@@ -878,6 +878,22 @@ paths:
           $ref: '#/components/responses/StatusNotFound'
         '500':
           $ref: '#/components/responses/StatusInternalServerError'
+  /stats/{username}/{datasetName}:
+    get:
+      summary: Get dataset stats
+      operationId: stats
+      parameters:
+        - $ref: '#/components/parameters/username'
+        - $ref: '#/components/parameters/datasetName'
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
           
 components:
   schemas:
