@@ -12,12 +12,6 @@ paths:
       parameters:
         - $ref: '#/components/parameters/username'
         - $ref: '#/components/parameters/datasetName'
-        - name: body.csv
-          in: path 
-          description: indicate desired download of body as raw csv from API
-          required: false 
-          schema:
-            type: string
         - name: rawDownload
           in: query 
           description: download the dataset body
@@ -43,18 +37,45 @@ paths:
           required: false
           schema:
             type: boolean
-            - name: remote
-            in: query 
-            required: false 
-            schema: 
-              - $ref: '#/components/schemas/Remote'
-              - $ref: '#/components/parameters/page'
-              - $ref: '#/components/parameters/pageSize'
+        - name: remote
+          in: query 
+          description: Remote name, e.g. registry or local
+          required: false 
+          schema: 
+            type: string
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
         - name: Accept
           in: header 
           description: file type to download from API, e.g. "text/csv"
           required: false 
           schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /get/{username}/{datasetName}/body.csv:
+    get:
+      summary: Get dataset body as raw csv for download
+      operationId: getDatasetBody
+      parameters:
+        - $ref: '#/components/parameters/username'
+        - $ref: '#/components/parameters/datasetName'
+        - name: all
+          in: query 
+          description: fetch all results without pagination
+          required: false
+          schema:
+            type: boolean
+        - name: remote
+          description: Remote name, e.g. registry or local
+          in: query 
+          required: false 
+          schema: 
             type: string
       responses:
         '200':
@@ -684,19 +705,21 @@ paths:
         '500':
           $ref: '#/components/responses/StatusInternalServerError' 
   /export/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
-      - description: defaults to true. When true, data payload is a zipped file.
-        in: query
-        name: zipped
-        type: boolean
-      - description: format the dataset should be converted to. Options are json, yaml, xlsx
-        in: query
-        name: format
-        type: string
     get:
       summary: Export a dataset header and body as a zip
       operationId: zipDataset
+      parameters:
+        - $ref: '#/components/parameters/datasetRef'
+        - name: zipped
+          description: defaults to true. When true, data payload is a zipped file.
+          in: query
+          schema:
+            type: boolean
+        - name: format
+          description: format the dataset should be converted to. Options are json, yaml, xlsx
+          in: query
+          schema:
+            type: string
       responses:
         '200':
           $ref: '#/components/responses/ZipResponse'
@@ -1190,9 +1213,6 @@ components:
     DatasetComponent:
       type: string 
       enum: [body, readme, meta, commit, structure, transform]
-    Remote:
-      type: string
-      description: Remote name, e.g. registry or local
     DatasetRename:
       description: The fields required to rename a dataset
       type: object
@@ -1207,7 +1227,8 @@ components:
       type: object
       properties:
         remote:
-          - $ref: '#/components/schemas/Remote'
+          description: Remote name, e.g. registry or local
+          type: string
         keep-files:
           type: boolean
         force:
@@ -1399,30 +1420,29 @@ components:
           schema:
             type: object
             properties:
-        properties:
-          data:
-            type: object
-            properties:
-              a: 
-                $ref: '#/components/schemas/Dataset'
-              b:
-                $ref: '#/components/schemas/Dataset'
-              diff:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    path:
-                      type: string
-                    type:
-                      type: string
-                    value: 
+              data:
+                type: object
+                properties:
+                  a: 
+                    $ref: '#/components/schemas/Dataset'
+                  b:
+                    $ref: '#/components/schemas/Dataset'
+                  diff:
+                    type: array
+                    items:
                       type: object
                       properties:
-                        title:
+                        path:
                           type: string
                         type:
                           type: string
+                        value: 
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            type:
+                              type: string
               stat:
                 type: object
                 properties:
@@ -1440,8 +1460,8 @@ components:
                     type: integer
                   updates:
                     type: integer
-          meta:
-            $ref: '#/components/schemas/MetaResponse'
+              meta:
+                $ref: '#/components/schemas/MetaResponse'
     ZipResponse:
       description: Zip Response
       content:
