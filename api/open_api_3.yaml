@@ -5,29 +5,55 @@ info:
   version: 0.5.1
 
 paths:
-  /{username}:
-    get:
-      summary: Get the profile of a peer using the `username`
-      operationId: getUsername
-      parameters:
-        - $ref: '#/components/parameters/username'
-      responses:
-        '200':
-          $ref: '#/components/responses/ProfileResponse'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /{username}/{datasetName}:
+  /get/{username}/{datasetName}:
     get:
       summary: Get dataset info from a peer’s dataset using the `username` and `dataset_name`
       operationId: getDataset
       parameters:
         - $ref: '#/components/parameters/username'
-        - name: datasetName
-          in: path
-          description: Dataset name
-          required: true
+        - $ref: '#/components/parameters/datasetName'
+        - name: body.csv
+          in: path 
+          description: indicate desired download of body as raw csv from API
+          required: false 
+          schema:
+            type: string
+        - name: rawDownload
+          in: query 
+          description: download the dataset body
+          required: false 
+          schema:
+            type: boolean
+        - name: format
+          in: query 
+          description: dataset format, default is json
+          required: false
+          schema:
+            type: string
+        - name: component 
+          in: query 
+          description: dataset component
+          required: false 
+          schema:
+            type: string
+            enum: [body]
+        - name: all
+          in: query 
+          description: fetch all results without pagination
+          required: false
+          schema:
+            type: boolean
+            - name: remote
+            in: query 
+            required: false 
+            schema: 
+              - $ref: '#/components/schemas/Remote'
+              - $ref: '#/components/parameters/page'
+              - $ref: '#/components/parameters/pageSize'
+        - name: Accept
+          in: header 
+          description: file type to download from API, e.g. "text/csv"
+          required: false 
           schema:
             type: string
       responses:
@@ -635,9 +661,7 @@ paths:
                   description: a dataset reference
                   type: string
                 Selector:
-                  description: which component or part of a dataset to compare
-                  type: string
-                  enum: [body, readme, meta, commit, structure, transform]
+                  $ref: '#/components/schemas/DatasetComponent'
           multipart/form-data:
             schema:
               type: object
@@ -649,9 +673,7 @@ paths:
                   type: string
                   description: a dataset reference
                 selector:
-                  description: which component or part of a dataset to compare
-                  type: string
-                  enum: [body, readme, meta, commit, structure, transform] 
+                  $ref: '#/components/schemas/DatasetComponent'
       responses:
         '200':
           $ref: '#/components/responses/DiffResponse'
@@ -1165,6 +1187,12 @@ components:
           oneOf:
             - $ref: '#/components/schemas/Dataset'
             - $ref: '#/components/schemas/Profile'
+    DatasetComponent:
+      type: string 
+      enum: [body, readme, meta, commit, structure, transform]
+    Remote:
+      type: string
+      description: Remote name, e.g. registry or local
     DatasetRename:
       description: The fields required to rename a dataset
       type: object
@@ -1179,8 +1207,7 @@ components:
       type: object
       properties:
         remote:
-          description: Remote name
-          type: string
+          - $ref: '#/components/schemas/Remote'
         keep-files:
           type: boolean
         force:
@@ -1189,6 +1216,7 @@ components:
         all:
           description: Indicates all versions of a dataset
           type: boolean
+
   parameters:
     datasetRef:
       name: datasetRef
