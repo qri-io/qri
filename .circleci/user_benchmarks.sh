@@ -32,7 +32,7 @@ run_bench_rows () {
   size_human=$(du -h $filename | awk '{print $1}' | tr -d 'M')
 
   echo "bench $name: init"
-  time_command qri init --source-body-path $filename --format CSV --name $name
+  time_command qri init --body $filename --format CSV --name $name
   echo "${rows},$size_human,init,$results" >> ../perf.csv
 
   echo "bench $name: save"
