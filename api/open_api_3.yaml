@@ -628,28 +628,30 @@ paths:
             schema:
               type: object
               properties:
-                left:
+                LeftSide:
                   description: a dataset reference
                   type: string
-                right:
+                RightSide:
                   description: a dataset reference
                   type: string
-                format:
+                Selector:
+                  description: which component or part of a dataset to compare
                   type: string
-                  enum: [simple, listKeys, plusMinusColor, plusMinus]
+                  enum: [body, readme, meta, commit, structure, transform]
           multipart/form-data:
             schema:
               type: object
               properties:
-                left:
+                left_path:
                   description: a dataset reference
                   type: string
-                right:
+                right_path:
                   type: string
                   description: a dataset reference
-                format:
+                selector:
+                  description: which component or part of a dataset to compare
                   type: string
-                  enum: [simple, listKeys, plusMinusColor, plusMinus] 
+                  enum: [body, readme, meta, commit, structure, transform] 
       responses:
         '200':
           $ref: '#/components/responses/DiffResponse'
@@ -1164,7 +1166,7 @@ components:
             - $ref: '#/components/schemas/Dataset'
             - $ref: '#/components/schemas/Profile'
     DatasetRename:
-      description: Properties to rename a dataset
+      description: The fields required to rename a dataset
       type: object
       properties:
         current:
@@ -1172,7 +1174,7 @@ components:
           type: string
         next:
           description: Dataset name (<username>/<dataset_name>)
-          type: string 
+          type: string
     DatasetRemove:
       type: object
       properties:
@@ -1187,7 +1189,6 @@ components:
         all:
           description: Indicates all versions of a dataset
           type: boolean
-
   parameters:
     datasetRef:
       name: datasetRef
