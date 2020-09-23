@@ -179,7 +179,7 @@ func (rs *RecordStream) Next(ctx context.Context) (*execution.Record, error) {
 
 	aliasedRecord := make(map[octosql.VariableName]octosql.Value)
 	if rec, ok := ent.Value.([]interface{}); ok {
-		for i, x := range rec {
+		for i, x := range rec[:len(rs.aliasedFields)] {
 			switch v := x.(type) {
 			case string:
 				aliasedRecord[rs.aliasedFields[i]] = octosql.MakeString(v)
