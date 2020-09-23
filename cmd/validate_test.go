@@ -95,7 +95,7 @@ func TestValidateRun(t *testing.T) {
 		{"", "", "", "", "table",
 			"bad arguments provided", "please provide a dataset name, or a supply the --body and --schema or --structure flags"},
 		{"peer/bad_dataset", "", "", "", "table",
-			"cannot find dataset: peer/bad_dataset", ""},
+			"reference not found", ""},
 		{"", "bad/filepath", "", "table", "testdata/days_of_week_schema.json",
 			"error opening body file: bad/filepath", ""},
 		{"", "testdata/days_of_week.csv", "bad/schema_filepath", "", "",

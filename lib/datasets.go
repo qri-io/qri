@@ -1009,16 +1009,24 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 		return qrierr.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
 	}
 
-	ref, err := repo.ParseDatasetRef(p.Ref)
-	if err != nil && err != repo.ErrEmptyRef {
-		return err
-	}
-	err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref)
-	if err != nil && err != repo.ErrEmptyRef {
-		if err == repo.ErrNotFound {
-			return fmt.Errorf("cannot find dataset: %s", ref)
+	fsiPath := ""
+	var err error
+	ref := dsref.Ref{}
+
+	// if there is both a bodyfilename and a schema/structure
+	// we don't need to resolve any references
+	if !(p.BodyFilename != "" && schemaFlagType != "") {
+		// TODO (ramfox): we need consts in `dsref` for "local", "network", "p2p"
+		ref, _, err = m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
+		if err != nil {
+			return err
 		}
-		return err
+
+		// TODO (b5) - replace this prefix check with a call to qfs.PathKind when it
+		// supports the fsi prefix
+		if strings.HasPrefix(ref.Path, "/fsi") {
+			fsiPath = fsi.FilesystemPathToLocal(ref.Path)
+		}
 	}
 
 	var ds *dataset.Dataset
@@ -1027,8 +1035,8 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 	// Should probably combine into a utility function.
 
 	if p.Ref != "" {
-		if ref.FSIPath != "" {
-			if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
+		if fsiPath != "" {
+			if ds, err = fsi.ReadDir(fsiPath); err != nil {
 				return fmt.Errorf("loading linked dataset: %s", err)
 			}
 		} else {
@@ -1060,6 +1068,12 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 	// Schema is set to the provided filename if given, otherwise the dataset's schema
 	if schemaFlagType == "" {
 		st = ds.Structure
+		if ds.Structure == nil || ds.Structure.Schema == nil {
+			if err := base.InferStructure(ds); err != nil {
+				log.Debug("lib.Validate: InferStructure error: %s", err)
+				return err
+			}
+		}
 	} else {
 		data, err := ioutil.ReadFile(schemaFilename)
 		if err != nil {

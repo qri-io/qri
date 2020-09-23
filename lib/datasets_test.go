@@ -1083,7 +1083,7 @@ Pirates of the Caribbean: At World's End ,foo
 		err       string
 	}{
 		{ValidateParams{Ref: ""}, 0, "bad arguments provided"},
-		{ValidateParams{Ref: "me"}, 0, "cannot find dataset: peer"},
+		{ValidateParams{Ref: "me"}, 0, "\"me\" is not a valid dataset reference: need username separated by '/' from dataset name"},
 		{ValidateParams{Ref: "me/movies"}, 4, ""},
 		{ValidateParams{Ref: "me/movies", BodyFilename: bodyFilename}, 1, ""},
 		{ValidateParams{Ref: "me/movies", SchemaFilename: schemaFilename}, 5, ""},
@@ -1113,6 +1113,50 @@ Pirates of the Caribbean: At World's End ,foo
 			t.Errorf("case %d error count mismatch. expected: %d, got: %d", i, c.numErrors, len(res.Errors))
 			continue
 		}
+	}
+}
+
+func TestDatasetRequestsValidateFSI(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+
+	// we need some fsi stuff to fully test remove
+	methods := NewFSIMethods(inst)
+	// create datasets working directory
+	datasetsDir, err := ioutil.TempDir("", "QriTestValidateFSIDataset")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(datasetsDir)
+
+	// initialize an example no-history dataset
+	initp := &InitFSIDatasetParams{
+		Name:   "validate_test",
+		Dir:    datasetsDir,
+		Format: "csv",
+		Mkdir:  "validate_test",
+	}
+	var datasetName string
+	if err := methods.InitDataset(initp, &datasetName); err != nil {
+		t.Fatal(err)
+	}
+	m := NewDatasetMethods(inst)
+
+	vp := &ValidateParams{Ref: datasetName}
+	vr := &ValidateResponse{}
+	if err := m.Validate(vp, vr); err != nil {
+		t.Fatal(err)
 	}
 }
 
