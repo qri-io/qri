@@ -6,9 +6,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/api"
-	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -57,10 +55,7 @@ type ConnectOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
-	repoPath := f.RepoPath()
-
-	repoErr := lib.QriRepoExists(repoPath)
-	if repoErr != nil && o.Setup {
+	if o.Setup {
 		so := &SetupOptions{
 			IOStreams: o.IOStreams,
 			IPFS:      true,
@@ -73,8 +68,6 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 		if err = so.DoSetup(f); err != nil {
 			return err
 		}
-	} else if repoErr != nil {
-		return errors.New(repo.ErrNoRepo, "no qri repo exists\nhave you run 'qri setup'?")
 	}
 
 	if err = f.Init(); err != nil {

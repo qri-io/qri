@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/rpc"
 	"os"
@@ -121,12 +122,17 @@ func NewQriOptions(ctx context.Context, repoPath string, generator gen.CryptoGen
 	}
 }
 
-// Init will initialize the internal state
+// Init will initialize the internal state before any command is run (excluding `qri setup`)
 func (o *QriOptions) Init() (err error) {
 	if o.inst != nil {
 		return
 	}
 	setNoPrompt(o.NoPrompt)
+
+	repoErr := lib.QriRepoExists(o.repoPath)
+	if repoErr != nil {
+		return errors.New("no qri repo exists\nhave you run 'qri setup'?")
+	}
 
 	opts := []lib.Option{
 		lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
