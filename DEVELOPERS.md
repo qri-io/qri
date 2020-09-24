@@ -84,6 +84,8 @@ Depending on what work you are doing and what has changed, tests may take up to 
 
 If everything is marked "ok", you are in the clear. Any extended output is a sign that a test has failed. Be sure to fix any bugs that are indicated or tests that no longer pass.
 
+You may run just the tests for a specific package by running the `go test` command from that directory. You may also target specific tests to run based off a regex match of the test's name. For example, running `go test --run TestSetup` will execute any test that has the TestSetup prefix (tests named TestsSetupOne, TestSetup, and TestSetupWithAnotherName would all run). To see a verbose printout of all tests regardless of pass/skip/fail status, you may add the `-v` flag.
+
 #### CLI Help Style
 
 When creating or editing CLI commands, we try and follow a few style rules to keep things consistent:
