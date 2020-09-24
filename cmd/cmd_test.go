@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
+	repotest "github.com/qri-io/qri/repo/test"
 )
 
 func init() {
@@ -660,5 +662,26 @@ func TestBadCaseIsJustWarning(t *testing.T) {
 	err := run.ExecCommand("qri get test_peer_qri_get_bad_case/a_New_Dataset")
 	if err != nil {
 		t.Errorf("expect no error (just a warning), got %q", err)
+	}
+}
+
+func TestSetupHappensBeforeOtherCommands(t *testing.T) {
+	ctx := context.Background()
+
+	qriHome := createTmpQriHome(t)
+	stdinText := "qri_test_name"
+	cmd, shutdown := newCommandWithStdin(ctx, qriHome, stdinText, repotest.NewTestCrypto())
+
+	cmdTextList := [8]string{"qri add", "qri connect", "qri diff", "qri get", "qri init", "qri list", "qri pull", "qri search"}
+	expect := "no qri repo exists\nhave you run 'qri setup'?"
+
+	for _, cmdText := range cmdTextList {
+		noRepoErr := executeCommand(cmd, cmdText)
+		if noRepoErr.Error() != expect {
+			timedShutdown(fmt.Sprintf("ExecCommand: %q\n", cmdText), shutdown)
+			err := fmt.Sprintf("expected error for command %v:\n %v\n but received error:\n %v", cmdText, expect, noRepoErr)
+			t.Fatal(err)
+		}
+
 	}
 }
