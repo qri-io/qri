@@ -1117,43 +1117,24 @@ Pirates of the Caribbean: At World's End ,foo
 }
 
 func TestDatasetRequestsValidateFSI(t *testing.T) {
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
+	tr := newTestRunner(t)
+	defer tr.Delete()
 
-	mr, err := testrepo.NewTestRepo()
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err.Error())
-	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
-
-	// we need some fsi stuff to fully test remove
-	methods := NewFSIMethods(inst)
-	// create datasets working directory
-	datasetsDir, err := ioutil.TempDir("", "QriTestValidateFSIDataset")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(datasetsDir)
-
-	// initialize an example no-history dataset
-	initp := &InitFSIDatasetParams{
+	workDir := tr.CreateAndChdirToWorkDir("remove_no_history")
+	initP := &InitFSIDatasetParams{
 		Name:   "validate_test",
-		Dir:    datasetsDir,
+		Dir:    workDir,
 		Format: "csv",
 		Mkdir:  "validate_test",
 	}
-	var datasetName string
-	if err := methods.InitDataset(initp, &datasetName); err != nil {
+	var refstr string
+	if err := NewFSIMethods(tr.Instance).InitDataset(initP, &refstr); err != nil {
 		t.Fatal(err)
 	}
-	m := NewDatasetMethods(inst)
 
-	vp := &ValidateParams{Ref: datasetName}
+	m := NewDatasetMethods(tr.Instance)
+
+	vp := &ValidateParams{Ref: refstr}
 	vr := &ValidateResponse{}
 	if err := m.Validate(vp, vr); err != nil {
 		t.Fatal(err)

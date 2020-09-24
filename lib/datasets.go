@@ -242,9 +242,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 	res.Ref = &ref
 	res.Dataset = ds
 
-	// TODO (b5) - replace this prefix check with a call to qfs.PathKind when it
-	// supports the fsi prefix
-	if strings.HasPrefix(ref.Path, "/fsi") {
+	if fsi.IsFSIPath(ref.Path) {
 		res.FSIPath = fsi.FilesystemPathToLocal(ref.Path)
 	}
 	// TODO (b5) - Published field is longer set as part of Reference Resolution
@@ -304,9 +302,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 			return err
 		}
 
-		// TODO (b5) - replace this prefix check with a call to qfs.PathKind when it
-		// supports the fsi prefix
-		if strings.HasPrefix(ref.Path, "/fsi") {
+		if fsi.IsFSIPath(ref.Path) {
 			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
 			// but no structure, which should infer a schema in order to read the body. Once that
 			// works we can remove the fsi.GetBody call and just use base.ReadBody.
@@ -1015,16 +1011,14 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 
 	// if there is both a bodyfilename and a schema/structure
 	// we don't need to resolve any references
-	if !(p.BodyFilename != "" && schemaFlagType != "") {
+	if p.BodyFilename == "" || schemaFlagType == "" {
 		// TODO (ramfox): we need consts in `dsref` for "local", "network", "p2p"
 		ref, _, err = m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
 		if err != nil {
 			return err
 		}
 
-		// TODO (b5) - replace this prefix check with a call to qfs.PathKind when it
-		// supports the fsi prefix
-		if strings.HasPrefix(ref.Path, "/fsi") {
+		if fsi.IsFSIPath(ref.Path) {
 			fsiPath = fsi.FilesystemPathToLocal(ref.Path)
 		}
 	}

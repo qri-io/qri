@@ -106,6 +106,14 @@ func (fsi *FSI) ResolvedPath(ref *dsref.Ref) error {
 	return ErrNoLink
 }
 
+// IsFSIPath is a utility function that returns whether the given path is a
+// local filesystem path
+// TODO (ramfox) - remove this function & replace with a call to qfs.PathKind when it
+// supports the fsi prefix
+func IsFSIPath(path string) bool {
+	return strings.HasPrefix(path, "/fsi")
+}
+
 // ListLinks returns a list of linked datasets and their connected
 // directories
 func (fsi *FSI) ListLinks(offset, limit int) ([]dsref.VersionInfo, error) {

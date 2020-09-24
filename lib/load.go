@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
@@ -58,9 +57,9 @@ func (inst *Instance) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*dat
 		err error
 	)
 
-	if strings.HasPrefix(ref.Path, "/fsi") {
+	if fsi.IsFSIPath(ref.Path) {
 		// Has an FSI Path, load from working directory
-		if ds, err = fsi.ReadDir(strings.TrimPrefix(ref.Path, "/fsi")); err != nil {
+		if ds, err = fsi.ReadDir(fsi.FilesystemPathToLocal(ref.Path)); err != nil {
 			return nil, err
 		}
 	} else {

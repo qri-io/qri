@@ -157,7 +157,7 @@ func InferValues(pro *profile.Profile, ds *dataset.Dataset) error {
 	return nil
 }
 
-// InferStructure infers the Structure field of the dataset, guarenteeing
+// InferStructure infers the Structure field of the dataset, guaranteeing
 // that the structure will contain a Format, FormatConfig, and Schema, based
 // on the given dataset body. It will not write over any Structure, Format,
 // FormatConfig, or Schema that already exists.
