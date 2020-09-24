@@ -1083,7 +1083,7 @@ Pirates of the Caribbean: At World's End ,foo
 		err       string
 	}{
 		{ValidateParams{Ref: ""}, 0, "bad arguments provided"},
-		{ValidateParams{Ref: "me"}, 0, "cannot find dataset: peer"},
+		{ValidateParams{Ref: "me"}, 0, "\"me\" is not a valid dataset reference: need username separated by '/' from dataset name"},
 		{ValidateParams{Ref: "me/movies"}, 4, ""},
 		{ValidateParams{Ref: "me/movies", BodyFilename: bodyFilename}, 1, ""},
 		{ValidateParams{Ref: "me/movies", SchemaFilename: schemaFilename}, 5, ""},
@@ -1113,6 +1113,31 @@ Pirates of the Caribbean: At World's End ,foo
 			t.Errorf("case %d error count mismatch. expected: %d, got: %d", i, c.numErrors, len(res.Errors))
 			continue
 		}
+	}
+}
+
+func TestDatasetRequestsValidateFSI(t *testing.T) {
+	tr := newTestRunner(t)
+	defer tr.Delete()
+
+	workDir := tr.CreateAndChdirToWorkDir("remove_no_history")
+	initP := &InitFSIDatasetParams{
+		Name:   "validate_test",
+		Dir:    workDir,
+		Format: "csv",
+		Mkdir:  "validate_test",
+	}
+	var refstr string
+	if err := NewFSIMethods(tr.Instance).InitDataset(initP, &refstr); err != nil {
+		t.Fatal(err)
+	}
+
+	m := NewDatasetMethods(tr.Instance)
+
+	vp := &ValidateParams{Ref: refstr}
+	vr := &ValidateResponse{}
+	if err := m.Validate(vp, vr); err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -145,46 +145,66 @@ func InferValues(pro *profile.Profile, ds *dataset.Dataset) error {
 	// if we don't have a structure or schema then attempt to determine one
 	body := ds.BodyFile()
 	if body != nil && (ds.Structure == nil || ds.Structure.Schema == nil) {
-		// use a TeeReader that writes to a buffer to preserve data
-		buf := &bytes.Buffer{}
-		tr := io.TeeReader(body, buf)
-		var df dataset.DataFormat
-
-		df, err := detect.ExtensionDataFormat(body.FileName())
-		if err != nil {
-			log.Debug(err.Error())
-			err = fmt.Errorf("invalid data format: %s", err.Error())
+		if err := InferStructure(ds); err != nil {
 			return err
 		}
-
-		guessedStructure, _, err := detect.FromReader(df, tr)
-		if err != nil {
-			log.Debug(err.Error())
-			err = fmt.Errorf("determining dataset structure: %s", err.Error())
-			return err
-		}
-
-		// attach the structure, schema, and formatConfig, as appropriate
-		if ds.Structure == nil {
-			ds.Structure = guessedStructure
-		}
-		if ds.Structure.Schema == nil {
-			ds.Structure.Schema = guessedStructure.Schema
-		}
-		if ds.Structure.FormatConfig == nil {
-			ds.Structure.FormatConfig = guessedStructure.FormatConfig
-		}
-
-		// glue whatever we just read back onto the reader
-		// TODO (b5)- this may ruin readers that transparently depend on a read-closer
-		// we should consider a method on qfs.File that allows this non-destructive read pattern
-		ds.SetBodyFile(qfs.NewMemfileReader(body.FileName(), io.MultiReader(buf, body)))
 	}
 
 	if ds.Transform != nil && ds.Transform.ScriptFile() == nil && ds.Transform.IsEmpty() {
 		ds.Transform = nil
 	}
 
+	return nil
+}
+
+// InferStructure infers the Structure field of the dataset, guaranteeing
+// that the structure will contain a Format, FormatConfig, and Schema, based
+// on the given dataset body. It will not write over any Structure, Format,
+// FormatConfig, or Schema that already exists.
+func InferStructure(ds *dataset.Dataset) error {
+	if ds == nil {
+		return fmt.Errorf("empty dataset")
+	}
+
+	body := ds.BodyFile()
+	if body == nil {
+		return fmt.Errorf("empty body")
+	}
+	// use a TeeReader that writes to a buffer to preserve data
+	buf := &bytes.Buffer{}
+	tr := io.TeeReader(body, buf)
+	var df dataset.DataFormat
+
+	df, err := detect.ExtensionDataFormat(body.FileName())
+	if err != nil {
+		log.Debug(err.Error())
+		return fmt.Errorf("invalid data format: %s", err.Error())
+	}
+
+	guessedStructure, _, err := detect.FromReader(df, tr)
+	if err != nil {
+		log.Debug(err.Error())
+		return fmt.Errorf("determining dataset structure: %s", err.Error())
+	}
+
+	// attach the structure, schema, and formatConfig, as appropriate
+	if ds.Structure == nil {
+		ds.Structure = guessedStructure
+	}
+	if ds.Structure.Schema == nil {
+		ds.Structure.Schema = guessedStructure.Schema
+	}
+	if ds.Structure.FormatConfig == nil {
+		ds.Structure.FormatConfig = guessedStructure.FormatConfig
+	}
+	if ds.Structure.Format == "" {
+		ds.Structure.Format = guessedStructure.Format
+	}
+
+	// glue whatever we just read back onto the reader
+	// TODO (b5)- this may ruin readers that transparently depend on a read-closer
+	// we should consider a method on qfs.File that allows this non-destructive read pattern
+	ds.SetBodyFile(qfs.NewMemfileReader(body.FileName(), io.MultiReader(buf, body)))
 	return nil
 }
 
