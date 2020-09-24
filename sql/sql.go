@@ -64,7 +64,7 @@ func (svc *Service) Exec(ctx context.Context, w io.Writer, outFormat, query stri
 		return qds.NewDataSourceBuilderFactory(svc.r, svc.loadDataset), nil
 	}
 
-	dataSourceRespository, err := physical.CreateDataSourceRepositoryFromConfig(
+	dataSourceRepository, err := physical.CreateDataSourceRepositoryFromConfig(
 		map[string]physical.Factory{
 			"qri": ff,
 		},
@@ -93,7 +93,7 @@ func (svc *Service) Exec(ctx context.Context, w io.Writer, outFormat, query stri
 		return err
 	}
 
-	app := app.NewApp(cfg, dataSourceRespository, out, false)
+	app := app.NewApp(cfg, dataSourceRepository, out, false)
 
 	// Parse query
 	stmt, err := sqlparser.Parse(processedQuery)

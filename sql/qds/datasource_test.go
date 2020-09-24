@@ -73,7 +73,7 @@ func (tr *testRunner) MustRun(t *testing.T, query string, cfg *octocfg.Config) s
 		return fac, nil
 	}
 
-	dataSourceRespository, err := physical.CreateDataSourceRepositoryFromConfig(
+	dataSourceRepository, err := physical.CreateDataSourceRepositoryFromConfig(
 		map[string]physical.Factory{
 			"qri": ff,
 		},
@@ -86,7 +86,7 @@ func (tr *testRunner) MustRun(t *testing.T, query string, cfg *octocfg.Config) s
 
 	out := &bytes.Buffer{}
 
-	app := app.NewApp(cfg, dataSourceRespository, csvoutput.NewOutput(',', out), false)
+	app := app.NewApp(cfg, dataSourceRepository, csvoutput.NewOutput(',', out), false)
 
 	// Parse query
 	stmt, err := sqlparser.Parse(query)
