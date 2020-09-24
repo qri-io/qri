@@ -122,7 +122,7 @@ func NewQriOptions(ctx context.Context, repoPath string, generator gen.CryptoGen
 	}
 }
 
-// Init will initialize the internal state
+// Init will initialize the internal state before any command is run (excluding `qri setup`)
 func (o *QriOptions) Init() (err error) {
 	if o.inst != nil {
 		return
