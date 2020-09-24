@@ -626,10 +626,20 @@ func parseGetReqArgs(r *http.Request, reqPath string) (*GetReqArgs, error) {
 		getAll = true
 	}
 
-	// Two ways to specify the client wants to download raw csv file from API
-	if hasBodyCsvSuffix || arrayContains(r.Header["Accept"], "text/csv") {
+	// This HTTP header sets the format to csv, and removes the json wrapper
+	if arrayContains(r.Header["Accept"], "text/csv") {
+		if format != "" && format != "csv" {
+			return nil, util.NewAPIError(http.StatusBadRequest, fmt.Sprintf("format %q conflicts with header \"Accept: text/csv\"", format))
+		}
 		format = "csv"
 		rawDownload = true
+	}
+
+	// The body.csv suffix is a convenience feature to get the entire body as a csv
+	if hasBodyCsvSuffix {
+		format = "csv"
+		rawDownload = true
+		getAll = true
 	}
 
 	// API is a json api, so the default format is json
