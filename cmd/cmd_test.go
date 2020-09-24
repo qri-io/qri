@@ -669,10 +669,9 @@ func TestSetupHappensBeforeOtherCommands(t *testing.T) {
 	ctx := context.Background()
 
 	qriHome := createTmpQriHome(t)
-	stdinText := "qri_test_name"
-	cmd, shutdown := newCommandWithStdin(ctx, qriHome, stdinText, repotest.NewTestCrypto())
+	cmd, shutdown := newCommand(ctx, qriHome, repotest.NewTestCrypto())
 
-	cmdTextList := [7]string{"qri add", "qri connect", "qri diff", "qri get", "qri init", "qri list", "qri search"}
+	cmdTextList := [7]string{"qri connect", "qri diff", "qri get", "qri init", "qri list", "qri pull", "qri search"}
 	expect := "no qri repo exists\nhave you run 'qri setup'?"
 
 	for _, cmdText := range cmdTextList {
