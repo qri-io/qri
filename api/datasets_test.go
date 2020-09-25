@@ -66,6 +66,7 @@ func TestParseGetReqArgs(t *testing.T) {
 					Format:   "csv",
 					Selector: "body",
 					Limit:    100,
+					All:      true,
 				},
 			},
 		},
@@ -80,6 +81,21 @@ func TestParseGetReqArgs(t *testing.T) {
 					Format:   "csv",
 					Selector: "body",
 					Limit:    100,
+				},
+			},
+		},
+		{
+			"download all of the body as csv",
+			"/get/peer/my_ds?download=true&format=csv&component=body&all=true",
+			&GetReqArgs{
+				Ref:         dsref.MustParse("peer/my_ds"),
+				RawDownload: true,
+				Params: lib.GetParams{
+					Refstr:   "peer/my_ds",
+					Format:   "csv",
+					Selector: "body",
+					Limit:    100,
+					All:      true,
 				},
 			},
 		},
@@ -145,6 +161,55 @@ func TestParseGetReqArgs(t *testing.T) {
 				t.Errorf("output mismatch (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestParseGetReqArgsAcceptHeader(t *testing.T) {
+	// Construct a request with "Accept: text/csv"
+	r, _ := http.NewRequest("GET", "/get/peer/my_ds", nil)
+	r.Header.Add("Accept", "text/csv")
+	reqPath := trimGetOrBodyPrefix(r.URL.Path)
+	args, err := parseGetReqArgs(r, reqPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectArgs := &GetReqArgs{
+		Ref: dsref.MustParse("peer/my_ds"),
+		Params: lib.GetParams{
+			Refstr:   "peer/my_ds",
+			Selector: "body",
+			Format:   "csv",
+			Limit:    100,
+		},
+		RawDownload: true,
+	}
+	if diff := cmp.Diff(expectArgs, args); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+
+	// Construct a request with format=csv and "Accept: text/csv", which is ok
+	r, _ = http.NewRequest("GET", "/get/peer/my_ds?format=csv", nil)
+	r.Header.Add("Accept", "text/csv")
+	reqPath = trimGetOrBodyPrefix(r.URL.Path)
+	args, err = parseGetReqArgs(r, reqPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(expectArgs, args); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
+	}
+
+	// Construct a request with format=json and "Accept: text/csv", which is an error
+	r, _ = http.NewRequest("GET", "/get/peer/my_ds?format=json", nil)
+	r.Header.Add("Accept", "text/csv")
+	reqPath = trimGetOrBodyPrefix(r.URL.Path)
+	args, err = parseGetReqArgs(r, reqPath)
+	if err == nil {
+		t.Error("expected to get an error, but did not get one")
+	}
+	expectErr := `format "json" conflicts with header "Accept: text/csv"`
+	if expectErr != err.Error() {
+		t.Errorf("error mismatch, expect: %q, got %q", expectErr, err)
 	}
 }
 
