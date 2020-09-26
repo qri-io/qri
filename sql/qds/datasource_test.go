@@ -21,7 +21,7 @@ import (
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
-func TestQriDatasource(t *testing.T) {
+func TestQriDatasourceSelect(t *testing.T) {
 
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
@@ -39,6 +39,34 @@ func TestQriDatasource(t *testing.T) {
 	res := tr.MustRun(t, "select t1.title from me_movies t1 limit 1", cfg)
 
 	expect := "t1.title\n'Avatar '\n"
+	if diff := cmp.Diff(expect, res); diff != "" {
+		t.Errorf("result mismatch. (-want +got):\n%s", diff)
+	}
+}
+
+func TestQriDatasourceJoin(t *testing.T) {
+
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	cfg := &octocfg.Config{
+		DataSources: []octocfg.DataSourceConfig{
+			{Type: CfgTypeString, Name: "me_movies",
+				Config: map[string]interface{}{
+					"ref": "me/movies",
+				},
+			},
+			{Type: CfgTypeString, Name: "me_movies_directors",
+				Config: map[string]interface{}{
+					"ref": "me/movies_directors",
+				},
+			},
+		},
+	}
+
+	res := tr.MustRun(t, "select t1.director, t2.duration from me_movies_directors t1 inner join me_movies t2 on t1.title = t2.title", cfg)
+
+	expect := "t1.director,t2.duration\n'James Cameron',178\n'Christopher Nolan',164\n"
 	if diff := cmp.Diff(expect, res); diff != "" {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}

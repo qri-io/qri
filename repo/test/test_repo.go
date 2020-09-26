@@ -95,7 +95,7 @@ func newTestFS(ctx context.Context) *muxfs.Mux {
 
 // NewTestRepo generates a repository usable for testing purposes
 func NewTestRepo() (mr *repo.MemRepo, err error) {
-	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
+	datasets := []string{"movies", "movies_directors", "cities", "counter", "craigslist", "sitemap"}
 
 	mr, err = NewEmptyTestRepo(event.NilBus)
 	if err != nil {
