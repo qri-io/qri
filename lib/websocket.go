@@ -91,6 +91,13 @@ func (inst *Instance) ServeWebsocket(ctx context.Context) {
 		event.ETDeletedFile,
 		event.ETRenamedFolder,
 		event.ETRemovedFolder,
+		event.ETRemoteClientPushVersionProgress,
+		event.ETRemoteClientPushVersionCompleted,
+		event.ETRemoteClientPushDatasetCompleted,
+		event.ETRemoteClientPullVersionProgress,
+		event.ETRemoteClientPullVersionCompleted,
+		event.ETRemoteClientPullDatasetCompleted,
+		event.ETRemoteClientRemoveDatasetCompleted,
 	)
 
 	// Start http server for websocket.
