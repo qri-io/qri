@@ -40,7 +40,7 @@ const (
 
 // RemoteEvent encapsulates the push / pull progress of a dataset version
 type RemoteEvent struct {
-	Ref        dsref.Ref
-	RemoteAddr string
-	Progress   dag.Completion
+	Ref        dsref.Ref      `json:"ref"`
+	RemoteAddr string         `json:"remoteAddr"`
+	Progress   dag.Completion `json:"progress"`
 }
