@@ -24,12 +24,12 @@ const (
 
 // DsChange represents the result of a change to a dataset
 type DsChange struct {
-	InitID     string
-	TopIndex   int
-	ProfileID  string
-	Username   string
-	PrettyName string
-	HeadRef    string
-	Info       *dsref.VersionInfo
-	Dir        string
+	InitID     string             `json:"initID"`
+	TopIndex   int                `json:"topIndex"`
+	ProfileID  string             `json:"profileID"`
+	Username   string             `json:"username"`
+	PrettyName string             `json:"prettyName"`
+	HeadRef    string             `json:"headRef"`
+	Info       *dsref.VersionInfo `json:"info"`
+	Dir        string             `json:"dir"`
 }

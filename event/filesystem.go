@@ -12,9 +12,9 @@ const (
 
 // FSICreateLinkEvent describes an FSI created link
 type FSICreateLinkEvent struct {
-	FSIPath  string
-	Username string
-	Dsname   string
+	FSIPath  string `json:"fsiPath"`
+	Username string `json:"username"`
+	Dsname   string `json:"dsName"`
 }
 
 const (
@@ -32,9 +32,9 @@ const (
 
 // WatchfsChange represents events for filesystem changes
 type WatchfsChange struct {
-	Username    string
-	Dsname      string
-	Source      string
-	Destination string
-	Time        time.Time
+	Username    string    `json:"username"`
+	Dsname      string    `json:"dsName"`
+	Source      string    `json:"source"`
+	Destination string    `json:"destination"`
+	Time        time.Time `json:"time"`
 }
