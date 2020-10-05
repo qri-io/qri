@@ -46,6 +46,8 @@ import (
 var (
 	// ErrBadArgs is an error for when a user provides bad arguments
 	ErrBadArgs = errors.New("bad arguments provided")
+	// ErrNoRepo is an error for  when a repo does not exist at a given path
+	ErrNoRepo = errors.New("no repo exists")
 
 	log = golog.Logger("lib")
 )

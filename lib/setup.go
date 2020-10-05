@@ -9,7 +9,6 @@ import (
 
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
 )
 
@@ -21,7 +20,7 @@ func QriRepoExists(path string) error {
 	if !os.IsNotExist(err) {
 		return nil
 	}
-	return repo.ErrNoRepo
+	return ErrNoRepo
 }
 
 // SetupParams encapsulates arguments for Setup

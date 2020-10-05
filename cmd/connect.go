@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/qri-io/ioes"
@@ -55,17 +56,23 @@ type ConnectOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
+
 	if o.Setup {
-		so := &SetupOptions{
-			IOStreams: o.IOStreams,
-			IPFS:      true,
-			Registry:  o.Registry,
-			Anonymous: true,
-		}
-		if err = so.Complete(f, args); err != nil {
-			return err
-		}
-		if err = so.DoSetup(f); err != nil {
+		repoErr := lib.QriRepoExists(f.RepoPath())
+		if errors.Is(repoErr, lib.ErrNoRepo) {
+			so := &SetupOptions{
+				IOStreams: o.IOStreams,
+				IPFS:      true,
+				Registry:  o.Registry,
+				Anonymous: true,
+			}
+			if err = so.Complete(f, args); err != nil {
+				return err
+			}
+			if err = so.DoSetup(f); err != nil {
+				return err
+			}
+		} else if repoErr != nil {
 			return err
 		}
 	}
