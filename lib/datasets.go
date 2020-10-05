@@ -1054,7 +1054,7 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 		}
 		body, err = fs.Get(context.Background(), p.BodyFilename)
 		if err != nil {
-			return fmt.Errorf("error opening body file: %s", p.BodyFilename)
+			return fmt.Errorf("error opening body file %q: %s", p.BodyFilename, err)
 		}
 	}
 

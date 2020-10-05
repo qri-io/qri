@@ -97,7 +97,7 @@ func TestValidateRun(t *testing.T) {
 		{"peer/bad_dataset", "", "", "", "table",
 			"reference not found", ""},
 		{"", "bad/filepath", "", "table", "testdata/days_of_week_schema.json",
-			"error opening body file: bad/filepath", ""},
+			"error opening body file \"bad/filepath\": path not found", ""},
 		{"", "testdata/days_of_week.csv", "bad/schema_filepath", "", "",
 			"error opening schema file: bad/schema_filepath", ""},
 	}
