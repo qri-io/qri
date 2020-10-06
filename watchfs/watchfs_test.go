@@ -10,6 +10,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/event"
+	reporef "github.com/qri-io/qri/repo/ref"
+	repotest "github.com/qri-io/qri/repo/test"
 )
 
 func TestFilesysWatcher(t *testing.T) {
@@ -70,5 +72,66 @@ func TestFilesysWatcher(t *testing.T) {
 	}
 	if diff := cmp.Diff(expect, got); diff != "" {
 		t.Errorf("filesys event (-want +got):\n%s", diff)
+	}
+}
+
+func TestWatchAllFSIPaths(t *testing.T) {
+
+	// set up a repo w/ a dataset that has an FSIPath
+	r, err := repotest.NewTestRepo()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pro, err := r.Profile()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ref, err := r.GetRef(reporef.DatasetRef{
+		Peername: pro.Peername,
+		// name taken from repo/test_repo.go
+		Name: "cities",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tmpdir, err := ioutil.TempDir("", "watchfs_watch_all_fsi_path")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpdir)
+
+	ref.FSIPath = tmpdir
+	if err := r.PutRef(ref); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	watcher, err := NewFilesysWatcher(ctx, event.NilBus)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := watcher.WatchAllFSIPaths(ctx, r); err != nil {
+		t.Fatal(err)
+	}
+
+	eventPath, ok := watcher.assoc[ref.FSIPath]
+	if !ok {
+		t.Errorf("expected watcher to have EventPath for path %q", ref.FSIPath)
+		return
+	}
+	if eventPath.Dsname != ref.Name {
+		t.Errorf("expected eventPath to have name %q, instead had name %q", ref.Name, eventPath.Dsname)
+	}
+	if eventPath.Username != ref.Peername {
+		t.Errorf("exected eventPath to have username %q, instead had username %q", ref.Peername, eventPath.Username)
+	}
+	if eventPath.Path != ref.FSIPath {
+		t.Errorf("expected eventPath to have path %q, instead had path %q", ref.FSIPath, eventPath.Path)
 	}
 }

@@ -123,6 +123,8 @@ func (w *FilesysWatcher) WatchAllFSIPaths(ctx context.Context, r repo.Repo) erro
 		}
 	}
 
+	w.watchPaths(paths)
+
 	return nil
 }
 
