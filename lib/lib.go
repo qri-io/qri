@@ -290,6 +290,7 @@ func OptEventHandler(handler event.Handler, events ...event.Type) Option {
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
+	log.Debugf("NewInstance repoPath=%q", repoPath)
 	ctx, cancel := context.WithCancel(ctx)
 	ok := false
 	defer func() {
@@ -546,12 +547,18 @@ func loadRepoConfig(repoPath string) (*config.Config, error) {
 	return config.ReadFromFile(path)
 }
 
+const stdRegistry = "https://registry.qri.cloud"
+
 func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client) {
 	if cfg.Registry != nil {
 		switch cfg.Registry.Location {
 		case "":
+			log.Debug("No registry is configured, only decentralized tools will work")
 			return rc
 		default:
+			if cfg.Registry.Location != stdRegistry {
+				log.Debugf("using a custom registry: %q")
+			}
 			return regclient.NewClient(&regclient.Config{
 				Location: cfg.Registry.Location,
 			})
