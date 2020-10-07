@@ -73,7 +73,7 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		ProfileID: p.ProfileID,
 	}
 	if err := repo.CanonicalizeProfile(m.inst.repo, ref); err != nil {
-		return fmt.Errorf("error canonicalizing peer: %s", err.Error())
+		return fmt.Errorf("error canonicalizing peer: %w", err)
 	}
 
 	pro, err := m.inst.repo.Profile()
@@ -464,7 +464,7 @@ func (p *SaveParams) AbsolutizePaths() error {
 	}
 
 	if err := qfs.AbsPath(&p.BodyPath); err != nil {
-		return fmt.Errorf("body file: %s", err)
+		return fmt.Errorf("body file: %w", err)
 	}
 	return nil
 }
@@ -702,7 +702,7 @@ func (m *DatasetMethods) Rename(p *RenameParams, res *dsref.VersionInfo) error {
 	// Allow bad upper-case characters in the left-hand side name, because it's needed to let users
 	// fix badly named datasets.
 	if err != nil && err != dsref.ErrBadCaseName {
-		return fmt.Errorf("original name: %s", err)
+		return fmt.Errorf("original name: %w", err)
 	}
 	if _, err := m.inst.ResolveReference(ctx, &ref, "local"); err != nil {
 		return err
@@ -1031,11 +1031,11 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 	if p.Ref != "" {
 		if fsiPath != "" {
 			if ds, err = fsi.ReadDir(fsiPath); err != nil {
-				return fmt.Errorf("loading linked dataset: %s", err)
+				return fmt.Errorf("loading linked dataset: %w", err)
 			}
 		} else {
 			if ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path); err != nil {
-				return fmt.Errorf("loading dataset: %s", err)
+				return fmt.Errorf("loading dataset: %w", err)
 			}
 		}
 		if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
@@ -1050,11 +1050,11 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 		// Body is set to the provided filename if given
 		fs, err := localfs.NewFS(nil)
 		if err != nil {
-			return fmt.Errorf("error creating new local filesystem: %s", err)
+			return fmt.Errorf("error creating new local filesystem: %w", err)
 		}
 		body, err = fs.Get(context.Background(), p.BodyFilename)
 		if err != nil {
-			return fmt.Errorf("error opening body file: %s", p.BodyFilename)
+			return fmt.Errorf("error opening body file %q: %w", p.BodyFilename, err)
 		}
 	}
 
@@ -1064,7 +1064,7 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 		st = ds.Structure
 		if ds.Structure == nil || ds.Structure.Schema == nil {
 			if err := base.InferStructure(ds); err != nil {
-				log.Debug("lib.Validate: InferStructure error: %s", err)
+				log.Debug("lib.Validate: InferStructure error: %w", err)
 				return err
 			}
 		}
