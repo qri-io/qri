@@ -131,7 +131,7 @@ func (tr *testRunner) ChdirToRoot() {
 }
 
 func (tr *testRunner) CreateAndChdirToWorkDir(subdir string) string {
-	tr.WorkDir = filepath.Join(tr.TmpDir, subdir)
+	tr.WorkDir = PathJoinPosix(tr.TmpDir, subdir)
 	err := os.Mkdir(tr.WorkDir, 0755)
 	if err != nil {
 		panic(err)

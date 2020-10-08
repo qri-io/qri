@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/qri-io/dataset"
@@ -389,4 +390,9 @@ func (m *FSIMethods) EnsureRef(p *EnsureParams, out *dsref.VersionInfo) error {
 	vi, err := m.inst.fsi.ModifyLinkDirectory(p.Dir, ref)
 	*out = *vi
 	return err
+}
+
+// PathJoinPosix joins two paths, and makes it explicitly clear we want POSIX slashes
+func PathJoinPosix(left, right string) string {
+	return path.Join(left, right)
 }

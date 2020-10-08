@@ -199,7 +199,7 @@ func TestDscacheCheckout(t *testing.T) {
 	run.ChdirToRoot()
 
 	// Checkout the dataset, which should update the dscache
-	checkoutPath := filepath.Join(run.TmpDir, "cities_ds")
+	checkoutPath := PathJoinPosix(run.TmpDir, "cities_ds")
 	run.Checkout("me/cities_ds", checkoutPath)
 
 	// Access the dscache
