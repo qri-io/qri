@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -248,10 +249,15 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) dsref.Ref {
 }
 
 func TestInstanceEventSubscription(t *testing.T) {
+	timeoutMs := time.Millisecond*250
+	if runtime.GOOS == "windows" {
+		// TODO(dustmop): Why is windows slow? Perhaps its due to the IPFS lock.
+		timeoutMs = time.Millisecond*2500
+	}
 	// TODO (b5) - can't use testrunner for this test because event busses aren't
 	// wired up correctly in the test runner constructor. The proper fix is to have
 	// testrunner build it's instance using NewInstance
-	ctx, done := context.WithTimeout(context.Background(), time.Millisecond*250)
+	ctx, done := context.WithTimeout(context.Background(), timeoutMs)
 	defer done()
 
 	tmpDir, err := ioutil.TempDir("", "event_sub_test")

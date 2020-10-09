@@ -527,7 +527,8 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	go inst.waitForAllDone()
 	go func() {
 		if err := inst.bus.Publish(ctx, event.ETInstanceConstructed, nil); err != nil {
-			log.Error(err)
+			log.Debugf("instance construction: %w", err)
+			err = nil
 		}
 	}()
 
