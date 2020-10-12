@@ -149,6 +149,12 @@ func confirmQriNotRunning() error {
 }
 
 func TestHealthCheck(t *testing.T) {
+	prevAPIVer := APIVersion
+	APIVersion = "test_version"
+	defer func() {
+		APIVersion = prevAPIVer
+	}()
+
 	healthCheckCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
