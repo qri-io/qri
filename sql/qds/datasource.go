@@ -179,6 +179,8 @@ func (rs *RecordStream) Next(ctx context.Context) (*execution.Record, error) {
 
 	aliasedRecord := make(map[octosql.VariableName]octosql.Value)
 	if rec, ok := ent.Value.([]interface{}); ok {
+		// TODO(dustmop): Add tests for sql command, especially for this line which
+		// iterates over only a slice of the records.
 		for i, x := range rec[:len(rs.aliasedFields)] {
 			switch v := x.(type) {
 			case string:
