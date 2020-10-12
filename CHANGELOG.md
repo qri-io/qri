@@ -1,3 +1,34 @@
+<a name="v0.9.13"></a>
+# [v0.9.13](https://github.com/qri-io/qri/compare/v0.9.12...v0.9.13) (2020-10-12)
+
+Patch v0.9.13 brings improvments to the `validate` command, and lays the groundwork for OAuth within qri core.
+
+### Better Validate command output
+Here's a [demo](https://asciinema.org/a/360495)! `qri validate` gets a little smarter this release, printing a cleaner, more readable list of human errors, and now has flags to output validation error data in JSON and CSV formats.
+
+### Bug Fixes
+
+* **`Validate`:** allow validation of FSI dataset w/ no history ([a212dba](https://github.com/qri-io/qri/commit/a212dba499ee35b02c5a21509487a9787e74de9b))
+* **api:** Fix api test for health check by ignoring version number ([f0b7518](https://github.com/qri-io/qri/commit/f0b751823e00cba4353b877f13eec62a4335a7ee))
+* **api:** Get with body.csv suffix implies all=true ([ed95ce1](https://github.com/qri-io/qri/commit/ed95ce1f615f2e4b7b798af2ea6f425297290520))
+* **connect:** only run `DoSetup` if there is not an existing repo ([3642aef](https://github.com/qri-io/qri/commit/3642aefad2a0000ae5d1c90c45ad363c53f2db98)), closes [#1553](https://github.com/qri-io/qri/issues/1553)
+* **event bus:** encoded fields use lower-case names in JSON ([a14f28f](https://github.com/qri-io/qri/commit/a14f28f5647b54041c2790a55d77e06125a08d90))
+* **lib:** Wrap returned errors in lib/datasets ([64b2890](https://github.com/qri-io/qri/commit/64b28900657fe74e9733b569667c0adc26a950d0))
+* **remote:** be more lenient with `ResolveRef` error when trying to remove a dataset ([7ecbc83](https://github.com/qri-io/qri/commit/7ecbc8350f198bb349f704fb92e4c367f120969c))
+* **sql:** Truncate unexpected columns during join ([72ec2c4](https://github.com/qri-io/qri/commit/72ec2c4d92024e1d4822ff500cf2b44d610b4f9c))
+* **validate:** Don't swallow details about validate body read errors ([e5fdd8e](https://github.com/qri-io/qri/commit/e5fdd8e97a8ac4861aa856a9da08114134370be2))
+* **watchfs:** `WatchAllFSIPaths` needs to call `watchPaths` ([58acace](https://github.com/qri-io/qri/commit/58acacef824679b0a36f87093e2a15bb04213a76)), closes [#1554](https://github.com/qri-io/qri/issues/1554)
+
+
+### Features
+
+* **access:** token creation now supports arbitrary claims ([6d1c4a0](https://github.com/qri-io/qri/commit/6d1c4a0664ac316d570ad0691c545366765d21ee))
+* **access:** TokenSource & TokenStore interfaces, implementations ([2006c4f](https://github.com/qri-io/qri/commit/2006c4fbc439baae948b8f8849cb119d566d9674))
+* **progress:** enable websocket push pull events ([47bb395](https://github.com/qri-io/qri/commit/47bb395155236573ed8013d3758059dee87d3c37))
+* **validate:** tabular output of validation errors on CLI, configure out format ([cee5919](https://github.com/qri-io/qri/commit/cee59191a396c0d6330f56298b39ece403a1ebe5))
+
+
+
 # [v0.9.12](https://github.com/qri-io/qri/compare/v0.9.11...v) (2020-09-10)
 
 Patch release 0.9.12 features a number of fixes to various qri features, most aimed at improving general quality-of-life of the tool, and some others that lay the groundwork for future changes.
