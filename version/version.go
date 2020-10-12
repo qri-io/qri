@@ -1,4 +1,4 @@
 package version
 
 // String is the version number of qri
-const String = "0.9.13"
+const String = "0.9.14-dev"
