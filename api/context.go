@@ -11,7 +11,7 @@ import (
 
 // QriCtxKey defines a distinct type for
 // keys for context values should always use custom
-// types to avoid collissions.
+// types to avoid collisions.
 // see comment on context.WithValue for more info
 type QriCtxKey string
 
