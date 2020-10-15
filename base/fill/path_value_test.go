@@ -106,8 +106,8 @@ func TestFillPathValue(t *testing.T) {
 	}
 
 	c = Collection{}
-	err = SetPathValue("not_found", "missing", &c)
-	expect = `at "not_found": path not found`
+	err = SetPathValue("non_existent", "missing", &c)
+	expect = `at "non_existent": not found`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}
@@ -208,6 +208,10 @@ func TestGetPathValue(t *testing.T) {
 			"extra": "misc",
 		},
 		List: []string{"cat", "dog", "eel"},
+		Sub: SubElement {
+			Num: 7,
+			Text: "sandwich",
+		},
 	}
 
 	val, err := GetPathValue("name", &c)
@@ -226,8 +230,24 @@ func TestGetPathValue(t *testing.T) {
 		t.Errorf("expected: val should be \"misc\"")
 	}
 
-	val, err = GetPathValue("not_found", &c)
-	expect := `at "not_found": path not found`
+	val, err = GetPathValue("sub.num", &c)
+	if err != nil {
+		panic(err)
+	}
+	if val != 7 {
+		t.Errorf("expected: val should be 7, got %v", val)
+	}
+
+	val, err = GetPathValue("sub.text", &c)
+	if err != nil {
+		panic(err)
+	}
+	if val != "sandwich" {
+		t.Errorf("expected: val should be \"sandwich\", got %v", val)
+	}
+
+	val, err = GetPathValue("non_existent", &c)
+	expect := `at "non_existent": not found`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}
@@ -236,7 +256,7 @@ func TestGetPathValue(t *testing.T) {
 	}
 
 	val, err = GetPathValue("dict.missing_key", &c)
-	expect = `at "dict.missing_key": invalid path`
+	expect = `at "dict.missing_key": not found`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}
@@ -261,4 +281,65 @@ func TestGetPathValue(t *testing.T) {
 		t.Errorf("expected: error should be \"%s\", got \"%s\"", expect, err.Error())
 	}
 
+}
+
+func TestDictKeysCaseInsenstive(t *testing.T) {
+	obj := map[string]interface{}{
+		"Parent": map[string]interface{}{
+			"Child": "ok",
+		},
+		"First": map[string]interface{}{
+			"Second": map[string]interface{}{
+				"Third": "alright",
+			},
+		},
+	}
+
+	val, err := GetPathValue("parent.child", obj)
+	if err != nil {
+		panic(err)
+	}
+	if val != "ok" {
+		t.Errorf("expected: val should be \"ok\"")
+	}
+
+	val, err = GetPathValue("parent.Child", obj)
+	if err != nil {
+		panic(err)
+	}
+	if val != "ok" {
+		t.Errorf("expected: val should be \"ok\"")
+	}
+
+	val, err = GetPathValue("parent.CHILD", obj)
+	if err != nil {
+		panic(err)
+	}
+	if val != "ok" {
+		t.Errorf("expected: val should be \"ok\"")
+	}
+
+	val, err = GetPathValue("Parent.Child", obj)
+	if err != nil {
+		panic(err)
+	}
+	if val != "ok" {
+		t.Errorf("expected: val should be \"ok\"")
+	}
+
+	val, err = GetPathValue("first.second.third", obj)
+	if err != nil {
+		panic(err)
+	}
+	if val != "alright" {
+		t.Errorf("expected: val should be \"alright\"")
+	}
+
+	val, err = GetPathValue("FIRST.SECOND.THIRD", obj)
+	if err != nil {
+		panic(err)
+	}
+	if val != "alright" {
+		t.Errorf("expected: val should be \"alright\"")
+	}
 }
