@@ -208,8 +208,8 @@ func TestGetPathValue(t *testing.T) {
 			"extra": "misc",
 		},
 		List: []string{"cat", "dog", "eel"},
-		Sub: SubElement {
-			Num: 7,
+		Sub: SubElement{
+			Num:  7,
 			Text: "sandwich",
 		},
 	}
