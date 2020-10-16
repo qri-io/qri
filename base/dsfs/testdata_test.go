@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"sync"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	testPeers "github.com/qri-io/qri/config/test"
 )
 
 var AirportCodes = &dataset.Dataset{
@@ -150,6 +152,10 @@ func makeFilestore() (map[string]string, cafs.Filestore, error) {
 	ctx := context.Background()
 	st := cafs.NewMapstore()
 
+	// These tests are using hard-coded ids that require this exact peer's private key.
+	info := testPeers.GetTestPeerInfo(10)
+	pk := info.PrivKey
+
 	datasets := map[string]string{
 		"movies": "",
 		"cities": "",
@@ -174,7 +180,7 @@ func makeFilestore() (map[string]string, cafs.Filestore, error) {
 
 		ds.SetBodyFile(qfs.NewMemfileBytes(filepath.Base(dataPath), data))
 
-		dskey, err := WriteDataset(ctx, st, ds, true)
+		dskey, err := WriteDataset(ctx, &sync.Mutex{}, st, ds, pk, true)
 		if err != nil {
 			return datasets, nil, fmt.Errorf("dataset: %s write error: %s", k, err.Error())
 		}

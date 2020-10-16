@@ -2,6 +2,11 @@ module github.com/qri-io/qri
 
 go 1.13
 
+replace (
+	github.com/qri-io/qfs => /Users/b5/qri/qfs
+	github.com/qri-io/dataset => /Users/b5/qri/dataset
+)
+
 require (
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
@@ -41,6 +46,8 @@ require (
 	github.com/multiformats/go-multihash v0.0.13
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pkg/errors v0.9.1
+	github.com/pkg/profile v1.5.0
+	github.com/qri-io/apiutil v0.2.0
 	github.com/qri-io/dag v0.2.2-0.20200725180936-93d90d47ff6e
 	github.com/qri-io/dataset v0.2.0
 	github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b

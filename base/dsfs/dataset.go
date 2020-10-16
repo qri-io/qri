@@ -1,32 +1,23 @@
 package dsfs
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsio"
-	"github.com/qri-io/dataset/dsviz"
 	"github.com/qri-io/dataset/validate"
-	"github.com/qri-io/deepdiff"
-	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qfs/localfs"
-	"github.com/qri-io/qri/base/friendly"
-	"github.com/qri-io/qri/base/toqtype"
 )
+
+// number of entries to per batch when processing body data in WriteDataset
+const batchSize = 5000
 
 var (
 	// BodySizeSmallEnoughToDiff sets how small a body must be to generate a message from it
@@ -250,8 +241,13 @@ type SaveSwitches struct {
 // Pk is the private key for cryptographically signing
 // Sw is switches that control how the save happens
 // Returns the immutable path if no error
-func CreateDataset(ctx context.Context, source, destination cafs.Filestore, ds, dsPrev *dataset.Dataset, pk crypto.PrivKey, sw SaveSwitches) (string, error) {
-	log.Debugf("CreateDataset")
+func CreateDataset(
+	ctx context.Context,
+	source, destination cafs.Filestore,
+	ds, prev *dataset.Dataset,
+	pk crypto.PrivKey,
+	sw SaveSwitches,
+) (string, error) {
 	if pk == nil {
 		return "", fmt.Errorf("private key is required to create a dataset")
 	}
@@ -263,648 +259,152 @@ func CreateDataset(ctx context.Context, source, destination cafs.Filestore, ds, 
 		log.Debug(err.Error())
 		return "", err
 	}
+	log.Debugf("CreateDataset ds.Peername=%q ds.Name=%q", ds.Peername, ds.Name)
 
-	if dsPrev != nil && !dsPrev.IsEmpty() {
-		if err := DerefDataset(ctx, source, dsPrev); err != nil {
+	if prev != nil && !prev.IsEmpty() {
+		if err := DerefDataset(ctx, source, prev); err != nil {
 			log.Debug(err.Error())
 			return "", err
 		}
-		if err := validate.Dataset(dsPrev); err != nil {
+		if err := validate.Dataset(prev); err != nil {
 			log.Debug(err.Error())
 			return "", err
 		}
 	}
-	err := prepareDataset(source, ds, dsPrev, pk, sw)
+
+	var (
+		bf     = ds.BodyFile()
+		bfPrev qfs.File
+	)
+
+	if prev != nil {
+		bfPrev = prev.BodyFile()
+	}
+	if bf == nil && bfPrev == nil {
+		return "", fmt.Errorf("bodyfile or previous bodyfile needed")
+	} else if bf == nil {
+		// TODO(dustmop): If no bf provided, we're assuming that the body is the same as it
+		// was in the previous commit. In this case, we shouldn't be recalculating the
+		// structure (err count, depth, checksum, length) we should just copy it from the
+		// previous version.
+		bf = bfPrev
+	}
+
+	// lock for editing dataset pointer
+	var dsLk = &sync.Mutex{}
+
+	bodyFile, err := newComputeFieldsFile(ctx, dsLk, source, pk, ds, prev, sw)
 	if err != nil {
-		log.Debug(err.Error())
 		return "", err
 	}
+	ds.SetBodyFile(bodyFile)
 
-	path, err := WriteDataset(ctx, destination, ds, sw.Pin)
+	var hooks []*MerkelizeHook
+
+	// TODO (b5) - set renderedFile to a zero-length (but non-nil) file so the count
+	// in WriteDataset is correct
+	if sw.ShouldRender && ds.Viz != nil && ds.Viz.ScriptFile() != nil && ds.Viz.RenderedFile() == nil {
+		ds.Viz.SetRenderedFile(qfs.NewMemfileBytes(PackageFileRenderedViz.String(), []byte{}))
+		hooks = append(hooks, renderVizMerkleHook(dsLk, ds, bodyFile.FileName()))
+	}
+
+	path, err := WriteDataset(ctx, dsLk, destination, ds, pk, sw.Pin, hooks...)
 	if err != nil {
 		log.Debug(err.Error())
-		err := fmt.Errorf("error writing dataset: %s", err.Error())
 		return "", err
 	}
 	return path, nil
 }
 
-// Timestamp is an function for getting commit timestamps
-// timestamps MUST be stored in UTC time zone
-var Timestamp = func() time.Time {
-	return time.Now().UTC()
-}
-
-// BodyAction represents the action that should be taken to understand how the body changed
-type BodyAction string
-
-const (
-	// BodyDefault is the default action: compare them to get how much changed
-	BodyDefault = BodyAction("default")
-	// BodySame means that the bodies are the same, no need to compare
-	BodySame = BodyAction("same")
-	// BodyTooBig means the body is too big to compare, and should be assumed to have changed
-	BodyTooBig = BodyAction("too_big")
-)
-
-// prepareDataset modifies a dataset in preparation for adding to a dsfs
-// it returns a new data file for use in WriteDataset
-func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey crypto.PrivKey, sw SaveSwitches) error {
-	log.Debugf("prepareDataset")
-	var (
-		err error
-		// lock for parallel edits to ds pointer
-		mu sync.Mutex
-		// accumulate reader into a buffer for shasum calculation & passing out another qfs.File
-		buf     bytes.Buffer
-		bf      = ds.BodyFile()
-		bodyAct = BodyDefault
-		bfPrev  qfs.File
-	)
-
-	if dsPrev != nil {
-		bfPrev = dsPrev.BodyFile()
-	}
-
-	if bf == nil && bfPrev == nil {
-		return fmt.Errorf("bodyfile or previous bodyfile needed")
-	}
-
-	if bf == nil {
-		// TODO(dustmop): If no bf provided, we're assuming that the body is the same as it
-		// was in the previous commit. In this case, we shouldn't be recalculating the
-		// structure (err count, depth, checksum, length) we should just copy it from the
-		// previous version.
-		bodyAct = BodySame
-		bf = bfPrev
-	}
-
-	errR, errW := io.Pipe()
-	entryR, entryW := io.Pipe()
-	hashR, hashW := io.Pipe()
-	done := make(chan error)
-	tasks := 3
-	valChan := make(chan []jsonschema.KeyError)
-
-	go setErrCount(ds, qfs.NewMemfileReader(bf.FileName(), errR), &mu, done, valChan)
-	go setDepthAndEntryCount(ds, qfs.NewMemfileReader(bf.FileName(), entryR), &mu, done)
-	go setChecksumAndLength(ds, qfs.NewMemfileReader(bf.FileName(), hashR), &buf, &mu, done)
-
-	go func() {
-		// pipes must be manually closed to trigger EOF
-		defer errW.Close()
-		defer entryW.Close()
-		defer hashW.Close()
-
-		// allocate a multiwriter that writes to each pipe when
-		// mw.Write() is called
-		mw := io.MultiWriter(errW, entryW, hashW)
-		// copy file bytes to multiwriter from input file
-		io.Copy(mw, bf)
-	}()
-
-	// Get validation errors because trying to join the main tasks.
-	var validationErrors []jsonschema.KeyError
-	validationErrors = <-valChan
-
-	// Join the outstanding tasks, wait until all are cmoplete.
-	for i := 0; i < tasks; i++ {
-		if err := <-done; err != nil {
-			return err
-		}
-	}
-
-	// If in strict mode, fail if there were any errors.
-	if ds.Structure.Strict && ds.Structure.ErrCount > 0 {
-		fmt.Fprintf(os.Stderr, "\nShowing errors at each /row/column of the dataset body:\n")
-		for i, v := range validationErrors {
-			fmt.Fprintf(os.Stderr, "%d) %v\n", i, v)
-		}
-		return fmt.Errorf("strict mode: dataset body did not validate against its schema")
-	}
-
-	// If the body exists and is small enough, deserialize it and assign it
-	if len(buf.Bytes()) < BodySizeSmallEnoughToDiff {
-		file := qfs.NewMemfileBytes("body."+ds.Structure.Format, buf.Bytes())
-		reader, err := dsio.NewEntryReader(ds.Structure, file)
-		if err == nil {
-			dsBody, err := readAllEntries(reader)
-			if err == nil {
-				ds.Body = dsBody
-			}
-		}
-	} else {
-		bodyAct = BodyTooBig
-	}
-
-	if err = generateCommit(store, dsPrev, ds, privKey, bodyAct, sw.FileHint, sw.ForceIfNoChanges); err != nil {
-		return err
-	}
-
-	ds.SetBodyFile(qfs.NewMemfileBytes("body."+ds.Structure.Format, buf.Bytes()))
-
-	if sw.ShouldRender && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
-		log.Debugf("rendering dataset viz")
-		// render the viz
-		renderedFile, err := dsviz.Render(ds)
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error rendering visualization: %s", err.Error())
-		}
-		ds.Viz.SetRenderedFile(renderedFile)
-	}
-
-	return nil
-}
-
-// generateCommit creates the commit title, message, timestamp, etc
-func generateCommit(store cafs.Filestore, prev, ds *dataset.Dataset, privKey crypto.PrivKey, bodyAct BodyAction, fileHint string, forceIfNoChanges bool) error {
-	shortTitle, longMessage, err := generateCommitDescriptions(store, prev, ds, bodyAct, forceIfNoChanges)
-	if err != nil {
-		log.Debug(fmt.Errorf("error saving: %s", err))
-		return fmt.Errorf("error saving: %s", err)
-	}
-
-	if shortTitle == defaultCreatedDescription && fileHint != "" {
-		shortTitle = shortTitle + " from " + filepath.Base(fileHint)
-	}
-	if longMessage == defaultCreatedDescription && fileHint != "" {
-		longMessage = longMessage + " from " + filepath.Base(fileHint)
-	}
-
-	if ds.Commit.Title == "" {
-		ds.Commit.Title = shortTitle
-	}
-	if ds.Commit.Message == "" {
-		ds.Commit.Message = longMessage
-	}
-
-	ds.Commit.Timestamp = Timestamp()
-	sb, _ := ds.SignableBytes()
-	signedBytes, err := privKey.Sign(sb)
-	if err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error signing commit title: %s", err.Error())
-	}
-	ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
-
-	log.Debugf("generateCommit complete. signature=%q", ds.Commit.Signature)
-	return nil
-}
-
-// setErrCount consumes sets the ErrCount field of a dataset's Structure
-func setErrCount(ds *dataset.Dataset, data qfs.File, mu *sync.Mutex, done chan error, valChan chan []jsonschema.KeyError) {
-	defer data.Close()
-
-	er, err := dsio.NewEntryReader(ds.Structure, data)
-	if err != nil {
-		log.Debug(err.Error())
-		valChan <- nil
-		done <- fmt.Errorf("reading data values: %s", err.Error())
-		return
-	}
-
-	// Send validation errors immediately, before main thread blocks.
-	validationErrors, err := validate.EntryReader(er)
-	valChan <- validationErrors
-
-	if err != nil {
-		log.Debug(err.Error())
-		done <- fmt.Errorf("validating data: %s", err.Error())
-		return
-	}
-
-	mu.Lock()
-	ds.Structure.ErrCount = len(validationErrors)
-	mu.Unlock()
-
-	log.Debugf("setErrorCount result ErrCount=%d", ds.Structure.ErrCount)
-	done <- nil
-}
-
-// setDepthAndEntryCount set the Entries field of a ds.Structure
-func setDepthAndEntryCount(ds *dataset.Dataset, data qfs.File, mu *sync.Mutex, done chan error) {
-	defer data.Close()
-	er, err := dsio.NewEntryReader(ds.Structure, data)
-	if err != nil {
-		log.Debug(err.Error())
-		done <- fmt.Errorf("error reading data values: %s", err.Error())
-		return
-	}
-
-	entries := 0
-
-	depth := 0
-	var ent dsio.Entry
-	for {
-		if ent, err = er.ReadEntry(); err != nil {
-			break
-		}
-		// get the depth of this entry, update depth if larger
-		if d := getDepth(ent.Value); d > depth {
-			depth = d
-		}
-		entries++
-	}
-	if err.Error() != "EOF" {
-		log.Debugf("reading values at entry=%q err=%s", entries, err.Error())
-		done <- fmt.Errorf("reading values at entry %d: %s", entries, err.Error())
-		return
-	}
-
-	mu.Lock()
-	ds.Structure.Entries = entries
-	ds.Structure.Depth = depth + 1 // need to add one for the original enclosure
-	mu.Unlock()
-
-	log.Debugf("set depth and entry count. depth=%d entries=%d", ds.Structure.Depth, ds.Structure.Entries)
-	done <- nil
-}
-
-// getDepth finds the deepest value in a given interface value
-func getDepth(x interface{}) (depth int) {
-	switch v := x.(type) {
-	case map[string]interface{}:
-		for _, el := range v {
-			if d := getDepth(el); d > depth {
-				depth = d
-			}
-		}
-		return depth + 1
-	case []interface{}:
-		for _, el := range v {
-			if d := getDepth(el); d > depth {
-				depth = d
-			}
-		}
-		return depth + 1
-	default:
-		return depth
+func concatFunc(f1, f2 func()) func() {
+	return func() {
+		f1()
+		f2()
 	}
 }
 
-// setChecksumAndLength
-func setChecksumAndLength(ds *dataset.Dataset, data qfs.File, buf *bytes.Buffer, mu *sync.Mutex, done chan error) {
-	defer data.Close()
+// MerkelizeCallback is a function that's called when a given path has been
+// written to the content addressed filesystem
+type MerkelizeCallback func(ctx context.Context, store cafs.Filestore, merkelizedPaths map[string]string) (io.Reader, error)
 
-	if _, err := io.Copy(buf, data); err != nil {
-		done <- err
-		return
-	}
-
-	shasum, err := multihash.Sum(buf.Bytes(), multihash.SHA2_256, -1)
-	if err != nil {
-		log.Debug(err.Error())
-		done <- fmt.Errorf("error calculating hash: %s", err.Error())
-		return
-	}
-
-	mu.Lock()
-	ds.Structure.Checksum = shasum.B58String()
-	ds.Structure.Length = len(buf.Bytes())
-	mu.Unlock()
-
-	log.Debugf("set length and checksum. length=%d checksum=%q", ds.Structure.Length, ds.Structure.Checksum)
-	done <- nil
+// MerkelizeHook configures a callback function to be executed on a saved
+// file, at a specific point in the merkelization process
+type MerkelizeHook struct {
+	// path of file to fire on
+	inputFilename string
+	path          string
+	once          sync.Once
+	// slice of pre-merkelized paths that need to be saved before the hook
+	// can be called
+	requiredPaths []string
+	// function to call
+	callback MerkelizeCallback
 }
 
-const defaultCreatedDescription = "created dataset"
-
-// returns a commit message based on the diff of the two datasets
-func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset, bodyAct BodyAction, forceIfNoChanges bool) (short, long string, err error) {
-	if prev == nil || prev.IsEmpty() {
-		return defaultCreatedDescription, defaultCreatedDescription, nil
+// NewMerkelizeHook creates
+func NewMerkelizeHook(inputFilename string, cb MerkelizeCallback, requiredPaths ...string) *MerkelizeHook {
+	return &MerkelizeHook{
+		inputFilename: inputFilename,
+		requiredPaths: requiredPaths,
+		callback:      cb,
 	}
-	log.Debug("generateCommitDescriptions")
-
-	ctx := context.TODO()
-
-	// Inline body if it is a reasonable size, to get message about how the body has changed.
-	if bodyAct != BodySame {
-		// If previous version had bodyfile, read it and assign it
-		if prev.Structure != nil && prev.Structure.Length < BodySizeSmallEnoughToDiff {
-			if prev.BodyFile() != nil {
-				log.Debugf("inlining body file to calulate a diff")
-				prevReader, err := dsio.NewEntryReader(prev.Structure, prev.BodyFile())
-				if err == nil {
-					prevBodyData, err := readAllEntries(prevReader)
-					if err == nil {
-						prev.Body = prevBodyData
-					}
-				}
-			}
-		} else {
-			bodyAct = BodyTooBig
-		}
-	}
-
-	// Read the transform files to see if they changed.
-	// TODO(dustmop): Would be better to get a line-by-line diff
-	if prev.Transform != nil && prev.Transform.ScriptPath != "" {
-		log.Debugf("inlining prev transform ScriptPath=%q", prev.Transform.ScriptPath)
-		err := prev.Transform.OpenScriptFile(ctx, store)
-		if err != nil {
-			log.Error("prev.Transform.ScriptPath %q open err: %s", prev.Transform.ScriptPath, err)
-		} else {
-			tfFile := prev.Transform.ScriptFile()
-			prev.Transform.ScriptBytes, err = ioutil.ReadAll(tfFile)
-			if err != nil {
-				log.Error("prev.Transform.ScriptPath %q read err: %s", prev.Transform.ScriptPath, err)
-			}
-		}
-	}
-	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
-		log.Debugf("inlining next transform ScriptPath=%q", ds.Transform.ScriptPath)
-		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
-		// local here. Is there some way to have a cafs store that works with both?
-		fs, err := localfs.NewFS(nil)
-		if err != nil {
-			log.Errorf("error setting up local fs: %s", err)
-		}
-		err = ds.Transform.OpenScriptFile(ctx, fs)
-		if err != nil {
-			log.Errorf("ds.Transform.ScriptPath %q open err: %s", ds.Transform.ScriptPath, err)
-		} else {
-			tfFile := ds.Transform.ScriptFile()
-			ds.Transform.ScriptBytes, err = ioutil.ReadAll(tfFile)
-			if err != nil {
-				log.Errorf("ds.Transform.ScriptPath %q read err: %s", ds.Transform.ScriptPath, err)
-			}
-		}
-		// Reopen the transform file so that WriteDataset will be able to write it to the store.
-		if reopenErr := ds.Transform.OpenScriptFile(ctx, fs); reopenErr != nil {
-			log.Debugf("error reopening transform script file: %q", reopenErr)
-		}
-	}
-
-	// Read the readme files to see if they changed.
-	// TODO(dustmop): Would be better to get a line-by-line diff
-	if prev.Readme != nil && prev.Readme.ScriptPath != "" {
-		log.Debugf("inlining prev readme ScriptPath=%q", prev.Readme.ScriptPath)
-		err := prev.Readme.OpenScriptFile(ctx, store)
-		if err != nil {
-			log.Error("prev.Readme.ScriptPath %q open err: %s", prev.Readme.ScriptPath, err)
-		} else {
-			tfFile := prev.Readme.ScriptFile()
-			prev.Readme.ScriptBytes, err = ioutil.ReadAll(tfFile)
-			if err != nil {
-				log.Error("prev.Readme.ScriptPath %q read err: %s", prev.Readme.ScriptPath, err)
-			}
-		}
-	}
-	if ds.Readme != nil && ds.Readme.ScriptPath != "" {
-		log.Debugf("inlining next readme ScriptPath=%q", ds.Readme.ScriptPath)
-		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
-		// local here. Is there some way to have a cafs store that works with both?
-		fs, err := localfs.NewFS(nil)
-		if err != nil {
-			log.Error("localfs.NewFS err: %s", err)
-		}
-		err = ds.Readme.OpenScriptFile(ctx, fs)
-		if err != nil {
-			log.Debugf("ds.Readme.ScriptPath %q open err: %s", ds.Readme.ScriptPath, err)
-			err = nil
-		} else {
-			tfFile := ds.Readme.ScriptFile()
-			ds.Readme.ScriptBytes, err = ioutil.ReadAll(tfFile)
-			if err != nil {
-				log.Errorf("ds.Readme.ScriptPath %q read err: %s", ds.Readme.ScriptPath, err)
-			}
-		}
-		if reopenErr := ds.Readme.OpenScriptFile(ctx, fs); reopenErr != nil {
-			log.Debugf("error reopening readme script file: %q", reopenErr)
-		}
-	}
-
-	var prevData map[string]interface{}
-	prevData, err = toqtype.StructToMap(prev)
-	if err != nil {
-		return "", "", err
-	}
-
-	var nextData map[string]interface{}
-	nextData, err = toqtype.StructToMap(ds)
-	if err != nil {
-		return "", "", err
-	}
-
-	// TODO(dustmop): All of this should be using fill and/or component. Would be awesome to
-	// be able to do:
-	//   prevBody = fill.GetPathValue(prevData, "body")
-	//   fill.DeletePathValue(prevData, "body")
-	//   component.DropDerivedValues(prevData, "structure")
-	var prevBody interface{}
-	var nextBody interface{}
-	if bodyAct != BodySame {
-		prevBody = prevData["body"]
-		nextBody = nextData["body"]
-	}
-	delete(prevData, "body")
-	delete(nextData, "body")
-
-	if prevTransform, ok := prevData["transform"]; ok {
-		if prevObject, ok := prevTransform.(map[string]interface{}); ok {
-			delete(prevObject, "scriptPath")
-		}
-	}
-	if nextTransform, ok := nextData["transform"]; ok {
-		if nextObject, ok := nextTransform.(map[string]interface{}); ok {
-			delete(nextObject, "scriptPath")
-		}
-	}
-	if prevReadme, ok := prevData["readme"]; ok {
-		if prevObject, ok := prevReadme.(map[string]interface{}); ok {
-			delete(prevObject, "scriptPath")
-		}
-	}
-	if nextReadme, ok := nextData["readme"]; ok {
-		if nextObject, ok := nextReadme.(map[string]interface{}); ok {
-			delete(nextObject, "scriptPath")
-		}
-	}
-
-	prevChecksum := ""
-	nextChecksum := ""
-
-	if prevStructure, ok := prevData["structure"]; ok {
-		if prevObject, ok := prevStructure.(map[string]interface{}); ok {
-			if checksum, ok := prevObject["checksum"].(string); ok {
-				prevChecksum = checksum
-			}
-			delete(prevObject, "checksum")
-			delete(prevObject, "entries")
-			delete(prevObject, "length")
-			delete(prevObject, "depth")
-		}
-	}
-	if nextStructure, ok := nextData["structure"]; ok {
-		if nextObject, ok := nextStructure.(map[string]interface{}); ok {
-			if checksum, ok := nextObject["checksum"].(string); ok {
-				nextChecksum = checksum
-			}
-			delete(nextObject, "checksum")
-			delete(nextObject, "entries")
-			delete(nextObject, "length")
-			delete(nextObject, "depth")
-		}
-	}
-
-	// If the body is too big to diff, compare the checksums. If they differ, assume the
-	// body has changed.
-	assumeBodyChanged := false
-	if bodyAct == BodyTooBig {
-		prevBody = nil
-		nextBody = nil
-		if prevChecksum != nextChecksum {
-			assumeBodyChanged = true
-		}
-	}
-
-	var headDiff, bodyDiff deepdiff.Deltas
-	var bodyStat *deepdiff.Stats
-
-	// Diff the head and body separately. This allows accurate stats when figuring out how much
-	// of the body has changed.
-	headDiff, _, err = deepdiff.New().StatDiff(ctx, prevData, nextData)
-	if err != nil {
-		return "", "", err
-	}
-	if prevBody != nil && nextBody != nil {
-		log.Debugf("calculating body statDiff type(prevBody)=%T type(nextBody)=%T", prevBody, nextBody)
-		bodyDiff, bodyStat, err = deepdiff.New().StatDiff(ctx, prevBody, nextBody)
-		if err != nil {
-			log.Debugf("error calculating body statDiff: %q", err)
-			return "", "", err
-		}
-	}
-
-	log.Debug("setting diff descriptions")
-	shortTitle, longMessage := friendly.DiffDescriptions(headDiff, bodyDiff, bodyStat, assumeBodyChanged)
-	if shortTitle == "" {
-		if forceIfNoChanges {
-			return "forced update", "forced update", nil
-		}
-		return "", "", fmt.Errorf("no changes")
-	}
-
-	log.Debugf("set friendly diff descriptions. shortTitle=%q", shortTitle)
-	return shortTitle, longMessage, nil
 }
 
-// copied from base/body.go to avoid circular dependency
-// TODO(dustmop): Move from base/body.go into this package
-func readAllEntries(reader dsio.EntryReader) (interface{}, error) {
-	obj := make(map[string]interface{})
-	array := make([]interface{}, 0)
-
-	tlt, err := dsio.GetTopLevelType(reader.Structure())
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 0; ; i++ {
-		val, err := reader.ReadEntry()
-		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-			return nil, err
-		}
-		if tlt == "object" {
-			obj[val.Key] = val.Value
-		} else {
-			array = append(array, val.Value)
+func (h *MerkelizeHook) hasRequiredPaths(merkelizedPaths map[string]string) bool {
+	for _, p := range h.requiredPaths {
+		if _, ok := merkelizedPaths[p]; !ok {
+			return false
 		}
 	}
-
-	if tlt == "object" {
-		return obj, nil
-	}
-	return array, nil
+	return true
 }
 
 // WriteDataset writes a dataset to a cafs, replacing subcomponents of a dataset with path references
 // during the write process. Directory structure is according to PackageFile naming conventions.
 // This method is currently exported, but 99% of use cases should use CreateDataset instead of this
 // lower-level function
-func WriteDataset(ctx context.Context, destination cafs.Filestore, ds *dataset.Dataset, pin bool) (string, error) {
-	log.Debug("WriteDataset")
-
+func WriteDataset(
+	ctx context.Context,
+	dsLk *sync.Mutex,
+	destination cafs.Filestore,
+	ds *dataset.Dataset,
+	pk crypto.PrivKey,
+	pin bool,
+	hooks ...*MerkelizeHook,
+) (string, error) {
 	if ds == nil || ds.IsEmpty() {
 		return "", fmt.Errorf("cannot save empty dataset")
 	}
-	ds.Peername = ""
-	ds.Name = ""
-	bodyFile := ds.BodyFile()
-	fileTasks := 0
-	addedDataset := false
+
+	var rollback = func() {
+		log.Debug("rolling back failed write operation")
+	}
+	defer func() {
+		if rollback != nil {
+			log.Debug("InitDataset rolling back...")
+			rollback()
+		}
+	}()
+
+	var (
+		bodyFile  = ds.BodyFile()
+		fileTasks = fileTaskCount(ds)
+	)
+
+	log.Debugf("WriteDataset tasks=%d", fileTasks)
 	adder, err := destination.NewAdder(pin, true)
 	if err != nil {
-		return "", fmt.Errorf("error creating new adder: %s", err.Error())
+		return "", fmt.Errorf("creating new CAFS adder: %w", err)
 	}
 
-	if ds.Viz != nil {
-		ds.Viz.DropTransientValues()
-		vizScript := ds.Viz.ScriptFile()
-		vizRendered := ds.Viz.RenderedFile()
-		// add task for the viz.json
-		if vizRendered != nil {
-			// add the rendered visualization
-			// and add working group for adding the viz script file
-			vrFile := qfs.NewMemfileReader(PackageFileRenderedViz.String(), vizRendered)
-			defer vrFile.Close()
-			fileTasks++
-			adder.AddFile(ctx, vrFile)
-		} else if vizScript != nil {
-			// add the vizScript
-			vsFile := qfs.NewMemfileReader(vizScriptFilename, vizScript)
-			defer vsFile.Close()
-			fileTasks++
-			adder.AddFile(ctx, vsFile)
-		} else {
-			vizdata, err := json.Marshal(ds.Viz)
-			if err != nil {
-				return "", fmt.Errorf("error marshalling dataset viz to json: %s", err.Error())
-			}
-			fileTasks++
-			adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileViz.String(), vizdata))
-		}
-	}
-
-	if ds.Readme != nil {
-		ds.Readme.DropTransientValues()
-		readmeScript := ds.Readme.ScriptFile()
-		readmeRendered := ds.Readme.RenderedFile()
-		// add task for the readme
-		if readmeRendered != nil {
-			// add the rendered visualization
-			// and add working group for adding the viz script file
-			rmFile := qfs.NewMemfileReader(PackageFileRenderedReadme.String(), readmeRendered)
-			defer rmFile.Close()
-			fileTasks++
-			adder.AddFile(ctx, rmFile)
-		} else if readmeScript != nil {
-			// add the readmeScript
-			rmFile := qfs.NewMemfileReader(PackageFileReadmeScript.String(), readmeScript)
-			defer rmFile.Close()
-			fileTasks++
-			adder.AddFile(ctx, rmFile)
-		} else {
-			readmeData, err := json.Marshal(ds.Readme)
-			if err != nil {
-				return "", fmt.Errorf("error marshalling dataset readme to json: %s", err.Error())
-			}
-			fileTasks++
-			adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileReadme.String(), readmeData))
-		}
-	}
+	ds.Peername = ""
+	ds.Name = ""
 
 	if ds.Meta != nil {
 		mdf, err := JSONFile(PackageFileMeta.String(), ds.Meta)
 		if err != nil {
-			return "", fmt.Errorf("error marshaling metadata to json: %s", err.Error())
+			return "", fmt.Errorf("encoding meta component to json: %w", err)
 		}
-		fileTasks++
 		adder.AddFile(ctx, mdf)
 	}
 
@@ -922,80 +422,166 @@ func WriteDataset(ctx context.Context, destination cafs.Filestore, ds *dataset.D
 		if sr != nil {
 			tsFile := qfs.NewMemfileReader(transformScriptFilename, sr)
 			defer tsFile.Close()
-			fileTasks++
 			adder.AddFile(ctx, tsFile)
-			// NOTE - add wg for the transform.json file ahead of time, which isn't completed
-			// until after scriptPath has been added
 		} else {
 			tfdata, err := json.Marshal(ds.Transform)
 			if err != nil {
-				return "", fmt.Errorf("error marshalling dataset transform to json: %s", err.Error())
+				return "", fmt.Errorf("encoding transform component to json: %w", err)
 			}
-
-			fileTasks++
 			adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileTransform.String(), tfdata))
 		}
 	}
 
-	if ds.Commit != nil {
-		ds.Commit.DropTransientValues()
-		cmf, err := JSONFile(PackageFileCommit.String(), ds.Commit)
-		if err != nil {
-			return "", fmt.Errorf("error marshilng dataset commit message to json: %s", err.Error())
-		}
-		fileTasks++
-		adder.AddFile(ctx, cmf)
-	}
-
-	if ds.Structure != nil {
-		ds.Structure.DropTransientValues()
-		stf, err := JSONFile(PackageFileStructure.String(), ds.Structure)
-		if err != nil {
-			return "", fmt.Errorf("error marshaling dataset structure to json: %s", err.Error())
-		}
-		fileTasks++
-		adder.AddFile(ctx, stf)
-	}
-
-	fileTasks++
 	adder.AddFile(ctx, bodyFile)
 
-	var path string
+	var finalPath string
 	done := make(chan error, 0)
+	merkelizedPaths := map[string]string{}
+
 	go func() {
 		for ao := range adder.Added() {
-			path = ao.Path
+			log.Debugf("added name=%s hash=%s", ao.Name, ao.Path)
+			path := ao.Path
+			merkelizedPaths[ao.Name] = ao.Path
+			finalPath = ao.Path
+			rollback = concatFunc(func() {
+				log.Debugf("removing: %s", path)
+				if err := destination.Delete(ctx, path); err != nil {
+					log.Debugf("error removing path: %s: %s", path, err)
+				}
+			}, rollback)
+
+			for i, hook := range hooks {
+				if hook.hasRequiredPaths(merkelizedPaths) {
+					hook.once.Do(func() {
+						log.Debugf("calling merkelizeHook path=%s", hook.inputFilename)
+						r, err := hook.callback(ctx, destination, merkelizedPaths)
+						if err != nil {
+							done <- err
+							return
+						}
+						if err = adder.AddFile(ctx, qfs.NewMemfileReader(hook.inputFilename, r)); err != nil {
+							done <- err
+							return
+						}
+					})
+					hooks = append(hooks[:i], hooks[i:]...)
+				} else {
+					log.Debugf("missing required paths for hook path=%s required=%#v merkelized=%#v", hook.inputFilename, hook.requiredPaths, merkelizedPaths)
+				}
+			}
+
 			switch ao.Name {
 			case PackageFileStructure.String():
+				log.Debugf("added structure. path=%s", ao.Path)
+				dsLk.Lock()
 				ds.Structure = dataset.NewStructureRef(ao.Path)
+				dsLk.Unlock()
 			case PackageFileTransform.String():
+				log.Debugf("added transform. path=%s", ao.Path)
 				ds.Transform = dataset.NewTransformRef(ao.Path)
 			case PackageFileMeta.String():
+				log.Debugf("added meta. path=%s", ao.Path)
 				ds.Meta = dataset.NewMetaRef(ao.Path)
 			case PackageFileCommit.String():
+				log.Debugf("added commit. path=%s", ao.Path)
 				ds.Commit = dataset.NewCommitRef(ao.Path)
 			case PackageFileViz.String():
+				log.Debugf("added viz. path=%s", ao.Path)
 				ds.Viz = dataset.NewVizRef(ao.Path)
 			case bodyFile.FileName():
+				log.Debugf("added body. path=%s", ao.Path)
+
+				if dpf, ok := bodyFile.(doneProcessingFile); ok {
+					if err := <-dpf.DoneProcessing(); err != nil {
+						done <- err
+						return
+					}
+				}
+
+				dsLk.Lock()
 				ds.BodyPath = ao.Path
-				// ds.SetBodyFile(qfs.NewMemfileBytes(bodyFile.FileName(), bodyBytesBuf.Bytes()))
+				if ds.Structure != nil {
+					ds.Structure.DropTransientValues()
+					stf, err := JSONFile(PackageFileStructure.String(), ds.Structure)
+					if err != nil {
+						done <- fmt.Errorf("encoding structure component to json: %w", err)
+						return
+					}
+					adder.AddFile(ctx, stf)
+				}
+
+				if ds.Viz != nil {
+					ds.Viz.DropTransientValues()
+					vizScript := ds.Viz.ScriptFile()
+
+					// vizRendered := ds.Viz.RenderedFile()
+					// add task for the viz.json
+					// if vizRendered != nil {
+					// // add the rendered visualization
+					// // and add working group for adding the viz script file
+					// vrFile := qfs.NewMemfileReader(PackageFileRenderedViz.String(), vizRendered)
+					// defer vrFile.Close()
+					// adder.AddFile(ctx, vrFile)
+
+					if vizScript != nil {
+						// add the vizScript
+						vsFile := qfs.NewMemfileReader(vizScriptFilename, vizScript)
+						defer vsFile.Close()
+						adder.AddFile(ctx, vsFile)
+					} else {
+						vizdata, err := json.Marshal(ds.Viz)
+						if err != nil {
+							done <- fmt.Errorf("encoding viz component to json: %w", err)
+							return
+						}
+						adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileViz.String(), vizdata))
+					}
+				}
+
+				if ds.Readme != nil {
+					ds.Readme.DropTransientValues()
+					readmeScript := ds.Readme.ScriptFile()
+					readmeRendered := ds.Readme.RenderedFile()
+					// add task for the readme
+					if readmeRendered != nil {
+						// add the rendered visualization
+						// and add working group for adding the viz script file
+						rmFile := qfs.NewMemfileReader(PackageFileRenderedReadme.String(), readmeRendered)
+						defer rmFile.Close()
+						adder.AddFile(ctx, rmFile)
+					} else if readmeScript != nil {
+						// add the readmeScript
+						rmFile := qfs.NewMemfileReader(PackageFileReadmeScript.String(), readmeScript)
+						defer rmFile.Close()
+						adder.AddFile(ctx, rmFile)
+					} else {
+						readmeData, err := json.Marshal(ds.Readme)
+						if err != nil {
+							done <- fmt.Errorf("encoding readme component to json: %w", err)
+							return
+						}
+						adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileReadme.String(), readmeData))
+					}
+				}
+				dsLk.Unlock()
 			case transformScriptFilename:
+				log.Debugf("added transform script. path=%s", ao.Path)
 				ds.Transform.ScriptPath = ao.Path
 				tfdata, err := json.Marshal(ds.Transform)
 				if err != nil {
 					done <- err
 					return
 				}
-				// Add the encoded transform file, decrementing the stray fileTasks from above
-				fileTasks++
 				adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileTransform.String(), tfdata))
 			case PackageFileRenderedViz.String():
+				log.Debugf("added rendered viz. path=%s", ao.Path)
 				ds.Viz.RenderedPath = ao.Path
 				vsFile := qfs.NewMemfileReader(vizScriptFilename, ds.Viz.ScriptFile())
 				defer vsFile.Close()
-				fileTasks++
 				adder.AddFile(ctx, vsFile)
 			case vizScriptFilename:
+				log.Debugf("added viz script. path=%s", ao.Path)
 				ds.Viz.ScriptPath = ao.Path
 				vizdata, err := json.Marshal(ds.Viz)
 				if err != nil {
@@ -1003,15 +589,15 @@ func WriteDataset(ctx context.Context, destination cafs.Filestore, ds *dataset.D
 					return
 				}
 				// Add the encoded transform file, decrementing the stray fileTasks from above
-				fileTasks++
 				adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileViz.String(), vizdata))
 			case PackageFileRenderedReadme.String():
+				log.Debugf("added rendered readme. path=%s", ao.Path)
 				ds.Readme.RenderedPath = ao.Path
 				vsFile := qfs.NewMemfileReader(PackageFileReadmeScript.String(), ds.Readme.ScriptFile())
 				defer vsFile.Close()
-				fileTasks++
 				adder.AddFile(ctx, vsFile)
 			case PackageFileReadmeScript.String():
+				log.Debugf("added readme script. path=%s", ao.Path)
 				ds.Readme.ScriptPath = ao.Path
 				readmeData, err := json.Marshal(ds.Readme)
 				if err != nil {
@@ -1019,25 +605,44 @@ func WriteDataset(ctx context.Context, destination cafs.Filestore, ds *dataset.D
 					return
 				}
 				// Add the encoded transform file, decrementing the stray fileTasks from above
-				fileTasks++
 				adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileReadme.String(), readmeData))
 			}
 
 			fileTasks--
-			if fileTasks == 0 {
-				log.Debug("no fileTasks remain")
-				if !addedDataset {
-					ds.DropTransientValues()
-					dsdata, err := json.Marshal(ds)
+			if fileTasks == 1 {
+				dsLk.Lock()
+				if ds.Commit != nil {
+					ds.Commit.DropTransientValues()
+					signedBytes, err := pk.Sign(ds.SigningBytes())
 					if err != nil {
-						done <- err
+						log.Debug(err.Error())
+						done <- fmt.Errorf("signing commit: %w", err)
 						return
 					}
-
-					if addErr := adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileDataset.String(), dsdata)); addErr != nil {
-						log.Debugf("error adding dataset file: %q", addErr)
+					ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
+					log.Debugf("generateCommit complete. signature=%q", ds.Commit.Signature)
+					cmf, err := JSONFile(PackageFileCommit.String(), ds.Commit)
+					if err != nil {
+						done <- fmt.Errorf("encoding commit component to json: %w", err)
+						return
 					}
+					adder.AddFile(ctx, cmf)
 				}
+				dsLk.Unlock()
+			} else if fileTasks == 0 {
+				log.Debug("no fileTasks remain")
+
+				ds.DropTransientValues()
+				dsdata, err := json.Marshal(ds)
+				if err != nil {
+					done <- err
+					return
+				}
+
+				if addErr := adder.AddFile(ctx, qfs.NewMemfileBytes(PackageFileDataset.String(), dsdata)); addErr != nil {
+					log.Debugf("error adding dataset file: %q", addErr)
+				}
+
 				if err := adder.Close(); err != nil {
 					done <- err
 					return
@@ -1049,22 +654,65 @@ func WriteDataset(ctx context.Context, destination cafs.Filestore, ds *dataset.D
 
 	err = <-done
 	if err != nil {
-		log.Debugf("error writing dataset: %q", err)
-		return path, err
+		log.Debugf("writing dataset: %q", err)
+		return finalPath, err
 	}
 
-	log.Debugf("dataset written to filesystem. path=%q", path)
+	log.Debugf("dataset written to filesystem. path=%q", finalPath)
 
-	// TODO (b5): currently we're loading to keep the ds pointer hydrated post-write
-	// we should remove that assumption, allowing callers to skip this load step, which may
-	// be unnecessary
 	// TODO(dustmop): This is necessary because ds doesn't have all fields in Structure and Commit.
 	// Try if there's another way to set these instead of requiring a full call to LoadDataset.
 	var loaded *dataset.Dataset
-	loaded, err = LoadDataset(ctx, destination, path)
+	loaded, err = LoadDataset(ctx, destination, finalPath)
 	if err != nil {
 		return "", err
 	}
 	*ds = *loaded
-	return path, nil
+
+	// successful execution. remove rollback func
+	rollback = nil
+	return finalPath, nil
+}
+
+// determine the number of files that need to be written by examining which
+// dataset components & component file fields are populated
+func fileTaskCount(ds *dataset.Dataset) (tasks int) {
+	if ds.Commit != nil {
+		tasks++
+	}
+
+	if ds.Meta != nil {
+		tasks++
+	}
+	if ds.Transform != nil {
+		tasks++
+		if ds.Transform.ScriptFile() != nil {
+			tasks++
+		}
+	}
+	if ds.Viz != nil {
+		tasks++
+		if ds.Viz.ScriptFile() != nil {
+			tasks++
+		}
+		if ds.Viz.RenderedFile() != nil {
+			tasks++
+		}
+	}
+	if ds.Readme != nil {
+		tasks++
+		if ds.Readme.ScriptFile() != nil {
+			tasks++
+		}
+		if ds.Readme.RenderedFile() != nil {
+			tasks++
+		}
+	}
+	if ds.Structure != nil {
+		tasks++
+	}
+	if ds.BodyFile() != nil {
+		tasks++
+	}
+	return tasks
 }

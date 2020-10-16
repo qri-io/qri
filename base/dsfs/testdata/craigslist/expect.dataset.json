@@ -1,7 +1,7 @@
 {
   "commit": {
     "qri": "cm:0",
-    "signature": "QDA/hZm6buL6oBMdWAZnLi3mg5GMa10odfedy98hx8Alavbgn1c5WkZqd1dejqhkiKKjuok8fMdv5VLKGp12FVRXw3JpFa5fK8o5sQGNIVXe3TK/qmVHWKslNE7HhOkzb/ok8idTBHu3HPkXqDmHioZE0JeLkd6F41BIOkCcVBv+w3SviR3UqMSXtzeBqznUD4XfWUFe5PO08GkQ4qSOZKXj1aqxq/oSGQJHt4vN+891hn/fJDx0inLPRT4Dn4Hm8LL0tJ+o4OJ4q7gC+t9QrPaNK69aO6hgAXxJQbLGReh291Fdk+DWe7McGVJsp0YU0hdDC8kafotUHZosVVESWQ==",
+    "signature": "MaW1v72QMRy4+GMO00+9lO/J98JxvOZpmS7f/0Jdy4HoY3IQ9sVPGhbkaSrF08fTQFkYFZn/FpiFEZ2k8yUVVYbgjWngyGMZ6BEx3GaJMOPxD+l+PGO21sYKh/Fg6LxiV6roxiOjUa8u87dzTekVbttvIfQ+y/bg8xsKia7Y5CcvYxsXpaou3FNuK1rZ4GGf96SED1dlcd8PnB9o6fEk9Q2Suj19X1K6TyZemQUZeFMz2bDtiyORC3pk213mkY2NQ8oZSmOrrAEtf8d32Q31U3fZQZlAtfIJ/ICaNTtFbTxB3t2mAYHEzScWEBQ6C2REKDDYmDp7eDoijZiQYPZYAA==",
     "timestamp": "2001-01-01T01:01:01.000000001Z",
     "title": "initial commit",
     "message": "created dataset"
@@ -9,7 +9,7 @@
   "bodyPath": "/map/QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
   "qri": "ds:0",
   "structure": {
-    "checksum": "QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
+    "checksum": "",
     "entries": 1200,
     "errCount": 1,
     "depth" : 4,

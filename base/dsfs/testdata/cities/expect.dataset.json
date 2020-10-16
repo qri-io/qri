@@ -2,7 +2,7 @@
   "commit": {
     "message": "created dataset",
     "qri": "cm:0",
-    "signature": "RZU/18bxxacveMoNvGxINIS9MxvNwtc4OiSCRjCGnospztHNhJfJP0PflrzKG1tqLGi+c4w94BJRmLR/I5YaVqqwm86vGkYhwDRuBEViuT4GlKCzVEFUk63fJsT9YmcUWlabqEnUW2l0O6p+RatfmumlKOleONMYy1woa5PbIzRGoITo4u9piYiV6RVRJ9bURjEU7cr8iVXcwO+YEw6qMCUBKUAok+yttjt+iYm0JLD9hPoQO14Vu4jWMFxByoLvVIEquEqnlgyuQGvelFfuApUI5goTftOcASANuTsnrOe6gq0HJxNN27kAYQujS3swspi7qVrL9X8v341YKu77fQ==",
+    "signature": "n9NKoDtynaYFpA3n0upvkRJ0NrssoHot9DYwYgEvgJgOkYJy/GMMv9Zr5ffG763C6J6fqsMl1WeZCCwdiXVmcbNTwhYkykkBFsqBG4U1Y0v0VYCLGmzI3FMHuu4+wh/rFmXjLeWn9ofPjZ1bRAmdyPwVHKEn4oD+e1n/oP6s4ie0sxqobb1eBf2gNHq4FgNDeZcBtoQswoNDAVxmQlw/m0YD0mgL5wz2m1w48IVCnXpISy4e+7X2DmpdhdwTCot8eeuRYx+513sZaxv5wrnzb23J61RrrjAOFXUWMkvWb61Ko39/Z28VLj2+xw3+yZ3vJOrOqpRo3/ny+tUSdLSETw==",
     "timestamp": "2001-01-01T01:01:01.000000001Z",
     "title": "initial commit"
   },
@@ -13,7 +13,7 @@
   },
   "qri": "ds:0",
   "structure": {
-    "checksum": "QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
+    "checksum": "",
     "entries": 5,
     "depth" : 2,
     "errCount": 1,
