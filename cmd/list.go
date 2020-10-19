@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	util "github.com/qri-io/apiutil"
@@ -119,7 +120,12 @@ func (o *ListOptions) Run() (err error) {
 		UseDscache:      o.UseDscache,
 	}
 	if err = o.DatasetMethods.List(p, &infos); err != nil {
-		return err
+		if errors.Is(err, lib.ErrListWarning) {
+			printWarning(o.ErrOut, fmt.Sprintf("%s\n", err))
+			err = nil
+		} else {
+			return err
+		}
 	}
 
 	for _, ref := range infos {

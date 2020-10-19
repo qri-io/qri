@@ -15,6 +15,10 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
+// ErrUnlistableReferences is an error for when listing references encounters some problem, but
+// these problems are non-fatal
+var ErrUnlistableReferences = errors.New("Warning: Some datasets could not be listed, because of invalid state. These datasets still exist in your repository, but have references that cannot be resolved. This will be fixed in a future version. You can see all datasets by using `qri list --raw`")
+
 // NewLocalDatasetLoader creates a dsfs.Loader that operates on a filestore
 func NewLocalDatasetLoader(r repo.Repo) dsref.Loader {
 	return loader{r}
@@ -183,31 +187,42 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 	}
 	res = res[offset:]
 
-	if limit < len(res) {
-		res = res[:limit]
-	}
+	// Collect references that get resolved and match any given filters
+	matches := make([]reporef.DatasetRef, 0, len(res))
+	hasUnlistableRefs := false
 
-	for i, ref := range res {
-		// May need to change peername.
-		if err := repo.CanonicalizeProfile(r, &res[i]); err != nil {
-			return nil, fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
+	for _, ref := range res {
+		if err := repo.CanonicalizeProfile(r, &ref); err != nil {
+			// This occurs when two profileIDs map to the same username, which can happen
+			// when a user creates a new profile using an old username. We should ignore
+			// references that can't be resolved this way, since other references in
+			// the repository are still usable
+			hasUnlistableRefs = true
+			continue
+		}
+
+		if term != "" {
+			// If this operation has a term to filter on, skip references that don't match
+			if !strings.Contains(ref.AliasString(), term) {
+				continue
+			}
 		}
 
 		if ref.Path != "" {
 			ds, err := dsfs.LoadDataset(ctx, store, ref.Path)
 			if err != nil {
 				if strings.Contains(err.Error(), "not found") {
-					res[i].Foreign = true
+					ref.Foreign = true
 					err = nil
 					continue
 				}
 				return nil, fmt.Errorf("error loading ref: %s, err: %s", ref.String(), err.Error())
 			}
-			ds.Peername = res[i].Peername
-			ds.Name = res[i].Name
-			res[i].Dataset = ds
+			ds.Peername = ref.Peername
+			ds.Name = ref.Name
+			ref.Dataset = ds
 			if RPC {
-				res[i].Dataset.Structure.Schema = nil
+				ref.Dataset.Structure.Schema = nil
 			}
 
 			if showVersions {
@@ -215,24 +230,25 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 				if err != nil {
 					return nil, err
 				}
-				res[i].Dataset.NumVersions = len(dsVersions)
+				ref.Dataset.NumVersions = len(dsVersions)
 			}
 		}
+
+		matches = append(matches, ref)
 	}
 
-	if term != "" {
-		matched := make([]reporef.DatasetRef, len(res))
-		i := 0
-		for _, ref := range res {
-			if strings.Contains(ref.AliasString(), term) {
-				matched[i] = ref
-				i++
-			}
-		}
-		res = matched[:i]
+	if limit < len(matches) {
+		matches = matches[:limit]
+	}
+	res = matches
+
+	// If some references could not be listed, return the other, valid references
+	// and return a known error, which callers can handle as desired.
+	if hasUnlistableRefs {
+		return res, ErrUnlistableReferences
 	}
 
-	return
+	return res, nil
 }
 
 // RawDatasetRefs converts the dataset refs to a string
