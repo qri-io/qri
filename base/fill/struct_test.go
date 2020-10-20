@@ -258,6 +258,7 @@ type SubElement struct {
 	Num    int
 	Things *map[string]string
 	Any    interface{}
+	Text   string
 }
 
 func (c *Collection) SetArbitrary(key string, val interface{}) error {

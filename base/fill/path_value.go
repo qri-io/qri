@@ -37,7 +37,7 @@ func SetPathValue(path string, val interface{}, output interface{}) error {
 	target, field, err := findTargetAtPath(steps, target)
 	if err != nil {
 		if err == ErrNotFound {
-			return fmt.Errorf("at \"%s\": path not found", path)
+			return fmt.Errorf("at %q: %w", path, ErrNotFound)
 		}
 		collector.Add(err)
 		return collector.AsSingleError()
@@ -65,22 +65,22 @@ func GetPathValue(path string, input interface{}) (interface{}, error) {
 	// Find target place to assign to, field is a non-empty string only if target is a map.
 	target, field, err := findTargetAtPath(steps, target)
 	if err != nil {
-		if err == ErrNotFound {
-			return nil, fmt.Errorf("at \"%s\": path not found", path)
-		}
-		return nil, fmt.Errorf("at \"%s\": %s", path, err)
+		return nil, fmt.Errorf("at %q: %w", path, err)
 	}
+	// If all steps completed, resolve the target to a real value.
 	if field == "" {
 		return target.Interface(), nil
 	}
-
-	lookup := target.MapIndex(reflect.ValueOf(field))
-	if lookup.IsValid() {
+	// Otherwise, one step is left, look it up using case-insensitive comparison.
+	if lookup := mapLookupCaseInsensitive(target, field); lookup != nil {
 		return lookup.Interface(), nil
 	}
-	return nil, fmt.Errorf("at \"%s\": invalid path", path)
+	return nil, fmt.Errorf("at %q: %w", path, ErrNotFound)
 }
 
+// Recursively look up the first step in place, until there are no steps left. If place is ever
+// a map with one step left, return that map and final step - this is done in order to enable
+// assignment to that map.
 func findTargetAtPath(steps []string, place reflect.Value) (reflect.Value, string, error) {
 	if len(steps) == 0 {
 		return place, "", nil
@@ -94,6 +94,16 @@ func findTargetAtPath(steps []string, place reflect.Value) (reflect.Value, strin
 			return place, "", ErrNotFound
 		}
 		return findTargetAtPath(rest, field)
+	} else if place.Kind() == reflect.Interface {
+		var inner reflect.Value
+		if place.IsNil() {
+			alloc := reflect.New(place.Type().Elem())
+			place.Set(alloc)
+			inner = alloc.Elem()
+		} else {
+			inner = place.Elem()
+		}
+		return findTargetAtPath(steps, inner)
 	} else if place.Kind() == reflect.Ptr {
 		var inner reflect.Value
 		if place.IsNil() {
@@ -108,9 +118,14 @@ func findTargetAtPath(steps []string, place reflect.Value) (reflect.Value, strin
 		if place.IsNil() {
 			place.Set(reflect.MakeMap(place.Type()))
 		}
-		// TODO: Handle case where `rest` has more steps and `val` is a struct: more
-		// recursive is needed.
-		return place, s, nil
+		if len(steps) == 1 {
+			return place, s, nil
+		}
+		found := mapLookupCaseInsensitive(place, s)
+		if found == nil {
+			return place, "", ErrNotFound
+		}
+		return findTargetAtPath(rest, *found)
 	} else if place.Kind() == reflect.Slice {
 		num, err := coerceToInt(s)
 		if err != nil {
@@ -124,6 +139,36 @@ func findTargetAtPath(steps []string, place reflect.Value) (reflect.Value, strin
 	} else {
 		return place, "", fmt.Errorf("cannot set field of type %s", place.Kind())
 	}
+}
+
+// Look up value in the map, using case-insensitive string comparison. Return nil if not found
+func mapLookupCaseInsensitive(mapValue reflect.Value, k string) *reflect.Value {
+	// Try looking up the value without changing the string case
+	key := reflect.ValueOf(k)
+	result := mapValue.MapIndex(key)
+	if result.IsValid() {
+		return &result
+	}
+	// Try lower-casing the key and looking that up
+	klower := strings.ToLower(k)
+	key = reflect.ValueOf(klower)
+	result = mapValue.MapIndex(key)
+	if result.IsValid() {
+		return &result
+	}
+	// Iterate over the map keys, compare each, using case-insensitive matching
+	mapKeys := mapValue.MapKeys()
+	for _, mk := range mapKeys {
+		mstr := mk.String()
+		if strings.ToLower(mstr) == klower {
+			result = mapValue.MapIndex(mk)
+			if result.IsValid() {
+				return &result
+			}
+		}
+	}
+	// Not found, return nil
+	return nil
 }
 
 func coerceToTargetType(val interface{}, place reflect.Value) (interface{}, error) {
