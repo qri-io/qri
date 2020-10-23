@@ -13,15 +13,14 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 )
 
 type computeFieldsFile struct {
 	*sync.Mutex
 
-	source cafs.Filestore
-	pk     crypto.PrivKey
-	sw     SaveSwitches
+	fs qfs.Filesystem
+	pk crypto.PrivKey
+	sw SaveSwitches
 
 	ds, prev *dataset.Dataset
 
@@ -40,7 +39,7 @@ type computeFieldsFile struct {
 	bytesRead int
 }
 
-func newComputeFieldsFile(ctx context.Context, dsLk *sync.Mutex, source cafs.Filestore, pk crypto.PrivKey, ds, prev *dataset.Dataset, sw SaveSwitches) (qfs.File, error) {
+func newComputeFieldsFile(ctx context.Context, dsLk *sync.Mutex, fs qfs.Filesystem, pk crypto.PrivKey, ds, prev *dataset.Dataset, sw SaveSwitches) (qfs.File, error) {
 	var (
 		bf     = ds.BodyFile()
 		bfPrev qfs.File
@@ -64,7 +63,7 @@ func newComputeFieldsFile(ctx context.Context, dsLk *sync.Mutex, source cafs.Fil
 
 	cff := &computeFieldsFile{
 		Mutex:      dsLk,
-		source:     source,
+		fs:         fs,
 		pk:         pk,
 		sw:         sw,
 		ds:         ds,
@@ -253,23 +252,11 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 			}
 		}
 
-		if err = generateCommitTitleAndMessage(ctx, cff.source, cff.pk, cff.ds, cff.prev, cff.bodyAct, cff.sw.FileHint, cff.sw.ForceIfNoChanges); err != nil {
+		if err = generateCommitTitleAndMessage(ctx, cff.fs, cff.pk, cff.ds, cff.prev, cff.bodyAct, cff.sw.FileHint, cff.sw.ForceIfNoChanges); err != nil {
 			log.Debugf("generateCommitTitleAndMessage: %s", err)
 			cff.done <- err
 			return
 		}
-
-		// if cff.sw.ShouldRender && cff.ds.Viz != nil && cff.ds.Viz.ScriptFile() != nil {
-		// 	log.Debugf("rendering dataset viz")
-		// 	renderedFile, err := dsviz.Render(cff.ds)
-		// 	if err != nil {
-		// 		log.Debug(err.Error())
-		// 		cff.done <- fmt.Errorf("rendering viz component: %w", err)
-		// 		return
-		// 	}
-		// 	cff.ds.Viz.SetRenderedFile(renderedFile)
-		// 	log.Debug("rendered")
-		// }
 
 		cff.done <- nil
 	}()

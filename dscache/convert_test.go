@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
@@ -141,9 +140,9 @@ func (run *DscacheTestRunner) Delete() {
 }
 
 // MustPutDatasetFileAtKey puts a dataset into the storage at the given key
-func (run *DscacheTestRunner) MustPutDatasetFileAtKey(t *testing.T, store *cafs.MapStore, key, content string) {
+func (run *DscacheTestRunner) MustPutDatasetFileAtKey(t *testing.T, fs *qfs.MemFS, key, content string) {
 	ctx := context.Background()
-	err := store.PutFileAtKey(ctx, key, qfs.NewMemfileBytes("dataset.json", []byte(content)))
+	err := fs.PutFileAtKey(ctx, key, qfs.NewMemfileBytes("dataset.json", []byte(content)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -430,7 +429,7 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefAlphabetized(t *testing.T) {
 	book := makeFakeLogbookNonAlphabetical(ctx, t, "test_user", peerInfo.PrivKey)
 
 	// Add stub defs, so that fillInfoForDatasets succeeds
-	store := cafs.NewMapstore()
+	store := qfs.NewMemFS()
 	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion1", `{}`)
 	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion2", `{}`)
 	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion3", `{}`)
@@ -481,7 +480,7 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
 
 	// Add test datasets, which fillInfoForDatasets will use to populate dscache
-	store := cafs.NewMapstore()
+	fs := qfs.NewMemFS()
 	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion2", `{
   "meta": {
     "title": "This Is Title",

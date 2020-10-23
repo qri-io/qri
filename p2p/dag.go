@@ -6,7 +6,7 @@ import (
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/qri-io/dag"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
 )
 
@@ -43,12 +43,12 @@ func (node *QriNode) NewDAGInfo(ctx context.Context, path, label string) (*dag.I
 		return nil, err
 	}
 
-	return newDAGInfo(ctx, node.Repo.Store(), ng, path, label)
+	return newDAGInfo(ctx, node.Repo.Filesystem(), ng, path, label)
 }
 
 // newDAGInfo generates a DAGInfo for a given node. If a label is provided,
 // it generates a sub-DAGInfo at that label
-func newDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, path, label string) (*dag.Info, error) {
+func newDAGInfo(ctx context.Context, fs qfs.Filesystem, ng ipld.NodeGetter, path, label string) (*dag.Info, error) {
 	id, err := cid.Parse(path)
 	if err != nil {
 		return nil, err
@@ -59,12 +59,12 @@ func newDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, p
 		return nil, err
 	}
 	// get referenced version of dataset
-	ds, err := dsfs.LoadDatasetRefs(ctx, store, path)
+	ds, err := dsfs.LoadDatasetRefs(ctx, fs, path)
 	if err != nil {
 		return nil, err
 	}
 	info.Labels = map[string]int{}
-	prefix := store.Type()
+	prefix := fs.Type()
 	if ds.BodyPath != "" {
 		err := info.AddLabelByID("bd", dsfs.GetHashBase(ds.BodyPath, prefix))
 		if err != nil {
@@ -76,7 +76,7 @@ func newDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, p
 		if err != nil {
 			return nil, err
 		}
-		if err := dsfs.DerefDatasetViz(ctx, store, ds); err != nil {
+		if err := dsfs.DerefDatasetViz(ctx, fs, ds); err != nil {
 			return nil, err
 		}
 		if ds.Viz.RenderedPath != "" {

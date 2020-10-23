@@ -20,7 +20,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
@@ -434,7 +434,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 		t.Fatalf("error getting path: %s", err.Error())
 	}
 
-	moviesDs, err := dsfs.LoadDataset(ctx, mr.Store(), ref.Path)
+	moviesDs, err := dsfs.LoadDataset(ctx, mr.Filesystem(), ref.Path)
 	if err != nil {
 		t.Fatalf("error loading dataset: %s", err.Error())
 	}
@@ -1000,8 +1000,8 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 	// Connect in memory Mapstore's behind the scene to simulate IPFS like behavior.
 	for i, s0 := range peers {
 		for _, s1 := range peers[i+1:] {
-			m0 := (s0.Repo.Store()).(*cafs.MapStore)
-			m1 := (s1.Repo.Store()).(*cafs.MapStore)
+			m0 := (s0.Repo.Filesystem().Filesystem("mem")).(*qfs.MemFS)
+			m1 := (s1.Repo.Filesystem().Filesystem("mem")).(*qfs.MemFS)
 			m0.AddConnection(m1)
 		}
 	}

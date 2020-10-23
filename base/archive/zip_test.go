@@ -20,7 +20,7 @@ var blankInitID = ""
 
 func TestWriteZip(t *testing.T) {
 	ctx := context.Background()
-	store, names, err := testStore()
+	fs, names, err := testStore()
 	if err != nil {
 		t.Errorf("error creating store: %s", err.Error())
 		return
@@ -62,31 +62,31 @@ func TestWriteZip(t *testing.T) {
 
 func TestWriteZipFullDataset(t *testing.T) {
 	ctx := context.Background()
-	store, names, err := testStoreWithVizAndTransform()
+	fs, names, err := testFSWithVizAndTransform()
 	if err != nil {
-		t.Errorf("error creating store: %s", err.Error())
+		t.Errorf("error creating filesystem: %s", err.Error())
 		return
 	}
 
-	ds, err := dsfs.LoadDataset(ctx, store, names["movies"])
+	ds, err := dsfs.LoadDataset(ctx, fs, names["movies"])
 	if err != nil {
 		t.Errorf("error fetching movies dataset from store: %s", err.Error())
 		return
 	}
 
-	err = base.OpenDataset(ctx, store, ds)
+	err = base.OpenDataset(ctx, fs, ds)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = store.Get(ctx, names["transform_script"])
+	_, err = fs.Get(ctx, names["transform_script"])
 	if err != nil {
 		t.Errorf("error fetching movies dataset from store: %s", err.Error())
 		return
 	}
 
 	buf := &bytes.Buffer{}
-	err = WriteZip(ctx, store, ds, "json", blankInitID, dsref.MustParse("peer/ref@/ipfs/Qmb"), buf)
+	err = WriteZip(ctx, fs, ds, "json", blankInitID, dsref.MustParse("peer/ref@/ipfs/Qmb"), buf)
 	if err != nil {
 		t.Errorf("error writing zip archive: %s", err.Error())
 		return

@@ -1,9 +1,10 @@
 package dsfs
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 )
 
 const (
@@ -51,6 +52,8 @@ const (
 	PackageFileMeta
 	// PackageFileViz isolates the data related to representing a dataset as a visualization
 	PackageFileViz
+	// PackageFileVizScript is the viz template
+	PackageFileVizScript
 	// PackageFileRenderedViz is the rendered visualization of the dataset
 	PackageFileRenderedViz
 	// PackageFileReadme connects readme data to the dataset package
@@ -73,6 +76,7 @@ var filenames = map[PackageFile]string{
 	PackageFileTransform:         "transform.json",
 	PackageFileMeta:              "meta.json",
 	PackageFileViz:               "viz.json",
+	PackageFileVizScript:         "viz_script",
 	PackageFileRenderedViz:       "index.html",
 	PackageFileReadme:            "readme.json",
 	PackageFileReadmeScript:      "readme.md",
@@ -81,12 +85,12 @@ var filenames = map[PackageFile]string{
 
 // String implements the io.Stringer interface for PackageFile
 func (p PackageFile) String() string {
-	return p.Filename()
+	return filenames[p]
 }
 
 // Filename gives the canonical filename for a PackageFile
 func (p PackageFile) Filename() string {
-	return filenames[p]
+	return fmt.Sprintf("/%s", filenames[p])
 }
 
 // GetHashBase strips paths to return just the hash
@@ -98,11 +102,11 @@ func GetHashBase(in, network string) string {
 }
 
 // PackageFilepath returns the path to a package file for a given base path
-// It relies relies on package storage conventions and cafs.Filestore path prefixes
+// It relies relies on package storage conventions and qfs.Filesystem path prefixes
 // If you supply a path that does not match the filestore's naming conventions will
 // return an invalid path
-func PackageFilepath(store cafs.Filestore, path string, pf PackageFile) string {
-	prefix := store.Type()
+func PackageFilepath(fs qfs.Filesystem, path string, pf PackageFile) string {
+	prefix := fs.Type()
 	if prefix == "" {
 		return path
 	}

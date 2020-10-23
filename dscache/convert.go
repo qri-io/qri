@@ -7,7 +7,6 @@ import (
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
@@ -21,7 +20,7 @@ import (
 // Deprecated: Dsref is going away once dscache is in use. For now, only FSIPath is retrieved
 // from dsref, but in the future it will be added directly to dscache, with the file systems's
 // linkfiles (.qri-ref) acting as the authoritative source.
-func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, refs []reporef.DatasetRef, profiles profile.Store, book *logbook.Book, store cafs.Filestore, filesys qfs.Filesystem) (*Dscache, error) {
+func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, refs []reporef.DatasetRef, profiles profile.Store, book *logbook.Book, filesys qfs.Filesystem) (*Dscache, error) {
 	profileList, err := profiles.List()
 	if err != nil {
 		return nil, err
@@ -40,7 +39,7 @@ func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, refs []repo
 		return nil, err
 	}
 
-	err = fillInfoForDatasets(ctx, store, filesys, entryInfoList)
+	err = fillInfoForDatasets(ctx, filesys, entryInfoList)
 	if err != nil {
 		log.Errorf("%s", err)
 	}

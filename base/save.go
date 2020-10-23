@@ -6,7 +6,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
@@ -33,15 +32,16 @@ func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ini
 
 	prev := &dataset.Dataset{}
 	mutable := &dataset.Dataset{}
+	fs := r.Filesystem()
 	if prevPath != "" {
 		// Load the dataset's most recent version, which will become the previous version after
 		// this save operation completes.
-		if prev, err = dsfs.LoadDataset(ctx, r.Store(), prevPath); err != nil {
+		if prev, err = dsfs.LoadDataset(ctx, fs, prevPath); err != nil {
 			return
 		}
 		if prev.BodyPath != "" {
 			var body qfs.File
-			body, err = dsfs.LoadBody(ctx, r.Store(), prev)
+			body, err = dsfs.LoadBody(ctx, fs, prev)
 			if err != nil {
 				return nil, err
 			}
@@ -49,7 +49,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ini
 		}
 		// Load a mutable copy of the dataset because most of the save path assuming we are doing
 		// a patch update to the current head, and not a full replacement.
-		if mutable, err = dsfs.LoadDataset(ctx, r.Store(), prevPath); err != nil {
+		if mutable, err = dsfs.LoadDataset(ctx, fs, prevPath); err != nil {
 			return nil, err
 		}
 
@@ -146,12 +146,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 		return
 	}
 
-	cafsWriteDest, ok := writeDest.(cafs.Filestore)
-	if !ok {
-		return nil, fmt.Errorf("write destination must be a cafs.Filstore")
-	}
-
-	if path, err = dsfs.CreateDataset(ctx, r.Store(), cafsWriteDest, ds, dsPrev, r.PrivateKey(), sw); err != nil {
+	if path, err = dsfs.CreateDataset(ctx, r.Filesystem(), writeDest, ds, dsPrev, r.PrivateKey(), sw); err != nil {
 		log.Debugf("dsfs.CreateDataset: %s", err)
 		return nil, err
 	}
@@ -166,7 +161,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 		})
 	}
 
-	ds, err = dsfs.LoadDataset(ctx, r.Store(), path)
+	ds, err = dsfs.LoadDataset(ctx, r.Filesystem(), path)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +182,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 	// references to files in a store that won't exist after this function call
 	// TODO (b5): this should be replaced with a call to OpenDataset with a qfs that
 	// knows about the store
-	if resBody, err = r.Store().Get(ctx, ds.BodyPath); err != nil {
+	if resBody, err = r.Filesystem().Get(ctx, ds.BodyPath); err != nil {
 		log.Error("error getting from store:", err.Error())
 	}
 	ds.SetBodyFile(resBody)

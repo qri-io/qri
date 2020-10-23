@@ -8,7 +8,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
@@ -171,14 +170,14 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 
 func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 	ctx := context.Background()
-	ms := cafs.NewMapstore()
+	fs := qfs.NewMemFS()
 	pi := cfgtest.GetTestPeerInfo(0)
 	pro := &profile.Profile{
 		Peername: "remote_test_peer",
 		ID:       profile.IDFromPeerID(pi.PeerID),
 		PrivKey:  pi.PrivKey,
 	}
-	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx, ms), event.NilBus)
+	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx, fs), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -190,12 +189,12 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 	return node
 }
 
-func newTestFS(ctx context.Context, cafsys cafs.Filestore) *muxfs.Mux {
+func newTestFS(ctx context.Context, fs qfs.Filesystem) *muxfs.Mux {
 	mux, err := muxfs.New(ctx, []qfs.Config{})
 	if err != nil {
 		panic(err)
 	}
-	if err := mux.SetFilesystem(cafsys); err != nil {
+	if err := mux.SetFilesystem(fs); err != nil {
 		panic(err)
 	}
 	return mux
@@ -215,8 +214,8 @@ func asQriNodes(testPeers []p2ptest.TestablePeerNode) []*p2p.QriNode {
 func connectMapStores(peers []*p2p.QriNode) {
 	for i, s0 := range peers {
 		for _, s1 := range peers[i+1:] {
-			m0 := (s0.Repo.Store()).(*cafs.MapStore)
-			m1 := (s1.Repo.Store()).(*cafs.MapStore)
+			m0 := (s0.Repo.Filesystem().Filesystem(qfs.MemFilestoreType)).(*qfs.MemFS)
+			m1 := (s1.Repo.Filesystem().Filesystem(qfs.MemFilestoreType)).(*qfs.MemFS)
 			m0.AddConnection(m1)
 		}
 	}

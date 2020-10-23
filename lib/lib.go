@@ -20,7 +20,6 @@ import (
 	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/base/dsfs"
@@ -74,7 +73,6 @@ type InstanceOptions struct {
 	statsCache *stats.Cache
 	node       *p2p.QriNode
 	repo       repo.Repo
-	store      cafs.Filestore
 	qfs        *muxfs.Mux
 	regclient  *regclient.Client
 	logbook    *logbook.Book

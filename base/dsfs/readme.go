@@ -6,12 +6,11 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 )
 
 // loadReadme assumes the provided path is valid
-func loadReadme(ctx context.Context, store cafs.Filestore, path string) (st *dataset.Readme, err error) {
-	data, err := fileBytes(store.Get(ctx, path))
+func loadReadme(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Readme, err error) {
+	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error loading readme file: %s", err.Error())
@@ -24,8 +23,8 @@ var ErrNoReadme = fmt.Errorf("this dataset has no readme component")
 
 // LoadReadmeScript loads script data from a dataset path if the given dataset has a readme script is specified
 // the returned qfs.File will be the value of dataset.Readme.ScriptPath
-func LoadReadmeScript(ctx context.Context, store cafs.Filestore, dspath string) (qfs.File, error) {
-	ds, err := LoadDataset(ctx, store, dspath)
+func LoadReadmeScript(ctx context.Context, fs qfs.Filesystem, dspath string) (qfs.File, error) {
+	ds, err := LoadDataset(ctx, fs, dspath)
 	if err != nil {
 		return nil, err
 	}
@@ -34,5 +33,5 @@ func LoadReadmeScript(ctx context.Context, store cafs.Filestore, dspath string) 
 		return nil, ErrNoReadme
 	}
 
-	return store.Get(ctx, ds.Readme.ScriptPath)
+	return fs.Get(ctx, ds.Readme.ScriptPath)
 }

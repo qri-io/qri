@@ -176,7 +176,7 @@ func (m *ProfileMethods) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err 
 		return nil
 	}
 
-	f, e := r.Store().Get(ctx, pro.Photo)
+	f, e := r.Filesystem().Get(ctx, pro.Photo)
 	if e != nil {
 		return e
 	}
@@ -223,7 +223,7 @@ func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) 
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
-	path, err := r.Store().Put(ctx, qfs.NewMemfileBytes("plz_just_encode", data))
+	path, err := r.Filesystem().DefaultWriteFS().Put(ctx, qfs.NewMemfileBytes("plz_just_encode", data))
 	if err != nil {
 		log.Debug(err.Error())
 		return fmt.Errorf("error saving photo: %s", err.Error())
@@ -275,7 +275,7 @@ func (m *ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err e
 		return nil
 	}
 
-	f, e := r.Store().Get(ctx, pro.Poster)
+	f, e := r.Filesystem().Get(ctx, pro.Poster)
 	if e != nil {
 		return e
 	}
@@ -316,7 +316,7 @@ func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) e
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
-	path, err := r.Store().Put(ctx, qfs.NewMemfileBytes("plz_just_encode", data))
+	path, err := r.Filesystem().Put(ctx, qfs.NewMemfileBytes("plz_just_encode", data))
 	if err != nil {
 		log.Debug(err.Error())
 

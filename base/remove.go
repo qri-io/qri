@@ -79,13 +79,14 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 	if curr.Path == "" {
 		return nil, fmt.Errorf("need a dataset reference with a path")
 	}
+	fs := r.Filesystem()
 
 	if n < -1 {
 		return nil, fmt.Errorf("invalid 'n', n should be n >= 0 or n == -1 to indicate removing all versions")
 	}
 
 	// load previous dataset into prev
-	ds, err := dsfs.LoadDatasetRefs(ctx, r.Store(), curr.Path)
+	ds, err := dsfs.LoadDatasetRefs(ctx, fs, curr.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +119,7 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 		// if we don't have all previous versions, we probably don't have them pinned.
 		// TODO(dlong): If IPFS gains the ability to ask "do I have these blocks locally", use
 		// that instead of the network-aware LoadDatasetRefs.
-		loadedPrev, err := dsfs.LoadDatasetRefs(timeoutCtx, r.Store(), ds.PreviousPath)
+		loadedPrev, err := dsfs.LoadDatasetRefs(timeoutCtx, fs, ds.PreviousPath)
 		if err != nil {
 			// Note: We want delete to succeed even if datasets are remote, so we don't fail on
 			// this error, and break early instead.

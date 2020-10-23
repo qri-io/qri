@@ -19,14 +19,13 @@ import (
 	"github.com/qri-io/dataset/generate"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/toqtype"
 	testPeers "github.com/qri-io/qri/config/test"
 )
 
 func TestLoadDataset(t *testing.T) {
 	ctx := context.Background()
-	store := cafs.NewMapstore()
+	fs := qfs.NewMemFS()
 	dsData, err := ioutil.ReadFile("testdata/all_fields/input.dataset.json")
 	if err != nil {
 		t.Errorf("error loading test dataset: %s", err.Error())
@@ -49,13 +48,13 @@ func TestLoadDataset(t *testing.T) {
 	info := testPeers.GetTestPeerInfo(10)
 	pk := info.PrivKey
 
-	apath, err := WriteDataset(ctx, &sync.Mutex{}, store, ds, pk, true)
+	apath, err := WriteDataset(ctx, &sync.Mutex{}, fs, ds, pk, SaveSwitches{})
 	if err != nil {
 		t.Errorf(err.Error())
 		return
 	}
 
-	loadedDataset, err := LoadDataset(ctx, store, apath)
+	loadedDataset, err := LoadDataset(ctx, fs, apath)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -99,14 +98,14 @@ func TestLoadDataset(t *testing.T) {
 				t.Errorf("case %d error generating json file: %s", i, err.Error())
 				continue
 			}
-			path, err = store.Put(ctx, dsf)
+			path, err = fs.Put(ctx, dsf)
 			if err != nil {
 				t.Errorf("case %d error putting file in store: %s", i, err.Error())
 				continue
 			}
 		}
 
-		_, err = LoadDataset(ctx, store, path)
+		_, err = LoadDataset(ctx, fs, path)
 		if !(err != nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
@@ -117,7 +116,7 @@ func TestLoadDataset(t *testing.T) {
 
 func TestCreateDataset(t *testing.T) {
 	ctx := context.Background()
-	store := cafs.NewMapstore()
+	fs := qfs.NewMemFS()
 	prev := Timestamp
 	// shameless call to timestamp to get the coverge points
 	Timestamp()
@@ -156,7 +155,7 @@ func TestCreateDataset(t *testing.T) {
 				t.Fatalf("creating test case: %s", err)
 			}
 
-			_, err = CreateDataset(ctx, store, store, tc.Input, c.prev, privKey, SaveSwitches{ShouldRender: true})
+			_, err = CreateDataset(ctx, fs, fs, tc.Input, c.prev, privKey, SaveSwitches{ShouldRender: true})
 			if err == nil {
 				t.Fatalf("CreateDataset expected error. got nil")
 			}
@@ -189,12 +188,12 @@ func TestCreateDataset(t *testing.T) {
 				t.Fatalf("creating test case: %s", err)
 			}
 
-			path, err := CreateDataset(ctx, store, store, tc.Input, c.prev, privKey, SaveSwitches{ShouldRender: true})
+			path, err := CreateDataset(ctx, fs, fs, tc.Input, c.prev, privKey, SaveSwitches{ShouldRender: true})
 			if err != nil {
 				t.Fatalf("CreateDataset: %s", err)
 			}
 
-			ds, err := LoadDataset(ctx, store, path)
+			ds, err := LoadDataset(ctx, fs, path)
 			if err != nil {
 				t.Fatalf("loading dataset: %s", err.Error())
 			}
@@ -213,9 +212,9 @@ func TestCreateDataset(t *testing.T) {
 			if c.resultPath != path {
 				t.Errorf("result path mismatch: expected: '%s', got: '%s'", c.resultPath, path)
 			}
-			if len(store.Files) != c.repoFiles {
-				t.Errorf("invalid number of mapstore entries: %d != %d", c.repoFiles, len(store.Files))
-				contents, err := store.Print()
+			if len(fs.Files) != c.repoFiles {
+				t.Errorf("invalid number of mapstore entries: %d != %d", c.repoFiles, len(fs.Files))
+				contents, err := fs.Print()
 				if err != nil {
 					panic(err)
 				}
@@ -226,7 +225,7 @@ func TestCreateDataset(t *testing.T) {
 	}
 
 	t.Run("no_priv_key", func(t *testing.T) {
-		_, err := CreateDataset(ctx, store, store, nil, nil, nil, SaveSwitches{ShouldRender: true})
+		_, err := CreateDataset(ctx, fs, fs, nil, nil, nil, SaveSwitches{ShouldRender: true})
 		if err == nil {
 			t.Fatal("expected call without prvate key to error")
 		}
@@ -250,7 +249,7 @@ func TestCreateDataset(t *testing.T) {
 			t.Errorf("case nil body and previous body files, error reading data file: %s", err.Error())
 		}
 		expectedErr := "bodyfile or previous bodyfile needed"
-		_, err = CreateDataset(ctx, store, store, ds, nil, privKey, SaveSwitches{ShouldRender: true})
+		_, err = CreateDataset(ctx, fs, fs, ds, nil, privKey, SaveSwitches{ShouldRender: true})
 		if err.Error() != expectedErr {
 			t.Errorf("case nil body and previous body files, error mismatch: expected '%s', got '%s'", expectedErr, err.Error())
 		}
@@ -258,7 +257,11 @@ func TestCreateDataset(t *testing.T) {
 
 	t.Run("no_changes", func(t *testing.T) {
 		expectedErr := "error saving: no changes"
-		dsPrev, err := LoadDataset(ctx, store, good[2].resultPath)
+		dsPrev, err := LoadDataset(ctx, fs, good[2].resultPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		ds := &dataset.Dataset{
 			Name:      "cities",
 			Commit:    &dataset.Commit{},
@@ -275,16 +278,16 @@ func TestCreateDataset(t *testing.T) {
 		}
 		ds.SetBodyFile(qfs.NewMemfileBytes("body.csv", bodyBytes))
 
-		_, err = CreateDataset(ctx, store, store, ds, dsPrev, privKey, SaveSwitches{ShouldRender: true})
+		_, err = CreateDataset(ctx, fs, fs, ds, dsPrev, privKey, SaveSwitches{ShouldRender: true})
 		if err != nil && err.Error() != expectedErr {
 			t.Fatalf("mismatch: expected %q, got %q", expectedErr, err.Error())
 		} else if err == nil {
 			t.Fatal("CreateDataset expected error got 'nil'")
 		}
 
-		if len(store.Files) != 21 {
-			t.Errorf("invalid number of entries: %d != %d", 20, len(store.Files))
-			_, err := store.Print()
+		if len(fs.Files) != 21 {
+			t.Errorf("invalid number of entries: %d != %d", 20, len(fs.Files))
+			_, err := fs.Print()
 			if err != nil {
 				panic(err)
 			}
@@ -297,7 +300,7 @@ func TestCreateDataset(t *testing.T) {
 // Test that if the body is too large, the commit message just assumes the body changed
 func TestCreateDatasetBodyTooLarge(t *testing.T) {
 	ctx := context.Background()
-	store := cafs.NewMapstore()
+	fs := qfs.NewMemFS()
 
 	prevTs := Timestamp
 	defer func() { Timestamp = prevTs }()
@@ -333,13 +336,13 @@ func TestCreateDatasetBodyTooLarge(t *testing.T) {
 	}
 	nextDs.SetBodyFile(qfs.NewMemfileBytes(testBodyPath, testBodyBytes))
 
-	path, err := CreateDataset(ctx, store, store, &nextDs, &prevDs, privKey, SaveSwitches{ShouldRender: true})
+	path, err := CreateDataset(ctx, fs, fs, &nextDs, &prevDs, privKey, SaveSwitches{ShouldRender: true})
 	if err != nil {
 		t.Fatalf("CreateDataset: %s", err)
 	}
 
 	// Load the created dataset to inspect the commit message
-	result, err := LoadDataset(ctx, store, path)
+	result, err := LoadDataset(ctx, fs, path)
 	if err != nil {
 		t.Fatalf("LoadDataset: %s", err)
 	}
@@ -357,7 +360,7 @@ func TestCreateDatasetBodyTooLarge(t *testing.T) {
 
 func TestWriteDataset(t *testing.T) {
 	ctx := context.Background()
-	store := cafs.NewMapstore()
+	fs := qfs.NewMemFS()
 	prev := Timestamp
 	defer func() { Timestamp = prev }()
 	Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
@@ -366,10 +369,7 @@ func TestWriteDataset(t *testing.T) {
 	info := testPeers.GetTestPeerInfo(10)
 	pk := info.PrivKey
 
-	if _, err := WriteDataset(ctx, &sync.Mutex{}, store, nil, pk, true); err == nil || err.Error() != "cannot save empty dataset" {
-		t.Errorf("didn't reject empty dataset: %s", err)
-	}
-	if _, err := WriteDataset(ctx, &sync.Mutex{}, store, &dataset.Dataset{}, pk, true); err == nil || err.Error() != "cannot save empty dataset" {
+	if _, err := WriteDataset(ctx, &sync.Mutex{}, fs, &dataset.Dataset{}, pk, SaveSwitches{Pin: true}); err == nil || err.Error() != "cannot save empty dataset" {
 		t.Errorf("didn't reject empty dataset: %s", err)
 	}
 
@@ -391,16 +391,16 @@ func TestWriteDataset(t *testing.T) {
 
 		ds := tc.Input
 
-		got, err := WriteDataset(ctx, &sync.Mutex{}, store, ds, pk, true)
+		got, err := WriteDataset(ctx, &sync.Mutex{}, fs, ds, pk, SaveSwitches{Pin: true})
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
 		}
 
 		// total count expected of files in repo after test execution
-		if len(store.Files) != c.repoFiles {
-			t.Errorf("case expected %d invalid number of entries: %d != %d", i, c.repoFiles, len(store.Files))
-			str, err := store.Print()
+		if len(fs.Files) != c.repoFiles {
+			t.Errorf("case expected %d invalid number of entries: %d != %d", i, c.repoFiles, len(fs.Files))
+			str, err := fs.Print()
 			if err != nil {
 				panic(err)
 			}
@@ -408,7 +408,7 @@ func TestWriteDataset(t *testing.T) {
 			continue
 		}
 
-		f, err := store.Get(ctx, got)
+		f, err := fs.Get(ctx, got)
 		if err != nil {
 			t.Errorf("error getting dataset file: %s", err.Error())
 			continue
@@ -448,7 +448,7 @@ func TestWriteDataset(t *testing.T) {
 		ds.BodyPath = ref.BodyPath
 
 		ds.Assign(dataset.NewDatasetRef(got))
-		result, err := LoadDataset(ctx, store, got)
+		result, err := LoadDataset(ctx, fs, got)
 		if err != nil {
 			t.Errorf("case %d unexpected error loading dataset: %s", i, err)
 			continue
@@ -484,11 +484,11 @@ func TestGenerateCommitMessage(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	store := cafs.NewMapstore()
+	fs := qfs.NewMemFS()
 
 	for _, c := range badCases {
 		t.Run(fmt.Sprintf("%s", c.description), func(t *testing.T) {
-			_, _, err := generateCommitDescriptions(ctx, store, c.ds, c.prev, BodySame, c.force)
+			_, _, err := generateCommitDescriptions(ctx, fs, c.ds, c.prev, BodySame, c.force)
 			if err == nil {
 				t.Errorf("error expected, did not get one")
 			} else if c.errMsg != err.Error() {
@@ -771,7 +771,7 @@ sixteen,seventeen,18`),
 			if compareBody(c.prev.Body, c.ds.Body) {
 				bodyAct = BodySame
 			}
-			shortTitle, longMessage, err := generateCommitDescriptions(ctx, store, c.ds, c.prev, bodyAct, c.force)
+			shortTitle, longMessage, err := generateCommitDescriptions(ctx, fs, c.ds, c.prev, bodyAct, c.force)
 			if err != nil {
 				t.Errorf("error: %s", err.Error())
 				return
@@ -956,7 +956,7 @@ func BenchmarkCreateDatasetCSV(b *testing.B) {
 	// ~1 MB, ~12 MB, ~25 MB, ~50 MB, ~500 MB, ~1GB
 	for _, sampleSize := range []int{10000, 100000, 250000, 500000, 1000000} {
 		ctx := context.Background()
-		store := cafs.NewMapstore()
+		fs := qfs.NewMemFS()
 		prev := Timestamp
 
 		defer func() { Timestamp = prev }()
@@ -974,7 +974,7 @@ func BenchmarkCreateDatasetCSV(b *testing.B) {
 				_, dataset := GenerateDataset(b, sampleSize, "csv")
 
 				b.StartTimer()
-				_, err := CreateDataset(ctx, store, store, dataset, nil, privKey, SaveSwitches{ShouldRender: true})
+				_, err := CreateDataset(ctx, fs, fs, dataset, nil, privKey, SaveSwitches{ShouldRender: true})
 				if err != nil {
 					b.Errorf("error creating dataset: %s", err.Error())
 				}
@@ -1041,7 +1041,7 @@ func BenchmarkValidateJSON(b *testing.B) {
 // func BenchmarkPrepareDataset1000000Rows(b *testing.B) {
 // 	ctx := context.Background()
 // 	_, ds := GenerateDataset(b, 1000000, "csv")
-// 	store := cafs.NewMapstore()
+// 	fs := qfs.NewMemFS()
 // 	info := testPeers.GetTestPeerInfo(10)
 // 	privKey := info.PrivKey
 
@@ -1051,7 +1051,7 @@ func BenchmarkValidateJSON(b *testing.B) {
 // 			b.Fatal(err)
 // 		}
 
-// 		prepareDataset(ctx, store, ds, nil, privKey, f, SaveSwitches{})
+// 		prepareDataset(ctx, fs, ds, nil, privKey, f, SaveSwitches{})
 
 // 		os.RemoveAll(f.Name())
 // 	}
@@ -1060,7 +1060,7 @@ func BenchmarkValidateJSON(b *testing.B) {
 // func BenchmarkPrepareDataset5000000Rows(b *testing.B) {
 // 	ctx := context.Background()
 // 	_, ds := GenerateDataset(b, 5000000, "csv")
-// 	store := cafs.NewMapstore()
+// 	fs := qfs.NewMemFS()
 // 	info := testPeers.GetTestPeerInfo(10)
 // 	privKey := info.PrivKey
 
@@ -1070,7 +1070,7 @@ func BenchmarkValidateJSON(b *testing.B) {
 // 			b.Fatal(err)
 // 		}
 
-// 		prepareDataset(ctx, store, ds, nil, privKey, f, SaveSwitches{})
+// 		prepareDataset(ctx, fs, ds, nil, privKey, f, SaveSwitches{})
 
 // 		os.RemoveAll(f.Name())
 // 	}

@@ -11,7 +11,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
@@ -195,11 +194,7 @@ func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
 		"online": false,
 		"path":   r.IPFSPath,
 	})
-	cafs, ok := fs.(cafs.Filestore)
-	if !ok {
-		return "", fmt.Errorf("error asserting file system is a cafs filesystem")
-	}
-	ds, err := dsfs.LoadDataset(ctx, cafs, ref)
+	ds, err := dsfs.LoadDataset(ctx, fs, ref)
 	if err != nil {
 		return "", err
 	}
@@ -222,11 +217,7 @@ func (r *TempRepo) LoadDataset(ref string) (*dataset.Dataset, error) {
 		"online": false,
 		"path":   r.IPFSPath,
 	})
-	cafs, ok := fs.(cafs.Filestore)
-	if !ok {
-		return nil, fmt.Errorf("error asserting file system is a cafs filesystem")
-	}
-	ds, err := dsfs.LoadDataset(ctx, cafs, ref)
+	ds, err := dsfs.LoadDataset(ctx, fs, ref)
 	if err != nil {
 		return nil, err
 	}

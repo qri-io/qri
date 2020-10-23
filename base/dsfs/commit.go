@@ -11,7 +11,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/deepdiff"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base/friendly"
 	"github.com/qri-io/qri/base/toqtype"
@@ -36,8 +36,8 @@ const (
 )
 
 // loadCommit assumes the provided path is valid
-func loadCommit(ctx context.Context, store cafs.Filestore, path string) (st *dataset.Commit, err error) {
-	data, err := fileBytes(store.Get(ctx, path))
+func loadCommit(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Commit, err error) {
+	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error loading commit file: %s", err.Error())
@@ -46,9 +46,9 @@ func loadCommit(ctx context.Context, store cafs.Filestore, path string) (st *dat
 }
 
 // generateCommitTileAndMessage creates the commit and title, message
-func generateCommitTitleAndMessage(ctx context.Context, store cafs.Filestore, privKey crypto.PrivKey, ds, prev *dataset.Dataset, bodyAct BodyAction, fileHint string, forceIfNoChanges bool) error {
+func generateCommitTitleAndMessage(ctx context.Context, fs qfs.Filesystem, privKey crypto.PrivKey, ds, prev *dataset.Dataset, bodyAct BodyAction, fileHint string, forceIfNoChanges bool) error {
 	log.Debugf("generateCommitTitleAndMessage bodyAct=%s", bodyAct)
-	shortTitle, longMessage, err := generateCommitDescriptions(ctx, store, ds, prev, bodyAct, forceIfNoChanges)
+	shortTitle, longMessage, err := generateCommitDescriptions(ctx, fs, ds, prev, bodyAct, forceIfNoChanges)
 	if err != nil {
 		log.Debugf("generateCommitDescriptions err: %s", err)
 		return fmt.Errorf("error saving: %s", err)
@@ -74,7 +74,7 @@ func generateCommitTitleAndMessage(ctx context.Context, store cafs.Filestore, pr
 const defaultCreatedDescription = "created dataset"
 
 // returns a commit message based on the diff of the two datasets
-func generateCommitDescriptions(ctx context.Context, store cafs.Filestore, ds, prev *dataset.Dataset, bodyAct BodyAction, forceIfNoChanges bool) (short, long string, err error) {
+func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev *dataset.Dataset, bodyAct BodyAction, forceIfNoChanges bool) (short, long string, err error) {
 	if prev == nil || prev.IsEmpty() {
 		return defaultCreatedDescription, defaultCreatedDescription, nil
 	}
@@ -101,7 +101,7 @@ func generateCommitDescriptions(ctx context.Context, store cafs.Filestore, ds, p
 	// TODO(dustmop): Would be better to get a line-by-line diff
 	if prev.Transform != nil && prev.Transform.ScriptPath != "" {
 		log.Debugf("inlining prev transform ScriptPath=%q", prev.Transform.ScriptPath)
-		err := prev.Transform.OpenScriptFile(ctx, store)
+		err := prev.Transform.OpenScriptFile(ctx, fs)
 		if err != nil {
 			log.Error("prev.Transform.ScriptPath %q open err: %s", prev.Transform.ScriptPath, err)
 		} else {
@@ -140,7 +140,7 @@ func generateCommitDescriptions(ctx context.Context, store cafs.Filestore, ds, p
 	// TODO(dustmop): Would be better to get a line-by-line diff
 	if prev.Readme != nil && prev.Readme.ScriptPath != "" {
 		log.Debugf("inlining prev readme ScriptPath=%q", prev.Readme.ScriptPath)
-		err := prev.Readme.OpenScriptFile(ctx, store)
+		err := prev.Readme.OpenScriptFile(ctx, fs)
 		if err != nil {
 			log.Error("prev.Readme.ScriptPath %q open err: %s", prev.Readme.ScriptPath, err)
 		} else {

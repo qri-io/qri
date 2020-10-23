@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"sync"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsviz"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 )
 
 // loadViz assumes the provided path is valid
-func loadViz(ctx context.Context, store cafs.Filestore, path string) (st *dataset.Viz, err error) {
-	data, err := fileBytes(store.Get(ctx, path))
+func loadViz(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Viz, err error) {
+	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error loading viz file: %s", err.Error())
@@ -24,35 +23,23 @@ func loadViz(ctx context.Context, store cafs.Filestore, path string) (st *datase
 // ErrNoViz is the error for asking a dataset without a viz component for viz info
 var ErrNoViz = fmt.Errorf("this dataset has no viz component")
 
-func renderVizMerkleHook(dslk *sync.Mutex, ds *dataset.Dataset, bodyFilename string) *MerkelizeHook {
-	cb := func(ctx context.Context, store cafs.Filestore, merkelizedPaths map[string]string) (io.Reader, error) {
-		log.Debugf("running render merkelize hook")
-		dslk.Lock()
-		defer dslk.Unlock()
+func renderVizWriteHook(fs qfs.Filesystem, ds *dataset.Dataset, bodyFilename string) qfs.WriteHook {
+	return func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
+		log.Debugf("running render hook")
 
 		renderDs := &dataset.Dataset{}
 		renderDs.Assign(ds)
-		bf, err := store.Get(ctx, merkelizedPaths[bodyFilename])
+		bf, err := fs.Get(ctx, added[bodyFilename])
 		if err != nil {
 			return nil, err
 		}
-		sf, err := store.Get(ctx, merkelizedPaths["viz_script"])
+		sf, err := fs.Get(ctx, added["viz_script"])
 		if err != nil {
 			return nil, err
 		}
 
-		log.Debugf("%#v", renderDs)
 		renderDs.SetBodyFile(bf)
 		renderDs.Viz.SetScriptFile(sf)
-		return dsviz.Render(ds)
+		return dsviz.Render(renderDs)
 	}
-
-	return NewMerkelizeHook(
-		PackageFileRenderedViz.String(),
-		cb,
-		bodyFilename,
-		PackageFileStructure.String(),
-		PackageFileMeta.String(),
-		"viz_script",
-	)
 }

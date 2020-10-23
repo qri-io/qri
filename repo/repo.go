@@ -9,7 +9,6 @@ import (
 	golog "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
@@ -60,12 +59,6 @@ var (
 type Repo interface {
 	// repos are created with an event bus, and provid an accessor
 	Bus() event.Bus
-
-	// All repositories wraps a content-addressed filestore as the cannonical
-	// record of this repository's data. Store gives direct access to the
-	// cafs.Filestore instance any given repo is using.
-	// TODO (b5) - deprecate store in favour of the Filesystem interface
-	Store() cafs.Filestore
 
 	// Filesystem is currently a read-only source of Filesystem-like data
 	// Filestores can multiplex to read from multiple sources like the local

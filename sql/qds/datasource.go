@@ -80,7 +80,7 @@ func NewDataSourceBuilderFactory(r repo.Repo, loadDataset dsref.ParseResolveLoad
 // Get implements octosql's execution.Node interface, returning a RecordStream
 func (qds *DataSource) Get(ctx context.Context, variables octosql.Variables) (execution.RecordStream, error) {
 	ref := qds.ref
-	ds, err := dsfs.LoadDataset(ctx, qds.r.Store(), ref.Path)
+	ds, err := dsfs.LoadDataset(ctx, qds.r.Filesystem(), ref.Path)
 	if err != nil {
 		log.Debugf("buildSource: dsfs.LoadDataset '%s': %s", qds.ref, err)
 		return nil, perrors.Wrap(err, "preparing SQL data source: couldn't load dataset")

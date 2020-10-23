@@ -16,12 +16,12 @@ func TestRecall(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addNowTransformDataset(t, r)
 
-	_, err := Recall(ctx, r.Store(), ref, "")
+	_, err := Recall(ctx, r.Filesystem(), ref, "")
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = Recall(ctx, r.Store(), ref, "tf")
+	_, err = Recall(ctx, r.Filesystem(), ref, "tf")
 	if err != nil {
 		t.Error(err)
 	}
@@ -32,7 +32,7 @@ func TestLoadRevisions(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	cities, err := dsfs.LoadDataset(ctx, r.Store(), ref.Path)
+	cities, err := dsfs.LoadDataset(ctx, r.Filesystem(), ref.Path)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/qipfs"
 	"golang.org/x/net/context"
 )
@@ -23,13 +23,13 @@ func TestPackageFilepath(t *testing.T) {
 	}
 	defer destroy()
 
-	mem := cafs.NewMapstore()
+	mem := qfs.NewMemFS()
 
 	cases := []struct {
-		store cafs.Filestore
-		path  string
-		pf    PackageFile
-		out   string
+		fs   qfs.Filesystem
+		path string
+		pf   PackageFile
+		out  string
 	}{
 		{ipfs, "/ipfs/foo", PackageFileDataset, "/ipfs/foo/dataset.json"},
 		{ipfs, "/ipfs/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M", PackageFileDataset, "/ipfs/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/dataset.json"},
@@ -37,17 +37,18 @@ func TestPackageFilepath(t *testing.T) {
 		{ipfs, "/ipfs/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/dataset.json", PackageFileMeta, "/ipfs/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/meta.json"},
 		{ipfs, "QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M", PackageFileDataset, "/ipfs/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/dataset.json"},
 
-		{mem, "/map/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M", PackageFileDataset, "/map/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/dataset.json"},
-		{mem, "/map/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/dataset.json", PackageFileDataset, "/map/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/dataset.json"},
-		{mem, "/map/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/dataset.json", PackageFileMeta, "/map/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/meta.json"},
+		{mem, "/mem/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M", PackageFileDataset, "/mem/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/dataset.json"},
+		{mem, "/mem/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/dataset.json", PackageFileDataset, "/mem/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/dataset.json"},
+		{mem, "/mem/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/dataset.json", PackageFileMeta, "/mem/QmZfwmhbcgSDGqGaoMMYx8jxBGauZw75zPjnZAyfwPso7M/meta.json"},
 	}
 
 	for i, c := range cases {
-		got := PackageFilepath(c.store, c.path, c.pf)
-		if got != c.out {
-			t.Errorf("case %d result mismatch. expected: '%s', got: '%s'", i, c.path, c.pf)
-			continue
-		}
+		t.Run(fmt.Sprintf("case_%d", i), func(t *testing.T) {
+			got := PackageFilepath(c.fs, c.path, c.pf)
+			if got != c.out {
+				t.Errorf("result mismatch. expected: '%s', got: '%s'", c.path, c.pf)
+			}
+		})
 	}
 }
 

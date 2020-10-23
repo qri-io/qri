@@ -19,7 +19,6 @@ func DscacheFromRepo(ctx context.Context, r repo.Repo) (*dscache.Dscache, error)
 	}
 	profiles := r.Profiles()
 	logbook := r.Logbook()
-	store := r.Store()
 	filesys := r.Filesystem()
-	return dscache.BuildDscacheFromLogbookAndProfilesAndDsref(ctx, refs, profiles, logbook, store, filesys)
+	return dscache.BuildDscacheFromLogbookAndProfilesAndDsref(ctx, refs, profiles, logbook, filesys)
 }

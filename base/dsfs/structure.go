@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 )
 
 // ErrStrictMode indicates a dataset failed validation when it is required to
@@ -24,8 +24,8 @@ var BaseTabularSchema = map[string]interface{}{
 }
 
 // loadStructure assumes path is valid
-func loadStructure(ctx context.Context, store cafs.Filestore, path string) (st *dataset.Structure, err error) {
-	data, err := fileBytes(store.Get(ctx, path))
+func loadStructure(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Structure, err error) {
+	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error loading structure file: %s", err.Error())

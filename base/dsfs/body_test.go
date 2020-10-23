@@ -4,39 +4,41 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
+	"os"
 	"testing"
+
+	"github.com/qri-io/qfs"
 )
 
 func TestLoadBody(t *testing.T) {
 	ctx := context.Background()
-	datasets, store, err := makeFilestore()
+	datasets, fs, err := makeFilestore()
 	if err != nil {
-		t.Errorf("error creating test filestore: %s", err.Error())
-		return
+		t.Fatalf("error creating test filestore: %s", err.Error())
 	}
 
-	ds, err := LoadDataset(ctx, store, datasets["movies"])
+	t.Logf("%v", datasets)
+	v, _ := fs.(*qfs.MemFS).Print()
+	ioutil.WriteFile("/Users/b5/Desktop/memfs_contents", []byte(v), os.ModePerm)
+
+	ds, err := LoadDataset(ctx, fs, datasets["cities"])
 	if err != nil {
-		t.Errorf("error loading dataset: %s", err.Error())
-		return
+		t.Fatalf("error loading dataset: %s", err.Error())
 	}
 
-	f, err := LoadBody(ctx, store, ds)
+	f, err := LoadBody(ctx, fs, ds)
 	if err != nil {
-		t.Errorf("error loading data: %s", err.Error())
-		return
+		t.Fatalf("error loading data: %s", err.Error())
 	}
 
 	data, err := ioutil.ReadAll(f)
 	if err != nil {
-		t.Errorf("error reading data file: %s", err.Error())
-		return
+		t.Fatalf("error reading data file: %s", err.Error())
 	}
 
-	eq, err := ioutil.ReadFile("testdata/movies/body.csv")
+	eq, err := ioutil.ReadFile("testdata/cities/body.csv")
 	if err != nil {
-		t.Errorf("error reading test file: %s", err.Error())
-		return
+		t.Fatalf("error reading test file: %s", err.Error())
 	}
 
 	if !bytes.Equal(data, eq) {

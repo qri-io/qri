@@ -10,7 +10,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	testPeers "github.com/qri-io/qri/config/test"
 )
 
@@ -148,9 +147,9 @@ var HoursStructure = &dataset.Structure{
 	},
 }
 
-func makeFilestore() (map[string]string, cafs.Filestore, error) {
+func makeFilestore() (map[string]string, qfs.Filesystem, error) {
 	ctx := context.Background()
-	st := cafs.NewMapstore()
+	fs := qfs.NewMemFS()
 
 	// These tests are using hard-coded ids that require this exact peer's private key.
 	info := testPeers.GetTestPeerInfo(10)
@@ -180,12 +179,12 @@ func makeFilestore() (map[string]string, cafs.Filestore, error) {
 
 		ds.SetBodyFile(qfs.NewMemfileBytes(filepath.Base(dataPath), data))
 
-		dskey, err := WriteDataset(ctx, &sync.Mutex{}, st, ds, pk, true)
+		dskey, err := WriteDataset(ctx, &sync.Mutex{}, fs, ds, pk, SaveSwitches{Pin: true})
 		if err != nil {
 			return datasets, nil, fmt.Errorf("dataset: %s write error: %s", k, err.Error())
 		}
 		datasets[k] = dskey
 	}
 
-	return datasets, st, nil
+	return datasets, fs, nil
 }

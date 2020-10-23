@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 )
@@ -106,7 +106,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 // take int n where n is the number of MOST RECENT datasets that should
 // have been removed
 // assumes that each Dataset has a Meta component with a Title
-func verifyRefsRemoved(ctx context.Context, s cafs.Filestore, refs []dsref.Ref, n int) string {
+func verifyRefsRemoved(ctx context.Context, fs qfs.Filesystem, refs []dsref.Ref, n int) string {
 
 	// datasets from index len(refs) - n - 1 SHOULD EXISTS
 	// we should error if they DON't exist
@@ -115,7 +115,7 @@ func verifyRefsRemoved(ctx context.Context, s cafs.Filestore, refs []dsref.Ref, 
 		// datasets from index len(refs) - 1 to len(refs) - n SHOULD NOT EXISTS
 		// we should error if they exist
 
-		exists, err := s.Has(ctx, ref.Path)
+		exists, err := fs.Has(ctx, ref.Path)
 		if err != nil {
 			return fmt.Sprintf("error checking ref %q from store", ref.Alias())
 		}

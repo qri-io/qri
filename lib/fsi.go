@@ -304,7 +304,7 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 
 	if ref.Path != "" {
 		// Read the previous version of the dataset from the repo
-		ds, err = dsfs.LoadDataset(ctx, m.inst.node.Repo.Store(), ref.Path)
+		ds, err = dsfs.LoadDataset(ctx, m.inst.node.Repo.Filesystem(), ref.Path)
 		if err != nil {
 			return fmt.Errorf("loading dataset: %s", err)
 		}

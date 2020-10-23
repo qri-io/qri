@@ -22,7 +22,7 @@ func TestCreatePreview(t *testing.T) {
 	turnstileRef := addTurnstileDataset(t, r)
 	ctx := context.Background()
 
-	got, err := CreatePreview(ctx, r, turnstileRef)
+	got, err := CreatePreview(ctx, r.Filesystem(), turnstileRef)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ This aggregation is a best-effort to make a clean and usable dataset of station-
 
 	nowTfRef := addNowTransformDataset(t, r)
 
-	got, err = CreatePreview(ctx, r, nowTfRef)
+	got, err = CreatePreview(ctx, r.Filesystem(), nowTfRef)
 	if err != nil {
 		t.Fatal(err)
 	}
