@@ -39,6 +39,9 @@ type DatasetMethods struct {
 	inst *Instance
 }
 
+// ErrListWarning is a warning that can occur while listing
+var ErrListWarning = base.ErrUnlistableReferences
+
 // CoreRequestsName implements the Requets interface
 func (DatasetMethods) CoreRequestsName() string { return "datasets" }
 
@@ -80,6 +83,9 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 	if err != nil {
 		return err
 	}
+
+	// If the list operation leads to a warning, store it in this var
+	var listWarning error
 
 	var refs []reporef.DatasetRef
 	if p.UseDscache {
@@ -124,6 +130,10 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		// TODO(dlong): Filtered by p.Published flag
 	} else if ref.Peername == "" || pro.Peername == ref.Peername {
 		refs, err = base.ListDatasets(ctx, m.inst.repo, p.Term, p.Limit, p.Offset, p.RPC, p.Public, p.ShowNumVersions)
+		if errors.Is(err, ErrListWarning) {
+			listWarning = err
+			err = nil
+		}
 	} else {
 		return fmt.Errorf("listing datasets on a peer is not implemented")
 	}
@@ -158,6 +168,10 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		infos[i] = reporef.ConvertToVersionInfo(&r)
 	}
 	*res = infos
+
+	if listWarning != nil {
+		err = listWarning
+	}
 
 	return err
 }

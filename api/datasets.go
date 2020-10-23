@@ -213,9 +213,14 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 
 	res := []dsref.VersionInfo{}
 	if err := h.List(&args, &res); err != nil {
-		log.Infof("error listing datasets: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
+		if errors.Is(err, lib.ErrListWarning) {
+			log.Error(err)
+			err = nil
+		} else {
+			log.Infof("error listing datasets: %s", err.Error())
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
 	}
 	if err := util.WritePageResponse(w, res, r, args.Page()); err != nil {
 		log.Infof("error list datasests response: %s", err.Error())
