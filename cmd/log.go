@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/ioes"
+	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/logbook"
@@ -107,7 +107,7 @@ func (o *LogOptions) Run() error {
 	printRefSelect(o.ErrOut, o.Refs)
 
 	// convert Page and PageSize to Limit and Offset
-	page := util.NewPage(o.Page, o.PageSize)
+	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	res := []DatasetLogItem{}
 	p := &lib.LogParams{
@@ -128,7 +128,7 @@ func (o *LogOptions) Run() error {
 	return nil
 }
 
-func makeItemsAndPrint(refs []DatasetLogItem, out io.Writer, page util.Page) {
+func makeItemsAndPrint(refs []DatasetLogItem, out io.Writer, page apiutil.Page) {
 	items := make([]fmt.Stringer, len(refs))
 	for i, r := range refs {
 		items[i] = dslogItemStringer(r)
@@ -211,7 +211,7 @@ func (o *LogbookOptions) Logbook() error {
 	printRefSelect(o.ErrOut, o.Refs)
 
 	// convert Page and PageSize to Limit and Offset
-	page := util.NewPage(o.Page, o.PageSize)
+	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	p := &lib.RefListParams{
 		Ref:    o.Refs.Ref(),

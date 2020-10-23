@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
-	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -152,7 +152,7 @@ func (o *GetOptions) Run() (err error) {
 	// 2) Identifying cases that limit Get to only work on 1 dataset. For example, the -o flag
 
 	// convert Page and PageSize to Limit and Offset
-	page := util.NewPage(o.Page, o.PageSize)
+	page := apiutil.NewPage(o.Page, o.PageSize)
 	p := lib.GetParams{
 		Refstr:       o.Refs.Ref(),
 		Selector:     o.Selector,

@@ -1063,8 +1063,6 @@ github.com/prometheus/procfs v0.0.3/go.mod h1:4A/X28fw3Fc593LaREMrKMqOKvUAntwMDa
 github.com/prometheus/procfs v0.0.11 h1:DhHlBtkHWPYi8O2y31JkK0TF+DGM+51OopZjH/Ia5qI=
 github.com/prometheus/procfs v0.0.11/go.mod h1:lV6e/gmhEcM9IjHGsFOCxxuZ+z1YqCvr4OA4YeYWdaU=
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
-github.com/qri-io/apiutil v0.2.0 h1:b5JAZy737vsulrK3pyls9OrWJE76/+WR9ikPYsevkrE=
-github.com/qri-io/apiutil v0.2.0/go.mod h1:LbfDISrItJfXIxqMwPjZwrxeYwF0mzjQxToYydVd5aI=
 github.com/qri-io/compare v0.1.0 h1:A/MRx3uEnJ/iMjfJY1VOqH9CYs9zFSEYaFVeXuGfmis=
 github.com/qri-io/compare v0.1.0/go.mod h1:i/tVuDGRXVxhuZ8ZUieF23u6rQ6wLGJl7KKWpoMRaTE=
 github.com/qri-io/dag v0.2.2-0.20200725180936-93d90d47ff6e h1:VQVKTN05OWl2H3AALNeLpSlxD4IDX0Xzu60GZdnQ4y8=

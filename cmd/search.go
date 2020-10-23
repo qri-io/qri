@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -84,7 +84,7 @@ func (o *SearchOptions) Run() (err error) {
 	// TODO: add reindex option back in
 
 	// convert Page and PageSize to Limit and Offset
-	page := util.NewPage(o.Page, o.PageSize)
+	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	p := &lib.SearchParams{
 		QueryString: o.Query,
