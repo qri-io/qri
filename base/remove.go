@@ -14,7 +14,7 @@ import (
 
 // RemoveEntireDataset removes all of the information in the repository about a dataset. It will
 // continue on even if some error occurs, returning a comma-separated list of what locations data
-// was removed from, as well the last error that occured, if any.
+// was removed from, as well the last error that occurred, if any.
 // Note that in particular, FSI is not handled at all by this function. Callers should also
 // call any relevent FSI operations.
 func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, history []DatasetLogItem) (didRemove string, removeErr error) {

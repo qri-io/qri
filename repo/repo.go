@@ -100,7 +100,7 @@ type Repo interface {
 
 	// Done returns a channel that the repo will send on when the repo is closed
 	Done() <-chan struct{}
-	// DoneErr gives any error that occured in the shutdown process
+	// DoneErr gives any error that occurred in the shutdown process
 	DoneErr() error
 }
 

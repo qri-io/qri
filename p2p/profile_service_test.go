@@ -98,7 +98,7 @@ func TestQriProfileService(t *testing.T) {
 			}
 		}
 		if !expectedPeer {
-			t.Logf("peer %q event occured, but not an expected peer", pid)
+			t.Logf("peer %q event occurred, but not an expected peer", pid)
 			unexpectedPeers = append(unexpectedPeers, pid)
 			return nil
 		}

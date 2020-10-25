@@ -73,7 +73,7 @@ func TestResolveRef(t *testing.T) {
 			}
 		}
 		if !expectedPeer {
-			t.Logf("peer %q event occured, but not an expected peer", pid)
+			t.Logf("peer %q event occurred, but not an expected peer", pid)
 			return nil
 		}
 		if typ == event.ETP2PQriPeerConnected {

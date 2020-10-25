@@ -194,7 +194,7 @@ func (q *QriProfileService) profileWait(ctx context.Context, p peer.ID) <-chan s
 	q.peersMu.Unlock()
 
 	if found {
-		log.Debugf("%s profile request to %s has already occured", ProfileProtocolID, p)
+		log.Debugf("%s profile request to %s has already occurred", ProfileProtocolID, p)
 		return wait
 	}
 
