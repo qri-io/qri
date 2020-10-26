@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -94,7 +94,7 @@ func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 // Run executes the list command
 func (o *ListOptions) Run() (err error) {
 	// convert Page and PageSize to Limit and Offset
-	page := util.NewPage(o.Page, o.PageSize)
+	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	if o.Raw {
 		var text string

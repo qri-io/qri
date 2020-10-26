@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/qri-io/apiutil"
+	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/registry"
 )
 

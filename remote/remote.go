@@ -13,10 +13,10 @@ import (
 	"time"
 
 	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/apiutil"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/access"
+	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"

@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/ghodss/yaml"
-	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/ioes"
+	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -209,7 +209,7 @@ func (o *PeersOptions) Info() (err error) {
 func (o *PeersOptions) List() (err error) {
 
 	// convert Page and PageSize to Limit and Offset
-	page := util.NewPage(o.Page, o.PageSize)
+	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	res := []*config.ProfilePod{}
 

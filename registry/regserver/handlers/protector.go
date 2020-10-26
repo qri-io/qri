@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/qri-io/apiutil"
+	apiutil "github.com/qri-io/qri/api/util"
 )
 
 // MethodProtector is an interface for controling access to http.HandlerFunc's
