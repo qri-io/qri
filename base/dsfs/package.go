@@ -9,11 +9,11 @@ import (
 
 const (
 	// transformScriptFilename is the name transform scripts will be written to
-	transformScriptFilename = "transform_script"
+	transformScriptFilename = "/transform_script"
 	// vizsScriptFilename is the name transform scripts will be written to
-	vizScriptFilename = "viz_script"
+	vizScriptFilename = "/viz_script"
 	// readmeScriptFilename is the name of the readme file that will be written to
-	readmeScriptFilename = "readme.json"
+	readmeScriptFilename = "/readme.json"
 )
 
 // PackageFile specifies the different types of files that are

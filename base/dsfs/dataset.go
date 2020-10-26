@@ -243,7 +243,7 @@ func CreateDataset(
 		return "", fmt.Errorf("private key is required to create a dataset")
 	}
 	if err := DerefDataset(ctx, source, ds); err != nil {
-		log.Debug(err.Error())
+		log.Debugf("dereferencing dataset components: %s", err)
 		return "", err
 	}
 	if err := validate.Dataset(ds); err != nil {
@@ -320,14 +320,11 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, sw SaveSwitches) (ro
 		components []string
 		files      []qfs.File
 		bdf        = ds.BodyFile()
-		// TODO (b5) - pathing needs more work
-		bodyFullPath string
 	)
 
 	if bdf != nil {
-		bodyFullPath = fmt.Sprintf("/%s", bdf.FullPath())
 		files = append(files, bdf)
-		components = append(components, bodyFullPath)
+		components = append(components, bdf.FullPath())
 	}
 
 	if ds.Structure != nil {
@@ -340,9 +337,15 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, sw SaveSwitches) (ro
 
 		if bdf != nil {
 			hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
+				if processingFile, ok := bdf.(doneProcessingFile); ok {
+					err := <-processingFile.DoneProcessing()
+					if err != nil {
+						return nil, err
+					}
+				}
 				return JSONFile(f.FullPath(), ds.Structure)
 			}
-			stf = qfs.NewWriteHookFile(stf, hook, bodyFullPath)
+			stf = qfs.NewWriteHookFile(stf, hook, bdf.FullPath())
 		}
 
 		files = append(files, stf)
@@ -390,23 +393,17 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, sw SaveSwitches) (ro
 
 	if ds.Readme != nil {
 		ds.Readme.DropTransientValues()
-
-		rmf, err := JSONFile(PackageFileReadme.Filename(), ds.Transform)
-		if err != nil {
-			return nil, err
-		}
+		// files = append(files, rmf)
 
 		if rmsf := ds.Readme.ScriptFile(); rmsf != nil {
 			files = append(files, qfs.NewMemfileReader(PackageFileReadmeScript.Filename(), rmsf))
-			hook := func(ctx context.Context, f qfs.File, pathMap map[string]string) (io.Reader, error) {
-				ds.Readme.ScriptPath = pathMap[PackageFileReadmeScript.Filename()]
-				return JSONFile(PackageFileReadme.Filename(), ds.Transform)
-			}
-			rmf = qfs.NewWriteHookFile(rmf, hook, PackageFileReadmeScript.Filename())
+			components = append(components, rmsf.FullPath())
+			// hook := func(ctx context.Context, f qfs.File, pathMap map[string]string) (io.Reader, error) {
+			// 	ds.Readme.ScriptPath = pathMap[PackageFileReadmeScript.Filename()]
+			// 	return JSONFile(PackageFileReadme.Filename(), ds.Readme)
+			// }
+			// rmf = qfs.NewWriteHookFile(rmf, hook, PackageFileReadmeScript.Filename())
 		}
-
-		files = append(files, rmf)
-		components = append(components, PackageFileReadme.Filename())
 	}
 
 	if ds.Viz != nil {
@@ -425,7 +422,7 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, sw SaveSwitches) (ro
 			deps = append(deps, PackageFileRenderedViz.Filename())
 		} else if vzfs != nil && sw.ShouldRender {
 			deps = append(deps, PackageFileRenderedViz.Filename())
-			hook := renderVizWriteHook(fs, ds, bodyFullPath)
+			hook := renderVizWriteHook(fs, ds, bdf.FullPath())
 			renderedF = qfs.NewWriteHookFile(emptyFile(PackageFileRenderedViz.Filename()), hook, append([]string{PackageFileVizScript.Filename()}, components...)...)
 			files = append(files, renderedF)
 		}
@@ -462,24 +459,25 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, sw SaveSwitches) (ro
 			switch comp {
 			case PackageFileCommit.Filename():
 				ds.Commit = dataset.NewCommitRef(pathMap[comp])
-			case PackageFileReadme.Filename():
-				ds.Readme = dataset.NewReadmeRef(pathMap[comp])
+			case PackageFileReadmeScript.Filename():
+				ds.Readme.ScriptPath = pathMap[PackageFileReadmeScript.Filename()]
 			case PackageFileStructure.Filename():
 				ds.Structure = dataset.NewStructureRef(pathMap[comp])
 			case PackageFileViz.Filename():
 				ds.Viz = dataset.NewVizRef(pathMap[comp])
 			case PackageFileMeta.Filename():
 				ds.Meta = dataset.NewMetaRef(pathMap[comp])
-			case bodyFullPath:
+			case bdf.FullPath():
 				ds.BodyPath = pathMap[comp]
 			}
 		}
 		return JSONFile(PackageFileDataset.Filename(), ds)
 	}
-	log.Debugf("writing dataset with components=%v", components)
+
 	dsf := qfs.NewWriteHookFile(qfs.NewMemfileBytes(PackageFileDataset.Filename(), []byte{}), hook, components...)
 	files = append(files, dsf)
 
+	log.Debugf("constructing dataset with components=%v", components)
 	return qfs.NewMemdir("/", files...), nil
 }
 

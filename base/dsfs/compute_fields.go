@@ -81,11 +81,11 @@ func newComputeFieldsFile(ctx context.Context, dsLk *sync.Mutex, fs qfs.Filesyst
 }
 
 func (cff *computeFieldsFile) FileName() string {
-	return fmt.Sprintf("body.%s", cff.ds.Structure.Format)
+	return fmt.Sprintf("/body.%s", cff.ds.Structure.Format)
 }
 
 func (cff *computeFieldsFile) FullPath() string {
-	return fmt.Sprintf("body.%s", cff.ds.Structure.Format)
+	return fmt.Sprintf("/body.%s", cff.ds.Structure.Format)
 }
 
 func (cff *computeFieldsFile) IsDirectory() bool {
@@ -148,7 +148,7 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 
 	r, err := dsio.NewEntryReader(st, cff.pipeReader)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Debugf("creating entry reader: %s", err)
 		cff.done <- fmt.Errorf("creating entry reader: %w", err)
 		return
 	}
@@ -189,9 +189,10 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 			}
 			entries++
 
-			if i%batchSize == 0 {
+			if i%batchSize == 0 && i != 0 {
 				numValErrs, flushErr := cff.flushBatch(ctx, batchBuf, st, jsch)
 				if flushErr != nil {
+					log.Debugf("error flushing batch while reading; %s", flushErr)
 					return flushErr
 				}
 				valErrorCount += numValErrs
@@ -201,17 +202,20 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 					Schema: st.Schema,
 				})
 				if bufErr != nil {
+					log.Debugf("error allocating data buffer; %s", bufErr)
 					return fmt.Errorf("allocating data buffer: %w", bufErr)
 				}
 			}
 
 			err = batchBuf.WriteEntry(ent)
 			if err != nil {
+				log.Debugf("error writing entry row: %s", err)
 				return fmt.Errorf("writing row %d: %w", i, err)
 			}
 
 			if cff.diffMessageBuf != nil {
 				if err = cff.diffMessageBuf.WriteEntry(ent); err != nil {
+					log.Debugf("error writing diff message buffer row: %s", err)
 					return err
 				}
 			}
@@ -220,12 +224,15 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 		})
 
 		if err != nil {
+			log.Debugf("error processing body data: %s", err)
 			cff.done <- fmt.Errorf("processing body data: %w", err)
 			return
 		}
 
+		log.Debugf("read all %d entries", entries)
 		numValErrs, err := cff.flushBatch(ctx, batchBuf, st, jsch)
 		if err != nil {
+			log.Debugf("flushing final batch: %s", err)
 			cff.done <- err
 			return
 		}
@@ -258,6 +265,7 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 			return
 		}
 
+		log.Debugf("done handling rows")
 		cff.done <- nil
 	}()
 
@@ -275,12 +283,14 @@ func (cff *computeFieldsFile) flushBatch(ctx context.Context, buf *dsio.EntryBuf
 		cff.bodyAct = BodyTooBig
 	}
 
-	if len(buf.Bytes()) == 0 {
-		return 0, nil
+	if e := buf.Close(); e != nil {
+		log.Debugf("closing batch buffer: %s", e)
+		return 0, fmt.Errorf("error closing buffer: %s", e.Error())
 	}
 
-	if e := buf.Close(); e != nil {
-		return 0, fmt.Errorf("error closing buffer: %s", e.Error())
+	if len(buf.Bytes()) == 0 {
+		log.Debug("batch is empty")
+		return 0, nil
 	}
 
 	var doc interface{}
@@ -291,6 +301,7 @@ func (cff *computeFieldsFile) flushBatch(ctx context.Context, buf *dsio.EntryBuf
 
 	// If in strict mode, fail if there were any errors.
 	if st.Strict && len(*validationState.Errs) > 0 {
+		log.Debugf("%s. found at least %d errors", ErrStrictMode, len(*validationState.Errs))
 		return 0, fmt.Errorf("%w. found at least %d errors", ErrStrictMode, len(*validationState.Errs))
 	}
 
