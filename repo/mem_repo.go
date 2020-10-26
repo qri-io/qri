@@ -177,7 +177,7 @@ func (r *MemRepo) Done() <-chan struct{} {
 	return r.doneCh
 }
 
-// DoneErr gives an error that occured during the shutdown process
+// DoneErr gives an error that occurred during the shutdown process
 func (r *MemRepo) DoneErr() error {
 	return r.doneErr
 }

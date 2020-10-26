@@ -73,7 +73,7 @@ type Client interface {
 	// Done returns a channel that the client will send on when the client is
 	// closed
 	Done() <-chan struct{}
-	// DoneErr gives any error that occured in the shutdown process
+	// DoneErr gives any error that occurred in the shutdown process
 	DoneErr() error
 	// Shutdown ends the client process early
 	Shutdown() <-chan struct{}
@@ -749,7 +749,7 @@ func (c *client) Done() <-chan struct{} {
 	return c.doneCh
 }
 
-// DoneErr gives an error that occured during the shutdown process
+// DoneErr gives an error that occurred during the shutdown process
 func (c *client) DoneErr() error {
 	return c.doneErr
 }

@@ -306,7 +306,7 @@ func (c *MockClient) Done() <-chan struct{} {
 	return c.doneCh
 }
 
-// DoneErr gives an error that occured during the shutdown process
+// DoneErr gives an error that occurred during the shutdown process
 func (c *MockClient) DoneErr() error {
 	return c.doneErr
 }
