@@ -1,15 +1,15 @@
 {
   "commit": {
     "qri": "cm:0",
-    "signature": "TY3fFgUz1LqrZktyfc2uLZlUjwH2Bk1Mmer/zYlHgGTRlP86wJZdFT8eSFaMjXlBGmQhKCy/SDqXWEgAq1Y9zXF8ic/RnjbGcITTC4ZM00icmACaCIvltugW938ZOZzoS76Fg2rafEvQ2uWQGGS60SO2Q+smLLUegD4DL1faRJKvHeGWudLx5OPHj/7doHbbmdGIQnAgkEFzNX++PAtRaKA0Qsu7j/DiY/6cBsxIoGKjJlVJY3ttTXIEUCVCYIwe7RQBKwbymTpjB6u3K46UvRKhnl+Y3Bz8T5DYLIgSEEXkMIjCWeH85UoONDCCCoTlDXx+jmpA38623HxsnbKluQ==",
+    "signature": "DeYUy4RGY6Ub5L9UVZT8+HVDYIuNp0bsr8LVWwOPzAlxa48l8mOKfi1407KhZSG40ISv4DNZ/gejmRoWmUtgiaSkrO89Yw9DNhvSHhIZ/MgWRLN/BSO1Fyc9tG2Y3G0qP2hXUs+E3txe1COjzfpKql0vBXzby3rmeBMeWBqi400CTHz3qOrtuDTedud0XRxtC2dduym9edggWHue84KEmRsB3H9wIuUb1zbENDY+9wUUs8hhNWg6AMhAlTKJQI4MBA7WX/u0KuV7xqHeucH8Pip+s2gyzyfUgoUAiZxCy0K7msazuoxvcmy36PgO/2jcwleZhYaqK108/i8bTYyjMQ==",
     "timestamp": "2001-01-01T01:01:01.000000001Z",
     "title": "I'm a commit",
     "message": "created dataset"
   },
-  "bodyPath": "/map/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
+  "bodyPath": "/mem/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
   "meta": {
     "qri": "md:0",
-    "title": "dataset with all submodels example"
+    "title": "dataset with all components example"
   },
   "qri": "ds:0",
   "structure": {
@@ -45,12 +45,12 @@
     "resources": {
       "foo": {"path":"/not/a/real/path"}
     },
-    "scriptPath": "/map/QmaCHzMEoDKF21Qd3emkT1mWEBS5uZG5BxLeJNbaXxghWc",
+    "scriptPath": "/mem/QmaCHzMEoDKF21Qd3emkT1mWEBS5uZG5BxLeJNbaXxghWc",
     "syntax": "sql"
   },
   "viz":{
     "format": "html",
     "qri": "vz:0",
-    "scriptPath": "/map/QmedXhMECTMY5x92PavJMAef4g5bW1KT5PpATvxJYmu4Fv"
+    "scriptPath": "/mem/QmedXhMECTMY5x92PavJMAef4g5bW1KT5PpATvxJYmu4Fv"
   }
 }

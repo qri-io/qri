@@ -2,6 +2,7 @@ package dsfs
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -49,8 +50,8 @@ func LoadDataset(ctx context.Context, store qfs.Filesystem, path string) (*datas
 
 	ds, err := LoadDatasetRefs(ctx, store, path)
 	if err != nil {
-		log.Debug(err.Error())
-		return nil, fmt.Errorf("error loading dataset: %s", err.Error())
+		log.Debugf("loading dataset: %s", err)
+		return nil, fmt.Errorf("loading dataset: %w", err)
 	}
 	if err := DerefDataset(ctx, store, ds); err != nil {
 		log.Debug(err.Error())
@@ -71,13 +72,13 @@ func LoadDatasetRefs(ctx context.Context, store qfs.Filesystem, path string) (*d
 	data, err := fileBytes(store.Get(ctx, pathWithBasename))
 	if err != nil {
 		log.Debug(err.Error())
-		return nil, fmt.Errorf("error getting file bytes: %s", err.Error())
+		return nil, fmt.Errorf("reading %s file: %w", PackageFileDataset.String(), err)
 	}
 
 	ds, err = dataset.UnmarshalDataset(data)
 	if err != nil {
 		log.Debug(err.Error())
-		return nil, fmt.Errorf("error unmarshaling %s file: %s", PackageFileDataset.String(), err.Error())
+		return nil, fmt.Errorf("unmarshaling %s file: %w", PackageFileDataset.String(), err)
 	}
 
 	// assign path to retain internal reference to the
@@ -306,8 +307,7 @@ func WriteDataset(
 	pk crypto.PrivKey,
 	sw SaveSwitches,
 ) (string, error) {
-
-	root, err := buildFileGraph(destination, ds, sw)
+	root, err := buildFileGraph(destination, ds, pk, sw)
 	if err != nil {
 		return "", err
 	}
@@ -315,16 +315,14 @@ func WriteDataset(
 	return qfs.WriteWithHooks(ctx, destination, root)
 }
 
-func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, sw SaveSwitches) (root qfs.File, err error) {
+func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivKey, sw SaveSwitches) (root qfs.File, err error) {
 	var (
-		components []string
-		files      []qfs.File
-		bdf        = ds.BodyFile()
+		files []qfs.File
+		bdf   = ds.BodyFile()
 	)
 
 	if bdf != nil {
 		files = append(files, bdf)
-		components = append(components, bdf.FullPath())
 	}
 
 	if ds.Structure != nil {
@@ -349,7 +347,6 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, sw SaveSwitches) (ro
 		}
 
 		files = append(files, stf)
-		components = append(components, PackageFileStructure.Filename())
 	}
 
 	if ds.Meta != nil {
@@ -359,7 +356,6 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, sw SaveSwitches) (ro
 			return nil, fmt.Errorf("encoding meta component to json: %w", err)
 		}
 		files = append(files, mdf)
-		components = append(components, PackageFileMeta.Filename())
 	}
 
 	if ds.Transform != nil {
@@ -388,77 +384,68 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, sw SaveSwitches) (ro
 		}
 
 		files = append(files, tff)
-		components = append(components, PackageFileTransform.Filename())
 	}
 
 	if ds.Readme != nil {
 		ds.Readme.DropTransientValues()
-		// files = append(files, rmf)
 
 		if rmsf := ds.Readme.ScriptFile(); rmsf != nil {
 			files = append(files, qfs.NewMemfileReader(PackageFileReadmeScript.Filename(), rmsf))
-			components = append(components, rmsf.FullPath())
-			// hook := func(ctx context.Context, f qfs.File, pathMap map[string]string) (io.Reader, error) {
-			// 	ds.Readme.ScriptPath = pathMap[PackageFileReadmeScript.Filename()]
-			// 	return JSONFile(PackageFileReadme.Filename(), ds.Readme)
-			// }
-			// rmf = qfs.NewWriteHookFile(rmf, hook, PackageFileReadmeScript.Filename())
 		}
 	}
 
 	if ds.Viz != nil {
 		ds.Viz.DropTransientValues()
-		deps := []string{}
 
 		vzfs := ds.Viz.ScriptFile()
 		if vzfs != nil {
 			files = append(files, qfs.NewMemfileReader(PackageFileVizScript.Filename(), vzfs))
-			deps = append(deps, PackageFileVizScript.Filename())
 		}
 
 		renderedF := ds.Viz.RenderedFile()
 		if renderedF != nil {
 			files = append(files, qfs.NewMemfileReader(PackageFileRenderedViz.Filename(), renderedF))
-			deps = append(deps, PackageFileRenderedViz.Filename())
 		} else if vzfs != nil && sw.ShouldRender {
-			deps = append(deps, PackageFileRenderedViz.Filename())
 			hook := renderVizWriteHook(fs, ds, bdf.FullPath())
-			renderedF = qfs.NewWriteHookFile(emptyFile(PackageFileRenderedViz.Filename()), hook, append([]string{PackageFileVizScript.Filename()}, components...)...)
+			renderedF = qfs.NewWriteHookFile(emptyFile(PackageFileRenderedViz.Filename()), hook, append([]string{PackageFileVizScript.Filename()}, filePaths(files)...)...)
 			files = append(files, renderedF)
 		}
 
-		vzf, err := JSONFile(PackageFileViz.Filename(), ds.Viz)
-		if err != nil {
-			return nil, err
-		}
-		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
-			for _, dep := range deps {
-				switch dep {
-				case PackageFileVizScript.Filename():
-					ds.Viz.ScriptPath = added[dep]
-				case PackageFileRenderedViz.Filename():
-					ds.Viz.RenderedPath = added[dep]
-				}
-			}
-			return JSONFile(PackageFileViz.Filename(), ds.Viz)
-		}
-
-		vzf = qfs.NewWriteHookFile(vzf, hook, deps...)
+		// we don't add the viz component itself, it's inlined in dataset.json
 	}
 
 	if ds.Commit != nil {
-		hook := jsonWriteHook(PackageFileCommit.Filename(), ds.Commit)
-		cmf := qfs.NewWriteHookFile(emptyFile(PackageFileCommit.Filename()), hook, components...)
+		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
+			signedBytes, err := privKey.Sign(ds.SigningBytes())
+			if err != nil {
+				log.Debug(err.Error())
+				return nil, fmt.Errorf("error signing commit title: %s", err.Error())
+			}
+			ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
+			return JSONFile(PackageFileCommit.Filename(), ds.Commit)
+		}
+
+		cmf := qfs.NewWriteHookFile(emptyFile(PackageFileCommit.Filename()), hook, filePaths(files)...)
 		files = append(files, cmf)
-		components = append(components, PackageFileCommit.Filename())
+	}
+
+	pkgFiles := filePaths(files)
+	if len(pkgFiles) == 0 {
+		return nil, fmt.Errorf("cannot save empty dataset")
 	}
 
 	hook := func(ctx context.Context, f qfs.File, pathMap map[string]string) (io.Reader, error) {
-		log.Debugf("writing dataset file. components=%v", components)
-		for _, comp := range components {
+		log.Debugf("writing dataset file. files=%v", pkgFiles)
+		ds.DropTransientValues()
+
+		for _, comp := range pkgFiles {
 			switch comp {
 			case PackageFileCommit.Filename():
 				ds.Commit = dataset.NewCommitRef(pathMap[comp])
+			case PackageFileVizScript.Filename():
+				ds.Viz.ScriptPath = pathMap[PackageFileVizScript.Filename()]
+			case PackageFileRenderedViz.Filename():
+				ds.Viz.RenderedPath = pathMap[PackageFileRenderedViz.Filename()]
 			case PackageFileReadmeScript.Filename():
 				ds.Readme.ScriptPath = pathMap[PackageFileReadmeScript.Filename()]
 			case PackageFileStructure.Filename():
@@ -474,11 +461,18 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, sw SaveSwitches) (ro
 		return JSONFile(PackageFileDataset.Filename(), ds)
 	}
 
-	dsf := qfs.NewWriteHookFile(qfs.NewMemfileBytes(PackageFileDataset.Filename(), []byte{}), hook, components...)
+	dsf := qfs.NewWriteHookFile(qfs.NewMemfileBytes(PackageFileDataset.Filename(), []byte{}), hook, filePaths(files)...)
 	files = append(files, dsf)
 
-	log.Debugf("constructing dataset with components=%v", components)
+	log.Debugf("constructing dataset with pkgFiles=%v", pkgFiles)
 	return qfs.NewMemdir("/", files...), nil
+}
+
+func filePaths(fs []qfs.File) (files []string) {
+	for _, f := range fs {
+		files = append(files, f.FullPath())
+	}
+	return files
 }
 
 func emptyFile(fullPath string) qfs.File {

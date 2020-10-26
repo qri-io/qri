@@ -33,8 +33,9 @@ func renderVizWriteHook(fs qfs.Filesystem, ds *dataset.Dataset, bodyFilename str
 		if err != nil {
 			return nil, err
 		}
-		sf, err := fs.Get(ctx, added["viz_script"])
+		sf, err := fs.Get(ctx, added[PackageFileVizScript.Filename()])
 		if err != nil {
+			log.Debugf("loading viz script file: %s", err)
 			return nil, err
 		}
 

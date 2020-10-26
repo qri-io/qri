@@ -1,12 +1,12 @@
 {
   "commit": {
     "qri": "cm:0",
-    "signature": "MaW1v72QMRy4+GMO00+9lO/J98JxvOZpmS7f/0Jdy4HoY3IQ9sVPGhbkaSrF08fTQFkYFZn/FpiFEZ2k8yUVVYbgjWngyGMZ6BEx3GaJMOPxD+l+PGO21sYKh/Fg6LxiV6roxiOjUa8u87dzTekVbttvIfQ+y/bg8xsKia7Y5CcvYxsXpaou3FNuK1rZ4GGf96SED1dlcd8PnB9o6fEk9Q2Suj19X1K6TyZemQUZeFMz2bDtiyORC3pk213mkY2NQ8oZSmOrrAEtf8d32Q31U3fZQZlAtfIJ/ICaNTtFbTxB3t2mAYHEzScWEBQ6C2REKDDYmDp7eDoijZiQYPZYAA==",
+    "signature": "DeYUy4RGY6Ub5L9UVZT8+HVDYIuNp0bsr8LVWwOPzAlxa48l8mOKfi1407KhZSG40ISv4DNZ/gejmRoWmUtgiaSkrO89Yw9DNhvSHhIZ/MgWRLN/BSO1Fyc9tG2Y3G0qP2hXUs+E3txe1COjzfpKql0vBXzby3rmeBMeWBqi400CTHz3qOrtuDTedud0XRxtC2dduym9edggWHue84KEmRsB3H9wIuUb1zbENDY+9wUUs8hhNWg6AMhAlTKJQI4MBA7WX/u0KuV7xqHeucH8Pip+s2gyzyfUgoUAiZxCy0K7msazuoxvcmy36PgO/2jcwleZhYaqK108/i8bTYyjMQ==",
     "timestamp": "2001-01-01T01:01:01.000000001Z",
     "title": "initial commit",
     "message": "created dataset"
   },
-  "bodyPath": "/map/QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
+  "bodyPath": "/mem/QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
   "qri": "ds:0",
   "structure": {
     "checksum": "",
