@@ -9,11 +9,12 @@ import (
 	"io"
 	"sort"
 
+	"github.com/axiomhq/hyperloglog"
+	topk "github.com/dgryski/go-topk"
 	logger "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
-	gonumfloats "gonum.org/v1/gonum/floats"
-	gonumstat "gonum.org/v1/gonum/stat"
+	"github.com/qri-io/qri/stats/histosketch"
 )
 
 var (
@@ -21,6 +22,10 @@ var (
 	// stop keeping frequencies. This is a simplistic line of defense against
 	// unweildly memory consumption
 	StopFreqCountThreshold = 10000
+	// HistogramCentroidCount is the max number of centroids/bins for our histogram
+	// calculations more bins give better precision at the tradeoff of more CPU
+	// and memory usage. 32 is a pretty decent count for fairly large datasets.
+	HistogramCentroidCount uint = 32
 
 	// package logger
 	log = logger.Logger("stats")
@@ -323,14 +328,15 @@ const (
 )
 
 type numericAcc struct {
-	typ       string
-	count     int
-	min       float64
-	max       float64
-	mean      float64
-	median    float64
-	dividers  []float64
-	histogram []float64
+	typ             string
+	count           int
+	min             float64
+	max             float64
+	mean            float64
+	median          float64
+	dividers        []float64
+	histogram       []float64
+	histogramSketch *histosketch.Sketch
 }
 
 var _ accumulator = (*numericAcc)(nil)
@@ -342,7 +348,9 @@ func newNumericAcc(typ string) *numericAcc {
 		min:    float64(maxInt),
 		median: maxFloat,
 		// use histogram to accumulate values
-		histogram: make([]float64, 0, StopFreqCountThreshold*100),
+		histogram: []float64{},
+		// sketch implementation for approximate histogram calculation
+		histogramSketch: histosketch.New(HistogramCentroidCount),
 	}
 }
 
@@ -367,12 +375,7 @@ func (acc *numericAcc) Write(e dsio.Entry) {
 		return
 	}
 
-	if acc.histogram != nil {
-		acc.histogram = append(acc.histogram, v)
-		if len(acc.histogram) == StopFreqCountThreshold*100 {
-			acc.histogram = nil
-		}
-	}
+	acc.histogramSketch.Add(v)
 
 	acc.mean += v
 	acc.count++
@@ -416,26 +419,8 @@ func (acc *numericAcc) Map() map[string]interface{} {
 func (acc *numericAcc) Close() {
 	// finalize avg
 	acc.mean = acc.mean / float64(acc.count)
-
-	if len(acc.histogram) > 0 {
-		sort.Float64Slice(acc.histogram).Sort()
-
-		if len(acc.histogram)%2 == 0 && len(acc.histogram) > 1 {
-			acc.median = (acc.histogram[len(acc.histogram)/2-1] + acc.histogram[len(acc.histogram)/2]) / float64(2)
-			// acc.median = (acc.histogram[len(acc.histogram)/2] + acc.histogram[len(acc.histogram)/2+1]) / float64(2)
-		} else {
-			acc.median = acc.histogram[len(acc.histogram)/2]
-		}
-
-		// turn values into a histogram
-		nBins := 10
-		acc.dividers = make([]float64, nBins+1)
-		// Increase the maximum divider so that the maximum value of x is contained
-		// within the last bucket.
-		gonumfloats.Span(acc.dividers, acc.min, acc.max+1)
-		// Span includes the min and the max. Trim the dividers to create 10 buckets
-		acc.histogram = gonumstat.Histogram(nil, acc.dividers, acc.histogram, nil)
-	}
+	acc.dividers, acc.histogram = acc.histogramSketch.Read()
+	acc.median = acc.histogramSketch.Median()
 }
 
 type stringAcc struct {
@@ -444,6 +429,8 @@ type stringAcc struct {
 	maxLength   int
 	unique      int
 	frequencies map[string]int
+	hll         *hyperloglog.Sketch
+	topk        *topk.Stream
 }
 
 var _ accumulator = (*stringAcc)(nil)
@@ -453,6 +440,8 @@ func newStringAcc() *stringAcc {
 		maxLength:   minInt,
 		minLength:   maxInt,
 		frequencies: map[string]int{},
+		hll:         hyperloglog.New16(),
+		topk:        topk.New(StopFreqCountThreshold),
 	}
 }
 
@@ -464,12 +453,8 @@ func (acc *stringAcc) Write(e dsio.Entry) {
 	if str, ok := e.Value.(string); ok {
 		acc.count++
 
-		if acc.frequencies != nil {
-			acc.frequencies[str]++
-			if len(acc.frequencies) >= StopFreqCountThreshold {
-				acc.frequencies = nil
-			}
-		}
+		acc.topk.Insert(str, 1)
+		acc.hll.Insert([]byte(str))
 
 		if len(str) < acc.minLength {
 			acc.minLength = len(str)
@@ -506,18 +491,12 @@ func (acc *stringAcc) Map() map[string]interface{} {
 
 // Close finalizes the accumulator
 func (acc *stringAcc) Close() {
-	if acc.frequencies != nil {
-		// determine unique values
-		for key, freq := range acc.frequencies {
-			if freq == 1 {
-				acc.unique++
-				delete(acc.frequencies, key)
-			}
-		}
-		if len(acc.frequencies) == 0 {
-			acc.frequencies = nil
-		}
+	acc.frequencies = map[string]int{}
+	top := acc.topk.Keys()
+	for _, k := range top {
+		acc.frequencies[k.Key] = k.Count
 	}
+	acc.unique = int(acc.hll.Estimate())
 }
 
 type boolAcc struct {

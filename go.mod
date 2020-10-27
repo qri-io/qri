@@ -3,10 +3,12 @@ module github.com/qri-io/qri
 go 1.13
 
 require (
+	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
 	github.com/cheggaaa/pb/v3 v3.0.4
 	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/dgryski/go-topk v0.0.0-20191119021947-593b4f2374c9
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0
 	github.com/fsnotify/fsnotify v1.4.9
@@ -58,7 +60,6 @@ require (
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 	golang.org/x/text v0.3.3
-	gonum.org/v1/gonum v0.7.0
 	gopkg.in/yaml.v2 v2.3.0
 	nhooyr.io/websocket v1.8.6
 )

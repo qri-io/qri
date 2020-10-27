@@ -159,7 +159,7 @@ func TestStatsFSI(t *testing.T) {
 
 	expect := `for linked dataset [test_peer_test_stats_fsi/move_dir]
 
-[{"count":2,"maxLength":4,"minLength":3,"type":"string","unique":2},{"count":2,"maxLength":4,"minLength":3,"type":"string","unique":2},{"count":2,"histogram":{"bins":[3,3.4,3.8,4.2,4.6,5,5.4,5.800000000000001,6.2,6.6,7],"frequencies":[1,0,0,0,0,0,0,1,0,0]},"max":6,"mean":4.5,"median":4.5,"min":3,"type":"numeric"}]
+[{"count":2,"frequencies":{"four":1,"one":1},"maxLength":4,"minLength":3,"type":"string","unique":2},{"count":2,"frequencies":{"five":1,"two":1},"maxLength":4,"minLength":3,"type":"string","unique":2},{"count":2,"histogram":{"bins":[3,6,7],"frequencies":[1,1]},"max":6,"mean":4.5,"median":6,"min":3,"type":"numeric"}]
 
 `
 
@@ -174,6 +174,10 @@ func TestStatsFSI(t *testing.T) {
 [
   {
     "count": 2,
+    "frequencies": {
+      "four": 1,
+      "one": 1
+    },
     "maxLength": 4,
     "minLength": 3,
     "type": "string",
@@ -181,6 +185,10 @@ func TestStatsFSI(t *testing.T) {
   },
   {
     "count": 2,
+    "frequencies": {
+      "five": 1,
+      "two": 1
+    },
     "maxLength": 4,
     "minLength": 3,
     "type": "string",
@@ -191,33 +199,17 @@ func TestStatsFSI(t *testing.T) {
     "histogram": {
       "bins": [
         3,
-        3.4,
-        3.8,
-        4.2,
-        4.6,
-        5,
-        5.4,
-        5.800000000000001,
-        6.2,
-        6.6,
+        6,
         7
       ],
       "frequencies": [
         1,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        1,
-        0,
-        0
+        1
       ]
     },
     "max": 6,
     "mean": 4.5,
-    "median": 4.5,
+    "median": 6,
     "min": 3,
     "type": "numeric"
   }
