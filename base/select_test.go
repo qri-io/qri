@@ -12,19 +12,19 @@ func TestSelect(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	if _, err := Select(ctx, r, dsref.Ref{Username: "bad", Name: "ref"}, "commit"); err == nil {
+	if _, err := Select(ctx, r.Filesystem(), dsref.Ref{Username: "bad", Name: "ref"}, "commit"); err == nil {
 		t.Error("expected select of bad ref to fail")
 	}
-	if _, err := Select(ctx, r, ref, ""); err != nil {
+	if _, err := Select(ctx, r.Filesystem(), ref, ""); err != nil {
 		t.Error(err.Error())
 	}
-	if _, err := Select(ctx, r, ref, "commit"); err != nil {
+	if _, err := Select(ctx, r.Filesystem(), ref, "commit"); err != nil {
 		t.Error(err.Error())
 	}
-	if _, err := Select(ctx, r, ref, "meta.title"); err != nil {
+	if _, err := Select(ctx, r.Filesystem(), ref, "meta.title"); err != nil {
 		t.Error(err.Error())
 	}
-	if _, err := Select(ctx, r, ref, "structure.schema.items.0"); err != nil {
+	if _, err := Select(ctx, r.Filesystem(), ref, "structure.schema.items.0"); err != nil {
 		t.Error(err.Error())
 	}
 }

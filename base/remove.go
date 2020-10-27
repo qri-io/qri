@@ -104,7 +104,11 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 		// blank PreviousPath is found.
 		i--
 		// unpin dataset, ignoring "not pinned" errors
-		if err = UnpinDataset(ctx, r, dest.Path); err != nil && !strings.Contains(err.Error(), "not pinned") {
+		// if err = UnpinDataset(ctx, r, dest.Path); err != nil && !strings.Contains(err.Error(), "not pinned") {
+		// 	return nil, err
+		// }
+
+		if err = r.Filesystem().Delete(ctx, dest.Path); err != nil {
 			return nil, err
 		}
 		// if no previous path, break

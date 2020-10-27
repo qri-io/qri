@@ -41,7 +41,6 @@ func TestRepo(t *testing.T) {
 		ctx := context.Background()
 		bus := event.NewBus(ctx)
 		fs, err := muxfs.New(ctx, []qfs.Config{
-			{Type: "map"},
 			{Type: "mem"},
 			{Type: "local"},
 		})
@@ -92,7 +91,6 @@ func TestResolveRef(t *testing.T) {
 	ctx := context.Background()
 	bus := event.NewBus(ctx)
 	fs, err := muxfs.New(ctx, []qfs.Config{
-		{Type: "map"},
 		{Type: "mem"},
 		{Type: "local"},
 	})

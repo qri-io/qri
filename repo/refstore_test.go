@@ -334,7 +334,6 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 	carla := &profile.Profile{ID: profile.IDRawByteString("b"), Peername: "carla"}
 
 	fs, err := muxfs.New(ctx, []qfs.Config{
-		{Type: "map"},
 		{Type: "mem"},
 	})
 
@@ -409,7 +408,6 @@ func TestCanonicalizeDatasetRefFSI(t *testing.T) {
 	peer := "lucille"
 	prof := &profile.Profile{ID: profile.IDRawByteString("a"), Peername: peer, PrivKey: privKey}
 	fs, err := muxfs.New(ctx, []qfs.Config{
-		{Type: "map"},
 		{Type: "mem"},
 	})
 	if err != nil {
@@ -470,7 +468,6 @@ func TestCanonicalizeProfile(t *testing.T) {
 
 	prof := &profile.Profile{Peername: "lucille", ID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"), PrivKey: privKey}
 	fs, err := muxfs.New(ctx, []qfs.Config{
-		{Type: "map"},
 		{Type: "mem"},
 	})
 	if err != nil {

@@ -61,7 +61,7 @@ func TestLoadRevisions(t *testing.T) {
 			continue
 		}
 
-		got, err := LoadRevs(ctx, r.Store(), c.ref, revs)
+		got, err := LoadRevs(ctx, r.Filesystem(), c.ref, revs)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 		}

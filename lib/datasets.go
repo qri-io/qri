@@ -484,6 +484,7 @@ func (p *SaveParams) AbsolutizePaths() error {
 
 // Save adds a history entry, updating a dataset
 func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
+	log.Debugf("DatasetMethods.Save p=%v", p)
 	if m.inst.rpc != nil {
 		p.ScriptOutput = nil
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Save", p, res))
@@ -951,12 +952,13 @@ func (m *DatasetMethods) Pull(p *PullParams, res *dataset.Dataset) error {
 
 	ref, source, err := m.inst.ParseAndResolveRef(ctx, p.Ref, source)
 	if err != nil {
-		log.Error(err)
+		log.Debugf("resolving reference: %s", err)
 		return err
 	}
 
 	ds, err := m.inst.remoteClient.PullDataset(ctx, &ref, source)
 	if err != nil {
+		log.Debugf("pulling dataset: %s", err)
 		return err
 	}
 

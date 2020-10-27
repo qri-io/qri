@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/muxfs"
 )
 
 const (
@@ -107,6 +108,12 @@ func GetHashBase(in, network string) string {
 // return an invalid path
 func PackageFilepath(fs qfs.Filesystem, path string, pf PackageFile) string {
 	prefix := fs.Type()
+	if prefix == muxfs.FilestoreType {
+		// TODO(b5) - for situations where a muxfs is passed, we rely on path being populated
+		// with the desired filesystem resolver intact. This should be hardened
+		return strings.Join([]string{path, pf.String()}, "/")
+	}
+
 	if prefix == "" {
 		return path
 	}

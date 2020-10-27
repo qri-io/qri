@@ -84,7 +84,6 @@ func newTestFS(ctx context.Context) *muxfs.Mux {
 	fs, err := muxfs.New(ctx, []qfs.Config{
 		{Type: "local"},
 		{Type: "http"},
-		{Type: "map"},
 		{Type: "mem"},
 	})
 	if err != nil {

@@ -109,7 +109,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ini
 	}
 
 	// Write the save to logbook
-	err = r.Logbook().WriteVersionSave(ctx, initID, changes)
+	err = r.Logbook().WriteVersionSave(ctx, initID, ds)
 	if err != nil && err != logbook.ErrNoLogbook {
 		return ds, err
 	}
@@ -150,6 +150,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 		log.Debugf("dsfs.CreateDataset: %s", err)
 		return nil, err
 	}
+
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
 		// should be ok to skip this error. we may not have the previous
 		// reference locally
@@ -161,6 +162,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 		})
 	}
 
+	log.Debugf("loading: %s", path)
 	ds, err = dsfs.LoadDataset(ctx, r.Filesystem(), path)
 	if err != nil {
 		return nil, err

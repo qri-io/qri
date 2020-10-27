@@ -51,6 +51,14 @@ var (
 	log = golog.Logger("lib")
 )
 
+// func init() {
+// 	golog.SetLogLevel("lib", "debug")
+// 	golog.SetLogLevel("dsfs", "debug")
+// 	golog.SetLogLevel("qipfs", "debug")
+// 	golog.SetLogLevel("coreunix", "debug")
+// 	golog.SetLogLevel("remote", "debug")
+// }
+
 // Methods is a related set of library functions
 type Methods interface {
 	// CoreRequestsName confirms participation in the CoreRequests interface while
@@ -288,6 +296,7 @@ func OptEventHandler(handler event.Handler, events ...event.Type) Option {
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
+	log.Debugf("NewInstance repoPath=%s opts=%v", repoPath, opts)
 	ctx, cancel := context.WithCancel(ctx)
 	ok := false
 	defer func() {
@@ -305,9 +314,9 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// attempt to load a base configuration from repoPath
 	needsMigration := false
 	if o.Cfg, err = loadRepoConfig(repoPath); err != nil {
-		log.Error("loading config: %s", err)
+		log.Debugf("loading config: %s", err)
 		if o.Cfg != nil && o.Cfg.Revision != config.CurrentConfigRevision {
-			log.Info("config requires a migration from revision %d to %d", o.Cfg.Revision, config.CurrentConfigRevision)
+			log.Debugf("config requires a migration from revision %d to %d", o.Cfg.Revision, config.CurrentConfigRevision)
 			needsMigration = true
 		}
 		if !needsMigration {

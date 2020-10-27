@@ -552,6 +552,7 @@ func (c *client) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string)
 	}
 	pull, err := c.logsync.NewPull(ref, remoteAddr)
 	if err != nil {
+		log.Debugf("logsync.NewPull err=%s", err)
 		return err
 	}
 

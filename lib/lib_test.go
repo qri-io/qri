@@ -73,7 +73,6 @@ func TestNewInstance(t *testing.T) {
 	cfg := config.DefaultConfigForTesting()
 	cfg.Filesystems = []qfs.Config{
 		{Type: "mem"},
-		{Type: "map"},
 		{Type: "local"},
 	}
 	cfg.Repo.Type = "mem"
@@ -166,7 +165,6 @@ func CompareInstances(a, b *Instance) error {
 func TestReceivers(t *testing.T) {
 	ctx := context.Background()
 	fs, err := muxfs.New(ctx, []qfs.Config{
-		{Type: "map"},
 		{Type: "mem"},
 	})
 	if err != nil {

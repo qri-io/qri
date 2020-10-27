@@ -63,13 +63,13 @@ func LoadDataset(ctx context.Context, store qfs.Filesystem, path string) (*datas
 
 // LoadDatasetRefs reads a dataset from a content addressed filesystem without dereferencing
 // it's components
-func LoadDatasetRefs(ctx context.Context, store qfs.Filesystem, path string) (*dataset.Dataset, error) {
+func LoadDatasetRefs(ctx context.Context, fs qfs.Filesystem, path string) (*dataset.Dataset, error) {
 	log.Debugf("LoadDatasetRefs path=%q", path)
 	ds := dataset.NewDatasetRef(path)
 
-	pathWithBasename := PackageFilepath(store, path, PackageFileDataset)
+	pathWithBasename := PackageFilepath(fs, path, PackageFileDataset)
 	log.Debugf("getting %s", pathWithBasename)
-	data, err := fileBytes(store.Get(ctx, pathWithBasename))
+	data, err := fileBytes(fs.Get(ctx, pathWithBasename))
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("reading %s file: %w", PackageFileDataset.String(), err)
@@ -251,7 +251,7 @@ func CreateDataset(
 		log.Debug(err.Error())
 		return "", err
 	}
-	log.Debugf("CreateDataset ds.Peername=%q ds.Name=%q", ds.Peername, ds.Name)
+	log.Debugf("CreateDataset ds.Peername=%q ds.Name=%q writeDestType=%s", ds.Peername, ds.Name, destination.Type())
 
 	if prev != nil && !prev.IsEmpty() {
 		if err := DerefDataset(ctx, source, prev); err != nil {

@@ -88,7 +88,7 @@ func TestDatasetLogForeign(t *testing.T) {
 	initID := foreignBuilder.DatasetInit(ctx, t, ref.Name)
 	// NOTE: Need to assign ProfileID because nothing is resolving the username
 	ref.ProfileID = otherPeerInfo.EncodedPeerID
-	ref.Path = "QmExample"
+	ref.Path = "/mem/QmExample"
 	foreignBuilder.Commit(ctx, t, initID, "their commit", ref.Path)
 	foreignBook := foreignBuilder.Logbook()
 	foreignLog, err := foreignBook.UserDatasetBranchesLog(ctx, initID)
@@ -215,7 +215,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	book, err := logbook.NewJournal(p.PrivKey, p.Peername, event.NilBus, mr.Filesystem(), "/map/logbook.qfb")
+	book, err := logbook.NewJournal(p.PrivKey, p.Peername, event.NilBus, mr.Filesystem(), "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}

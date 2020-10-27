@@ -99,7 +99,6 @@ func TestSaveDatasetReplace(t *testing.T) {
 func TestCreateDataset(t *testing.T) {
 	ctx := context.Background()
 	fs, err := muxfs.New(ctx, []qfs.Config{
-		{Type: "map"},
 		{Type: "mem"},
 	})
 	if err != nil {
@@ -120,7 +119,7 @@ func TestCreateDataset(t *testing.T) {
 			Schema: dataset.BaseSchemaArray,
 		},
 	}
-	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
+	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
 
 	if _, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), &dataset.Dataset{}, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected bad dataset to error")
@@ -143,7 +142,8 @@ func TestCreateDataset(t *testing.T) {
 	ds.Name = dsName
 	ds.Meta.Title = "an update"
 	ds.PreviousPath = createdDs.Path
-	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
+	ds.Structure = createdDs.Structure
+	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
 
 	createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, createdDs, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
@@ -161,13 +161,14 @@ func TestCreateDataset(t *testing.T) {
 	// reliance on CreateDataset needing the ds.Name field.
 	ds.Name = dsName
 	ds.PreviousPath = createdDs.Path
-	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
+	ds.Structure = createdDs.Structure
+	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
 
 	if createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, createdDs, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected unchanged dataset with no force flag to error")
 	}
 
-	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
+	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
 	if createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, createdDs, SaveSwitches{ForceIfNoChanges: true, Pin: true, ShouldRender: true}); err != nil {
 		t.Errorf("unexpected force-save error: %s", err)
 	}

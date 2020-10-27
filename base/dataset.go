@@ -8,7 +8,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/qfs"PinningFS.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -294,22 +294,22 @@ func ReadDataset(ctx context.Context, r repo.Repo, path string) (ds *dataset.Dat
 	return dsfs.LoadDataset(ctx, fs, path)
 }
 
-// PinDataset marks a dataset for retention in a store
-func PinDataset(ctx context.Context, r repo.Repo, path string) error {
-	// TODO (b5) - this doesn't make *total* sense at the moment, need to rethink
-	// how pinning intersects with the qfs API
-	if pinner, ok := r.Filesystem().DefaultWriteFS().(qfs.PinningFS); ok {
-		return pinner.Pin(ctx, path, true)
-	}
-	return repo.ErrNotPinner
-}
+// // PinDataset marks a dataset for retention in a store
+// func PinDataset(ctx context.Context, r repo.Repo, path string) error {
+// 	// TODO (b5) - this doesn't make *total* sense at the moment, need to rethink
+// 	// how pinning intersects with the qfs API
+// 	if pinner, ok := r.Filesystem().DefaultWriteFS().(qfs.PinningFS); ok {
+// 		return pinner.Pin(ctx, path, true)
+// 	}
+// 	return repo.ErrNotPinner
+// }
 
-// UnpinDataset unmarks a dataset for retention in a store
-func UnpinDataset(ctx context.Context, r repo.Repo, path string) error {
-	// TODO (b5) - this doesn't make *total* sense at the moment, need to rethink
-	// how pinning intersects with the qfs API
-	if pinner, ok := r.Filesystem().DefaultWriteFS().(qfs.PinningFS); ok {
-		return pinner.Unpin(ctx, path, true)
-	}
-	return repo.ErrNotPinner
-}
+// // UnpinDataset unmarks a dataset for retention in a store
+// func UnpinDataset(ctx context.Context, r repo.Repo, path string) error {
+// 	// TODO (b5) - this doesn't make *total* sense at the moment, need to rethink
+// 	// how pinning intersects with the qfs API
+// 	if pinner, ok := r.Filesystem().DefaultWriteFS().(qfs.PinningFS); ok {
+// 		return pinner.Unpin(ctx, path, true)
+// 	}
+// 	return repo.ErrNotPinner
+// }

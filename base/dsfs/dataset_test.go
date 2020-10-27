@@ -222,12 +222,6 @@ func TestCreateDataset(t *testing.T) {
 		})
 	}
 
-	contents, err := fs.Print()
-	if err != nil {
-		panic(err)
-	}
-	ioutil.WriteFile("/Users/b5/Desktop/memfs_contents", []byte(contents), 0677)
-
 	t.Run("no_priv_key", func(t *testing.T) {
 		_, err := CreateDataset(ctx, fs, fs, nil, nil, nil, SaveSwitches{ShouldRender: true})
 		if err == nil {

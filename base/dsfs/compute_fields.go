@@ -265,7 +265,7 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 			return
 		}
 
-		log.Debugf("done handling rows structure: %#v", cff.ds.Commit)
+		log.Debugf("done handling structured entries")
 		cff.done <- nil
 	}()
 

@@ -21,7 +21,7 @@ import (
 
 func TestTwoActorRegistryIntegration(t *testing.T) {
 	tr := NewNetworkIntegrationTestRunner(t, "integration_two_actor_registry")
-	defer tr.Cleanup()
+	// defer tr.Cleanup()
 
 	nasim := tr.InitNasim(t)
 

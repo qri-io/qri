@@ -33,8 +33,9 @@ func TestReadBody(t *testing.T) {
 		t.Errorf("byte response mismatch. got: %s", string(data))
 	}
 
-	if ds.BodyPath != "/map/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD" {
-		t.Errorf("bodypath mismatch")
+	expectPath := "/mem/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD"
+	if expectPath != ds.BodyPath {
+		t.Errorf("bodypath mismatch. want %q got %q", expectPath, ds.BodyPath)
 	}
 }
 
