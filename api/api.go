@@ -170,11 +170,22 @@ func readOnlyResponse(w http.ResponseWriter, endpoint string) {
 	apiutil.WriteErrResponse(w, http.StatusForbidden, fmt.Errorf("qri server is in read-only mode, access to '%s' endpoint is forbidden", endpoint))
 }
 
+// HomeHandler responds with a health check on the empty path, 404 for
+// everything else
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "" || r.URL.Path == "/" {
+		HealthCheckHandler(w, r)
+		return
+	}
+
+	apiutil.NotFoundHandler(w, r)
+}
+
 // HealthCheckHandler is a basic ok response for load balancers & co
 // returns the version of qri this node is running, pulled from the lib package
 func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{ "meta": { "code": 200, "status": "ok", "versionzz":"` + APIVersion + `" }, "data": [] }`))
+	w.Write([]byte(`{ "meta": { "code": 200, "status": "ok", "version":"` + APIVersion + `" }, "data": [] }`))
 }
 
 // NewServerRoutes returns a Muxer that has all API routes
@@ -183,7 +194,8 @@ func NewServerRoutes(s Server) *http.ServeMux {
 
 	m := http.NewServeMux()
 
-	m.Handle("/health", s.middleware(HealthCheckHandler))
+	m.HandleFunc("/", HomeHandler)
+	m.HandleFunc("/health", HealthCheckHandler)
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
