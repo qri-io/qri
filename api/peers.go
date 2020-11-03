@@ -26,9 +26,7 @@ func NewPeerHandlers(inst *lib.Instance, readOnly bool) *PeerHandlers {
 // PeersHandler is the endpoint for fetching peers
 func (h *PeerHandlers) PeersHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		if h.ReadOnly {
 			readOnlyResponse(w, "/peers")
 		} else {
@@ -42,9 +40,7 @@ func (h *PeerHandlers) PeersHandler(w http.ResponseWriter, r *http.Request) {
 // PeerHandler gets info on a single peer
 func (h *PeerHandlers) PeerHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		if h.ReadOnly {
 			readOnlyResponse(w, "/peers/")
 			return
@@ -58,9 +54,7 @@ func (h *PeerHandlers) PeerHandler(w http.ResponseWriter, r *http.Request) {
 // ConnectToPeerHandler is the endpoint for explicitly connecting to a peer
 func (h *PeerHandlers) ConnectToPeerHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		h.connectToPeerHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -70,9 +64,7 @@ func (h *PeerHandlers) ConnectToPeerHandler(w http.ResponseWriter, r *http.Reque
 // ConnectionsHandler is the endpoint for listing qri & IPFS connections
 func (h *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		if h.ReadOnly {
 			readOnlyResponse(w, "/connections")
 			return

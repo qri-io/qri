@@ -156,7 +156,6 @@ func TestHealthCheck(t *testing.T) {
 	}()
 
 	healthCheckCases := []handlerTestCase{
-		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
 	}
 	runHandlerTestCases(t, "health check", HealthCheckHandler, healthCheckCases, true)
@@ -235,14 +234,14 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"PUT", "/save/", 403},
 		{"POST", "/remove/", 403},
 		{"DELETE", "/remove/", 403},
-		{"POST", "/add/", 404},
-		{"PUT", "/add/", 404},
+		{"POST", "/add/", 403},
+		{"PUT", "/add/", 403},
 		{"POST", "/rename", 403},
 		{"PUT", "/rename", 403},
 		{"POST", "/diff", 403},
 		{"GET", "/diff", 403},
 		{"GET", "/body/", 403},
-		{"POST", "/registry/", 404},
+		{"POST", "/registry/", 403},
 		{"GET", "/checkout", 403},
 		{"GET", "/status", 403},
 		{"GET", "/init", 403},

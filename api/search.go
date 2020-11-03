@@ -22,9 +22,7 @@ func NewSearchHandlers(inst *lib.Instance) *SearchHandlers {
 // SearchHandler is the endpoint for searching qri
 func (h *SearchHandlers) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		h.searchHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)

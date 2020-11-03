@@ -36,9 +36,7 @@ func (h *SQLHandlers) QueryHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		switch r.Method {
-		case "OPTIONS":
-			util.EmptyOkHandler(w, r)
-		case "GET", "POST":
+		case http.MethodGet, http.MethodPost:
 			handleQuery(w, r)
 		default:
 			util.NotFoundHandler(w, r)

@@ -35,10 +35,7 @@ func (h *RemoteClientHandlers) PushHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-		return
-	case "GET":
+	case http.MethodGet:
 		h.listPublicHandler(w, r)
 		return
 	}
@@ -56,14 +53,14 @@ func (h *RemoteClientHandlers) PushHandler(w http.ResponseWriter, r *http.Reques
 
 	var res dsref.Ref
 	switch r.Method {
-	case "POST":
+	case http.MethodPost:
 		if err := h.Push(p, &res); err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
 		util.WriteResponse(w, "ok")
 		return
-	case "DELETE":
+	case http.MethodDelete:
 		if err := h.Remove(p, &res); err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
@@ -78,9 +75,7 @@ func (h *RemoteClientHandlers) PushHandler(w http.ResponseWriter, r *http.Reques
 // FeedsHandler fetches an index of named feeds
 func (h *RemoteClientHandlers) FeedsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		h.feedsHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -102,9 +97,8 @@ func (h *RemoteClientHandlers) feedsHandler(w http.ResponseWriter, r *http.Reque
 // DatasetPreviewHandler fetches a dataset preview from the registry
 func (h *RemoteClientHandlers) DatasetPreviewHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+
+	case http.MethodGet:
 		h.previewHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)

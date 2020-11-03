@@ -42,7 +42,6 @@ func TestFSIHandlers(t *testing.T) {
 	defer os.RemoveAll(filepath.Join("fsi_tests"))
 
 	initCases := []handlerTestCase{
-		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
 		{"POST", "/", nil},
 		{"POST", fmt.Sprintf("/?filepath=%s", initDir), nil},
@@ -54,7 +53,6 @@ func TestFSIHandlers(t *testing.T) {
 	runHandlerTestCases(t, "init", h.InitHandler(""), initCases, true)
 
 	statusCases := []handlerTestCase{
-		{"OPTIONS", "/", nil},
 		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
 		// temp directory names
 		{"GET", "/me/movies", nil},
@@ -63,7 +61,6 @@ func TestFSIHandlers(t *testing.T) {
 	runHandlerTestCases(t, "status", h.StatusHandler(""), statusCases, true)
 
 	whatChangedCases := []handlerTestCase{
-		{"OPTIONS", "/", nil},
 		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
 		// temp directory names
 		{"GET", "/me/movies", nil},
@@ -72,7 +69,6 @@ func TestFSIHandlers(t *testing.T) {
 	runHandlerTestCases(t, "whatchanged", h.WhatChangedHandler(""), whatChangedCases, true)
 
 	checkoutCases := []handlerTestCase{
-		{"OPTIONS", "/", nil},
 		{"POST", "/me/movies", nil},
 		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
 		// temp directory names

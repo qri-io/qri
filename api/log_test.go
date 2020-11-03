@@ -35,7 +35,6 @@ func TestHistoryHandlers(t *testing.T) {
 	h := NewLogHandlers(inst)
 
 	logCases := []handlerTestCase{
-		{"OPTIONS", "/", nil},
 		// TODO (b5) - these currently break in CI b/c of timzone mismatching
 		// we need to get timezones fixed for logbook
 		// {"GET", "/history/me/cities?local=true", nil},

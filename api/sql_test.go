@@ -16,7 +16,6 @@ func TestSQLHandler(t *testing.T) {
 	h := NewSQLHandlers(inst, false)
 
 	cases := []handlerTestCase{
-		{"OPTIONS", "/sql", nil},
 		{"GET", "/sql?query=select%20*%20from%20me/movies%20m%20order%20by%20m.title%20limit%201", nil},
 	}
 	runHandlerTestCases(t, "sql", h.QueryHandler("/sql"), cases, false)

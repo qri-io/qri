@@ -29,15 +29,13 @@ func NewProfileHandlers(inst *lib.Instance, readOnly bool) *ProfileHandlers {
 // ProfileHandler is the endpoint for this peer's profile
 func (h *ProfileHandlers) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		if h.ReadOnly {
 			readOnlyResponse(w, "/profile' or '/me")
 			return
 		}
 		h.getProfileHandler(w, r)
-	case "POST":
+	case http.MethodPost:
 		h.saveProfileHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -73,11 +71,9 @@ func (h *ProfileHandlers) saveProfileHandler(w http.ResponseWriter, r *http.Requ
 // ProfilePhotoHandler is the endpoint for uploading this peer's profile photo
 func (h *ProfileHandlers) ProfilePhotoHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		h.getProfilePhotoHandler(w, r)
-	case "PUT", "POST":
+	case http.MethodPut, http.MethodPost:
 		h.setProfilePhotoHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -129,11 +125,9 @@ func (h *ProfileHandlers) setProfilePhotoHandler(w http.ResponseWriter, r *http.
 // PosterHandler is the endpoint for uploading this peer's poster photo
 func (h *ProfileHandlers) PosterHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		h.getPosterHandler(w, r)
-	case "PUT", "POST":
+	case http.MethodPut, http.MethodPost:
 		h.setPosterHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)

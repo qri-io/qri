@@ -15,7 +15,6 @@ func TestPeerHandlers(t *testing.T) {
 	h := NewPeerHandlers(newTestInstanceWithProfileFromNode(ctx, node), false)
 
 	connectionsCases := []handlerTestCase{
-		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
 		{"DELETE", "/", nil},
 	}
