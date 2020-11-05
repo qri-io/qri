@@ -17,7 +17,6 @@ func TestRenderHandler(t *testing.T) {
 	inst := newTestInstanceWithProfileFromNode(ctx, node)
 
 	cases := []handlerTestCase{
-		{"OPTIONS", "/render", nil},
 		{"GET", "/render/me/movies?viz=true", nil},
 	}
 

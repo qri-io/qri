@@ -42,12 +42,10 @@ func (h *FSIHandlers) StatusHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		switch r.Method {
-		case "OPTIONS":
-			util.EmptyOkHandler(w, r)
+		case http.MethodGet:
+			handleStatus(w, r)
 		default:
 			util.NotFoundHandler(w, r)
-		case "GET":
-			handleStatus(w, r)
 		}
 	}
 }
@@ -86,11 +84,9 @@ func (h *FSIHandlers) WhatChangedHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		switch r.Method {
-		case "OPTIONS":
-			util.EmptyOkHandler(w, r)
 		default:
 			util.NotFoundHandler(w, r)
-		case "GET":
+		case http.MethodGet:
 			handleStatus(w, r)
 		}
 	}
@@ -130,9 +126,7 @@ func (h *FSIHandlers) InitHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		switch r.Method {
-		case "OPTIONS":
-			util.EmptyOkHandler(w, r)
-		case "POST":
+		case http.MethodPost:
 			handleInit(w, r)
 		default:
 			util.NotFoundHandler(w, r)
@@ -208,9 +202,7 @@ func (h *FSIHandlers) WriteHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		switch r.Method {
-		case "OPTIONS":
-			util.EmptyOkHandler(w, r)
-		case "POST":
+		case http.MethodPost:
 			handler(w, r)
 		default:
 			util.NotFoundHandler(w, r)
@@ -257,9 +249,7 @@ func (h *FSIHandlers) CheckoutHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		switch r.Method {
-		case "OPTIONS":
-			util.EmptyOkHandler(w, r)
-		case "POST":
+		case http.MethodPost:
 			handleCheckout(w, r)
 		default:
 			util.NotFoundHandler(w, r)
@@ -300,9 +290,7 @@ func (h *FSIHandlers) RestoreHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		switch r.Method {
-		case "OPTIONS":
-			util.EmptyOkHandler(w, r)
-		case "POST":
+		case http.MethodPost:
 			handleRestore(w, r)
 		default:
 			util.NotFoundHandler(w, r)

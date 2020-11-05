@@ -28,9 +28,7 @@ func NewLogHandlers(inst *lib.Instance) *LogHandlers {
 // LogHandler is the endpoint for dataset logs
 func (h *LogHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		h.logHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)

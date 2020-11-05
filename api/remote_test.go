@@ -20,7 +20,6 @@ func TestRemoteClientHandlers(t *testing.T) {
 	h := NewRemoteClientHandlers(inst, false)
 
 	publishCases := []handlerTestCase{
-		{"OPTIONS", "/", nil},
 		{"GET", "/publish/", nil},
 		{"POST", "/publish/me/cities", nil},
 		{"DELETE", "/publish/me/cities", nil},

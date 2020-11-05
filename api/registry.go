@@ -30,7 +30,7 @@ func (h *RegistryClientHandlers) CreateProfileHandler(w http.ResponseWriter, r *
 		return
 	}
 
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		util.NotFoundHandler(w, r)
 		return
 	}
@@ -59,7 +59,7 @@ func (h *RegistryClientHandlers) ProveProfileKeyHandler(w http.ResponseWriter, r
 		readOnlyResponse(w, "/registry/profiles/prove")
 	}
 
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		util.NotFoundHandler(w, r)
 		return
 	}

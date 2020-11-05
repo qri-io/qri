@@ -42,9 +42,7 @@ func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
 // ListHandler is a dataset list endpoint
 func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		if h.ReadOnly {
 			readOnlyResponse(w, "/list")
 			return
@@ -58,9 +56,7 @@ func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 // SaveHandler is a dataset save/update endpoint
 func (h *DatasetHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "PUT", "POST":
+	case http.MethodPut, http.MethodPost:
 		h.saveHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -70,9 +66,7 @@ func (h *DatasetHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 // RemoveHandler is a a dataset delete endpoint
 func (h *DatasetHandlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "DELETE", "POST":
+	case http.MethodDelete, http.MethodPost:
 		h.removeHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -82,9 +76,7 @@ func (h *DatasetHandlers) RemoveHandler(w http.ResponseWriter, r *http.Request) 
 // GetHandler is a dataset single endpoint
 func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		h.getHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -94,9 +86,7 @@ func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 // DiffHandler is a dataset single endpoint
 func (h *DatasetHandlers) DiffHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "POST", "GET":
+	case http.MethodPost, http.MethodGet:
 		if h.ReadOnly {
 			readOnlyResponse(w, "/diff")
 			return
@@ -110,9 +100,7 @@ func (h *DatasetHandlers) DiffHandler(w http.ResponseWriter, r *http.Request) {
 // PeerListHandler is a dataset list endpoint
 func (h *DatasetHandlers) PeerListHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		h.peerListHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -122,9 +110,7 @@ func (h *DatasetHandlers) PeerListHandler(w http.ResponseWriter, r *http.Request
 // PullHandler is an endpoint for creating new datasets
 func (h *DatasetHandlers) PullHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "POST", "PUT":
+	case http.MethodPost, http.MethodPut:
 		h.pullHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -134,9 +120,7 @@ func (h *DatasetHandlers) PullHandler(w http.ResponseWriter, r *http.Request) {
 // RenameHandler is the endpoint for renaming datasets
 func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "POST", "PUT":
+	case http.MethodPost, http.MethodPut:
 		h.renameHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -146,9 +130,7 @@ func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) 
 // BodyHandler gets the contents of a dataset
 func (h *DatasetHandlers) BodyHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		if h.ReadOnly {
 			readOnlyResponse(w, "/body/")
 			return
@@ -162,9 +144,7 @@ func (h *DatasetHandlers) BodyHandler(w http.ResponseWriter, r *http.Request) {
 // StatsHandler gets stats about the dataset
 func (h *DatasetHandlers) StatsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
+	case http.MethodGet:
 		h.statsHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -174,9 +154,7 @@ func (h *DatasetHandlers) StatsHandler(w http.ResponseWriter, r *http.Request) {
 // UnpackHandler unpacks a zip file and sends it back as json
 func (h *DatasetHandlers) UnpackHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "POST":
+	case http.MethodPost:
 		postData, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)

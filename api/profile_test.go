@@ -25,7 +25,6 @@ func TestProfileHandler(t *testing.T) {
 	defer cancel()
 
 	cases := []handlerTestCase{
-		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
 		{"POST", "/", mustFile(t, "testdata/profileRequest.json")},
 		{"POST", "/", []byte(``)},
@@ -63,7 +62,6 @@ func TestProfilePhotoHandler(t *testing.T) {
 		filepaths              map[string]string
 		params                 map[string]string
 	}{
-		{"OPTIONS", "OPTIONS", "/", nil, nil},
 		{"POST", "POST", "/",
 			map[string]string{
 				"file": "testdata/rico_400x400.jpg",
@@ -122,7 +120,6 @@ func TestProfilePosterHandler(t *testing.T) {
 		filepaths              map[string]string
 		params                 map[string]string
 	}{
-		{"OPTIONS", "OPTIONS", "/", nil, nil},
 		{"POST", "POST", "/",
 			map[string]string{
 				"file": "testdata/rico_poster_1500x500.jpg",

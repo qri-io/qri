@@ -10,15 +10,24 @@ import (
 
 // middleware handles request logging
 func (s Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log.Infof("%s %s %s", r.Method, r.URL.Path, time.Now())
+	return s.mwFunc(handler, true)
+}
 
-		// TODO - Strict Transport config?
-		// if cfg.TLS {
-		// 	// If TLS is enabled, set 1 week strict TLS, 1 week for now to prevent catastrophic mess-ups
-		// 	w.Header().Add("Strict-Transport-Security", "max-age=604800")
-		// }
+func (s Server) noLogMiddleware(handler http.HandlerFunc) http.HandlerFunc {
+	return s.mwFunc(handler, false)
+}
+
+func (s Server) mwFunc(handler http.HandlerFunc, shouldLog bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if shouldLog {
+			log.Infof("%s %s %s", r.Method, r.URL.Path, time.Now())
+		}
+
 		s.addCORSHeaders(w, r)
+		if r.Method == http.MethodOptions {
+			util.EmptyOkHandler(w, r)
+			return
+		}
 
 		if ok := s.readOnlyCheck(r); ok {
 			handler(w, r)

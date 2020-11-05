@@ -194,8 +194,8 @@ func NewServerRoutes(s Server) *http.ServeMux {
 
 	m := http.NewServeMux()
 
-	m.HandleFunc("/", HomeHandler)
-	m.HandleFunc("/health", HealthCheckHandler)
+	m.Handle("/", s.noLogMiddleware(HomeHandler))
+	m.Handle("/health", s.noLogMiddleware(HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
