@@ -776,10 +776,10 @@ func TestRenameNoHistory(t *testing.T) {
 	defer tr.Delete()
 
 	workDir := tr.CreateAndChdirToWorkDir("remove_no_history")
-	initP := &InitFSIDatasetParams{
-		Dir:    workDir,
-		Name:   "remove_no_history",
-		Format: "csv",
+	initP := &InitDatasetParams{
+		TargetDir: workDir,
+		Name:      "remove_no_history",
+		Format:    "csv",
 	}
 	var refstr string
 	if err := NewFSIMethods(tr.Instance).InitDataset(initP, &refstr); err != nil {
@@ -838,11 +838,10 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	defer os.RemoveAll(datasetsDir)
 
 	// initialize an example no-history dataset
-	initp := &InitFSIDatasetParams{
-		Name:   "no_history",
-		Dir:    datasetsDir,
-		Format: "csv",
-		Mkdir:  "no_history",
+	initp := &InitDatasetParams{
+		Name:      "no_history",
+		TargetDir: filepath.Join(datasetsDir, "no_history"),
+		Format:    "csv",
 	}
 	var noHistoryName string
 	if err := fsim.InitDataset(initp, &noHistoryName); err != nil {
@@ -1121,11 +1120,10 @@ func TestDatasetRequestsValidateFSI(t *testing.T) {
 	defer tr.Delete()
 
 	workDir := tr.CreateAndChdirToWorkDir("remove_no_history")
-	initP := &InitFSIDatasetParams{
-		Name:   "validate_test",
-		Dir:    workDir,
-		Format: "csv",
-		Mkdir:  "validate_test",
+	initP := &InitDatasetParams{
+		Name:      "validate_test",
+		TargetDir: filepath.Join(workDir, "validate_test"),
+		Format:    "csv",
 	}
 	var refstr string
 	if err := NewFSIMethods(tr.Instance).InitDataset(initP, &refstr); err != nil {

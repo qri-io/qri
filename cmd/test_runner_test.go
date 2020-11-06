@@ -222,6 +222,7 @@ func (run *TestRunner) ExecCommand(cmdText string) error {
 // ExecCommandWithStdin executes the given command string with the string as stdin content
 func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinText string) error {
 	setNoColor(true)
+	run.Streams.In = strings.NewReader(stdinText)
 	cmd, shutdown := NewQriCommand(ctx, run.RepoPath, run.RepoRoot.TestCrypto, run.Streams)
 	cmd.SetOutput(run.OutStream)
 	run.CmdR = cmd

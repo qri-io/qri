@@ -340,12 +340,19 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	return nil
 }
 
-// InitFSIDatasetParams proxies parameters to initialization
-type InitFSIDatasetParams = fsi.InitParams
+// InitDatasetParams proxies parameters to initialization
+type InitDatasetParams = fsi.InitParams
 
-// InitDataset creates a new dataset and FSI link
-func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, refstr *string) (err error) {
-	if err = qfs.AbsPath(&p.SourceBodyPath); err != nil {
+// InitDataset creates a new dataset in a working directory
+func (m *FSIMethods) InitDataset(p *InitDatasetParams, refstr *string) (err error) {
+	if err = qfs.AbsPath(&p.BodyPath); err != nil {
+		return err
+	}
+
+	if p.TargetDir == "" {
+		p.TargetDir = "."
+	}
+	if err = qfs.AbsPath(&p.TargetDir); err != nil {
 		return err
 	}
 
@@ -364,10 +371,10 @@ func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, refstr *string) (err e
 }
 
 // CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not
-func (m *FSIMethods) CanInitDatasetWorkDir(p *InitFSIDatasetParams, ok *bool) error {
-	dir := p.Dir
-	sourceBodyPath := p.SourceBodyPath
-	return m.inst.fsi.CanInitDatasetWorkDir(dir, sourceBodyPath)
+func (m *FSIMethods) CanInitDatasetWorkDir(p *InitDatasetParams, ok *bool) error {
+	targetPath := p.TargetDir
+	bodyPath := p.BodyPath
+	return m.inst.fsi.CanInitDatasetWorkDir(targetPath, bodyPath)
 }
 
 // EnsureParams holds values for EnsureRef call

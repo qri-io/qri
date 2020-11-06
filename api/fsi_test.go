@@ -98,9 +98,9 @@ func TestNoHistory(t *testing.T) {
 
 	// Create a linked dataset without saving, it has no versions in the repository
 	ref, err := run.Inst.FSI().InitDataset(fsi.InitParams{
-		Dir:    workDir,
-		Name:   "test_ds",
-		Format: "csv",
+		TargetDir: workDir,
+		Name:      "test_ds",
+		Format:    "csv",
 	})
 	if err != nil {
 		t.Fatal(err)

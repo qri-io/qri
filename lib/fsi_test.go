@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 
 	cmp "github.com/google/go-cmp/cmp"
@@ -42,11 +43,10 @@ func TestFSIMethodsWrite(t *testing.T) {
 	defer os.RemoveAll(datasetsDir)
 
 	// initialize an example no-history dataset
-	initp := &InitFSIDatasetParams{
-		Name:   "no_history",
-		Dir:    datasetsDir,
-		Format: "csv",
-		Mkdir:  "no_history",
+	initp := &InitDatasetParams{
+		Name:      "no_history",
+		TargetDir: filepath.Join(datasetsDir, "no_history"),
+		Format:    "csv",
 	}
 	var noHistoryName string
 	if err := methods.InitDataset(initp, &noHistoryName); err != nil {
@@ -280,4 +280,119 @@ func TestDscacheInit(t *testing.T) {
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
+}
+
+// Test that `init` with no directory will use the current one
+func TestInitWithCurrentDir(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	initDir := filepath.Join(run.TmpDir, "path")
+
+	// Create a directory that will become the working directory
+	if err := os.Mkdir(initDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	// Change to it
+	if err := os.Chdir(initDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Don't pass the working directory path, `init` will use the current directory
+	err := run.InitWithParams(
+		&InitDatasetParams{
+			Name:   "new_ds",
+			Format: "csv",
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify the directory contains the files that we expect
+	dirContents := listDirectory(initDir)
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents did not match (-want +got):\n%s", diff)
+	}
+}
+
+// Test that `init` with an explicit directory will create it
+func TestInitWithExplicitDir(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	initDir := filepath.Join(run.TmpDir, "path/to/dataset")
+
+	// Pass the path for the directory, though it doesn't exist yet, `init` will make it
+	err := run.InitWithParams(
+		&InitDatasetParams{
+			Name:      "new_ds",
+			TargetDir: initDir,
+			Format:    "csv",
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify the directory contains the files that we expect
+	dirContents := listDirectory(initDir)
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents did not match (-want +got):\n%s", diff)
+	}
+}
+
+// Test that if `init` fails after requested directory has been created, that directory
+// will be removed as part of rollback
+func TestInitRollbackRemovesDirectory(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	// Save a dataset with one version.
+	run.MustSaveFromBody(t, "movie_ds", "testdata/cities_2/body.csv")
+	// Change to the temp directory to create some directory
+	run.ChdirToRoot()
+
+	// Create one directory, will run `qri init` targeting a non-existent subdirectory
+	if err := os.Mkdir("path", 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Init should fail because the reference already exists in logbook
+	// TODO(dustmop): Change this to some "fake" resolver, which holds references in memory,
+	// and use dependency injection for the test. Remove the need to add a reference to logbook.
+	err := run.InitWithParams(
+		&InitDatasetParams{
+			Name:      "movie_ds",
+			TargetDir: filepath.Join(run.TmpDir, "path/to/dataset"),
+			Format:    "csv",
+		},
+	)
+	if err == nil {
+		t.Fatal("expected error from init, did not get one")
+	}
+
+	// Directory "./path/to/" does not exist
+	if _, err = os.Stat("path/to/"); err == nil {
+		t.Error("directory \"./path/to\" should have been removed by rollback")
+	}
+	// Directory "./path/" should still exist
+	if _, err = os.Stat("path"); os.IsNotExist(err) {
+		t.Error("directory \"./path\" should *NOT* have been removed by rollback")
+	}
+}
+
+func listDirectory(path string) []string {
+	contents := []string{}
+	finfos, err := ioutil.ReadDir(path)
+	if err != nil {
+		return nil
+	}
+	for _, fi := range finfos {
+		contents = append(contents, fi.Name())
+	}
+	sort.Strings(contents)
+	return contents
 }
