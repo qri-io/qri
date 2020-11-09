@@ -18,12 +18,11 @@ import (
 
 // InitParams encapsulates parameters for fsi.InitDataset
 type InitParams struct {
-	Dir            string
-	Name           string
-	Format         string
-	Mkdir          string
-	SourceBodyPath string
-	UseDscache     bool
+	TargetDir  string
+	Name       string
+	Format     string
+	BodyPath   string
+	UseDscache bool
 }
 
 func concatFunc(f1, f2 func()) func() {
@@ -56,49 +55,31 @@ func (fsi *FSI) InitDataset(p InitParams) (ref dsref.Ref, err error) {
 	if !dsref.IsValidName(p.Name) {
 		return ref, dsref.ErrDescribeValidName
 	}
-	if p.Dir == "" {
+	if p.TargetDir == "" {
 		return ref, fmt.Errorf("directory is required to initialize a dataset")
 	}
 
-	if fi, err := os.Stat(p.Dir); err != nil {
-		return ref, err
-	} else if !fi.IsDir() {
-		return ref, fmt.Errorf("invalid path to initialize. '%s' is not a directory", p.Dir)
-	}
+	baseDir, createDir := SplitDirByExist(p.TargetDir)
 
-	// Either use an existing directory, or create one at the given directory.
-	var targetPath string
-	if p.Mkdir == "" {
-		targetPath = p.Dir
-	} else {
-		targetPath = filepath.Join(p.Dir, p.Mkdir)
-		// Create the directory. It is not an error for the directory to already exist, as long
-		// as it is not already linked, which is checked below.
-		err := os.Mkdir(targetPath, os.ModePerm)
-		if err != nil {
-			if strings.Contains(err.Error(), "file exists") {
-				// Not an error if directory already exists
-				err = nil
-			} else {
-				return ref, err
-			}
-		} else {
-			// If directory was successfully created, add a step to the rollback in case future
-			// steps fail.
-			rollback = concatFunc(
-				func() {
-					log.Debugf("removing directory %q during rollback", targetPath)
-					if err := os.Remove(targetPath); err != nil {
-						log.Debugf("error while removing directory %q: %s", targetPath, err)
-					}
-				}, rollback)
+	if createDir != "" {
+		if err := os.MkdirAll(p.TargetDir, 0755); err != nil {
+			return ref, err
 		}
+		rollback = concatFunc(
+			func() {
+				firstSegment := strings.Split(createDir, string(os.PathSeparator))[0]
+				cleanupPath := filepath.Join(baseDir, firstSegment)
+				log.Debugf("removing directory %q during rollback", cleanupPath)
+				if err := os.RemoveAll(cleanupPath); err != nil {
+					log.Debugf("error while removing directory %q: %s", cleanupPath, err)
+				}
+			}, rollback)
 	}
 
 	// Make sure we're not going to overwrite any files in the directory being initialized.
-	// Pass the sourceBodyPath, because it's okay if this file already exists, as long as its
+	// Pass the bodyPath, because it's okay if this file already exists, as long as its
 	// being used to create the body.
-	if err = fsi.CanInitDatasetWorkDir(targetPath, p.SourceBodyPath); err != nil {
+	if err = fsi.CanInitDatasetWorkDir(p.TargetDir, p.BodyPath); err != nil {
 		return ref, err
 	}
 
@@ -134,8 +115,8 @@ to create a working directory for an existing dataset`
 		}, rollback)
 
 	// Derive format from --body if provided.
-	if p.Format == "" && p.SourceBodyPath != "" {
-		ext := filepath.Ext(p.SourceBodyPath)
+	if p.Format == "" && p.BodyPath != "" {
+		ext := filepath.Ext(p.BodyPath)
 		if len(ext) > 0 {
 			p.Format = ext[1:]
 		}
@@ -151,14 +132,14 @@ to create a working directory for an existing dataset`
 	// but I'd like to have one place that fires LinkCreated Events, maybe a private function
 	// that both the exported CreateLink & Init can call
 	vi := ref.VersionInfo()
-	vi.FSIPath = targetPath
+	vi.FSIPath = p.TargetDir
 	if err := repo.PutVersionInfoShim(fsi.repo, &vi); err != nil {
 		return ref, err
 	}
 
 	// Create the link file, containing the dataset reference.
 	var undo func()
-	if _, undo, err = fsi.CreateLink(targetPath, ref); err != nil {
+	if _, undo, err = fsi.CreateLink(p.TargetDir, ref); err != nil {
 		return ref, err
 	}
 	// If future steps fail, rollback the link creation.
@@ -172,15 +153,15 @@ to create a working directory for an existing dataset`
 
 	// Add body file.
 	var bodySchema map[string]interface{}
-	if p.SourceBodyPath != "" {
-		initDs.BodyPath = p.SourceBodyPath
+	if p.BodyPath != "" {
+		initDs.BodyPath = p.BodyPath
 		// Create structure by detecting it from the body.
-		file, err := os.Open(p.SourceBodyPath)
+		file, err := os.Open(p.BodyPath)
 		if err != nil {
 			return ref, err
 		}
 		defer file.Close()
-		// TODO(dlong): This should move into `dsio` package.
+		// TODO(dustmop): This should move into `dsio` package.
 		entries, err := component.OpenEntryReader(file, p.Format)
 		if err != nil {
 			log.Errorf("opening entry reader: %s", err)
@@ -215,7 +196,7 @@ to create a working directory for an existing dataset`
 	for _, compName := range component.AllSubcomponentNames() {
 		aComp := container.Base().GetSubcomponent(compName)
 		if aComp != nil {
-			wroteFile, err := aComp.WriteTo(targetPath)
+			wroteFile, err := aComp.WriteTo(p.TargetDir)
 			if err != nil {
 				log.Errorf("writing component file %s: %s", compName, err)
 				return ref, err
@@ -238,9 +219,9 @@ to create a working directory for an existing dataset`
 }
 
 // CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not
-func (fsi *FSI) CanInitDatasetWorkDir(dir, sourceBodyPath string) error {
+func (fsi *FSI) CanInitDatasetWorkDir(dir, bodyPath string) error {
 	// Get the body relative to the directory that we're initializing.
-	relBodyPath := sourceBodyPath
+	relBodyPath := bodyPath
 	if strings.HasPrefix(relBodyPath, dir) {
 		relBodyPath = strings.TrimPrefix(relBodyPath, dir)
 		// Removing the directory may leave a leading slash, if the dirname did not end in a slash.
@@ -253,8 +234,8 @@ func (fsi *FSI) CanInitDatasetWorkDir(dir, sourceBodyPath string) error {
 	if linkfile.ExistsInDir(dir) {
 		return fmt.Errorf("working directory is already linked, .qri-ref exists")
 	}
-	// Check if other component files exist. If sourceBodyPath is provided, it's not an error
-	// if its filename exists.
+	// Check if other component files exist. If bodyPath is provided, it's not an error if its
+	// filename exists.
 	if _, err := os.Stat(filepath.Join(dir, "meta.json")); !os.IsNotExist(err) {
 		return fmt.Errorf("cannot initialize new dataset, meta.json exists")
 	}
@@ -273,4 +254,23 @@ func (fsi *FSI) CanInitDatasetWorkDir(dir, sourceBodyPath string) error {
 	}
 
 	return nil
+}
+
+// SplitDirByExist splits a path into the part that exists, and the part that is missing
+func SplitDirByExist(fullpath string) (string, string) {
+	segments := strings.Split(fullpath, string(os.PathSeparator))
+	// Iterate path segments starting from root, check if each exists
+	for i := range segments {
+		if i < 1 {
+			continue
+		}
+		// Build path such that it includes the current segment being iterated
+		path := "/" + filepath.Join(segments[:i+1]...)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			// If one is found to not exist, split on the current segment
+			return "/" + filepath.Join(segments[:i]...), filepath.Join(segments[i:]...)
+		}
+	}
+	// Entire path exists
+	return fullpath, ""
 }

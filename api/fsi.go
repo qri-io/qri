@@ -136,18 +136,11 @@ func (h *FSIHandlers) InitHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Backwards compatibility shim for now, can use either "dir" or "filepath".
-		// TODO: Update desktop to always use "dir", delete "filepath".
-		dir := r.FormValue("dir")
-		if dir == "" && r.FormValue("filepath") != "" {
-			dir = r.FormValue("filepath")
-		}
-		p := &lib.InitFSIDatasetParams{
-			Dir:            dir,
-			Name:           r.FormValue("name"),
-			Format:         r.FormValue("format"),
-			Mkdir:          r.FormValue("mkdir"),
-			SourceBodyPath: r.FormValue("sourcebodypath"),
+		p := &lib.InitDatasetParams{
+			TargetDir: r.FormValue("targetdir"),
+			Name:      r.FormValue("name"),
+			Format:    r.FormValue("format"),
+			BodyPath:  r.FormValue("bodypath"),
 		}
 
 		var name string

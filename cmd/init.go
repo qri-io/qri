@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -46,8 +45,8 @@ already existing body file using the 'body' flag.`,
 	}
 
 	cmd.Flags().StringVar(&o.Name, "name", "", "name of the dataset")
-	cmd.Flags().StringVar(&o.Format, "format", "", "format of dataset")
-	cmd.Flags().StringVar(&o.SourceBodyPath, "body", "", "path to the body file")
+	cmd.Flags().StringVar(&o.Format, "format", "", "format of dataset body")
+	cmd.Flags().StringVar(&o.BodyPath, "body", "", "path to the body file")
 	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "experimental: build and use dscache if none exists")
 
 	return cmd
@@ -57,11 +56,16 @@ already existing body file using the 'body' flag.`,
 type InitOptions struct {
 	ioes.IOStreams
 
-	Name           string
-	Format         string
-	SourceBodyPath string
-	Mkdir          string
-	UseDscache     bool
+	// Name of the dataset that will be created
+	Name string
+	// Format of the body
+	Format string
+	// Body file to initialize dataset with, if blank an example csv will be used
+	BodyPath string
+	// Path to use as a working directory. Will be created if it does not exist yet.
+	TargetDir string
+	// Experimental: Use dscache subsystem to store dataset references
+	UseDscache bool
 
 	DatasetMethods *lib.DatasetMethods
 	FSIMethods     *lib.FSIMethods
@@ -73,27 +77,18 @@ func (o *InitOptions) Complete(f Factory, args []string) (err error) {
 		return err
 	}
 	o.FSIMethods, err = f.FSIMethods()
-	if len(args) > 0 && args[0] != "." {
-		o.Mkdir = args[0]
+	if len(args) > 0 {
+		o.TargetDir = args[0]
 	}
 	return err
 }
 
 // Run executes the `init` command
 func (o *InitOptions) Run() (err error) {
-	pwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	targetDir := pwd
-	if o.Mkdir != "" {
-		targetDir = o.Mkdir
-	}
-
 	// First, check if the directory can be init'd, before prompting for any input
-	canInitParams := lib.InitFSIDatasetParams{
-		Dir:            targetDir,
-		SourceBodyPath: o.SourceBodyPath,
+	canInitParams := lib.InitDatasetParams{
+		TargetDir: o.TargetDir,
+		BodyPath:  o.BodyPath,
 	}
 	if err = o.FSIMethods.CanInitDatasetWorkDir(&canInitParams, nil); err != nil {
 		return err
@@ -101,20 +96,18 @@ func (o *InitOptions) Run() (err error) {
 
 	// Suggestion for the dataset name defaults to directory it is being linked into
 	if o.Name == "" {
-		// TODO(dustmop): Currently all tests that call `init` use the --name flag. Add a test
-		// that receives stdin and checks what is written to stdout.
-		suggestedName := dsref.GenerateName(filepath.Base(targetDir), "dataset_")
+		suggestedName := dsref.GenerateName(filepath.Base(o.TargetDir), "dataset_")
 		o.Name = inputText(o.Out, o.In, "Name of new dataset", suggestedName)
 	}
 
-	// If user inputted there own dataset name, make sure it's valid.
+	// If user inputted their own dataset name, make sure it's valid.
 	if err := dsref.EnsureValidName(o.Name); err != nil {
 		return err
 	}
 
 	// If --body flag is set, use that to figure out the format
-	if o.SourceBodyPath != "" {
-		ext := filepath.Ext(o.SourceBodyPath)
+	if o.BodyPath != "" {
+		ext := filepath.Ext(o.BodyPath)
 		if strings.HasPrefix(ext, ".") {
 			ext = ext[1:]
 		}
@@ -125,13 +118,12 @@ func (o *InitOptions) Run() (err error) {
 		o.Format = inputText(o.Out, o.In, "Format of dataset, csv or json", "csv")
 	}
 
-	p := &lib.InitFSIDatasetParams{
-		Dir:            pwd,
-		Mkdir:          o.Mkdir,
-		Format:         o.Format,
-		Name:           o.Name,
-		SourceBodyPath: o.SourceBodyPath,
-		UseDscache:     o.UseDscache,
+	p := &lib.InitDatasetParams{
+		TargetDir:  o.TargetDir,
+		Format:     o.Format,
+		Name:       o.Name,
+		BodyPath:   o.BodyPath,
+		UseDscache: o.UseDscache,
 	}
 	var refstr string
 	if err = o.FSIMethods.InitDataset(p, &refstr); err != nil {

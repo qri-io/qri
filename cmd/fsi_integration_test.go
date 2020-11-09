@@ -276,6 +276,22 @@ func TestInitExplicitDirectory(t *testing.T) {
 	}
 }
 
+// Test init command can use an explicit directory
+func TestInitExplicitAbsoluteDirectory(t *testing.T) {
+	run := NewFSITestRunner(t, "test_peer_init_abs_dir", "qri_test_init_abs_dir")
+	defer run.Delete()
+
+	absDir := filepath.Join(run.RootPath, "datasets/my_work_dir")
+	run.MustExec(t, fmt.Sprintf("qri init --name abs_dir --format csv %s", absDir))
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(absDir)
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+}
+
 // Test init command can build dscache
 func TestInitDscache(t *testing.T) {
 	run := NewFSITestRunner(t, "test_peer_init_dscache", "qri_test_init_dscache")
@@ -372,6 +388,27 @@ func TestGetBodyWithoutStructure(t *testing.T) {
 	output := run.MustExecCombinedOutErr(t, "qri get body")
 	expectBody := "for linked dataset [test_peer_get_body_without_structure/body_only]\n\none,two,3\nfour,five,6\n\n"
 	if diff := cmp.Diff(expectBody, output); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+}
+
+// Test init command accepts dataset name on standard input
+func TestInitUsingStdin(t *testing.T) {
+	run := NewFSITestRunner(t, "test_peer_init_json_body", "qri_test_init_json_body")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("json_body")
+
+	// Init with configuration from standard input
+	err := run.ExecCommandWithStdin(run.Context, "qri init", "my_dataset\njson")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.json", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 }

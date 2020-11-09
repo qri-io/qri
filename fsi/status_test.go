@@ -39,9 +39,9 @@ func TestStatusValid(t *testing.T) {
 
 	fsi := NewFSI(paths.testRepo, nil)
 	_, err := fsi.InitDataset(InitParams{
-		Name:   "test_ds",
-		Dir:    paths.firstDir,
-		Format: "csv",
+		Name:      "test_ds",
+		TargetDir: paths.firstDir,
+		Format:    "csv",
 	})
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -87,9 +87,9 @@ func TestStatusInvalidDataset(t *testing.T) {
 
 	fsi := NewFSI(paths.testRepo, nil)
 	_, err := fsi.InitDataset(InitParams{
-		Name:   "test_ds",
-		Dir:    paths.firstDir,
-		Format: "csv",
+		Name:      "test_ds",
+		TargetDir: paths.firstDir,
+		Format:    "csv",
 	})
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -115,9 +115,9 @@ func TestStatusInvalidMeta(t *testing.T) {
 
 	fsi := NewFSI(paths.testRepo, nil)
 	_, err := fsi.InitDataset(InitParams{
-		Name:   "test_ds",
-		Dir:    paths.firstDir,
-		Format: "csv",
+		Name:      "test_ds",
+		TargetDir: paths.firstDir,
+		Format:    "csv",
 	})
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -141,9 +141,9 @@ func TestStatusNotFound(t *testing.T) {
 
 	fsi := NewFSI(paths.testRepo, nil)
 	_, err := fsi.InitDataset(InitParams{
-		Name:   "test_ds",
-		Dir:    paths.firstDir,
-		Format: "csv",
+		Name:      "test_ds",
+		TargetDir: paths.firstDir,
+		Format:    "csv",
 	})
 	if err != nil {
 		t.Fatalf(err.Error())

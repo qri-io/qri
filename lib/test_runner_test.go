@@ -209,12 +209,18 @@ func (tr *testRunner) Init(refstr, format string) error {
 	}
 	m := NewFSIMethods(tr.Instance)
 	out := ""
-	p := InitFSIDatasetParams{
-		Name:   ref.Name,
-		Dir:    tr.WorkDir,
-		Format: format,
+	p := InitDatasetParams{
+		Name:      ref.Name,
+		TargetDir: tr.WorkDir,
+		Format:    format,
 	}
 	return m.InitDataset(&p, &out)
+}
+
+func (tr *testRunner) InitWithParams(p *InitDatasetParams) error {
+	m := NewFSIMethods(tr.Instance)
+	out := ""
+	return m.InitDataset(p, &out)
 }
 
 func (tr *testRunner) Checkout(refstr, dir string) error {
