@@ -44,12 +44,12 @@ require (
 	github.com/pkg/profile v1.5.0
 	github.com/qri-io/apiutil v0.2.0
 	github.com/qri-io/dag v0.2.2-0.20200725180936-93d90d47ff6e
-	github.com/qri-io/dataset v0.2.1-0.20201027203116-4e5e4591d1b8
+	github.com/qri-io/dataset v0.2.1-0.20201111192041-5e173056771c
 	github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/jsonschema v0.2.0
-	github.com/qri-io/qfs v0.5.1-0.20201027203612-c4d5a0634b7e
+	github.com/qri-io/qfs v0.5.1-0.20201112000212-555d11059f9d
 	github.com/qri-io/starlib v0.4.2
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.1.0

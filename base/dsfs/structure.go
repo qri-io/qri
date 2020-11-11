@@ -12,15 +12,20 @@ import (
 // pass (Structure.Strict == true)
 var ErrStrictMode = fmt.Errorf("dataset body did not validate against schema in strict-mode")
 
-// BaseTabularSchema is the base schema for tabular data
-// NOTE: Do not use if possible, prefer github.com/qri-io/dataset/tabular
-// TODO(dustmop): Possibly move this to tabular package
-var BaseTabularSchema = map[string]interface{}{
-	"type": "array",
-	"items": map[string]interface{}{
-		"type":  "array",
-		"items": []interface{}{},
-	},
+// DerefStructure derferences a dataset's structure element if required
+// should be a no-op if ds.Structure is nil or isn't a reference
+func DerefStructure(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
+	if ds.Structure != nil && ds.Structure.IsEmpty() && ds.Structure.Path != "" {
+		st, err := loadStructure(ctx, store, ds.Structure.Path)
+		if err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("loading dataset structure: %w", err)
+		}
+		// assign path to retain internal reference to path
+		// st.Path = ds.Structure.Path
+		ds.Structure = st
+	}
+	return nil
 }
 
 // loadStructure assumes path is valid

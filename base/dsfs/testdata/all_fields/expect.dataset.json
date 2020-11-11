@@ -40,6 +40,39 @@
       "type": "array"
     }
   },
+  "stats": {
+    "qri": "sa:0",
+    "stats": [
+      {
+        "count": 5,
+        "frequencies": {},
+        "maxLength": 8,
+        "minLength": 7,
+        "type": "string"
+      },
+      {
+        "count": 5,
+        "frequencies": {},
+        "maxLength": 8,
+        "minLength": 5,
+        "type": "string"
+      },
+      {
+        "count": 5,
+        "frequencies": {},
+        "maxLength": 5,
+        "minLength": 4,
+        "type": "string"
+      },
+      {
+        "count": 5,
+        "frequencies": {},
+        "maxLength": 5,
+        "minLength": 4,
+        "type": "string"
+      }
+    ]
+  },
   "transform": {
     "qri": "tf:0",
     "resources": {

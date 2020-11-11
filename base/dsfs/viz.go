@@ -10,6 +10,21 @@ import (
 	"github.com/qri-io/qfs"
 )
 
+// DerefViz dereferences a dataset's Viz element if required
+// no-op if ds.Viz is nil or isn't a reference
+func DerefViz(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
+	if ds.Viz != nil && ds.Viz.IsEmpty() && ds.Viz.Path != "" {
+		vz, err := loadViz(ctx, store, ds.Viz.Path)
+		if err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("loading dataset viz: %w", err)
+		}
+		// vz.Path = ds.Viz.Path
+		ds.Viz = vz
+	}
+	return nil
+}
+
 // loadViz assumes the provided path is valid
 func loadViz(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Viz, err error) {
 	data, err := fileBytes(fs.Get(ctx, path))

@@ -9,7 +9,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/base/dsfs"
 )
 
 func TestReadBody(t *testing.T) {
@@ -39,9 +38,20 @@ func TestReadBody(t *testing.T) {
 	}
 }
 
+// BaseTabularSchema is the base schema for tabular data
+// NOTE: Do not use if possible, prefer github.com/qri-io/dataset/tabular
+// TODO(dustmop): Possibly move this to tabular package
+var BaseTabularSchema = map[string]interface{}{
+	"type": "array",
+	"items": map[string]interface{}{
+		"type":  "array",
+		"items": []interface{}{},
+	},
+}
+
 func TestConvertBodyFormat(t *testing.T) {
 	jsonStructure := &dataset.Structure{Format: "json", Schema: dataset.BaseSchemaArray}
-	csvStructure := &dataset.Structure{Format: "csv", Schema: dsfs.BaseTabularSchema}
+	csvStructure := &dataset.Structure{Format: "csv", Schema: BaseTabularSchema}
 
 	// CSV -> JSON
 	body := qfs.NewMemfileBytes("", []byte("a,b,c"))

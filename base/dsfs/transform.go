@@ -8,6 +8,21 @@ import (
 	"github.com/qri-io/qfs"
 )
 
+// DerefTransform derferences a dataset's transform element if required
+// should be a no-op if ds.Structure is nil or isn't a reference
+func DerefTransform(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
+	if ds.Transform != nil && ds.Transform.IsEmpty() && ds.Transform.Path != "" {
+		t, err := loadTransform(ctx, store, ds.Transform.Path)
+		if err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("loading dataset transform: %w", err)
+		}
+		// t.Path = ds.Transform.Path
+		ds.Transform = t
+	}
+	return nil
+}
+
 // loadTransform assumes the provided path is correct
 func loadTransform(ctx context.Context, fs qfs.Filesystem, path string) (q *dataset.Transform, err error) {
 	data, err := fileBytes(fs.Get(ctx, path))

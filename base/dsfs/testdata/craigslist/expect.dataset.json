@@ -26,5 +26,78 @@
         }
       }
     }
+  },
+  "stats": {
+    "qri": "sa:0",
+    "stats": [
+      {
+        "currency": {
+          "count": 1200,
+          "frequencies": {},
+          "maxLength": 3,
+          "minLength": 3
+        },
+        "key": "additionalProperty",
+        "name": {
+          "count": 1200,
+          "frequencies": {},
+          "maxLength": 5,
+          "minLength": 5
+        },
+        "type": "object",
+        "value": {
+          "count": 1200,
+          "histogram": {
+            "bins": null,
+            "frequencies": []
+          },
+          "max": 27000,
+          "mean": 3637342,
+          "min": 122
+        }
+      },
+      {
+        "containedInPlace": {
+          "name": {
+            "count": 1200,
+            "frequencies": {},
+            "maxLength": 13,
+            "minLength": 13
+          }
+        },
+        "key": "containedIn",
+        "name": {
+          "count": 1152,
+          "frequencies": {},
+          "maxLength": 63,
+          "minLength": 7
+        },
+        "type": "object"
+      },
+      {
+        "count": 1,
+        "frequencies": {},
+        "key": "data",
+        "maxLength": 16265,
+        "minLength": 16265,
+        "type": "string"
+      },
+      {
+        "count": 1200,
+        "frequencies": {},
+        "key": "name",
+        "maxLength": 80,
+        "minLength": 13,
+        "type": "string"
+      },
+      {
+        "count": 1200,
+        "frequencies": {},
+        "key": "url",
+        "maxLength": 87,
+        "minLength": 64,
+        "type": "string"
+      }
+    ]
   }
 }

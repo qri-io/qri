@@ -136,7 +136,7 @@ func TestCreateDataset(t *testing.T) {
 		err        string
 	}{
 		{"invalid_reference",
-			"", nil, "error loading dataset commit: error loading commit file: path not found"},
+			"", nil, "loading dataset commit: loading commit file: path not found"},
 		{"invalid",
 			"", nil, "commit is required"},
 		{"strict_fail",
@@ -175,13 +175,13 @@ func TestCreateDataset(t *testing.T) {
 		repoFiles  int // expected total count of files in repo after test execution
 	}{
 		{"cities",
-			"/mem/QmYUqpRqrxUvtXgJ3NnPafUmyShERR9WaqLojxsumvrYpo", nil, 7},
+			"/mem/QmPUMUixUxM1e6SKtgMaV7U5kvuy25W8yV4KvkcURd6LFg", nil, 8},
 		{"all_fields",
-			"/mem/QmVFJmziXeSsjByztA62dPpeGjLykAerP5uFC26Yj1o5CN", nil, 16},
+			"/mem/Qmcf46vxtuCsbMV4i9d2ifCJnMjEBHXturUyD2xUD6qrn9", nil, 18},
 		{"cities_no_commit_title",
-			"/mem/QmULA7AoxdWjEfrsdCNZgXRNXKJQfsQVrUHKWp1s1K1R6i", nil, 19},
+			"/mem/QmXFRBAWTBQZVJGZxtaCAsEYKRRQLcKZJhn5UPsQ2LoJLu", nil, 21},
 		{"craigslist",
-			"/mem/QmXVLv5BKuP1C5TgmFjxF51q6kbqd75CGrFcUMGutaDENQ", nil, 23},
+			"/mem/QmWm6rGimuUFXgw9CQ9p3fT3h9mCnAXkPr8PHM1dhJRASm", nil, 26},
 	}
 
 	for _, c := range good {
@@ -204,10 +204,10 @@ func TestCreateDataset(t *testing.T) {
 
 			if tc.Expect != nil {
 				if err := dataset.CompareDatasets(tc.Expect, ds); err != nil {
-					// expb, _ := json.Marshal(tc.Expect)
-					// fmt.Println(string(expb))
-					// dsb, _ := json.Marshal(ds)
-					// fmt.Println(string(dsb))
+					expb, _ := json.Marshal(tc.Expect)
+					fmt.Println(string(expb))
+					dsb, _ := json.Marshal(ds)
+					fmt.Println(string(dsb))
 					t.Errorf("dataset comparison error: %s", err.Error())
 				}
 			}
@@ -289,8 +289,8 @@ func TestCreateDataset(t *testing.T) {
 			t.Fatalf("CreateDataset expected error got 'nil'. commit: %v", ds.Commit)
 		}
 
-		if len(fs.Files) != 23 {
-			t.Errorf("invalid number of entries: %d != %d", 23, len(fs.Files))
+		if len(fs.Files) != 26 {
+			t.Errorf("invalid number of entries: %d != %d", 26, len(fs.Files))
 			_, err := fs.Print()
 			if err != nil {
 				panic(err)
@@ -299,6 +299,17 @@ func TestCreateDataset(t *testing.T) {
 	})
 
 	// case: previous dataset isn't valid
+}
+
+// BaseTabularSchema is the base schema for tabular data
+// NOTE: Do not use if possible, prefer github.com/qri-io/dataset/tabular
+// TODO(dustmop): Possibly move this to tabular package
+var BaseTabularSchema = map[string]interface{}{
+	"type": "array",
+	"items": map[string]interface{}{
+		"type":  "array",
+		"items": []interface{}{},
+	},
 }
 
 // Test that if the body is too large, the commit message just assumes the body changed

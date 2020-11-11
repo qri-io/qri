@@ -35,12 +35,27 @@ const (
 	BodyTooBig = BodyAction("too_big")
 )
 
+// DerefCommit derferences a dataset's Commit element if required
+// should be a no-op if ds.Structure is nil or isn't a reference
+func DerefCommit(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
+	if ds.Commit != nil && ds.Commit.IsEmpty() && ds.Commit.Path != "" {
+		cm, err := loadCommit(ctx, store, ds.Commit.Path)
+		if err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("loading dataset commit: %w", err)
+		}
+		cm.Path = ds.Commit.Path
+		ds.Commit = cm
+	}
+	return nil
+}
+
 // loadCommit assumes the provided path is valid
 func loadCommit(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Commit, err error) {
 	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
 		log.Debug(err.Error())
-		return nil, fmt.Errorf("error loading commit file: %s", err.Error())
+		return nil, fmt.Errorf("loading commit file: %s", err.Error())
 	}
 	return dataset.UnmarshalCommit(data)
 }
@@ -51,7 +66,7 @@ func generateCommitTitleAndMessage(ctx context.Context, fs qfs.Filesystem, privK
 	shortTitle, longMessage, err := generateCommitDescriptions(ctx, fs, ds, prev, bodyAct, forceIfNoChanges)
 	if err != nil {
 		log.Debugf("generateCommitDescriptions err: %s", err)
-		return fmt.Errorf("error saving: %s", err)
+		return fmt.Errorf("error saving: %w", err)
 	}
 
 	if shortTitle == defaultCreatedDescription && fileHint != "" {

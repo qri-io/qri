@@ -8,6 +8,21 @@ import (
 	"github.com/qri-io/qfs"
 )
 
+// DerefReadme dereferences a dataset's Readme element if required
+// no-op if ds.Readme is nil or isn't a reference
+func DerefReadme(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
+	if ds.Readme != nil && ds.Readme.IsEmpty() && ds.Readme.Path != "" {
+		rm, err := loadReadme(ctx, store, ds.Readme.Path)
+		if err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("loading dataset readme: %s", err)
+		}
+		// rm.Path = ds.Readme.Path
+		ds.Readme = rm
+	}
+	return nil
+}
+
 // loadReadme assumes the provided path is valid
 func loadReadme(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Readme, err error) {
 	data, err := fileBytes(fs.Get(ctx, path))

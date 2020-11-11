@@ -91,118 +91,25 @@ func LoadDatasetRefs(ctx context.Context, fs qfs.Filesystem, path string) (*data
 // DerefDataset attempts to fully dereference a dataset
 func DerefDataset(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
 	log.Debugf("DerefDataset path=%q", ds.Path)
-	if err := DerefDatasetMeta(ctx, store, ds); err != nil {
+	if err := DerefMeta(ctx, store, ds); err != nil {
 		return err
 	}
-	if err := DerefDatasetStructure(ctx, store, ds); err != nil {
+	if err := DerefStructure(ctx, store, ds); err != nil {
 		return err
 	}
-	if err := DerefDatasetTransform(ctx, store, ds); err != nil {
+	if err := DerefTransform(ctx, store, ds); err != nil {
 		return err
 	}
-	if err := DerefDatasetViz(ctx, store, ds); err != nil {
+	if err := DerefViz(ctx, store, ds); err != nil {
 		return err
 	}
-	if err := DerefDatasetReadme(ctx, store, ds); err != nil {
+	if err := DerefReadme(ctx, store, ds); err != nil {
 		return err
 	}
-	return DerefDatasetCommit(ctx, store, ds)
-}
-
-// DerefDatasetStructure derferences a dataset's structure element if required
-// should be a no-op if ds.Structure is nil or isn't a reference
-func DerefDatasetStructure(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
-	if ds.Structure != nil && ds.Structure.IsEmpty() && ds.Structure.Path != "" {
-		st, err := loadStructure(ctx, store, ds.Structure.Path)
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error loading dataset structure: %s", err.Error())
-		}
-		// assign path to retain internal reference to path
-		// st.Assign(dataset.NewStructureRef(ds.Structure.Path))
-		ds.Structure = st
+	if err := DerefStats(ctx, store, ds); err != nil {
+		return err
 	}
-	return nil
-}
-
-// DerefDatasetViz dereferences a dataset's Viz element if required
-// should be a no-op if ds.Viz is nil or isn't a reference
-func DerefDatasetViz(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
-	if ds.Viz != nil && ds.Viz.IsEmpty() && ds.Viz.Path != "" {
-		vz, err := loadViz(ctx, store, ds.Viz.Path)
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error loading dataset viz: %s", err.Error())
-		}
-		// assign path to retain internal reference to path
-		// vz.Assign(dataset.NewVizRef(ds.Viz.Path))
-		ds.Viz = vz
-	}
-	return nil
-}
-
-// DerefDatasetReadme dereferences a dataset's Readme element if required
-// should be a no-op if ds.Readme is nil or isn't a reference
-func DerefDatasetReadme(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
-	if ds.Readme != nil && ds.Readme.IsEmpty() && ds.Readme.Path != "" {
-		rm, err := loadReadme(ctx, store, ds.Readme.Path)
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error loading dataset readme: %s", err.Error())
-		}
-		// assign path to retain internal reference to path
-		// rm.Assign(dataset.NewVizRef(ds.Readme.Path))
-		ds.Readme = rm
-	}
-	return nil
-}
-
-// DerefDatasetTransform derferences a dataset's transform element if required
-// should be a no-op if ds.Structure is nil or isn't a reference
-func DerefDatasetTransform(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
-	if ds.Transform != nil && ds.Transform.IsEmpty() && ds.Transform.Path != "" {
-		t, err := loadTransform(ctx, store, ds.Transform.Path)
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error loading dataset transform: %s", err.Error())
-		}
-		// assign path to retain internal reference to path
-		// t.Assign(dataset.NewTransformRef(ds.Transform.Path))
-		ds.Transform = t
-	}
-	return nil
-}
-
-// DerefDatasetMeta derferences a dataset's transform element if required
-// should be a no-op if ds.Structure is nil or isn't a reference
-func DerefDatasetMeta(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
-	if ds.Meta != nil && ds.Meta.IsEmpty() && ds.Meta.Path != "" {
-		md, err := loadMeta(ctx, store, ds.Meta.Path)
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error loading dataset metadata: %s", err.Error())
-		}
-		// assign path to retain internal reference to path
-		// md.Assign(dataset.NewMetaRef(ds.Meta.Path))
-		ds.Meta = md
-	}
-	return nil
-}
-
-// DerefDatasetCommit derferences a dataset's Commit element if required
-// should be a no-op if ds.Structure is nil or isn't a reference
-func DerefDatasetCommit(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
-	if ds.Commit != nil && ds.Commit.IsEmpty() && ds.Commit.Path != "" {
-		cm, err := loadCommit(ctx, store, ds.Commit.Path)
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error loading dataset commit: %s", err.Error())
-		}
-		// assign path to retain internal reference to path
-		cm.Assign(dataset.NewCommitRef(ds.Commit.Path))
-		ds.Commit = cm
-	}
-	return nil
+	return DerefCommit(ctx, store, ds)
 }
 
 // SaveSwitches represents options for saving a dataset
@@ -349,6 +256,21 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivK
 		files = append(files, stf)
 	}
 
+	// stats relies on a structure component & a body file
+	if statsCompFile, ok := bdf.(statsComponentFile); ok {
+		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
+			sa, err := statsCompFile.StatsComponent()
+			if err != nil {
+				return nil, err
+			}
+			ds.Stats = sa
+			return JSONFile(f.FullPath(), sa)
+		}
+
+		hookFile := qfs.NewWriteHookFile(qfs.NewMemfileBytes(PackageFileStats.Filename(), []byte{}), hook, PackageFileStructure.Filename())
+		files = append(files, hookFile)
+	}
+
 	if ds.Meta != nil {
 		ds.Meta.DropTransientValues()
 		mdf, err := JSONFile(PackageFileMeta.Filename(), ds.Meta)
@@ -454,6 +376,8 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivK
 				ds.Viz = dataset.NewVizRef(pathMap[comp])
 			case PackageFileMeta.Filename():
 				ds.Meta = dataset.NewMetaRef(pathMap[comp])
+			case PackageFileStats.Filename():
+				ds.Stats = dataset.NewStatsRef(pathMap[comp])
 			case bdf.FullPath():
 				ds.BodyPath = pathMap[comp]
 			}

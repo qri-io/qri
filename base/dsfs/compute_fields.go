@@ -11,6 +11,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
+	"github.com/qri-io/dataset/dsstats"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 )
@@ -23,6 +24,9 @@ type computeFieldsFile struct {
 	sw SaveSwitches
 
 	ds, prev *dataset.Dataset
+
+	// body statistics accumulator
+	acc *dsstats.Accumulator
 
 	// buffer of entries for diffing small datasets. will be set to nil if
 	// body reads more than BodySizeSmallEnoughToDiff bytes
@@ -38,6 +42,11 @@ type computeFieldsFile struct {
 	batches   int
 	bytesRead int
 }
+
+var (
+	_ doneProcessingFile = (*computeFieldsFile)(nil)
+	_ statsComponentFile = (*computeFieldsFile)(nil)
+)
 
 func newComputeFieldsFile(ctx context.Context, dsLk *sync.Mutex, fs qfs.Filesystem, pk crypto.PrivKey, ds, prev *dataset.Dataset, sw SaveSwitches) (qfs.File, error) {
 	var (
@@ -123,12 +132,23 @@ func (cff *computeFieldsFile) Close() error {
 	return nil
 }
 
+type doneProcessingFile interface {
+	DoneProcessing() <-chan error
+}
+
 func (cff *computeFieldsFile) DoneProcessing() <-chan error {
 	return cff.done
 }
 
-type doneProcessingFile interface {
-	DoneProcessing() <-chan error
+type statsComponentFile interface {
+	StatsComponent() (*dataset.Stats, error)
+}
+
+func (cff *computeFieldsFile) StatsComponent() (*dataset.Stats, error) {
+	return &dataset.Stats{
+		Qri:   dataset.KindStats.String(),
+		Stats: dsstats.ToMap(cff.acc),
+	}, nil
 }
 
 // , store cafs.Filestore, ds, prev *dataset.Dataset, bodyR io.Reader, pk crypto.PrivKey, sw SaveSwitches, done chan error
@@ -141,17 +161,18 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 		depth         = 0
 	)
 
-	cff.Lock()
-	// assign timestamp early. saving process on large files can take many minutes
-	cff.ds.Commit.Timestamp = Timestamp()
-	cff.Unlock()
-
 	r, err := dsio.NewEntryReader(st, cff.pipeReader)
 	if err != nil {
 		log.Debugf("creating entry reader: %s", err)
 		cff.done <- fmt.Errorf("creating entry reader: %w", err)
 		return
 	}
+
+	cff.Lock()
+	// assign timestamp early. saving process on large files can take many minutes
+	cff.ds.Commit.Timestamp = Timestamp()
+	cff.acc = dsstats.NewAccumulator(st)
+	cff.Unlock()
 
 	jsch, err := st.JSONSchema()
 	if err != nil {
@@ -188,6 +209,9 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 				depth = d
 			}
 			entries++
+			if err := cff.acc.WriteEntry(ent); err != nil {
+				return err
+			}
 
 			if i%batchSize == 0 && i != 0 {
 				numValErrs, flushErr := cff.flushBatch(ctx, batchBuf, st, jsch)

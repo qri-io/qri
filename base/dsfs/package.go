@@ -51,7 +51,8 @@ const (
 	PackageFileAbstractTransform
 	// PackageFileMeta encapsulates human-readable metadata
 	PackageFileMeta
-	// PackageFileViz isolates the data related to representing a dataset as a visualization
+	// PackageFileViz isolates the data related to representing a dataset as a
+	// visualization
 	PackageFileViz
 	// PackageFileVizScript is the viz template
 	PackageFileVizScript
@@ -63,6 +64,8 @@ const (
 	PackageFileReadmeScript
 	// PackageFileRenderedReadme is the rendered readme of the dataset
 	PackageFileRenderedReadme
+	// PackageFileStats isolates the statistical metadata component
+	PackageFileStats
 )
 
 // filenames maps PackageFile to their filename counterparts
@@ -82,6 +85,7 @@ var filenames = map[PackageFile]string{
 	PackageFileReadme:            "readme.json",
 	PackageFileReadmeScript:      "readme.md",
 	PackageFileRenderedReadme:    "readme.html",
+	PackageFileStats:             "stats.json",
 }
 
 // String implements the io.Stringer interface for PackageFile
