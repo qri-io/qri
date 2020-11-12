@@ -219,7 +219,7 @@ func TestDscacheCheckout(t *testing.T) {
      bodySize      = 155
      bodyRows      = 5
      commitTime    = 978310861
-     headRef       = /map/QmPd5jh8ZTFwgbpHaNSu6u2277BKWaiBsqX4uFw7rGWNLu
+     headRef       = /mem/QmcjPHMw4LbodqeLQmMmU8Suk24Ge7Up6NiiMphbSCq1xN
      fsiPath       = /tmp/cities_ds
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -268,7 +268,7 @@ func TestDscacheInit(t *testing.T) {
      bodySize      = 155
      bodyRows      = 5
      commitTime    = 978310861
-     headRef       = /map/QmPd5jh8ZTFwgbpHaNSu6u2277BKWaiBsqX4uFw7rGWNLu
+     headRef       = /mem/QmcjPHMw4LbodqeLQmMmU8Suk24Ge7Up6NiiMphbSCq1xN
   1) initID        = ekwzgcu4s4o4xchsoip3oa3j45ko5n7pybtizgvsbudojbhxuita
      profileID     = QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
      topIndex      = 0

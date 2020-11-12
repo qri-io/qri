@@ -73,6 +73,7 @@ func AssertLoaderSpec(t *testing.T, r dsref.Loader, putFunc PutDatasetFunc) {
 
 	ds.Peername = username
 	ds.Name = name
+	ds.Path = path
 	if diff := cmp.Diff(ds, got, cmpopts.IgnoreUnexported(dataset.Dataset{}, dataset.Meta{})); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}

@@ -1236,31 +1236,31 @@ func TestListRawRefs(t *testing.T) {
 	expect := `0 Peername:  peer
   ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      cities
-  Path:      /map/QmcvCpP2qBYV4szUV4MkJopaZM6u8kbsYfhZxbk91ZY5s5
+  Path:      /mem/QmVXdrnefFLtXBxsAfPk4j1rhbXyEfSJhNErkZrh1qA5tK
   FSIPath:   
   Published: false
 1 Peername:  peer
   ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      counter
-  Path:      /map/QmTve65WAZJqg6gGPU4o4YQSVdQ11bTA5YaFjyK9mnEQ48
+  Path:      /mem/QmQo9vLJBkxpGnfpcVVWRwHT7AHhk4Q8VNrxs1ABfSgCYi
   FSIPath:   
   Published: false
 2 Peername:  peer
   ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      craigslist
-  Path:      /map/QmX1sNkK7PYfx9344vcd6vK8fYRBV5NyH7C4Wqz6Y2x4zX
+  Path:      /mem/QmTLCUzyVX5RdKw7uSiKAdwPEGdeQjbMxhd1r9UuCo5p54
   FSIPath:   
   Published: false
 3 Peername:  peer
   ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      movies
-  Path:      /map/QmVnSLjFfZ8QRyTvAMfqjWoTZS1zo4JthKjBaFjnneirAc
+  Path:      /mem/QmPgzRhezY51TnCb4VDssQawZh44gbTL6vqPt4rF8xQUbK
   FSIPath:   
   Published: false
 4 Peername:  peer
   ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      sitemap
-  Path:      /map/QmdDVuAMJLCSQ4rCemBVh1KUk3cb7jSaCvXt9n2X75gnGj
+  Path:      /mem/QmeZsNh4xU9kYjiXoBpykZtzv46w5zHA6MU9gLM2QbazAg
   FSIPath:   
   Published: false
 `

@@ -203,6 +203,14 @@ func CreateDataset(
 		log.Debug(err.Error())
 		return "", err
 	}
+
+	// TODO (b5) - many codepaths that call this function use the `ds` arg after saving
+	// we need to dereference here so fields are set, but this is overkill if
+	// the caller doesn't use the ds arg afterward
+	// might make sense to have a wrapper function that writes and loads on success
+	if err := DerefDataset(ctx, destination, ds); err != nil {
+		return path, err
+	}
 	return path, nil
 }
 
