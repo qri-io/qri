@@ -17,7 +17,7 @@ func DerefReadme(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset)
 			log.Debug(err.Error())
 			return fmt.Errorf("loading dataset readme: %s", err)
 		}
-		// rm.Path = ds.Readme.Path
+		rm.Path = ds.Readme.Path
 		ds.Readme = rm
 	}
 	return nil

@@ -76,7 +76,7 @@ func newDAGInfo(ctx context.Context, fs qfs.Filesystem, ng ipld.NodeGetter, path
 		if err != nil {
 			return nil, err
 		}
-		if err := dsfs.DerefDatasetViz(ctx, fs, ds); err != nil {
+		if err := dsfs.DerefViz(ctx, fs, ds); err != nil {
 			return nil, err
 		}
 		if ds.Viz.RenderedPath != "" {

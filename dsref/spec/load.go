@@ -25,6 +25,8 @@ type PutDatasetFunc func(ds *dataset.Dataset) (path string, err error)
 // network sources. This test serves to confirm basic requirements of a local
 // loader function for the moment
 func AssertLoaderSpec(t *testing.T, r dsref.Loader, putFunc PutDatasetFunc) {
+	t.Helper()
+
 	var (
 		ctx      = context.Background()
 		username = "example_user"

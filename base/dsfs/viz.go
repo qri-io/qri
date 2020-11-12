@@ -19,7 +19,7 @@ func DerefViz(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) er
 			log.Debug(err.Error())
 			return fmt.Errorf("loading dataset viz: %w", err)
 		}
-		// vz.Path = ds.Viz.Path
+		vz.Path = ds.Viz.Path
 		ds.Viz = vz
 	}
 	return nil

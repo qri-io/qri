@@ -22,7 +22,7 @@ func DerefStructure(ctx context.Context, store qfs.Filesystem, ds *dataset.Datas
 			return fmt.Errorf("loading dataset structure: %w", err)
 		}
 		// assign path to retain internal reference to path
-		// st.Path = ds.Structure.Path
+		st.Path = ds.Structure.Path
 		ds.Structure = st
 	}
 	return nil

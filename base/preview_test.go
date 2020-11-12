@@ -33,7 +33,7 @@ func TestCreatePreview(t *testing.T) {
 		Qri:      "ds:0",
 		Peername: "peer",
 		Name:     "turnstile_daily_counts_2020",
-		Path:     "/mem/QmSsaaJ9i7rKvYQ7vgLnwvJUfbPLtinwUvjjg5bXyMKmA4",
+		Path:     "/mem/QmWpWtiTUcJ5dkWPHsQ7Pw5sVdy5812HMzTrKN8cc3wFG2",
 		Commit: &dataset.Commit{
 			Message:   "created dataset",
 			Path:      "/mem/QmPtRiULjivVKtT5cxhQUqtodZA4xPBbCWfW79KzBRQeoZ",
@@ -46,6 +46,7 @@ func TestCreatePreview(t *testing.T) {
 			Description: "NYC Subway Turnstile Counts Data aggregated by day and station complex for the year 2020. Updated weekly.",
 			Qri:         "md:0",
 			Title:       "Turnstile Daily Counts 2020",
+			Path:        "/mem/QmZ3ruG85fa1wHmZnZ4QcwA6y52YmSeFDx3iuW1R5E7xRd",
 		},
 		Readme: &dataset.Readme{
 			Qri:        "rm:0",
@@ -78,9 +79,11 @@ This aggregation is a best-effort to make a clean and usable dataset of station-
 			Length: 2,
 			Qri:    "st:0",
 			Schema: map[string]interface{}{"type": string("array")},
+			Path:   "/mem/QmbDN5ERopH2VBwuBLGo8JY1kYr8ZiG3o4snxuNR6XwpmS",
 		},
 		Body:     json.RawMessage(`[]`),
 		BodyPath: "/mem/QmTgK2uYPscacJ9KaBS8tryXRF5mvjuRbubF7h9bG2GgoN",
+		Stats:    &dataset.Stats{Path: "/mem/QmdzwcjZDAwPQJHikR9jnPg7x1jrKGseW2EZvd4s3eZxfG", Qri: "sa:0"},
 	}
 
 	if diff := cmp.Diff(expect, got, cmpopts.IgnoreUnexported(dataset.Dataset{}, dataset.Meta{}, dataset.Readme{}, dataset.Transform{})); diff != "" {
@@ -98,7 +101,7 @@ This aggregation is a best-effort to make a clean and usable dataset of station-
 		Qri:      "ds:0",
 		Peername: "peer",
 		Name:     "now_tf",
-		Path:     "/mem/QmUycGKj2wmbk2R7n3mGwFuV8FTeu8AL4bZbvz4RXjqeNL",
+		Path:     "/mem/QmVsnvyb7Y5KoATrryY7oXE8HoxsspCQ7FFcLzVTwfA7UQ",
 		Commit: &dataset.Commit{
 			Message:   "created dataset",
 			Path:      "/mem/QmQnGzn3bzB3TqKtpskFqBDtpchsPt946JAP6HXNtXCWyk",
@@ -110,6 +113,7 @@ This aggregation is a best-effort to make a clean and usable dataset of station-
 		Meta: &dataset.Meta{
 			Qri:   "md:0",
 			Title: "example transform",
+			Path:  "/mem/Qmb1kx8uNva2wxgDPKjuSxJz9g3W2RdgABWrrxCEu91ZT4",
 		},
 		Readme: &dataset.Readme{
 			Qri:         "rm:0",
@@ -125,10 +129,12 @@ This aggregation is a best-effort to make a clean and usable dataset of station-
 			Format: "json",
 			Length: 2,
 			Qri:    "st:0",
+			Path:   "/mem/QmbDN5ERopH2VBwuBLGo8JY1kYr8ZiG3o4snxuNR6XwpmS",
 			Schema: map[string]interface{}{"type": string("array")},
 		},
 		Body:     json.RawMessage(`[]`),
 		BodyPath: "/mem/QmTgK2uYPscacJ9KaBS8tryXRF5mvjuRbubF7h9bG2GgoN",
+		Stats:    &dataset.Stats{Path: "/mem/QmdzwcjZDAwPQJHikR9jnPg7x1jrKGseW2EZvd4s3eZxfG", Qri: "sa:0"},
 	}
 
 	if diff := cmp.Diff(expect, got, cmpopts.IgnoreUnexported(dataset.Dataset{}, dataset.Meta{}, dataset.Readme{}, dataset.Transform{})); diff != "" {

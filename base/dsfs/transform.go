@@ -17,7 +17,7 @@ func DerefTransform(ctx context.Context, store qfs.Filesystem, ds *dataset.Datas
 			log.Debug(err.Error())
 			return fmt.Errorf("loading dataset transform: %w", err)
 		}
-		// t.Path = ds.Transform.Path
+		t.Path = ds.Transform.Path
 		ds.Transform = t
 	}
 	return nil

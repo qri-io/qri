@@ -23,6 +23,11 @@ const (
 )
 
 // CreatePreview generates a preview for a dataset version
+// TODO (b5) - previews currently don't include the new stats component, because
+// we don't have logic for dropping the space-intensive fields in stat structs
+// Once we have a clear way to drop things like string frequency counts, and can
+// get the byte-cost of stats to scale linearly with the dataset column count
+// previews should include stats
 func CreatePreview(ctx context.Context, fs qfs.Filesystem, ref dsref.Ref) (ds *dataset.Dataset, err error) {
 	if ref.Path == "" {
 		return nil, fmt.Errorf("path is required")

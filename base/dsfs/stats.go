@@ -17,6 +17,7 @@ func DerefStats(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) 
 			log.Debug(err)
 			return fmt.Errorf("loading stats component: %w", err)
 		}
+		sa.Path = ds.Stats.Path
 		ds.Stats = sa
 	}
 	return nil
