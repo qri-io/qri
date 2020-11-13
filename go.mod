@@ -2,6 +2,8 @@ module github.com/qri-io/qri
 
 go 1.13
 
+replace github.com/qri-io/dag => /Users/b5/qri/dag
+
 require (
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
@@ -16,7 +18,7 @@ require (
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.12.1-0.20200706154056-969d0f7a6317
 	github.com/google/go-cmp v0.5.0
-	github.com/ipfs/go-cid v0.0.6
+	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/ipfs/go-ipfs v0.6.0
 	github.com/ipfs/go-ipfs-config v0.8.0
@@ -24,21 +26,20 @@ require (
 	github.com/ipfs/go-log v1.0.4
 	github.com/ipfs/interface-go-ipfs-core v0.3.0
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
-	github.com/libp2p/go-libp2p v0.9.6
-	github.com/libp2p/go-libp2p-circuit v0.2.3
+	github.com/libp2p/go-libp2p v0.11.0
+	github.com/libp2p/go-libp2p-circuit v0.3.1
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
-	github.com/libp2p/go-libp2p-core v0.5.7
+	github.com/libp2p/go-libp2p-core v0.6.1
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
-	github.com/libp2p/go-libp2p-quic-transport v0.8.0 // indirect
-	github.com/libp2p/go-libp2p-swarm v0.2.6
+	github.com/libp2p/go-libp2p-swarm v0.2.8
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/mr-tron/base58 v1.1.3
-	github.com/multiformats/go-multiaddr v0.2.2
-	github.com/multiformats/go-multiaddr-net v0.1.5
+	github.com/mr-tron/base58 v1.2.0
+	github.com/multiformats/go-multiaddr v0.3.1
+	github.com/multiformats/go-multiaddr-net v0.2.0
 	github.com/multiformats/go-multicodec v0.1.6
-	github.com/multiformats/go-multihash v0.0.13
+	github.com/multiformats/go-multihash v0.0.14
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.5.0

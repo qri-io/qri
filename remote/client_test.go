@@ -114,7 +114,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 			{
 				Username:   "A",
 				Name:       "world_bank_population",
-				Path:       "/ipfs/Qmb5Qaigk9teHrWSyXf7UxnRH3L28BV6zV1cqaWsLn3z7p",
+				Path:       "/ipfs/QmZQ7VJwgeyQbctNSMcPUTZePfkpL6mjsYKHawzBNe5gim",
 				MetaTitle:  "World Bank Population",
 				BodySize:   5,
 				BodyRows:   1,
@@ -138,24 +138,41 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 		Commit: &dataset.Commit{
 			Author:    &dataset.User{ID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},
 			Message:   "created dataset",
-			Path:      "/ipfs/QmUzzcVVsc6yDMq6ahAiUyxtnjvyaGkgHBBJSksjwVGVS4",
+			Path:      "/ipfs/QmSFsmSVvNrXUF1x9594SUANNs58RJ5b8nWPbm5rJuGa9q",
 			Qri:       "cm:0",
-			Signature: "XLjvPUsiTxtnhkFajlPosxBl+id/tZJB1RWe9BwPpyqg3toIx6qOkhZtXefDh58rX1L0Id1HU0RkVP8sEl0L54d9C4xv25Uzyv3mAvT9VNN5pzblni5TPvU0mHIbawN57hSiywUP3HQLk8VbjRPo6qjpL5DngwvWXe8mAxTPKWwbV9Zx47tJJWImxJC5vLFRUD1KrRarnhYnGRyGaUiOxssaOnzERw49pA/1dDuFCEWghMpARVgWheZCyHN7rVTs+xH8XOTi8/Zz05bKTlpstm57BcCUENKqJgIt7bjsSIh/gHEc+et1A/kO/DBi3vcoKsA1vZI6lFoJzOwlKRKahg==",
+			Signature: "isS6qVn+uA5PURHweioERNSMjTJgpDerd4JtJN59v4w88vr++RICqHosqYn/n/qsSsDku0q+7X4oSzlOVE8YSTEUhzlKQ+qqfDVkLGcVxoUeJly/o6SwkZP+xi+1CGkyvp1tjJFsa35iaXVtS/q6ho2qDhQISorYK69/YymiWDJSGIgQhgrS7sEUVODSXrG0wM3Bk2CpUP66ybu7cW5S6E11FgmFa9XxHEckILAVTl3vA6HIj4lYkIR6L7MQ5CI8YD6cnRHgEaJpRlyX4ABunowdT83zVTTKN89eKT+ApYk0etQmteU2rNcNaCxxMKOdhPj0QWhcP8ejAxMF8XzenQ==",
 			Title:     "initial commit",
 		},
 		Meta:     &dataset.Meta{Qri: "md:0", Title: "World Bank Population"},
 		Name:     "world_bank_population",
-		Path:     "/ipfs/Qmb5Qaigk9teHrWSyXf7UxnRH3L28BV6zV1cqaWsLn3z7p",
+		Path:     "/ipfs/QmZQ7VJwgeyQbctNSMcPUTZePfkpL6mjsYKHawzBNe5gim",
 		Peername: "A",
 		Qri:      "ds:0",
 		Structure: &dataset.Structure{
-			Checksum: "QmShoKqAQ98zKKgLrSDGKDCkmAf6Ts1pgk5qPCXkaeshej",
+			Checksum: "",
 			Depth:    1,
 			Entries:  1,
 			Format:   "json",
 			Length:   5,
 			Qri:      "st:0",
 			Schema:   map[string]interface{}{"type": string("array")},
+		},
+		Stats: &dataset.Stats{
+			Path: "/ipfs/Qmd9vW75BLNKFLq3tTeuXmA4KWPG4D2sprdBSrfVWMLU26",
+			Qri:  "sa:0",
+			Stats: []interface{}{
+				map[string]interface{}{
+					"count": float64(1),
+					"histogram": map[string]interface{}{
+						"bins":        nil,
+						"frequencies": []interface{}{},
+					},
+					"max":  float64(100),
+					"min":  float64(100),
+					"mean": float64(100),
+					"type": "numeric",
+				},
+			},
 		},
 	}
 
