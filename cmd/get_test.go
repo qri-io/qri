@@ -79,18 +79,34 @@ commit:
   author:
     id: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   message: "body:\n\tchanged by 54%"
-  path: /ipfs/QmT5s5yoeYdFYAXB1Ytt9Zz6wwjcFd1Kat3h6qkLPeRQ5t
+  path: /ipfs/QmPid9gqi9W7pAKZT7YewqYEcnWJZW4Xs4F5a6HupWmb7S
   qri: cm:0
-  signature: eLr+Pk3wg8JSoeARoelNzdKLeiYFqL1k87YpXtSXigO39cAXFHg8FQki/+zt+gLPCBmPfD/mfQbR3R2mQmxyR4F+wQ1wbwkzJfumWbluyPfBsKbPQ55XLhkYUg6Ho5HqVsBn7sZ28WJ/1+GPC5xMaFYeMLTRnD2jflB5NR33eYxVQL/IDUybhgmlV5D2GOeZAOjQcCtgf0Me8o/HMqn9TsW9mNzilf7GF7lxyV+Jrz1pYjvOPlXoJGqRGRBnDbIzvEwmH7XBGHZvsbCntFw1XEEJIQslTm5mFbVrGTzqvmsPIB/SfbTjWL4Elq4uAocr7Mnu9TFKD15XNaZ8pMhaQw==
+  signature: FALUQ3vckZ3Blf0sgxP7DZW1qIUZQn8Wnf5TQyv1F18g854Py89g+WmoJGbTX/NJEzRmsqfOvRRD6828Syhf9ubT81LnweRi6nEjWdn1JjSwvREFEjkvpxmGEyLAA6eVUfC7Oqxldl3BaBKXwmKCuw7wYpo4/6DJ+zRH1LtfVfnkbhEAzw7TiTigPT/2s4FbnWnzwMnLIkHHJF1h8HhnWLYCSWqVlyoWa42UqagsISzNvMyLSE+JCoKIuShJy1gHu7fcqFoBl5fdXbYD03Eqzmj4EY6DXMsoD8rSWzOzHC6Fpqgz6R0mkTmkDo6yXSsDo2yifrIZDJeaniI61oesaw==
   timestamp: "2001-01-01T01:02:01.000000001Z"
   title: body changed by 54%
 name: my_ds
-path: /ipfs/QmRbGnuVAh83wSwa45Kc1L2erMuV5PfGxTeeft4sNeZdtx
+path: /ipfs/QmPyMUN7tkRhotRxyCQghLygz3gRBLo9FTFf5XwLfo55Ld
 peername: test_peer_get
-previousPath: /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+previousPath: /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
 qri: ds:0
+stats:
+  path: /ipfs/QmXyYhG5SvTyazEd8iEjxJ7DpzKm86WwWsYyL9xMjXpjQj
+  qri: sa:0
+  stats:
+  - count: 18
+    frequencies: {}
+    maxLength: 55
+    minLength: 7
+    type: string
+  - count: 17
+    histogram:
+      bins: null
+      frequencies: []
+    max: 183
+    mean: 2566
+    min: 100
+    type: numeric
 structure:
-  checksum: QmSa4i985cF3dxNHxD5mSN7c6q1eYa83uNo1pLRmPZgTsa
   depth: 2
   entries: 18
   errCount: 1
@@ -99,6 +115,7 @@ structure:
     headerRow: true
     lazyQuotes: true
   length: 532
+  path: /ipfs/QmcC8oazbAwnvZEv1k2sMXD78hZYoEoPDG1wP595Yyarg7
   qri: st:0
   schema:
     items:
@@ -116,17 +133,33 @@ commit:
   author:
     id: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   message: created dataset from body_ten.csv
-  path: /ipfs/QmQRZm2XT93N5T6gL3bNBmzVhjC1CU3BYthNCkBycE7R6K
+  path: /ipfs/QmRG3g7PPKYRbusncBSk6KrQVgwr351F32VbAaBWrKDf6P
   qri: cm:0
-  signature: I/nrDkgwt1IPtdFKvgMQAIRYvOqKfqm6x0qfpuJ14rEtO3+uPnY3K5pVDMWJ7K+pYJz6fyguYWgXHKkbo5wZl0ICVyoIiPa9zIVbqc1d6j1v13WqtRb0bn1CXQvuI6HcBhb7+VqkSW1m+ALpxhNQuI4ZfRv8Nm8MbEpL6Ct55fJpWX1zszJ2rQP1LcH2AlEZ8bl0qpcFMk03LENUHSt1DjlaApxrEJzDgAs5drfndxXgGKYjPpkjdF+qGhn2ALV2tC64I5aIn1SJPAQnVwprUr1FmVZjZcF9m9r8WnzQ6ldj29eZIciiFlT4n2Cbw+dgPo/hNRsgzn7Our2a6r5INw==
+  signature: afeBsx68Q6rN5YVeTWFqWTRE1Sbvh18m/u/kJiXz4OxvC3z4JFJJiyCNwvHH9qO8M3A48nPt5vf9JDHmO13gi0FLMz1jIWz/JTZ4aMkHLxtVKWU3gB+O7cNKFGR2FWf9SvcBiu91tBuUratshBHlKwB2GGim1MhAHIc3kuVsX21ytLOFDYelHK8FCiurBcOm3/HwWhOFuJ9OKFK47jnTDwub7x1FA2GhQ3fuYdfLD4DeAjj21V7sVA2Du6ady1RDYHE2P3wwVPG9ysWIVq59DvBPGNuHbbktaErBHcM9rhq8Uzeoj2Uo8d0sSa1NVKvlRcFan4MlYv5BlmzXjrdK2A==
   timestamp: "2001-01-01T01:01:01.000000001Z"
   title: created dataset from body_ten.csv
 name: my_ds
-path: /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+path: /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
 peername: test_peer_get
 qri: ds:0
+stats:
+  path: /ipfs/QmXHqvGRzaDUTbiKzBezR43mchpwoSE3xuf8HnfVkdfkKk
+  qri: sa:0
+  stats:
+  - count: 8
+    frequencies: {}
+    maxLength: 55
+    minLength: 7
+    type: string
+  - count: 7
+    histogram:
+      bins: null
+      frequencies: []
+    max: 178
+    mean: 1047
+    min: 100
+    type: numeric
 structure:
-  checksum: QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf
   depth: 2
   entries: 8
   errCount: 1
@@ -135,6 +168,7 @@ structure:
     headerRow: true
     lazyQuotes: true
   length: 224
+  path: /ipfs/QmWqobG1jjqWnNadHYVhv9m3TXudrabLwmoybQLgvFvQa3
   qri: st:0
   schema:
     items:
@@ -384,9 +418,9 @@ func TestGetRemoteDataset(t *testing.T) {
 		t.Errorf("response mismatch\nwant: %q\n got: %q", expect, err)
 	}
 
-	expect = "bodyPath: /ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb\ncommit:\n  message: created dataset\n  path: /ipfs/QmUEtKXFs6Eaz7wxUVpN9riULsnj1hXAoBeHRT79yWL7ze\n  qri: cm:0\n  signature: ZHoSiqRVGLBKmkRcGaTuaiUGvbaS1Yu+13KtIlYFOnBzDAzZ/pfD1iAykEYp/vMCtKLhFb8s6P7Bnggf2erZQSX5Vd1sQBLKXt7F4fAZ0tS7J5bdalZh4chc6WjvI4VSnk/H4k/ldl5KSYvP3rN7SFY7S/X8zKkirr+aRQRLW+LqcMbYP1h27JsojIM94NIzBBwUkTYLXMaNForx2SxQamWD6Rkcy5Uz82hTjrNVnczJXeCrMR1zyi+LHThoaLDuYfUxIgkprJDrjb0x4fGM3M5DbfuSKlH1iOrXuxzJXDedmEc6Eb48dqgZ/6bpQ8Ij7rc3PtJOu6izLv6MZ3s57g==\n  timestamp: \"2001-01-01T01:01:01.000000001Z\"\n  title: created dataset\nname: their_dataset\npath: /ipfs/QmW8PjK4a3gJgbFr7mHzseCYaPLmhpfphjv5cgXFFDAMtk\npeername: other_peer\nqri: ds:0\nstructure:\n  checksum: QmSvPd3sHK7iWgZuW47fyLy4CaZQe2DwxvRhrJ39VpBVMK\n  depth: 1\n  format: json\n  length: 2\n  qri: st:0\n  schema:\n    type: object\n\n"
-	out := run.MustExec(t, "qri get --remote=registry other_peer/their_dataset")
-	if expect != out {
-		t.Errorf("response mismatch\nwant: %q\n got: %q", expect, out)
+	expect = "bodyPath: /ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb\ncommit:\n  message: created dataset\n  path: /ipfs/QmRXxnXPRzorHuWw5CRa9YJFHXz85gjbrASvh24vgUubRg\n  qri: cm:0\n  signature: QGFDik4Izple4Rm3giNpc0/sNyxA4ryOdlP8VIZ0GiNRpx5h+F7smLYFczRxV8tunzqZsq1jS+r5xHo3wBk6k+oAMm6C/LGyr96c0o9R2iEpFUTmHBr9zP2Dicyc4T4cZmz/Kyg/wT0MZOMHPnzujfElb6PfR3INHtagZYEd/kA3NaXm6RqmQnz+SCJaphTyrgmzH5vxtl2Gd377HCcLL/CvywhrnRQ9h0tsr6pkbxXyelagqDnBiiK+INAo089i3XKBTu7dnwAlVxzGxY3vCK7YRZQhq5qwJiBCU0tos0HDljya/lFc9rNMLzeuJUzpmABMJ7PrTm7ZglZRb03Pmg==\n  timestamp: \"2001-01-01T01:01:01.000000001Z\"\n  title: created dataset\nname: their_dataset\npath: /ipfs/Qmb6NpFCzEBtPGZdp8QasFGLM6AxPEBRStB4jL4BWW9oBG\npeername: other_peer\nqri: ds:0\nstats: /ipfs/QmQQkQF2KNBZfFiX33jJ9hu6ivfoHrtgcwMRAezS4dcA7c\nstructure:\n  depth: 1\n  format: json\n  length: 2\n  path: /ipfs/QmUpFYQZjRjpN8gweCZeFPrCHnUbqwJBnXajnsbymPY45c\n  qri: st:0\n  schema:\n    type: object\n\n"
+	got := run.MustExec(t, "qri get --remote=registry other_peer/their_dataset")
+	if diff := cmp.Diff(expect, got); diff != "" {
+		t.Errorf("repsonse mismatch (-want +got):\n%s", diff)
 	}
 }

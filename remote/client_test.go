@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
@@ -114,7 +114,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 			{
 				Username:   "A",
 				Name:       "world_bank_population",
-				Path:       "/ipfs/QmZQ7VJwgeyQbctNSMcPUTZePfkpL6mjsYKHawzBNe5gim",
+				Path:       "/ipfs/QmUTNAa3RGEosHhEH7H8foR2qP858U8guo8xWwUskMHt6B",
 				MetaTitle:  "World Bank Population",
 				BodySize:   5,
 				BodyRows:   1,
@@ -132,56 +132,10 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectDs := &dataset.Dataset{
-		Body:     []interface{}{float64(100)},
-		BodyPath: "/ipfs/QmWVxUKnBmbiXai1Wgu6SuMzyZwYRqjt5TXL8xxghN5hWL",
-		Commit: &dataset.Commit{
-			Author:    &dataset.User{ID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},
-			Message:   "created dataset",
-			Path:      "/ipfs/QmSFsmSVvNrXUF1x9594SUANNs58RJ5b8nWPbm5rJuGa9q",
-			Qri:       "cm:0",
-			Signature: "isS6qVn+uA5PURHweioERNSMjTJgpDerd4JtJN59v4w88vr++RICqHosqYn/n/qsSsDku0q+7X4oSzlOVE8YSTEUhzlKQ+qqfDVkLGcVxoUeJly/o6SwkZP+xi+1CGkyvp1tjJFsa35iaXVtS/q6ho2qDhQISorYK69/YymiWDJSGIgQhgrS7sEUVODSXrG0wM3Bk2CpUP66ybu7cW5S6E11FgmFa9XxHEckILAVTl3vA6HIj4lYkIR6L7MQ5CI8YD6cnRHgEaJpRlyX4ABunowdT83zVTTKN89eKT+ApYk0etQmteU2rNcNaCxxMKOdhPj0QWhcP8ejAxMF8XzenQ==",
-			Title:     "initial commit",
-		},
-		Meta:     &dataset.Meta{Qri: "md:0", Title: "World Bank Population"},
-		Name:     "world_bank_population",
-		Path:     "/ipfs/QmZQ7VJwgeyQbctNSMcPUTZePfkpL6mjsYKHawzBNe5gim",
-		Peername: "A",
-		Qri:      "ds:0",
-		Structure: &dataset.Structure{
-			Checksum: "",
-			Depth:    1,
-			Entries:  1,
-			Format:   "json",
-			Length:   5,
-			Qri:      "st:0",
-			Schema:   map[string]interface{}{"type": string("array")},
-		},
-		Stats: &dataset.Stats{
-			Path: "/ipfs/Qmd9vW75BLNKFLq3tTeuXmA4KWPG4D2sprdBSrfVWMLU26",
-			Qri:  "sa:0",
-			Stats: []interface{}{
-				map[string]interface{}{
-					"count": float64(1),
-					"histogram": map[string]interface{}{
-						"bins":        nil,
-						"frequencies": []interface{}{},
-					},
-					"max":  float64(100),
-					"min":  float64(100),
-					"mean": float64(100),
-					"type": "numeric",
-				},
-			},
-		},
-	}
-
-	// calling meta has the side-effect of allocating dataset.Meta.meta
-	// TODO (b5) - this is bad. we need a meta constructor
-	expectDs.Meta.Meta()
-
-	if diff := cmp.Diff(expectDs, ds, cmp.AllowUnexported(dataset.Dataset{}, dataset.Meta{})); diff != "" {
+	expectDs := dstest.LoadGoldenFile(t, "testdata/expect/TestClientFeedsAndPreviews.json")
+	if diff := dstest.CompareDatasets(expectDs, ds); diff != "" {
 		t.Errorf("preview result mismatch (-want +got): \n%s", diff)
+		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestClientFeedsAndPreviews.json", ds)
 	}
 }
 

@@ -1,0 +1,48 @@
+{
+  "bodyPath": "/mem/QmTQCPinsdBy9FiT8iuxz45XFA19K6rUbAkjAtBVszQ7Ke",
+  "commit": {
+    "message": "body changed",
+    "path": "/mem/Qme3JkVYDw4iPbsPstDL5J88MFVLc7BCacgqwUiJ9GZNHB",
+    "qri": "cm:0",
+    "signature": "CYWSuoNtBVaAK/vpZKNWzmDZhhQeDjeCXSy4LMhLoHnvwtlAFQqwPgq85/epIRgXTM/XwWZzV2MhXqXuuKqW69NiKYUn+Lrm0b2vNjo4tbV2JO9n923D0QjozxpbQ3LXtiS8BMhTqyWKcp2c5sKkOpsmiT71MhSYzhnaieNU+HuJ71a4t/yP8uXBGXtbbq8E/1yLiOSA6e+pBOcUS807QMiPslH3kJREsNhaepU7xxdVf0JGE4++P6QLOaJ89WktLDzke3cMR9zRl+qPSbQcV9vBWCLMVqeUsjWKZs+8/wwL2KA6gmD0JES/5z8tbA/xvcMFciluKmpedd6ufq/uDw==",
+    "timestamp": "2001-01-01T01:01:01.000000001Z",
+    "title": "body changed"
+  },
+  "path": "/mem/QmcSocp3ULS4HdLLDLqbXSqwqT1KYz2UnEW4XYVpmRtYd9",
+  "qri": "ds:0",
+  "structure": {
+    "depth": 2,
+    "entries": 5044,
+    "format": "csv",
+    "length": 106771,
+    "path": "/mem/QmWjJgqYE4c5zzzJCDorjLMd3v7kn44t9V18UewEexX8Dv",
+    "qri": "st:0",
+    "schema": {
+      "items": {
+        "items": [],
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "stats": {
+    "path": "/mem/QmfWELhj6EHmD9bGsuY14yeQLce7Wu5v917hLp1yxgg9GE",
+    "qri": "sa:0",
+    "stats": [
+      {
+        "count": 5044,
+        "frequencies": {},
+        "maxLength": 87,
+        "minLength": 2,
+        "type": "string"
+      },
+      {
+        "count": 5044,
+        "frequencies": {},
+        "maxLength": 8,
+        "minLength": 0,
+        "type": "string"
+      }
+    ]
+  }
+}

@@ -1130,6 +1130,8 @@ github.com/qri-io/compare v0.1.0 h1:A/MRx3uEnJ/iMjfJY1VOqH9CYs9zFSEYaFVeXuGfmis=
 github.com/qri-io/compare v0.1.0/go.mod h1:i/tVuDGRXVxhuZ8ZUieF23u6rQ6wLGJl7KKWpoMRaTE=
 github.com/qri-io/dag v0.2.2-0.20200725180936-93d90d47ff6e h1:VQVKTN05OWl2H3AALNeLpSlxD4IDX0Xzu60GZdnQ4y8=
 github.com/qri-io/dag v0.2.2-0.20200725180936-93d90d47ff6e/go.mod h1:PGnR3JnzkTvQd+t/C2/Txu2Wvkt4Rrbm94ZfO2MuHLs=
+github.com/qri-io/dag v0.2.2-0.20201113214519-3219603c4d1a h1:fAgQF42ZcW7jXccOVaWDjzzvLsMyipVO3XxbdFeSNSA=
+github.com/qri-io/dag v0.2.2-0.20201113214519-3219603c4d1a/go.mod h1:1AwOy3yhcZTAXzaF4wGSdnrp87u3PBOrsWXUjOtQCXo=
 github.com/qri-io/dataset v0.2.0 h1:c5j6VOLNzZooQEviLCLvEkjLqsyOo+Ya1/lHrgsNdD0=
 github.com/qri-io/dataset v0.2.0/go.mod h1:5zPEj0725eSTnpQmbf/JV1upPXY+DTwQ/Ic3PgQV7g0=
 github.com/qri-io/dataset v0.2.1-0.20201027203116-4e5e4591d1b8 h1:n9o214xS3aACFKq3mD/VppfaifNHL1tdbvFgP2fwOrs=
@@ -1138,6 +1140,8 @@ github.com/qri-io/dataset v0.2.1-0.20201111010757-deda98444c9e h1:MazJmF9IgFWbyg
 github.com/qri-io/dataset v0.2.1-0.20201111010757-deda98444c9e/go.mod h1:HtwGskdCECbOON0iVQHEEm6fykwDqharlqabc1ssj3Y=
 github.com/qri-io/dataset v0.2.1-0.20201111192041-5e173056771c h1:E+AB6FJdTNqL1zF2aCWMP/rLBDOypPpvdEapv8DRqGY=
 github.com/qri-io/dataset v0.2.1-0.20201111192041-5e173056771c/go.mod h1:HtwGskdCECbOON0iVQHEEm6fykwDqharlqabc1ssj3Y=
+github.com/qri-io/dataset v0.2.1-0.20201113211414-b678b24f2f3d h1:NGa8usXa8YBNyMIwwU7voJDy1TKyKw71Ya/R0+pljOI=
+github.com/qri-io/dataset v0.2.1-0.20201113211414-b678b24f2f3d/go.mod h1:HtwGskdCECbOON0iVQHEEm6fykwDqharlqabc1ssj3Y=
 github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b h1:T8qEIv+qLi5mVWvSS329wJ+HbN7cfMwCWjRVzh/+upo=
 github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b/go.mod h1:NrL/b7YvexgpGb4HEO3Rlx5RrMLDfxuKDf/XDAq5ac0=
 github.com/qri-io/doggos v0.1.0 h1:B7Hn9ssRGDAonMhJ4UwDtPDmG9GtvLR8f7VFec7Rs7M=
@@ -1158,6 +1162,9 @@ github.com/qri-io/qfs v0.5.1-0.20201027203612-c4d5a0634b7e/go.mod h1:SU+DUq8+BfH
 github.com/qri-io/qfs v0.5.1-0.20201111192341-8539fa18ac4b/go.mod h1:SU+DUq8+BfHNod1SXzmD8FrNLgPt42aKyQuO3fnFEQI=
 github.com/qri-io/qfs v0.5.1-0.20201112000212-555d11059f9d h1:b0tzF6yUk5kpH20fTlca3vMjgo65FWD8RgS8lVz3Iuc=
 github.com/qri-io/qfs v0.5.1-0.20201112000212-555d11059f9d/go.mod h1:SU+DUq8+BfHNod1SXzmD8FrNLgPt42aKyQuO3fnFEQI=
+github.com/qri-io/qfs v0.5.1-0.20201113211237-068f64870da8 h1:wpFq+9Hu3q3htBp5qPj7w3LDQ+3AsA3cFDLQ8S+s/tA=
+github.com/qri-io/qfs v0.5.1-0.20201113211237-068f64870da8/go.mod h1:SU+DUq8+BfHNod1SXzmD8FrNLgPt42aKyQuO3fnFEQI=
+github.com/qri-io/qfs v0.5.1-0.20201114155452-def8067fce61/go.mod h1:SU+DUq8+BfHNod1SXzmD8FrNLgPt42aKyQuO3fnFEQI=
 github.com/qri-io/starlib v0.4.2 h1:ZGzmzT9fOqdluezcwhAZAbTn/v6kMg1tC6ALVjQPhpQ=
 github.com/qri-io/starlib v0.4.2/go.mod h1:2xlZ9r2UV4LF4G9mpYPBWo7CtXtdW0h1RoGIkZ8elOE=
 github.com/qri-io/varName v0.1.0 h1:dFP5qZHrxnn5fNoMbjfpMCRBYDrOsoyls7R07r+emk0=

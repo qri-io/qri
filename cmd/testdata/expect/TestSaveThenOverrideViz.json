@@ -1,0 +1,81 @@
+{
+  "bodyPath": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
+  "commit": {
+    "author": {
+      "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
+    },
+    "message": "viz added\nbody:\n\tadded row /",
+    "path": "/ipfs/QmcVrDLZjxeLLq14wyrMsdHuKCuXn48nd8By2y6Me9vbuA",
+    "qri": "cm:0",
+    "signature": "V88uHk0H2nakt7Hqry/JPWxDbSm9TixmX6sqRI/aGVRglpS4G3A+QBEFIiW5XhwExnw34BjkliuSiWVNDocUyrHsAMY5mEtojOhuAlOVglZWiFH/yrs3ELwXgx9EaNCLp8ZlPPJIIngJKifkY9mokK/EpHuP+BcuOrmsfkTjeoh99/ASIARKrQoDGKynmf7yF8oByhr2NrzZn8sMQACbNJYOsb9g+AIXPLK/QzMkNaeyv+hL5kDeI3uDL2DINnMGY8fZgk4Hyhh+yPpGPWUsU3/S85/OQ8tLlqacwTHbePdt9+58N5E5za5M1hn3pH4gyyMf0FTgVaFAzoLFtocJQg==",
+    "timestamp": "2001-01-01T01:02:01.000000001Z",
+    "title": "updated viz and body"
+  },
+  "meta": {
+    "path": "/ipfs/QmPTny3VHAB5BcP99r6xhK7SGnmDFjpC8cHXLCrHNn2tZB",
+    "qri": "md:0",
+    "title": "example movie data"
+  },
+  "path": "/ipfs/QmVxuzvQjA5hzT6rzSCFq9mDu9bkAxcmC3VbtK3Jn8yqN2",
+  "previousPath": "/ipfs/Qmf7M876GxhMNhRkr5mQTtRmGEjUoA1SKTUSTQJPkj2Pso",
+  "qri": "ds:0",
+  "structure": {
+    "depth": 2,
+    "errCount": 1,
+    "entries": 8,
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true,
+      "lazyQuotes": true
+    },
+    "length": 224,
+    "path": "/ipfs/QmWqobG1jjqWnNadHYVhv9m3TXudrabLwmoybQLgvFvQa3",
+    "qri": "st:0",
+    "schema": {
+      "items": {
+        "items": [
+          {
+            "title": "movie_title",
+            "type": "string"
+          },
+          {
+            "title": "duration",
+            "type": "integer"
+          }
+        ],
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "stats": {
+    "path": "/ipfs/QmXHqvGRzaDUTbiKzBezR43mchpwoSE3xuf8HnfVkdfkKk",
+    "qri": "sa:0",
+    "stats": [
+      {
+        "count": 8,
+        "frequencies": {},
+        "maxLength": 55,
+        "minLength": 7,
+        "type": "string"
+      },
+      {
+        "count": 7,
+        "histogram": {
+          "bins": null,
+          "frequencies": []
+        },
+        "max": 178,
+        "mean": 1047,
+        "min": 100,
+        "type": "numeric"
+      }
+    ]
+  },
+  "viz": {
+    "format": "html",
+    "qri": "vz:0",
+    "renderedPath": "/ipfs/QmdkMb5K7rEUDegPe3Pibi7dk3xdvBq6UFfuD5PDkLRytV",
+    "scriptPath": "/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"
+  }
+}

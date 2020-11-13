@@ -2,8 +2,6 @@ module github.com/qri-io/qri
 
 go 1.13
 
-replace github.com/qri-io/dag => /Users/b5/qri/dag
-
 require (
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
@@ -44,13 +42,13 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.5.0
 	github.com/qri-io/apiutil v0.2.0
-	github.com/qri-io/dag v0.2.2-0.20200725180936-93d90d47ff6e
-	github.com/qri-io/dataset v0.2.1-0.20201111192041-5e173056771c
+	github.com/qri-io/dag v0.2.2-0.20201113214519-3219603c4d1a
+	github.com/qri-io/dataset v0.2.1-0.20201113211414-b678b24f2f3d
 	github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/jsonschema v0.2.0
-	github.com/qri-io/qfs v0.5.1-0.20201112000212-555d11059f9d
+	github.com/qri-io/qfs v0.5.1-0.20201114155452-def8067fce61
 	github.com/qri-io/starlib v0.4.2
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.1.0

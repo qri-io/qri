@@ -131,7 +131,7 @@ func TestRawDatasetRefs(t *testing.T) {
 	expect := `0 Peername:  peer
   ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      cities
-  Path:      /mem/QmfWsttiLU5vdpJuWaKDX4Un5Ba2bQL1Hoqn9QqAshdLMm
+  Path:      /mem/QmXaCusHfF8NTP4vL7CoXR2TnCn61uoJs511KpKiH7AmdR
   FSIPath:   
   Published: false
 `

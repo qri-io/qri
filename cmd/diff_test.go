@@ -76,8 +76,10 @@ func TestDiffRun(t *testing.T) {
 				Refs:     NewListOfRefSelects([]string{"me/movies", "me/cities"}),
 				Selector: "meta",
 			},
-			`0 elements. 1 insert. 1 delete.
+			`0 elements. 2 inserts. 2 deletes.
 
+-path: "/mem/QmZQNhYYVRx8LyMmPV9mqzVZVEeZKpso4Ywu7nwyWvT4X4"
++path: "/mem/QmWX9MV7ms5QXVGt26gXAbp5z8TdfamUgVBdzxSqhWhPzV"
  qri: "md:0"
 -title: "example movie data"
 +title: "example city data"
@@ -89,7 +91,7 @@ func TestDiffRun(t *testing.T) {
 				Selector: "meta",
 				Format:   "json",
 			},
-			`{"stat":{"leftNodes":3,"rightNodes":3,"leftWeight":45,"rightWeight":43,"inserts":1,"deletes":1},"diff":[[" ","qri","md:0"],["-","title","example movie data"],["+","title","example city data"]]}
+			`{"stat":{"leftNodes":4,"rightNodes":4,"leftWeight":147,"rightWeight":145,"inserts":2,"deletes":2},"diff":[["-","path","/mem/QmZQNhYYVRx8LyMmPV9mqzVZVEeZKpso4Ywu7nwyWvT4X4"],["+","path","/mem/QmWX9MV7ms5QXVGt26gXAbp5z8TdfamUgVBdzxSqhWhPzV"],[" ","qri","md:0"],["-","title","example movie data"],["+","title","example city data"]]}
 `,
 		},
 	}
@@ -109,7 +111,7 @@ func TestDiffRun(t *testing.T) {
 				t.Fatalf("case %s unexpected error: %s", c.description, err)
 			}
 
-			if diff := cmp.Diff(run.OutStream.String(), c.stdout); diff != "" {
+			if diff := cmp.Diff(c.stdout, run.OutStream.String()); diff != "" {
 				t.Errorf("output mismatch (-want +got):\n%s", diff)
 			}
 
@@ -222,15 +224,16 @@ func TestDiffKnownFilenameComponent(t *testing.T) {
 	// Diff the structure, using the name of the component file
 	output := run.MustExec(t, "qri diff structure.json me/test_movies")
 
-	expect := `0 elements. 1 insert. 1 delete.
+	expect := `0 elements. 2 inserts. 2 deletes.
 
- checksum: "QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf"
  depth: 2
  entries: 8
  errCount: 1
  format: "csv"
  formatConfig: {"headerRow":true,"lazyQuotes":false}
  length: 224
+-path: "/ipfs/QmZT2ngBkrftFH1XBGdvx8tqQRKeK9Cz6UUTuUiC9BJE2s"
++path: "/ipfs/QmepyA2eN69Uxa85GCjAYSY1gox3DY1NVZPkAL8EdjgxtM"
  qri: "st:0"
  schema: 
    items: 

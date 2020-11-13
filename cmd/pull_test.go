@@ -73,7 +73,7 @@ func TestPullAndListRefs(t *testing.T) {
 	expect := `0 Peername:  test_peer_pull_and_list
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      my_dataset
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
   FSIPath:   
   Published: false
 
@@ -89,13 +89,13 @@ func TestPullAndListRefs(t *testing.T) {
 	expect = `0 Peername:  other_peer
   ProfileID: QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
   Name:      their_dataset
-  Path:      /ipfs/QmQ5292CNJFPsTkodSSwEqgjRdrvBB38k1ZdiUJxvahGgE
+  Path:      /ipfs/QmeHSjqoMZiZPM75SPMFdJzwA2VxJiorqk3X2G9uEbmAyN
   FSIPath:   
   Published: false
 1 Peername:  test_peer_pull_and_list
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      my_dataset
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
   FSIPath:   
   Published: false
 
@@ -117,20 +117,21 @@ func TestPullAndGet(t *testing.T) {
 	expect := `bodyPath: /ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb
 commit:
   message: created dataset
-  path: /ipfs/QmUEtKXFs6Eaz7wxUVpN9riULsnj1hXAoBeHRT79yWL7ze
+  path: /ipfs/QmRXxnXPRzorHuWw5CRa9YJFHXz85gjbrASvh24vgUubRg
   qri: cm:0
-  signature: ZHoSiqRVGLBKmkRcGaTuaiUGvbaS1Yu+13KtIlYFOnBzDAzZ/pfD1iAykEYp/vMCtKLhFb8s6P7Bnggf2erZQSX5Vd1sQBLKXt7F4fAZ0tS7J5bdalZh4chc6WjvI4VSnk/H4k/ldl5KSYvP3rN7SFY7S/X8zKkirr+aRQRLW+LqcMbYP1h27JsojIM94NIzBBwUkTYLXMaNForx2SxQamWD6Rkcy5Uz82hTjrNVnczJXeCrMR1zyi+LHThoaLDuYfUxIgkprJDrjb0x4fGM3M5DbfuSKlH1iOrXuxzJXDedmEc6Eb48dqgZ/6bpQ8Ij7rc3PtJOu6izLv6MZ3s57g==
+  signature: QGFDik4Izple4Rm3giNpc0/sNyxA4ryOdlP8VIZ0GiNRpx5h+F7smLYFczRxV8tunzqZsq1jS+r5xHo3wBk6k+oAMm6C/LGyr96c0o9R2iEpFUTmHBr9zP2Dicyc4T4cZmz/Kyg/wT0MZOMHPnzujfElb6PfR3INHtagZYEd/kA3NaXm6RqmQnz+SCJaphTyrgmzH5vxtl2Gd377HCcLL/CvywhrnRQ9h0tsr6pkbxXyelagqDnBiiK+INAo089i3XKBTu7dnwAlVxzGxY3vCK7YRZQhq5qwJiBCU0tos0HDljya/lFc9rNMLzeuJUzpmABMJ7PrTm7ZglZRb03Pmg==
   timestamp: "2001-01-01T01:01:01.000000001Z"
   title: created dataset
 name: their_dataset
-path: /ipfs/QmW8PjK4a3gJgbFr7mHzseCYaPLmhpfphjv5cgXFFDAMtk
+path: /ipfs/Qmb6NpFCzEBtPGZdp8QasFGLM6AxPEBRStB4jL4BWW9oBG
 peername: other_peer
 qri: ds:0
+stats: /ipfs/QmQQkQF2KNBZfFiX33jJ9hu6ivfoHrtgcwMRAezS4dcA7c
 structure:
-  checksum: QmSvPd3sHK7iWgZuW47fyLy4CaZQe2DwxvRhrJ39VpBVMK
   depth: 1
   format: json
   length: 2
+  path: /ipfs/QmUpFYQZjRjpN8gweCZeFPrCHnUbqwJBnXajnsbymPY45c
   qri: st:0
   schema:
     type: object
@@ -157,7 +158,7 @@ func TestPullWithCheckout(t *testing.T) {
 	expect := `0 Peername:  other_peer
   ProfileID: QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
   Name:      their_dataset
-  Path:      /ipfs/QmW8PjK4a3gJgbFr7mHzseCYaPLmhpfphjv5cgXFFDAMtk
+  Path:      /ipfs/Qmb6NpFCzEBtPGZdp8QasFGLM6AxPEBRStB4jL4BWW9oBG
   FSIPath:   /tmp/workdir
   Published: false
 

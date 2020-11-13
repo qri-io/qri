@@ -214,6 +214,7 @@ func CreateDataset(
 	return path, nil
 }
 
+// WriteDataset persists a datasets to a destination filesystem
 func WriteDataset(
 	ctx context.Context,
 	dsLk *sync.Mutex,
@@ -232,12 +233,14 @@ func WriteDataset(
 
 func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivKey, sw SaveSwitches) (root qfs.File, err error) {
 	var (
-		files []qfs.File
-		bdf   = ds.BodyFile()
+		files               []qfs.File
+		bdf                 = ds.BodyFile()
+		packageBodyFilepath string
 	)
 
 	if bdf != nil {
 		files = append(files, bdf)
+		packageBodyFilepath = bdf.FullPath()
 	}
 
 	if ds.Structure != nil {
@@ -258,7 +261,7 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivK
 				}
 				return JSONFile(f.FullPath(), ds.Structure)
 			}
-			stf = qfs.NewWriteHookFile(stf, hook, bdf.FullPath())
+			stf = qfs.NewWriteHookFile(stf, hook, packageBodyFilepath)
 		}
 
 		files = append(files, stf)
@@ -336,7 +339,7 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivK
 		if renderedF != nil {
 			files = append(files, qfs.NewMemfileReader(PackageFileRenderedViz.Filename(), renderedF))
 		} else if vzfs != nil && sw.ShouldRender {
-			hook := renderVizWriteHook(fs, ds, bdf.FullPath())
+			hook := renderVizWriteHook(fs, ds, packageBodyFilepath)
 			renderedF = qfs.NewWriteHookFile(emptyFile(PackageFileRenderedViz.Filename()), hook, append([]string{PackageFileVizScript.Filename()}, filePaths(files)...)...)
 			files = append(files, renderedF)
 		}
@@ -346,6 +349,28 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivK
 
 	if ds.Commit != nil {
 		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
+
+			for filepath, addr := range added {
+				switch filepath {
+				case PackageFileVizScript.Filename():
+					ds.Viz.ScriptPath = addr
+				case PackageFileRenderedViz.Filename():
+					ds.Viz.RenderedPath = addr
+				case PackageFileReadmeScript.Filename():
+					ds.Readme.ScriptPath = addr
+				case PackageFileStructure.Filename():
+					ds.Structure = dataset.NewStructureRef(addr)
+				case PackageFileViz.Filename():
+					ds.Viz = dataset.NewVizRef(addr)
+				case PackageFileMeta.Filename():
+					ds.Meta = dataset.NewMetaRef(addr)
+				case PackageFileStats.Filename():
+					ds.Stats = dataset.NewStatsRef(addr)
+				case packageBodyFilepath:
+					ds.BodyPath = addr
+				}
+			}
+
 			signedBytes, err := privKey.Sign(ds.SigningBytes())
 			if err != nil {
 				log.Debug(err.Error())
@@ -372,22 +397,6 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivK
 			switch comp {
 			case PackageFileCommit.Filename():
 				ds.Commit = dataset.NewCommitRef(pathMap[comp])
-			case PackageFileVizScript.Filename():
-				ds.Viz.ScriptPath = pathMap[PackageFileVizScript.Filename()]
-			case PackageFileRenderedViz.Filename():
-				ds.Viz.RenderedPath = pathMap[PackageFileRenderedViz.Filename()]
-			case PackageFileReadmeScript.Filename():
-				ds.Readme.ScriptPath = pathMap[PackageFileReadmeScript.Filename()]
-			case PackageFileStructure.Filename():
-				ds.Structure = dataset.NewStructureRef(pathMap[comp])
-			case PackageFileViz.Filename():
-				ds.Viz = dataset.NewVizRef(pathMap[comp])
-			case PackageFileMeta.Filename():
-				ds.Meta = dataset.NewMetaRef(pathMap[comp])
-			case PackageFileStats.Filename():
-				ds.Stats = dataset.NewStatsRef(pathMap[comp])
-			case bdf.FullPath():
-				ds.BodyPath = pathMap[comp]
 			}
 		}
 		return JSONFile(PackageFileDataset.Filename(), ds)

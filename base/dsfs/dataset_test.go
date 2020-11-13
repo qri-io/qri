@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
@@ -175,13 +174,13 @@ func TestCreateDataset(t *testing.T) {
 		repoFiles  int // expected total count of files in repo after test execution
 	}{
 		{"cities",
-			"/mem/QmPUMUixUxM1e6SKtgMaV7U5kvuy25W8yV4KvkcURd6LFg", nil, 8},
+			"/mem/QmfVyw9ijfuUaFCkTWJf9ARP1X1Wm2jjoSbWmuVotF8YZU", nil, 8},
 		{"all_fields",
-			"/mem/Qmcf46vxtuCsbMV4i9d2ifCJnMjEBHXturUyD2xUD6qrn9", nil, 18},
+			"/mem/QmPnrnhaV4TSowrK1i5vUgPTwbUQNWerZWUHi1g5ZS3Qsy", nil, 18},
 		{"cities_no_commit_title",
-			"/mem/QmXFRBAWTBQZVJGZxtaCAsEYKRRQLcKZJhn5UPsQ2LoJLu", nil, 21},
+			"/mem/QmXsE9ztjjnMQPVzQdmpix3Bs1tJubuLf6iTxM5hzU1UjC", nil, 21},
 		{"craigslist",
-			"/mem/QmWm6rGimuUFXgw9CQ9p3fT3h9mCnAXkPr8PHM1dhJRASm", nil, 26},
+			"/mem/QmXBQciVtYKRB2wGzTHwP4xRrjg2uTsmn4DkYaE4KkBV4L", nil, 27},
 	}
 
 	for _, c := range good {
@@ -203,12 +202,9 @@ func TestCreateDataset(t *testing.T) {
 			ds.Path = ""
 
 			if tc.Expect != nil {
-				if err := dataset.CompareDatasets(tc.Expect, ds); err != nil {
-					expb, _ := json.Marshal(tc.Expect)
-					fmt.Println(string(expb))
-					dsb, _ := json.Marshal(ds)
-					fmt.Println(string(dsb))
-					t.Errorf("dataset comparison error: %s", err.Error())
+				if diff := dstest.CompareDatasets(tc.Expect, ds); diff != "" {
+					t.Errorf("dataset comparison error (-want +got): %s", diff)
+					dstest.UpdateGoldenFileIfEnvVarSet(fmt.Sprintf("testdata/%s/expect.dataset.json", c.casePath), ds)
 				}
 			}
 
@@ -289,8 +285,8 @@ func TestCreateDataset(t *testing.T) {
 			t.Fatalf("CreateDataset expected error got 'nil'. commit: %v", ds.Commit)
 		}
 
-		if len(fs.Files) != 26 {
-			t.Errorf("invalid number of entries: %d != %d", 26, len(fs.Files))
+		if len(fs.Files) != 27 {
+			t.Errorf("invalid number of entries: %d != %d", 27, len(fs.Files))
 			_, err := fs.Print()
 			if err != nil {
 				panic(err)
@@ -357,19 +353,15 @@ func TestCreateDatasetBodyTooLarge(t *testing.T) {
 	}
 
 	// Load the created dataset to inspect the commit message
-	result, err := LoadDataset(ctx, fs, path)
+	got, err := LoadDataset(ctx, fs, path)
 	if err != nil {
 		t.Fatalf("LoadDataset: %s", err)
 	}
 
-	commitBytes, err := json.Marshal(result.Commit)
-	if err != nil {
-		t.Fatalf("commit.Marshal: %s", err)
-	}
-	expectBytes := `{"message":"body changed","path":"/mem/Qme2JBMoT8BbH7sAxBsTzv4tMMs4aXUECNSkEcXW5hwLjo","qri":"cm:0","signature":"DeYUy4RGY6Ub5L9UVZT8+HVDYIuNp0bsr8LVWwOPzAlxa48l8mOKfi1407KhZSG40ISv4DNZ/gejmRoWmUtgiaSkrO89Yw9DNhvSHhIZ/MgWRLN/BSO1Fyc9tG2Y3G0qP2hXUs+E3txe1COjzfpKql0vBXzby3rmeBMeWBqi400CTHz3qOrtuDTedud0XRxtC2dduym9edggWHue84KEmRsB3H9wIuUb1zbENDY+9wUUs8hhNWg6AMhAlTKJQI4MBA7WX/u0KuV7xqHeucH8Pip+s2gyzyfUgoUAiZxCy0K7msazuoxvcmy36PgO/2jcwleZhYaqK108/i8bTYyjMQ==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"body changed"}`
-
-	if diff := cmp.Diff(expectBytes, string(commitBytes)); diff != "" {
-		t.Fatalf("result mismatch (-want +got):%s\n", diff)
+	expect := dstest.LoadGoldenFile(t, "testdata/movies/expect.dataset.json")
+	if diff := dstest.CompareDatasets(expect, got); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+		dstest.UpdateGoldenFileIfEnvVarSet("testdata/movies/expect.dataset.json", got)
 	}
 }
 
@@ -472,8 +464,8 @@ func TestWriteDataset(t *testing.T) {
 			continue
 		}
 
-		if err := dataset.CompareDatasets(ds, result); err != nil {
-			t.Errorf("case %d comparison mismatch: %s", i, err.Error())
+		if diff := dstest.CompareDatasets(ds, result); diff != "" {
+			t.Errorf("case %d comparison mismatch: (-want +got):\n%s", i, diff)
 
 			d1, _ := ds.MarshalJSON()
 			t.Log(string(d1))

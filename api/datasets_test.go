@@ -427,6 +427,8 @@ func TestGetZip(t *testing.T) {
 		t.Fatalf("expected status code 200, got %d", gotStatusCode)
 	}
 
+	// ioutil.WriteFile("testdata/cities/exported_2.zip", []byte(gotBodyString), 0644)
+
 	// Compare the API response to the expected zip file
 	expectBytes, err := ioutil.ReadFile("testdata/cities/exported.zip")
 	if err != nil {
@@ -467,7 +469,8 @@ func TestDatasetGet(t *testing.T) {
 	// and then there's some we don't care about at all (signature).
 
 	actualStatusCode, actualBody := APICall("/get/peer/test_ds", dsHandler.GetHandler)
-	expectBody := `{"data":{"peername":"peer","name":"test_ds","path":"/mem/QmQXQ2jMyDkDMC97gn2d95teWnxxugRtAdbcjsc6ZiQFvs","dataset":{"bodyPath":"/mem/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4","commit":{"author":{"id":"QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"},"message":"created dataset from data.csv","path":"/mem/QmdnA8KnB1ywZqfVFsz3xLC4ctFVQ4K3cLa2NHdDU3ACAD","qri":"cm:0","signature":"X6w5dPkyO2+twNrpTTw7es4k0hyC44xXVaddr9c04tSSU0diP1C8zjFDTnn4HWuLYBHZzKpjetH5F5s5iJ/3QKLNi+OUc/YV3Wc0fv+KZ2ZN3UC9yMLZevcSjwdaDhYkpHCxsd8NnLTsQhyU3IrwTyTdW0dtytAZtPPHweLVOTjPa4h/sbzMDdEkW7lXcT2awzoyOGL7zNoW+mPZDkLMGHsjqKYD0/gjGBpMFA5DjhLavBeajU77GyAS10+mRR3o2GMaVtwS1QwAQBTPjR7tQdeR+I2Vj8W3iG/8JmtJs9wztt7QgDzQQmQfPhyS2TD9akikm+hFlSsOc1b6lcQnKQ==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"created dataset from data.csv"},"meta":{"qri":"md:0","title":"title one"},"name":"test_ds","path":"/mem/QmQXQ2jMyDkDMC97gn2d95teWnxxugRtAdbcjsc6ZiQFvs","peername":"peer","qri":"ds:0","structure":{"depth":2,"entries":5,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":154,"qri":"st:0","schema":{"items":{"items":[{"title":"city","type":"string"},{"title":"pop","type":"integer"},{"title":"avg_age","type":"number"},{"title":"in_usa","type":"boolean"}],"type":"array"},"type":"array"}},"stats":{"path":"/mem/QmdQz7LYFDChz3SuWjKaDEkVRymmJN1XGXgpXr6rRbMnK6","qri":"sa:0","stats":[{"count":5,"frequencies":{},"maxLength":8,"minLength":7,"type":"string"},{"count":5,"histogram":{"bins":null,"frequencies":[]},"max":40000000,"mean":49085000,"min":35000,"type":"numeric"},{"count":5,"histogram":{"bins":null,"frequencies":[]},"max":65.25,"mean":260.2,"min":44.4,"type":"numeric"},{"count":5,"falseCount":1,"trueCount":4,"type":"boolean"}]}},"published":false},"meta":{"code":200}}`
+	// TODO (b5) - use a golden file for this
+	expectBody := `{"data":{"peername":"peer","name":"test_ds","path":"/mem/QmTt3jcN17vtPvuo3DeGZ1Rwf6yQx6C7oDo3BD65mStw9f","dataset":{"bodyPath":"/mem/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4","commit":{"author":{"id":"QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"},"message":"created dataset from data.csv","path":"/mem/QmSmLqdxQCu834gqAt5h86QHMKSuYGz1Y8PeogBhiTsEGU","qri":"cm:0","signature":"uy8go07ImBzJKMN0EY1yT0/gVnI2zsy7ve5od6iS7dOU/EmXicxaEAg2CmuGm+qr6Q22I6hDEFh4siAnmaO3RwC7EXAr1uMz0iOAAUPDnCY7B503vNWzoypswKuVaVyKFZzUCkuogOAlCgP1BIGek1zvW1hn9OZ/z0aeQKr6MEpbgsP50OkRr41haY4r1P3hltdlfd9Fg8CM6KxusUdWMK86goqdmNOLoA/mlG47FvnYKIFaqHNjAaMSksbuBwfImBq8J/e4X7UwXfEKZs7PcP6fB8vogvwsSb8OG0x50ES0/mmAjB3RF/MZEvuW3SZjuvebz3EaZIkzIEHBz3kmhg==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"created dataset from data.csv"},"meta":{"path":"/mem/QmUBcYoEy2MtnerqCRhrBdWPcknTA6cAx2vBYnyBafNyGx","qri":"md:0","title":"title one"},"name":"test_ds","path":"/mem/QmTt3jcN17vtPvuo3DeGZ1Rwf6yQx6C7oDo3BD65mStw9f","peername":"peer","qri":"ds:0","structure":{"depth":2,"entries":5,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":154,"path":"/mem/QmWtJJBMLjHazxracgfPZNpJvu6kGAjBYJoGa9y5Z9mNYx","qri":"st:0","schema":{"items":{"items":[{"title":"city","type":"string"},{"title":"pop","type":"integer"},{"title":"avg_age","type":"number"},{"title":"in_usa","type":"boolean"}],"type":"array"},"type":"array"}},"stats":{"path":"/mem/QmdQz7LYFDChz3SuWjKaDEkVRymmJN1XGXgpXr6rRbMnK6","qri":"sa:0","stats":[{"count":5,"frequencies":{},"maxLength":8,"minLength":7,"type":"string"},{"count":5,"histogram":{"bins":null,"frequencies":[]},"max":40000000,"mean":49085000,"min":35000,"type":"numeric"},{"count":5,"histogram":{"bins":null,"frequencies":[]},"max":65.25,"mean":260.2,"min":44.4,"type":"numeric"},{"count":5,"falseCount":1,"trueCount":4,"type":"boolean"}]}},"published":false},"meta":{"code":200}}`
 	assertStatusCode(t, "get dataset", actualStatusCode, 200)
 	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
 		t.Errorf("output mismatch (-want +got):\n%s", diff)
@@ -497,12 +500,12 @@ func TestDatasetGet(t *testing.T) {
 	assertStatusCode(t, "get meta component", actualStatusCode, 200)
 
 	// Can get at an ipfs version
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmQXQ2jMyDkDMC97gn2d95teWnxxugRtAdbcjsc6ZiQFvs", dsHandler.GetHandler)
-	assertStatusCode(t, "get at ipfs version", actualStatusCode, 200)
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmTt3jcN17vtPvuo3DeGZ1Rwf6yQx6C7oDo3BD65mStw9f", dsHandler.GetHandler)
+	assertStatusCode(t, "get at content-addressed version", actualStatusCode, 200)
 
 	// Error 404 if ipfs version doesn't exist
 	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler)
-	assertStatusCode(t, "get missing ipfs", actualStatusCode, 404)
+	assertStatusCode(t, "get missing content-addressed version", actualStatusCode, 404)
 
 	// Error 400 due to format=csv without download=true
 	actualStatusCode, _ = APICall("/get/peer/test_ds?format=csv", dsHandler.GetHandler)

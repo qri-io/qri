@@ -188,25 +188,15 @@ func (r *TempRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
 
 // DatasetMarshalJSON reads the dataset head and marshals it as json.
 func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	fs, err := qipfs.NewFilesystem(ctx, map[string]interface{}{
-		"online": false,
-		"path":   r.IPFSPath,
-	})
-	ds, err := dsfs.LoadDataset(ctx, fs, ref)
+	ds, err := r.LoadDataset(ref)
 	if err != nil {
 		return "", err
 	}
-	bytes, err := json.Marshal(ds)
+	data, err := json.Marshal(ds)
 	if err != nil {
 		return "", err
 	}
-
-	done := gracefulShutdown(fs.(qfs.ReleasingFilesystem).Done())
-	cancel()
-	err = <-done
-	return string(bytes), err
+	return string(data), err
 }
 
 // LoadDataset from the temp repository

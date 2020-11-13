@@ -938,7 +938,8 @@ func TestGetPreviousVersionExplicitPath(t *testing.T) {
 
 	// Get meta from another reference
 	output = run.MustExec(t, fmt.Sprintf("qri get meta %s", ref3))
-	expect = `qri: md:0
+	expect = `path: /ipfs/QmWWtJJLzCYWp4KEMb95aPQe7n98y3eyRmQTJvxwqyDXCv
+qri: md:0
 title: different title
 
 `
@@ -1305,7 +1306,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	output = run.MustExecCombinedOutErr(t, "qri diff")
 	expect = `for linked dataset [test_peer_diff_after_change/diff_change]
 
-+1 element. 5 inserts. 4 deletes.
+-23 elements. 5 inserts. 5 deletes.
 
  body: 
    0: 
@@ -1324,6 +1325,7 @@ run ` + "`qri save`" + ` to commit this dataset
    qri: "md:0"
   +title: "hello"
  qri: "ds:0"
+-stats: {"qri":"sa:0","stats":[{"count":2,"frequencies":{},"maxLength":4,"minLength":3,"type":"string"},{"count":2,"frequencies":{},"maxLength":4,"minLength":3,"type":"string"},{"count":2,"histogram":{"bins":null,"frequencies":[]},"max":6,"mean":9,"min":3,"type":"numeric"}]}
  structure: {"format":"csv","formatConfig":{"lazyQuotes":true},"qri":"st:0","schema":{"items":{"items":[{"title":"field_1","type":"string"},{"title":"field_2","type":"string"},{"title":"field_3","type":"integer"}],"type":"array"},"type":"array"}}
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -1474,7 +1476,7 @@ func TestMoveWorkingDirectory(t *testing.T) {
 	expect := `0 Peername:  test_peer_move_dir
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      move_dir
-  Path:      /ipfs/QmRqiBr4Ubomaikg19VohhTvngqCkVMyPYhpWmHFYCSY9S
+  Path:      /ipfs/QmUWt34mKwXNp8uonqNJrHtoDo3WbL1M9wj7V5midzcqZF
   FSIPath:   /tmp/new_name_dir
   Published: false
 
@@ -1512,7 +1514,7 @@ func TestRemoveWorkingDirectory(t *testing.T) {
 	expect := `0 Peername:  test_peer_remove_dir
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      remove_dir
-  Path:      /ipfs/QmRqiBr4Ubomaikg19VohhTvngqCkVMyPYhpWmHFYCSY9S
+  Path:      /ipfs/QmUWt34mKwXNp8uonqNJrHtoDo3WbL1M9wj7V5midzcqZF
   FSIPath:   
   Published: false
 

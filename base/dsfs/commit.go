@@ -236,6 +236,16 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 			delete(nextObject, "scriptPath")
 		}
 	}
+	if prevMeta, ok := prevData["meta"]; ok {
+		if prevObject, ok := prevMeta.(map[string]interface{}); ok {
+			delete(prevObject, "path")
+		}
+	}
+	if nextMeta, ok := prevData["meta"]; ok {
+		if nextObject, ok := nextMeta.(map[string]interface{}); ok {
+			delete(nextObject, "path")
+		}
+	}
 
 	if prevStructure, ok := prevData["structure"]; ok {
 		if prevObject, ok := prevStructure.(map[string]interface{}); ok {
@@ -243,6 +253,7 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 			delete(prevObject, "entries")
 			delete(prevObject, "length")
 			delete(prevObject, "depth")
+			delete(prevObject, "path")
 		}
 	}
 	if nextStructure, ok := nextData["structure"]; ok {
@@ -251,6 +262,7 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 			delete(nextObject, "entries")
 			delete(nextObject, "length")
 			delete(nextObject, "depth")
+			delete(nextObject, "path")
 		}
 	}
 

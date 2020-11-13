@@ -14,6 +14,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
 	repotest "github.com/qri-io/qri/repo/test"
@@ -219,12 +220,13 @@ func TestSaveThenOverrideMetaComponent(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with the meta replaced by meta_override.yaml.
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title","path":"/ipfs/QmeYjmGoCVkrkn95KWq6fcs4Y5JcHcKHvSSkXTskidoNod","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"meta updated title"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmUMY4vWqaybWuxatoMx8Rk1SCHHLtrKZGTTje556a1sYt","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
+	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveThenOverrideMetaComponent.json")
+	if diff := dstest.CompareDatasets(expect, got); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
+		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveThenOverrideMetaComponent.json", got)
 	}
 }
 
@@ -243,12 +245,13 @@ func TestSaveWithBodyThenAddMetaComponent(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This version has a commit message about the meta being added
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta added","path":"/ipfs/QmVieZLxyvYRPyGPt6MKDwTMoNb6EfqJshg4kcVmrxfJEZ","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"meta added"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmSbKpYbjdro3kLWPLFXQ3pE3g5JY1mHkRonG2MmPJ2wm7","previousPath":"/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
+	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveWithBodyThenAddMetaComponent.json")
+	if diff := dstest.CompareDatasets(expect, got); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
+		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveWithBodyThenAddMetaComponent.json", got)
 	}
 }
 
@@ -267,12 +270,13 @@ func TestSaveWithBodyThenAddMetaAndSmallBodyChange(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This version has a commit message about the meta being added and body changing
-	expect := `{"bodyPath":"/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta added\nbody:\n\tchanged by 54%","path":"/ipfs/QmWjDi8FrAjtSt3drCR4Vh6FDvCbKrN24sM5vtLyEJu8VJ","qri":"cm:0","signature":"eLr+Pk3wg8JSoeARoelNzdKLeiYFqL1k87YpXtSXigO39cAXFHg8FQki/+zt+gLPCBmPfD/mfQbR3R2mQmxyR4F+wQ1wbwkzJfumWbluyPfBsKbPQ55XLhkYUg6Ho5HqVsBn7sZ28WJ/1+GPC5xMaFYeMLTRnD2jflB5NR33eYxVQL/IDUybhgmlV5D2GOeZAOjQcCtgf0Me8o/HMqn9TsW9mNzilf7GF7lxyV+Jrz1pYjvOPlXoJGqRGRBnDbIzvEwmH7XBGHZvsbCntFw1XEEJIQslTm5mFbVrGTzqvmsPIB/SfbTjWL4Elq4uAocr7Mnu9TFKD15XNaZ8pMhaQw==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta and body"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmZhwebAc3Jh8uz6mRcpAFzaxZun5JidoprqJgdhp95Djd","previousPath":"/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF","qri":"ds:0","structure":{"checksum":"QmSa4i985cF3dxNHxD5mSN7c6q1eYa83uNo1pLRmPZgTsa","depth":2,"errCount":1,"entries":18,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":532,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
+	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveWithBodyThenAddMetaAndSmallBodyChange.json")
+	if diff := dstest.CompareDatasets(expect, got); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
+		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveWithBodyThenAddMetaAndSmallBodyChange.json", got)
 	}
 }
 
@@ -291,13 +295,14 @@ func TestSaveTwoComponents(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with the meta replaced by meta_override ("different title") and
 	// the structure replaced by structure_override (lazyQuotes: false && title: "name").
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.lazyQuotes\n\tupdated schema.items.items.0.title","path":"/ipfs/Qmf51CD3zW64ffoWja32bKh3BSyMwvMSbh9A8PtrA7fDJi","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta and structure"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmfMHjCcDuPkacYYEfVwURyRnCuCqjaRYwtMoydYzbwEuy","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":false},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"duration","type":"integer"}]},"type":"array"}}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
+	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveTwoComponents.json")
+	if diff := dstest.CompareDatasets(expect, got); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
+		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveTwoComponents.json", got)
 	}
 }
 
@@ -316,12 +321,13 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added transform section
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"transform added","path":"/ipfs/QmWq1C8kx6d4Fe5hBsUaqXFh2VDUMzaE5ewTNjqgGnXivV","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"transform added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmcHnffD53hYSFHhvpBUqoD2J4uT3tdtcSqsUgqDLk19ko","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
+	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveThenOverrideTransform.json")
+	if diff := dstest.CompareDatasets(expect, got); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
+		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveThenOverrideTransform.json", got)
 	}
 }
 
@@ -340,12 +346,13 @@ func TestSaveThenOverrideViz(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added viz section
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"viz added","path":"/ipfs/QmfGaBvAhXK91S7aXTQhhLgrNNSJcnjZThJzBKjRasW7t2","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"viz added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmUf8ZtDTwWj2d94biAnRSDxEnDJK4LQXaAbAXEpGdNrfC","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmdkMb5K7rEUDegPe3Pibi7dk3xdvBq6UFfuD5PDkLRytV","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
+	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveThenOverrideViz.json")
+	if diff := dstest.CompareDatasets(expect, got); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
+		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveThenOverrideViz.json", got)
 	}
 }
 
@@ -364,12 +371,13 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added meta component, and transform, and viz
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nviz added\ntransform added","path":"/ipfs/QmW66PYuz128VP4gds4HgxB7q9LKUfuZUkX3VYQY8rhk4n","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta, viz, and transform"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmYd9vnBJYS3SZzMfrGfxQdL9dckgkmc51b7rsMnZaDLnA","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmW3V8zbPU4wAnzv2zbCjkiTuo7NcsVmaLfFrnHJV1fpKV","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
+	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveThenOverrideMetaAndTransformAndViz.json")
+	if diff := dstest.CompareDatasets(expect, got); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
+		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveThenOverrideMetaAndTransformAndViz.json", got)
 	}
 }
 
@@ -485,7 +493,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
 	}
 
 	output := run.MustExec(t, "qri log me/test_ds")
-	expect := `1   Commit:  /ipfs/QmXf94PJ7gumMmcsULtJVLnA2pofRD1aUSarB39d7cdvUg
+	expect := `1   Commit:  /ipfs/QmTKbhy7c23EH2TipURY7vEd4Rbyfj6Ufjf9AhNaTzB8hk
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    7 B
@@ -494,7 +502,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
     transform:
     	updated scriptBytes
 
-2   Commit:  /ipfs/QmTVgjgHdRKghVL6cUTXxiyyAZWZtEsPVhmoCHCCBKcyz9
+2   Commit:  /ipfs/QmbxeH6hVC3fDWjJ2bXXGMeZnBojypFAU3QSB3a3qGeWbS
     Date:    Sun Dec 31 20:01:01 EST 2000
     Storage: local
     Size:    7 B
@@ -520,6 +528,7 @@ func TestSaveReadmeFromFile(t *testing.T) {
 	actual := run.MustExec(t, "qri get readme me/save_readme_file")
 	expect := `format: md
 qri: rm:0
+scriptBytes: IyBUaXRsZQoKVGhpcyBpcyBhIGRhdGFzZXQgYWJvdXQgbW92aWVzCg==
 scriptPath: /ipfs/QmQPbLdDwyAzCmKayuHGeNGx5eboDv5aXTMuw2daUuneCb
 
 `
@@ -552,7 +561,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 	expect := `0 Peername:  test_peer_rename_after_reg
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      first_name
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
   FSIPath:   
   Published: false
 
@@ -571,7 +580,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 	expect = `0 Peername:  real_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      first_name
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
   FSIPath:   
   Published: false
 
@@ -587,7 +596,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 	expect = `0 Peername:  real_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      second_name
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
   FSIPath:   
   Published: false
 
@@ -603,7 +612,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 	expect = `0 Peername:  real_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      third_name
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
   FSIPath:   
   Published: false
 
@@ -627,7 +636,7 @@ func TestListFormatJson(t *testing.T) {
     "username": "test_peer_list_format_json",
     "profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
     "name": "my_ds",
-    "path": "/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF",
+    "path": "/ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf",
     "bodySize": 224,
     "bodyRows": 8,
     "bodyFormat": "csv",

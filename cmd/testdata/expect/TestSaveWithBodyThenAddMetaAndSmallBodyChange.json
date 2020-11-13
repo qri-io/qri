@@ -1,0 +1,75 @@
+{
+  "bodyPath": "/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB",
+  "commit": {
+    "author": {
+      "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
+    },
+    "message": "meta added\nbody:\n\tchanged by 54%",
+    "path": "/ipfs/QmcbAxB7fhCnXjWPLaUPyVX3JgwYnmuS7UxNxTwTP9mUF4",
+    "qri": "cm:0",
+    "signature": "TniaaX7zEasQ2+tuhbCeIJpEH06vljwgK33qZ+IKdI0gJMVNXUKOqjLVThs34HD7Wwibq/PD05YojQzgSDIGbGISAE1DoeSRD84y3wpuua2h+437BI2beEWMrHDmXXUiqh4u2omV8zVLhuou/jAiux8Op3bzal/mSypI3cE6cTa/9WYMcE94bZqD6CVh4MYkqHzcarUoEjuFvhKYPnrJUVWd+o1PaYjtfAdDyTudm801CI9U4PdkXlxnm7dPkz5Jo6Cc6zZSARF7CciinUzooenesxIKXNy8AA+pK9MeRYPWypAjNuqNxxf2jfoejZs8gGfTM40ZHl7NPdh6EuuxuA==",
+    "timestamp": "2001-01-01T01:02:01.000000001Z",
+    "title": "updated meta and body"
+  },
+  "meta": {
+    "path": "/ipfs/QmWWtJJLzCYWp4KEMb95aPQe7n98y3eyRmQTJvxwqyDXCv",
+    "qri": "md:0",
+    "title": "different title"
+  },
+  "path": "/ipfs/QmWgY4m8HgBfVP8zTYcJp1rjTf7x3QyKMxVVYpkQiyYMxX",
+  "previousPath": "/ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf",
+  "qri": "ds:0",
+  "structure": {
+    "depth": 2,
+    "errCount": 1,
+    "entries": 18,
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true,
+      "lazyQuotes": true
+    },
+    "length": 532,
+    "path": "/ipfs/QmcC8oazbAwnvZEv1k2sMXD78hZYoEoPDG1wP595Yyarg7",
+    "qri": "st:0",
+    "schema": {
+      "items": {
+        "items": [
+          {
+            "title": "movie_title",
+            "type": "string"
+          },
+          {
+            "title": "duration",
+            "type": "integer"
+          }
+        ],
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "stats": {
+    "path": "/ipfs/QmXyYhG5SvTyazEd8iEjxJ7DpzKm86WwWsYyL9xMjXpjQj",
+    "qri": "sa:0",
+    "stats": [
+      {
+        "count": 18,
+        "frequencies": {},
+        "maxLength": 55,
+        "minLength": 7,
+        "type": "string"
+      },
+      {
+        "count": 17,
+        "histogram": {
+          "bins": null,
+          "frequencies": []
+        },
+        "max": 183,
+        "mean": 2566,
+        "min": 100,
+        "type": "numeric"
+      }
+    ]
+  }
+}

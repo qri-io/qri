@@ -1,27 +1,29 @@
 {
-  "commit": {
-    "qri": "cm:0",
-    "signature": "DeYUy4RGY6Ub5L9UVZT8+HVDYIuNp0bsr8LVWwOPzAlxa48l8mOKfi1407KhZSG40ISv4DNZ/gejmRoWmUtgiaSkrO89Yw9DNhvSHhIZ/MgWRLN/BSO1Fyc9tG2Y3G0qP2hXUs+E3txe1COjzfpKql0vBXzby3rmeBMeWBqi400CTHz3qOrtuDTedud0XRxtC2dduym9edggWHue84KEmRsB3H9wIuUb1zbENDY+9wUUs8hhNWg6AMhAlTKJQI4MBA7WX/u0KuV7xqHeucH8Pip+s2gyzyfUgoUAiZxCy0K7msazuoxvcmy36PgO/2jcwleZhYaqK108/i8bTYyjMQ==",
-    "timestamp": "2001-01-01T01:01:01.000000001Z",
-    "title": "I'm a commit",
-    "message": "created dataset"
-  },
   "bodyPath": "/mem/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
+  "commit": {
+    "message": "created dataset",
+    "path": "/mem/QmWPsRhKWnWEg2yFBBheLfYbvueSfHn99TEGy3aNG6SaTd",
+    "qri": "cm:0",
+    "signature": "P85qQX4n0Zf9ISf3E+ccSUyp1Bca4mQvsyiXiijsonKHsRNAG07tfDd/2sP3KQnKDLmKLuG2nJeBLAoRp6mL6OljMLtqx3XRpv2RrAq92rMNnoZSDEopmIs35f17ps6bKyFqa3N2R9Gr9oLlOz4/BnOBTjJA+ebn9BOGXIWtyYIP1hueFrWN6jYCLSJp74wVURjfmQNl//jzkuaamRyN1tAUQzDONn60MF/bqL2vjSWW0qsL01VWZrZ4tHqChXQeYJR3kDe37aZqUTfn0EdRf/fq7dtmp97jLcYMDvH87Q+LAy2BODfrwcSMaufhTBQ6R8ECDBxl6f8cd78ssQNl9Q==",
+    "timestamp": "2001-01-01T01:01:01.000000001Z",
+    "title": "I'm a commit"
+  },
   "meta": {
+    "path": "/mem/QmRg6JaFDRifKfaHw5ZUAhGDUoFLG47u1ApNm5qkcEdoQT",
     "qri": "md:0",
     "title": "dataset with all components example"
   },
   "qri": "ds:0",
   "structure": {
-    "checksum": "",
-    "depth" : 2,
+    "depth": 2,
+    "errCount": 5,
     "entries": 5,
-    "errCount": 1,
     "format": "csv",
     "formatConfig": {
       "headerRow": true
     },
     "length": 155,
+    "path": "/mem/QmRZMjJyQ9jCSSV2ioXzAG4Q9gf3NqFsEm8pnBPrRGQRey",
     "qri": "st:0",
     "schema": {
       "items": {
@@ -41,6 +43,7 @@
     }
   },
   "stats": {
+    "path": "/mem/QmQDuV6Xw8QJDov2M1kYNWfE15AvfCUaDFuCc1iemAVQSw",
     "qri": "sa:0",
     "stats": [
       {
@@ -76,14 +79,17 @@
   "transform": {
     "qri": "tf:0",
     "resources": {
-      "foo": {"path":"/not/a/real/path"}
+      "foo": {
+        "path": "/not/a/real/path"
+      }
     },
     "scriptPath": "/mem/QmaCHzMEoDKF21Qd3emkT1mWEBS5uZG5BxLeJNbaXxghWc",
     "syntax": "sql"
   },
-  "viz":{
+  "viz": {
     "format": "html",
     "qri": "vz:0",
+    "renderedPath": "/mem/QmYVoyHY9TxhDFkAKTavgqKxv6fPZ7fMv3pvMcz9NEtzik",
     "scriptPath": "/mem/QmedXhMECTMY5x92PavJMAef4g5bW1KT5PpATvxJYmu4Fv"
   }
 }

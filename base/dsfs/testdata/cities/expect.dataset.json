@@ -1,27 +1,28 @@
 {
+  "bodyPath": "/mem/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
   "commit": {
     "message": "created dataset",
+    "path": "/mem/QmNNvjqMWppyLyKtZ5Bo437G7Fg7Nwjbt3ZiqReCNd1wcZ",
     "qri": "cm:0",
-    "signature": "DeYUy4RGY6Ub5L9UVZT8+HVDYIuNp0bsr8LVWwOPzAlxa48l8mOKfi1407KhZSG40ISv4DNZ/gejmRoWmUtgiaSkrO89Yw9DNhvSHhIZ/MgWRLN/BSO1Fyc9tG2Y3G0qP2hXUs+E3txe1COjzfpKql0vBXzby3rmeBMeWBqi400CTHz3qOrtuDTedud0XRxtC2dduym9edggWHue84KEmRsB3H9wIuUb1zbENDY+9wUUs8hhNWg6AMhAlTKJQI4MBA7WX/u0KuV7xqHeucH8Pip+s2gyzyfUgoUAiZxCy0K7msazuoxvcmy36PgO/2jcwleZhYaqK108/i8bTYyjMQ==",
+    "signature": "czvwEXD3rnKroxXow3mhEuQM5a61G4XpLwdEDcQa/Xop7xyJrwGwpuGvOmqtq0X+MqMBmwguNogKvNEA7cZEc32yM8phf5R02iDn8IbByCbnI5rX6N9kXyOJgxKb3fI0RJRc0eicPi70ya+Fd5HaLXzUQfqoPnNtUBVcwHOxDxxmByyJ8Ksu29b3LFk2lbz2dHUTUUq3KtVcBZH5wDhZRp0J1DGOqalxHLF9xJDzbSjvIyXCFfOvh2o0wDY//XpVMkOuBWApC0d8DSNkr9Bi01ALRRkbC+b4QruA2P0Q2o21UN/0VkWTrb2XMIwOgqUT5QBESX4x1wUw3HybO+IzBw==",
     "timestamp": "2001-01-01T01:01:01.000000001Z",
     "title": "initial commit"
   },
-  "bodyPath": "/mem/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
   "meta": {
+    "path": "/mem/QmWX9MV7ms5QXVGt26gXAbp5z8TdfamUgVBdzxSqhWhPzV",
     "qri": "md:0",
     "title": "example city data"
   },
   "qri": "ds:0",
   "structure": {
-    "checksum": "",
+    "depth": 2,
     "entries": 5,
-    "depth" : 2,
-    "errCount": 1,
     "format": "csv",
     "formatConfig": {
       "headerRow": true
     },
     "length": 155,
+    "path": "/mem/QmTUqiaptrRf99XvNNfEHm4QBBAk6eWgU2wt1fErbPZYgA",
     "qri": "st:0",
     "schema": {
       "items": {
@@ -49,6 +50,7 @@
     }
   },
   "stats": {
+    "path": "/mem/QmdQz7LYFDChz3SuWjKaDEkVRymmJN1XGXgpXr6rRbMnK6",
     "qri": "sa:0",
     "stats": [
       {

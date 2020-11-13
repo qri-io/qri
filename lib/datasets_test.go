@@ -103,8 +103,8 @@ func TestDatasetRequestsSave(t *testing.T) {
 
 		if got != nil && c.res != nil {
 			expect := c.res.Dataset
-			if err := dataset.CompareDatasets(expect, got); err != nil {
-				t.Errorf("case %d ds mistmatch: %s", i, err.Error())
+			if diff := dstest.CompareDatasets(expect, got); diff != "" {
+				t.Errorf("case %d ds mistmatch (-want +got):\n%s", i, diff)
 				continue
 			}
 		}
@@ -1236,31 +1236,31 @@ func TestListRawRefs(t *testing.T) {
 	expect := `0 Peername:  peer
   ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      cities
-  Path:      /mem/QmVXdrnefFLtXBxsAfPk4j1rhbXyEfSJhNErkZrh1qA5tK
+  Path:      /mem/QmUms8Qzf5FjptS34EP6gt7H1uZBjzXuN1F4KouPx3FscX
   FSIPath:   
   Published: false
 1 Peername:  peer
   ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      counter
-  Path:      /mem/QmQo9vLJBkxpGnfpcVVWRwHT7AHhk4Q8VNrxs1ABfSgCYi
+  Path:      /mem/QmXYUUEuTaCgoTTjbwNssE3aN3Vs6Hk2jwegW63yJXvFn6
   FSIPath:   
   Published: false
 2 Peername:  peer
   ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      craigslist
-  Path:      /mem/QmTLCUzyVX5RdKw7uSiKAdwPEGdeQjbMxhd1r9UuCo5p54
+  Path:      /mem/QmYUXg3xiJLrbQebBw3fJkMrbseZp5xEZarFnX8ftisiZo
   FSIPath:   
   Published: false
 3 Peername:  peer
   ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      movies
-  Path:      /mem/QmPgzRhezY51TnCb4VDssQawZh44gbTL6vqPt4rF8xQUbK
+  Path:      /mem/QmceRMKDwiNPiKpjWVbX9RQeQZzMW3e5geMiL1aVd4min2
   FSIPath:   
   Published: false
 4 Peername:  peer
   ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      sitemap
-  Path:      /mem/QmeZsNh4xU9kYjiXoBpykZtzv46w5zHA6MU9gLM2QbazAg
+  Path:      /mem/QmTEemW9q7N5o9fpjdyxjVKpds84YABMLW29yohDy9hbXM
   FSIPath:   
   Published: false
 `

@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 )
@@ -66,8 +67,8 @@ func TestLoadRevisions(t *testing.T) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 		}
 
-		if err := dataset.CompareDatasets(c.ds, got); err != nil {
-			t.Errorf("case %d result mismatch: %s", i, err)
+		if diff := dstest.CompareDatasets(c.ds, got); diff != "" {
+			t.Errorf("case %d result mismatch (-want +got):\n%s", i, err)
 		}
 	}
 }

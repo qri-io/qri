@@ -6,9 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/base/dsfs"
 )
 
@@ -33,12 +32,12 @@ func TestCreatePreview(t *testing.T) {
 		Qri:      "ds:0",
 		Peername: "peer",
 		Name:     "turnstile_daily_counts_2020",
-		Path:     "/mem/QmWpWtiTUcJ5dkWPHsQ7Pw5sVdy5812HMzTrKN8cc3wFG2",
+		Path:     "/mem/QmacSZkNd6hL62Xhc9Uo8xe7VBXzTAwyakhnPL4mzwpngt",
 		Commit: &dataset.Commit{
 			Message:   "created dataset",
-			Path:      "/mem/QmPtRiULjivVKtT5cxhQUqtodZA4xPBbCWfW79KzBRQeoZ",
+			Path:      "/mem/QmZvtU6nR3ncHnocgPFFBykP8M5dLXcaV4993etbBzUvRM",
 			Qri:       "cm:0",
-			Signature: "JVDjt9Dd3y2wjaiYbaKDdSEWuGwy+8O2OWfAHhMJ4gThJLD+DTFplw5cqUgUg7mi0QJjAwvR4AYpIWfyjHJQdRO5t9PQjuEQM9LSI1zrmL7EHrb8isqVyAH6n4/sRSVR23/9ilSHGGmjeqmRopkbbGsI8KhUlNo32RjIhF1NhMJ/d8mVy3lRhg/U64/+Vav6DWCBWKZUxa45bNKCmZgSXF8bzedFZ838363OIm0o7i82S56RIT8kDzhl3ubMmloQBBGxpl+Ylcs1KqE8UXjVQhG+tHvbUb3AXIXXx+Nek5bAx9N4/j+3Rmnwm56h/y/oBrL8e6GNH/iq7fwMo+gMfA==",
+			Signature: "epknQl+k0RlM+w3g8QueNmXoDM3Z2j9O4CV8/d4p5p+nIRqKFTRsW5K/FNvZde4Qv5fl3ZfZ/23GyVPBKbmycdEGse02bLS4fTJHbebNPycaBNwHQ4M4FQwX0jYMezAjz+9ODSXpd28P7bkuPA0QBMCBcuRvZH8AVOuv4IJVdaUQU4uQeAnTf9EnSyORPM49XRsY0U5/5GP0l1hpVXEUVgOgOSsBAE9osMHY75P6gBL2FqwJgWoJw7VIph2zUCUNlV6JlIkoGD59qwO4dhzD6ITtYGX6xwLr7o0T8w8p67d9PAbHx/czHa/tFV6bnRxz0ViCBkAWzhimgBwqI16r4g==",
 			Timestamp: ts,
 			Title:     "update data for week ending April 18, 2020",
 		},
@@ -86,7 +85,7 @@ This aggregation is a best-effort to make a clean and usable dataset of station-
 		Stats:    &dataset.Stats{Path: "/mem/QmdzwcjZDAwPQJHikR9jnPg7x1jrKGseW2EZvd4s3eZxfG", Qri: "sa:0"},
 	}
 
-	if diff := cmp.Diff(expect, got, cmpopts.IgnoreUnexported(dataset.Dataset{}, dataset.Meta{}, dataset.Readme{}, dataset.Transform{})); diff != "" {
+	if diff := dstest.CompareDatasets(expect, got); diff != "" {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
 
@@ -101,12 +100,12 @@ This aggregation is a best-effort to make a clean and usable dataset of station-
 		Qri:      "ds:0",
 		Peername: "peer",
 		Name:     "now_tf",
-		Path:     "/mem/QmVsnvyb7Y5KoATrryY7oXE8HoxsspCQ7FFcLzVTwfA7UQ",
+		Path:     "/mem/QmNPFuufGRhkgrLoGEN4yYX4gS3s7TrpdBuRUqMaRXxyva",
 		Commit: &dataset.Commit{
 			Message:   "created dataset",
-			Path:      "/mem/QmQnGzn3bzB3TqKtpskFqBDtpchsPt946JAP6HXNtXCWyk",
+			Path:      "/mem/QmVSqa5by5nfirScnJnL2icZUvhFLsaVE3RH6SB5uvZnpA",
 			Qri:       "cm:0",
-			Signature: "JVDjt9Dd3y2wjaiYbaKDdSEWuGwy+8O2OWfAHhMJ4gThJLD+DTFplw5cqUgUg7mi0QJjAwvR4AYpIWfyjHJQdRO5t9PQjuEQM9LSI1zrmL7EHrb8isqVyAH6n4/sRSVR23/9ilSHGGmjeqmRopkbbGsI8KhUlNo32RjIhF1NhMJ/d8mVy3lRhg/U64/+Vav6DWCBWKZUxa45bNKCmZgSXF8bzedFZ838363OIm0o7i82S56RIT8kDzhl3ubMmloQBBGxpl+Ylcs1KqE8UXjVQhG+tHvbUb3AXIXXx+Nek5bAx9N4/j+3Rmnwm56h/y/oBrL8e6GNH/iq7fwMo+gMfA==",
+			Signature: "snCNPPyyVoeIiVyezEpPWBURYfpE2ZL6XTrve+rxjNeEZSDvSUTGbDE0l9tLvFF7+Wu/nqVIKvwCnnyZ51/alOhoSMT4EcbcaXRnVvCJQeqqj7NRZNQ9vIhVbWpxN5b9MWrhS+LydnE3mOsnI/jtFhx3N5Zs6tGOiiRVtoAe5IKYhnEk8NBUGpbYLQuw74wQlT60OnDroFxhabGMFF4O+9bp/RKKqk/wQEPWaw511PL7/CY1xvT+y1YZ7sPwGXPFkWKX49qd48YXXeKVaA8f89UCBMpQ6egcogau12DbiYHp2cPXlMUSsbmG0QgJJve/sCSLJq/imfaFXW7mOptaig==",
 			Timestamp: ts,
 			Title:     "created dataset",
 		},
@@ -137,7 +136,7 @@ This aggregation is a best-effort to make a clean and usable dataset of station-
 		Stats:    &dataset.Stats{Path: "/mem/QmdzwcjZDAwPQJHikR9jnPg7x1jrKGseW2EZvd4s3eZxfG", Qri: "sa:0"},
 	}
 
-	if diff := cmp.Diff(expect, got, cmpopts.IgnoreUnexported(dataset.Dataset{}, dataset.Meta{}, dataset.Readme{}, dataset.Transform{})); diff != "" {
+	if diff := dstest.CompareDatasets(expect, got); diff != "" {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
 }

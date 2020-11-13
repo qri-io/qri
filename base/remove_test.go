@@ -164,8 +164,8 @@ func TestVerifyRefsRemove(t *testing.T) {
 	// we get the proper response:
 	s = verifyRefsRemoved(ctx, r.Filesystem(), refs, 2)
 	sExpected := `
-ref "peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/mem/QmazWgdokbSaFuYMqdh1mwo8sZT3zRspBhSvuhbmPvkvm1" should NOT exist in the store, but does
-ref "peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/mem/Qma9q3gk2gcwUkWQzsyCwDYLoqtLGbbiCKU8KcpJAuhybi" should NOT exist in the store, but does`
+ref "peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/mem/QmbkYZUubrcz2PErhXZ9g38WjeDzPQeWoyf4NbSzuGK1Zu" should NOT exist in the store, but does
+ref "peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/mem/QmXqnDArMaoqv5tXz9Ck3tKYncmznRiGDiwynEpBbCttm3" should NOT exist in the store, but does`
 	if diff := cmp.Diff(sExpected, s); diff != "" {
 		t.Errorf("response mismatch: (-want +got):\n %s", diff)
 	}

@@ -1,33 +1,36 @@
 {
-  "commit": {
-    "qri": "cm:0",
-    "signature": "DeYUy4RGY6Ub5L9UVZT8+HVDYIuNp0bsr8LVWwOPzAlxa48l8mOKfi1407KhZSG40ISv4DNZ/gejmRoWmUtgiaSkrO89Yw9DNhvSHhIZ/MgWRLN/BSO1Fyc9tG2Y3G0qP2hXUs+E3txe1COjzfpKql0vBXzby3rmeBMeWBqi400CTHz3qOrtuDTedud0XRxtC2dduym9edggWHue84KEmRsB3H9wIuUb1zbENDY+9wUUs8hhNWg6AMhAlTKJQI4MBA7WX/u0KuV7xqHeucH8Pip+s2gyzyfUgoUAiZxCy0K7msazuoxvcmy36PgO/2jcwleZhYaqK108/i8bTYyjMQ==",
-    "timestamp": "2001-01-01T01:01:01.000000001Z",
-    "title": "initial commit",
-    "message": "created dataset"
-  },
   "bodyPath": "/mem/QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
+  "commit": {
+    "message": "created dataset",
+    "path": "/mem/QmaqCTHHA2JiY3easc8MZk7JMWUWUb6E8bw5MggKBZuoaw",
+    "qri": "cm:0",
+    "signature": "VmUtgJCWo4CMZpuTzGTZf8s0BsfqEPco69hCB7W8czXSshIhGzTDOP43hKcFqTGKQd/bSwrbuNP/PnekwWqUz2Dz36+G5ZnJFi9Gcy7tCvLrjWL3A38STyVH+rs5cdrtkta6oYHEH3po+4Tl1q3XMvpgFLT2iKbQBWsFxPl0zLlKPRMetoho+ztMeH/DAqLs1oO2nm0weivyz4XXLy5ZgKyJdHtSWMi6WfabqFSesO1cLAXKOn9DgMwI6XmsEBxNZvXoyMVeBlDl5zzsfrEByvzPc6fA5Kr3nBERH9761xgWFX3YLuoGajhh1RPMGPzq3Z8BlcxIJbWh6Kk7ONCj9w==",
+    "timestamp": "2001-01-01T01:01:01.000000001Z",
+    "title": "initial commit"
+  },
   "qri": "ds:0",
   "structure": {
-    "checksum": "",
+    "depth": 4,
     "entries": 1200,
-    "errCount": 1,
-    "depth" : 4,
     "format": "json",
     "length": 520254,
+    "path": "/mem/QmPnLzMvYdgViAS748Mn3G1r9DUgd9ezMStZfzWv2bjrmm",
     "qri": "st:0",
     "schema": {
+      "items": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "title": "Apartment",
-      "type": "array",
-      "items" : {
-        "type" : "object",
-        "properties" : {
-          "name" : { "type": "string"}
-        }
-      }
+      "type": "array"
     }
   },
   "stats": {
+    "path": "/mem/QmNtdejtiDLyyAfZmB8ESkjCMjXS7gSG4ineZd9pNkebUJ",
     "qri": "sa:0",
     "stats": [
       {
