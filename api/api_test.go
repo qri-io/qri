@@ -59,7 +59,15 @@ func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 }
 
 func newTestNode(t *testing.T) (node *p2p.QriNode, teardown func()) {
-	return newTestNodeWithNumDatasets(t, 0)
+	t.Helper()
+
+	var r repo.Repo
+	r, teardown = newTestRepo(t)
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return node, teardown
 }
 
 func testConfigAndSetter() (cfg *config.Config, setCfg func(*config.Config) error) {
@@ -75,17 +83,6 @@ func newTestInstanceWithProfileFromNode(ctx context.Context, node *p2p.QriNode) 
 	pro, _ := node.Repo.Profile()
 	cfg.Profile, _ = pro.Encode()
 	return lib.NewInstanceFromConfigAndNode(ctx, cfg, node)
-}
-
-// TODO (b5) - num param is no longer in use, refactor this function away
-func newTestNodeWithNumDatasets(t *testing.T, _ int) (node *p2p.QriNode, teardown func()) {
-	var r repo.Repo
-	r, teardown = newTestRepo(t)
-	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	return node, teardown
 }
 
 type handlerTestCase struct {
@@ -217,7 +214,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 	}{
 		// forbidden endpoints
 		{"GET", "/ipfs/", 403},
-		{"GET", "/ipns/", 403},
+		{"GET", "/ipns/", 404},
 		{"GET", "/profile", 403},
 		{"POST", "/profile", 403},
 		{"POST", "/profile/photo", 403},

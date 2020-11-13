@@ -82,9 +82,9 @@ func NewEmptyTestRepo(bus event.Bus) (mr *repo.MemRepo, err error) {
 
 func newTestFS(ctx context.Context) *muxfs.Mux {
 	fs, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "mem"},
 		{Type: "local"},
 		{Type: "http"},
-		{Type: "mem"},
 	})
 	if err != nil {
 		panic(err)
