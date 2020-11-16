@@ -41,7 +41,7 @@ func testRefstoreRefs(t *testing.T, rmf RepoMakerFunc) {
 	r, cleanup := rmf(t)
 	defer cleanup()
 
-	path, err := r.Store().Put(ctx, qfs.NewMemfileBytes("test", []byte(`{ "title": "test data" }`)))
+	path, err := r.Filesystem().DefaultWriteFS().Put(ctx, qfs.NewMemfileBytes("test", []byte(`{ "title": "test data" }`)))
 	if err != nil {
 		t.Errorf("error putting test file in datastore: %s", err.Error())
 		return
@@ -86,7 +86,7 @@ func testRefstoreRefs(t *testing.T, rmf RepoMakerFunc) {
 	}
 	err = nil
 
-	if err := r.Store().Delete(ctx, ref.Path); err != nil {
+	if err := r.Filesystem().DefaultWriteFS().Delete(ctx, ref.Path); err != nil {
 		t.Errorf("error removing file from store")
 		return
 	}
@@ -106,7 +106,7 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_e", Published: true},
 	}
 	for i, ref := range refs {
-		path, err := r.Store().Put(ctx, qfs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))))
+		path, err := r.Filesystem().DefaultWriteFS().Put(ctx, qfs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))))
 		if err != nil {
 			t.Errorf("error putting test file in cafs: %s", err.Error())
 			return
@@ -178,7 +178,7 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 	}
 
 	for _, ref := range refs {
-		if err := r.Store().Delete(ctx, ref.Path); err != nil {
+		if err := r.Filesystem().DefaultWriteFS().Delete(ctx, ref.Path); err != nil {
 			t.Errorf("error removing path from repo store: %s", err.Error())
 			return
 		}

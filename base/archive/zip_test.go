@@ -20,20 +20,20 @@ var blankInitID = ""
 
 func TestWriteZip(t *testing.T) {
 	ctx := context.Background()
-	fs, names, err := testStore()
+	fs, names, err := testFS()
 	if err != nil {
 		t.Errorf("error creating store: %s", err.Error())
 		return
 	}
 
-	ds, err := dsfs.LoadDataset(ctx, store, names["movies"])
+	ds, err := dsfs.LoadDataset(ctx, fs, names["movies"])
 	if err != nil {
 		t.Errorf("error fetching movies dataset from store: %s", err.Error())
 		return
 	}
 
 	buf := &bytes.Buffer{}
-	err = WriteZip(ctx, store, ds, "yaml", blankInitID, dsref.MustParse("peer/ref@/ipfs/Qmb"), buf)
+	err = WriteZip(ctx, fs, ds, "yaml", blankInitID, dsref.MustParse("peer/ref@/ipfs/Qmb"), buf)
 	if err != nil {
 		t.Errorf("error writing zip archive: %s", err.Error())
 		return

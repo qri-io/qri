@@ -443,7 +443,7 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefAlphabetized(t *testing.T) {
 
 	dsrefs := []reporef.DatasetRef{}
 	fs := qfs.NewMemFS()
-	cache, err := BuildDscacheFromLogbookAndProfilesAndDsref(ctx, dsrefs, profiles, book, store, fs)
+	cache, err := BuildDscacheFromLogbookAndProfilesAndDsref(ctx, dsrefs, profiles, book, fs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -478,9 +478,9 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 
 	peerInfo := testPeers.GetTestPeerInfo(0)
 	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
+	store := qfs.NewMemFS()
 
 	// Add test datasets, which fillInfoForDatasets will use to populate dscache
-	fs := qfs.NewMemFS()
 	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion2", `{
   "meta": {
     "title": "This Is Title",
@@ -510,8 +510,8 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 	})
 
 	dsrefs := []reporef.DatasetRef{}
-	fs := qfs.NewMemFS()
-	cache, err := BuildDscacheFromLogbookAndProfilesAndDsref(ctx, dsrefs, profiles, book, store, fs)
+	fs2 := qfs.NewMemFS()
+	cache, err := BuildDscacheFromLogbookAndProfilesAndDsref(ctx, dsrefs, profiles, book, fs2)
 	if err != nil {
 		t.Fatal(err)
 	}

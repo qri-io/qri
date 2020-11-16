@@ -108,6 +108,7 @@ func TestGenerateFilename(t *testing.T) {
 func testFS() (qfs.Filesystem, map[string]string, error) {
 	ctx := context.Background()
 	dataf := qfs.NewMemfileBytes("movies.csv", []byte("movie\nup\nthe incredibles"))
+	pk := testPeers.GetTestPeerInfo(0).PrivKey
 
 	// Map strings to ds.keys for convenience
 	ns := map[string]string{
@@ -131,7 +132,7 @@ func testFS() (qfs.Filesystem, map[string]string, error) {
 	ds.SetBodyFile(dataf)
 
 	fs := qfs.NewMemFS()
-	dskey, err := dsfs.WriteDataset(ctx, fs, ds, true)
+	dskey, err := dsfs.WriteDataset(ctx, nil, fs, ds, pk, dsfs.SaveSwitches{})
 	if err != nil {
 		return fs, ns, err
 	}
@@ -177,7 +178,7 @@ func testFSWithVizAndTransform() (qfs.Filesystem, map[string]string, error) {
 	privKey := testPeers.GetTestPeerInfo(10).PrivKey
 
 	var dsLk sync.Mutex
-	dskey, err := dsfs.WriteDataset(ctx, dsLk, fs, ds, privKey, dsfs.SaveSwitches{Pin: true})
+	dskey, err := dsfs.WriteDataset(ctx, &dsLk, st, ds, privKey, dsfs.SaveSwitches{Pin: true})
 	if err != nil {
 		return st, ns, err
 	}
