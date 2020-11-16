@@ -50,13 +50,13 @@ func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) 
 	if ds.BodyFile() == nil {
 		if err = ds.OpenBodyFile(ctx, fsys); err != nil {
 			log.Debug(err)
-			return
+			return fmt.Errorf("opening body file: %w", err)
 		}
 	}
 	if ds.Transform != nil && ds.Transform.ScriptFile() == nil {
 		if err = ds.Transform.OpenScriptFile(ctx, fsys); err != nil {
 			log.Debug(err)
-			return
+			return fmt.Errorf("opening transform file: %w", err)
 		}
 	}
 	if ds.Viz != nil && ds.Viz.ScriptFile() == nil {
@@ -68,13 +68,13 @@ func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) 
 				err = nil
 			} else {
 				log.Debug(err)
-				return
+				return fmt.Errorf("opening viz scriptFile: %w", err)
 			}
 		}
 	}
 
 	if err = openReadme(ctx, fsys, ds); err != nil {
-		return err
+		return fmt.Errorf("opening readme file: %w", err)
 	}
 
 	if ds.Viz != nil && ds.Viz.RenderedFile() == nil {

@@ -81,9 +81,8 @@ func LoadDatasetRefs(ctx context.Context, fs qfs.Filesystem, path string) (*data
 		return nil, fmt.Errorf("unmarshaling %s file: %w", PackageFileDataset.String(), err)
 	}
 
-	// assign path to retain internal reference to the
-	// path this dataset was read from
-	ds.Assign(dataset.NewDatasetRef(path))
+	// assign path to retain internal reference to the path this dataset was read from
+	ds.Path = path
 
 	return ds, nil
 }
@@ -350,26 +349,7 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivK
 	if ds.Commit != nil {
 		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
 
-			for filepath, addr := range added {
-				switch filepath {
-				case PackageFileVizScript.Filename():
-					ds.Viz.ScriptPath = addr
-				case PackageFileRenderedViz.Filename():
-					ds.Viz.RenderedPath = addr
-				case PackageFileReadmeScript.Filename():
-					ds.Readme.ScriptPath = addr
-				case PackageFileStructure.Filename():
-					ds.Structure = dataset.NewStructureRef(addr)
-				case PackageFileViz.Filename():
-					ds.Viz = dataset.NewVizRef(addr)
-				case PackageFileMeta.Filename():
-					ds.Meta = dataset.NewMetaRef(addr)
-				case PackageFileStats.Filename():
-					ds.Stats = dataset.NewStatsRef(addr)
-				case packageBodyFilepath:
-					ds.BodyPath = addr
-				}
-			}
+			updatePaths(ds, added, packageBodyFilepath)
 
 			signedBytes, err := privKey.Sign(ds.SigningBytes())
 			if err != nil {
@@ -389,14 +369,16 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivK
 		return nil, fmt.Errorf("cannot save empty dataset")
 	}
 
-	hook := func(ctx context.Context, f qfs.File, pathMap map[string]string) (io.Reader, error) {
+	hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
 		log.Debugf("writing dataset file. files=%v", pkgFiles)
 		ds.DropTransientValues()
+
+		updatePaths(ds, added, packageBodyFilepath)
 
 		for _, comp := range pkgFiles {
 			switch comp {
 			case PackageFileCommit.Filename():
-				ds.Commit = dataset.NewCommitRef(pathMap[comp])
+				ds.Commit = dataset.NewCommitRef(added[comp])
 			}
 		}
 		return JSONFile(PackageFileDataset.Filename(), ds)
@@ -423,5 +405,32 @@ func emptyFile(fullPath string) qfs.File {
 func jsonWriteHook(filename string, data json.Marshaler) qfs.WriteHook {
 	return func(ctx context.Context, f qfs.File, pathMap map[string]string) (io.Reader, error) {
 		return JSONFile(filename, data)
+	}
+}
+
+func updatePaths(ds *dataset.Dataset, added map[string]string, bodyPathName string) {
+	for filepath, addr := range added {
+		switch filepath {
+		case PackageFileVizScript.Filename():
+			ds.Viz.ScriptPath = addr
+		case PackageFileRenderedViz.Filename():
+			ds.Viz.RenderedPath = addr
+		case PackageFileReadmeScript.Filename():
+			ds.Readme.ScriptPath = addr
+		case PackageFileStructure.Filename():
+			ds.Structure = dataset.NewStructureRef(addr)
+		case PackageFileViz.Filename():
+			ds.Viz = dataset.NewVizRef(addr)
+		case PackageFileMeta.Filename():
+			ds.Meta = dataset.NewMetaRef(addr)
+		case PackageFileStats.Filename():
+			ds.Stats = dataset.NewStatsRef(addr)
+		case bodyPathName:
+			ds.BodyPath = addr
+		}
+	}
+
+	if vizScriptPath, ok := added[PackageFileVizScript.Filename()]; ok {
+		ds.Viz.ScriptPath = vizScriptPath
 	}
 }

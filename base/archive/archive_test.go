@@ -107,7 +107,7 @@ func TestGenerateFilename(t *testing.T) {
 
 func testFS() (qfs.Filesystem, map[string]string, error) {
 	ctx := context.Background()
-	dataf := qfs.NewMemfileBytes("movies.csv", []byte("movie\nup\nthe incredibles"))
+	dataf := qfs.NewMemfileBytes("/body.csv", []byte("movie\nup\nthe incredibles"))
 	pk := testPeers.GetTestPeerInfo(0).PrivKey
 
 	// Map strings to ds.keys for convenience
@@ -157,16 +157,17 @@ func testFSWithVizAndTransform() (qfs.Filesystem, map[string]string, error) {
 			},
 		},
 		Transform: &dataset.Transform{
-			ScriptPath:  "transform_script",
+			ScriptPath:  "/transform_script",
 			ScriptBytes: []byte("def transform(ds):\nreturn ds\n"),
 		},
 		Viz: &dataset.Viz{
-			ScriptPath:  "viz_script",
+			ScriptPath:  dsfs.PackageFileVizScript.Filename(),
 			ScriptBytes: []byte("<html>template</html>\n"),
 		},
 	}
 	// load scripts into file pointers, time for a NewDataset function?
-	ds.Transform.OpenScriptFile(ctx, nil)
+	// ds.Transform.OpenScriptFile(ctx, nil)
+	ds.Transform.SetScriptFile(qfs.NewMemfileBytes(ds.Viz.ScriptPath, ds.Viz.ScriptBytes))
 	ds.Viz.OpenScriptFile(ctx, nil)
 	ds.Viz.SetRenderedFile(qfs.NewMemfileBytes("index.html", []byte("<html>rendered</html<\n")))
 
@@ -174,7 +175,7 @@ func testFSWithVizAndTransform() (qfs.Filesystem, map[string]string, error) {
 	ns := map[string]string{}
 	// Store the files
 	st := qfs.NewMemFS()
-	ds.SetBodyFile(qfs.NewMemfileBytes("movies.csv", []byte("movie\nup\nthe incredibles")))
+	ds.SetBodyFile(qfs.NewMemfileBytes("/body.csv", []byte("movie\nup\nthe incredibles")))
 	privKey := testPeers.GetTestPeerInfo(10).PrivKey
 
 	var dsLk sync.Mutex

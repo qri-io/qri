@@ -23,14 +23,14 @@ func TestNewManifest(t *testing.T) {
 	expect := &dag.Manifest{
 		Links: [][2]int{{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}},
 		Nodes: []string{
-			"QmTxSFyAAq7xa7L5DKAC1rYq1jR3GrAdpaTfMgxd2HU2Sw",
-			"QmQoNqKXP7aZJWS6GLJMx8Ax85uBFpRbmg7Npd6usx5V82",
-			"QmSbMMHCQ2wetbXJsviNdfKkELS6jxLaHeqxdzT6DAmVZU",
-			"QmW27MUFMSvPiE3FpmHhSeBZQEuYAppofudDCLvPXVfSLR",
+			"QmUQvBRjzpwxw2q2CcUYLEmZP9WaKQFiUYnzhukEQbhssD",
+			"QmNr3UCoAnhUfB1BvkV59tBKuSXn8timginkNGfokxUPbL",
+			"QmRxkV4w8zvUjZhybEgk9n3n4YDFxAKC8Th9D4CGBtLcCf",
 			"QmWVxUKnBmbiXai1Wgu6SuMzyZwYRqjt5TXL8xxghN5hWL",
 			"Qma3bmcJhAdKeEB9dKJBfChVb2LvcNfWvqnh7hqbJR7aLZ",
+			"QmcUDBk1R25AxEqD6Ron4L5btKGsicbAonGEvyP27A7kkU",
+			"Qmd9vW75BLNKFLq3tTeuXmA4KWPG4D2sprdBSrfVWMLU26",
 			"QmdzHjr5GdFGCvo9dCqdhUpqPxA6x5yz8G1cErb7q5MvTP",
-			"QmewFt8f53Do9hCKTD76MyBpi19WJkoCqkC96VGnbKd5Ak",
 		},
 	}
 
@@ -41,7 +41,7 @@ func TestNewManifest(t *testing.T) {
 
 func TestMissingManifest(t *testing.T) {
 	// TODO (b5) - we're running into network fetching issues here, the generated
-	// ipts node isn't currently creating a localNodeGetter, causing this test
+	// ipfs node isn't currently creating a localNodeGetter, causing this test
 	// to hang forever trying to fetch on a one-node network
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
@@ -77,7 +77,6 @@ func TestNewDAGInfo(t *testing.T) {
 
 	node := tr.IPFSBackedQriNode(t, "dag_tests_peer")
 	ref := writeWorldBankPopulation(tr.Ctx, t, node.Repo)
-
 	di, err := node.NewDAGInfo(tr.Ctx, ref.Path, "")
 	if err != nil {
 		t.Error(err)
@@ -85,25 +84,24 @@ func TestNewDAGInfo(t *testing.T) {
 
 	expect := &dag.Info{
 		Labels: map[string]int{
-			"bd": 4,
-			"cm": 3,
-			"md": 5,
-			"st": 7,
-			"tf": 6,
-			"vz": 1,
+			"bd": 3,
+			"cm": 2,
+			"md": 4,
+			"st": 5,
+			"sa": 6,
 		},
-		Sizes: []uint64{0x061e, 0x26, 0x019c, 0x01d8, 0x0d, 0x36, 0x27, 0xa0},
+		Sizes: []uint64{1619, 428, 0x01d8, 0x0d, 0x36, 97, 136, 39},
 		Manifest: &dag.Manifest{
 			Links: [][2]int{{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}},
 			Nodes: []string{
-				"QmTxSFyAAq7xa7L5DKAC1rYq1jR3GrAdpaTfMgxd2HU2Sw",
-				"QmQoNqKXP7aZJWS6GLJMx8Ax85uBFpRbmg7Npd6usx5V82",
-				"QmSbMMHCQ2wetbXJsviNdfKkELS6jxLaHeqxdzT6DAmVZU",
-				"QmW27MUFMSvPiE3FpmHhSeBZQEuYAppofudDCLvPXVfSLR",
+				"QmUQvBRjzpwxw2q2CcUYLEmZP9WaKQFiUYnzhukEQbhssD",
+				"QmNr3UCoAnhUfB1BvkV59tBKuSXn8timginkNGfokxUPbL",
+				"QmRxkV4w8zvUjZhybEgk9n3n4YDFxAKC8Th9D4CGBtLcCf",
 				"QmWVxUKnBmbiXai1Wgu6SuMzyZwYRqjt5TXL8xxghN5hWL",
 				"Qma3bmcJhAdKeEB9dKJBfChVb2LvcNfWvqnh7hqbJR7aLZ",
+				"QmcUDBk1R25AxEqD6Ron4L5btKGsicbAonGEvyP27A7kkU",
+				"Qmd9vW75BLNKFLq3tTeuXmA4KWPG4D2sprdBSrfVWMLU26",
 				"QmdzHjr5GdFGCvo9dCqdhUpqPxA6x5yz8G1cErb7q5MvTP",
-				"QmewFt8f53Do9hCKTD76MyBpi19WJkoCqkC96VGnbKd5Ak",
 			},
 		},
 	}

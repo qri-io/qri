@@ -526,8 +526,6 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
      topIndex      = 2
      cursorIndex   = 2
      prettyName    = first_new_name
-     metaTitle     = This Is Title
-     themeList     = testdata,example
      commitTime    = -62135596800
      headRef       = QmHashOfVersion2
   1) initID        = 7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq
@@ -535,10 +533,7 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
      topIndex      = 3
      cursorIndex   = 3
      prettyName    = second_name
-     bodySize      = 678
-     bodyRows      = 10
      commitTime    = -62135596800
-     numErrors     = 3
      headRef       = QmHashOfVersion6
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {

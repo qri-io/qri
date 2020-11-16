@@ -99,9 +99,11 @@ func (p PackageFile) Filename() string {
 }
 
 // GetHashBase strips paths to return just the hash
-func GetHashBase(in, network string) string {
+func GetHashBase(in string) string {
 	in = strings.TrimLeft(in, "/")
-	in = strings.TrimPrefix(in, network)
+	for _, fsType := range muxfs.KnownFSTypes() {
+		in = strings.TrimPrefix(in, fsType)
+	}
 	in = strings.TrimLeft(in, "/")
 	return strings.Split(in, "/")[0]
 }
@@ -124,5 +126,5 @@ func PackageFilepath(fs qfs.Filesystem, path string, pf PackageFile) string {
 	// Keep forward slashes in the path by using strings.Join instead of filepath.Join. This
 	// will make IPFS happy on Windows, since it always wants "/" and not "\". The blank
 	// path component in the front of this join ensures that the path begins with a "/" character.
-	return strings.Join([]string{"", prefix, GetHashBase(path, prefix), pf.String()}, "/")
+	return strings.Join([]string{"", prefix, GetHashBase(path), pf.String()}, "/")
 }
