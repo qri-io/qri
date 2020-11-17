@@ -5,9 +5,9 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "viz added\nbody:\n\tadded row /",
-    "path": "/ipfs/QmcVrDLZjxeLLq14wyrMsdHuKCuXn48nd8By2y6Me9vbuA",
+    "path": "/ipfs/QmPGqqxaDA7C5Th5peWXqVNz8qesKkvorv5LgLPgECNmra",
     "qri": "cm:0",
-    "signature": "V88uHk0H2nakt7Hqry/JPWxDbSm9TixmX6sqRI/aGVRglpS4G3A+QBEFIiW5XhwExnw34BjkliuSiWVNDocUyrHsAMY5mEtojOhuAlOVglZWiFH/yrs3ELwXgx9EaNCLp8ZlPPJIIngJKifkY9mokK/EpHuP+BcuOrmsfkTjeoh99/ASIARKrQoDGKynmf7yF8oByhr2NrzZn8sMQACbNJYOsb9g+AIXPLK/QzMkNaeyv+hL5kDeI3uDL2DINnMGY8fZgk4Hyhh+yPpGPWUsU3/S85/OQ8tLlqacwTHbePdt9+58N5E5za5M1hn3pH4gyyMf0FTgVaFAzoLFtocJQg==",
+    "signature": "bbwuj2qpXmDNd4kMqjzUSh45sSoOEuyoiSNYdqHtQlTi6Q5oUGGJ3t91qg9xZt2SXxeEOzoS3eKYLbLI8y67Zr3Mx9Z1xoSMeBrLm7H3imrOTr36PHjFHKaaeV8CuXlcrKIi6mAl+xUk1/gN99N5ahP0lZDCiCZrqd4hGbxBvKPaXQLabd4VzfvsglofRCvXMYpEbY3fsFztmofyMgEz2It5u5662BsgxhxqqFKc0CyJrTIHLiwFxX1MBOdz3HrQ/MS5JNWtvKUxqBgtG+vBi9/XsgPi1md/7/B7Y2RU61kRgP+ZTfVKgVCVXa6EI7m4I30Sx1LyutDIg/B9jpZphA==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
     "title": "updated viz and body"
   },
@@ -16,10 +16,11 @@
     "qri": "md:0",
     "title": "example movie data"
   },
-  "path": "/ipfs/QmVxuzvQjA5hzT6rzSCFq9mDu9bkAxcmC3VbtK3Jn8yqN2",
-  "previousPath": "/ipfs/Qmf7M876GxhMNhRkr5mQTtRmGEjUoA1SKTUSTQJPkj2Pso",
+  "path": "/ipfs/Qmf7BHcJXeeSiaPhKspj3cPZJyXBFi46aPtVvWKm3kU2dY",
+  "previousPath": "/ipfs/QmPY4xPQSSGSYZny4QLPn574VdeP84L7Nf3oCY1DxYAv5n",
   "qri": "ds:0",
   "structure": {
+    "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
     "depth": 2,
     "errCount": 1,
     "entries": 8,
@@ -29,7 +30,7 @@
       "lazyQuotes": true
     },
     "length": 224,
-    "path": "/ipfs/QmWqobG1jjqWnNadHYVhv9m3TXudrabLwmoybQLgvFvQa3",
+    "path": "/ipfs/QmSxuAVwd9pPf9c7WMu1gjUsHSLBLRuxQcFjyu9mfsA2TQ",
     "qri": "st:0",
     "schema": {
       "items": {

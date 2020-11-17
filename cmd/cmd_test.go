@@ -493,23 +493,26 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
 	}
 
 	output := run.MustExec(t, "qri log me/test_ds")
-	expect := `1   Commit:  /ipfs/QmTKbhy7c23EH2TipURY7vEd4Rbyfj6Ufjf9AhNaTzB8hk
+	expect := dstest.Template(t, `1   Commit:  {{ .commit1 }}
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    7 B
 
-    transform updated scriptBytes
+    transform removed scriptBytes
     transform:
-    	updated scriptBytes
+    	removed scriptBytes
 
-2   Commit:  /ipfs/QmbxeH6hVC3fDWjJ2bXXGMeZnBojypFAU3QSB3a3qGeWbS
+2   Commit:  {{ .commit2 }}
     Date:    Sun Dec 31 20:01:01 EST 2000
     Storage: local
     Size:    7 B
 
     created dataset from tf_123.star
 
-`
+`, map[string]string{
+		"commit1": "/ipfs/QmNnmosunfY62w5rUwtGYLAWT8wZBJ22da5TWrjR84vgAd",
+		"commit2": "/ipfs/QmWfeoPUpus3YiSHoE6qHnDP4jyvC7gNVFuJFi6M2Y2iD7",
+	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)
 	}
@@ -526,12 +529,15 @@ func TestSaveReadmeFromFile(t *testing.T) {
 
 	// Verify we can get the readme back
 	actual := run.MustExec(t, "qri get readme me/save_readme_file")
-	expect := `format: md
+	expect := dstest.Template(t, `format: md
 qri: rm:0
 scriptBytes: IyBUaXRsZQoKVGhpcyBpcyBhIGRhdGFzZXQgYWJvdXQgbW92aWVzCg==
-scriptPath: /ipfs/QmQPbLdDwyAzCmKayuHGeNGx5eboDv5aXTMuw2daUuneCb
+scriptPath: {{ .scriptPath }}
 
-`
+`, map[string]string{
+		"scriptPath": "/ipfs/QmQPbLdDwyAzCmKayuHGeNGx5eboDv5aXTMuw2daUuneCb",
+	})
+
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("readme.md contents (-want +got):\n%s", diff)
 	}
@@ -553,19 +559,25 @@ func TestRenameAfterRegistration(t *testing.T) {
 	run := NewTestRunnerWithTempRegistry(t, "test_peer_rename_after_reg", "rename_after_reg")
 	defer run.Delete()
 
+	tmplData := map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path":      "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+	}
+
 	// Create a dataset, using the "anonymous" generated username.
 	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/first_name")
 
 	// Verify the raw references in the repo
 	output := run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer_rename_after_reg
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect := dstest.Template(t, `0 Peername:  test_peer_rename_after_reg
+  ProfileID: {{ .profileID }}
   Name:      first_name
-  Path:      /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
+  Path:      {{ .path }}
   FSIPath:   
   Published: false
 
-`
+`, tmplData)
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -577,14 +589,14 @@ func TestRenameAfterRegistration(t *testing.T) {
 	}
 
 	output = run.MustExec(t, "qri list --raw")
-	expect = `0 Peername:  real_peer
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect = dstest.Template(t, `0 Peername:  real_peer
+  ProfileID: {{ .profileID }}
   Name:      first_name
-  Path:      /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
+  Path:      {{ .path }}
   FSIPath:   
   Published: false
 
-`
+`, tmplData)
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -593,14 +605,15 @@ func TestRenameAfterRegistration(t *testing.T) {
 	run.MustExec(t, "qri rename me/first_name me/second_name")
 
 	output = run.MustExec(t, "qri list --raw")
-	expect = `0 Peername:  real_peer
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect = dstest.Template(t, `0 Peername:  real_peer
+  ProfileID: {{ .profileID }}
   Name:      second_name
-  Path:      /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
+  Path:      {{ .path }}
   FSIPath:   
   Published: false
 
-`
+`, tmplData)
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -609,14 +622,14 @@ func TestRenameAfterRegistration(t *testing.T) {
 	run.MustExec(t, "qri rename me/second_name me/third_name")
 
 	output = run.MustExec(t, "qri list --raw")
-	expect = `0 Peername:  real_peer
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect = dstest.Template(t, `0 Peername:  real_peer
+  ProfileID: {{ .profileID }}
   Name:      third_name
-  Path:      /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
+  Path:      {{ .path }}
   FSIPath:   
   Published: false
 
-`
+`, tmplData)
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -631,19 +644,23 @@ func TestListFormatJson(t *testing.T) {
 
 	// Verify the references in json format
 	output := run.MustExec(t, "qri list --format json")
-	expect := `[
+	expect := dstest.Template(t, `[
   {
     "username": "test_peer_list_format_json",
-    "profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+    "profileID": "{{ .profileID }}",
     "name": "my_ds",
-    "path": "/ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf",
+    "path": "{{ .path }}",
     "bodySize": 224,
     "bodyRows": 8,
     "bodyFormat": "csv",
     "numErrors": 1,
     "commitTime": "2001-01-01T01:01:01.000000001Z"
   }
-]`
+]`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path":      "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+	})
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}

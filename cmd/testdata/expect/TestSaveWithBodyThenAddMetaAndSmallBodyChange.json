@@ -5,9 +5,9 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "meta added\nbody:\n\tchanged by 54%",
-    "path": "/ipfs/QmcbAxB7fhCnXjWPLaUPyVX3JgwYnmuS7UxNxTwTP9mUF4",
+    "path": "/ipfs/QmfQAypGLngv9XuLP4fPp6NmQtDSZYy4vvTuxrPcVV52Dv",
     "qri": "cm:0",
-    "signature": "TniaaX7zEasQ2+tuhbCeIJpEH06vljwgK33qZ+IKdI0gJMVNXUKOqjLVThs34HD7Wwibq/PD05YojQzgSDIGbGISAE1DoeSRD84y3wpuua2h+437BI2beEWMrHDmXXUiqh4u2omV8zVLhuou/jAiux8Op3bzal/mSypI3cE6cTa/9WYMcE94bZqD6CVh4MYkqHzcarUoEjuFvhKYPnrJUVWd+o1PaYjtfAdDyTudm801CI9U4PdkXlxnm7dPkz5Jo6Cc6zZSARF7CciinUzooenesxIKXNy8AA+pK9MeRYPWypAjNuqNxxf2jfoejZs8gGfTM40ZHl7NPdh6EuuxuA==",
+    "signature": "gwIJZl72TeBnttukDJyjs+Rry1VEdwwOhSfizyDJaBekHCR+gfHLI85zOTuiwCJtkGHHZs5EJAMRXEJIVIJW70usLUNF8wUvN3ISF4py4EyZ7ByjPMrftA5cyVCDA7/se+NKpw/d0981Y1j40FM1wjXibG3L22ZSQphAQZXKNHb9+YSVXdnVsrNLDrYw7ojwEA/YA29qeaH1tdcj8B5V3QU7mjV4yMO/+hQuoShDxD0bAO37v+3BXETv340lx79Jsx3mILxEsVeHXMgD6MkPB4a6TYIIuwIwGNmucSwZT1e5mqPn2sdC4rO34mjYvob9exN4PVSbtX/bg24TE9ChNA==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
     "title": "updated meta and body"
   },
@@ -16,10 +16,11 @@
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmWgY4m8HgBfVP8zTYcJp1rjTf7x3QyKMxVVYpkQiyYMxX",
-  "previousPath": "/ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf",
+  "path": "/ipfs/QmYsX5rsN3bvQ2PwquVa1QVEPAWsb5MHWGYZYG9HQPvF2t",
+  "previousPath": "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
   "qri": "ds:0",
   "structure": {
+    "checksum": "/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB",
     "depth": 2,
     "errCount": 1,
     "entries": 18,
@@ -29,7 +30,7 @@
       "lazyQuotes": true
     },
     "length": 532,
-    "path": "/ipfs/QmcC8oazbAwnvZEv1k2sMXD78hZYoEoPDG1wP595Yyarg7",
+    "path": "/ipfs/QmcAfMfZ7qTNiCfQxnRJyDxEDM7tqDstvpgviT73PFbabZ",
     "qri": "st:0",
     "schema": {
       "items": {

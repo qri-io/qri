@@ -136,13 +136,13 @@ func TestSaveRun(t *testing.T) {
 	}{
 		{"no data", "me/bad_dataset", "", "", "", "", false, true, "", "no changes to save", ""},
 		{"bad dataset file", "me/cities", "bad/filpath.json", "", "", "", false, true, "", "open bad/filpath.json: no such file or directory", ""},
-		{"bad body file", "me/cities", "", "bad/bodypath.csv", "", "", false, true, "", "opening dataset.bodyPath 'bad/bodypath.csv': path not found", ""},
+		{"bad body file", "me/cities", "", "bad/bodypath.csv", "", "", false, true, "", "opening body file: opening dataset.bodyPath 'bad/bodypath.csv': path not found", ""},
 		{"good inputs, dryrun", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, true, "dataset saved: peer/movies\n", "", ""},
-		{"good inputs", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", false, true, "dataset saved: peer/movies@/mem/QmbCGpS2b1LisRS6D3Q9V7zvtY8jP5arsW3GubrtFHHW5F\nthis dataset has 1 validation errors\n", "", ""},
+		{"good inputs", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", false, true, "dataset saved: peer/movies@/mem/QmW5KFgQ6thUPDsnQ7d7n35LzUGKtih24RuJU7HZaVxUZD\nthis dataset has 1 validation errors\n", "", ""},
 		{"add rows, dry run", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, true, "dataset saved: peer/movies\n", "", ""},
-		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", false, true, "dataset saved: peer/movies@/mem/QmebZ1FggGXqbNTkvsLC9jiehCGL3PHewdVszdg3HoFv7a\nthis dataset has 1 validation errors\n", "", ""},
+		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", false, true, "dataset saved: peer/movies@/mem/QmRh5PzhyeVzKQbrjP1fyCS4Dp7khujPyYHk8izdyLZZpt\nthis dataset has 1 validation errors\n", "", ""},
 		{"no changes", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, true, "", "error saving: no changes", ""},
-		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, "dataset saved: peer/movies@/mem/QmZXRSEtg8afx47ZQQLV2ec4c7RjG3grYZGvgz1ozq1V5p\nthis dataset has 1 validation errors\n", "", ""},
+		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, "dataset saved: peer/movies@/mem/QmRKwd1cLDBGjbi9m6K4R8NimE5RdypVxC8TusdeWBctKm\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
 	for _, c := range cases {
@@ -228,14 +228,17 @@ Tangled ,100
 
 	// Check the log matches what is expected
 	actual = run.MustExec(t, "qri log test_peer_save_state/my_ds")
-	expect = `1   Commit:  /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
+	expect = dstest.Template(t, `1   Commit:  {{ .path }}
     Date:    Sun Dec 31 20:01:01 EST 2000
     Storage: local
     Size:    224 B
 
     created dataset from body_ten.csv
 
-`
+`, map[string]string{
+		"path": "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+	})
+
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)
 	}
@@ -261,6 +264,11 @@ func TestSaveBasicCommands(t *testing.T) {
 	copyFile(t, "testdata/movies/structure_override.json", filepath.Join(tmpPath, "structure.json"))
 	os.Chdir(tmpPath)
 
+	tmplData := map[string]string{
+		"path1": "/ipfs/QmeLHDRxNWXZ7XgMqxBQfjrZeJmGZWsxdi1zWggYzubcqn",
+		"path2": "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+	}
+
 	goodCases := []struct {
 		description string
 		command     string
@@ -269,32 +277,32 @@ func TestSaveBasicCommands(t *testing.T) {
 		{
 			"dataset file infer name",
 			"qri save --file dataset.yaml",
-			"dataset saved: test_peer_save_basic/ten_movies@/ipfs/QmTHLYTXR5AM6CoTyAfh3Fu2L9pN4hphR21QxciTh7pXgA\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer_save_basic/ten_movies@{{ .path1 }}\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"dataset file me ref",
 			"qri save --file dataset.yaml me/my_dataset",
-			"dataset saved: test_peer_save_basic/my_dataset@/ipfs/QmTHLYTXR5AM6CoTyAfh3Fu2L9pN4hphR21QxciTh7pXgA\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer_save_basic/my_dataset@{{ .path1 }}\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"dataset file explicit ref",
 			"qri save --file dataset.yaml test_peer_save_basic/my_dataset",
-			"dataset saved: test_peer_save_basic/my_dataset@/ipfs/QmTHLYTXR5AM6CoTyAfh3Fu2L9pN4hphR21QxciTh7pXgA\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer_save_basic/my_dataset@{{ .path1 }}\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"body file infer name",
 			"qri save --body body_ten.csv",
-			"dataset saved: test_peer_save_basic/body_ten@/ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer_save_basic/body_ten@{{ .path2 }}\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"body file me ref",
 			"qri save --body body_ten.csv me/my_dataset",
-			"dataset saved: test_peer_save_basic/my_dataset@/ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer_save_basic/my_dataset@{{ .path2 }}\nthis dataset has 1 validation errors\n",
 		},
 		{
 			"body file explicit ref",
 			"qri save --body body_ten.csv test_peer_save_basic/my_dataset",
-			"dataset saved: test_peer_save_basic/my_dataset@/ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf\nthis dataset has 1 validation errors\n",
+			"dataset saved: test_peer_save_basic/my_dataset@{{ .path2 }}\nthis dataset has 1 validation errors\n",
 		},
 
 		// TODO(dustmop): It's intended that a user can save a dataset with a structure but no
@@ -323,11 +331,12 @@ func TestSaveBasicCommands(t *testing.T) {
 				return
 			}
 			actual := parseDatasetRefFromOutput(run.GetCommandOutput())
+			expect := dstest.Template(t, c.expect, tmplData)
 			// vi := run.LookupVersionInfo(t, "test_peer_save_basic/ten_movies")
 			// ds := run.MustLoadDataset(t, vi.Path)
 			// data, _ := json.MarshalIndent(ds, "", "  ")
 			// fmt.Println(string(data))
-			if diff := cmp.Diff(c.expect, actual); diff != "" {
+			if diff := cmp.Diff(expect, actual); diff != "" {
 				t.Errorf("result mismatch (-want +got):%s\n", diff)
 			}
 		})
@@ -381,10 +390,20 @@ func TestSaveInferName(t *testing.T) {
 	run := NewTestRunner(t, "test_peer_save_infer_name", "qri_test_save_infer_name")
 	defer run.Delete()
 
+	tmplData := map[string]string{
+		"path1": "/ipfs/QmUUufvaxyvgQ8hd3JmCVs2DQhGw9MBzVgu9hLnNK9TNqH",
+		"path2": "/ipfs/QmT7Y9rSYK9czBzxhhnSWsANd8As85J5wns4bLNkNQchoB",
+		"path3": "/ipfs/QmSpmRfvgG2ByT7Qf5yvzbd3ms2xkoWJNZCZt2QQSgKHnq",
+		"path4": "/ipfs/QmR2v2vDv1Dv8FGpDHS8n76yddpyAZUNo491fFV1cqrxWi",
+		"path5": "/ipfs/QmNhXLkKuq6CXcLbBTCqByxF8vWr4HxCmeMicwDiLRMhyS",
+		"path6": "/ipfs/QmfFMqzYNPbukBiSrQuejdu5fhW8cNM7eF7f4MDcuFKJpz",
+		"path7": "/ipfs/QmeSwYJrBaP9ztSvt77Xnh62MCdMg1XmuKHMBn6CvMFWmh",
+	}
+
 	// Save a dataset with an inferred name.
 	output := run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json")
 	actual := parseDatasetRefFromOutput(output)
-	expect := "dataset saved: test_peer_save_infer_name/body_four@/ipfs/QmXpkLdjXjJKhy8H724Fw17vSX3dxRozMmRbn8q2cHqfQD\n"
+	expect := dstest.Template(t, "dataset saved: test_peer_save_infer_name/body_four@{{ .path1 }}\n", tmplData)
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -402,7 +421,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save but ensure a new dataset is created.
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer_save_infer_name/body_four_2@/ipfs/QmPJ8xgWg4JPKkoYPCRTjekUDrB3kTd27dZmjjbCBdhaZZ\n"
+	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/body_four_2@{{ .path2 }}\n", tmplData)
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -410,7 +429,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save once again.
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer_save_infer_name/body_four_3@/ipfs/Qmb68LwEXoznDVn6m4o6SUevb7pptk3CHtpAZxzuCBhSFe\n"
+	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/body_four_3@{{ .path3 }}\n", tmplData)
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -418,7 +437,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save a dataset whose body filename starts with a number
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/2018_winners.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer_save_infer_name/dataset_2018_winners@/ipfs/QmQbMdwt6fJno3rZ4pvU1ChjUib6X6o3F2XQwLx9AX13Q9\n"
+	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/dataset_2018_winners@{{ .path4 }}\n", tmplData)
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -426,7 +445,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save a dataset whose body filename is non-alphabetic
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/2015-09-16--2016-09-30.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer_save_infer_name/dataset_2015-09-16--2016-09-30@/ipfs/QmYyppCGk3GVceYhFDFWvbGMMg487zNXnoMhyYEoGssHfy\n"
+	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/dataset_2015-09-16--2016-09-30@{{ .path5 }}\n", tmplData)
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -434,7 +453,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save using a CamelCased body filename
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/TenMoviesAndLengths.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer_save_infer_name/ten_movies_and_lengths@/ipfs/QmSpfQzwaVvyKiQaoAYiLJScqozPXx1pDCsMAqSzuoriRu\nthis dataset has 1 validation errors\n"
+	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/ten_movies_and_lengths@{{ .path6 }}\nthis dataset has 1 validation errors\n", tmplData)
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -442,7 +461,7 @@ func TestSaveInferName(t *testing.T) {
 	// Save using a body filename that contains unicode
 	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/pira\u00f1a_data.csv")
 	actual = parseDatasetRefFromOutput(output)
-	expect = "dataset saved: test_peer_save_infer_name/pirana_data@/ipfs/QmfCxsLWZfGTEQAnwwnkarGfRu68VW9nMPbyLfrdVjmxqy\n"
+	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/pirana_data@{{ .path7 }}\n", tmplData)
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -538,20 +557,23 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
 	// Dscache should have one reference. It has topIndex 1 because there are two logbook
 	// elements in the branch, one for "init", one for "commit".
 	actual := cache.VerboseString(false)
-	expect := `Dscache:
+	expect := dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=test_peer_dscache_first profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_dscache_first profileID={{ .profileID }}
  Dscache.Refs:
   0) initID        = m3wkm4dsizgba52qn6ais7lnn5cz67z5e7ztinj3znn4v4kd3k3a
-     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     profileID     = {{ .profileID }}
      topIndex      = 1
      cursorIndex   = 1
      prettyName    = movie_ds
      bodySize      = 79
      bodyRows      = 2
      commitTime    = 978310861
-     headRef       = /ipfs/QmT4Li2EW4QAxKGU9dpqE1sqj9sM18d8hpfWjTJxwqSwgD
-`
+     headRef       = {{ .path1 }}
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path1":     "/ipfs/QmPm92onraMz6Lbi4LxVZBqjgVMwvfTcmoiCvRy5NQYCL2",
+	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -576,29 +598,33 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
 	// Dscache should have two entries now. They are alphabetized by pretty name, and have all
 	// the expected data.
 	actual = cache.VerboseString(false)
-	expect = `Dscache:
+	expect = dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=test_peer_dscache_first profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_dscache_first profileID={{ .profileID }}
  Dscache.Refs:
   0) initID        = 5m7avnilayu76zrvhfec6vw6loyvdfs622eagqvfioikqxte5paa
-     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     profileID     = {{ .profileID }}
      topIndex      = 1
      cursorIndex   = 1
      prettyName    = another_ds
      bodySize      = 137
      bodyRows      = 4
      commitTime    = 978310921
-     headRef       = /ipfs/QmPJ8xgWg4JPKkoYPCRTjekUDrB3kTd27dZmjjbCBdhaZZ
+     headRef       = {{ .path1 }}
   1) initID        = m3wkm4dsizgba52qn6ais7lnn5cz67z5e7ztinj3znn4v4kd3k3a
-     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     profileID     = {{ .profileID }}
      topIndex      = 1
      cursorIndex   = 1
      prettyName    = movie_ds
      bodySize      = 79
      bodyRows      = 2
      commitTime    = 978310861
-     headRef       = /ipfs/QmT4Li2EW4QAxKGU9dpqE1sqj9sM18d8hpfWjTJxwqSwgD
-`
+     headRef       = {{ .path2 }}
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path1":     "/ipfs/QmT7Y9rSYK9czBzxhhnSWsANd8As85J5wns4bLNkNQchoB",
+		"path2":     "/ipfs/QmPm92onraMz6Lbi4LxVZBqjgVMwvfTcmoiCvRy5NQYCL2",
+	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -626,20 +652,23 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 	// Dscache should have one reference. It has topIndex 1 because there are two logbook
 	// elements in the branch, one for "init", one for "commit".
 	actual := cache.VerboseString(false)
-	expect := `Dscache:
+	expect := dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=test_peer_save_dscache_existing_dataset profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_existing_dataset profileID={{ .profileID }}
  Dscache.Refs:
   0) initID        = 47gqzvfhitq4prj4omvbjl3cjfta4wt7ywno4dc6e5ad5gp3uopq
-     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     profileID     = {{ .profileID }}
      topIndex      = 1
      cursorIndex   = 1
      prettyName    = movie_ds
      bodySize      = 79
      bodyRows      = 2
      commitTime    = 978310861
-     headRef       = /ipfs/QmT4Li2EW4QAxKGU9dpqE1sqj9sM18d8hpfWjTJxwqSwgD
-`
+     headRef       = {{ .path1 }}
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path1":     "/ipfs/QmPm92onraMz6Lbi4LxVZBqjgVMwvfTcmoiCvRy5NQYCL2",
+	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -663,20 +692,24 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 
 	// Dscache should now have one reference. Now topIndex is 2 because there is another "commit".
 	actual = cache.VerboseString(false)
-	expect = `Dscache:
+	expect = dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=test_peer_save_dscache_existing_dataset profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_existing_dataset profileID={{ .profileID }}
  Dscache.Refs:
   0) initID        = 47gqzvfhitq4prj4omvbjl3cjfta4wt7ywno4dc6e5ad5gp3uopq
-     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     profileID     = {{ .profileID }}
      topIndex      = 2
      cursorIndex   = 2
      prettyName    = movie_ds
      bodySize      = 137
      bodyRows      = 4
      commitTime    = 978310921
-     headRef       = /ipfs/QmeBJ8tPCzuo4unh82BVssqTcTFEU6TZxB2z7W14KK8H9w
-`
+     headRef       = {{ .path1 }}
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path1":     "/ipfs/QmPPRSAaeo8GEfBp3dQMZQQF7rYgCCvGSQgw7fiVqwi9Qx",
+	})
+
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -706,12 +739,12 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
 
 	// Dscache should have two references, one for each save operation.
 	actual := cache.VerboseString(false)
-	expect := `Dscache:
+	expect := dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=test_peer_save_dscache_remove_all profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_remove_all profileID={{ .profileID }}
  Dscache.Refs:
   0) initID        = g55pf2kd46giewayohfi5qtyxn4evqf3btsupbjopzukmajqfbla
-     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     profileID     = {{ .profileID }}
      topIndex      = 1
      cursorIndex   = 1
      prettyName    = another_ds
@@ -719,17 +752,22 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
      bodyRows      = 8
      commitTime    = 978310921
      numErrors     = 1
-     headRef       = /ipfs/QmbHTGontchCxSetpSKS1Ewat9U954My5SSQM2gaEwe5mT
+     headRef       = {{ .path1 }}
   1) initID        = otbpnqlrxi2fkb7spfhuys7owxf3nq4k7v7kc2wj725nq4ouccwa
-     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     profileID     = {{ .profileID }}
      topIndex      = 1
      cursorIndex   = 1
      prettyName    = movie_ds
      bodySize      = 79
      bodyRows      = 2
      commitTime    = 978310861
-     headRef       = /ipfs/QmT4Li2EW4QAxKGU9dpqE1sqj9sM18d8hpfWjTJxwqSwgD
-`
+     headRef       = {{ .path2 }}
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path1":     "/ipfs/QmVwisdKfsGBK2weh27u3nEMYMx3ZbpHS5pJfwkrhhtuJp",
+		"path2":     "/ipfs/QmPm92onraMz6Lbi4LxVZBqjgVMwvfTcmoiCvRy5NQYCL2",
+	})
+
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -752,20 +790,24 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
 
 	// Dscache should now have one reference.
 	actual = cache.VerboseString(false)
-	expect = `Dscache:
+	expect = dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=test_peer_save_dscache_remove_all profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_remove_all profileID={{ .profileID }}
  Dscache.Refs:
   0) initID        = otbpnqlrxi2fkb7spfhuys7owxf3nq4k7v7kc2wj725nq4ouccwa
-     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     profileID     = {{ .profileID }}
      topIndex      = 1
      cursorIndex   = 1
      prettyName    = movie_ds
      bodySize      = 79
      bodyRows      = 2
      commitTime    = 978310861
-     headRef       = /ipfs/QmT4Li2EW4QAxKGU9dpqE1sqj9sM18d8hpfWjTJxwqSwgD
-`
+     headRef       = {{ .path1 }}
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path1":     "/ipfs/QmPm92onraMz6Lbi4LxVZBqjgVMwvfTcmoiCvRy5NQYCL2",
+	})
+
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -798,12 +840,12 @@ func TestSaveDscacheThenRemoveVersions(t *testing.T) {
 
 	// Dscache should have one reference. It has three commits.
 	actual := cache.VerboseString(false)
-	expect := `Dscache:
+	expect := dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=test_peer_save_dscache_remove profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_remove profileID={{ .profileID }}
  Dscache.Refs:
   0) initID        = lht43zmspwsj3oukq3ivqz6m3yro5qc7wmckmxbgugy3oqrfdgsa
-     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     profileID     = {{ .profileID }}
      topIndex      = 3
      cursorIndex   = 3
      prettyName    = movie_ds
@@ -811,8 +853,11 @@ func TestSaveDscacheThenRemoveVersions(t *testing.T) {
      bodyRows      = 28
      commitTime    = 978310981
      numErrors     = 1
-     headRef       = /ipfs/QmQYdpXHwNYNPFQ9mKygqAMKhi5qEacXU6rx1of2m1zzqt
-`
+     headRef       = {{ .path1 }}
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path1":     "/ipfs/QmUNuSope2MUuBJ9bJutnpr1MtgVo4fC1TEoDYYvZDbY7a",
+	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -834,12 +879,12 @@ func TestSaveDscacheThenRemoveVersions(t *testing.T) {
 
 	// Dscache should now have one reference.
 	actual = cache.VerboseString(false)
-	expect = `Dscache:
+	expect = dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=test_peer_save_dscache_remove profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  0) user=test_peer_save_dscache_remove profileID={{ .profileID }}
  Dscache.Refs:
   0) initID        = lht43zmspwsj3oukq3ivqz6m3yro5qc7wmckmxbgugy3oqrfdgsa
-     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     profileID     = {{ .profileID }}
      topIndex      = 2
      cursorIndex   = 2
      prettyName    = movie_ds
@@ -847,8 +892,12 @@ func TestSaveDscacheThenRemoveVersions(t *testing.T) {
      bodyRows      = 28
      commitTime    = 978310861
      numErrors     = 1
-     headRef       = /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
-`
+     headRef       = {{ .path1 }}
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path1":     "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+	})
+
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -928,21 +977,25 @@ func TestSaveLargeBodyIsSame(t *testing.T) {
 	run.MustExec(t, "qri save --body testdata/movies/body_twenty.csv test_peer_save_large_body/my_ds")
 
 	output := run.MustExec(t, "qri log test_peer_save_large_body/my_ds")
-	expect = `1   Commit:  /ipfs/QmX1dBZv8SM8fuAbHE4K5usH1v4aFuZEfi226QDpiNJbjj
+	expect = dstest.Template(t, `1   Commit:  {{ .path1 }}
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    532 B
 
     body changed
 
-2   Commit:  /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+2   Commit:  {{ .path2 }}
     Date:    Sun Dec 31 20:01:01 EST 2000
     Storage: local
     Size:    224 B
 
     created dataset from body_ten.csv
 
-`
+`, map[string]string{
+		"path1": "/ipfs/Qmcg8ngwrJPtsFnLDMNZJ91sy6nJAg3yBP8zJDzv5GQ7Qe",
+		"path2": "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+	})
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}

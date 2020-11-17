@@ -114,7 +114,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 			{
 				Username:   "A",
 				Name:       "world_bank_population",
-				Path:       "/ipfs/QmUTNAa3RGEosHhEH7H8foR2qP858U8guo8xWwUskMHt6B",
+				Path:       "/ipfs/QmYV9znfoFpsXFRemDnxsqAo5f5dVcnoqEmZe3UqCTM8ro",
 				MetaTitle:  "World Bank Population",
 				BodySize:   5,
 				BodyRows:   1,

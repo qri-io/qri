@@ -1142,6 +1142,8 @@ github.com/qri-io/dataset v0.2.1-0.20201111192041-5e173056771c h1:E+AB6FJdTNqL1z
 github.com/qri-io/dataset v0.2.1-0.20201111192041-5e173056771c/go.mod h1:HtwGskdCECbOON0iVQHEEm6fykwDqharlqabc1ssj3Y=
 github.com/qri-io/dataset v0.2.1-0.20201113211414-b678b24f2f3d h1:NGa8usXa8YBNyMIwwU7voJDy1TKyKw71Ya/R0+pljOI=
 github.com/qri-io/dataset v0.2.1-0.20201113211414-b678b24f2f3d/go.mod h1:HtwGskdCECbOON0iVQHEEm6fykwDqharlqabc1ssj3Y=
+github.com/qri-io/dataset v0.2.1-0.20201117033713-f588ddee464f h1:YmPOv3QuHhIvemA09di01sbaigGndsusbp9qtEKZOMA=
+github.com/qri-io/dataset v0.2.1-0.20201117033713-f588ddee464f/go.mod h1:HtwGskdCECbOON0iVQHEEm6fykwDqharlqabc1ssj3Y=
 github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b h1:T8qEIv+qLi5mVWvSS329wJ+HbN7cfMwCWjRVzh/+upo=
 github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b/go.mod h1:NrL/b7YvexgpGb4HEO3Rlx5RrMLDfxuKDf/XDAq5ac0=
 github.com/qri-io/doggos v0.1.0 h1:B7Hn9ssRGDAonMhJ4UwDtPDmG9GtvLR8f7VFec7Rs7M=
@@ -1168,6 +1170,8 @@ github.com/qri-io/qfs v0.5.1-0.20201114155452-def8067fce61 h1:26fO91I8PlqpJ5eSHS
 github.com/qri-io/qfs v0.5.1-0.20201114155452-def8067fce61/go.mod h1:SU+DUq8+BfHNod1SXzmD8FrNLgPt42aKyQuO3fnFEQI=
 github.com/qri-io/qfs v0.5.1-0.20201117003320-f5c12e407d28 h1:1yO0fKYUHude9SGHB9iNz63OBY/w0/jmBwG1de5Q+XE=
 github.com/qri-io/qfs v0.5.1-0.20201117003320-f5c12e407d28/go.mod h1:SU+DUq8+BfHNod1SXzmD8FrNLgPt42aKyQuO3fnFEQI=
+github.com/qri-io/qfs v0.5.1-0.20201117010239-0e309e08c79d h1:7g7x61k9ojcSbOoynXi/zmOfx+Zz/zy068v4jMJiHJ4=
+github.com/qri-io/qfs v0.5.1-0.20201117010239-0e309e08c79d/go.mod h1:SU+DUq8+BfHNod1SXzmD8FrNLgPt42aKyQuO3fnFEQI=
 github.com/qri-io/starlib v0.4.2 h1:ZGzmzT9fOqdluezcwhAZAbTn/v6kMg1tC6ALVjQPhpQ=
 github.com/qri-io/starlib v0.4.2/go.mod h1:2xlZ9r2UV4LF4G9mpYPBWo7CtXtdW0h1RoGIkZ8elOE=
 github.com/qri-io/varName v0.1.0 h1:dFP5qZHrxnn5fNoMbjfpMCRBYDrOsoyls7R07r+emk0=

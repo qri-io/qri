@@ -159,15 +159,16 @@ func CreateDataset(
 	}
 	log.Debugf("CreateDataset ds.Peername=%q ds.Name=%q writeDestType=%s", ds.Peername, ds.Name, destination.Type())
 
-	if prev != nil && !prev.IsEmpty() {
+	if prev != nil {
+		log.Debugw("dereferencing previous dataset", "prevPath", prev.Path)
 		if err := DerefDataset(ctx, source, prev); err != nil {
 			log.Debug(err.Error())
 			return "", err
 		}
-		if err := validate.Dataset(prev); err != nil {
-			log.Debug(err.Error())
-			return "", err
-		}
+		// if err := validate.Dataset(prev); err != nil {
+		// 	log.Debug(err.Error())
+		// 	return "", err
+		// }
 	}
 
 	var (
@@ -258,6 +259,16 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivK
 						return nil, err
 					}
 				}
+
+				// if the destination filesystem is content-addressed, use the body
+				// path as the checksum. Include path prefix to disambiguate which FS
+				// generated the checksum
+				if _, ok := fs.(qfs.CAFS); ok {
+					if path, ok := added[packageBodyFilepath]; ok {
+						ds.Structure.Checksum = path
+					}
+				}
+
 				return JSONFile(f.FullPath(), ds.Structure)
 			}
 			stf = qfs.NewWriteHookFile(stf, hook, packageBodyFilepath)
@@ -348,6 +359,13 @@ func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivK
 
 	if ds.Commit != nil {
 		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
+
+			if cff, ok := bdf.(*computeFieldsFile); ok {
+				if err = generateCommitTitleAndMessage(ctx, cff.fs, cff.pk, cff.ds, cff.prev, cff.bodyAct, cff.sw.FileHint, cff.sw.ForceIfNoChanges); err != nil {
+					log.Debugf("generateCommitTitleAndMessage: %s", err)
+					return nil, err
+				}
+			}
 
 			updatePaths(ds, added, packageBodyFilepath)
 

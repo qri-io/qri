@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
 	qerr "github.com/qri-io/qri/errors"
@@ -1473,14 +1474,17 @@ func TestMoveWorkingDirectory(t *testing.T) {
 
 	// The FSIPath has been set to the new directory
 	output = run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer_move_dir
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect := dstest.Template(t, `0 Peername:  test_peer_move_dir
+  ProfileID: {{ .profileID }}
   Name:      move_dir
-  Path:      /ipfs/QmUWt34mKwXNp8uonqNJrHtoDo3WbL1M9wj7V5midzcqZF
+  Path:      {{ .path }}
   FSIPath:   /tmp/new_name_dir
   Published: false
 
-`
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path":      "/ipfs/QmWUUi1u5hM9k3s5vicfXVqJvAtXLB3NQvpChcB86nX7kg",
+	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -1511,14 +1515,18 @@ func TestRemoveWorkingDirectory(t *testing.T) {
 
 	// List datasets, the removed directory is no longer linked
 	output := run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer_remove_dir
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect := dstest.Template(t, `0 Peername:  test_peer_remove_dir
+  ProfileID: {{ .profileID }}
   Name:      remove_dir
-  Path:      /ipfs/QmUWt34mKwXNp8uonqNJrHtoDo3WbL1M9wj7V5midzcqZF
+  Path:      {{ .path }}
   FSIPath:   
   Published: false
 
-`
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path":      "/ipfs/QmWUUi1u5hM9k3s5vicfXVqJvAtXLB3NQvpChcB86nX7kg",
+	})
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}

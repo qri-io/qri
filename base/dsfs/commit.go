@@ -247,8 +247,13 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 		}
 	}
 
+	var prevChecksum, nextChecksum string
+
 	if prevStructure, ok := prevData["structure"]; ok {
 		if prevObject, ok := prevStructure.(map[string]interface{}); ok {
+			if checksum, ok := prevObject["checksum"].(string); ok {
+				prevChecksum = checksum
+			}
 			delete(prevObject, "checksum")
 			delete(prevObject, "entries")
 			delete(prevObject, "length")
@@ -258,6 +263,9 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 	}
 	if nextStructure, ok := nextData["structure"]; ok {
 		if nextObject, ok := nextStructure.(map[string]interface{}); ok {
+			if checksum, ok := nextObject["checksum"].(string); ok {
+				nextChecksum = checksum
+			}
 			delete(nextObject, "checksum")
 			delete(nextObject, "entries")
 			delete(nextObject, "length")
@@ -272,7 +280,9 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 	if bodyAct == BodyTooBig {
 		prevBody = nil
 		nextBody = nil
-		assumeBodyChanged = true
+		if prevChecksum != nextChecksum {
+			assumeBodyChanged = true
+		}
 	}
 
 	var headDiff, bodyDiff deepdiff.Deltas
@@ -302,6 +312,6 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 		return "", "", fmt.Errorf("no changes")
 	}
 
-	log.Debugf("set friendly diff descriptions. shortTitle=%q", shortTitle)
+	log.Debugf("set friendly diff descriptions. shortTitle=%q message=%q", shortTitle, longMessage)
 	return shortTitle, longMessage, nil
 }

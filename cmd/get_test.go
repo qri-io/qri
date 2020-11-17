@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset/dstest"
 )
 
 func TestGetComplete(t *testing.T) {
@@ -74,23 +75,23 @@ func TestGetComplete(t *testing.T) {
 }
 
 const (
-	currHeadRepo = `bodyPath: /ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB
+	currHeadRepo = `bodyPath: {{ .bodyPath }}
 commit:
   author:
-    id: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+    id: {{ .profileID }}
   message: "body:\n\tchanged by 54%"
-  path: /ipfs/QmPid9gqi9W7pAKZT7YewqYEcnWJZW4Xs4F5a6HupWmb7S
+  path: {{ .commitPath }}
   qri: cm:0
-  signature: FALUQ3vckZ3Blf0sgxP7DZW1qIUZQn8Wnf5TQyv1F18g854Py89g+WmoJGbTX/NJEzRmsqfOvRRD6828Syhf9ubT81LnweRi6nEjWdn1JjSwvREFEjkvpxmGEyLAA6eVUfC7Oqxldl3BaBKXwmKCuw7wYpo4/6DJ+zRH1LtfVfnkbhEAzw7TiTigPT/2s4FbnWnzwMnLIkHHJF1h8HhnWLYCSWqVlyoWa42UqagsISzNvMyLSE+JCoKIuShJy1gHu7fcqFoBl5fdXbYD03Eqzmj4EY6DXMsoD8rSWzOzHC6Fpqgz6R0mkTmkDo6yXSsDo2yifrIZDJeaniI61oesaw==
+  signature: {{ .signature }}
   timestamp: "2001-01-01T01:02:01.000000001Z"
   title: body changed by 54%
 name: my_ds
-path: /ipfs/QmPyMUN7tkRhotRxyCQghLygz3gRBLo9FTFf5XwLfo55Ld
+path: {{ .path }}
 peername: test_peer_get
-previousPath: /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
+previousPath: {{ .previousPath }}
 qri: ds:0
 stats:
-  path: /ipfs/QmXyYhG5SvTyazEd8iEjxJ7DpzKm86WwWsYyL9xMjXpjQj
+  path: {{ .statsPath }}
   qri: sa:0
   stats:
   - count: 18
@@ -107,6 +108,7 @@ stats:
     min: 100
     type: numeric
 structure:
+  checksum: {{ .bodyPath }}
   depth: 2
   entries: 18
   errCount: 1
@@ -115,7 +117,7 @@ structure:
     headerRow: true
     lazyQuotes: true
   length: 532
-  path: /ipfs/QmcC8oazbAwnvZEv1k2sMXD78hZYoEoPDG1wP595Yyarg7
+  path: {{ .structurePath }}
   qri: st:0
   schema:
     items:
@@ -128,22 +130,23 @@ structure:
     type: array
 
 `
-	prevHeadRepo = `bodyPath: /ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn
+
+	prevHeadRepo = `bodyPath: {{ .bodyPath }}
 commit:
   author:
-    id: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+    id: {{ .profileID }}
   message: created dataset from body_ten.csv
-  path: /ipfs/QmRG3g7PPKYRbusncBSk6KrQVgwr351F32VbAaBWrKDf6P
+  path: {{ .commitPath }}
   qri: cm:0
-  signature: afeBsx68Q6rN5YVeTWFqWTRE1Sbvh18m/u/kJiXz4OxvC3z4JFJJiyCNwvHH9qO8M3A48nPt5vf9JDHmO13gi0FLMz1jIWz/JTZ4aMkHLxtVKWU3gB+O7cNKFGR2FWf9SvcBiu91tBuUratshBHlKwB2GGim1MhAHIc3kuVsX21ytLOFDYelHK8FCiurBcOm3/HwWhOFuJ9OKFK47jnTDwub7x1FA2GhQ3fuYdfLD4DeAjj21V7sVA2Du6ady1RDYHE2P3wwVPG9ysWIVq59DvBPGNuHbbktaErBHcM9rhq8Uzeoj2Uo8d0sSa1NVKvlRcFan4MlYv5BlmzXjrdK2A==
+  signature: {{ .signature }}
   timestamp: "2001-01-01T01:01:01.000000001Z"
   title: created dataset from body_ten.csv
 name: my_ds
-path: /ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf
+path: {{ .path }}
 peername: test_peer_get
 qri: ds:0
 stats:
-  path: /ipfs/QmXHqvGRzaDUTbiKzBezR43mchpwoSE3xuf8HnfVkdfkKk
+  path: {{ .statsPath }}
   qri: sa:0
   stats:
   - count: 8
@@ -160,6 +163,7 @@ stats:
     min: 100
     type: numeric
 structure:
+  checksum: {{ .bodyPath }}
   depth: 2
   entries: 8
   errCount: 1
@@ -168,7 +172,7 @@ structure:
     headerRow: true
     lazyQuotes: true
   length: 224
-  path: /ipfs/QmWqobG1jjqWnNadHYVhv9m3TXudrabLwmoybQLgvFvQa3
+  path: {{ .structurePath }}
   qri: st:0
   schema:
     items:
@@ -237,6 +241,29 @@ structure:
 	currBodyFSI = currBodyRepo
 )
 
+var (
+	currHeadRepoData = map[string]string{
+		"profileID":     "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"bodyPath":      "/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB",
+		"commitPath":    "/ipfs/Qmejjpn1mrhQVxZqppoumJ9C2ED5pyxSZFvcqrHfVVcJtU",
+		"signature":     "iHj80RtzSKXII2gLS4eyheTzu10jo/C/b6RJgzqJ9fuhXMz4NrZ+vN1KM6aaC1Xogv57lPd6w1pG3oa7K2IcSHpmcbQedT4FN2TBgYzGE3w7JkXqSKG19q1rNQdFFRnBzdUWcPlVoLgTabwe79A7DUEPGTmMrtrRrjig/eXlAe+90uZNHp+SORpqRgu6GzqFWs+sy4NXBpSiIE2KsP8XIW9V/HdTEWkgDAaFJBZN4TfDkYFvimjadIYOx98miu7Jvo6dmcsdgxgykTOMiRiauL5fEb+XTgkLaUj60/i7gRmdvEo5Vhp8DPOVYBldqKQDF20cdDQScBo/WA/RYY41qg==",
+		"path":          "/ipfs/QmdnKwHbQWD9QsfSyWQsZebBZQKKa5uKrxA5TAXHM1tvxL",
+		"previousPath":  "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+		"statsPath":     "/ipfs/QmXyYhG5SvTyazEd8iEjxJ7DpzKm86WwWsYyL9xMjXpjQj",
+		"structurePath": "/ipfs/QmcAfMfZ7qTNiCfQxnRJyDxEDM7tqDstvpgviT73PFbabZ",
+	}
+	prevHeadRepoData = map[string]string{
+		"profileID":     "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"bodyPath":      "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
+		"commitPath":    "/ipfs/QmYWpHLZYcnjUr2NA9BVypgb7wJnQJAriKT6EV32AG69dA",
+		"signature":     "Nid1+5YRJQENq3CJDD7CXqG2bekV6hEZkE/hI93TZs4Q1xvoCG8FLGO4s6VB7yKEHnBsbLhTl654OfzF6AF1qWvV2mzgbSgRwxSIUEuP4SwvlH/9K6AvqIZwaihcAeACsXd5bgzzBz8P3CIkC9idGEiLr+xXn5EBw8VFoLtGTW+p/Ie78CYzGY3PnW5llG79qahWZJOZQJfqIk/TDfpgJFcVHfAj0GmefshTtwPfV5IHwX2dQFAuGMxyWGdcvuxZHC4kbcbnQ5Htymsr4eKVI/FRvp+T+HnRwhtoc3mo8nWi01Q5p+S9ABxHqcCSoyNWJd2VlfZknOTvcgc/SFiQOw==",
+		"path":          "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+		"previousPath":  "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+		"statsPath":     "/ipfs/QmXHqvGRzaDUTbiKzBezR43mchpwoSE3xuf8HnfVkdfkKk",
+		"structurePath": "/ipfs/QmSxuAVwd9pPf9c7WMu1gjUsHSLBLRuxQcFjyu9mfsA2TQ",
+	}
+)
+
 func TestGetDatasetFromRepo(t *testing.T) {
 	run := NewTestRunner(t, "test_peer_get", "get_dataset_head")
 	defer run.Delete()
@@ -248,14 +275,14 @@ func TestGetDatasetFromRepo(t *testing.T) {
 
 	// Get head.
 	output := run.MustExec(t, "qri get me/my_ds")
-	expect := currHeadRepo
+	expect := dstest.Template(t, currHeadRepo, currHeadRepoData)
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 
 	// Get one version ago.
 	output = run.MustExec(t, fmt.Sprintf("qri get %s", ref))
-	expect = prevHeadRepo
+	expect = dstest.Template(t, prevHeadRepo, prevHeadRepoData)
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -297,7 +324,7 @@ func TestGetDatasetCheckedOut(t *testing.T) {
 
 	// Get one version ago.
 	output = run.MustExec(t, fmt.Sprintf("qri get %s", ref))
-	expect = prevHeadRepo
+	expect = dstest.Template(t, prevHeadRepo, prevHeadRepoData)
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -328,14 +355,14 @@ func TestGetDatasetUsingDscache(t *testing.T) {
 
 	// Get head.
 	output := run.MustExec(t, "qri get me/my_ds")
-	expect := currHeadRepo
+	expect := dstest.Template(t, currHeadRepo, currHeadRepoData)
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 
 	// Get one version ago.
 	output = run.MustExec(t, fmt.Sprintf("qri get %s", ref))
-	expect = prevHeadRepo
+	expect = dstest.Template(t, prevHeadRepo, prevHeadRepoData)
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -382,7 +409,7 @@ func TestGetDatasetCheckedOutUsingDscache(t *testing.T) {
 
 	// Get one version ago.
 	output = run.MustExec(t, fmt.Sprintf("qri get %s", ref))
-	expect = prevHeadRepo
+	expect = dstest.Template(t, prevHeadRepo, prevHeadRepoData)
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -418,7 +445,37 @@ func TestGetRemoteDataset(t *testing.T) {
 		t.Errorf("response mismatch\nwant: %q\n got: %q", expect, err)
 	}
 
-	expect = "bodyPath: /ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb\ncommit:\n  message: created dataset\n  path: /ipfs/QmRXxnXPRzorHuWw5CRa9YJFHXz85gjbrASvh24vgUubRg\n  qri: cm:0\n  signature: QGFDik4Izple4Rm3giNpc0/sNyxA4ryOdlP8VIZ0GiNRpx5h+F7smLYFczRxV8tunzqZsq1jS+r5xHo3wBk6k+oAMm6C/LGyr96c0o9R2iEpFUTmHBr9zP2Dicyc4T4cZmz/Kyg/wT0MZOMHPnzujfElb6PfR3INHtagZYEd/kA3NaXm6RqmQnz+SCJaphTyrgmzH5vxtl2Gd377HCcLL/CvywhrnRQ9h0tsr6pkbxXyelagqDnBiiK+INAo089i3XKBTu7dnwAlVxzGxY3vCK7YRZQhq5qwJiBCU0tos0HDljya/lFc9rNMLzeuJUzpmABMJ7PrTm7ZglZRb03Pmg==\n  timestamp: \"2001-01-01T01:01:01.000000001Z\"\n  title: created dataset\nname: their_dataset\npath: /ipfs/Qmb6NpFCzEBtPGZdp8QasFGLM6AxPEBRStB4jL4BWW9oBG\npeername: other_peer\nqri: ds:0\nstats: /ipfs/QmQQkQF2KNBZfFiX33jJ9hu6ivfoHrtgcwMRAezS4dcA7c\nstructure:\n  depth: 1\n  format: json\n  length: 2\n  path: /ipfs/QmUpFYQZjRjpN8gweCZeFPrCHnUbqwJBnXajnsbymPY45c\n  qri: st:0\n  schema:\n    type: object\n\n"
+	expect = dstest.Template(t, `bodyPath: {{ .bodyPath }}
+commit:
+  message: created dataset
+  path: {{ .commitPath }}
+  qri: cm:0
+  signature: {{ .signature }}
+  timestamp: "2001-01-01T01:01:01.000000001Z"
+  title: created dataset
+name: their_dataset
+path: {{ .path }}
+peername: other_peer
+qri: ds:0
+stats: {{ .statsPath }}
+structure:
+  checksum: {{ .bodyPath }}
+  depth: 1
+  format: json
+  length: 2
+  path: {{ .structurePath }}
+  qri: st:0
+  schema:
+    type: object
+
+`, map[string]string{
+		"bodyPath":      "/ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb",
+		"commitPath":    "/ipfs/QmTTPd47BD4EGpCpuvRwTRqDRF84iAuJmfUUGcfEBuF7he",
+		"signature":     "gySMr/FiT+kz0X2ODXCE5APx/BvPvalw4xlbS8TtSWssEoHlAOdrUNKUfU7j6rjyq7sFJ7hrbIVOn87fx+7arYCvrvikRawd2anzIvIruxfBymS6A0HtAGAOEAvpn3XbDykEjqaomTXS1CyR6wQkwNEgbELCIqwda9UV3ulhUtHMrAyMxvnq3NG6J9wyFB13u133aDVEojJ82mEF5DBFB+VBVbw90S4b/5AxLEUFSt/BCtE1O0lKYCt2x0HK+1fhl85oe3fpqLhLk96qCAR/Ngv4bt0E9NjGi2ltuji8gaDICKe5KRaSXjXlMkwbUq6sXEKgqzfxHXoIAUZnZNwnmg==",
+		"path":          "/ipfs/Qme666Kphnyw8Sf9sjJaEUp1gQ9PodDyZVW878b6pHny9n",
+		"statsPath":     "/ipfs/QmQQkQF2KNBZfFiX33jJ9hu6ivfoHrtgcwMRAezS4dcA7c",
+		"structurePath": "/ipfs/QmWoYVZWDdiNauzeP171hKSdo3p2bFaqDcW6cppb9QugUE",
+	})
 	got := run.MustExec(t, "qri get --remote=registry other_peer/their_dataset")
 	if diff := cmp.Diff(expect, got); diff != "" {
 		t.Errorf("repsonse mismatch (-want +got):\n%s", diff)

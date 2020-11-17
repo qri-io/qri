@@ -1233,37 +1233,46 @@ func TestListRawRefs(t *testing.T) {
 	if err := m.ListRawRefs(&ListParams{}, &text); err != nil {
 		t.Fatal(err)
 	}
-	expect := `0 Peername:  peer
-  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+
+	expect := dstest.Template(t, `0 Peername:  peer
+  ProfileID: {{ .ProfileID }}
   Name:      cities
-  Path:      /mem/QmUms8Qzf5FjptS34EP6gt7H1uZBjzXuN1F4KouPx3FscX
+  Path:      {{ .citiesPath }}
   FSIPath:   
   Published: false
 1 Peername:  peer
-  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  ProfileID: {{ .ProfileID }}
   Name:      counter
-  Path:      /mem/QmXYUUEuTaCgoTTjbwNssE3aN3Vs6Hk2jwegW63yJXvFn6
+  Path:      {{ .counterPath }}
   FSIPath:   
   Published: false
 2 Peername:  peer
-  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  ProfileID: {{ .ProfileID }}
   Name:      craigslist
-  Path:      /mem/QmYUXg3xiJLrbQebBw3fJkMrbseZp5xEZarFnX8ftisiZo
+  Path:      {{ .craigslistPath }}
   FSIPath:   
   Published: false
 3 Peername:  peer
-  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  ProfileID: {{ .ProfileID }}
   Name:      movies
-  Path:      /mem/QmceRMKDwiNPiKpjWVbX9RQeQZzMW3e5geMiL1aVd4min2
+  Path:      {{ .moviesPath }}
   FSIPath:   
   Published: false
 4 Peername:  peer
-  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  ProfileID: {{ .ProfileID }}
   Name:      sitemap
-  Path:      /mem/QmTEemW9q7N5o9fpjdyxjVKpds84YABMLW29yohDy9hbXM
+  Path:      {{ .sitemapPath }}
   FSIPath:   
   Published: false
-`
+`, map[string]string{
+		"ProfileID":      "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+		"citiesPath":     "/mem/QmPbcCboLyqJzYatHURnLV5hVmp8NFsDiGTcp9dtvshpxa",
+		"counterPath":    "/mem/QmdQh2du6ZtxFeV3XjHwkkzYn5ZgU6EnrARtihY9xcs8tU",
+		"craigslistPath": "/mem/Qmc28qvm4UuvZoRVyy5UQ33UNdhwzgih1RJuzJprt8mUXH",
+		"moviesPath":     "/mem/QmXvMuHVi24fqmbjx6ygdWVSCgULcdc45t6HKzDT8PaKTV",
+		"sitemapPath":    "/mem/QmSutY4vd5WgLCeNSgxLVTihekzk4AdkLn5vbMn73GRuEU",
+	})
+
 	if diff := cmp.Diff(expect, text); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}

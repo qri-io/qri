@@ -2,9 +2,9 @@
   "bodyPath": "/mem/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
   "commit": {
     "message": "created dataset",
-    "path": "/mem/QmWPsRhKWnWEg2yFBBheLfYbvueSfHn99TEGy3aNG6SaTd",
+    "path": "/mem/QmeT15DVgG6wC3sEAm8m3DXPeC7s96R2TYY73nfQ7XDjmM",
     "qri": "cm:0",
-    "signature": "P85qQX4n0Zf9ISf3E+ccSUyp1Bca4mQvsyiXiijsonKHsRNAG07tfDd/2sP3KQnKDLmKLuG2nJeBLAoRp6mL6OljMLtqx3XRpv2RrAq92rMNnoZSDEopmIs35f17ps6bKyFqa3N2R9Gr9oLlOz4/BnOBTjJA+ebn9BOGXIWtyYIP1hueFrWN6jYCLSJp74wVURjfmQNl//jzkuaamRyN1tAUQzDONn60MF/bqL2vjSWW0qsL01VWZrZ4tHqChXQeYJR3kDe37aZqUTfn0EdRf/fq7dtmp97jLcYMDvH87Q+LAy2BODfrwcSMaufhTBQ6R8ECDBxl6f8cd78ssQNl9Q==",
+    "signature": "KE5udsl1gV+y20eZU0yUuBXkT2qbhVQbMeeGqGvPp9yZgY9HJ7x70XM4+WoJIVA+MpsiAAltETzr8xUUp6giEtYhfUTOrv+EN9Q8ZHIfWBQ9JEp66o3UYMeidSXRI9JocEEscXI2LGeHvbFrwaf22naHq72k3Bq4U7oDmOFxh4oqJyaxHjR7XR67+odasH/HGhJsENwCQ+4XaxFFmYOP568VImzOjpfS/Raepb34FtdDdWuhCX0aWd0C6S1JK253Z3D4DrBo41s9aTGgSuJyAwKoCKgs9yqcsubD1BUlf8hRX8y60+vn3TcZnACdvsDgn/7xKiaPABec/gm9zDpLOw==",
     "timestamp": "2001-01-01T01:01:01.000000001Z",
     "title": "I'm a commit"
   },
@@ -15,6 +15,7 @@
   },
   "qri": "ds:0",
   "structure": {
+    "checksum": "/mem/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
     "depth": 2,
     "errCount": 5,
     "entries": 5,
@@ -23,7 +24,7 @@
       "headerRow": true
     },
     "length": 155,
-    "path": "/mem/QmRZMjJyQ9jCSSV2ioXzAG4Q9gf3NqFsEm8pnBPrRGQRey",
+    "path": "/mem/QmPVz1ehh6Q4WNSBguLorASVoH84YWvCrn2hanDoBHCaod",
     "qri": "st:0",
     "schema": {
       "items": {

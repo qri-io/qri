@@ -174,13 +174,13 @@ func TestCreateDataset(t *testing.T) {
 		repoFiles  int // expected total count of files in repo after test execution
 	}{
 		{"cities",
-			"/mem/QmfVyw9ijfuUaFCkTWJf9ARP1X1Wm2jjoSbWmuVotF8YZU", nil, 8},
+			"/mem/Qmf9ADYUJum5wgppEHAVRDXTzjwi5r9vaCdUbKxVksbwrS", nil, 8},
 		{"all_fields",
-			"/mem/QmPnrnhaV4TSowrK1i5vUgPTwbUQNWerZWUHi1g5ZS3Qsy", nil, 18},
+			"/mem/QmYBKKMfFnWYRXmN1Jh2GvzMMHSqoTPgnezbRu5rrU3R9U", nil, 18},
 		{"cities_no_commit_title",
-			"/mem/QmXsE9ztjjnMQPVzQdmpix3Bs1tJubuLf6iTxM5hzU1UjC", nil, 21},
+			"/mem/QmVkfXUpKA5QyH8gjam4Ynjnny6HJRSMUvsmR9ni8HfkU8", nil, 21},
 		{"craigslist",
-			"/mem/QmXBQciVtYKRB2wGzTHwP4xRrjg2uTsmn4DkYaE4KkBV4L", nil, 27},
+			"/mem/QmZboLmWvgUKnrGeMqL8b3M6YA5JaiS2i6MQBxeJ5G5Xho", nil, 27},
 	}
 
 	for _, c := range good {

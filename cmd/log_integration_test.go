@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"testing"
+
+	"github.com/qri-io/dataset/dstest"
 )
 
 // Test that deleting an entire dataset works properly with the logbook.
@@ -21,14 +23,17 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := run.GetCommandOutput()
-	expect := `1   Commit:  /ipfs/QmT4Li2EW4QAxKGU9dpqE1sqj9sM18d8hpfWjTJxwqSwgD
+	expect := dstest.Template(t, `1   Commit:  {{ .path }}
     Date:    Sun Dec 31 20:01:01 EST 2000
     Storage: local
     Size:    79 B
 
     created dataset from body_two.json
 
-`
+`, map[string]string{
+		"path": "/ipfs/QmPm92onraMz6Lbi4LxVZBqjgVMwvfTcmoiCvRy5NQYCL2",
+	})
+
 	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri log (-want +got):\n%s", diff)
 	}
@@ -45,7 +50,7 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmeBJ8tPCzuo4unh82BVssqTcTFEU6TZxB2z7W14KK8H9w
+	expect = dstest.Template(t, `1   Commit:  {{ .path1 }}
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    137 B
@@ -55,14 +60,18 @@ func TestLogAndDeletes(t *testing.T) {
     	added row 2
     	added row 3
 
-2   Commit:  /ipfs/QmT4Li2EW4QAxKGU9dpqE1sqj9sM18d8hpfWjTJxwqSwgD
+2   Commit:  {{ .path2 }}
     Date:    Sun Dec 31 20:01:01 EST 2000
     Storage: local
     Size:    79 B
 
     created dataset from body_two.json
 
-`
+`, map[string]string{
+		"path1": "/ipfs/QmPPRSAaeo8GEfBp3dQMZQQF7rYgCCvGSQgw7fiVqwi9Qx",
+		"path2": "/ipfs/QmPm92onraMz6Lbi4LxVZBqjgVMwvfTcmoiCvRy5NQYCL2",
+	})
+
 	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri log (-want +got):\n%s", diff)
 	}
@@ -79,14 +88,17 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmT4Li2EW4QAxKGU9dpqE1sqj9sM18d8hpfWjTJxwqSwgD
+	expect = dstest.Template(t, `1   Commit:  {{ .path }}
     Date:    Sun Dec 31 20:01:01 EST 2000
     Storage: local
     Size:    79 B
 
     created dataset from body_two.json
 
-`
+`, map[string]string{
+		"path": "/ipfs/QmPm92onraMz6Lbi4LxVZBqjgVMwvfTcmoiCvRy5NQYCL2",
+	})
+
 	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri log (-want +got):\n%s", diff)
 	}
@@ -113,14 +125,17 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/Qmazqr6zTV4LxAV1Ui5LsPqwrTauEks3UCbvtASE92F8VH
+	expect = dstest.Template(t, `1   Commit:  {{ .path }}
     Date:    Sun Dec 31 20:03:01 EST 2000
     Storage: local
     Size:    224 B
 
     created dataset from body_ten.csv
 
-`
+`, map[string]string{
+		"path": "/ipfs/QmTLDKvz5SAewQjyVEVChuZB6c3feZHi1GmPSqDcvXJcii",
+	})
+
 	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri log (-want +got):\n%s", diff)
 	}

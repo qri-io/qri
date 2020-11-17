@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
@@ -163,9 +164,15 @@ func TestVerifyRefsRemove(t *testing.T) {
 	// but we say that there should be no refs in the store
 	// we get the proper response:
 	s = verifyRefsRemoved(ctx, r.Filesystem(), refs, 2)
-	sExpected := `
-ref "peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/mem/QmbkYZUubrcz2PErhXZ9g38WjeDzPQeWoyf4NbSzuGK1Zu" should NOT exist in the store, but does
-ref "peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/mem/QmXqnDArMaoqv5tXz9Ck3tKYncmznRiGDiwynEpBbCttm3" should NOT exist in the store, but does`
+	sExpected := dstest.Template(t, `
+ref "peer/cities@{{ .ProfileID }}{{ .Path1 }}" should NOT exist in the store, but does
+ref "peer/cities@{{ .ProfileID }}{{ .Path2 }}" should NOT exist in the store, but does`,
+		map[string]string{
+			"ProfileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+			"Path1":     "/mem/QmNmQWq9Mod4fbnVUPzmpKcXcAeaGz4obCdFXuDcaerkAn",
+			"Path2":     "/mem/QmY3s2TpcbZo3wnbt7w2BwiVQkkv8S8omFPUwvzLe4Nctk",
+		},
+	)
 	if diff := cmp.Diff(sExpected, s); diff != "" {
 		t.Errorf("response mismatch: (-want +got):\n %s", diff)
 	}

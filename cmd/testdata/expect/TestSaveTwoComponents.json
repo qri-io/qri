@@ -5,9 +5,9 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.lazyQuotes\n\tupdated schema.items.items.0.title\nbody:\n\tadded row /",
-    "path": "/ipfs/Qmf1gTAL8AcfijtXbd8y679FQtDcTeJUghTcpeBz9k5rpW",
+    "path": "/ipfs/QmRSs1EmjLzdknnrJ1EG1Nv4T7qTS4AR7aV2s9HiEHpRBk",
     "qri": "cm:0",
-    "signature": "nHdSF4k9Qb3iFHl/B+me1zBKPaiyJuCh1NQ77GkXHebiwGTjUsN2AZyGwPHe3AhVMTIKqterkZCHtW8xNivEl5/cV+ihDB7IrLNXjT5sTqXS+mfSGWMhcPOBdJSEttOQ8rzmMumJ/yEBn8c79hpghYBTFh14M6i8g0GyIvFFJRMvPT7izxbw9lv7oH8cFZqgf21HzIyDbRy562kg9Tvdj0XOjKle1urD76PB/i2UmDoNUROj/hFx8SaZ0lJaM+1nv6fwVaD/yI9AgkQnKHtK0NB3qoog/IIcyWeWKHvqlTKKqUrv0+Bp2hqq1UZovjaG0phU9b237Dkt1h9iP7Cx+w==",
+    "signature": "Zx+BuVPLy42n4UAAvq1Tfo04PFKFlQecj4AykCivFnTuXJW7aoPjTyo7P7hG690tLdN3inatTKkJHI6CqTakKEaqIE0eBcbtsOmWuM89xXrUEnXkzmVbivfqP5K9HGi+2aM/2XzJs9gkTyYRfVXFc3vQx0IiUa8dcLaSWBmR/WonJoAwhWmKYKuBg8ZQcUw8XaHXHkCFTXN1v+Uv0+G7R6R8SeGW3CGO6/ljhjMcmNt/OxP6TrhyHe8dDbsPQAX8rHh5lVQZEQ314SOLouCpzmd6rnYxmn2KI5ujb+VMVTy4zfvyy2OWgtVzOEXa8O2Wafb9/eL91rc7H+Z9G+rQnQ==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
     "title": "updated meta, structure, and body"
   },
@@ -16,10 +16,11 @@
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmTitGXH8jhnK6GxGfFadv5n3Go6MV8gDVtNiFXpCm7ygH",
-  "previousPath": "/ipfs/Qmf7M876GxhMNhRkr5mQTtRmGEjUoA1SKTUSTQJPkj2Pso",
+  "path": "/ipfs/QmZoUS7cJhxRaN2VuL7xCAKF7TqpSNgdAT57ytXmCtr2KF",
+  "previousPath": "/ipfs/QmPY4xPQSSGSYZny4QLPn574VdeP84L7Nf3oCY1DxYAv5n",
   "qri": "ds:0",
   "structure": {
+    "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
     "depth": 2,
     "errCount": 1,
     "entries": 8,
@@ -29,7 +30,7 @@
       "lazyQuotes": false
     },
     "length": 224,
-    "path": "/ipfs/QmZT2ngBkrftFH1XBGdvx8tqQRKeK9Cz6UUTuUiC9BJE2s",
+    "path": "/ipfs/QmPPcg1nxCaBQ25J1DX9VrQYpk7pyAcQnLqavR8wvvFXuA",
     "qri": "st:0",
     "schema": {
       "items": {

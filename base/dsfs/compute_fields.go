@@ -283,12 +283,6 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 			}
 		}
 
-		if err = generateCommitTitleAndMessage(ctx, cff.fs, cff.pk, cff.ds, cff.prev, cff.bodyAct, cff.sw.FileHint, cff.sw.ForceIfNoChanges); err != nil {
-			log.Debugf("generateCommitTitleAndMessage: %s", err)
-			cff.done <- err
-			return
-		}
-
 		log.Debugf("done handling structured entries")
 		cff.done <- nil
 	}()

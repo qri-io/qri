@@ -5,15 +5,16 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "created dataset from body_ten.csv",
-    "path": "/ipfs/QmRG3g7PPKYRbusncBSk6KrQVgwr351F32VbAaBWrKDf6P",
+    "path": "/ipfs/QmYWpHLZYcnjUr2NA9BVypgb7wJnQJAriKT6EV32AG69dA",
     "qri": "cm:0",
-    "signature": "afeBsx68Q6rN5YVeTWFqWTRE1Sbvh18m/u/kJiXz4OxvC3z4JFJJiyCNwvHH9qO8M3A48nPt5vf9JDHmO13gi0FLMz1jIWz/JTZ4aMkHLxtVKWU3gB+O7cNKFGR2FWf9SvcBiu91tBuUratshBHlKwB2GGim1MhAHIc3kuVsX21ytLOFDYelHK8FCiurBcOm3/HwWhOFuJ9OKFK47jnTDwub7x1FA2GhQ3fuYdfLD4DeAjj21V7sVA2Du6ady1RDYHE2P3wwVPG9ysWIVq59DvBPGNuHbbktaErBHcM9rhq8Uzeoj2Uo8d0sSa1NVKvlRcFan4MlYv5BlmzXjrdK2A==",
+    "signature": "Nid1+5YRJQENq3CJDD7CXqG2bekV6hEZkE/hI93TZs4Q1xvoCG8FLGO4s6VB7yKEHnBsbLhTl654OfzF6AF1qWvV2mzgbSgRwxSIUEuP4SwvlH/9K6AvqIZwaihcAeACsXd5bgzzBz8P3CIkC9idGEiLr+xXn5EBw8VFoLtGTW+p/Ie78CYzGY3PnW5llG79qahWZJOZQJfqIk/TDfpgJFcVHfAj0GmefshTtwPfV5IHwX2dQFAuGMxyWGdcvuxZHC4kbcbnQ5Htymsr4eKVI/FRvp+T+HnRwhtoc3mo8nWi01Q5p+S9ABxHqcCSoyNWJd2VlfZknOTvcgc/SFiQOw==",
     "timestamp": "2001-01-01T01:01:01.000000001Z",
     "title": "created dataset from body_ten.csv"
   },
-  "path": "/ipfs/Qmb6HLvyhZe768NLRjxDUe3zMA75yWiex7Kwq86pipQGBf",
+  "path": "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
   "qri": "ds:0",
   "structure": {
+    "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
     "depth": 2,
     "errCount": 1,
     "entries": 8,
@@ -23,7 +24,7 @@
       "lazyQuotes": true
     },
     "length": 224,
-    "path": "/ipfs/QmWqobG1jjqWnNadHYVhv9m3TXudrabLwmoybQLgvFvQa3",
+    "path": "/ipfs/QmSxuAVwd9pPf9c7WMu1gjUsHSLBLRuxQcFjyu9mfsA2TQ",
     "qri": "st:0",
     "schema": {
       "items": {
