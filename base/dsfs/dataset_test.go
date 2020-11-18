@@ -174,13 +174,13 @@ func TestCreateDataset(t *testing.T) {
 		repoFiles  int // expected total count of files in repo after test execution
 	}{
 		{"cities",
-			"/mem/Qmf9ADYUJum5wgppEHAVRDXTzjwi5r9vaCdUbKxVksbwrS", nil, 8},
+			"/mem/Qmf9ADYUJum5wgppEHAVRDXTzjwi5r9vaCdUbKxVksbwrS", nil, 9},
 		{"all_fields",
-			"/mem/QmYBKKMfFnWYRXmN1Jh2GvzMMHSqoTPgnezbRu5rrU3R9U", nil, 18},
+			"/mem/QmYBKKMfFnWYRXmN1Jh2GvzMMHSqoTPgnezbRu5rrU3R9U", nil, 19},
 		{"cities_no_commit_title",
-			"/mem/QmVkfXUpKA5QyH8gjam4Ynjnny6HJRSMUvsmR9ni8HfkU8", nil, 21},
+			"/mem/QmVkfXUpKA5QyH8gjam4Ynjnny6HJRSMUvsmR9ni8HfkU8", nil, 22},
 		{"craigslist",
-			"/mem/QmZboLmWvgUKnrGeMqL8b3M6YA5JaiS2i6MQBxeJ5G5Xho", nil, 27},
+			"/mem/QmZboLmWvgUKnrGeMqL8b3M6YA5JaiS2i6MQBxeJ5G5Xho", nil, 28},
 	}
 
 	for _, c := range good {
@@ -285,8 +285,8 @@ func TestCreateDataset(t *testing.T) {
 			t.Fatalf("CreateDataset expected error got 'nil'. commit: %v", ds.Commit)
 		}
 
-		if len(fs.Files) != 27 {
-			t.Errorf("invalid number of entries: %d != %d", 27, len(fs.Files))
+		if len(fs.Files) != 28 {
+			t.Errorf("invalid number of entries: %d != %d", 28, len(fs.Files))
 			_, err := fs.Print()
 			if err != nil {
 				panic(err)

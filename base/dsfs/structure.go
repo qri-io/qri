@@ -3,6 +3,7 @@ package dsfs
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
@@ -36,4 +37,42 @@ func loadStructure(ctx context.Context, fs qfs.Filesystem, path string) (st *dat
 		return nil, fmt.Errorf("error loading structure file: %s", err.Error())
 	}
 	return dataset.UnmarshalStructure(data)
+}
+
+func structureFileAddFunc(destFS qfs.Filesystem) addWriteFileFunc {
+	return func(ds *dataset.Dataset, wfs *writeFiles) (err error) {
+		if ds.Structure == nil {
+			return nil
+		}
+
+		ds.Structure.DropTransientValues()
+
+		if wfs.body == nil {
+			wfs.structure, err = JSONFile(PackageFileStructure.Filename(), ds.Structure)
+			return err
+		}
+
+		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
+			if processingFile, ok := wfs.body.(doneProcessingFile); ok {
+				err := <-processingFile.DoneProcessing()
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			// if the destination filesystem is content-addressed, use the body
+			// path as the checksum. Include path prefix to disambiguate which FS
+			// generated the checksum
+			if _, ok := destFS.(qfs.CAFS); ok {
+				if path, ok := added[wfs.body.FullPath()]; ok {
+					ds.Structure.Checksum = path
+				}
+			}
+
+			return JSONFile(f.FullPath(), ds.Structure)
+		}
+
+		wfs.structure = qfs.NewWriteHookFile(emptyFile(PackageFileStructure.Filename()), hook, wfs.body.FullPath())
+		return nil
+	}
 }

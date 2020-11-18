@@ -3,6 +3,7 @@ package dsfs
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
@@ -51,4 +52,35 @@ func LoadTransformScript(ctx context.Context, fs qfs.Filesystem, dspath string) 
 	}
 
 	return fs.Get(ctx, ds.Transform.ScriptPath)
+}
+
+func addTransformFile(ds *dataset.Dataset, wfs *writeFiles) (err error) {
+	if ds.Transform == nil {
+		return nil
+	}
+
+	ds.Transform.DropTransientValues()
+	// TODO (b5): this is validation logic, should happen before WriteDataset is ever called
+	// all resources must be references
+	for key, r := range ds.Transform.Resources {
+		if r.Path == "" {
+			return fmt.Errorf("transform resource %s requires a path to save", key)
+		}
+	}
+
+	if tfsf := ds.Transform.ScriptFile(); tfsf != nil {
+		wfs.transformScript = qfs.NewMemfileReader(transformScriptFilename, tfsf)
+	}
+
+	if wfs.transformScript != nil {
+		hook := func(ctx context.Context, f qfs.File, pathMap map[string]string) (io.Reader, error) {
+			ds.Transform.ScriptPath = pathMap[transformScriptFilename]
+			return JSONFile(PackageFileTransform.Filename(), ds.Transform)
+		}
+		wfs.transform = qfs.NewWriteHookFile(emptyFile(PackageFileTransform.Filename()), hook, transformScriptFilename)
+		return nil
+	}
+
+	wfs.transform, err = JSONFile(PackageFileTransform.Filename(), ds.Transform)
+	return err
 }

@@ -50,3 +50,15 @@ func LoadReadmeScript(ctx context.Context, fs qfs.Filesystem, dspath string) (qf
 
 	return fs.Get(ctx, ds.Readme.ScriptPath)
 }
+
+func addReadmeFile(ds *dataset.Dataset, wfs *writeFiles) error {
+	if ds.Readme == nil {
+		return nil
+	}
+
+	ds.Readme.DropTransientValues()
+	if rmsf := ds.Readme.ScriptFile(); rmsf != nil {
+		wfs.readmeScript = qfs.NewMemfileReader(PackageFileReadmeScript.Filename(), rmsf)
+	}
+	return nil
+}

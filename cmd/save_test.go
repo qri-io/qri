@@ -978,7 +978,7 @@ func TestSaveLargeBodyIsSame(t *testing.T) {
 
 	output := run.MustExec(t, "qri log test_peer_save_large_body/my_ds")
 	expect = dstest.Template(t, `1   Commit:  {{ .path1 }}
-    Date:    Sun Dec 31 20:02:01 EST 2000
+    Date:    Sun Dec 31 20:03:01 EST 2000
     Storage: local
     Size:    532 B
 

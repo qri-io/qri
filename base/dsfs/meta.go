@@ -32,3 +32,18 @@ func loadMeta(ctx context.Context, fs qfs.Filesystem, path string) (md *dataset.
 	}
 	return dataset.UnmarshalMeta(data)
 }
+
+func addMetaFile(ds *dataset.Dataset, wfs *writeFiles) error {
+	if ds.Meta == nil {
+		return nil
+	}
+
+	ds.Meta.DropTransientValues()
+	md, err := JSONFile(PackageFileMeta.Filename(), ds.Meta)
+	if err != nil {
+		return err
+	}
+
+	wfs.meta = md
+	return nil
+}

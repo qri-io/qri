@@ -2,7 +2,9 @@ package dsfs
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"path/filepath"
 	"time"
@@ -58,6 +60,36 @@ func loadCommit(ctx context.Context, fs qfs.Filesystem, path string) (st *datase
 		return nil, fmt.Errorf("loading commit file: %s", err.Error())
 	}
 	return dataset.UnmarshalCommit(data)
+}
+
+func commitFileAddFunc(privKey crypto.PrivKey) addWriteFileFunc {
+	return func(ds *dataset.Dataset, wfs *writeFiles) error {
+		if ds.Commit == nil {
+			return nil
+		}
+
+		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
+			if cff, ok := wfs.body.(*computeFieldsFile); ok {
+				if err := generateCommitTitleAndMessage(ctx, cff.fs, cff.pk, cff.ds, cff.prev, cff.bodyAct, cff.sw.FileHint, cff.sw.ForceIfNoChanges); err != nil {
+					log.Debugf("generateCommitTitleAndMessage: %s", err)
+					return nil, err
+				}
+			}
+
+			updatePaths(ds, added, wfs.body.FullPath())
+
+			signedBytes, err := privKey.Sign(ds.SigningBytes())
+			if err != nil {
+				log.Debug(err.Error())
+				return nil, fmt.Errorf("error signing commit title: %s", err.Error())
+			}
+			ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
+			return JSONFile(PackageFileCommit.Filename(), ds.Commit)
+		}
+
+		wfs.commit = qfs.NewWriteHookFile(emptyFile(PackageFileCommit.Filename()), hook, filePaths(wfs.files())...)
+		return nil
+	}
 }
 
 // generateCommitTileAndMessage creates the commit and title, message

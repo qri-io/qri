@@ -3,6 +3,7 @@ package dsfs
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
@@ -33,4 +34,28 @@ func loadStats(ctx context.Context, fs qfs.Filesystem, path string) (sa *dataset
 	sa = &dataset.Stats{}
 	err = sa.UnmarshalJSON(data)
 	return sa, err
+}
+
+func addStatsFile(ds *dataset.Dataset, wfs *writeFiles) error {
+	if wfs.structure == nil {
+		return nil
+	}
+
+	// stats relies on a structure component & a body file
+	statsCompFile, ok := wfs.body.(statsComponentFile)
+	if !ok {
+		return nil
+	}
+
+	hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
+		sa, err := statsCompFile.StatsComponent()
+		if err != nil {
+			return nil, err
+		}
+		ds.Stats = sa
+		return JSONFile(f.FullPath(), sa)
+	}
+
+	wfs.stats = qfs.NewWriteHookFile(qfs.NewMemfileBytes(PackageFileStats.Filename(), []byte{}), hook, wfs.structure.FullPath())
+	return nil
 }

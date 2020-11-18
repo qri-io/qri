@@ -2,7 +2,6 @@ package dsfs
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -223,190 +222,111 @@ func WriteDataset(
 	pk crypto.PrivKey,
 	sw SaveSwitches,
 ) (string, error) {
-	root, err := buildFileGraph(destination, ds, pk, sw)
-	if err != nil {
-		return "", err
+
+	wfs := &writeFiles{
+		// note: body ds.BodyFile() may return nil
+		body: ds.BodyFile(),
 	}
 
-	return qfs.WriteWithHooks(ctx, destination, root)
+	// the call order of these functions is important, funcs later in the slice
+	// may rely on writeFiles fields set by eariler functions
+	addFuncs := []addWriteFileFunc{
+		addMetaFile,
+		addTransformFile,
+		structureFileAddFunc(destination),
+		addStatsFile,
+		addReadmeFile,
+		vizFilesAddFunc(destination, sw),
+		commitFileAddFunc(pk),
+		addDatasetFile,
+	}
+
+	for _, addFunc := range addFuncs {
+		if err := addFunc(ds, wfs); err != nil {
+			return "", err
+		}
+	}
+
+	return qfs.WriteWithHooks(ctx, destination, wfs.root())
 }
 
-func buildFileGraph(fs qfs.Filesystem, ds *dataset.Dataset, privKey crypto.PrivKey, sw SaveSwitches) (root qfs.File, err error) {
-	var (
-		files               []qfs.File
-		bdf                 = ds.BodyFile()
-		packageBodyFilepath string
-	)
+// writeFiles is a data structure for converting a dataset document into a set
+// of qfs.File's. fields in writeFiles may be nil or a qfs.File
+// many components pass back qfs.HookFiles that modify the contents of the
+// dataset as it's being persisted
+type writeFiles struct {
+	meta qfs.File // no deps
+	body qfs.File // no deps
 
-	if bdf != nil {
-		files = append(files, bdf)
-		packageBodyFilepath = bdf.FullPath()
+	readmeScript    qfs.File // no deps
+	vizScript       qfs.File // no deps
+	transformScript qfs.File // no deps
+
+	transform   qfs.File // requires transformScript if it exists
+	structure   qfs.File // requires body if it exists
+	stats       qfs.File // requires body, structure if they exist
+	vizRendered qfs.File // requires body, meta, transform, structure, stats, readme if they exist
+
+	commit  qfs.File // requires meta, transform, body, structure, stats, readme, vizScript, vizRendered if they exist
+	dataset qfs.File // requires all other components
+}
+
+// files returns all non-nil files as a slice
+func (wfs *writeFiles) files() []qfs.File {
+	candidates := []qfs.File{
+		wfs.meta,
+		wfs.body,
+		wfs.readmeScript,
+		wfs.vizScript,
+		wfs.transformScript,
+		wfs.transform,
+		wfs.structure,
+		wfs.stats,
+		wfs.vizRendered,
+		wfs.commit,
+		wfs.dataset,
 	}
 
-	if ds.Structure != nil {
-		ds.Structure.DropTransientValues()
-
-		stf, err := JSONFile(PackageFileStructure.Filename(), ds.Structure)
-		if err != nil {
-			return nil, err
-		}
-
-		if bdf != nil {
-			hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
-				if processingFile, ok := bdf.(doneProcessingFile); ok {
-					err := <-processingFile.DoneProcessing()
-					if err != nil {
-						return nil, err
-					}
-				}
-
-				// if the destination filesystem is content-addressed, use the body
-				// path as the checksum. Include path prefix to disambiguate which FS
-				// generated the checksum
-				if _, ok := fs.(qfs.CAFS); ok {
-					if path, ok := added[packageBodyFilepath]; ok {
-						ds.Structure.Checksum = path
-					}
-				}
-
-				return JSONFile(f.FullPath(), ds.Structure)
-			}
-			stf = qfs.NewWriteHookFile(stf, hook, packageBodyFilepath)
-		}
-
-		files = append(files, stf)
-	}
-
-	// stats relies on a structure component & a body file
-	if statsCompFile, ok := bdf.(statsComponentFile); ok {
-		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
-			sa, err := statsCompFile.StatsComponent()
-			if err != nil {
-				return nil, err
-			}
-			ds.Stats = sa
-			return JSONFile(f.FullPath(), sa)
-		}
-
-		hookFile := qfs.NewWriteHookFile(qfs.NewMemfileBytes(PackageFileStats.Filename(), []byte{}), hook, PackageFileStructure.Filename())
-		files = append(files, hookFile)
-	}
-
-	if ds.Meta != nil {
-		ds.Meta.DropTransientValues()
-		mdf, err := JSONFile(PackageFileMeta.Filename(), ds.Meta)
-		if err != nil {
-			return nil, fmt.Errorf("encoding meta component to json: %w", err)
-		}
-		files = append(files, mdf)
-	}
-
-	if ds.Transform != nil {
-		ds.Transform.DropTransientValues()
-		// TODO (b5): this is validation logic, should happen before WriteDataset is ever called
-		// all resources must be references
-		for key, r := range ds.Transform.Resources {
-			if r.Path == "" {
-				return nil, fmt.Errorf("transform resource %s requires a path to save", key)
-			}
-		}
-
-		tff, err := JSONFile(PackageFileTransform.Filename(), ds.Transform)
-		if err != nil {
-			return nil, err
-		}
-
-		if tfsf := ds.Transform.ScriptFile(); tfsf != nil {
-			files = append(files, qfs.NewMemfileReader(transformScriptFilename, tfsf))
-
-			hook := func(ctx context.Context, f qfs.File, pathMap map[string]string) (io.Reader, error) {
-				ds.Transform.ScriptPath = pathMap[transformScriptFilename]
-				return JSONFile(PackageFileTransform.Filename(), ds.Transform)
-			}
-			tff = qfs.NewWriteHookFile(tff, hook, transformScriptFilename)
-		}
-
-		files = append(files, tff)
-	}
-
-	if ds.Readme != nil {
-		ds.Readme.DropTransientValues()
-
-		if rmsf := ds.Readme.ScriptFile(); rmsf != nil {
-			files = append(files, qfs.NewMemfileReader(PackageFileReadmeScript.Filename(), rmsf))
+	files := make([]qfs.File, 0, len(candidates))
+	for _, c := range candidates {
+		if c != nil {
+			files = append(files, c)
 		}
 	}
+	return files
+}
 
-	if ds.Viz != nil {
-		ds.Viz.DropTransientValues()
+// root collects up all non-nil files in writeFiles wraps them in a root
+// directory
+func (wfs *writeFiles) root() qfs.File {
+	return qfs.NewMemdir("/", wfs.files()...)
+}
 
-		vzfs := ds.Viz.ScriptFile()
-		if vzfs != nil {
-			files = append(files, qfs.NewMemfileReader(PackageFileVizScript.Filename(), vzfs))
-		}
+// addWriteFileFunc is a function that modifies one or more fields in a
+// writeFiles struct by creating files from a given dataset
+type addWriteFileFunc func(ds *dataset.Dataset, wfs *writeFiles) error
 
-		renderedF := ds.Viz.RenderedFile()
-		if renderedF != nil {
-			files = append(files, qfs.NewMemfileReader(PackageFileRenderedViz.Filename(), renderedF))
-		} else if vzfs != nil && sw.ShouldRender {
-			hook := renderVizWriteHook(fs, ds, packageBodyFilepath)
-			renderedF = qfs.NewWriteHookFile(emptyFile(PackageFileRenderedViz.Filename()), hook, append([]string{PackageFileVizScript.Filename()}, filePaths(files)...)...)
-			files = append(files, renderedF)
-		}
-
-		// we don't add the viz component itself, it's inlined in dataset.json
-	}
-
-	if ds.Commit != nil {
-		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
-
-			if cff, ok := bdf.(*computeFieldsFile); ok {
-				if err = generateCommitTitleAndMessage(ctx, cff.fs, cff.pk, cff.ds, cff.prev, cff.bodyAct, cff.sw.FileHint, cff.sw.ForceIfNoChanges); err != nil {
-					log.Debugf("generateCommitTitleAndMessage: %s", err)
-					return nil, err
-				}
-			}
-
-			updatePaths(ds, added, packageBodyFilepath)
-
-			signedBytes, err := privKey.Sign(ds.SigningBytes())
-			if err != nil {
-				log.Debug(err.Error())
-				return nil, fmt.Errorf("error signing commit title: %s", err.Error())
-			}
-			ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
-			return JSONFile(PackageFileCommit.Filename(), ds.Commit)
-		}
-
-		cmf := qfs.NewWriteHookFile(emptyFile(PackageFileCommit.Filename()), hook, filePaths(files)...)
-		files = append(files, cmf)
-	}
-
-	pkgFiles := filePaths(files)
+func addDatasetFile(ds *dataset.Dataset, wfs *writeFiles) error {
+	pkgFiles := filePaths(wfs.files())
 	if len(pkgFiles) == 0 {
-		return nil, fmt.Errorf("cannot save empty dataset")
+		return fmt.Errorf("cannot save empty dataset")
 	}
+	log.Debugf("constructing dataset with pkgFiles=%v", pkgFiles)
 
 	hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
-		log.Debugf("writing dataset file. files=%v", pkgFiles)
 		ds.DropTransientValues()
 
-		updatePaths(ds, added, packageBodyFilepath)
+		updatePaths(ds, added, wfs.body.FullPath())
 
-		for _, comp := range pkgFiles {
-			switch comp {
-			case PackageFileCommit.Filename():
-				ds.Commit = dataset.NewCommitRef(added[comp])
-			}
+		if path, ok := added[PackageFileCommit.Filename()]; ok {
+			ds.Commit = dataset.NewCommitRef(path)
 		}
+
 		return JSONFile(PackageFileDataset.Filename(), ds)
 	}
 
-	dsf := qfs.NewWriteHookFile(qfs.NewMemfileBytes(PackageFileDataset.Filename(), []byte{}), hook, filePaths(files)...)
-	files = append(files, dsf)
-
-	log.Debugf("constructing dataset with pkgFiles=%v", pkgFiles)
-	return qfs.NewMemdir("/", files...), nil
+	wfs.dataset = qfs.NewWriteHookFile(emptyFile(PackageFileDataset.Filename()), hook, filePaths(wfs.files())...)
+	return nil
 }
 
 func filePaths(fs []qfs.File) (files []string) {
