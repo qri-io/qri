@@ -498,9 +498,9 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
     Storage: local
     Size:    7 B
 
-    transform removed scriptBytes
+    transform updated scriptBytes
     transform:
-    	removed scriptBytes
+    	updated scriptBytes
 
 2   Commit:  {{ .commit2 }}
     Date:    Sun Dec 31 20:01:01 EST 2000
@@ -510,7 +510,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
     created dataset from tf_123.star
 
 `, map[string]string{
-		"commit1": "/ipfs/QmNnmosunfY62w5rUwtGYLAWT8wZBJ22da5TWrjR84vgAd",
+		"commit1": "/ipfs/QmQjJjAGF9mD4ArnBHCLmDT8AEProLbmpbF3VdBMZFL5yE",
 		"commit2": "/ipfs/QmWfeoPUpus3YiSHoE6qHnDP4jyvC7gNVFuJFi6M2Y2iD7",
 	})
 	if diff := cmp.Diff(expect, output); diff != "" {

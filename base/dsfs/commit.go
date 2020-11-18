@@ -14,7 +14,6 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/deepdiff"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base/friendly"
 	"github.com/qri-io/qri/base/toqtype"
 )
@@ -69,14 +68,17 @@ func commitFileAddFunc(privKey crypto.PrivKey) addWriteFileFunc {
 		}
 
 		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
+
 			if cff, ok := wfs.body.(*computeFieldsFile); ok {
+				updateScriptPaths(ds, added)
+
 				if err := generateCommitTitleAndMessage(ctx, cff.fs, cff.pk, cff.ds, cff.prev, cff.bodyAct, cff.sw.FileHint, cff.sw.ForceIfNoChanges); err != nil {
 					log.Debugf("generateCommitTitleAndMessage: %s", err)
 					return nil, err
 				}
 			}
 
-			updatePaths(ds, added, wfs.body.FullPath())
+			replaceComponentsWithRefs(ds, added, wfs.body.FullPath())
 
 			signedBytes, err := privKey.Sign(ds.SigningBytes())
 			if err != nil {
@@ -161,12 +163,6 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 	}
 	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
 		log.Debugf("inlining next transform ScriptPath=%q", ds.Transform.ScriptPath)
-		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
-		// local here. Is there some way to have a cafs store that works with both?
-		fs, err := localfs.NewFS(nil)
-		if err != nil {
-			log.Errorf("error setting up local fs: %s", err)
-		}
 		err = ds.Transform.OpenScriptFile(ctx, fs)
 		if err != nil {
 			log.Errorf("ds.Transform.ScriptPath %q open err: %s", ds.Transform.ScriptPath, err)
@@ -200,12 +196,6 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 	}
 	if ds.Readme != nil && ds.Readme.ScriptPath != "" {
 		log.Debugf("inlining next readme ScriptPath=%q", ds.Readme.ScriptPath)
-		// TODO(dustmop): The ipfs filestore won't recognize local filepaths, we need to use
-		// local here. Is there some way to have a cafs store that works with both?
-		fs, err := localfs.NewFS(nil)
-		if err != nil {
-			log.Error("localfs.NewFS err: %s", err)
-		}
 		err = ds.Readme.OpenScriptFile(ctx, fs)
 		if err != nil {
 			log.Debugf("ds.Readme.ScriptPath %q open err: %s", ds.Readme.ScriptPath, err)

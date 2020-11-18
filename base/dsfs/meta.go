@@ -30,7 +30,9 @@ func loadMeta(ctx context.Context, fs qfs.Filesystem, path string) (md *dataset.
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("loading metadata file: %w", err)
 	}
-	return dataset.UnmarshalMeta(data)
+	md = &dataset.Meta{}
+	err = md.UnmarshalJSON(data)
+	return md, err
 }
 
 func addMetaFile(ds *dataset.Dataset, wfs *writeFiles) error {

@@ -43,7 +43,7 @@ require (
 	github.com/pkg/profile v1.5.0
 	github.com/qri-io/apiutil v0.2.0
 	github.com/qri-io/dag v0.2.2-0.20201113214519-3219603c4d1a
-	github.com/qri-io/dataset v0.2.1-0.20201117033713-f588ddee464f
+	github.com/qri-io/dataset v0.2.1-0.20201118223538-aec8f29a5a2c
 	github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1

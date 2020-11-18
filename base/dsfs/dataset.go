@@ -158,16 +158,16 @@ func CreateDataset(
 	}
 	log.Debugf("CreateDataset ds.Peername=%q ds.Name=%q writeDestType=%s", ds.Peername, ds.Name, destination.Type())
 
-	if prev != nil {
+	if prev != nil && !prev.IsEmpty() {
 		log.Debugw("dereferencing previous dataset", "prevPath", prev.Path)
 		if err := DerefDataset(ctx, source, prev); err != nil {
 			log.Debug(err.Error())
 			return "", err
 		}
-		// if err := validate.Dataset(prev); err != nil {
-		// 	log.Debug(err.Error())
-		// 	return "", err
-		// }
+		if err := validate.Dataset(prev); err != nil {
+			log.Debug(err.Error())
+			return "", err
+		}
 	}
 
 	var (
@@ -315,8 +315,8 @@ func addDatasetFile(ds *dataset.Dataset, wfs *writeFiles) error {
 
 	hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
 		ds.DropTransientValues()
-
-		updatePaths(ds, added, wfs.body.FullPath())
+		updateScriptPaths(ds, added)
+		replaceComponentsWithRefs(ds, added, wfs.body.FullPath())
 
 		if path, ok := added[PackageFileCommit.Filename()]; ok {
 			ds.Commit = dataset.NewCommitRef(path)
@@ -346,7 +346,7 @@ func jsonWriteHook(filename string, data json.Marshaler) qfs.WriteHook {
 	}
 }
 
-func updatePaths(ds *dataset.Dataset, added map[string]string, bodyPathName string) {
+func updateScriptPaths(ds *dataset.Dataset, added map[string]string) {
 	for filepath, addr := range added {
 		switch filepath {
 		case PackageFileVizScript.Filename():
@@ -355,6 +355,13 @@ func updatePaths(ds *dataset.Dataset, added map[string]string, bodyPathName stri
 			ds.Viz.RenderedPath = addr
 		case PackageFileReadmeScript.Filename():
 			ds.Readme.ScriptPath = addr
+		}
+	}
+}
+
+func replaceComponentsWithRefs(ds *dataset.Dataset, added map[string]string, bodyPathName string) {
+	for filepath, addr := range added {
+		switch filepath {
 		case PackageFileStructure.Filename():
 			ds.Structure = dataset.NewStructureRef(addr)
 		case PackageFileViz.Filename():
@@ -366,9 +373,5 @@ func updatePaths(ds *dataset.Dataset, added map[string]string, bodyPathName stri
 		case bodyPathName:
 			ds.BodyPath = addr
 		}
-	}
-
-	if vizScriptPath, ok := added[PackageFileVizScript.Filename()]; ok {
-		ds.Viz.ScriptPath = vizScriptPath
 	}
 }

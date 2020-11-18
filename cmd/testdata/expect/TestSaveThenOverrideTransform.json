@@ -16,7 +16,7 @@
     "qri": "md:0",
     "title": "example movie data"
   },
-  "path": "/ipfs/QmXDCMMF8sjVk8SLeWo7cdaYq2K5FaspBTmDrZkxmZhEMq",
+  "path": "/ipfs/QmPuSQE6da9HtgBcF8BgAkUZhkA4BBzrBpJkmZWrYAnypb",
   "previousPath": "/ipfs/QmPY4xPQSSGSYZny4QLPn574VdeP84L7Nf3oCY1DxYAv5n",
   "qri": "ds:0",
   "structure": {
@@ -75,6 +75,7 @@
   },
   "transform": {
     "qri": "tf:0",
+    "scriptBytes": "IyB0cmFuc2Zvcm0gdGhhdCBkb2Vzbid0IGNoYW5nZSBhbnl0aGluZy4KZGVmIHRyYW5zZm9ybShkcywgY3R4KToKICBwcmludCgiaGVsbG8gUXJpISBcbiIp",
     "scriptPath": "/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN",
     "syntax": "starlark",
     "syntaxVersion": "test_version"

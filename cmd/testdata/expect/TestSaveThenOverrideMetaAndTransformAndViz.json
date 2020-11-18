@@ -16,7 +16,7 @@
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmQJqCA55NUYF3XEkSkWaJFhD5csiNKqPnHJF9cdfDCTok",
+  "path": "/ipfs/QmTkZuXUCxcGsuhUbnfG4QHiDqhtVaTDnzStsd6PsnHxxV",
   "previousPath": "/ipfs/QmPY4xPQSSGSYZny4QLPn574VdeP84L7Nf3oCY1DxYAv5n",
   "qri": "ds:0",
   "structure": {
@@ -75,6 +75,7 @@
   },
   "transform": {
     "qri": "tf:0",
+    "scriptBytes": "IyB0cmFuc2Zvcm0gdGhhdCBkb2Vzbid0IGNoYW5nZSBhbnl0aGluZy4KZGVmIHRyYW5zZm9ybShkcywgY3R4KToKICBwcmludCgiaGVsbG8gUXJpISBcbiIp",
     "scriptPath": "/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN",
     "syntax": "starlark",
     "syntaxVersion": "test_version"
