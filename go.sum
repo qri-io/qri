@@ -1126,8 +1126,8 @@ github.com/prometheus/procfs v0.0.11/go.mod h1:lV6e/gmhEcM9IjHGsFOCxxuZ+z1YqCvr4
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
 github.com/qri-io/compare v0.1.0 h1:A/MRx3uEnJ/iMjfJY1VOqH9CYs9zFSEYaFVeXuGfmis=
 github.com/qri-io/compare v0.1.0/go.mod h1:i/tVuDGRXVxhuZ8ZUieF23u6rQ6wLGJl7KKWpoMRaTE=
-github.com/qri-io/dag v0.2.2-0.20201113214519-3219603c4d1a h1:fAgQF42ZcW7jXccOVaWDjzzvLsMyipVO3XxbdFeSNSA=
-github.com/qri-io/dag v0.2.2-0.20201113214519-3219603c4d1a/go.mod h1:1AwOy3yhcZTAXzaF4wGSdnrp87u3PBOrsWXUjOtQCXo=
+github.com/qri-io/dag v0.2.2-0.20201110155527-8fad5beb70f5 h1:xeMaT6fLTvdrFOOP2N2+x68EL/uZrm4XC0zs1vjLiXo=
+github.com/qri-io/dag v0.2.2-0.20201110155527-8fad5beb70f5/go.mod h1:1AwOy3yhcZTAXzaF4wGSdnrp87u3PBOrsWXUjOtQCXo=
 github.com/qri-io/dataset v0.2.1-0.20201119141937-881ac5928154 h1:LNINSd6pGgkMcSn0aHVfW3Ug3OFAZfzbh3/lYdsSWAk=
 github.com/qri-io/dataset v0.2.1-0.20201119141937-881ac5928154/go.mod h1:HtwGskdCECbOON0iVQHEEm6fykwDqharlqabc1ssj3Y=
 github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b h1:T8qEIv+qLi5mVWvSS329wJ+HbN7cfMwCWjRVzh/+upo=
