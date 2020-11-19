@@ -432,7 +432,7 @@ func TestWriteDataset(t *testing.T) {
 
 		if ref.Transform != nil {
 			if ref.Transform.IsEmpty() {
-				t.Errorf("expected stored dataset.Transform to populated")
+				t.Errorf("expected stored dataset.Transform to be populated")
 			}
 			ds.Transform.Assign(dataset.NewTransformRef(ref.Transform.Path))
 		}
@@ -1047,41 +1047,3 @@ func BenchmarkValidateJSON(b *testing.B) {
 		})
 	}
 }
-
-// func BenchmarkPrepareDataset1000000Rows(b *testing.B) {
-// 	ctx := context.Background()
-// 	_, ds := GenerateDataset(b, 1000000, "csv")
-// 	fs := qfs.NewMemFS()
-// 	info := testPeers.GetTestPeerInfo(10)
-// 	privKey := info.PrivKey
-
-// 	for i := 0; i < b.N; i++ {
-// 		f, err := ioutil.TempFile("", "benchmark_prepare_dataset")
-// 		if err != nil {
-// 			b.Fatal(err)
-// 		}
-
-// 		prepareDataset(ctx, fs, ds, nil, privKey, f, SaveSwitches{})
-
-// 		os.RemoveAll(f.Name())
-// 	}
-// }
-
-// func BenchmarkPrepareDataset5000000Rows(b *testing.B) {
-// 	ctx := context.Background()
-// 	_, ds := GenerateDataset(b, 5000000, "csv")
-// 	fs := qfs.NewMemFS()
-// 	info := testPeers.GetTestPeerInfo(10)
-// 	privKey := info.PrivKey
-
-// 	for i := 0; i < b.N; i++ {
-// 		f, err := ioutil.TempFile("", "benchmark_prepare_dataset")
-// 		if err != nil {
-// 			b.Fatal(err)
-// 		}
-
-// 		prepareDataset(ctx, fs, ds, nil, privKey, f, SaveSwitches{})
-
-// 		os.RemoveAll(f.Name())
-// 	}
-// }

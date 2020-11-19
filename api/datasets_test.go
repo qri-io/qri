@@ -429,8 +429,6 @@ func TestGetZip(t *testing.T) {
 		t.Fatalf("expected status code 200, got %d", gotStatusCode)
 	}
 
-	// ioutil.WriteFile("testdata/cities/exported_2.zip", []byte(gotBodyString), 0644)
-
 	// Compare the API response to the expected zip file
 	expectBytes, err := ioutil.ReadFile("testdata/cities/exported.zip")
 	if err != nil {
@@ -467,12 +465,8 @@ func TestDatasetGet(t *testing.T) {
 
 	actualStatusCode, actualBody := APICall("/get/peer/test_ds", dsHandler.GetHandler)
 	assertStatusCode(t, "get dataset", actualStatusCode, 200)
-	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestGetDataset.test_ds.json")
 	got := datasetJSONResponse(t, actualBody)
-	if diff := dstest.CompareDatasets(expect, got); diff != "" {
-		t.Errorf("output mismatch (-want +got):\n%s", diff)
-		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestGetDataset.test_ds.json", got)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestDatasetGet.test_ds.json", got)
 
 	// Get csv body using "body.csv" suffix
 	actualStatusCode, actualBody = APICall("/get/peer/test_ds/body.csv", dsHandler.GetHandler)

@@ -204,11 +204,7 @@ func TestSaveState(t *testing.T) {
 	// Read dataset from IPFS and compare it to the expected value
 	dsPath := run.GetPathForDataset(t, 0)
 	gotDs := run.MustLoadDataset(t, dsPath)
-	expectDs := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveState.json")
-	if diff := dstest.CompareDatasets(expectDs, gotDs); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveState.json", gotDs)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveState.json", gotDs)
 
 	// Read data and compare it
 	actual := run.ReadBodyFromIPFS(t, dsPath+"/body.csv")
@@ -332,10 +328,6 @@ func TestSaveBasicCommands(t *testing.T) {
 			}
 			actual := parseDatasetRefFromOutput(run.GetCommandOutput())
 			expect := dstest.Template(t, c.expect, tmplData)
-			// vi := run.LookupVersionInfo(t, "test_peer_save_basic/ten_movies")
-			// ds := run.MustLoadDataset(t, vi.Path)
-			// data, _ := json.MarshalIndent(ds, "", "  ")
-			// fmt.Println(string(data))
 			if diff := cmp.Diff(expect, actual); diff != "" {
 				t.Errorf("result mismatch (-want +got):%s\n", diff)
 			}

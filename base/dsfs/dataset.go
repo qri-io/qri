@@ -141,7 +141,8 @@ func CreateDataset(
 	ctx context.Context,
 	source qfs.Filesystem,
 	destination qfs.Filesystem,
-	ds, prev *dataset.Dataset,
+	ds *dataset.Dataset,
+	prev *dataset.Dataset,
 	pk crypto.PrivKey,
 	sw SaveSwitches,
 ) (string, error) {

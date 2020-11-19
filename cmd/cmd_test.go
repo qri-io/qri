@@ -223,11 +223,7 @@ func TestSaveThenOverrideMetaComponent(t *testing.T) {
 	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with the meta replaced by meta_override.yaml.
-	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveThenOverrideMetaComponent.json")
-	if diff := dstest.CompareDatasets(expect, got); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveThenOverrideMetaComponent.json", got)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveThenOverrideMetaComponent.json", got)
 }
 
 // Test save with a body, then adding a meta
@@ -248,11 +244,7 @@ func TestSaveWithBodyThenAddMetaComponent(t *testing.T) {
 	got := run.MustLoadDataset(t, dsPath)
 
 	// This version has a commit message about the meta being added
-	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveWithBodyThenAddMetaComponent.json")
-	if diff := dstest.CompareDatasets(expect, got); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveWithBodyThenAddMetaComponent.json", got)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveWithBodyThenAddMetaComponent.json", got)
 }
 
 // Test save with a body, then adding a meta
@@ -273,11 +265,7 @@ func TestSaveWithBodyThenAddMetaAndSmallBodyChange(t *testing.T) {
 	got := run.MustLoadDataset(t, dsPath)
 
 	// This version has a commit message about the meta being added and body changing
-	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveWithBodyThenAddMetaAndSmallBodyChange.json")
-	if diff := dstest.CompareDatasets(expect, got); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveWithBodyThenAddMetaAndSmallBodyChange.json", got)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveWithBodyThenAddMetaAndSmallBodyChange.json", got)
 }
 
 // Test that saving with two components at once will merge them together.
@@ -299,11 +287,7 @@ func TestSaveTwoComponents(t *testing.T) {
 
 	// This dataset is ds_ten.yaml, with the meta replaced by meta_override ("different title") and
 	// the structure replaced by structure_override (lazyQuotes: false && title: "name").
-	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveTwoComponents.json")
-	if diff := dstest.CompareDatasets(expect, got); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveTwoComponents.json", got)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveTwoComponents.json", got)
 }
 
 // Test that save can override just the transform
@@ -324,11 +308,7 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added transform section
-	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveThenOverrideTransform.json")
-	if diff := dstest.CompareDatasets(expect, got); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveThenOverrideTransform.json", got)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveThenOverrideTransform.json", got)
 }
 
 // Test that save can override just the viz
@@ -349,11 +329,7 @@ func TestSaveThenOverrideViz(t *testing.T) {
 	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added viz section
-	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveThenOverrideViz.json")
-	if diff := dstest.CompareDatasets(expect, got); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveThenOverrideViz.json", got)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveThenOverrideViz.json", got)
 }
 
 // Test that save can combine a meta compoent, and a transform, and a viz
@@ -374,11 +350,7 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added meta component, and transform, and viz
-	expect := dstest.LoadGoldenFile(t, "testdata/expect/TestSaveThenOverrideMetaAndTransformAndViz.json")
-	if diff := dstest.CompareDatasets(expect, got); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestSaveThenOverrideMetaAndTransformAndViz.json", got)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveThenOverrideMetaAndTransformAndViz.json", got)
 }
 
 // Test that saving a full dataset with a component at the same time is an error

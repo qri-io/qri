@@ -32,7 +32,8 @@ const (
 	BodyDefault = BodyAction("default")
 	// BodySame means that the bodies are the same, no need to compare
 	BodySame = BodyAction("same")
-	// BodyTooBig means the body is too big to compare, and should be assumed to have changed
+	// BodyTooBig means the body is too big to directly compare, and should use
+	// some other method
 	BodyTooBig = BodyAction("too_big")
 )
 
@@ -261,11 +262,13 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 	if prevMeta, ok := prevData["meta"]; ok {
 		if prevObject, ok := prevMeta.(map[string]interface{}); ok {
 			delete(prevObject, "path")
+			delete(prevObject, "qri")
 		}
 	}
-	if nextMeta, ok := prevData["meta"]; ok {
+	if nextMeta, ok := nextData["meta"]; ok {
 		if nextObject, ok := nextMeta.(map[string]interface{}); ok {
 			delete(nextObject, "path")
+			delete(nextObject, "qri")
 		}
 	}
 

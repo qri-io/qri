@@ -1308,7 +1308,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	output = run.MustExecCombinedOutErr(t, "qri diff")
 	expect = `for linked dataset [test_peer_diff_after_change/diff_change]
 
--22 elements. 6 inserts. 5 deletes.
+-23 elements. 5 inserts. 5 deletes.
 
  body: 
    0: 
@@ -1324,7 +1324,7 @@ run ` + "`qri save`" + ` to commit this dataset
     -2: 6
     +2: 321
  meta: 
-  +qri: "md:0"
+   qri: "md:0"
   +title: "hello"
  qri: "ds:0"
 -stats: {"qri":"sa:0","stats":[{"count":2,"frequencies":{},"maxLength":4,"minLength":3,"type":"string"},{"count":2,"frequencies":{},"maxLength":4,"minLength":3,"type":"string"},{"count":2,"histogram":{"bins":null,"frequencies":[]},"max":6,"mean":9,"min":3,"type":"numeric"}]}
@@ -1484,7 +1484,7 @@ func TestMoveWorkingDirectory(t *testing.T) {
 
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmZkcwvx5akGMQ9xUXEDZAo3ZZYmeVbBGsu6noHpmsEaXq",
+		"path":      "/ipfs/QmWUUi1u5hM9k3s5vicfXVqJvAtXLB3NQvpChcB86nX7kg",
 	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
@@ -1525,7 +1525,7 @@ func TestRemoveWorkingDirectory(t *testing.T) {
 
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmZkcwvx5akGMQ9xUXEDZAo3ZZYmeVbBGsu6noHpmsEaXq",
+		"path":      "/ipfs/QmWUUi1u5hM9k3s5vicfXVqJvAtXLB3NQvpChcB86nX7kg",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {

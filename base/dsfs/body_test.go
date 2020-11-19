@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
-	"os"
 	"testing"
-
-	"github.com/qri-io/qfs"
 )
 
 func TestLoadBody(t *testing.T) {
@@ -16,10 +13,6 @@ func TestLoadBody(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating test filestore: %s", err.Error())
 	}
-
-	t.Logf("%v", datasets)
-	v, _ := fs.(*qfs.MemFS).Print()
-	ioutil.WriteFile("/Users/b5/Desktop/memfs_contents", []byte(v), os.ModePerm)
 
 	ds, err := LoadDataset(ctx, fs, datasets["cities"])
 	if err != nil {

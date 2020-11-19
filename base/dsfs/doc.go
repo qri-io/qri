@@ -6,8 +6,3 @@ import (
 )
 
 var log = logger.Logger("dsfs")
-
-func init() {
-	// logger.SetLogLevel("dsfs", "debug")
-	// logger.SetLogLevel("qfs", "debug")
-}

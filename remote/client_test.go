@@ -132,11 +132,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectDs := dstest.LoadGoldenFile(t, "testdata/expect/TestClientFeedsAndPreviews.json")
-	if diff := dstest.CompareDatasets(expectDs, ds); diff != "" {
-		t.Errorf("preview result mismatch (-want +got): \n%s", diff)
-		dstest.UpdateGoldenFileIfEnvVarSet("testdata/expect/TestClientFeedsAndPreviews.json", ds)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestClientFeedsAndPreviews.json", ds)
 }
 
 func newMemRepoTestNode(t *testing.T) *p2p.QriNode {

@@ -151,7 +151,6 @@ func (cff *computeFieldsFile) StatsComponent() (*dataset.Stats, error) {
 	}, nil
 }
 
-// , store cafs.Filestore, ds, prev *dataset.Dataset, bodyR io.Reader, pk crypto.PrivKey, sw SaveSwitches, done chan error
 func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 	var (
 		batchBuf      *dsio.EntryBuffer
