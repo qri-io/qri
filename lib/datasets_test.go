@@ -20,7 +20,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
@@ -103,8 +103,8 @@ func TestDatasetRequestsSave(t *testing.T) {
 
 		if got != nil && c.res != nil {
 			expect := c.res.Dataset
-			if err := dataset.CompareDatasets(expect, got); err != nil {
-				t.Errorf("case %d ds mistmatch: %s", i, err.Error())
+			if diff := dstest.CompareDatasets(expect, got); diff != "" {
+				t.Errorf("case %d ds mistmatch (-want +got):\n%s", i, diff)
 				continue
 			}
 		}
@@ -434,7 +434,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 		t.Fatalf("error getting path: %s", err.Error())
 	}
 
-	moviesDs, err := dsfs.LoadDataset(ctx, mr.Store(), ref.Path)
+	moviesDs, err := dsfs.LoadDataset(ctx, mr.Filesystem(), ref.Path)
 	if err != nil {
 		t.Fatalf("error loading dataset: %s", err.Error())
 	}
@@ -1000,8 +1000,8 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 	// Connect in memory Mapstore's behind the scene to simulate IPFS like behavior.
 	for i, s0 := range peers {
 		for _, s1 := range peers[i+1:] {
-			m0 := (s0.Repo.Store()).(*cafs.MapStore)
-			m1 := (s1.Repo.Store()).(*cafs.MapStore)
+			m0 := (s0.Repo.Filesystem().Filesystem("mem")).(*qfs.MemFS)
+			m1 := (s1.Repo.Filesystem().Filesystem("mem")).(*qfs.MemFS)
 			m0.AddConnection(m1)
 		}
 	}
@@ -1233,37 +1233,46 @@ func TestListRawRefs(t *testing.T) {
 	if err := m.ListRawRefs(&ListParams{}, &text); err != nil {
 		t.Fatal(err)
 	}
-	expect := `0 Peername:  peer
-  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+
+	expect := dstest.Template(t, `0 Peername:  peer
+  ProfileID: {{ .ProfileID }}
   Name:      cities
-  Path:      /map/QmcvCpP2qBYV4szUV4MkJopaZM6u8kbsYfhZxbk91ZY5s5
+  Path:      {{ .citiesPath }}
   FSIPath:   
   Published: false
 1 Peername:  peer
-  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  ProfileID: {{ .ProfileID }}
   Name:      counter
-  Path:      /map/QmTve65WAZJqg6gGPU4o4YQSVdQ11bTA5YaFjyK9mnEQ48
+  Path:      {{ .counterPath }}
   FSIPath:   
   Published: false
 2 Peername:  peer
-  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  ProfileID: {{ .ProfileID }}
   Name:      craigslist
-  Path:      /map/QmX1sNkK7PYfx9344vcd6vK8fYRBV5NyH7C4Wqz6Y2x4zX
+  Path:      {{ .craigslistPath }}
   FSIPath:   
   Published: false
 3 Peername:  peer
-  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  ProfileID: {{ .ProfileID }}
   Name:      movies
-  Path:      /map/QmVnSLjFfZ8QRyTvAMfqjWoTZS1zo4JthKjBaFjnneirAc
+  Path:      {{ .moviesPath }}
   FSIPath:   
   Published: false
 4 Peername:  peer
-  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  ProfileID: {{ .ProfileID }}
   Name:      sitemap
-  Path:      /map/QmdDVuAMJLCSQ4rCemBVh1KUk3cb7jSaCvXt9n2X75gnGj
+  Path:      {{ .sitemapPath }}
   FSIPath:   
   Published: false
-`
+`, map[string]string{
+		"ProfileID":      "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+		"citiesPath":     "/mem/QmPbcCboLyqJzYatHURnLV5hVmp8NFsDiGTcp9dtvshpxa",
+		"counterPath":    "/mem/QmdQh2du6ZtxFeV3XjHwkkzYn5ZgU6EnrARtihY9xcs8tU",
+		"craigslistPath": "/mem/Qmc28qvm4UuvZoRVyy5UQ33UNdhwzgih1RJuzJprt8mUXH",
+		"moviesPath":     "/mem/QmXvMuHVi24fqmbjx6ygdWVSCgULcdc45t6HKzDT8PaKTV",
+		"sitemapPath":    "/mem/QmSutY4vd5WgLCeNSgxLVTihekzk4AdkLn5vbMn73GRuEU",
+	})
+
 	if diff := cmp.Diff(expect, text); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}

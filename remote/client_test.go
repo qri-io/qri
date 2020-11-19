@@ -6,9 +6,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
@@ -115,7 +114,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 			{
 				Username:   "A",
 				Name:       "world_bank_population",
-				Path:       "/ipfs/Qmb5Qaigk9teHrWSyXf7UxnRH3L28BV6zV1cqaWsLn3z7p",
+				Path:       "/ipfs/QmYV9znfoFpsXFRemDnxsqAo5f5dVcnoqEmZe3UqCTM8ro",
 				MetaTitle:  "World Bank Population",
 				BodySize:   5,
 				BodyRows:   1,
@@ -133,52 +132,19 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectDs := &dataset.Dataset{
-		Body:     []interface{}{float64(100)},
-		BodyPath: "/ipfs/QmWVxUKnBmbiXai1Wgu6SuMzyZwYRqjt5TXL8xxghN5hWL",
-		Commit: &dataset.Commit{
-			Author:    &dataset.User{ID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},
-			Message:   "created dataset",
-			Path:      "/ipfs/QmUzzcVVsc6yDMq6ahAiUyxtnjvyaGkgHBBJSksjwVGVS4",
-			Qri:       "cm:0",
-			Signature: "XLjvPUsiTxtnhkFajlPosxBl+id/tZJB1RWe9BwPpyqg3toIx6qOkhZtXefDh58rX1L0Id1HU0RkVP8sEl0L54d9C4xv25Uzyv3mAvT9VNN5pzblni5TPvU0mHIbawN57hSiywUP3HQLk8VbjRPo6qjpL5DngwvWXe8mAxTPKWwbV9Zx47tJJWImxJC5vLFRUD1KrRarnhYnGRyGaUiOxssaOnzERw49pA/1dDuFCEWghMpARVgWheZCyHN7rVTs+xH8XOTi8/Zz05bKTlpstm57BcCUENKqJgIt7bjsSIh/gHEc+et1A/kO/DBi3vcoKsA1vZI6lFoJzOwlKRKahg==",
-			Title:     "initial commit",
-		},
-		Meta:     &dataset.Meta{Qri: "md:0", Title: "World Bank Population"},
-		Name:     "world_bank_population",
-		Path:     "/ipfs/Qmb5Qaigk9teHrWSyXf7UxnRH3L28BV6zV1cqaWsLn3z7p",
-		Peername: "A",
-		Qri:      "ds:0",
-		Structure: &dataset.Structure{
-			Checksum: "QmShoKqAQ98zKKgLrSDGKDCkmAf6Ts1pgk5qPCXkaeshej",
-			Depth:    1,
-			Entries:  1,
-			Format:   "json",
-			Length:   5,
-			Qri:      "st:0",
-			Schema:   map[string]interface{}{"type": string("array")},
-		},
-	}
-
-	// calling meta has the side-effect of allocating dataset.Meta.meta
-	// TODO (b5) - this is bad. we need a meta constructor
-	expectDs.Meta.Meta()
-
-	if diff := cmp.Diff(expectDs, ds, cmp.AllowUnexported(dataset.Dataset{}, dataset.Meta{})); diff != "" {
-		t.Errorf("preview result mismatch (-want +got): \n%s", diff)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestClientFeedsAndPreviews.json", ds)
 }
 
 func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 	ctx := context.Background()
-	ms := cafs.NewMapstore()
+	fs := qfs.NewMemFS()
 	pi := cfgtest.GetTestPeerInfo(0)
 	pro := &profile.Profile{
 		Peername: "remote_test_peer",
 		ID:       profile.IDFromPeerID(pi.PeerID),
 		PrivKey:  pi.PrivKey,
 	}
-	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx, ms), event.NilBus)
+	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx, fs), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -190,12 +156,12 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 	return node
 }
 
-func newTestFS(ctx context.Context, cafsys cafs.Filestore) *muxfs.Mux {
+func newTestFS(ctx context.Context, fs qfs.Filesystem) *muxfs.Mux {
 	mux, err := muxfs.New(ctx, []qfs.Config{})
 	if err != nil {
 		panic(err)
 	}
-	if err := mux.SetFilesystem(cafsys); err != nil {
+	if err := mux.SetFilesystem(fs); err != nil {
 		panic(err)
 	}
 	return mux
@@ -215,8 +181,8 @@ func asQriNodes(testPeers []p2ptest.TestablePeerNode) []*p2p.QriNode {
 func connectMapStores(peers []*p2p.QriNode) {
 	for i, s0 := range peers {
 		for _, s1 := range peers[i+1:] {
-			m0 := (s0.Repo.Store()).(*cafs.MapStore)
-			m1 := (s1.Repo.Store()).(*cafs.MapStore)
+			m0 := (s0.Repo.Filesystem().Filesystem(qfs.MemFilestoreType)).(*qfs.MemFS)
+			m1 := (s1.Repo.Filesystem().Filesystem(qfs.MemFilestoreType)).(*qfs.MemFS)
 			m0.AddConnection(m1)
 		}
 	}

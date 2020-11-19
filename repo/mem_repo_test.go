@@ -18,7 +18,6 @@ import (
 func TestMemRepoResolveRef(t *testing.T) {
 	ctx := context.Background()
 	fs, err := muxfs.New(ctx, []qfs.Config{
-		{Type: "map"},
 		{Type: "mem"},
 	})
 	if err != nil {

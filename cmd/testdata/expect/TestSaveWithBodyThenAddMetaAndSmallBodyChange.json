@@ -1,0 +1,76 @@
+{
+  "bodyPath": "/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB",
+  "commit": {
+    "author": {
+      "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
+    },
+    "message": "meta added\nbody:\n\tchanged by 54%",
+    "path": "/ipfs/QmfQAypGLngv9XuLP4fPp6NmQtDSZYy4vvTuxrPcVV52Dv",
+    "qri": "cm:0",
+    "signature": "gwIJZl72TeBnttukDJyjs+Rry1VEdwwOhSfizyDJaBekHCR+gfHLI85zOTuiwCJtkGHHZs5EJAMRXEJIVIJW70usLUNF8wUvN3ISF4py4EyZ7ByjPMrftA5cyVCDA7/se+NKpw/d0981Y1j40FM1wjXibG3L22ZSQphAQZXKNHb9+YSVXdnVsrNLDrYw7ojwEA/YA29qeaH1tdcj8B5V3QU7mjV4yMO/+hQuoShDxD0bAO37v+3BXETv340lx79Jsx3mILxEsVeHXMgD6MkPB4a6TYIIuwIwGNmucSwZT1e5mqPn2sdC4rO34mjYvob9exN4PVSbtX/bg24TE9ChNA==",
+    "timestamp": "2001-01-01T01:02:01.000000001Z",
+    "title": "updated meta and body"
+  },
+  "meta": {
+    "path": "/ipfs/QmWWtJJLzCYWp4KEMb95aPQe7n98y3eyRmQTJvxwqyDXCv",
+    "qri": "md:0",
+    "title": "different title"
+  },
+  "path": "/ipfs/QmYsX5rsN3bvQ2PwquVa1QVEPAWsb5MHWGYZYG9HQPvF2t",
+  "previousPath": "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+  "qri": "ds:0",
+  "structure": {
+    "checksum": "/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB",
+    "depth": 2,
+    "errCount": 1,
+    "entries": 18,
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true,
+      "lazyQuotes": true
+    },
+    "length": 532,
+    "path": "/ipfs/QmcAfMfZ7qTNiCfQxnRJyDxEDM7tqDstvpgviT73PFbabZ",
+    "qri": "st:0",
+    "schema": {
+      "items": {
+        "items": [
+          {
+            "title": "movie_title",
+            "type": "string"
+          },
+          {
+            "title": "duration",
+            "type": "integer"
+          }
+        ],
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "stats": {
+    "path": "/ipfs/QmXyYhG5SvTyazEd8iEjxJ7DpzKm86WwWsYyL9xMjXpjQj",
+    "qri": "sa:0",
+    "stats": [
+      {
+        "count": 18,
+        "frequencies": {},
+        "maxLength": 55,
+        "minLength": 7,
+        "type": "string"
+      },
+      {
+        "count": 17,
+        "histogram": {
+          "bins": null,
+          "frequencies": []
+        },
+        "max": 183,
+        "mean": 2566,
+        "min": 100,
+        "type": "numeric"
+      }
+    ]
+  }
+}

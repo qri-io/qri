@@ -167,7 +167,7 @@ func (rl repoLoader) LoadDataset(ctx context.Context, ref dsref.Ref, source stri
 		err error
 	)
 
-	if ds, err = dsfs.LoadDataset(ctx, rl.r.Store(), ref.Path); err != nil {
+	if ds, err = dsfs.LoadDataset(ctx, rl.r.Filesystem(), ref.Path); err != nil {
 		return nil, err
 	}
 	// Set transient info on the returned dataset

@@ -19,7 +19,6 @@ import (
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/archive"
@@ -291,7 +290,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		if err != nil {
 			return err
 		}
-		err = archive.WriteZip(ctx, m.inst.repo.Store(), ds, "json", initID, currRef, zipFile)
+		err = archive.WriteZip(ctx, m.inst.repo.Filesystem(), ds, "json", initID, currRef, zipFile)
 		if err != nil {
 			return err
 		}
@@ -485,6 +484,7 @@ func (p *SaveParams) AbsolutizePaths() error {
 
 // Save adds a history entry, updating a dataset
 func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
+	log.Debugf("DatasetMethods.Save p=%v", p)
 	if m.inst.rpc != nil {
 		p.ScriptOutput = nil
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Save", p, res))
@@ -616,7 +616,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		if p.DryRun {
 			str.PrintErr("🏃🏽‍♀️ dry run\n")
 			// dry run writes to an ephemeral mapstore
-			writeDest = cafs.NewMapstore()
+			writeDest = qfs.NewMemFS()
 		}
 
 		// create a loader so transforms can call `load_dataset`
@@ -896,7 +896,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 
 		if info.FSIPath != "" && !p.KeepFiles {
 			// Load dataset version that is at head after newer versions are removed
-			ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), info.Path)
+			ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), info.Path)
 			if err != nil {
 				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
 				return err
@@ -952,12 +952,13 @@ func (m *DatasetMethods) Pull(p *PullParams, res *dataset.Dataset) error {
 
 	ref, source, err := m.inst.ParseAndResolveRef(ctx, p.Ref, source)
 	if err != nil {
-		log.Error(err)
+		log.Debugf("resolving reference: %s", err)
 		return err
 	}
 
 	ds, err := m.inst.remoteClient.PullDataset(ctx, &ref, source)
 	if err != nil {
+		log.Debugf("pulling dataset: %s", err)
 		return err
 	}
 
@@ -1048,7 +1049,7 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 				return fmt.Errorf("loading linked dataset: %w", err)
 			}
 		} else {
-			if ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path); err != nil {
+			if ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), ref.Path); err != nil {
 				return fmt.Errorf("loading dataset: %w", err)
 			}
 		}

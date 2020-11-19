@@ -25,6 +25,8 @@ type PutDatasetFunc func(ds *dataset.Dataset) (path string, err error)
 // network sources. This test serves to confirm basic requirements of a local
 // loader function for the moment
 func AssertLoaderSpec(t *testing.T, r dsref.Loader, putFunc PutDatasetFunc) {
+	t.Helper()
+
 	var (
 		ctx      = context.Background()
 		username = "example_user"
@@ -71,6 +73,7 @@ func AssertLoaderSpec(t *testing.T, r dsref.Loader, putFunc PutDatasetFunc) {
 
 	ds.Peername = username
 	ds.Name = name
+	ds.Path = path
 	if diff := cmp.Diff(ds, got, cmpopts.IgnoreUnexported(dataset.Dataset{}, dataset.Meta{})); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}

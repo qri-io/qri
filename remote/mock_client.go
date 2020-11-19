@@ -139,7 +139,7 @@ func (c *MockClient) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr
 		return nil, err
 	}
 
-	return dsfs.LoadDataset(ctx, c.node.Repo.Store(), vi.Path)
+	return dsfs.LoadDataset(ctx, c.node.Repo.Filesystem(), vi.Path)
 }
 
 func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) error {
@@ -163,7 +163,7 @@ func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) err
 	// since the mockClient is producing different logbook and refstore info on each peer.
 	// To fix this, create the dataset in the other.repoRoot.Repo.store instead, and
 	// then down in mockDagSync copy the IPFS blocks from that store to the local store.
-	store := c.node.Repo.Store()
+	fs := c.node.Repo.Filesystem()
 
 	// Construct a simple dataset
 	ds := dataset.Dataset{
@@ -174,7 +174,7 @@ func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) err
 		},
 		BodyBytes: []byte("{}"),
 	}
-	err := ds.OpenBodyFile(ctx, store)
+	err := ds.OpenBodyFile(ctx, fs)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) err
 
 	// Store with dsfs
 	sw := dsfs.SaveSwitches{}
-	path, err := dsfs.CreateDataset(ctx, store, store, &ds, nil, other.info.PrivKey, sw)
+	path, err := dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), &ds, nil, other.info.PrivKey, sw)
 	if err != nil {
 		return err
 	}

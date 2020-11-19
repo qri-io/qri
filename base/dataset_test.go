@@ -8,8 +8,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/repo"
-	repotest "github.com/qri-io/qri/repo/test"
 )
 
 func TestListDatasets(t *testing.T) {
@@ -69,49 +67,6 @@ func TestListDatasets(t *testing.T) {
 	}
 }
 
-func TestDatasetPinning(t *testing.T) {
-	ctx := context.Background()
-	r := newTestRepo(t)
-	ref := addCitiesDataset(t, r)
-
-	if err := PinDataset(ctx, r, ref.Path); err != nil {
-		if err == repo.ErrNotPinner {
-			t.Log("repo store doesn't support pinning")
-		} else {
-			t.Error(err.Error())
-			return
-		}
-	}
-
-	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("counter"))
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-
-	ds2, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), tc.Input, nil, SaveSwitches{ShouldRender: true})
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-
-	if err := PinDataset(ctx, r, ds2.Path); err != nil && err != repo.ErrNotPinner {
-		// TODO (b5) - not sure what's going on here
-		t.Log(err.Error())
-		return
-	}
-
-	if err := UnpinDataset(ctx, r, ref.Path); err != nil && err != repo.ErrNotPinner {
-		t.Error(err.Error())
-		return
-	}
-
-	if err := UnpinDataset(ctx, r, ds2.Path); err != nil && err != repo.ErrNotPinner {
-		t.Error(err.Error())
-		return
-	}
-}
-
 func TestRawDatasetRefs(t *testing.T) {
 	// to keep hashes consistent, artificially specify the timestamp by overriding
 	// the dsfs.Timestamp func
@@ -131,13 +86,18 @@ func TestRawDatasetRefs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expect := `0 Peername:  peer
-  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+
+	expect := dstest.Template(t, `0 Peername:  peer
+  ProfileID: {{ .ProfileID }}
   Name:      cities
-  Path:      /map/QmbU34XVYPGeEGjJ93rBm4Nac2g4hBYFouDnu9p9psccDB
+  Path:      {{ .Path }}
   FSIPath:   
   Published: false
-`
+`, map[string]string{
+		"ProfileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+		"Path":      "/mem/QmUfofLxWuGjECZcN1JbZaXZ2C2kQckpNArPeNutLpbuKE",
+	})
+
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}

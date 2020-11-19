@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
@@ -141,9 +140,9 @@ func (run *DscacheTestRunner) Delete() {
 }
 
 // MustPutDatasetFileAtKey puts a dataset into the storage at the given key
-func (run *DscacheTestRunner) MustPutDatasetFileAtKey(t *testing.T, store *cafs.MapStore, key, content string) {
+func (run *DscacheTestRunner) MustPutDatasetFileAtKey(t *testing.T, fs *qfs.MemFS, key, content string) {
 	ctx := context.Background()
-	err := store.PutFileAtKey(ctx, key, qfs.NewMemfileBytes("dataset.json", []byte(content)))
+	err := fs.PutFileAtKey(ctx, key, qfs.NewMemfileBytes("dataset.json", []byte(content)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -430,7 +429,7 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefAlphabetized(t *testing.T) {
 	book := makeFakeLogbookNonAlphabetical(ctx, t, "test_user", peerInfo.PrivKey)
 
 	// Add stub defs, so that fillInfoForDatasets succeeds
-	store := cafs.NewMapstore()
+	store := qfs.NewMemFS()
 	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion1", `{}`)
 	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion2", `{}`)
 	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion3", `{}`)
@@ -444,7 +443,7 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefAlphabetized(t *testing.T) {
 
 	dsrefs := []reporef.DatasetRef{}
 	fs := qfs.NewMemFS()
-	cache, err := BuildDscacheFromLogbookAndProfilesAndDsref(ctx, dsrefs, profiles, book, store, fs)
+	cache, err := BuildDscacheFromLogbookAndProfilesAndDsref(ctx, dsrefs, profiles, book, fs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -479,9 +478,9 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 
 	peerInfo := testPeers.GetTestPeerInfo(0)
 	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
+	store := qfs.NewMemFS()
 
 	// Add test datasets, which fillInfoForDatasets will use to populate dscache
-	store := cafs.NewMapstore()
 	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion2", `{
   "meta": {
     "title": "This Is Title",
@@ -511,8 +510,8 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 	})
 
 	dsrefs := []reporef.DatasetRef{}
-	fs := qfs.NewMemFS()
-	cache, err := BuildDscacheFromLogbookAndProfilesAndDsref(ctx, dsrefs, profiles, book, store, fs)
+	fs2 := qfs.NewMemFS()
+	cache, err := BuildDscacheFromLogbookAndProfilesAndDsref(ctx, dsrefs, profiles, book, fs2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -527,8 +526,6 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
      topIndex      = 2
      cursorIndex   = 2
      prettyName    = first_new_name
-     metaTitle     = This Is Title
-     themeList     = testdata,example
      commitTime    = -62135596800
      headRef       = QmHashOfVersion2
   1) initID        = 7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq
@@ -536,10 +533,7 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
      topIndex      = 3
      cursorIndex   = 3
      prettyName    = second_name
-     bodySize      = 678
-     bodyRows      = 10
      commitTime    = -62135596800
-     numErrors     = 3
      headRef       = QmHashOfVersion6
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {

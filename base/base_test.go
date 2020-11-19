@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"testing"
+	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
@@ -12,6 +13,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
@@ -50,7 +52,6 @@ func init() {
 func newTestRepo(t *testing.T) repo.Repo {
 	ctx := context.TODO()
 	mux, err := muxfs.New(ctx, []qfs.Config{
-		{Type: "map"},
 		{Type: "mem"},
 	})
 	if err != nil {
@@ -66,6 +67,10 @@ func newTestRepo(t *testing.T) repo.Repo {
 
 func addCitiesDataset(t *testing.T, r repo.Repo) dsref.Ref {
 	t.Helper()
+	prevTS := dsfs.Timestamp
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	defer func() { dsfs.Timestamp = prevTS }()
+
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("cities"))
 	if err != nil {
@@ -76,10 +81,16 @@ func addCitiesDataset(t *testing.T, r repo.Repo) dsref.Ref {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
 	return dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
 }
 
 func updateCitiesDataset(t *testing.T, r repo.Repo, title string) dsref.Ref {
+	t.Helper()
+	prevTS := dsfs.Timestamp
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	defer func() { dsfs.Timestamp = prevTS }()
+
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("cities"))
 	if err != nil {

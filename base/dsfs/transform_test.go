@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 	testPeers "github.com/qri-io/qri/config/test"
 )
 
@@ -30,12 +30,12 @@ func TestLoadTransform(t *testing.T) {
 
 func TestLoadTransformScript(t *testing.T) {
 	ctx := context.Background()
-	store := cafs.NewMapstore()
+	fs := qfs.NewMemFS()
 
 	info := testPeers.GetTestPeerInfo(10)
 	privKey := info.PrivKey
 
-	_, err := LoadTransformScript(ctx, store, "")
+	_, err := LoadTransformScript(ctx, fs, "")
 	if err == nil {
 		t.Error("expected load empty key to fail")
 	}
@@ -45,12 +45,12 @@ func TestLoadTransformScript(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	path, err := CreateDataset(ctx, store, store, tc.Input, nil, privKey, SaveSwitches{Pin: true, ShouldRender: true})
+	path, err := CreateDataset(ctx, fs, fs, tc.Input, nil, privKey, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	if _, err = LoadTransformScript(ctx, store, path); err != ErrNoTransform {
+	if _, err = LoadTransformScript(ctx, fs, path); err != ErrNoTransform {
 		t.Errorf("expected no transform script error. got: %s", err)
 	}
 
@@ -59,17 +59,17 @@ func TestLoadTransformScript(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	tsf, _ := tc.TransformScriptFile()
-	transformPath, err := store.Put(ctx, tsf)
+	transformPath, err := fs.Put(ctx, tsf)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	tc.Input.Transform.ScriptPath = transformPath
-	path, err = CreateDataset(ctx, store, store, tc.Input, nil, privKey, SaveSwitches{Pin: true, ShouldRender: true})
+	path, err = CreateDataset(ctx, fs, fs, tc.Input, nil, privKey, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	file, err := LoadTransformScript(ctx, store, path)
+	file, err := LoadTransformScript(ctx, fs, path)
 	if err != nil {
 		t.Fatalf("expected transform script to load. got: %s", err)
 	}

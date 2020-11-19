@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset/dstest"
 	qerr "github.com/qri-io/qri/errors"
 )
 
@@ -76,8 +77,10 @@ func TestDiffRun(t *testing.T) {
 				Refs:     NewListOfRefSelects([]string{"me/movies", "me/cities"}),
 				Selector: "meta",
 			},
-			`0 elements. 1 insert. 1 delete.
+			`0 elements. 2 inserts. 2 deletes.
 
+-path: "/mem/QmZQNhYYVRx8LyMmPV9mqzVZVEeZKpso4Ywu7nwyWvT4X4"
++path: "/mem/QmWX9MV7ms5QXVGt26gXAbp5z8TdfamUgVBdzxSqhWhPzV"
  qri: "md:0"
 -title: "example movie data"
 +title: "example city data"
@@ -89,7 +92,7 @@ func TestDiffRun(t *testing.T) {
 				Selector: "meta",
 				Format:   "json",
 			},
-			`{"stat":{"leftNodes":3,"rightNodes":3,"leftWeight":45,"rightWeight":43,"inserts":1,"deletes":1},"diff":[[" ","qri","md:0"],["-","title","example movie data"],["+","title","example city data"]]}
+			`{"stat":{"leftNodes":4,"rightNodes":4,"leftWeight":147,"rightWeight":145,"inserts":2,"deletes":2},"diff":[["-","path","/mem/QmZQNhYYVRx8LyMmPV9mqzVZVEeZKpso4Ywu7nwyWvT4X4"],["+","path","/mem/QmWX9MV7ms5QXVGt26gXAbp5z8TdfamUgVBdzxSqhWhPzV"],[" ","qri","md:0"],["-","title","example movie data"],["+","title","example city data"]]}
 `,
 		},
 	}
@@ -109,7 +112,7 @@ func TestDiffRun(t *testing.T) {
 				t.Fatalf("case %s unexpected error: %s", c.description, err)
 			}
 
-			if diff := cmp.Diff(run.OutStream.String(), c.stdout); diff != "" {
+			if diff := cmp.Diff(c.stdout, run.OutStream.String()); diff != "" {
 				t.Errorf("output mismatch (-want +got):\n%s", diff)
 			}
 
@@ -222,15 +225,17 @@ func TestDiffKnownFilenameComponent(t *testing.T) {
 	// Diff the structure, using the name of the component file
 	output := run.MustExec(t, "qri diff structure.json me/test_movies")
 
-	expect := `0 elements. 1 insert. 1 delete.
+	expect := dstest.Template(t, `0 elements. 2 inserts. 2 deletes.
 
- checksum: "QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf"
+ checksum: "{{ .checksum }}"
  depth: 2
  entries: 8
  errCount: 1
  format: "csv"
  formatConfig: {"headerRow":true,"lazyQuotes":false}
  length: 224
+-path: "{{ .leftPath }}"
++path: "{{ .rightPath }}"
  qri: "st:0"
  schema: 
    items: 
@@ -241,7 +246,11 @@ func TestDiffKnownFilenameComponent(t *testing.T) {
          type: "string"
        1: {"title":"duration","type":"integer"}
    type: "array"
-`
+`, map[string]string{
+		"checksum":  "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
+		"leftPath":  "/ipfs/QmPPcg1nxCaBQ25J1DX9VrQYpk7pyAcQnLqavR8wvvFXuA",
+		"rightPath": "/ipfs/QmR4jah2qY6VWLVwVFi1CDttYMjWSB4MEovKPx9x2C5NxT",
+	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("output mismatch (-want +got):\n%s", diff)

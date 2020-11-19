@@ -191,7 +191,7 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolv
 		r.Previews = o.Previews
 	} else {
 		r.Previews = LocalPreviews{
-			Repo:          node.Repo,
+			fs:            node.Repo.Filesystem(),
 			localResolver: localResolver,
 		}
 	}

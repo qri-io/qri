@@ -196,7 +196,7 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
 		if ds.PreviousPath == "" {
 			return fmt.Errorf("dataset has only one version, nothing to diff against")
 		}
-		ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Store(), ds.PreviousPath)
+		ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), ds.PreviousPath)
 		if err != nil {
 			return err
 		}

@@ -82,10 +82,9 @@ func NewEmptyTestRepo(bus event.Bus) (mr *repo.MemRepo, err error) {
 
 func newTestFS(ctx context.Context) *muxfs.Mux {
 	fs, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "mem"},
 		{Type: "local"},
 		{Type: "http"},
-		{Type: "map"},
-		{Type: "mem"},
 	})
 	if err != nil {
 		panic(err)
@@ -218,7 +217,8 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	}
 
 	sw := dsfs.SaveSwitches{Pin: true, ShouldRender: true}
-	if path, err = dsfs.CreateDataset(ctx, r.Store(), r.Store(), ds, nil, r.PrivateKey(), sw); err != nil {
+	fs := r.Filesystem()
+	if path, err = dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), ds, nil, r.PrivateKey(), sw); err != nil {
 		return
 	}
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
@@ -264,7 +264,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 		return
 	}
 
-	ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path)
+	ds, err = dsfs.LoadDataset(ctx, r.Filesystem(), ref.Path)
 	if err != nil {
 		return ref, err
 	}
@@ -276,7 +276,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	// references to files in a store that won't exist after this function call
 	// TODO (b5): this should be replaced with a call to OpenDataset with a qfs that
 	// knows about the store
-	if resBody, err = r.Store().Get(ctx, ref.Dataset.BodyPath); err != nil {
+	if resBody, err = r.Filesystem().Get(ctx, ref.Dataset.BodyPath); err != nil {
 		return ref, err
 	}
 	ref.Dataset.SetBodyFile(resBody)

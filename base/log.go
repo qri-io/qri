@@ -35,12 +35,12 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset i
 			// each dataset, and assign the CommitMessage and CommitTitle field.
 			for i, item := range items {
 				if item.Path != "" {
-					local, err := r.Store().Has(ctx, item.Path)
+					local, err := r.Filesystem().Has(ctx, item.Path)
 					if err != nil {
 						continue
 					}
 					if local {
-						if ds, err := dsfs.LoadDataset(ctx, r.Store(), item.Path); err == nil {
+						if ds, err := dsfs.LoadDataset(ctx, r.Filesystem(), item.Path); err == nil {
 							if ds.Commit != nil {
 								items[i].CommitMessage = ds.Commit.Message
 							}
@@ -91,6 +91,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset i
 // backwards through dataset commits. if loadDatasets is true, dataset
 // information will be populated
 func StoredHistoricalDatasets(ctx context.Context, r repo.Repo, headPath string, offset, limit int, loadDatasets bool) (log []*dataset.Dataset, err error) {
+	fs := r.Filesystem()
 	timeoutCtx, cancel := context.WithTimeout(ctx, TimeoutDuration)
 	defer cancel()
 
@@ -101,11 +102,11 @@ func StoredHistoricalDatasets(ctx context.Context, r repo.Repo, headPath string,
 		for {
 			var ds *dataset.Dataset
 			if loadDatasets {
-				if ds, err = dsfs.LoadDataset(timeoutCtx, r.Store(), path); err != nil {
+				if ds, err = dsfs.LoadDataset(timeoutCtx, fs, path); err != nil {
 					return
 				}
 			} else {
-				if ds, err = dsfs.LoadDatasetRefs(timeoutCtx, r.Store(), path); err != nil {
+				if ds, err = dsfs.LoadDatasetRefs(timeoutCtx, fs, path); err != nil {
 					return
 				}
 			}

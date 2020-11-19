@@ -18,7 +18,7 @@ import (
 	logger "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 )
@@ -30,7 +30,7 @@ var log = logger.Logger("archive")
 // TODO (b5) - this currently has a lot of overlap with "get" and "checkout"
 // commands, we should emphasize those (more common) tools instead. See
 // https://github.com/qri-io/qri/issues/1176 for discussion
-func Export(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, refStr, targetDir, output, outputFormat string, zipped bool) (string, error) {
+func Export(ctx context.Context, fs qfs.Filesystem, ds *dataset.Dataset, refStr, targetDir, output, outputFormat string, zipped bool) (string, error) {
 	var err error
 	defer base.CloseDataset(ds)
 
@@ -192,7 +192,7 @@ func Export(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, refS
 			return "", err
 		}
 		blankInitID := ""
-		if err = WriteZip(ctx, store, ds, "json", blankInitID, ref, writer); err != nil {
+		if err = WriteZip(ctx, fs, ds, "json", blankInitID, ref, writer); err != nil {
 			return "", err
 		}
 

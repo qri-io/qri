@@ -12,14 +12,14 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi/linkfile"
 )
 
 // WriteZip generates a zip archive of a dataset and writes it to w
-func WriteZip(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, format, initID string, ref dsref.Ref, w io.Writer) error {
+func WriteZip(ctx context.Context, fs qfs.Filesystem, ds *dataset.Dataset, format, initID string, ref dsref.Ref, w io.Writer) error {
 	zw := zip.NewWriter(w)
 	defer zw.Close()
 
@@ -30,7 +30,7 @@ func WriteZip(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, fo
 	}
 
 	// Iterate the individual components of the dataset
-	dsComp := component.ConvertDatasetToComponents(ds, store)
+	dsComp := component.ConvertDatasetToComponents(ds, fs)
 	for _, compName := range component.AllSubcomponentNames() {
 		aComp := dsComp.Base().GetSubcomponent(compName)
 		if aComp == nil {
@@ -96,10 +96,10 @@ func WriteZip(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, fo
 // encoded DAG, causing this to hang indefinitely on a network lookup.
 // Use a short timeout for now to prevent the process from running too
 // long. We should come up with a more permanent fix for this.
-func maybeWriteRenderedViz(ctx context.Context, store cafs.Filestore, zw *zip.Writer, vizPath string) error {
+func maybeWriteRenderedViz(ctx context.Context, fs qfs.Filesystem, zw *zip.Writer, vizPath string) error {
 	withTimeout, done := context.WithTimeout(ctx, time.Millisecond*250)
 	defer done()
-	rendered, err := store.Get(withTimeout, vizPath)
+	rendered, err := fs.Get(withTimeout, vizPath)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return nil

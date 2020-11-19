@@ -14,6 +14,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
 	repotest "github.com/qri-io/qri/repo/test"
@@ -219,13 +220,10 @@ func TestSaveThenOverrideMetaComponent(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with the meta replaced by meta_override.yaml.
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title","path":"/ipfs/QmeYjmGoCVkrkn95KWq6fcs4Y5JcHcKHvSSkXTskidoNod","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"meta updated title"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmUMY4vWqaybWuxatoMx8Rk1SCHHLtrKZGTTje556a1sYt","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveThenOverrideMetaComponent.json", got)
 }
 
 // Test save with a body, then adding a meta
@@ -243,13 +241,10 @@ func TestSaveWithBodyThenAddMetaComponent(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This version has a commit message about the meta being added
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta added","path":"/ipfs/QmVieZLxyvYRPyGPt6MKDwTMoNb6EfqJshg4kcVmrxfJEZ","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"meta added"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmSbKpYbjdro3kLWPLFXQ3pE3g5JY1mHkRonG2MmPJ2wm7","previousPath":"/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveWithBodyThenAddMetaComponent.json", got)
 }
 
 // Test save with a body, then adding a meta
@@ -267,13 +262,10 @@ func TestSaveWithBodyThenAddMetaAndSmallBodyChange(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This version has a commit message about the meta being added and body changing
-	expect := `{"bodyPath":"/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta added\nbody:\n\tchanged by 54%","path":"/ipfs/QmWjDi8FrAjtSt3drCR4Vh6FDvCbKrN24sM5vtLyEJu8VJ","qri":"cm:0","signature":"eLr+Pk3wg8JSoeARoelNzdKLeiYFqL1k87YpXtSXigO39cAXFHg8FQki/+zt+gLPCBmPfD/mfQbR3R2mQmxyR4F+wQ1wbwkzJfumWbluyPfBsKbPQ55XLhkYUg6Ho5HqVsBn7sZ28WJ/1+GPC5xMaFYeMLTRnD2jflB5NR33eYxVQL/IDUybhgmlV5D2GOeZAOjQcCtgf0Me8o/HMqn9TsW9mNzilf7GF7lxyV+Jrz1pYjvOPlXoJGqRGRBnDbIzvEwmH7XBGHZvsbCntFw1XEEJIQslTm5mFbVrGTzqvmsPIB/SfbTjWL4Elq4uAocr7Mnu9TFKD15XNaZ8pMhaQw==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta and body"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmZhwebAc3Jh8uz6mRcpAFzaxZun5JidoprqJgdhp95Djd","previousPath":"/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF","qri":"ds:0","structure":{"checksum":"QmSa4i985cF3dxNHxD5mSN7c6q1eYa83uNo1pLRmPZgTsa","depth":2,"errCount":1,"entries":18,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":532,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveWithBodyThenAddMetaAndSmallBodyChange.json", got)
 }
 
 // Test that saving with two components at once will merge them together.
@@ -291,14 +283,11 @@ func TestSaveTwoComponents(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with the meta replaced by meta_override ("different title") and
 	// the structure replaced by structure_override (lazyQuotes: false && title: "name").
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.lazyQuotes\n\tupdated schema.items.items.0.title","path":"/ipfs/Qmf51CD3zW64ffoWja32bKh3BSyMwvMSbh9A8PtrA7fDJi","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta and structure"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmfMHjCcDuPkacYYEfVwURyRnCuCqjaRYwtMoydYzbwEuy","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":false},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"duration","type":"integer"}]},"type":"array"}}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveTwoComponents.json", got)
 }
 
 // Test that save can override just the transform
@@ -316,13 +305,10 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added transform section
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"transform added","path":"/ipfs/QmWq1C8kx6d4Fe5hBsUaqXFh2VDUMzaE5ewTNjqgGnXivV","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"transform added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmcHnffD53hYSFHhvpBUqoD2J4uT3tdtcSqsUgqDLk19ko","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveThenOverrideTransform.json", got)
 }
 
 // Test that save can override just the viz
@@ -340,13 +326,10 @@ func TestSaveThenOverrideViz(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added viz section
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"viz added","path":"/ipfs/QmfGaBvAhXK91S7aXTQhhLgrNNSJcnjZThJzBKjRasW7t2","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"viz added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmUf8ZtDTwWj2d94biAnRSDxEnDJK4LQXaAbAXEpGdNrfC","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmdkMb5K7rEUDegPe3Pibi7dk3xdvBq6UFfuD5PDkLRytV","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveThenOverrideViz.json", got)
 }
 
 // Test that save can combine a meta compoent, and a transform, and a viz
@@ -364,13 +347,10 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
-	actual := run.DatasetMarshalJSON(t, dsPath)
+	got := run.MustLoadDataset(t, dsPath)
 
 	// This dataset is ds_ten.yaml, with an added meta component, and transform, and viz
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nviz added\ntransform added","path":"/ipfs/QmW66PYuz128VP4gds4HgxB7q9LKUfuZUkX3VYQY8rhk4n","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta, viz, and transform"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmYd9vnBJYS3SZzMfrGfxQdL9dckgkmc51b7rsMnZaDLnA","previousPath":"/ipfs/QmWqZYVT4RU99Q191PySiXoeN8Ft5M8s8zLP4N4dNxtKxT","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmW3V8zbPU4wAnzv2zbCjkiTuo7NcsVmaLfFrnHJV1fpKV","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("dataset (-want +got):\n%s", diff)
-	}
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveThenOverrideMetaAndTransformAndViz.json", got)
 }
 
 // Test that saving a full dataset with a component at the same time is an error
@@ -485,7 +465,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
 	}
 
 	output := run.MustExec(t, "qri log me/test_ds")
-	expect := `1   Commit:  /ipfs/QmXf94PJ7gumMmcsULtJVLnA2pofRD1aUSarB39d7cdvUg
+	expect := dstest.Template(t, `1   Commit:  {{ .commit1 }}
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    7 B
@@ -494,14 +474,17 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
     transform:
     	updated scriptBytes
 
-2   Commit:  /ipfs/QmTVgjgHdRKghVL6cUTXxiyyAZWZtEsPVhmoCHCCBKcyz9
+2   Commit:  {{ .commit2 }}
     Date:    Sun Dec 31 20:01:01 EST 2000
     Storage: local
     Size:    7 B
 
     created dataset from tf_123.star
 
-`
+`, map[string]string{
+		"commit1": "/ipfs/QmQjJjAGF9mD4ArnBHCLmDT8AEProLbmpbF3VdBMZFL5yE",
+		"commit2": "/ipfs/QmWfeoPUpus3YiSHoE6qHnDP4jyvC7gNVFuJFi6M2Y2iD7",
+	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)
 	}
@@ -518,11 +501,15 @@ func TestSaveReadmeFromFile(t *testing.T) {
 
 	// Verify we can get the readme back
 	actual := run.MustExec(t, "qri get readme me/save_readme_file")
-	expect := `format: md
+	expect := dstest.Template(t, `format: md
 qri: rm:0
-scriptPath: /ipfs/QmQPbLdDwyAzCmKayuHGeNGx5eboDv5aXTMuw2daUuneCb
+scriptBytes: IyBUaXRsZQoKVGhpcyBpcyBhIGRhdGFzZXQgYWJvdXQgbW92aWVzCg==
+scriptPath: {{ .scriptPath }}
 
-`
+`, map[string]string{
+		"scriptPath": "/ipfs/QmQPbLdDwyAzCmKayuHGeNGx5eboDv5aXTMuw2daUuneCb",
+	})
+
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("readme.md contents (-want +got):\n%s", diff)
 	}
@@ -544,19 +531,25 @@ func TestRenameAfterRegistration(t *testing.T) {
 	run := NewTestRunnerWithTempRegistry(t, "test_peer_rename_after_reg", "rename_after_reg")
 	defer run.Delete()
 
+	tmplData := map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path":      "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+	}
+
 	// Create a dataset, using the "anonymous" generated username.
 	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/first_name")
 
 	// Verify the raw references in the repo
 	output := run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer_rename_after_reg
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect := dstest.Template(t, `0 Peername:  test_peer_rename_after_reg
+  ProfileID: {{ .profileID }}
   Name:      first_name
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      {{ .path }}
   FSIPath:   
   Published: false
 
-`
+`, tmplData)
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -568,14 +561,14 @@ func TestRenameAfterRegistration(t *testing.T) {
 	}
 
 	output = run.MustExec(t, "qri list --raw")
-	expect = `0 Peername:  real_peer
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect = dstest.Template(t, `0 Peername:  real_peer
+  ProfileID: {{ .profileID }}
   Name:      first_name
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      {{ .path }}
   FSIPath:   
   Published: false
 
-`
+`, tmplData)
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -584,14 +577,15 @@ func TestRenameAfterRegistration(t *testing.T) {
 	run.MustExec(t, "qri rename me/first_name me/second_name")
 
 	output = run.MustExec(t, "qri list --raw")
-	expect = `0 Peername:  real_peer
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect = dstest.Template(t, `0 Peername:  real_peer
+  ProfileID: {{ .profileID }}
   Name:      second_name
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      {{ .path }}
   FSIPath:   
   Published: false
 
-`
+`, tmplData)
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -600,14 +594,14 @@ func TestRenameAfterRegistration(t *testing.T) {
 	run.MustExec(t, "qri rename me/second_name me/third_name")
 
 	output = run.MustExec(t, "qri list --raw")
-	expect = `0 Peername:  real_peer
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect = dstest.Template(t, `0 Peername:  real_peer
+  ProfileID: {{ .profileID }}
   Name:      third_name
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      {{ .path }}
   FSIPath:   
   Published: false
 
-`
+`, tmplData)
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -622,19 +616,23 @@ func TestListFormatJson(t *testing.T) {
 
 	// Verify the references in json format
 	output := run.MustExec(t, "qri list --format json")
-	expect := `[
+	expect := dstest.Template(t, `[
   {
     "username": "test_peer_list_format_json",
-    "profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+    "profileID": "{{ .profileID }}",
     "name": "my_ds",
-    "path": "/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF",
+    "path": "{{ .path }}",
     "bodySize": 224,
     "bodyRows": 8,
     "bodyFormat": "csv",
     "numErrors": 1,
     "commitTime": "2001-01-01T01:01:01.000000001Z"
   }
-]`
+]`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path":      "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+	})
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}

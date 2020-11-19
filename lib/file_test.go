@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 )
 
 func TestReadDatasetFiles(t *testing.T) {
@@ -136,8 +137,8 @@ func TestReadDatasetFiles(t *testing.T) {
 			t.Errorf("case %d %s unexpected error: %s", i, c.description, err.Error())
 			continue
 		}
-		if err := dataset.CompareDatasets(c.ds, got); err != nil {
-			t.Errorf("case %d %s dataset mismatch: %s", i, c.description, err.Error())
+		if diff := dstest.CompareDatasets(c.ds, got); diff != "" {
+			t.Errorf("case %d %s dataset mismatch (-want +got):\n%s", i, c.description, diff)
 			continue
 		}
 	}

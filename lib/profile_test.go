@@ -268,7 +268,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 		{"", "", "file is required"},
 		{"testdata/ink_big_photo.jpg", "", "file size too large. max size is 250kb"},
 		{"testdata/q_bang.svg", "", "invalid file format. only .jpg images allowed"},
-		{"testdata/rico_400x400.jpg", "/map/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+		{"testdata/rico_400x400.jpg", "/mem/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 	}
 
 	mr, err := testrepo.NewTestRepo()
@@ -324,7 +324,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 		{"", "", "file is required"},
 		{"testdata/ink_big_photo.jpg", "", "file size too large. max size is 250kb"},
 		{"testdata/q_bang.svg", "", "invalid file format. only .jpg images allowed"},
-		{"testdata/rico_poster_1500x500.jpg", "/map/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", ""},
+		{"testdata/rico_poster_1500x500.jpg", "/mem/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", ""},
 	}
 
 	mr, err := testrepo.NewTestRepo()

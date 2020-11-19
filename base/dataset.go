@@ -8,7 +8,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
@@ -20,12 +19,12 @@ import (
 var ErrUnlistableReferences = errors.New("Warning: Some datasets could not be listed, because of invalid state. These datasets still exist in your repository, but have references that cannot be resolved. This will be fixed in a future version. You can see all datasets by using `qri list --raw`")
 
 // NewLocalDatasetLoader creates a dsfs.Loader that operates on a filestore
-func NewLocalDatasetLoader(r repo.Repo) dsref.Loader {
-	return loader{r}
+func NewLocalDatasetLoader(fs qfs.Filesystem) dsref.Loader {
+	return loader{fs}
 }
 
 type loader struct {
-	r repo.Repo
+	fs qfs.Filesystem
 }
 
 // LoadDataset fetches, derefernces and opens a dataset from a reference
@@ -35,12 +34,12 @@ func (l loader) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (
 		return nil, fmt.Errorf("only local datasets can be loaded")
 	}
 
-	ds, err := dsfs.LoadDataset(ctx, l.r.Store(), ref.Path)
+	ds, err := dsfs.LoadDataset(ctx, l.fs, ref.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	err = OpenDataset(ctx, l.r.Filesystem(), ds)
+	err = OpenDataset(ctx, l.fs, ds)
 	return ds, err
 }
 
@@ -51,13 +50,13 @@ func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) 
 	if ds.BodyFile() == nil {
 		if err = ds.OpenBodyFile(ctx, fsys); err != nil {
 			log.Debug(err)
-			return
+			return fmt.Errorf("opening body file: %w", err)
 		}
 	}
 	if ds.Transform != nil && ds.Transform.ScriptFile() == nil {
 		if err = ds.Transform.OpenScriptFile(ctx, fsys); err != nil {
 			log.Debug(err)
-			return
+			return fmt.Errorf("opening transform file: %w", err)
 		}
 	}
 	if ds.Viz != nil && ds.Viz.ScriptFile() == nil {
@@ -69,13 +68,13 @@ func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) 
 				err = nil
 			} else {
 				log.Debug(err)
-				return
+				return fmt.Errorf("opening viz scriptFile: %w", err)
 			}
 		}
 	}
 
 	if err = openReadme(ctx, fsys, ds); err != nil {
-		return err
+		return fmt.Errorf("opening readme file: %w", err)
 	}
 
 	if ds.Viz != nil && ds.Viz.RenderedFile() == nil {
@@ -159,7 +158,7 @@ func CloseDataset(ds *dataset.Dataset) (err error) {
 
 // ListDatasets lists datasets from a repo
 func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset int, RPC, publishedOnly, showVersions bool) (res []reporef.DatasetRef, err error) {
-	store := r.Store()
+	fs := r.Filesystem()
 	num, err := r.RefCount()
 	if err != nil {
 		return nil, err
@@ -209,7 +208,7 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 		}
 
 		if ref.Path != "" {
-			ds, err := dsfs.LoadDataset(ctx, store, ref.Path)
+			ds, err := dsfs.LoadDataset(ctx, fs, ref.Path)
 			if err != nil {
 				if strings.Contains(err.Error(), "not found") {
 					ref.Foreign = true
@@ -287,26 +286,30 @@ func RawDatasetRefs(ctx context.Context, r repo.Repo) (string, error) {
 //
 // Deprecated - use LoadDataset instead
 func ReadDataset(ctx context.Context, r repo.Repo, path string) (ds *dataset.Dataset, err error) {
-	store := r.Store()
-	if store == nil {
-		return nil, cafs.ErrNotFound
+	fs := r.Filesystem()
+	if fs == nil {
+		return nil, qfs.ErrNotFound
 	}
 
-	return dsfs.LoadDataset(ctx, store, path)
+	return dsfs.LoadDataset(ctx, fs, path)
 }
 
-// PinDataset marks a dataset for retention in a store
-func PinDataset(ctx context.Context, r repo.Repo, path string) error {
-	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		return pinner.Pin(ctx, path, true)
-	}
-	return repo.ErrNotPinner
-}
+// // PinDataset marks a dataset for retention in a store
+// func PinDataset(ctx context.Context, r repo.Repo, path string) error {
+// 	// TODO (b5) - this doesn't make *total* sense at the moment, need to rethink
+// 	// how pinning intersects with the qfs API
+// 	if pinner, ok := r.Filesystem().DefaultWriteFS().(qfs.PinningFS); ok {
+// 		return pinner.Pin(ctx, path, true)
+// 	}
+// 	return repo.ErrNotPinner
+// }
 
-// UnpinDataset unmarks a dataset for retention in a store
-func UnpinDataset(ctx context.Context, r repo.Repo, path string) error {
-	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		return pinner.Unpin(ctx, path, true)
-	}
-	return repo.ErrNotPinner
-}
+// // UnpinDataset unmarks a dataset for retention in a store
+// func UnpinDataset(ctx context.Context, r repo.Repo, path string) error {
+// 	// TODO (b5) - this doesn't make *total* sense at the moment, need to rethink
+// 	// how pinning intersects with the qfs API
+// 	if pinner, ok := r.Filesystem().DefaultWriteFS().(qfs.PinningFS); ok {
+// 		return pinner.Unpin(ctx, path, true)
+// 	}
+// 	return repo.ErrNotPinner
+// }

@@ -1,30 +1,107 @@
 {
+  "bodyPath": "/mem/QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
   "commit": {
+    "message": "created dataset",
+    "path": "/mem/QmTJgizj5FxD6PXAGVR8RGfjuetBx8fq1h3pH7ENwt2Sg6",
     "qri": "cm:0",
-    "signature": "QDA/hZm6buL6oBMdWAZnLi3mg5GMa10odfedy98hx8Alavbgn1c5WkZqd1dejqhkiKKjuok8fMdv5VLKGp12FVRXw3JpFa5fK8o5sQGNIVXe3TK/qmVHWKslNE7HhOkzb/ok8idTBHu3HPkXqDmHioZE0JeLkd6F41BIOkCcVBv+w3SviR3UqMSXtzeBqznUD4XfWUFe5PO08GkQ4qSOZKXj1aqxq/oSGQJHt4vN+891hn/fJDx0inLPRT4Dn4Hm8LL0tJ+o4OJ4q7gC+t9QrPaNK69aO6hgAXxJQbLGReh291Fdk+DWe7McGVJsp0YU0hdDC8kafotUHZosVVESWQ==",
+    "signature": "DAFbi2K0mdG8NssS6LM5YAljqhDSRniFqjwZgWGPkqS//Dup2HZr0Q1w65HNE/+JoyknlrHMa9/KXEVT/BTIf0QR/Qpkv3es69WcA46v054jA5cJ/qi8oAbzbdIazfkcKJD58ft56vkZp0UqugPwR9Vv7l9jPEdHfRdIhyU3Z7zhuhKzQx/2QmaP3eGqHLcuJ56xCbZI8G+7MQUpVZbcOa9hHynTAYa71IQTb/PN08pbJGK7rYqEuzzRLdSYyiHBV7b2u7F9RhWBFp9HeVQjvdKxApKe8984fCbgXpLAu0JOg5tdktOrF1HUKNJt2hclU8rmjpUhSJ7SZR40rFhcFw==",
     "timestamp": "2001-01-01T01:01:01.000000001Z",
-    "title": "initial commit",
-    "message": "created dataset"
+    "title": "initial commit"
   },
-  "bodyPath": "/map/QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
   "qri": "ds:0",
   "structure": {
-    "checksum": "QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
+    "checksum": "/mem/QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
+    "depth": 4,
     "entries": 1200,
-    "errCount": 1,
-    "depth" : 4,
     "format": "json",
     "length": 520254,
+    "path": "/mem/QmcxrDWfKJLHHWETayccEQsawTxqJGD3HWG8urpULq8seZ",
     "qri": "st:0",
     "schema": {
+      "items": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "title": "Apartment",
-      "type": "array",
-      "items" : {
-        "type" : "object",
-        "properties" : {
-          "name" : { "type": "string"}
-        }
-      }
+      "type": "array"
     }
+  },
+  "stats": {
+    "path": "/mem/QmNtdejtiDLyyAfZmB8ESkjCMjXS7gSG4ineZd9pNkebUJ",
+    "qri": "sa:0",
+    "stats": [
+      {
+        "currency": {
+          "count": 1200,
+          "frequencies": {},
+          "maxLength": 3,
+          "minLength": 3
+        },
+        "key": "additionalProperty",
+        "name": {
+          "count": 1200,
+          "frequencies": {},
+          "maxLength": 5,
+          "minLength": 5
+        },
+        "type": "object",
+        "value": {
+          "count": 1200,
+          "histogram": {
+            "bins": null,
+            "frequencies": []
+          },
+          "max": 27000,
+          "mean": 3637342,
+          "min": 122
+        }
+      },
+      {
+        "containedInPlace": {
+          "name": {
+            "count": 1200,
+            "frequencies": {},
+            "maxLength": 13,
+            "minLength": 13
+          }
+        },
+        "key": "containedIn",
+        "name": {
+          "count": 1152,
+          "frequencies": {},
+          "maxLength": 63,
+          "minLength": 7
+        },
+        "type": "object"
+      },
+      {
+        "count": 1,
+        "frequencies": {},
+        "key": "data",
+        "maxLength": 16265,
+        "minLength": 16265,
+        "type": "string"
+      },
+      {
+        "count": 1200,
+        "frequencies": {},
+        "key": "name",
+        "maxLength": 80,
+        "minLength": 13,
+        "type": "string"
+      },
+      {
+        "count": 1200,
+        "frequencies": {},
+        "key": "url",
+        "maxLength": 87,
+        "minLength": 64,
+        "type": "string"
+      }
+    ]
   }
 }

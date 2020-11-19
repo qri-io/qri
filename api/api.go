@@ -9,7 +9,6 @@ import (
 	"time"
 
 	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/qfs/cafs"
 	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/version"
@@ -59,33 +58,6 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	go s.ServeRPC(ctx)
 	go s.ServeWebsocket(ctx)
 
-	if namesys, err := node.GetIPFSNamesys(); err == nil {
-		if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
-
-			go func() {
-				if _, err := lib.CheckVersion(context.Background(), namesys, lib.PrevIPNSName, lib.LastPubVerHash); err == lib.ErrUpdateRequired {
-					log.Info("This version of qri is out of date, please refer to https://github.com/qri-io/qri/releases/latest for more info")
-				} else if err != nil {
-					log.Infof("error checking for software update: %s", err.Error())
-				}
-			}()
-
-			go func() {
-				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
-				if latest, err := lib.CheckVersion(context.Background(), namesys, TemplateUpdateAddress, DefaultTemplateHash); err == lib.ErrUpdateRequired {
-					err := pinner.Pin(ctx, latest, true)
-					if err != nil {
-						log.Debug("error pinning template hash: %s", err.Error())
-						return
-					}
-
-					log.Info("updated template hash: %s", latest)
-				}
-			}()
-
-		}
-	}
-
 	info := "\n📡  Success! You are now connected to the d.web. Here's your connection details:\n"
 	info += cfg.SummaryString()
 	info += "IPFS Addresses:"
@@ -123,40 +95,7 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.fetchCAFSPath(r.URL.Path, w, r)
-}
-
-func (s Server) fetchCAFSPath(path string, w http.ResponseWriter, r *http.Request) {
-	file, err := s.Node().Repo.Store().Get(r.Context(), path)
-	if err != nil {
-		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	io.Copy(w, file)
-}
-
-// HandleIPNSPath resolves an IPNS entry
-func (s Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
-	node := s.Node()
-	if s.Config().API.ReadOnly {
-		readOnlyResponse(w, "/ipns/")
-		return
-	}
-
-	namesys, err := node.GetIPFSNamesys()
-	if err != nil {
-		apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("no IPFS node present: %s", err.Error()))
-		return
-	}
-
-	p, err := namesys.Resolve(r.Context(), r.URL.Path[len("/ipns/"):])
-	if err != nil {
-		apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error resolving IPNS Name: %s", err.Error()))
-		return
-	}
-
-	file, err := node.Repo.Store().Get(r.Context(), p.String())
+	file, err := s.Node().Repo.Filesystem().Get(r.Context(), r.URL.Path)
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -197,7 +136,6 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/", s.noLogMiddleware(HomeHandler))
 	m.Handle("/health", s.noLogMiddleware(HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
-	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
 	proh := NewProfileHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/me", s.middleware(proh.ProfileHandler))

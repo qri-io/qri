@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"regexp"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset/dstest"
 )
 
 func TestLogbookCommand(t *testing.T) {
@@ -21,12 +21,15 @@ func TestLogbookCommand(t *testing.T) {
 		t.Error("expected using a ref and the raw flag to error")
 	}
 
-	// ProfileID of the test user
-	profileID := "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
-	// AuthorID is the hash ID of the initialization block for the author
-	authorID := "74iwd7hnx5u47nfnu73auj77hycw5ivdjswdrfyafh4cr3ylmwnq"
 	// Logbook formatted as raw json
-	template := `[{"ops":[{"type":"init","model":"user","name":"test_peer_logbook","authorID":"%s","timestamp":"timeStampHere"}],"logs":[{"ops":[{"type":"init","model":"dataset","name":"test_movies","authorID":"%s","timestamp":"timeStampHere"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"%s","timestamp":"timeStampHere"},{"type":"init","model":"commit","ref":"/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF","timestamp":"timeStampHere","size":224,"note":"created dataset from body_ten.csv"},{"type":"init","model":"commit","ref":"/ipfs/QmXmnH1tFKyG493wsFiisZ14N4cjrymZZ6pqK3Vr9vWS2p","prev":"/ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF","timestamp":"timeStampHere","size":720,"note":"body changed by 70%%"}]}]}]}]`
+	tplString := `[{"ops":[{"type":"init","model":"user","name":"test_peer_logbook","authorID":"{{ .profileID }}","timestamp":"timeStampHere"}],"logs":[{"ops":[{"type":"init","model":"dataset","name":"test_movies","authorID":"{{ .authorID }}","timestamp":"timeStampHere"}],"logs":[{"ops":[{"type":"init","model":"branch","name":"main","authorID":"{{ .authorID }}","timestamp":"timeStampHere"},{"type":"init","model":"commit","ref":"{{ .path1 }}","timestamp":"timeStampHere","size":224,"note":"created dataset from body_ten.csv"},{"type":"init","model":"commit","ref":"{{ .path2 }}","prev":"{{ .path1 }}","timestamp":"timeStampHere","size":720,"note":"body changed by 70%"}]}]}]}]`
+
+	expect := dstest.Template(t, tplString, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"authorID":  "74iwd7hnx5u47nfnu73auj77hycw5ivdjswdrfyafh4cr3ylmwnq",
+		"path1":     "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+		"path2":     "/ipfs/QmaHD127XwHhTVQ6RWxu7ppAu3VJ48MukpfUv2KasHED3K",
+	})
 
 	// Regex that replaces the timestamp with just static text
 	fixTs := regexp.MustCompile(`"(timestamp|commitTime)":\s?"[0-9TZ.:+-]*?"`)
@@ -35,7 +38,6 @@ func TestLogbookCommand(t *testing.T) {
 	actual := r.MustExec(t, "qri logbook --raw")
 	// TODO(dustmop): Make logbook's timestamp stringifier be hot-swappable to avoid this hack.
 	actual = string(fixTs.ReplaceAll([]byte(actual), []byte(`"timestamp":"timeStampHere"`)))
-	expect := fmt.Sprintf(template, profileID, authorID, authorID)
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}

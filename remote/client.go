@@ -18,7 +18,7 @@ import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -518,19 +518,19 @@ func (c *client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr str
 			return nil, fmt.Errorf("error putting dataset in repo: %s", err.Error())
 		}
 
-		return dsfs.LoadDataset(ctx, node.Repo.Store(), ref.Path)
+		return dsfs.LoadDataset(ctx, node.Repo.Filesystem(), ref.Path)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	prevRef.Dataset, err = dsfs.LoadDataset(ctx, node.Repo.Store(), prevRef.Path)
+	prevRef.Dataset, err = dsfs.LoadDataset(ctx, node.Repo.Filesystem(), prevRef.Path)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error loading repo dataset: %s", prevRef.Path)
 	}
 
-	ds, err = dsfs.LoadDataset(ctx, node.Repo.Store(), ref.Path)
+	ds, err = dsfs.LoadDataset(ctx, node.Repo.Filesystem(), ref.Path)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error loading added dataset: %s", ref.Path)
@@ -552,6 +552,7 @@ func (c *client) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string)
 	}
 	pull, err := c.logsync.NewPull(ref, remoteAddr)
 	if err != nil {
+		log.Debugf("logsync.NewPull err=%s", err)
 		return err
 	}
 
@@ -613,7 +614,7 @@ func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteA
 	}
 
 	// TODO (b5) - this should be part of dsync, no?
-	if pinner, ok := c.node.Repo.Store().(cafs.Pinner); ok {
+	if pinner, ok := c.node.Repo.Filesystem().Filesystem("ipfs").(qfs.PinningFS); ok {
 		if err := pinner.Pin(ctx, ref.Path, true); err != nil {
 			return err
 		}

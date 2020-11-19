@@ -12,6 +12,7 @@ import (
 	cmp "github.com/google/go-cmp/cmp"
 	cmpopts "github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
@@ -207,21 +208,24 @@ func TestDscacheCheckout(t *testing.T) {
 
 	// Dscache should have one entry, with an fsiPath set
 	actual := run.NiceifyTempDirs(cache.VerboseString(false))
-	expect := `Dscache:
+	expect := dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=peer profileID=QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  0) user=peer profileID={{ .profileID }}
  Dscache.Refs:
   0) initID        = vrh4iurbzeyx42trlddzvtoiqevmy2d3mxex4ojd4mxv7cudhlwq
-     profileID     = QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+     profileID     = {{ .profileID }}
      topIndex      = 1
      cursorIndex   = 1
      prettyName    = cities_ds
      bodySize      = 155
      bodyRows      = 5
      commitTime    = 978310861
-     headRef       = /map/QmPd5jh8ZTFwgbpHaNSu6u2277BKWaiBsqX4uFw7rGWNLu
+     headRef       = {{ .headRef }}
      fsiPath       = /tmp/cities_ds
-`
+`, map[string]string{
+		"profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+		"headRef":   "/mem/QmP79RpTQ2xwGYAxVAEjJF7CefASi6u4G6dYuRqArMT9xs",
+	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
@@ -256,27 +260,31 @@ func TestDscacheInit(t *testing.T) {
 
 	// Dscache should have two entries, one has a version, the other has an fsiPath
 	actual := run.NiceifyTempDirs(cache.VerboseString(false))
-	expect := `Dscache:
+	expect := dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=peer profileID=QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  0) user=peer profileID={{ .profileID }}
  Dscache.Refs:
   0) initID        = vrh4iurbzeyx42trlddzvtoiqevmy2d3mxex4ojd4mxv7cudhlwq
-     profileID     = QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+     profileID     = {{ .profileID }}
      topIndex      = 1
      cursorIndex   = 1
      prettyName    = cities_ds
      bodySize      = 155
      bodyRows      = 5
      commitTime    = 978310861
-     headRef       = /map/QmPd5jh8ZTFwgbpHaNSu6u2277BKWaiBsqX4uFw7rGWNLu
+     headRef       = {{ .citiesHeadRef }}
   1) initID        = ekwzgcu4s4o4xchsoip3oa3j45ko5n7pybtizgvsbudojbhxuita
-     profileID     = QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+     profileID     = {{ .profileID }}
      topIndex      = 0
      cursorIndex   = 0
      prettyName    = new_ds
      commitTime    = -62135596800
      fsiPath       = /tmp/json_body
-`
+`, map[string]string{
+		"profileID":     "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+		"citiesHeadRef": "/mem/QmP79RpTQ2xwGYAxVAEjJF7CefASi6u4G6dYuRqArMT9xs",
+	})
+
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}

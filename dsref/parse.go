@@ -245,7 +245,7 @@ func parseConcretePath(text string) (string, Ref, error) {
 	if len(matches) != 4 {
 		return text, r, NewParseError("unexpected number of regex matches %d", len(matches))
 	}
-	if matches[2] != "map" && matches[2] != "ipfs" {
+	if matches[2] != "mem" && matches[2] != "ipfs" {
 		return text, r, NewParseError("invalid network")
 	}
 	matchedLen := len(matches[0])

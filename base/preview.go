@@ -8,9 +8,9 @@ import (
 	"io/ioutil"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/repo"
 )
 
 const (
@@ -23,19 +23,24 @@ const (
 )
 
 // CreatePreview generates a preview for a dataset version
-func CreatePreview(ctx context.Context, r repo.Repo, ref dsref.Ref) (ds *dataset.Dataset, err error) {
+// TODO (b5) - previews currently don't include the new stats component, because
+// we don't have logic for dropping the space-intensive fields in stat structs
+// Once we have a clear way to drop things like string frequency counts, and can
+// get the byte-cost of stats to scale linearly with the dataset column count
+// previews should include stats
+func CreatePreview(ctx context.Context, fs qfs.Filesystem, ref dsref.Ref) (ds *dataset.Dataset, err error) {
 	if ref.Path == "" {
 		return nil, fmt.Errorf("path is required")
 	}
 
-	ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path)
+	ds, err = dsfs.LoadDataset(ctx, fs, ref.Path)
 	if err != nil {
 		log.Errorf("CreatePreview loading dataset: %s", err.Error())
 		return nil, err
 	}
 
 	if ds.Readme != nil {
-		if err := openReadme(ctx, r.Filesystem(), ds); err != nil {
+		if err := openReadme(ctx, fs, ds); err != nil {
 			log.Errorf("OpeningReadme: %s", err.Error())
 			return nil, err
 		}
@@ -54,7 +59,7 @@ func CreatePreview(ctx context.Context, r repo.Repo, ref dsref.Ref) (ds *dataset
 		}
 	}
 
-	if err = ds.OpenBodyFile(ctx, r.Store()); err != nil {
+	if err = ds.OpenBodyFile(ctx, fs); err != nil {
 		log.Errorf("CreatePreview opening body file: %s", err.Error())
 		return nil, err
 	}

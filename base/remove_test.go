@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 )
@@ -67,7 +68,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 		}
 		// verifyRefsRemoved will return an empty string
 		// if the correct number of refs have been removed
-		s := verifyRefsRemoved(ctx, r.Store(), refs, c.n)
+		s := verifyRefsRemoved(ctx, r.Filesystem(), refs, c.n)
 		if s != "" {
 			t.Errorf("case %q, refs removed incorrectly: %s", c.description, s)
 		}
@@ -94,7 +95,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 	if err != nil {
 		t.Errorf("case 'remove all', unexpected err: %s", err.Error())
 	}
-	s := verifyRefsRemoved(ctx, r.Store(), refs, len(refs))
+	s := verifyRefsRemoved(ctx, r.Filesystem(), refs, len(refs))
 	if s != "" {
 		t.Errorf("case 'remove all', refs removed incorrectly: %s", s)
 	}
@@ -106,7 +107,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 // take int n where n is the number of MOST RECENT datasets that should
 // have been removed
 // assumes that each Dataset has a Meta component with a Title
-func verifyRefsRemoved(ctx context.Context, s cafs.Filestore, refs []dsref.Ref, n int) string {
+func verifyRefsRemoved(ctx context.Context, fs qfs.Filesystem, refs []dsref.Ref, n int) string {
 
 	// datasets from index len(refs) - n - 1 SHOULD EXISTS
 	// we should error if they DON't exist
@@ -115,9 +116,9 @@ func verifyRefsRemoved(ctx context.Context, s cafs.Filestore, refs []dsref.Ref, 
 		// datasets from index len(refs) - 1 to len(refs) - n SHOULD NOT EXISTS
 		// we should error if they exist
 
-		exists, err := s.Has(ctx, ref.Path)
+		exists, err := fs.Has(ctx, ref.Path)
 		if err != nil {
-			return fmt.Sprintf("error checking ref %q from store", ref.Alias())
+			return fmt.Sprintf("error checking ref %q from store: %s", ref.Alias(), err)
 		}
 
 		// datasets that are less then len(refs) - n, should exist
@@ -125,7 +126,7 @@ func verifyRefsRemoved(ctx context.Context, s cafs.Filestore, refs []dsref.Ref, 
 			if exists == true {
 				continue
 			}
-			errString += fmt.Sprintf("\nref %q should exist in the store, but does NOT", ref.Alias())
+			errString += fmt.Sprintf("\nref %q should exist in the store, but does NOT", ref)
 			continue
 		}
 
@@ -133,7 +134,7 @@ func verifyRefsRemoved(ctx context.Context, s cafs.Filestore, refs []dsref.Ref, 
 		if exists == false {
 			continue
 		}
-		errString += fmt.Sprintf("\nref %q should NOT exist in the store, but does", ref.Alias())
+		errString += fmt.Sprintf("\nref %q should NOT exist in the store, but does", ref)
 
 	}
 	return errString
@@ -146,7 +147,6 @@ func TestVerifyRefsRemove(t *testing.T) {
 	// create history of 10 versions
 	initDs := addCitiesDataset(t, r)
 
-	//
 	refs := []dsref.Ref{initDs}
 	historyTotal := 3
 	for i := 2; i <= historyTotal; i++ {
@@ -155,7 +155,7 @@ func TestVerifyRefsRemove(t *testing.T) {
 	}
 	// test that all real refs exist
 	// aka n = 0
-	s := verifyRefsRemoved(ctx, r.Store(), refs, 0)
+	s := verifyRefsRemoved(ctx, r.Filesystem(), refs, 0)
 	if s != "" {
 		t.Errorf("case 'all refs should exist' should return empty string, got %q", s)
 	}
@@ -163,10 +163,16 @@ func TestVerifyRefsRemove(t *testing.T) {
 	// test that when we have refs in the store
 	// but we say that there should be no refs in the store
 	// we get the proper response:
-	s = verifyRefsRemoved(ctx, r.Store(), refs, 2)
-	sExpected := `
-ref "peer/cities" should NOT exist in the store, but does
-ref "peer/cities" should NOT exist in the store, but does`
+	s = verifyRefsRemoved(ctx, r.Filesystem(), refs, 2)
+	sExpected := dstest.Template(t, `
+ref "peer/cities@{{ .ProfileID }}{{ .Path1 }}" should NOT exist in the store, but does
+ref "peer/cities@{{ .ProfileID }}{{ .Path2 }}" should NOT exist in the store, but does`,
+		map[string]string{
+			"ProfileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+			"Path1":     "/mem/QmNmQWq9Mod4fbnVUPzmpKcXcAeaGz4obCdFXuDcaerkAn",
+			"Path2":     "/mem/QmY3s2TpcbZo3wnbt7w2BwiVQkkv8S8omFPUwvzLe4Nctk",
+		},
+	)
 	if diff := cmp.Diff(sExpected, s); diff != "" {
 		t.Errorf("response mismatch: (-want +got):\n %s", diff)
 	}
@@ -175,25 +181,25 @@ ref "peer/cities" should NOT exist in the store, but does`
 		fakeRef := dsref.Ref{
 			Username: "user",
 			Name:     fmt.Sprintf("fake_ref_%d", i),
-			Path:     fmt.Sprintf("/map/%d", i),
+			Path:     fmt.Sprintf("/mem/%d", i),
 		}
 		refs = append(refs, fakeRef)
 	}
 	// test that all real refs exist in store
 	// and all fake refs do not exist in store
 	// aka n = 3
-	s = verifyRefsRemoved(ctx, r.Store(), refs, 3)
+	s = verifyRefsRemoved(ctx, r.Filesystem(), refs, 3)
 	if s != "" {
 		t.Errorf("case '3 fake refs, with n == 3' should return empty string, got %q", s)
 	}
 
 	// test that when we say we do have refs in the store
 	// but we really don't, we get the proper response:
-	s = verifyRefsRemoved(ctx, r.Store(), refs, 0)
+	s = verifyRefsRemoved(ctx, r.Filesystem(), refs, 0)
 	sExpected = `
-ref "user/fake_ref_0" should exist in the store, but does NOT
-ref "user/fake_ref_1" should exist in the store, but does NOT
-ref "user/fake_ref_2" should exist in the store, but does NOT`
+ref "user/fake_ref_0@/mem/0" should exist in the store, but does NOT
+ref "user/fake_ref_1@/mem/1" should exist in the store, but does NOT
+ref "user/fake_ref_2@/mem/2" should exist in the store, but does NOT`
 	if diff := cmp.Diff(sExpected, s); diff != "" {
 		t.Errorf("case 'expect empty refs to exist' response mismatch: (-want +got):\n %s", diff)
 	}

@@ -9,7 +9,6 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
@@ -147,11 +146,6 @@ func (r *Repo) Path() string {
 // Bus accesses the repo's bus
 func (r *Repo) Bus() event.Bus {
 	return r.bus
-}
-
-// Store returns the underlying cafs.Filestore driving this repo
-func (r *Repo) Store() cafs.Filestore {
-	return r.fsys.DefaultWriteFS()
 }
 
 // Filesystem returns this repo's Filesystem

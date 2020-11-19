@@ -4,13 +4,14 @@ import (
 	"context"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
+	testPeers "github.com/qri-io/qri/config/test"
 )
 
 func TestGenerateFilename(t *testing.T) {
@@ -104,9 +105,10 @@ func TestGenerateFilename(t *testing.T) {
 	}
 }
 
-func testStore() (cafs.Filestore, map[string]string, error) {
+func testFS() (qfs.Filesystem, map[string]string, error) {
 	ctx := context.Background()
-	dataf := qfs.NewMemfileBytes("movies.csv", []byte("movie\nup\nthe incredibles"))
+	dataf := qfs.NewMemfileBytes("/body.csv", []byte("movie\nup\nthe incredibles"))
+	pk := testPeers.GetTestPeerInfo(0).PrivKey
 
 	// Map strings to ds.keys for convenience
 	ns := map[string]string{
@@ -129,17 +131,17 @@ func testStore() (cafs.Filestore, map[string]string, error) {
 	}
 	ds.SetBodyFile(dataf)
 
-	store := cafs.NewMapstore()
-	dskey, err := dsfs.WriteDataset(ctx, store, ds, true)
+	fs := qfs.NewMemFS()
+	dskey, err := dsfs.WriteDataset(ctx, nil, fs, ds, pk, dsfs.SaveSwitches{})
 	if err != nil {
-		return store, ns, err
+		return fs, ns, err
 	}
 	ns["movies"] = dskey
 
-	return store, ns, nil
+	return fs, ns, nil
 }
 
-func testStoreWithVizAndTransform() (cafs.Filestore, map[string]string, error) {
+func testFSWithVizAndTransform() (qfs.Filesystem, map[string]string, error) {
 	ctx := context.Background()
 	ds := &dataset.Dataset{
 		Structure: &dataset.Structure{
@@ -155,25 +157,29 @@ func testStoreWithVizAndTransform() (cafs.Filestore, map[string]string, error) {
 			},
 		},
 		Transform: &dataset.Transform{
-			ScriptPath:  "transform_script",
+			ScriptPath:  "/transform_script",
 			ScriptBytes: []byte("def transform(ds):\nreturn ds\n"),
 		},
 		Viz: &dataset.Viz{
-			ScriptPath:  "viz_script",
+			ScriptPath:  dsfs.PackageFileVizScript.Filename(),
 			ScriptBytes: []byte("<html>template</html>\n"),
 		},
 	}
 	// load scripts into file pointers, time for a NewDataset function?
-	ds.Transform.OpenScriptFile(ctx, nil)
+	// ds.Transform.OpenScriptFile(ctx, nil)
+	ds.Transform.SetScriptFile(qfs.NewMemfileBytes(ds.Viz.ScriptPath, ds.Viz.ScriptBytes))
 	ds.Viz.OpenScriptFile(ctx, nil)
 	ds.Viz.SetRenderedFile(qfs.NewMemfileBytes("index.html", []byte("<html>rendered</html<\n")))
 
 	// Map strings to ds.keys for convenience
 	ns := map[string]string{}
 	// Store the files
-	st := cafs.NewMapstore()
-	ds.SetBodyFile(qfs.NewMemfileBytes("movies.csv", []byte("movie\nup\nthe incredibles")))
-	dskey, err := dsfs.WriteDataset(ctx, st, ds, true)
+	st := qfs.NewMemFS()
+	ds.SetBodyFile(qfs.NewMemfileBytes("/body.csv", []byte("movie\nup\nthe incredibles")))
+	privKey := testPeers.GetTestPeerInfo(10).PrivKey
+
+	var dsLk sync.Mutex
+	dskey, err := dsfs.WriteDataset(ctx, &dsLk, st, ds, privKey, dsfs.SaveSwitches{Pin: true})
 	if err != nil {
 		return st, ns, err
 	}

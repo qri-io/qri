@@ -14,7 +14,7 @@ func TestParseFull(t *testing.T) {
 		{"full reference", "abc/my_dataset@QmFirst/ipfs/QmSecond", Ref{Username: "abc", Name: "my_dataset", ProfileID: "QmFirst", Path: "/ipfs/QmSecond"}},
 		{"right hand side", "@QmFirst/ipfs/QmSecond", Ref{ProfileID: "QmFirst", Path: "/ipfs/QmSecond"}},
 		{"just path", "@/ipfs/QmSecond", Ref{Path: "/ipfs/QmSecond"}},
-		{"long name", "peer/some_name@/map/QmXATayrFgsS3tpCi2ykfpNJ8uiCWT74dttnvJvVo1J7Rn", Ref{Username: "peer", Name: "some_name", Path: "/map/QmXATayrFgsS3tpCi2ykfpNJ8uiCWT74dttnvJvVo1J7Rn"}},
+		{"long name", "peer/some_name@/mem/QmXATayrFgsS3tpCi2ykfpNJ8uiCWT74dttnvJvVo1J7Rn", Ref{Username: "peer", Name: "some_name", Path: "/mem/QmXATayrFgsS3tpCi2ykfpNJ8uiCWT74dttnvJvVo1J7Rn"}},
 		{"name-has-dash", "abc/my-dataset", Ref{Username: "abc", Name: "my-dataset"}},
 		{"dash-in-username", "some-user/my_dataset", Ref{Username: "some-user", Name: "my_dataset"}},
 	}

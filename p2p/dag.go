@@ -2,11 +2,12 @@ package p2p
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/qri-io/dag"
-	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
 )
 
@@ -43,12 +44,12 @@ func (node *QriNode) NewDAGInfo(ctx context.Context, path, label string) (*dag.I
 		return nil, err
 	}
 
-	return newDAGInfo(ctx, node.Repo.Store(), ng, path, label)
+	return newDAGInfo(ctx, node.Repo.Filesystem(), ng, path, label)
 }
 
 // newDAGInfo generates a DAGInfo for a given node. If a label is provided,
 // it generates a sub-DAGInfo at that label
-func newDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, path, label string) (*dag.Info, error) {
+func newDAGInfo(ctx context.Context, fs qfs.Filesystem, ng ipld.NodeGetter, path, label string) (*dag.Info, error) {
 	id, err := cid.Parse(path)
 	if err != nil {
 		return nil, err
@@ -59,55 +60,61 @@ func newDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, p
 		return nil, err
 	}
 	// get referenced version of dataset
-	ds, err := dsfs.LoadDatasetRefs(ctx, store, path)
+	ds, err := dsfs.LoadDatasetRefs(ctx, fs, path)
 	if err != nil {
 		return nil, err
 	}
+
 	info.Labels = map[string]int{}
-	prefix := store.Type()
 	if ds.BodyPath != "" {
-		err := info.AddLabelByID("bd", dsfs.GetHashBase(ds.BodyPath, prefix))
+		err := info.AddLabelByID("bd", dsfs.GetHashBase(ds.BodyPath))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("adding body label: %w", err)
 		}
 	}
-	if ds.Viz != nil {
-		err := info.AddLabelByID("vz", dsfs.GetHashBase(ds.Viz.Path, prefix))
+	if ds.Viz != nil && ds.Viz.Path != "" {
+		err := info.AddLabelByID("vz", dsfs.GetHashBase(ds.Viz.Path))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("adding viz label: %w", err)
 		}
-		if err := dsfs.DerefDatasetViz(ctx, store, ds); err != nil {
+		if err := dsfs.DerefViz(ctx, fs, ds); err != nil {
 			return nil, err
 		}
 		if ds.Viz.RenderedPath != "" {
-			err := info.AddLabelByID("rd", dsfs.GetHashBase(ds.Viz.RenderedPath, prefix))
+			err := info.AddLabelByID("rd", dsfs.GetHashBase(ds.Viz.RenderedPath))
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
-	if ds.Transform != nil {
-		err := info.AddLabelByID("tf", dsfs.GetHashBase(ds.Transform.Path, prefix))
+	if ds.Transform != nil && ds.Transform.Path != "" {
+		err := info.AddLabelByID("tf", dsfs.GetHashBase(ds.Transform.Path))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("adding transform label: %w", err)
 		}
 	}
-	if ds.Meta != nil {
-		err := info.AddLabelByID("md", dsfs.GetHashBase(ds.Meta.Path, prefix))
+	if ds.Meta != nil && ds.Meta.Path != "" {
+		err := info.AddLabelByID("md", dsfs.GetHashBase(ds.Meta.Path))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("adding meta label %w", err)
 		}
 	}
-	if ds.Structure != nil {
-		err := info.AddLabelByID("st", dsfs.GetHashBase(ds.Structure.Path, prefix))
+	if ds.Structure != nil && ds.Structure.Path != "" {
+		err := info.AddLabelByID("st", dsfs.GetHashBase(ds.Structure.Path))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("adding structure label: %w", err)
 		}
 	}
-	if ds.Commit != nil {
-		err := info.AddLabelByID("cm", dsfs.GetHashBase(ds.Commit.Path, prefix))
+	if ds.Stats != nil && ds.Stats.Path != "" {
+		err := info.AddLabelByID("sa", dsfs.GetHashBase(ds.Stats.Path))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("adding stats label: %w", err)
+		}
+	}
+	if ds.Commit != nil && ds.Commit.Path != "" {
+		err := info.AddLabelByID("cm", dsfs.GetHashBase(ds.Commit.Path))
+		if err != nil {
+			return nil, fmt.Errorf("adding commit label: %w", err)
 		}
 	}
 

@@ -7,11 +7,24 @@
 package main
 
 import (
-	// "github.com/pkg/profile"
+	"os"
+	"runtime/pprof"
+
 	"github.com/qri-io/qri/cmd"
 )
 
 func main() {
-	// defer profile.Start(profile.MemProfile).Stop()
+	if cpuProfFilepath := os.Getenv("QRI_CPU_PROFILE"); cpuProfFilepath != "" {
+		f, err := os.Create(cpuProfFilepath)
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+		if err := pprof.StartCPUProfile(f); err != nil {
+			panic(err)
+		}
+		defer pprof.StopCPUProfile()
+	}
+
 	cmd.Execute()
 }

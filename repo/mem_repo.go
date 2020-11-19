@@ -7,7 +7,6 @@ import (
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
@@ -41,9 +40,6 @@ var _ Repo = (*MemRepo)(nil)
 func NewMemRepo(ctx context.Context, p *profile.Profile, fs *muxfs.Mux, bus event.Bus) (*MemRepo, error) {
 	if fs.Filesystem(qfs.MemFilestoreType) == nil {
 		fs.SetFilesystem(qfs.NewMemFS())
-	}
-	if fs.Filesystem(cafs.MapFilestoreType) == nil {
-		fs.SetFilesystem(cafs.NewMapstore())
 	}
 
 	book, err := logbook.NewJournal(p.PrivKey, p.Peername, bus, fs, "/mem/logbook.qfb")
@@ -104,11 +100,6 @@ func (r *MemRepo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 // Bus accesses the repo's event bus
 func (r *MemRepo) Bus() event.Bus {
 	return r.bus
-}
-
-// Store returns the underlying cafs.Filestore for this repo
-func (r *MemRepo) Store() cafs.Filestore {
-	return r.filesystem.DefaultWriteFS()
 }
 
 // Filesystem gives access to the underlying filesystem

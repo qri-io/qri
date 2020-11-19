@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 )
@@ -16,12 +17,12 @@ func TestRecall(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addNowTransformDataset(t, r)
 
-	_, err := Recall(ctx, r.Store(), ref, "")
+	_, err := Recall(ctx, r.Filesystem(), ref, "")
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = Recall(ctx, r.Store(), ref, "tf")
+	_, err = Recall(ctx, r.Filesystem(), ref, "tf")
 	if err != nil {
 		t.Error(err)
 	}
@@ -32,7 +33,7 @@ func TestLoadRevisions(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	cities, err := dsfs.LoadDataset(ctx, r.Store(), ref.Path)
+	cities, err := dsfs.LoadDataset(ctx, r.Filesystem(), ref.Path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,13 +62,13 @@ func TestLoadRevisions(t *testing.T) {
 			continue
 		}
 
-		got, err := LoadRevs(ctx, r.Store(), c.ref, revs)
+		got, err := LoadRevs(ctx, r.Filesystem(), c.ref, revs)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 		}
 
-		if err := dataset.CompareDatasets(c.ds, got); err != nil {
-			t.Errorf("case %d result mismatch: %s", i, err)
+		if diff := dstest.CompareDatasets(c.ds, got); diff != "" {
+			t.Errorf("case %d result mismatch (-want +got):\n%s", i, err)
 		}
 	}
 }

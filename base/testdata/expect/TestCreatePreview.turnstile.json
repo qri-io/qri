@@ -1,0 +1,43 @@
+{
+  "body": [],
+  "bodyPath": "/mem/QmTgK2uYPscacJ9KaBS8tryXRF5mvjuRbubF7h9bG2GgoN",
+  "commit": {
+    "message": "created dataset",
+    "path": "/mem/QmQKC2pUBrtvjSYg1rXKbMjqxoLKe1HKWznna2c86pvhZX",
+    "qri": "cm:0",
+    "signature": "pArj/I7dxrIjaBH17EmxrPQH4y6z3ao28kDwhjD47Bdl6xBrjxBW6A3+ZsRgCp0B/45nun3FhlNhqYlk33iBSlD7XWE/alN9XjUdAetiHLydkVYdrkZ+zQ6ZZM+/nN03LFI6/CS3BI1Bupsq0deUoot4lVqi0arNxm9NRBk/utcplZge+blCQ2LAZugdYErRuBW39QHtGvBSHPFQtN4jMxYeKZJ2PqzYpiWoxytUZe85s9sDe1cBqzNnW07Wal0bMys+im1WEx7UoiIuFV+utiN0luUIMQn7pW9uUqWsLV7CkPnCwDkPdTX0LcuzYJQuw5PypJ4/fiD+P+CMEA7CxA==",
+    "timestamp": "0001-01-01T00:00:00Z",
+    "title": "update data for week ending April 18, 2020"
+  },
+  "meta": {
+    "description": "NYC Subway Turnstile Counts Data aggregated by day and station complex for the year 2020. Updated weekly.",
+    "path": "/mem/QmZ3ruG85fa1wHmZnZ4QcwA6y52YmSeFDx3iuW1R5E7xRd",
+    "qri": "md:0",
+    "title": "Turnstile Daily Counts 2020"
+  },
+  "name": "turnstile_daily_counts_2020",
+  "path": "/mem/QmS8PwroyQtL55ek6Zc53xZ7FTcg13pszFvvjDT2tEQK5T",
+  "peername": "peer",
+  "readme": {
+    "qri": "rm:0",
+    "scriptBytes": "IyBueWMtdHJhbnNpdC1kYXRhL3R1cm5zdGlsZV9kYWlseV9jb3VudHNfMjAyMAoKTllDIFN1YndheSBUdXJuc3RpbGUgQ291bnRzIERhdGEgYWdncmVnYXRlZCBieSBkYXkgYW5kIHN0YXRpb24gY29tcGxleCBmb3IgdGhlIHllYXIgMjAyMC4gIFVwZGF0ZWQgd2Vla2x5LgoKIyMgV2hlcmUgdGhlIERhdGEgQ2FtZSBGcm9tCgpUaGlzIGFnZ3JlZ2F0aW9uIHdhcyBjcmVhdGVkIGZyb20gd2Vla2x5IHJhdyB0dXJuc3RpbGUgY291bnRzIHB1Ymxpc2hlZCBieSB0aGUgTmV3IFlvcmsgTVRBIGF0IFtodHRwOi8vd2ViLm10YS5pbmZvL2RldmVsb3BlcnMvdHVybnN0aWxlLmh0bWxdKGh0dHA6Ly93ZWIubXRhLmluZm8vZGV2ZWxvcGVycy90dXJuc3RpbGUuaHRtbCkKClRoZSByYXcgZGF0YSB3ZXJlIGltcG9ydGVkIGludG8gYSBwb3N0Z3Jlc3FsIGRhdGFiYXNlIGZvciBwcm9jZXNzaW5nLCBhbmQgYWdncmVnYXRlZCB0byBjYWxlbmRhciBkYXlzIGZvciBlYWNoIHN0YXRpb24gY29tcGxleC4KClRoZSBwcm9jZXNzIGlzIG91dGxpbmVkIGluIFt0aGlzIGJsb2cgcG9zdF0oaHR0cHM6Ly9tZWRpdW0uY29tL3FyaS1pby90YW1pbmctdGhlLW10YXMtdW5ydWx5LXR1cm5zdGlsZS1kYXRhLWM5NDVmNWY5NmJhMCksIGFuZCB0aGUgY29kZSBmb3IgdGhlIGRhdGEgcGlwZWxpbmUgaXMgW2F2YWlsYWJsZSBvbiBnaXRodWJdKGh0dHBzOi8vZ2l0aHViLmNvbS9xcmktaW8vZGF0YS1zdG9yaWVzLXNjcmlwdHMvdHJlZS9tYXN0ZXIvbnljLXR1cm5zdGlsZS1jb3VudHMpLgoKIyMgQ2F2ZWF0cwoKVGhpcyBhZ2dyZWdhdGlvbiBpcyBhIGJlc3QtZWZmb3J0IHRvIG1ha2UgYSBjbGVhbiBhbmQgdXNhYmxlIGRhdGFzZXQgb2Ygc3RhdGlvbi1sZXZlbCBjb3VudHMuICBUaGVyZSB3ZXJlIHNvbWUgYXNzdW1wdGlvbnMgYW5kIGltcG9ydGFudCBkZWNpc2lvbnMgbWFkZSB0byBhcnJpdmUgYXQgdGhlIGZpbmlzaGVkIHByb2R1Y3QuCgotIFRoZSBkYXRhc2V0IGV4Y2x1ZGVzIHR1ci4uLg==",
+    "scriptPath": "/mem/QmQ93yKwktz778AiTjYPKwj1qqbvHDsWpYVff3Eicqn6Z5"
+  },
+  "qri": "ds:0",
+  "structure": {
+    "checksum": "/mem/QmTgK2uYPscacJ9KaBS8tryXRF5mvjuRbubF7h9bG2GgoN",
+    "depth": 1,
+    "format": "json",
+    "length": 2,
+    "path": "/mem/QmTnjHPXVPrT9zAS79i1nWMFYPAPPSWtRVin5Zos1a9bxX",
+    "qri": "st:0",
+    "schema": {
+      "type": "array"
+    }
+  },
+  "stats": "/mem/QmdzwcjZDAwPQJHikR9jnPg7x1jrKGseW2EZvd4s3eZxfG",
+  "transform": {
+    "qri": "tf:0",
+    "scriptPath": "/mem/QmXSce6KDQHLvi4AKDU8z7s4ouynKXKpD6TY7wJgF6reWM"
+  }
+}

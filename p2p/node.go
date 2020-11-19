@@ -48,7 +48,7 @@ type QriNode struct {
 	Discovery discovery.Service
 
 	// Repo is a repository of this node's qri data
-	// note that repo's are built upon a cafs.Filestore, which
+	// note that repo's are built upon a qfs.MuxFS, which
 	// may contain a reference to a functioning IPFS node. In that case
 	// QriNode should piggyback non-qri-specific p2p functionality on the
 	// ipfs node provided by repo
@@ -151,7 +151,7 @@ func (n *QriNode) GoOnline(c context.Context) (err error) {
 	// If the underlying content-addressed-filestore is an ipfs
 	// node, it has built-in p2p, overlay the qri protocol
 	// on the ipfs node's p2p connections.
-	if ipfsfs, ok := n.Repo.Store().(*qipfs.Filestore); ok {
+	if ipfsfs, ok := n.Repo.Filesystem().Filesystem("ipfs").(*qipfs.Filestore); ok {
 		log.Debugf("using IPFS p2p Host")
 		if !ipfsfs.Online() {
 			if err := ipfsfs.GoOnline(ctx); err != nil {
@@ -263,7 +263,7 @@ func (n *QriNode) GoOffline() error {
 // This is currently required by things like remoteClient in other packages,
 // which don't work properly with the CoreAPI implementation
 func (n *QriNode) IPFS() (*core.IpfsNode, error) {
-	if ipfsfs, ok := n.Repo.Store().(*qipfs.Filestore); ok {
+	if ipfsfs, ok := n.Repo.Filesystem().Filesystem("ipfs").(*qipfs.Filestore); ok {
 		return ipfsfs.Node(), nil
 	}
 	return nil, fmt.Errorf("not using IPFS")
@@ -288,8 +288,8 @@ func (n *QriNode) IPFSCoreAPI() (coreiface.CoreAPI, error) {
 	if n == nil {
 		return nil, ErrNoQriNode
 	}
-	if apier, ok := n.Repo.Store().(ipfsApier); ok {
-		return apier.IPFSCoreAPI(), nil
+	if ipfsfs, ok := n.Repo.Filesystem().Filesystem("ipfs").(ipfsApier); ok {
+		return ipfsfs.IPFSCoreAPI(), nil
 	}
 	return nil, fmt.Errorf("not using IPFS")
 }

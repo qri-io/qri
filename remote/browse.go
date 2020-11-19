@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
@@ -80,7 +81,7 @@ type Previews interface {
 
 // LocalPreviews implements the previews interface with a local repo
 type LocalPreviews struct {
-	repo.Repo
+	fs            qfs.Filesystem
 	localResolver dsref.Resolver
 }
 
@@ -98,7 +99,7 @@ func (rp LocalPreviews) Preview(ctx context.Context, _, refStr string) (*dataset
 		return nil, err
 	}
 
-	return base.CreatePreview(ctx, rp.Repo, ref)
+	return base.CreatePreview(ctx, rp.fs, ref)
 }
 
 // PreviewComponent gets a component for a reference & component name

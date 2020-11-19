@@ -18,6 +18,7 @@ import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	qfs "github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qfs/muxfs"
 	qipfs "github.com/qri-io/qfs/qipfs"
 	cfgtest "github.com/qri-io/qri/config/test"
@@ -34,10 +35,10 @@ func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username str
 		PrivKey:  node.PrivateKey,
 	}
 
-	mux, err := muxfs.New(ctx, []qfs.Config{
-		{Type: "mem"},
-		{Type: "local"},
-	})
+	// TODO (b5) -  we can't supply the usual {Type: "mem"} {Type: "local"}, configuration options here
+	// b/c we want ipfs to be the "DefaultWriteFS", and muxFS doesn't give us an explicit API for setting
+	// the write filesystem
+	mux, err := muxfs.New(ctx, []qfs.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +48,18 @@ func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username str
 		return nil, err
 	}
 	if err := mux.SetFilesystem(ipfs); err != nil {
+		return nil, err
+	}
+
+	localFS, err := localfs.NewFilesystem(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	if err := mux.SetFilesystem(localFS); err != nil {
+		return nil, err
+	}
+
+	if err := mux.SetFilesystem(qfs.NewMemFS()); err != nil {
 		return nil, err
 	}
 

@@ -11,13 +11,14 @@ func TestValidate(t *testing.T) {
 	ctx := context.Background()
 	r := newTestRepo(t)
 	cities := addCitiesDataset(t, r)
+	fs := r.Filesystem()
 
-	ds, err := dsfs.LoadDataset(ctx, r.Store(), cities.Path)
+	ds, err := dsfs.LoadDataset(ctx, fs, cities.Path)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err = OpenDataset(ctx, r.Filesystem(), ds); err != nil {
+	if err = OpenDataset(ctx, fs, ds); err != nil {
 		t.Fatal(err)
 	}
 	body := ds.BodyFile()

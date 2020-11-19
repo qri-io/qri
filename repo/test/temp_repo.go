@@ -11,7 +11,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
@@ -189,29 +188,15 @@ func (r *TempRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
 
 // DatasetMarshalJSON reads the dataset head and marshals it as json.
 func (r *TempRepo) DatasetMarshalJSON(ref string) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	fs, err := qipfs.NewFilesystem(ctx, map[string]interface{}{
-		"online": false,
-		"path":   r.IPFSPath,
-	})
-	cafs, ok := fs.(cafs.Filestore)
-	if !ok {
-		return "", fmt.Errorf("error asserting file system is a cafs filesystem")
-	}
-	ds, err := dsfs.LoadDataset(ctx, cafs, ref)
+	ds, err := r.LoadDataset(ref)
 	if err != nil {
 		return "", err
 	}
-	bytes, err := json.Marshal(ds)
+	data, err := json.Marshal(ds)
 	if err != nil {
 		return "", err
 	}
-
-	done := gracefulShutdown(fs.(qfs.ReleasingFilesystem).Done())
-	cancel()
-	err = <-done
-	return string(bytes), err
+	return string(data), err
 }
 
 // LoadDataset from the temp repository
@@ -222,11 +207,7 @@ func (r *TempRepo) LoadDataset(ref string) (*dataset.Dataset, error) {
 		"online": false,
 		"path":   r.IPFSPath,
 	})
-	cafs, ok := fs.(cafs.Filestore)
-	if !ok {
-		return nil, fmt.Errorf("error asserting file system is a cafs filesystem")
-	}
-	ds, err := dsfs.LoadDataset(ctx, cafs, ref)
+	ds, err := dsfs.LoadDataset(ctx, fs, ref)
 	if err != nil {
 		return nil, err
 	}

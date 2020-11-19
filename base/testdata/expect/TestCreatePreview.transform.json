@@ -1,0 +1,42 @@
+{
+  "body": [],
+  "bodyPath": "/mem/QmTgK2uYPscacJ9KaBS8tryXRF5mvjuRbubF7h9bG2GgoN",
+  "commit": {
+    "message": "created dataset",
+    "path": "/mem/QmaG3SvnsCV29zbHdaEfPPwKVLM6yE7N8oHV3MPk3iBW9K",
+    "qri": "cm:0",
+    "signature": "OY6QwDGZMI+NGMvuSc6XAtr7qxNqhcsGGcgEfrexORFs/2pF7+Tq8tdGfGNgopBg0fspyyqbTY186vkDdjzaQipXcJCFIvO9Fo6gYj9fEjToWz6+SkXGPIhGIff1FvZTICBq+k1ytOUKODtweCpUGxmhv+00j2DtEHzqD+/Pzxxunr633gnm225nDFzmDapXyLnAVDDrLb5J673hgk6rwWI90NgzpGhA8aWo62dcW5poMXUUsZKagocg/mDWcqnzdn7bwxZX2xez+ayj+Gncmsi/YH42dboJyU3WDPPmHPv9jNqlmsNiGFCUQI9ebKH7I7NSKptxhGzeNKqlY5Olig==",
+    "timestamp": "0001-01-01T00:00:00Z",
+    "title": "created dataset"
+  },
+  "meta": {
+    "path": "/mem/Qmb1kx8uNva2wxgDPKjuSxJz9g3W2RdgABWrrxCEu91ZT4",
+    "qri": "md:0",
+    "title": "example transform"
+  },
+  "name": "now_tf",
+  "path": "/mem/QmSA1ivUHy7QfxTMQJ83ZYyWXuc3iSZxsEH6exBH2hYwrY",
+  "peername": "peer",
+  "readme": {
+    "qri": "rm:0",
+    "scriptBytes": "IyBPaCBoZXkgdGhlcmUhCkknbSBhIHJlYWRtZSEgaGVsbG8hCg==",
+    "scriptPath": "/mem/QmfTcGiaJqhddaEGebrfAWH25YZkpPL7MMTC9swzNnb1FS"
+  },
+  "qri": "ds:0",
+  "structure": {
+    "checksum": "/mem/QmTgK2uYPscacJ9KaBS8tryXRF5mvjuRbubF7h9bG2GgoN",
+    "depth": 1,
+    "format": "json",
+    "length": 2,
+    "path": "/mem/QmTnjHPXVPrT9zAS79i1nWMFYPAPPSWtRVin5Zos1a9bxX",
+    "qri": "st:0",
+    "schema": {
+      "type": "array"
+    }
+  },
+  "stats": "/mem/QmdzwcjZDAwPQJHikR9jnPg7x1jrKGseW2EZvd4s3eZxfG",
+  "transform": {
+    "qri": "tf:0",
+    "scriptPath": "/mem/QmXSce6KDQHLvi4AKDU8z7s4ouynKXKpD6TY7wJgF6reWM"
+  }
+}

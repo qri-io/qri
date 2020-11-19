@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/dsref"
 	qerr "github.com/qri-io/qri/errors"
@@ -51,6 +52,7 @@ func (run *FSITestRunner) MustExec(t *testing.T, cmdText string) string {
 
 // MustExec runs a command, returning combined standard output and standard err
 func (run *FSITestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
+	t.Helper()
 	var shutdown func() <-chan error
 
 	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(context.Background())
@@ -938,7 +940,8 @@ func TestGetPreviousVersionExplicitPath(t *testing.T) {
 
 	// Get meta from another reference
 	output = run.MustExec(t, fmt.Sprintf("qri get meta %s", ref3))
-	expect = `qri: md:0
+	expect = `path: /ipfs/QmWWtJJLzCYWp4KEMb95aPQe7n98y3eyRmQTJvxwqyDXCv
+qri: md:0
 title: different title
 
 `
@@ -1305,7 +1308,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	output = run.MustExecCombinedOutErr(t, "qri diff")
 	expect = `for linked dataset [test_peer_diff_after_change/diff_change]
 
-+1 element. 5 inserts. 4 deletes.
+-23 elements. 5 inserts. 5 deletes.
 
  body: 
    0: 
@@ -1324,6 +1327,7 @@ run ` + "`qri save`" + ` to commit this dataset
    qri: "md:0"
   +title: "hello"
  qri: "ds:0"
+-stats: {"qri":"sa:0","stats":[{"count":2,"frequencies":{},"maxLength":4,"minLength":3,"type":"string"},{"count":2,"frequencies":{},"maxLength":4,"minLength":3,"type":"string"},{"count":2,"histogram":{"bins":null,"frequencies":[]},"max":6,"mean":9,"min":3,"type":"numeric"}]}
  structure: {"format":"csv","formatConfig":{"lazyQuotes":true},"qri":"st:0","schema":{"items":{"items":[{"title":"field_1","type":"string"},{"title":"field_2","type":"string"},{"title":"field_3","type":"integer"}],"type":"array"},"type":"array"}}
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -1471,14 +1475,17 @@ func TestMoveWorkingDirectory(t *testing.T) {
 
 	// The FSIPath has been set to the new directory
 	output = run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer_move_dir
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect := dstest.Template(t, `0 Peername:  test_peer_move_dir
+  ProfileID: {{ .profileID }}
   Name:      move_dir
-  Path:      /ipfs/QmRqiBr4Ubomaikg19VohhTvngqCkVMyPYhpWmHFYCSY9S
+  Path:      {{ .path }}
   FSIPath:   /tmp/new_name_dir
   Published: false
 
-`
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path":      "/ipfs/QmWUUi1u5hM9k3s5vicfXVqJvAtXLB3NQvpChcB86nX7kg",
+	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -1509,14 +1516,18 @@ func TestRemoveWorkingDirectory(t *testing.T) {
 
 	// List datasets, the removed directory is no longer linked
 	output := run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer_remove_dir
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect := dstest.Template(t, `0 Peername:  test_peer_remove_dir
+  ProfileID: {{ .profileID }}
   Name:      remove_dir
-  Path:      /ipfs/QmRqiBr4Ubomaikg19VohhTvngqCkVMyPYhpWmHFYCSY9S
+  Path:      {{ .path }}
   FSIPath:   
   Published: false
 
-`
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path":      "/ipfs/QmWUUi1u5hM9k3s5vicfXVqJvAtXLB3NQvpChcB86nX7kg",
+	})
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}

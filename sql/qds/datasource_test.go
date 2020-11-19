@@ -110,7 +110,7 @@ func (tr *testRunner) MustRun(t *testing.T, query string, cfg *octocfg.Config) s
 
 func (tr *testRunner) loadDatasetFunc() dsref.ParseResolveLoad {
 	pro, _ := tr.repo.Profile()
-	loader := base.NewLocalDatasetLoader(tr.repo)
+	loader := base.NewLocalDatasetLoader(tr.repo.Filesystem())
 	return newParseResolveLoadFunc(pro.Peername, tr.repo, loader)
 }
 

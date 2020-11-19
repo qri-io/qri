@@ -249,10 +249,9 @@ func newTestQriNode(t *testing.T) *p2p.QriNode {
 
 func newTestFS(ctx context.Context) *muxfs.Mux {
 	mux, err := muxfs.New(ctx, []qfs.Config{
+		{Type: "mem"},
 		{Type: "local"},
 		{Type: "http"},
-		{Type: "map"},
-		{Type: "mem"},
 	})
 	if err != nil {
 		panic(err)

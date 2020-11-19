@@ -60,6 +60,7 @@ func (si StatusItem) MarshalJSON() ([]byte, error) {
 
 // Status compares status of the current working directory against the dataset's last version
 func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, err error) {
+	fs := fsi.repo.Filesystem()
 	ref, ok := GetLinkedFilesysRef(dir)
 	if !ok {
 		err = fmt.Errorf("not a linked directory")
@@ -75,7 +76,7 @@ func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, e
 		// no dataset, compare to an empty ds
 		stored = &dataset.Dataset{}
 	} else {
-		if stored, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), vi.Path); err != nil {
+		if stored, err = dsfs.LoadDataset(ctx, fs, vi.Path); err != nil {
 			return nil, err
 		}
 	}
@@ -90,7 +91,7 @@ func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, e
 		return nil, err
 	}
 
-	err = component.ExpandListedComponents(working, fsi.repo.Filesystem())
+	err = component.ExpandListedComponents(working, fs)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +99,7 @@ func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, e
 	// TODO: If in the future we cache mtimes and previous status, we can more lazily read only
 	// some components.
 
-	prevComps := component.ConvertDatasetToComponents(stored, fsi.repo.Filesystem())
+	prevComps := component.ConvertDatasetToComponents(stored, fs)
 	nextComps := working
 	return fsi.CalculateStateTransition(ctx, prevComps, nextComps)
 }
@@ -188,12 +189,13 @@ func (fsi *FSI) CalculateStateTransition(ctx context.Context, prev, next compone
 
 // StatusAtVersion gets changes that happened at a particular version in a dataset's history.
 func (fsi *FSI) StatusAtVersion(ctx context.Context, ref dsref.Ref) (changes []StatusItem, err error) {
+	fs := fsi.repo.Filesystem()
 	if ref.Path == "" {
 		return nil, fmt.Errorf("path is required to determine status at version")
 	}
 
 	var next, prev *dataset.Dataset
-	if next, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), ref.Path); err != nil {
+	if next, err = dsfs.LoadDataset(ctx, fs, ref.Path); err != nil {
 		return nil, err
 	}
 
@@ -201,7 +203,7 @@ func (fsi *FSI) StatusAtVersion(ctx context.Context, ref dsref.Ref) (changes []S
 	if prevPath == "" {
 		prev = &dataset.Dataset{}
 	} else {
-		if prev, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), prevPath); err != nil {
+		if prev, err = dsfs.LoadDataset(ctx, fs, prevPath); err != nil {
 			if strings.Contains(err.Error(), "deadline exceeded") {
 				// TODO (b5) - need to handle this situation gracefully, returning an indication
 				// that the previous version can't be loaded
@@ -214,10 +216,10 @@ func (fsi *FSI) StatusAtVersion(ctx context.Context, ref dsref.Ref) (changes []S
 		}
 	}
 
-	prevCompCollect := component.ConvertDatasetToComponents(prev, fsi.repo.Filesystem())
+	prevCompCollect := component.ConvertDatasetToComponents(prev, fs)
 	prevCompCollect.Base().RemoveSubcomponent("commit")
 	prevCompCollect.DropDerivedValues()
-	nextCompCollect := component.ConvertDatasetToComponents(next, fsi.repo.Filesystem())
+	nextCompCollect := component.ConvertDatasetToComponents(next, fs)
 	nextCompCollect.Base().RemoveSubcomponent("commit")
 	nextCompCollect.DropDerivedValues()
 

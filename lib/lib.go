@@ -20,7 +20,6 @@ import (
 	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/base/dsfs"
@@ -74,7 +73,6 @@ type InstanceOptions struct {
 	statsCache *stats.Cache
 	node       *p2p.QriNode
 	repo       repo.Repo
-	store      cafs.Filestore
 	qfs        *muxfs.Mux
 	regclient  *regclient.Client
 	logbook    *logbook.Book
@@ -290,6 +288,7 @@ func OptEventHandler(handler event.Handler, events ...event.Type) Option {
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
+	log.Debugf("NewInstance repoPath=%s opts=%v", repoPath, opts)
 	ctx, cancel := context.WithCancel(ctx)
 	ok := false
 	defer func() {
@@ -307,9 +306,9 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// attempt to load a base configuration from repoPath
 	needsMigration := false
 	if o.Cfg, err = loadRepoConfig(repoPath); err != nil {
-		log.Error("loading config: %s", err)
+		log.Debugf("loading config: %s", err)
 		if o.Cfg != nil && o.Cfg.Revision != config.CurrentConfigRevision {
-			log.Info("config requires a migration from revision %d to %d", o.Cfg.Revision, config.CurrentConfigRevision)
+			log.Debugf("config requires a migration from revision %d to %d", o.Cfg.Revision, config.CurrentConfigRevision)
 			needsMigration = true
 		}
 		if !needsMigration {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/registry/regserver"
 )
 
@@ -70,14 +71,18 @@ func TestPullAndListRefs(t *testing.T) {
 	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/my_dataset")
 
 	output := run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  test_peer_pull_and_list
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+	expect := dstest.Template(t, `0 Peername:  test_peer_pull_and_list
+  ProfileID: {{ .profileID }}
   Name:      my_dataset
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      {{ .path }}
   FSIPath:   
   Published: false
 
-`
+`, map[string]string{
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path":      "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+	})
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -86,20 +91,26 @@ func TestPullAndListRefs(t *testing.T) {
 	run.MustExec(t, "qri pull other_peer/their_dataset")
 
 	output = run.MustExec(t, "qri list --raw")
-	expect = `0 Peername:  other_peer
-  ProfileID: QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
+	expect = dstest.Template(t, `0 Peername:  other_peer
+  ProfileID: {{ .profileID1 }}
   Name:      their_dataset
-  Path:      /ipfs/QmQ5292CNJFPsTkodSSwEqgjRdrvBB38k1ZdiUJxvahGgE
+  Path:      {{ .path1 }}
   FSIPath:   
   Published: false
 1 Peername:  test_peer_pull_and_list
-  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  ProfileID: {{ .profileID2 }}
   Name:      my_dataset
-  Path:      /ipfs/QmNX9ZKXtdskpYSQ5spd1qvqB2CPoWfJbdAcWoFndintrF
+  Path:      {{ .path2 }}
   FSIPath:   
   Published: false
 
-`
+`, map[string]string{
+		"profileID1": "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
+		"profileID2": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"path1":      "/ipfs/QmTa8HQ2kisP2enbiyUw3ordSA1WV3ZBQVNUCFBusHENW4",
+		"path2":      "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+	})
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -114,28 +125,38 @@ func TestPullAndGet(t *testing.T) {
 	run.MustExec(t, "qri pull other_peer/their_dataset")
 
 	output := run.MustExec(t, "qri get other_peer/their_dataset")
-	expect := `bodyPath: /ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb
+	expect := dstest.Template(t, `bodyPath: {{ .bodyPath }}
 commit:
   message: created dataset
-  path: /ipfs/QmUEtKXFs6Eaz7wxUVpN9riULsnj1hXAoBeHRT79yWL7ze
+  path: {{ .commitPath }}
   qri: cm:0
-  signature: ZHoSiqRVGLBKmkRcGaTuaiUGvbaS1Yu+13KtIlYFOnBzDAzZ/pfD1iAykEYp/vMCtKLhFb8s6P7Bnggf2erZQSX5Vd1sQBLKXt7F4fAZ0tS7J5bdalZh4chc6WjvI4VSnk/H4k/ldl5KSYvP3rN7SFY7S/X8zKkirr+aRQRLW+LqcMbYP1h27JsojIM94NIzBBwUkTYLXMaNForx2SxQamWD6Rkcy5Uz82hTjrNVnczJXeCrMR1zyi+LHThoaLDuYfUxIgkprJDrjb0x4fGM3M5DbfuSKlH1iOrXuxzJXDedmEc6Eb48dqgZ/6bpQ8Ij7rc3PtJOu6izLv6MZ3s57g==
+  signature: {{ .signature }}
   timestamp: "2001-01-01T01:01:01.000000001Z"
   title: created dataset
 name: their_dataset
-path: /ipfs/QmW8PjK4a3gJgbFr7mHzseCYaPLmhpfphjv5cgXFFDAMtk
+path: {{ .path }}
 peername: other_peer
 qri: ds:0
+stats: {{ .statsPath }}
 structure:
-  checksum: QmSvPd3sHK7iWgZuW47fyLy4CaZQe2DwxvRhrJ39VpBVMK
+  checksum: {{ .bodyPath }}
   depth: 1
   format: json
   length: 2
+  path: {{ .structurePath }}
   qri: st:0
   schema:
     type: object
 
-`
+`, map[string]string{
+		"signature":     "gySMr/FiT+kz0X2ODXCE5APx/BvPvalw4xlbS8TtSWssEoHlAOdrUNKUfU7j6rjyq7sFJ7hrbIVOn87fx+7arYCvrvikRawd2anzIvIruxfBymS6A0HtAGAOEAvpn3XbDykEjqaomTXS1CyR6wQkwNEgbELCIqwda9UV3ulhUtHMrAyMxvnq3NG6J9wyFB13u133aDVEojJ82mEF5DBFB+VBVbw90S4b/5AxLEUFSt/BCtE1O0lKYCt2x0HK+1fhl85oe3fpqLhLk96qCAR/Ngv4bt0E9NjGi2ltuji8gaDICKe5KRaSXjXlMkwbUq6sXEKgqzfxHXoIAUZnZNwnmg==",
+		"bodyPath":      "/ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb",
+		"commitPath":    "/ipfs/QmTTPd47BD4EGpCpuvRwTRqDRF84iAuJmfUUGcfEBuF7he",
+		"path":          "/ipfs/Qme666Kphnyw8Sf9sjJaEUp1gQ9PodDyZVW878b6pHny9n",
+		"structurePath": "/ipfs/QmWoYVZWDdiNauzeP171hKSdo3p2bFaqDcW6cppb9QugUE",
+		"statsPath":     "/ipfs/QmQQkQF2KNBZfFiX33jJ9hu6ivfoHrtgcwMRAezS4dcA7c",
+	})
+
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -154,14 +175,17 @@ func TestPullWithCheckout(t *testing.T) {
 
 	// List references, the dataset should be there, and should be checked out
 	actual := run.MustExec(t, "qri list --raw")
-	expect := `0 Peername:  other_peer
-  ProfileID: QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
+	expect := dstest.Template(t, `0 Peername:  other_peer
+  ProfileID: {{ .profileID }}
   Name:      their_dataset
-  Path:      /ipfs/QmW8PjK4a3gJgbFr7mHzseCYaPLmhpfphjv5cgXFFDAMtk
+  Path:      {{ .path1 }}
   FSIPath:   /tmp/workdir
   Published: false
 
-`
+`, map[string]string{
+		"profileID": "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
+		"path1":     "/ipfs/Qme666Kphnyw8Sf9sjJaEUp1gQ9PodDyZVW878b6pHny9n",
+	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}

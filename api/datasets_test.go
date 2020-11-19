@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 )
@@ -461,21 +463,14 @@ func TestDatasetGet(t *testing.T) {
 	}
 	run.SaveDataset(&ds, "testdata/cities/data.csv")
 
-	// TODO(dustmop): Would be nice to have a "fuzzy" json comparison, either as a third-party
-	// library, or something we develop, that would make tests like this easier to read and
-	// reason about. There's certain values in this json that we really care about (format),
-	// and then there's some we don't care about at all (signature).
-
 	actualStatusCode, actualBody := APICall("/get/peer/test_ds", dsHandler.GetHandler)
-	expectBody := `{"data":{"peername":"peer","name":"test_ds","path":"/map/QmRvuuXS4cPeZnxMMaXKaqMjEa3tunqZd6r3c4HEH2h3KN","dataset":{"bodyPath":"/map/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4","commit":{"author":{"id":"QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"},"message":"created dataset from data.csv","path":"/map/QmbsySjGEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6","qri":"cm:0","signature":"TzHbqw7oRcqoGYhTraiJ9fSGzUUoHA653jNYGsBgbkUbBUkTh/ymTHZSfhwIKQlAqfwiOqB2rbmA4hu2MAYVxNRLfPlUYAr38juyTosI6cljYdzLfNk2L788iFSQcYnJ9CgiHYQlhmpUjh3irFY1nDIuaiPL1vDxH5yGsuI3qiD9DVvu2P6f6GSGMkQzpSv3jDWQbqo5LyyU7gaJBIaJW6Q9vKSB/mRRjDfHtOP2pMH/pf17q35+HaGHd+XEg/6a6X3IWwjsRros029lH6SDCbUaPXB6H3Cy5gRLoZp7K3mU026JucogrVHqRsZmVCx+vaVJ/MCpQhfYg6F8m8z2fA==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"created dataset from data.csv"},"meta":{"qri":"md:0","title":"title one"},"name":"test_ds","path":"/map/QmRvuuXS4cPeZnxMMaXKaqMjEa3tunqZd6r3c4HEH2h3KN","peername":"peer","qri":"ds:0","structure":{"checksum":"QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4","depth":2,"entries":5,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":154,"qri":"st:0","schema":{"items":{"items":[{"title":"city","type":"string"},{"title":"pop","type":"integer"},{"title":"avg_age","type":"number"},{"title":"in_usa","type":"boolean"}],"type":"array"},"type":"array"}}},"published":false},"meta":{"code":200}}`
 	assertStatusCode(t, "get dataset", actualStatusCode, 200)
-	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
-		t.Errorf("output mismatch (-want +got):\n%s", diff)
-	}
+	got := datasetJSONResponse(t, actualBody)
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestDatasetGet.test_ds.json", got)
 
 	// Get csv body using "body.csv" suffix
 	actualStatusCode, actualBody = APICall("/get/peer/test_ds/body.csv", dsHandler.GetHandler)
-	expectBody = "city,pop,avg_age,in_usa\ntoronto,40000000,55.5,false\nnew york,8500000,44.4,true\nchicago,300000,44.4,true\nchatham,35000,65.25,true\nraleigh,250000,50.65,true\n"
+	expectBody := "city,pop,avg_age,in_usa\ntoronto,40000000,55.5,false\nnew york,8500000,44.4,true\nchicago,300000,44.4,true\nchatham,35000,65.25,true\nraleigh,250000,50.65,true\n"
 	assertStatusCode(t, "get body.csv using suffix", actualStatusCode, 200)
 	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
 		t.Errorf("output mismatch (-want +got):\n%s", diff)
@@ -497,12 +492,12 @@ func TestDatasetGet(t *testing.T) {
 	assertStatusCode(t, "get meta component", actualStatusCode, 200)
 
 	// Can get at an ipfs version
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/map/QmbsySjGEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler)
-	assertStatusCode(t, "get at ipfs version", actualStatusCode, 200)
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmfEv94F7QAhZB5a9sRjMWPrhDjBwcUuWcJrYWEAjvs4AW", dsHandler.GetHandler)
+	assertStatusCode(t, "get at content-addressed version", actualStatusCode, 200)
 
 	// Error 404 if ipfs version doesn't exist
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/map/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler)
-	assertStatusCode(t, "get missing ipfs", actualStatusCode, 404)
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler)
+	assertStatusCode(t, "get missing content-addressed version", actualStatusCode, 404)
 
 	// Error 400 due to format=csv without download=true
 	actualStatusCode, _ = APICall("/get/peer/test_ds?format=csv", dsHandler.GetHandler)
@@ -526,7 +521,19 @@ func TestDatasetGet(t *testing.T) {
 }
 
 func assertStatusCode(t *testing.T, description string, actualStatusCode, expectStatusCode int) {
+	t.Helper()
 	if expectStatusCode != actualStatusCode {
 		t.Errorf("%s: expected status code %d, got %d", description, expectStatusCode, actualStatusCode)
 	}
+}
+
+func datasetJSONResponse(t *testing.T, body string) *dataset.Dataset {
+	t.Helper()
+	res := struct {
+		Data *dataset.Dataset
+	}{}
+	if err := json.Unmarshal([]byte(body), &res); err != nil {
+		t.Fatal(err)
+	}
+	return res.Data
 }
