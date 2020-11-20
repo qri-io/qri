@@ -23,13 +23,13 @@ func TestNewManifest(t *testing.T) {
 	expect := &dag.Manifest{
 		Links: [][2]int{{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}},
 		Nodes: []string{
-			"QmRDrKp1Zwea6Jz27n3oh8DSDvpJL1ChKEpDTLMwPD8wYk",
+			"QmXrEEWgrTgLjDG4PyJZFmeGH8gvf49Hi6JVC2r4L1JJbW",
+			"QmPtfTWctksdUXfXCmpQf7pF8z5xUNAYrurQxY5LRsKrX1",
+			"QmQYhY2RaVLn36MrjLQG9XJk6QQMHkSvvPUXZ9J9MDf6Ur",
 			"QmTgqZXtLnU2nRU4yMaQKBiMPesavuDVCfBWJgDvbQZ2xm",
-			"QmVNdgaiX14GfAS632ABb1MaYYFySYcMpPYwX3BTsDWuGD",
 			"QmWVxUKnBmbiXai1Wgu6SuMzyZwYRqjt5TXL8xxghN5hWL",
-			"QmZoy2nWLqWLcecJ8geRuyxUnY36mEdXheBVvf6cd4JMK9",
 			"Qma3bmcJhAdKeEB9dKJBfChVb2LvcNfWvqnh7hqbJR7aLZ",
-			"Qmd9vW75BLNKFLq3tTeuXmA4KWPG4D2sprdBSrfVWMLU26",
+			"QmaeD2dPHLJsM2pyTGMmbuSAj26rHK8DvoSuY3s2LFutFe",
 			"QmdzHjr5GdFGCvo9dCqdhUpqPxA6x5yz8G1cErb7q5MvTP",
 		},
 	}
@@ -84,23 +84,23 @@ func TestNewDAGInfo(t *testing.T) {
 
 	expect := &dag.Info{
 		Labels: map[string]int{
-			"bd": 3,
-			"cm": 2,
+			"bd": 4,
+			"cm": 1,
 			"md": 5,
-			"st": 1,
-			"sa": 6,
+			"st": 3,
+			"sa": 2,
 		},
-		Sizes: []uint64{1689, 166, 0x01d8, 0x0d, 428, 0x36, 136, 39},
+		Sizes: []uint64{1710, 472, 157, 166, 13, 54, 428, 39},
 		Manifest: &dag.Manifest{
 			Links: [][2]int{{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}},
 			Nodes: []string{
-				"QmRDrKp1Zwea6Jz27n3oh8DSDvpJL1ChKEpDTLMwPD8wYk",
+				"QmXrEEWgrTgLjDG4PyJZFmeGH8gvf49Hi6JVC2r4L1JJbW",
+				"QmPtfTWctksdUXfXCmpQf7pF8z5xUNAYrurQxY5LRsKrX1",
+				"QmQYhY2RaVLn36MrjLQG9XJk6QQMHkSvvPUXZ9J9MDf6Ur",
 				"QmTgqZXtLnU2nRU4yMaQKBiMPesavuDVCfBWJgDvbQZ2xm",
-				"QmVNdgaiX14GfAS632ABb1MaYYFySYcMpPYwX3BTsDWuGD",
 				"QmWVxUKnBmbiXai1Wgu6SuMzyZwYRqjt5TXL8xxghN5hWL",
-				"QmZoy2nWLqWLcecJ8geRuyxUnY36mEdXheBVvf6cd4JMK9",
 				"Qma3bmcJhAdKeEB9dKJBfChVb2LvcNfWvqnh7hqbJR7aLZ",
-				"Qmd9vW75BLNKFLq3tTeuXmA4KWPG4D2sprdBSrfVWMLU26",
+				"QmaeD2dPHLJsM2pyTGMmbuSAj26rHK8DvoSuY3s2LFutFe",
 				"QmdzHjr5GdFGCvo9dCqdhUpqPxA6x5yz8G1cErb7q5MvTP",
 			},
 		},

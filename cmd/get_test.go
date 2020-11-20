@@ -95,16 +95,67 @@ stats:
   qri: sa:0
   stats:
   - count: 18
-    frequencies: {}
+    frequencies:
+      'Avatar ': 1
+      'Avengers: Age of Ultron ': 1
+      'Batman v Superman: Dawn of Justice ': 1
+      'Harry Potter and the Half-Blood Prince ': 1
+      'John Carter ': 1
+      'Man of Steel ': 1
+      'Pirates of the Caribbean: At World''s End ': 1
+      'Pirates of the Caribbean: Dead Man''s Chest ': 1
+      'Quantum of Solace ': 1
+      'Spectre ': 1
+      'Spider-Man 3 ': 1
+      'Star Wars: Episode VII - The Force Awakens             ': 1
+      'Superman Returns ': 1
+      'Tangled ': 1
+      'The Avengers ': 1
+      'The Chronicles of Narnia: Prince Caspian ': 1
+      'The Dark Knight Rises ': 1
+      'The Lone Ranger ': 1
     maxLength: 55
     minLength: 7
     type: string
+    unique: 18
   - count: 17
     histogram:
-      bins: null
-      frequencies: []
+      bins:
+      - 100
+      - 106
+      - 132
+      - 141
+      - 143
+      - 148
+      - 150
+      - 151
+      - 153
+      - 156
+      - 164
+      - 169
+      - 173
+      - 178
+      - 183
+      - 184
+      frequencies:
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 2
+      - 1
+      - 1
+      - 1
+      - 1
+      - 2
+      - 1
+      - 1
+      - 1
     max: 183
-    mean: 2566
+    mean: 150.94117647058823
+    median: 151
     min: 100
     type: numeric
 structure:
@@ -150,16 +201,41 @@ stats:
   qri: sa:0
   stats:
   - count: 8
-    frequencies: {}
+    frequencies:
+      'Avatar ': 1
+      'John Carter ': 1
+      'Pirates of the Caribbean: At World''s End ': 1
+      'Spectre ': 1
+      'Spider-Man 3 ': 1
+      'Star Wars: Episode VII - The Force Awakens             ': 1
+      'Tangled ': 1
+      'The Dark Knight Rises ': 1
     maxLength: 55
     minLength: 7
     type: string
+    unique: 8
   - count: 7
     histogram:
-      bins: null
-      frequencies: []
+      bins:
+      - 100
+      - 132
+      - 148
+      - 156
+      - 164
+      - 169
+      - 178
+      - 179
+      frequencies:
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
     max: 178
-    mean: 1047
+    mean: 149.57142857142858
+    median: 156
     min: 100
     type: numeric
 structure:
@@ -245,21 +321,21 @@ var (
 	currHeadRepoData = map[string]string{
 		"profileID":     "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 		"bodyPath":      "/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB",
-		"commitPath":    "/ipfs/Qmejjpn1mrhQVxZqppoumJ9C2ED5pyxSZFvcqrHfVVcJtU",
-		"signature":     "iHj80RtzSKXII2gLS4eyheTzu10jo/C/b6RJgzqJ9fuhXMz4NrZ+vN1KM6aaC1Xogv57lPd6w1pG3oa7K2IcSHpmcbQedT4FN2TBgYzGE3w7JkXqSKG19q1rNQdFFRnBzdUWcPlVoLgTabwe79A7DUEPGTmMrtrRrjig/eXlAe+90uZNHp+SORpqRgu6GzqFWs+sy4NXBpSiIE2KsP8XIW9V/HdTEWkgDAaFJBZN4TfDkYFvimjadIYOx98miu7Jvo6dmcsdgxgykTOMiRiauL5fEb+XTgkLaUj60/i7gRmdvEo5Vhp8DPOVYBldqKQDF20cdDQScBo/WA/RYY41qg==",
-		"path":          "/ipfs/QmdnKwHbQWD9QsfSyWQsZebBZQKKa5uKrxA5TAXHM1tvxL",
-		"previousPath":  "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
-		"statsPath":     "/ipfs/QmXyYhG5SvTyazEd8iEjxJ7DpzKm86WwWsYyL9xMjXpjQj",
+		"commitPath":    "/ipfs/QmYzMo7fTeBcEgxvpzaPUQ7H8uNK4DoLsrctctXKtWWKgk",
+		"signature":     "RpfICcCxUhtdKQsrM27V9hInmJlz/QscyFvPHLtCD+AWGkIJ+QYxyd9gaZ81N2VsADRTo1gFs1/yho9Nfp1HL+3+BiSrTtsirkyQahp6xrbDIeDsuxE0r372KSvk6isx8WhBEG26xs/s7kc8/3z+s3+9c8loVBuiwTsHI2WfMv7P6613+CQYLTYPaywus+aQxFUFikV3q6vAG6W7aydPLbgfLgop4swtfGfRcmqgWZ54Dm9wDXUjGLPAGCZ0qB8a6zYBmTSsy10p5F0E3L8gJmmFjRp8qNRZimnhJnrtHKs8ELSfftqBJ3ZhrIFGCp1OQdFfZudmx9e5kYtwzqOv9g==",
+		"path":          "/ipfs/QmdQzhLq9gJvM6bddihAnHqAyNHhECNoS3Kh87cSDYxGqM",
+		"previousPath":  "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
+		"statsPath":     "/ipfs/QmeTrXTwwTZLLxqwfdvAjbvSqzrWkkUKNefoS5GAsdcFXZ",
 		"structurePath": "/ipfs/QmcAfMfZ7qTNiCfQxnRJyDxEDM7tqDstvpgviT73PFbabZ",
 	}
 	prevHeadRepoData = map[string]string{
 		"profileID":     "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 		"bodyPath":      "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
-		"commitPath":    "/ipfs/QmYWpHLZYcnjUr2NA9BVypgb7wJnQJAriKT6EV32AG69dA",
-		"signature":     "Nid1+5YRJQENq3CJDD7CXqG2bekV6hEZkE/hI93TZs4Q1xvoCG8FLGO4s6VB7yKEHnBsbLhTl654OfzF6AF1qWvV2mzgbSgRwxSIUEuP4SwvlH/9K6AvqIZwaihcAeACsXd5bgzzBz8P3CIkC9idGEiLr+xXn5EBw8VFoLtGTW+p/Ie78CYzGY3PnW5llG79qahWZJOZQJfqIk/TDfpgJFcVHfAj0GmefshTtwPfV5IHwX2dQFAuGMxyWGdcvuxZHC4kbcbnQ5Htymsr4eKVI/FRvp+T+HnRwhtoc3mo8nWi01Q5p+S9ABxHqcCSoyNWJd2VlfZknOTvcgc/SFiQOw==",
-		"path":          "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
-		"previousPath":  "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
-		"statsPath":     "/ipfs/QmXHqvGRzaDUTbiKzBezR43mchpwoSE3xuf8HnfVkdfkKk",
+		"commitPath":    "/ipfs/QmbT3s3crr6RuzSxKiLXvPr21b2rQDJGyfXybfcepKycFx",
+		"signature":     "PKlAK2BwACWfYqvMN9meIZsA7Mr+KWU6QhC/VXKHdGvn1+AtchelSECiIrH9938yR55Hd6eIFGWwgM9i7EIRCenOdcvi10GOT/BZZ9iq0Z9Rd7U6Ey8xTh7X3wnlk1QAodlKjAkDADWwN9hZLKExtaoe3gqLeZoXYX4xwpOKd9GRsn49P4oWkiQTyT8TGTvmExnkkElBUMk11nroXZdzJ6ulAYX8k3qb8o5NCZYaJGTKnHqPKL/TPdUPdl4waxG3XaYhynjVwcla0+mG+5ndwDMn240CXjp00LRguT3vAM5Da/WUJF+SFrOFTRU9DrnVLsDJ6rLbccR8eHCX87QdbA==",
+		"path":          "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
+		"previousPath":  "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
+		"statsPath":     "/ipfs/QmP3JJ7TGyKU7HnooajjfuEvFxpVigqcZQtajpsboPxeBz",
 		"structurePath": "/ipfs/QmSxuAVwd9pPf9c7WMu1gjUsHSLBLRuxQcFjyu9mfsA2TQ",
 	}
 )

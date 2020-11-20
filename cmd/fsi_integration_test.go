@@ -1308,7 +1308,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	output = run.MustExecCombinedOutErr(t, "qri diff")
 	expect = `for linked dataset [test_peer_diff_after_change/diff_change]
 
--23 elements. 5 inserts. 5 deletes.
+-35 elements. 5 inserts. 5 deletes.
 
  body: 
    0: 
@@ -1327,7 +1327,7 @@ run ` + "`qri save`" + ` to commit this dataset
    qri: "md:0"
   +title: "hello"
  qri: "ds:0"
--stats: {"qri":"sa:0","stats":[{"count":2,"frequencies":{},"maxLength":4,"minLength":3,"type":"string"},{"count":2,"frequencies":{},"maxLength":4,"minLength":3,"type":"string"},{"count":2,"histogram":{"bins":null,"frequencies":[]},"max":6,"mean":9,"min":3,"type":"numeric"}]}
+-stats: {"qri":"sa:0","stats":[{"count":2,"frequencies":{"four":1,"one":1},"maxLength":4,"minLength":3,"type":"string","unique":2},{"count":2,"frequencies":{"five":1,"two":1},"maxLength":4,"minLength":3,"type":"string","unique":2},{"count":2,"histogram":{"bins":[3,6,7],"frequencies":[1,1]},"max":6,"mean":4.5,"median":6,"min":3,"type":"numeric"}]}
  structure: {"format":"csv","formatConfig":{"lazyQuotes":true},"qri":"st:0","schema":{"items":{"items":[{"title":"field_1","type":"string"},{"title":"field_2","type":"string"},{"title":"field_3","type":"integer"}],"type":"array"},"type":"array"}}
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -1484,7 +1484,7 @@ func TestMoveWorkingDirectory(t *testing.T) {
 
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmWUUi1u5hM9k3s5vicfXVqJvAtXLB3NQvpChcB86nX7kg",
+		"path":      "/ipfs/QmV5v6CLeeTVDyqnsSauLw8mgtQLgVVHw53g5EHeAmQuGs",
 	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
@@ -1525,7 +1525,7 @@ func TestRemoveWorkingDirectory(t *testing.T) {
 
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmWUUi1u5hM9k3s5vicfXVqJvAtXLB3NQvpChcB86nX7kg",
+		"path":      "/ipfs/QmV5v6CLeeTVDyqnsSauLw8mgtQLgVVHw53g5EHeAmQuGs",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {

@@ -169,8 +169,8 @@ ref "peer/cities@{{ .ProfileID }}{{ .Path1 }}" should NOT exist in the store, bu
 ref "peer/cities@{{ .ProfileID }}{{ .Path2 }}" should NOT exist in the store, but does`,
 		map[string]string{
 			"ProfileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-			"Path1":     "/mem/QmNmQWq9Mod4fbnVUPzmpKcXcAeaGz4obCdFXuDcaerkAn",
-			"Path2":     "/mem/QmY3s2TpcbZo3wnbt7w2BwiVQkkv8S8omFPUwvzLe4Nctk",
+			"Path1":     "/mem/Qmdki7aFGzimPynhNigPF1GnRnWp9k4ryop91D7JkxZ3pW",
+			"Path2":     "/mem/QmdAcSMzPBhZw8ebxfDqBaHZYLFS2X5J5QoAaKGHdiKiwE",
 		},
 	)
 	if diff := cmp.Diff(sExpected, s); diff != "" {

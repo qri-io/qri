@@ -288,7 +288,7 @@ func (h *DatasetHandlers) replyWithGetResponse(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if params.Selector == "body" {
+	if params.Selector != "" {
 		page := util.PageFromRequest(r)
 		dataResponse := DataResponse{
 			Path: result.Dataset.BodyPath,

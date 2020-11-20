@@ -2,9 +2,9 @@
   "bodyPath": "/mem/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
   "commit": {
     "message": "created dataset",
-    "path": "/mem/QmfZ7hswWxDjCivijUi9QkmNcp6BtXdjpHkteCFzdcSxQj",
+    "path": "/mem/QmW2w8mjpz7bjFbbvvV7PqRmSMrB1Ybt2vWfKdtdUZbq8W",
     "qri": "cm:0",
-    "signature": "eH4B8CUlMlDikOw1kIHvYRGVF0Auc7PoGiUJV0vStsnYNzu9RVsI7aaODA0cAh/S5q3kc9kiid/xDfFxbpnNShj5r3RyvuFwiSZsVY+K1zNZ4FdhItv2evJs47ZOu/MuQl+cHDlzt4sbwfd4JouMNzE0W1D/1YiPnPOnaCar3dQ5mP0NAqmxSzf3w2DIa2k6/unUGRO374R4acmqiAB4tesErJB3njXRZfgjaAD3THUBB1rG+r3GROzb+r9UiZyY7aOLO55MImSJX2FI7/YqjNboZOnh2QSLKE502QsvsgackZRr95/l7nKIVx1AsslVEDU77mdEOKlCo84qmi+UPQ==",
+    "signature": "EKuBms9Tw8dt+zslGU7w7TPjaLs6sqF+hSWhZuSm5g6jU/CYc44gH3zLpOXNlSzwv5FLramoBHkcmlFCjmjbZgAIXOwcPeQ58mrlG5KFde0yIK883xMlr+7C7wPpf6RinMFs2Y3NBhOJcuObDW1bSPENRaCJ0bBrGTH42mxkQr5j2KpkHHr+PEhWOnN63r79eeI9YtDce7WMOUiUKoBvSIRkQ3M9l3RxmqQ0bQnyZUq1J+hsd171mnDbEaMU1Ii0ehl6An5EkiwWAho/1wlMcHe3fuKzoglVR7tQuY4BceQ7IX7yj5cAqdBLJToftchscTpo6fciiFxNpAml2PUF6A==",
     "timestamp": "2001-01-01T01:01:01.000000001Z",
     "title": "initial commit"
   },
@@ -51,35 +51,68 @@
     }
   },
   "stats": {
-    "path": "/mem/QmdQz7LYFDChz3SuWjKaDEkVRymmJN1XGXgpXr6rRbMnK6",
+    "path": "/mem/QmZjVHiq1brwXQRKMDcc2TuE8UHhQCyTa3WMWnrYXJRUUG",
     "qri": "sa:0",
     "stats": [
       {
         "count": 5,
-        "frequencies": {},
+        "frequencies": {
+          "chatham": 1,
+          "chicago": 1,
+          "new york": 1,
+          "raleigh": 1,
+          "toronto": 1
+        },
         "maxLength": 8,
         "minLength": 7,
-        "type": "string"
+        "type": "string",
+        "unique": 5
       },
       {
         "count": 5,
         "histogram": {
-          "bins": null,
-          "frequencies": []
+          "bins": [
+            35000,
+            250000,
+            300000,
+            8500000,
+            40000000,
+            40000001
+          ],
+          "frequencies": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
         },
         "max": 40000000,
-        "mean": 49085000,
+        "mean": 9817000,
+        "median": 300000,
         "min": 35000,
         "type": "numeric"
       },
       {
         "count": 5,
         "histogram": {
-          "bins": null,
-          "frequencies": []
+          "bins": [
+            44.4,
+            50.65,
+            55.5,
+            65.25,
+            66.25
+          ],
+          "frequencies": [
+            2,
+            1,
+            1,
+            1
+          ]
         },
         "max": 65.25,
-        "mean": 260.2,
+        "mean": 52.04,
+        "median": 50.65,
         "min": 44.4,
         "type": "numeric"
       },

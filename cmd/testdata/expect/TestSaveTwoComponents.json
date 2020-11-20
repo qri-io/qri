@@ -5,9 +5,9 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.lazyQuotes\n\tupdated schema.items.items.0.title\nbody:\n\tadded row /",
-    "path": "/ipfs/QmRSs1EmjLzdknnrJ1EG1Nv4T7qTS4AR7aV2s9HiEHpRBk",
+    "path": "/ipfs/QmVt2hxUzuRyiqzuA8nQX5iepxZYVucNHpPSG76EDzz8tz",
     "qri": "cm:0",
-    "signature": "Zx+BuVPLy42n4UAAvq1Tfo04PFKFlQecj4AykCivFnTuXJW7aoPjTyo7P7hG690tLdN3inatTKkJHI6CqTakKEaqIE0eBcbtsOmWuM89xXrUEnXkzmVbivfqP5K9HGi+2aM/2XzJs9gkTyYRfVXFc3vQx0IiUa8dcLaSWBmR/WonJoAwhWmKYKuBg8ZQcUw8XaHXHkCFTXN1v+Uv0+G7R6R8SeGW3CGO6/ljhjMcmNt/OxP6TrhyHe8dDbsPQAX8rHh5lVQZEQ314SOLouCpzmd6rnYxmn2KI5ujb+VMVTy4zfvyy2OWgtVzOEXa8O2Wafb9/eL91rc7H+Z9G+rQnQ==",
+    "signature": "BklAS6xs3PXgnGn1hQQE2XxnvGcnPWJd1XH9Su2XNUwqKAMGwqqyOUk8VYC3RtYfGcILfnDJs/6NLqwCcAukNTpOaFu3UDbxA1lIsTtEaT9TSBwGg6IRaO2RG/UOn9u2bSImyI5FuPdOUhrqVq6/x8pRNy6wbiqNVKkQnKmrB7WgTr+CJCE5C10j92E6/iiGkHlfctWpxZJWWrsaxsW43oj0dvFE3W2sc7WYykjHz5ZROYOtCKXkAo5sVrUduRGIqDz4zIZ9qKqw3jz4TOt0PGQzEXUkQ6CTZjt3rCtSYVY8hl+F/G8jtC+hmPy3olgPdFYbAsb+WFdIZB4TmsM24g==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
     "title": "updated meta, structure, and body"
   },
@@ -16,8 +16,8 @@
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmZoUS7cJhxRaN2VuL7xCAKF7TqpSNgdAT57ytXmCtr2KF",
-  "previousPath": "/ipfs/QmPY4xPQSSGSYZny4QLPn574VdeP84L7Nf3oCY1DxYAv5n",
+  "path": "/ipfs/QmeD5mkDMJtMXqRUfWwETMwA7sMZbFzyHgXc14UK6g5Hn7",
+  "previousPath": "/ipfs/QmNeH3bPvUdir2vRH57TiiSmDKmsEPpdfV7bgqfUXZKa6v",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
@@ -49,24 +49,52 @@
     }
   },
   "stats": {
-    "path": "/ipfs/QmXHqvGRzaDUTbiKzBezR43mchpwoSE3xuf8HnfVkdfkKk",
+    "path": "/ipfs/QmP3JJ7TGyKU7HnooajjfuEvFxpVigqcZQtajpsboPxeBz",
     "qri": "sa:0",
     "stats": [
       {
         "count": 8,
-        "frequencies": {},
+        "frequencies": {
+          "Avatar ": 1,
+          "John Carter ": 1,
+          "Pirates of the Caribbean: At World's End ": 1,
+          "Spectre ": 1,
+          "Spider-Man 3 ": 1,
+          "Star Wars: Episode VII - The Force Awakens             ": 1,
+          "Tangled ": 1,
+          "The Dark Knight Rises ": 1
+        },
         "maxLength": 55,
         "minLength": 7,
-        "type": "string"
+        "type": "string",
+        "unique": 8
       },
       {
         "count": 7,
         "histogram": {
-          "bins": null,
-          "frequencies": []
+          "bins": [
+            100,
+            132,
+            148,
+            156,
+            164,
+            169,
+            178,
+            179
+          ],
+          "frequencies": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
         },
         "max": 178,
-        "mean": 1047,
+        "mean": 149.57142857142858,
+        "median": 156,
         "min": 100,
         "type": "numeric"
       }

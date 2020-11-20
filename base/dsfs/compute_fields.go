@@ -269,6 +269,10 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 		cff.ds.Structure.Depth = depth + 1 // need to add one for the original enclosure
 		cff.ds.Structure.Length = cff.bytesRead
 
+		// as we're using a manual setup on the EntryReader we also need
+		// to manually close the accumulator to finalize results before write
+		cff.acc.Close()
+
 		// If the body exists and is small enough, deserialize it and assign it
 		if cff.diffMessageBuf != nil {
 			if err := cff.diffMessageBuf.Close(); err != nil {

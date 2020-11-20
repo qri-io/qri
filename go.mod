@@ -41,7 +41,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pkg/errors v0.9.1
 	github.com/qri-io/dag v0.2.2-0.20201110155527-8fad5beb70f5
-	github.com/qri-io/dataset v0.2.1-0.20201119141937-881ac5928154
+	github.com/qri-io/dataset v0.2.1-0.20201120145927-556268c0b08c
 	github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
