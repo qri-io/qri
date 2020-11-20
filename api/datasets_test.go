@@ -530,7 +530,7 @@ func assertStatusCode(t *testing.T, description string, actualStatusCode, expect
 func datasetJSONResponse(t *testing.T, body string) *dataset.Dataset {
 	t.Helper()
 	res := struct {
-		Data struct{
+		Data struct {
 			Dataset *dataset.Dataset
 		}
 	}{}
