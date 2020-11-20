@@ -530,10 +530,12 @@ func assertStatusCode(t *testing.T, description string, actualStatusCode, expect
 func datasetJSONResponse(t *testing.T, body string) *dataset.Dataset {
 	t.Helper()
 	res := struct {
-		Data *dataset.Dataset
+		Data struct{
+			Dataset *dataset.Dataset
+		}
 	}{}
 	if err := json.Unmarshal([]byte(body), &res); err != nil {
 		t.Fatal(err)
 	}
-	return res.Data
+	return res.Data.Dataset
 }

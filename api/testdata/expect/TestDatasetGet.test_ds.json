@@ -1,6 +1,101 @@
 {
+  "bodyPath": "/mem/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
+  "commit": {
+    "author": {
+      "id": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"
+    },
+    "message": "created dataset from data.csv",
+    "path": "/mem/QmdG6Jyf8CqSbvux4eCYQNHh8ftLavjY2WbFDt1yDKGpLs",
+    "qri": "cm:0",
+    "signature": "nvYDzyR4DWNk1XXGDP7imuw8WfDOgoTQfjfcKD1+u5zmuRjfgIGHb6V9xAk+awQUZ5h16wjNcDnUJ/5VtjVodsOcDuKXMJVRZ8ZD7Mh4RxaB7XPG1ZqHqfcCrF4ehlsizNt6kIShTLlJHqPbnVHlt1Z6bt501GFeU0Ddw+T9R5b6Onw8ouBxEJyjvkGhX3Bf1MZNB8CavQt+lRYoLa0i2fv/iqi6OD+5WY+Wb5KKH58RWQu57uj83ZpWqMNmlwHIDvO1wNNjwJAr29LV2IEbrKC5Q6qj63KLi3akaXUp32pEbOGOingds+xecabDT7SETI4wkYwxFSgaY0eipj3z6g==",
+    "timestamp": "2001-01-01T01:01:01.000000001Z",
+    "title": "created dataset from data.csv"
+  },
+  "meta": {
+    "path": "/mem/QmUBcYoEy2MtnerqCRhrBdWPcknTA6cAx2vBYnyBafNyGx",
+    "qri": "md:0",
+    "title": "title one"
+  },
   "name": "test_ds",
   "path": "/mem/QmfEv94F7QAhZB5a9sRjMWPrhDjBwcUuWcJrYWEAjvs4AW",
   "peername": "peer",
-  "qri": "ds:0"
+  "qri": "ds:0",
+  "structure": {
+    "checksum": "/mem/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
+    "depth": 2,
+    "entries": 5,
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true,
+      "lazyQuotes": true
+    },
+    "length": 154,
+    "path": "/mem/QmcVxhRAwe7wZxz9cbJKbhXhpCrMMNeFUEb5SpveCptr7d",
+    "qri": "st:0",
+    "schema": {
+      "items": {
+        "items": [
+          {
+            "title": "city",
+            "type": "string"
+          },
+          {
+            "title": "pop",
+            "type": "integer"
+          },
+          {
+            "title": "avg_age",
+            "type": "number"
+          },
+          {
+            "title": "in_usa",
+            "type": "boolean"
+          }
+        ],
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "stats": {
+    "path": "/mem/QmdQz7LYFDChz3SuWjKaDEkVRymmJN1XGXgpXr6rRbMnK6",
+    "qri": "sa:0",
+    "stats": [
+      {
+        "count": 5,
+        "frequencies": {},
+        "maxLength": 8,
+        "minLength": 7,
+        "type": "string"
+      },
+      {
+        "count": 5,
+        "histogram": {
+          "bins": null,
+          "frequencies": []
+        },
+        "max": 40000000,
+        "mean": 49085000,
+        "min": 35000,
+        "type": "numeric"
+      },
+      {
+        "count": 5,
+        "histogram": {
+          "bins": null,
+          "frequencies": []
+        },
+        "max": 65.25,
+        "mean": 260.2,
+        "min": 44.4,
+        "type": "numeric"
+      },
+      {
+        "count": 5,
+        "falseCount": 1,
+        "trueCount": 4,
+        "type": "boolean"
+      }
+    ]
+  }
 }
