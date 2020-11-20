@@ -5,9 +5,9 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "transform added\nbody:\n\tadded row /",
-    "path": "/ipfs/QmVcsMcKBQ7U1UJAu3PYzeeKJ3gRTkpkPcPSdUMbm6Y7Hh",
+    "path": "/ipfs/QmRSa9PZGRzWZ41msdpAQPAkhAaE9AxEboTaNHhsd8a8wh",
     "qri": "cm:0",
-    "signature": "bbwuj2qpXmDNd4kMqjzUSh45sSoOEuyoiSNYdqHtQlTi6Q5oUGGJ3t91qg9xZt2SXxeEOzoS3eKYLbLI8y67Zr3Mx9Z1xoSMeBrLm7H3imrOTr36PHjFHKaaeV8CuXlcrKIi6mAl+xUk1/gN99N5ahP0lZDCiCZrqd4hGbxBvKPaXQLabd4VzfvsglofRCvXMYpEbY3fsFztmofyMgEz2It5u5662BsgxhxqqFKc0CyJrTIHLiwFxX1MBOdz3HrQ/MS5JNWtvKUxqBgtG+vBi9/XsgPi1md/7/B7Y2RU61kRgP+ZTfVKgVCVXa6EI7m4I30Sx1LyutDIg/B9jpZphA==",
+    "signature": "YZE3hPvpEHDhqXC/yI/9I8kkXdyW9x++9mNT72PjI/T6yU6EIMbHPUYBqZLOLHVpk/DkUz/9Vpts+PfI1qqJVeEeu934rqQa0f62EOwD5jLHQY18TNW764PS2JKOVrpM+4CRiJBeZzY6o1l4/0rNgJgN2eBv9J5EI7ivYLqOBk1BGvx11pUiQBrXkJT1ls2iy10Fy866w/kHRoVFqMtYUAkpCGW9XmryYESeM1oBeDA622dCqveplmIj4zV++Nv16NMTYr/7w6gOejLlFJ840O9Sd9/mAtw6Clco7TLXIEfVFd9KuDkXTlOtIkwIa37pIQokIC9xvT/PF1pwZvrFaA==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
     "title": "updated transform and body"
   },
@@ -16,8 +16,8 @@
     "qri": "md:0",
     "title": "example movie data"
   },
-  "path": "/ipfs/QmPuSQE6da9HtgBcF8BgAkUZhkA4BBzrBpJkmZWrYAnypb",
-  "previousPath": "/ipfs/QmPY4xPQSSGSYZny4QLPn574VdeP84L7Nf3oCY1DxYAv5n",
+  "path": "/ipfs/Qma1g8HeemSxE4sy5HEumsGvjo1wTxHTyn4m2sUX1537mc",
+  "previousPath": "/ipfs/QmNeH3bPvUdir2vRH57TiiSmDKmsEPpdfV7bgqfUXZKa6v",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
@@ -50,24 +50,52 @@
     }
   },
   "stats": {
-    "path": "/ipfs/QmXHqvGRzaDUTbiKzBezR43mchpwoSE3xuf8HnfVkdfkKk",
+    "path": "/ipfs/QmP3JJ7TGyKU7HnooajjfuEvFxpVigqcZQtajpsboPxeBz",
     "qri": "sa:0",
     "stats": [
       {
         "count": 8,
-        "frequencies": {},
+        "frequencies": {
+          "Avatar ": 1,
+          "John Carter ": 1,
+          "Pirates of the Caribbean: At World's End ": 1,
+          "Spectre ": 1,
+          "Spider-Man 3 ": 1,
+          "Star Wars: Episode VII - The Force Awakens             ": 1,
+          "Tangled ": 1,
+          "The Dark Knight Rises ": 1
+        },
         "maxLength": 55,
         "minLength": 7,
-        "type": "string"
+        "type": "string",
+        "unique": 8
       },
       {
         "count": 7,
         "histogram": {
-          "bins": null,
-          "frequencies": []
+          "bins": [
+            100,
+            132,
+            148,
+            156,
+            164,
+            169,
+            178,
+            179
+          ],
+          "frequencies": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
         },
         "max": 178,
-        "mean": 1047,
+        "mean": 149.57142857142858,
+        "median": 156,
         "min": 100,
         "type": "numeric"
       }

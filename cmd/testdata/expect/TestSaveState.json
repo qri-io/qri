@@ -5,13 +5,13 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "created dataset from body_ten.csv",
-    "path": "/ipfs/QmYWpHLZYcnjUr2NA9BVypgb7wJnQJAriKT6EV32AG69dA",
+    "path": "/ipfs/QmbT3s3crr6RuzSxKiLXvPr21b2rQDJGyfXybfcepKycFx",
     "qri": "cm:0",
-    "signature": "Nid1+5YRJQENq3CJDD7CXqG2bekV6hEZkE/hI93TZs4Q1xvoCG8FLGO4s6VB7yKEHnBsbLhTl654OfzF6AF1qWvV2mzgbSgRwxSIUEuP4SwvlH/9K6AvqIZwaihcAeACsXd5bgzzBz8P3CIkC9idGEiLr+xXn5EBw8VFoLtGTW+p/Ie78CYzGY3PnW5llG79qahWZJOZQJfqIk/TDfpgJFcVHfAj0GmefshTtwPfV5IHwX2dQFAuGMxyWGdcvuxZHC4kbcbnQ5Htymsr4eKVI/FRvp+T+HnRwhtoc3mo8nWi01Q5p+S9ABxHqcCSoyNWJd2VlfZknOTvcgc/SFiQOw==",
+    "signature": "PKlAK2BwACWfYqvMN9meIZsA7Mr+KWU6QhC/VXKHdGvn1+AtchelSECiIrH9938yR55Hd6eIFGWwgM9i7EIRCenOdcvi10GOT/BZZ9iq0Z9Rd7U6Ey8xTh7X3wnlk1QAodlKjAkDADWwN9hZLKExtaoe3gqLeZoXYX4xwpOKd9GRsn49P4oWkiQTyT8TGTvmExnkkElBUMk11nroXZdzJ6ulAYX8k3qb8o5NCZYaJGTKnHqPKL/TPdUPdl4waxG3XaYhynjVwcla0+mG+5ndwDMn240CXjp00LRguT3vAM5Da/WUJF+SFrOFTRU9DrnVLsDJ6rLbccR8eHCX87QdbA==",
     "timestamp": "2001-01-01T01:01:01.000000001Z",
     "title": "created dataset from body_ten.csv"
   },
-  "path": "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+  "path": "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
@@ -44,24 +44,52 @@
     }
   },
   "stats": {
-    "path": "/ipfs/QmXHqvGRzaDUTbiKzBezR43mchpwoSE3xuf8HnfVkdfkKk",
+    "path": "/ipfs/QmP3JJ7TGyKU7HnooajjfuEvFxpVigqcZQtajpsboPxeBz",
     "qri": "sa:0",
     "stats": [
       {
         "count": 8,
-        "frequencies": {},
+        "frequencies": {
+          "Avatar ": 1,
+          "John Carter ": 1,
+          "Pirates of the Caribbean: At World's End ": 1,
+          "Spectre ": 1,
+          "Spider-Man 3 ": 1,
+          "Star Wars: Episode VII - The Force Awakens             ": 1,
+          "Tangled ": 1,
+          "The Dark Knight Rises ": 1
+        },
         "maxLength": 55,
         "minLength": 7,
-        "type": "string"
+        "type": "string",
+        "unique": 8
       },
       {
         "count": 7,
         "histogram": {
-          "bins": null,
-          "frequencies": []
+          "bins": [
+            100,
+            132,
+            148,
+            156,
+            164,
+            169,
+            178,
+            179
+          ],
+          "frequencies": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
         },
         "max": 178,
-        "mean": 1047,
+        "mean": 149.57142857142858,
+        "median": 156,
         "min": 100,
         "type": "numeric"
       }

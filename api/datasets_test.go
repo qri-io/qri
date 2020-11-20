@@ -492,7 +492,7 @@ func TestDatasetGet(t *testing.T) {
 	assertStatusCode(t, "get meta component", actualStatusCode, 200)
 
 	// Can get at an ipfs version
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmfEv94F7QAhZB5a9sRjMWPrhDjBwcUuWcJrYWEAjvs4AW", dsHandler.GetHandler)
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr", dsHandler.GetHandler)
 	assertStatusCode(t, "get at content-addressed version", actualStatusCode, 200)
 
 	// Error 404 if ipfs version doesn't exist

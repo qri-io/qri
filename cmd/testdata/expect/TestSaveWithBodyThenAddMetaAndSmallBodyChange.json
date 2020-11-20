@@ -5,9 +5,9 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "meta added\nbody:\n\tchanged by 54%",
-    "path": "/ipfs/QmfQAypGLngv9XuLP4fPp6NmQtDSZYy4vvTuxrPcVV52Dv",
+    "path": "/ipfs/QmVwbUnFvKnuv5rRfiwJHvLfJwkNo464gJsKd6cvdvFWHq",
     "qri": "cm:0",
-    "signature": "gwIJZl72TeBnttukDJyjs+Rry1VEdwwOhSfizyDJaBekHCR+gfHLI85zOTuiwCJtkGHHZs5EJAMRXEJIVIJW70usLUNF8wUvN3ISF4py4EyZ7ByjPMrftA5cyVCDA7/se+NKpw/d0981Y1j40FM1wjXibG3L22ZSQphAQZXKNHb9+YSVXdnVsrNLDrYw7ojwEA/YA29qeaH1tdcj8B5V3QU7mjV4yMO/+hQuoShDxD0bAO37v+3BXETv340lx79Jsx3mILxEsVeHXMgD6MkPB4a6TYIIuwIwGNmucSwZT1e5mqPn2sdC4rO34mjYvob9exN4PVSbtX/bg24TE9ChNA==",
+    "signature": "Fufc0GZw5xGnjspmY1bC+XVnzmZ9KiqHyKITgbSzvWklWBvxj4EEGi2BKB+2QX7gIlrO3EbVAm1C+syc4iSVLHKsuT5XhczQ5xx/rwaDBxN5d7AUelv+/z9bhx4KNHMMDIa6RAC07PFdtZUP/WSBjmPixeeniM8VbV7QCboixdAiev25GauGe71P2Dt2+8/FqLnsG+MPq3YvZ3XFX0Mgyy8BvztEBHFDIISgCzt0pMzEO+SL2BgxkyMqzCGGHrSZy42/45mrtyBen/tFQ+FIjnTfsGRirCMpV4Yr6QR8X40vXA71Mw1+TuI4q0M4wHwvO27wIWx8FatgBe81//6FKA==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
     "title": "updated meta and body"
   },
@@ -16,8 +16,8 @@
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmYsX5rsN3bvQ2PwquVa1QVEPAWsb5MHWGYZYG9HQPvF2t",
-  "previousPath": "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+  "path": "/ipfs/QmWVpieb5vtTKs3EufHGzkdateucaq7su2cfYeAmGv8fkv",
+  "previousPath": "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB",
@@ -50,24 +50,78 @@
     }
   },
   "stats": {
-    "path": "/ipfs/QmXyYhG5SvTyazEd8iEjxJ7DpzKm86WwWsYyL9xMjXpjQj",
+    "path": "/ipfs/QmeTrXTwwTZLLxqwfdvAjbvSqzrWkkUKNefoS5GAsdcFXZ",
     "qri": "sa:0",
     "stats": [
       {
         "count": 18,
-        "frequencies": {},
+        "frequencies": {
+          "Avatar ": 1,
+          "Avengers: Age of Ultron ": 1,
+          "Batman v Superman: Dawn of Justice ": 1,
+          "Harry Potter and the Half-Blood Prince ": 1,
+          "John Carter ": 1,
+          "Man of Steel ": 1,
+          "Pirates of the Caribbean: At World's End ": 1,
+          "Pirates of the Caribbean: Dead Man's Chest ": 1,
+          "Quantum of Solace ": 1,
+          "Spectre ": 1,
+          "Spider-Man 3 ": 1,
+          "Star Wars: Episode VII - The Force Awakens             ": 1,
+          "Superman Returns ": 1,
+          "Tangled ": 1,
+          "The Avengers ": 1,
+          "The Chronicles of Narnia: Prince Caspian ": 1,
+          "The Dark Knight Rises ": 1,
+          "The Lone Ranger ": 1
+        },
         "maxLength": 55,
         "minLength": 7,
-        "type": "string"
+        "type": "string",
+        "unique": 18
       },
       {
         "count": 17,
         "histogram": {
-          "bins": null,
-          "frequencies": []
+          "bins": [
+            100,
+            106,
+            132,
+            141,
+            143,
+            148,
+            150,
+            151,
+            153,
+            156,
+            164,
+            169,
+            173,
+            178,
+            183,
+            184
+          ],
+          "frequencies": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1
+          ]
         },
         "max": 183,
-        "mean": 2566,
+        "mean": 150.94117647058823,
+        "median": 151,
         "min": 100,
         "type": "numeric"
       }

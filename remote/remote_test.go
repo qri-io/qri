@@ -252,7 +252,7 @@ func TestFeeds(t *testing.T) {
 			{
 				Username:   "A",
 				Name:       "video_view_stats",
-				Path:       "/ipfs/QmT6gb2rtVdjPmzRAusd9qeLJL6tJBf9nimPuNdRbS6kh3",
+				Path:       "/ipfs/QmZfdWYRyH2TZ1ypVdVufhsjLDtow15RMWJqhEdD9rdGeT",
 				MetaTitle:  "Video View Stats",
 				BodySize:   4,
 				BodyRows:   1,
@@ -262,7 +262,7 @@ func TestFeeds(t *testing.T) {
 			{
 				Username:   "A",
 				Name:       "world_bank_population",
-				Path:       "/ipfs/QmYV9znfoFpsXFRemDnxsqAo5f5dVcnoqEmZe3UqCTM8ro",
+				Path:       "/ipfs/QmXEbqJUq4d1siXAiL4tXqfm1jYrQkziqx6LyoiKqqhnwh",
 				MetaTitle:  "World Bank Population",
 				BodySize:   5,
 				BodyRows:   1,

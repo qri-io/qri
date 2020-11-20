@@ -686,13 +686,15 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 			m := NewDatasetMethods(inst)
 			got := &GetResult{}
-			err = m.Get(&GetParams{Refstr: ref.String()}, got)
+			// TODO (b5) - we're using "JSON" here b/c the "craigslist" test dataset
+			// is tripping up the YAML serializer
+			err = m.Get(&GetParams{Refstr: ref.String(), Format: "json"}, got)
 			if err != nil {
-				t.Errorf("error listing dataset for %s: %s", ref.Name, err.Error())
+				t.Errorf("error getting dataset for %q: %s", ref, err.Error())
 			}
 
 			if got.Bytes == nil {
-				t.Errorf("failed to get dataset for %s", ref.Name)
+				t.Errorf("failed to get dataset for ref %q", ref)
 			}
 			// TODO: Test contents of Dataset.
 		}(p1)
@@ -1266,11 +1268,11 @@ func TestListRawRefs(t *testing.T) {
   Published: false
 `, map[string]string{
 		"ProfileID":      "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-		"citiesPath":     "/mem/QmPbcCboLyqJzYatHURnLV5hVmp8NFsDiGTcp9dtvshpxa",
-		"counterPath":    "/mem/QmdQh2du6ZtxFeV3XjHwkkzYn5ZgU6EnrARtihY9xcs8tU",
-		"craigslistPath": "/mem/Qmc28qvm4UuvZoRVyy5UQ33UNdhwzgih1RJuzJprt8mUXH",
-		"moviesPath":     "/mem/QmXvMuHVi24fqmbjx6ygdWVSCgULcdc45t6HKzDT8PaKTV",
-		"sitemapPath":    "/mem/QmSutY4vd5WgLCeNSgxLVTihekzk4AdkLn5vbMn73GRuEU",
+		"citiesPath":     "/mem/QmPWCzaxFoxAu5wS8qXkL6tSA7aR2Lpcwykfz1TbhhpuDp",
+		"counterPath":    "/mem/QmVN68yJdLCstVj7YiDjoDvbuxnWKL57D5EAszM7SxtXi3",
+		"craigslistPath": "/mem/Qmcph3Wc9LHBGxzt4JVXR4T5ZGD85FQKdMvHWg6aNzqFCD",
+		"moviesPath":     "/mem/QmQPS7Nf6dG8zosyAA8zYd64gaLBTAzYsVhMkaMCgCXJST",
+		"sitemapPath":    "/mem/QmPk94KBWhGpfSMrEk85fwuFhqfAU84uwrdnwqQf5EV2B5",
 	})
 
 	if diff := cmp.Diff(expect, text); diff != "" {

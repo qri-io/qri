@@ -482,8 +482,8 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
     created dataset from tf_123.star
 
 `, map[string]string{
-		"commit1": "/ipfs/QmQjJjAGF9mD4ArnBHCLmDT8AEProLbmpbF3VdBMZFL5yE",
-		"commit2": "/ipfs/QmWfeoPUpus3YiSHoE6qHnDP4jyvC7gNVFuJFi6M2Y2iD7",
+		"commit1": "/ipfs/Qmb18FaCYQMRbE4vH7G1sMnBr32opTBfKKeE6s7AYyR9YY",
+		"commit2": "/ipfs/QmSPaMdKzpEmodF7R6LzkTGHKtk4hvN6e6PsNKX1A6yW3g",
 	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)
@@ -533,7 +533,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 
 	tmplData := map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+		"path":      "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
 	}
 
 	// Create a dataset, using the "anonymous" generated username.
@@ -630,7 +630,7 @@ func TestListFormatJson(t *testing.T) {
   }
 ]`, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+		"path":      "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {

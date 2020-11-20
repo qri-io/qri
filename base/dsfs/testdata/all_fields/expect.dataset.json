@@ -2,9 +2,9 @@
   "bodyPath": "/mem/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
   "commit": {
     "message": "created dataset",
-    "path": "/mem/QmeT15DVgG6wC3sEAm8m3DXPeC7s96R2TYY73nfQ7XDjmM",
+    "path": "/mem/QmZZfXr5fHxAvei1Ce5tWnkVn63HKGSAK7syVdAbxcWbLS",
     "qri": "cm:0",
-    "signature": "KE5udsl1gV+y20eZU0yUuBXkT2qbhVQbMeeGqGvPp9yZgY9HJ7x70XM4+WoJIVA+MpsiAAltETzr8xUUp6giEtYhfUTOrv+EN9Q8ZHIfWBQ9JEp66o3UYMeidSXRI9JocEEscXI2LGeHvbFrwaf22naHq72k3Bq4U7oDmOFxh4oqJyaxHjR7XR67+odasH/HGhJsENwCQ+4XaxFFmYOP568VImzOjpfS/Raepb34FtdDdWuhCX0aWd0C6S1JK253Z3D4DrBo41s9aTGgSuJyAwKoCKgs9yqcsubD1BUlf8hRX8y60+vn3TcZnACdvsDgn/7xKiaPABec/gm9zDpLOw==",
+    "signature": "GxXsCQFH00n0y92LMGPON9n1fk++Nnrzw3lCWkGW0NdN7MzIkZWKs8b0JRksJAt6UngZOlRITS2zLxHqhwI8by/QzLl08jwV30RzvyVeTIlScDfN6BHCA1CcMcxOSL6nkgqDBXIQJZozM9e4Y5NJ4t+pIyo3JoMCF0SzzlTUkD3G6g1jGDVBeqYrsdb07l1T4IdGbDBrF1U8kvKF51CLfgRH5Oj/bq4LqgoN1EoMCP/4Ke6eJzy885rJ73BYpVEhU7T0WY6iiHvFzmaJ7+lSzy6QMxGJ6+lgBaQ0NJaSNq15nH2z1SBNkN3gY4Eag5vLX78NVvp7dOnW/7xqsOVmWQ==",
     "timestamp": "2001-01-01T01:01:01.000000001Z",
     "title": "I'm a commit"
   },
@@ -44,36 +44,60 @@
     }
   },
   "stats": {
-    "path": "/mem/QmQDuV6Xw8QJDov2M1kYNWfE15AvfCUaDFuCc1iemAVQSw",
+    "path": "/mem/QmS8FiQV4pQ89vLSoqrhvnodkgXaimyZ5uuWXYqQeHea4N",
     "qri": "sa:0",
     "stats": [
       {
         "count": 5,
-        "frequencies": {},
+        "frequencies": {
+          "chatham": 1,
+          "chicago": 1,
+          "new york": 1,
+          "raleigh": 1,
+          "toronto": 1
+        },
         "maxLength": 8,
         "minLength": 7,
-        "type": "string"
+        "type": "string",
+        "unique": 5
       },
       {
         "count": 5,
-        "frequencies": {},
+        "frequencies": {
+          "250000": 1,
+          "300000": 1,
+          "35000": 1,
+          "40000000": 1,
+          "8500000": 1
+        },
         "maxLength": 8,
         "minLength": 5,
-        "type": "string"
+        "type": "string",
+        "unique": 5
       },
       {
         "count": 5,
-        "frequencies": {},
+        "frequencies": {
+          "44.4": 2,
+          "50.65": 1,
+          "55.5": 1,
+          "65.25": 1
+        },
         "maxLength": 5,
         "minLength": 4,
-        "type": "string"
+        "type": "string",
+        "unique": 4
       },
       {
         "count": 5,
-        "frequencies": {},
+        "frequencies": {
+          "false": 1,
+          "true": 4
+        },
         "maxLength": 5,
         "minLength": 4,
-        "type": "string"
+        "type": "string",
+        "unique": 2
       }
     ]
   },

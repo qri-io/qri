@@ -80,7 +80,7 @@ func TestPullAndListRefs(t *testing.T) {
 
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+		"path":      "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {
@@ -108,7 +108,7 @@ func TestPullAndListRefs(t *testing.T) {
 		"profileID1": "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
 		"profileID2": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 		"path1":      "/ipfs/QmTa8HQ2kisP2enbiyUw3ordSA1WV3ZBQVNUCFBusHENW4",
-		"path2":      "/ipfs/QmcFgNLik6zDXBz2ever6o5qYdkDJ2R7ryzMHPN9esvoHK",
+		"path2":      "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {

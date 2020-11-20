@@ -373,11 +373,20 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		}
 		if pretty {
 			res.Bytes, err = json.MarshalIndent(value, "", " ")
+			if err != nil {
+				return err
+			}
 		} else {
 			res.Bytes, err = json.Marshal(value)
+			if err != nil {
+				return err
+			}
 		}
 	case "yaml", "":
 		res.Bytes, err = yaml.Marshal(value)
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown format: \"%s\"", p.Format)
 	}

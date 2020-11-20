@@ -8,9 +8,9 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "created dataset",
-    "path": "/ipfs/QmX5dkBDYrDxUL8k6UQMJZW1YA27oiRiQV5WS746Spm5ki",
+    "path": "/ipfs/QmbRv6n34ERqrLrU5txAYjMcsmTFeoRwAVGb5nCgzQY427",
     "qri": "cm:0",
-    "signature": "CdwSkcZwlwVBq7k1Zu4NWYn5Tppqm75zKC9UsQqk77uIaKQZiJ4Ns4qgAYJV2NIIH/QjBAAgvD4PlCOpD4TBwvUw7nfUyvnDs0KOWCUQfxzgx/+wYESccndkK14/u++rb+l1DGpZg5WGWHQO99/oMLZiQnm+0aTAOBzZ7Ll38ACUIqlBbjBsfl9FuZ7f70LBFHmta2vw3SB7s+LvWMSLQI1600GMzrnDSvve1quYCq/CXYKpC+7ofihk8MMo8B0jGgzeetfzWWA7veIXjGPpBreQXYn+I3SCHBuQYaTQbUr8djtQek+EWI0Z6WJK7XeGvFVm2RuJXXrfoklE4RjjVA==",
+    "signature": "ZJy4Z4uWPWXRbmjimncdZPQdUT1pfwS77wyUVXu1KHpnDhtdb+vnkAsaNDtqN4IRZ5IQNJXpvNLl5uAlGuDGYWLHq8z8AW9yuvZB4V17QlfsViLYKWQlh+5ah6eyJ0GOcMtItot1Kn3jBEkQ8xelaXF0zJJTbmwOZByLy36vRCE1A3f3zA4+V0pP4xvIp2RY+jeoFfcNmeULTLML3IXyNnRm+Obvw1OTR+aLODB+VnlLetDlDgyXPK4o8CbMFLzHhINGi7OrcNjq0+jRYDrgDqiWfnWbnIOf39Gkj704VwZ+bag3dDfk5/u64i0hPI1fz55WLUjodgoZzUqVqZ4OaA==",
     "timestamp": "0001-01-01T00:00:00Z",
     "title": "initial commit"
   },
@@ -20,7 +20,7 @@
     "title": "World Bank Population"
   },
   "name": "world_bank_population",
-  "path": "/ipfs/QmYV9znfoFpsXFRemDnxsqAo5f5dVcnoqEmZe3UqCTM8ro",
+  "path": "/ipfs/QmXEbqJUq4d1siXAiL4tXqfm1jYrQkziqx6LyoiKqqhnwh",
   "peername": "A",
   "qri": "ds:0",
   "structure": {
@@ -36,17 +36,23 @@
     }
   },
   "stats": {
-    "path": "/ipfs/Qmd9vW75BLNKFLq3tTeuXmA4KWPG4D2sprdBSrfVWMLU26",
+    "path": "/ipfs/QmQYhY2RaVLn36MrjLQG9XJk6QQMHkSvvPUXZ9J9MDf6Ur",
     "qri": "sa:0",
     "stats": [
       {
         "count": 1,
         "histogram": {
-          "bins": null,
-          "frequencies": []
+          "bins": [
+            100,
+            101
+          ],
+          "frequencies": [
+            1
+          ]
         },
         "max": 100,
         "mean": 100,
+        "median": 100,
         "min": 100,
         "type": "numeric"
       }

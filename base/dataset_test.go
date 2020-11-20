@@ -95,7 +95,7 @@ func TestRawDatasetRefs(t *testing.T) {
   Published: false
 `, map[string]string{
 		"ProfileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-		"Path":      "/mem/QmUfofLxWuGjECZcN1JbZaXZ2C2kQckpNArPeNutLpbuKE",
+		"Path":      "/mem/QmbZEoPWbvtDhiLgEcteeBumC2sKQU1eVBEEvrRexexRMW",
 	})
 
 	if diff := cmp.Diff(expect, actual); diff != "" {
