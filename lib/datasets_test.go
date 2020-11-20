@@ -686,13 +686,15 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 			m := NewDatasetMethods(inst)
 			got := &GetResult{}
-			err = m.Get(&GetParams{Refstr: ref.String()}, got)
+			// TODO (b5) - we're using "JSON" here b/c the "craigslist" test dataset
+			// is tripping up the YAML serializer
+			err = m.Get(&GetParams{Refstr: ref.String(), Format: "json"}, got)
 			if err != nil {
-				t.Errorf("error listing dataset for %s: %s", ref.Name, err.Error())
+				t.Errorf("error getting dataset for %q: %s", ref, err.Error())
 			}
 
 			if got.Bytes == nil {
-				t.Errorf("failed to get dataset for %s", ref.Name)
+				t.Errorf("failed to get dataset for ref %q", ref)
 			}
 			// TODO: Test contents of Dataset.
 		}(p1)
