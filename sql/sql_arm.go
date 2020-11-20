@@ -12,7 +12,7 @@ import (
 )
 
 // Service represents SQL running
-type Service struct {}
+type Service struct{}
 
 // New returns a new Service
 func New(r repo.Repo, loadDataset dsref.ParseResolveLoad) *Service {
