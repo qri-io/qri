@@ -97,7 +97,7 @@ func TestStatsRun(t *testing.T) {
 		ref         string
 		err         string
 	}{
-		{"empty ref", "", `"" is not a valid dataset reference: empty reference`},
+		{"no ref", "", `either a reference or dataset is required`},
 		{"dataset does not exist", "me/dataset_does_not_exist", "reference not found"},
 	}
 

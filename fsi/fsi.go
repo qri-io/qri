@@ -27,12 +27,11 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// package level logger
 var (
+	// package level logger
 	log = golog.Logger("fsi")
-
-	// ErrNotLinkedToFilesystem is the err implementers should return when we
-	// are expecting the dataset to have a file system link, but fsiPath is empty
+	// ErrNoLink is the err implementers should return when we are expecting the
+	// dataset to have a file system link, but fsiPath is empty
 	ErrNoLink = fmt.Errorf("dataset is not linked to the filesystem")
 )
 
@@ -108,8 +107,6 @@ func (fsi *FSI) ResolvedPath(ref *dsref.Ref) error {
 
 // IsFSIPath is a utility function that returns whether the given path is a
 // local filesystem path
-// TODO (ramfox) - remove this function & replace with a call to qfs.PathKind when it
-// supports the fsi prefix
 func IsFSIPath(path string) bool {
 	return strings.HasPrefix(path, "/fsi")
 }

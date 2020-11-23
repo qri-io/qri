@@ -12,6 +12,8 @@ import (
 	"sync"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/didmod"
+	"github.com/qri-io/qfs"
 )
 
 var (
@@ -23,6 +25,9 @@ var (
 	ErrCacheCorrupt = fmt.Errorf("stats: cache is corrupt")
 )
 
+// Props is an alias of
+type Props = didmod.Props
+
 // Cache is a store of stats components
 // Consumers of a cache must not rely on the cache for persistence
 // Implementations are expected to maintain their own size bounding
@@ -32,12 +37,9 @@ var (
 type Cache interface {
 	// placing a stats object in the Cache will expire all caches with a lower
 	// modTime, use a modTime of zero when no modTime is known
-	PutStats(ctx context.Context, key string, modTime int, sa *dataset.Stats) error
-	// get the cached modTime for
-	// will return ErrCacheMiss if the key does not exist
-	ModTime(ctx context.Context, key string) (modTime int, err error)
-	// Get the stats component for a given key
-	Stats(ctx context.Context, key string) (sa *dataset.Stats, err error)
+	PutStats(ctx context.Context, key string, sa *dataset.Stats) error
+	// GetStats the stats component for a given key
+	GetStats(ctx context.Context, key string) (sa *dataset.Stats, err error)
 }
 
 // nilCache is a stand in for not having a cache
@@ -47,45 +49,46 @@ type nilCache bool
 var _ Cache = (*nilCache)(nil)
 
 // PutJSON places stats in the cache, keyed by path
-func (nilCache) PutStats(ctx context.Context, key string, modTime int, sa *dataset.Stats) error {
+func (nilCache) PutStats(ctx context.Context, key string, sa *dataset.Stats) error {
 	return ErrNoCache
 }
 
-// ModTime always returns ErrCacheMiss
-func (nilCache) ModTime(ctx context.Context, key string) (modTime int, err error) {
-	return -1, ErrCacheMiss
-}
-
 // JSON gets cached byte data for a path
-func (nilCache) Stats(ctx context.Context, key string) (sa *dataset.Stats, err error) {
+func (nilCache) GetStats(ctx context.Context, key string) (sa *dataset.Stats, err error) {
 	return nil, ErrCacheMiss
 }
 
-// osCache is a stats cache stored in a directory on the local operating system
-type osCache struct {
+// localCache is a stats cache stored in a directory on the local operating system
+type localCache struct {
 	root    string
-	maxSize uint64
+	maxSize int64
 
 	info   *cacheInfo
 	infoLk sync.Mutex
 }
 
-var _ Cache = (*osCache)(nil)
+var _ Cache = (*localCache)(nil)
 
-// NewOSCache creates a cache in a local direcory
-func NewOSCache(rootDir string, maxSize uint64) (Cache, error) {
-	c := &osCache{
+// NewLocalCache creates a cache in a local directory. LocalCache is sensitive
+// to added keys that match the qfs.PathKind of "local". When a stats component
+// is added with a local filepath as it's key, LocalCache will record the
+// status of that file,  and return ErrCacheMiss if that filepath is altered on
+// retrieval
+func NewLocalCache(rootDir string, maxSize int64) (Cache, error) {
+	c := &localCache{
 		root:    rootDir,
 		maxSize: maxSize,
+		info:    newCacheInfo(),
 	}
 
 	err := c.readCacheInfo()
 	if errors.Is(err, ErrCacheCorrupt) {
-		log.Warn("your cache of stats data is corrupt, removing all cached data")
+		log.Warn("Cache of stats data is corrupt. Removing all cached stats data as a precaution. This isn't too big a deal, as stats data can be recalculated.")
 		err = os.RemoveAll(rootDir)
 		return c, err
 	}
 
+	// ensure base directory exists
 	if err := os.MkdirAll(rootDir, os.ModePerm); err != nil {
 		return nil, err
 	}
@@ -94,9 +97,10 @@ func NewOSCache(rootDir string, maxSize uint64) (Cache, error) {
 }
 
 // Put places stats in the cache, keyed by path
-func (c *osCache) PutStats(ctx context.Context, key string, modTime int, sa *dataset.Stats) error {
-	if modTime < 0 {
-		modTime = 0
+func (c *localCache) PutStats(ctx context.Context, key string, sa *dataset.Stats) (err error) {
+	var statProps, targetProps didmod.Props
+	if qfs.PathKind(key) == "local" {
+		targetProps, _ = didmod.NewProps(key)
 	}
 
 	key = c.cacheKey(key)
@@ -106,50 +110,73 @@ func (c *osCache) PutStats(ctx context.Context, key string, modTime int, sa *dat
 		return err
 	}
 
-	if uint64(len(data)) > c.maxSize {
+	if int64(len(data)) > c.maxSize {
 		return fmt.Errorf("stats component size exceeds maximum size of cache")
 	}
 
 	if err := ioutil.WriteFile(filename, data, 0644); err != nil {
 		return err
 	}
+	statProps, err = didmod.NewProps(filename)
+	if err != nil {
+		return err
+	}
 
-	c.addAndPurgeExcess(key, modTime, uint64(len(data)))
+	c.addAndPurgeExpired(key, statProps, targetProps)
 
 	return c.writeCacheInfo()
 }
 
-func (c *osCache) ModTime(ctx context.Context, key string) (modTime int, err error) {
-	var exists bool
-	if modTime, exists = c.info.ModTimes[c.cacheKey(key)]; !exists {
-		return -1, ErrCacheMiss
+// Stats gets cached byte data for a path
+func (c *localCache) GetStats(ctx context.Context, key string) (sa *dataset.Stats, err error) {
+	cacheKey := c.cacheKey(key)
+	log.Debugw("getting stats", "key", key, "cacheKey", cacheKey)
+
+	targetFileProps, exists := c.info.TargetFileProps[cacheKey]
+	if !exists {
+		return nil, ErrCacheMiss
 	}
 
-	return modTime, nil
-}
+	if qfs.PathKind(key) == "local" {
+		if fileProps, err := didmod.NewProps(key); err == nil {
+			if !targetFileProps.Equal(fileProps) {
+				// note: returning ErrCacheMiss here will probably lead to re-calcualtion
+				// and subsequent overwriting by cache consumers, so we shouldn't need
+				// to proactively drop the stale cache here
+				return nil, ErrCacheMiss
+			}
+		}
+	}
 
-// Stats gets cached byte data for a path
-func (c *osCache) Stats(ctx context.Context, key string) (sa *dataset.Stats, err error) {
-	return nil, ErrCacheMiss
+	f, err := os.Open(c.componentFilepath(cacheKey))
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	sa = &dataset.Stats{}
+	err = json.NewDecoder(f).Decode(sa)
+	return sa, err
 }
 
 var b32Enc = base32.NewEncoding("abcdefghijklmnopqrstuvwxyz234567").WithPadding(base32.NoPadding)
 
-func (c *osCache) componentFilepath(cacheKey string) string {
+func (c *localCache) componentFilepath(cacheKey string) string {
 	return filepath.Join(c.root, fmt.Sprintf("%s.json", cacheKey))
 }
 
-func (c *osCache) cacheKey(key string) string {
+func (c *localCache) cacheKey(key string) string {
 	return b32Enc.EncodeToString([]byte(key))
 }
 
 const uintSize = 32 << (^uint(0) >> 32 & 1)
 
-func (c *osCache) addAndPurgeExcess(cacheKey string, modTime int, size uint64) {
+func (c *localCache) addAndPurgeExpired(cacheKey string, statProps, targetProps didmod.Props) {
 	c.infoLk.Lock()
 	defer c.infoLk.Unlock()
-	c.info.Sizes[cacheKey] = uint64(len(data))
-	c.info.ModTimes[cacheKey] = modTime
+	log.Debugw("adding stat props", "cacheKey", cacheKey, "statProps", statProps, "targetProps", targetProps)
+	c.info.StatFileProps[cacheKey] = statProps
+	c.info.TargetFileProps[cacheKey] = targetProps
 
 	var (
 		lowestKey     string
@@ -160,45 +187,53 @@ func (c *osCache) addAndPurgeExcess(cacheKey string, modTime int, size uint64) {
 		lowestKey = ""
 		lowestModTime = 1<<(uintSize-1) - 1
 
-		for key, modTime := range c.info.ModTimes {
-			if modTime < lowestModTime {
+		for key, fileProps := range c.info.StatFileProps {
+			if int(fileProps.Mtime.Unix()) < lowestModTime && key != cacheKey {
 				lowestKey = key
 			}
 		}
 		if lowestKey == "" {
 			break
 		}
+		log.Debugw("dropping stats component from local cache", "path", lowestKey, "size", c.info.StatFileProps[lowestKey].Size)
 		if err := os.Remove(c.componentFilepath(lowestKey)); err != nil {
 			break
 		}
-		delete(c.info.Sizes, lowestKey)
-		delete(c.info.ModTimes, lowestKey)
+		delete(c.info.StatFileProps, lowestKey)
+		delete(c.info.TargetFileProps, lowestKey)
 	}
 }
 
-const osCacheInfoFilename = "info.json"
+const localCacheInfoFilename = "info.json"
 
 type cacheInfo struct {
-	Sizes    map[string]uint64
-	ModTimes map[string]int
+	StatFileProps   map[string]didmod.Props
+	TargetFileProps map[string]didmod.Props
 }
 
-func (ci cacheInfo) Size() (size uint64) {
-	for _, s := range ci.Sizes {
-		size += s
+func newCacheInfo() *cacheInfo {
+	return &cacheInfo{
+		StatFileProps:   map[string]didmod.Props{},
+		TargetFileProps: map[string]didmod.Props{},
+	}
+}
+
+func (ci cacheInfo) Size() (size int64) {
+	for _, p := range ci.StatFileProps {
+		size += p.Size
 	}
 	return size
 }
 
-func (c *osCache) readCacheInfo() error {
+func (c *localCache) readCacheInfo() error {
 	c.infoLk.Lock()
 	defer c.infoLk.Unlock()
 
-	name := filepath.Join(c.root, osCacheInfoFilename)
+	name := filepath.Join(c.root, localCacheInfoFilename)
 	f, err := os.Open(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			c.info = &cacheInfo{}
+			c.info = newCacheInfo()
 			return nil
 		}
 		return err
@@ -206,7 +241,7 @@ func (c *osCache) readCacheInfo() error {
 
 	defer f.Close()
 
-	c.info = &cacheInfo{}
+	c.info = newCacheInfo()
 	if err := json.NewDecoder(f).Decode(c.info); err != nil {
 		// corrupt cache
 		return fmt.Errorf("%w decoding stats info: %s", ErrCacheCorrupt, err)
@@ -215,11 +250,11 @@ func (c *osCache) readCacheInfo() error {
 	return nil
 }
 
-func (c *osCache) writeCacheInfo() error {
+func (c *localCache) writeCacheInfo() error {
 	c.infoLk.Lock()
 	defer c.infoLk.Unlock()
 
-	name := filepath.Join(c.root, osCacheInfoFilename)
+	name := filepath.Join(c.root, localCacheInfoFilename)
 	data, err := json.Marshal(c.info)
 	if err != nil {
 		return err

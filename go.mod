@@ -15,7 +15,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.12.1-0.20200706154056-969d0f7a6317
-	github.com/google/go-cmp v0.5.0
+	github.com/google/go-cmp v0.5.3
 	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/ipfs/go-ipfs v0.6.0
@@ -43,6 +43,7 @@ require (
 	github.com/qri-io/dag v0.2.2-0.20201110155527-8fad5beb70f5
 	github.com/qri-io/dataset v0.2.1-0.20201124144731-82162a0f76e6
 	github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b
+	github.com/qri-io/didmod v0.0.0-20201123165422-8b2e224c993a
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/jsonschema v0.2.0

@@ -164,7 +164,7 @@ func TestSearchRun(t *testing.T) {
 	}))
 	rc := regclient.NewClient(&regclient.Config{Location: server.URL})
 
-	f, err := NewTestFactoryInstanceOptions(ctx, lib.OptRegistryClient(rc))
+	f, err := NewTestFactoryInstanceOptions(ctx, run.RootPath, lib.OptRegistryClient(rc))
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return

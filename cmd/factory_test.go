@@ -63,7 +63,7 @@ func NewTestFactory(ctx context.Context) (tf TestFactory, err error) {
 // instance configuration overrides
 // TODO (b5) - I'm not confident this works perfectly at the moment. Let's add
 // more tests to lib.NewInstance before using everywhere
-func NewTestFactoryInstanceOptions(ctx context.Context, opts ...lib.Option) (tf TestFactory, err error) {
+func NewTestFactoryInstanceOptions(ctx context.Context, repoPath string, opts ...lib.Option) (tf TestFactory, err error) {
 	repo, err := test.NewTestRepo()
 	if err != nil {
 		return
@@ -80,7 +80,7 @@ func NewTestFactoryInstanceOptions(ctx context.Context, opts ...lib.Option) (tf 
 		lib.OptQriNode(tnode.(*p2p.QriNode)),
 	}, opts...)
 
-	inst, err := lib.NewInstance(ctx, "repo", opts...)
+	inst, err := lib.NewInstance(ctx, repoPath, opts...)
 	if err != nil {
 		return TestFactory{}, err
 	}

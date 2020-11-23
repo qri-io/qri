@@ -5,76 +5,84 @@ package stats
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
+	"io"
+	"io/ioutil"
+	"path/filepath"
 
 	logger "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dsstats"
-	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/fsi"
 )
 
 var log = logger.Logger("stats")
 
+func init() {
+	logger.SetLogLevel("stats", "debug")
+}
+
 // Service can generate an array of statistical info for a dataset
 type Service struct {
-	cache  Cache
-	loader dsref.Loader
+	cache Cache
 }
 
 // New allocates a Stats service
-func New(cache Cache, loader dsref.Loader) *Service {
+func New(cache Cache) *Service {
 	if cache == nil {
 		cache = nilCache(false)
 	}
 
 	return &Service{
-		cache:  cache,
-		loader: loader,
+		cache: cache,
 	}
 }
 
-// JSON gets stats data as reader of JSON-formatted bytes
-func (s *Service) Stats(ctx context.Context, ref dsref.Ref, loadSource string) (*dataset.Stats, error) {
-	if r, err := s.cache.JSON(ctx, ref.Path); err == nil {
-		// return r, nil
-	}
-
-	ds, err := s.loader.LoadDataset(ctx, ref, loadSource)
-	if err != nil {
-		return nil, err
-	}
-
+// Stats gets the stats component for a dataset, possibly calculating
+// by consuming the open dataset body file
+func (s *Service) Stats(ctx context.Context, ds *dataset.Dataset) (*dataset.Stats, error) {
 	if ds.Stats != nil {
 		return ds.Stats, nil
 	}
 
-	return s.calcStats(ctx, ref.Path, ds)
-}
-
-func (s *Service) DatasetStats(ctx context.Context, ds *dataset.Dataset) (*dataset.Stats, error) {
-	return s.JSONWithCacheKey(ctx, ds.Path, ds)
-}
-
-// JSONWithCacheKey gets stats data as a reader of json-formatted bytes,
-func (s *Service) StatsWithCacheKey(ctx context.Context, key string, ds *dataset.Dataset) (*dataset.Stats, error) {
-	if key != "" {
-		if r, err := s.cache.JSON(ctx, key); err == nil {
-			// return r, nil
-		}
+	key, err := s.cacheKey(ds)
+	if err != nil {
+		return nil, err
 	}
-	return s.calcStats(ctx, key, ds)
-}
 
-func (s *Service) calcStats(ctx context.Context, cacheKey string, ds *dataset.Dataset) (*dataset.Stats, error) {
+	if sa, err := s.cache.GetStats(ctx, key); err == nil {
+		log.Debugw("found cached stats", "key", key)
+		return sa, nil
+	}
+
 	body := ds.BodyFile()
 	if body == nil {
-		return nil, fmt.Errorf("stats: dataset has no body file")
+		return nil, fmt.Errorf("can't calculate stats. dataset has no body")
 	}
-	if ds.Structure == nil {
-		return nil, fmt.Errorf("stats: dataset is missing structure")
+
+	if ds.Structure == nil || ds.Structure.IsEmpty() {
+		log.Debugw("inferring structure to calculate stats")
+		ds.Structure = &dataset.Structure{}
+		data, err := ioutil.ReadAll(ds.BodyFile())
+		if err != nil {
+			panic(err)
+		}
+		log.Debugw("data", "data", string(data))
+		buf := &bytes.Buffer{}
+		tr := io.TeeReader(bytes.NewBuffer(data), buf)
+		ds.Structure.Format = filepath.Ext(ds.BodyFile().FileName())
+		ds.Structure.Schema, _, err = detect.Schema(ds.Structure, tr)
+		if err != nil {
+			log.Debugw("error inferring schema", "error", err)
+			return nil, fmt.Errorf("couldn't infer schema: %w", err)
+		}
+
+		// glue read bytes back onto reader
+		mr := io.MultiReader(buf, ds.BodyFile())
+		ds.SetBodyFile(qfs.NewMemfileReader(ds.BodyFile().FullPath(), mr))
 	}
 
 	rdr, err := dsio.NewEntryReader(ds.Structure, ds.BodyFile())
@@ -83,36 +91,43 @@ func (s *Service) calcStats(ctx context.Context, cacheKey string, ds *dataset.Da
 	}
 
 	acc := dsstats.NewAccumulator(ds.Structure)
-
 	err = dsio.EachEntry(rdr, func(i int, ent dsio.Entry, e error) error {
 		return acc.WriteEntry(ent)
 	})
 	if err != nil {
 		return nil, err
 	}
-
 	if err = acc.Close(); err != nil {
 		return nil, err
 	}
 
-	values := dsstats.ToMap(acc)
-
-	if cacheKey != "" {
-		go func() {
-			data, err := json.Marshal(values)
-			if err != nil {
-				return
-			}
-			if err = s.cache.PutJSON(context.Background(), cacheKey, bytes.NewReader(data)); err != nil {
-				log.Debugf("putting stats in cache: %v", err.Error())
-			}
-		}()
+	sa := &dataset.Stats{
+		Qri:   dataset.KindStats.String(),
+		Stats: dsstats.ToMap(acc),
 	}
 
-	return &dataset.Stats{Stats: values}, nil
+	if cacheErr := s.cache.PutStats(ctx, key, sa); cacheErr != nil {
+		log.Debugw("error caching stats", "path", ds.Path, "error", cacheErr)
+	}
+
+	return sa, nil
 }
 
-// FileInfoCacheKey combines modTime and filepath to create a cache key string
-func FileInfoCacheKey(fi os.FileInfo) string {
-	return fmt.Sprintf("%d-%s", fi.ModTime(), fi.Name())
+func (s *Service) cacheKey(ds *dataset.Dataset) (string, error) {
+	if fsi.IsFSIPath(ds.Path) {
+		// if the passed-in dataset is FSI-linked, use the body file
+		// as a basis for the cache key
+		// TODO(b5) - the design of this system means changing the structure
+		// component can't invalidate the cache. We should be able to specify
+		// an arbitrary number of target files for cache invalidation along with
+		// a single canonical path
+		bf := ds.BodyFile()
+		if bf == nil {
+			return "", fmt.Errorf("A Body File is required to calculate stats")
+		}
+		log.Debugw("dataset is FSI-linked, using body key", "path", ds.Path, "bodyPath", bf.FullPath())
+		return bf.FullPath(), nil
+	}
+
+	return ds.Path, nil
 }

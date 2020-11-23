@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -72,22 +72,23 @@ func (o *StatsOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
 	p := &lib.StatsParams{Ref: o.Refs.Ref()}
-	r := &lib.StatsResponse{}
-	if err = o.DatasetMethods.Stats(p, r); err != nil {
+	sa := &dataset.Stats{}
+	if err = o.DatasetMethods.Stats(p, sa); err != nil {
 		return err
 	}
 
 	var buffer []byte
 	if !o.Pretty {
-		buffer = append(r.StatsBytes, byte('\n'))
+		data, err := json.Marshal(sa.Stats)
+		if err != nil {
+			return err
+		}
+		buffer = append(data, byte('\n'))
 	} else {
-		// stats is already in JSON format, so just needs pretty printing
-		buf := new(bytes.Buffer)
-		err = json.Indent(buf, []byte(r.StatsBytes), "", "  ")
+		buffer, err = json.MarshalIndent(sa.Stats, "", "  ")
 		if err != nil {
 			return fmt.Errorf("err encoding stats: %s", err)
 		}
-		buffer = buf.Bytes()
 	}
 
 	printInfo(o.Out, string(buffer))
