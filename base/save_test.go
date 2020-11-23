@@ -142,7 +142,6 @@ func TestCreateDataset(t *testing.T) {
 	ds.Name = dsName
 	ds.Meta.Title = "an update"
 	ds.PreviousPath = createdDs.Path
-	ds.Structure = createdDs.Structure
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
 
 	createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, createdDs, SaveSwitches{Pin: true, ShouldRender: true})
@@ -161,7 +160,6 @@ func TestCreateDataset(t *testing.T) {
 	// reliance on CreateDataset needing the ds.Name field.
 	ds.Name = dsName
 	ds.PreviousPath = createdDs.Path
-	ds.Structure = createdDs.Structure
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
 
 	if createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, createdDs, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
