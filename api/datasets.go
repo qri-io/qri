@@ -97,6 +97,20 @@ func (h *DatasetHandlers) DiffHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ChangesHandler is a dataset single endpoint
+func (h *DatasetHandlers) ChangesHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost, http.MethodGet:
+		if h.ReadOnly {
+			readOnlyResponse(w, "/changereport")
+			return
+		}
+		h.changesHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 // PeerListHandler is a dataset list endpoint
 func (h *DatasetHandlers) PeerListHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -334,6 +348,30 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 	if err := h.Diff(req, res); err != nil {
 		fmt.Println(err)
 		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error generating diff: %s", err.Error()))
+		return
+	}
+
+	util.WritePageResponse(w, res, r, util.Page{})
+}
+
+func (h *DatasetHandlers) changesHandler(w http.ResponseWriter, r *http.Request) {
+	req := &lib.ChangeReportParams{}
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding body into params: %s", err.Error()))
+			return
+		}
+	default:
+		req = &lib.ChangeReportParams{
+			LeftRefstr:  r.FormValue("left_path"),
+			RightRefstr: r.FormValue("right_path"),
+		}
+	}
+
+	res := &lib.ChangeReport{}
+	if err := h.ChangeReport(req, res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error generating change report: %s", err.Error()))
 		return
 	}
 
