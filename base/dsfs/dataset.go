@@ -2,7 +2,6 @@ package dsfs
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
@@ -149,6 +148,7 @@ func CreateDataset(
 	if pk == nil {
 		return "", fmt.Errorf("private key is required to create a dataset")
 	}
+
 	if err := DerefDataset(ctx, source, ds); err != nil {
 		log.Debugf("dereferencing dataset components: %s", err)
 		return "", err
@@ -339,12 +339,6 @@ func filePaths(fs []qfs.File) (files []string) {
 
 func emptyFile(fullPath string) qfs.File {
 	return qfs.NewMemfileBytes(fullPath, []byte{})
-}
-
-func jsonWriteHook(filename string, data json.Marshaler) qfs.WriteHook {
-	return func(ctx context.Context, f qfs.File, pathMap map[string]string) (io.Reader, error) {
-		return JSONFile(filename, data)
-	}
 }
 
 func updateScriptPaths(ds *dataset.Dataset, added map[string]string) {
