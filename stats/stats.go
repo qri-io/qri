@@ -21,10 +21,6 @@ import (
 
 var log = logger.Logger("stats")
 
-func init() {
-	logger.SetLogLevel("stats", "debug")
-}
-
 // Service can generate an array of statistical info for a dataset
 type Service struct {
 	cache Cache
@@ -117,7 +113,7 @@ func (s *Service) cacheKey(ds *dataset.Dataset) (string, error) {
 	if fsi.IsFSIPath(ds.Path) {
 		// if the passed-in dataset is FSI-linked, use the body file
 		// as a basis for the cache key
-		// TODO(b5) - the design of this system means changing the structure
+		// TODO(b5) - using only one file as a target means changing the structure
 		// component can't invalidate the cache. We should be able to specify
 		// an arbitrary number of target files for cache invalidation along with
 		// a single canonical path

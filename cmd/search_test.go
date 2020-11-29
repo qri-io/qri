@@ -110,6 +110,8 @@ type SearchTestRunner struct {
 }
 
 // NewSearchTestRunner sets up state needed for the search test
+// TODO (b5) - add an explicit RepoPath to the SearchTestRunner. Tests are
+// relying on the "RootPath" property, which should be configurable per-test
 func NewSearchTestRunner(t *testing.T) *SearchTestRunner {
 	run := SearchTestRunner{}
 

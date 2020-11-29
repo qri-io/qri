@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -169,8 +170,6 @@ func (c *localCache) cacheKey(key string) string {
 	return b32Enc.EncodeToString([]byte(key))
 }
 
-const uintSize = 32 << (^uint(0) >> 32 & 1)
-
 func (c *localCache) addAndPurgeExpired(cacheKey string, statProps, targetProps didmod.Props) {
 	c.infoLk.Lock()
 	defer c.infoLk.Unlock()
@@ -180,15 +179,15 @@ func (c *localCache) addAndPurgeExpired(cacheKey string, statProps, targetProps 
 
 	var (
 		lowestKey     string
-		lowestModTime int
+		lowestModTime int64
 	)
 
 	for c.info.Size() > c.maxSize {
 		lowestKey = ""
-		lowestModTime = 1<<(uintSize-1) - 1
+		lowestModTime = math.MaxInt64
 
 		for key, fileProps := range c.info.StatFileProps {
-			if int(fileProps.Mtime.Unix()) < lowestModTime && key != cacheKey {
+			if fileProps.Mtime.Unix() < lowestModTime && key != cacheKey {
 				lowestKey = key
 			}
 		}

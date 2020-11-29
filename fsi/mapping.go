@@ -28,6 +28,7 @@ func ReadDir(dir string) (*dataset.Dataset, error) {
 	if err != nil {
 		return nil, err
 	}
+	ds.Path = localPathToFSIPath(ds.Path)
 	return ds, nil
 }
 
