@@ -268,6 +268,8 @@ github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMyw
 github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.0 h1:/QaMHBdZ26BB3SSst0Iwl10Epc+xhTquomWX0oZEB6w=
 github.com/google/go-cmp v0.5.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
+github.com/google/go-cmp v0.5.3 h1:x95R7cp+rSeeqAMI2knLtQ0DKlaBhv2NrtrOvafPHRo=
+github.com/google/go-cmp v0.5.3/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-github v17.0.0+incompatible/go.mod h1:zLgOLi98H3fifZn+44m+umXrS52loVEgC2AApnigrVQ=
 github.com/google/go-querystring v1.0.0/go.mod h1:odCYkC5MyYFN7vkCjXpyrEuKhc/BUO6wN/zVPAxq5ck=
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
@@ -1130,6 +1132,8 @@ github.com/qri-io/dataset v0.2.1-0.20201124144731-82162a0f76e6 h1:a9CYZQ+DCzwqg8
 github.com/qri-io/dataset v0.2.1-0.20201124144731-82162a0f76e6/go.mod h1:HtwGskdCECbOON0iVQHEEm6fykwDqharlqabc1ssj3Y=
 github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b h1:T8qEIv+qLi5mVWvSS329wJ+HbN7cfMwCWjRVzh/+upo=
 github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b/go.mod h1:NrL/b7YvexgpGb4HEO3Rlx5RrMLDfxuKDf/XDAq5ac0=
+github.com/qri-io/didmod v0.0.0-20201123165422-8b2e224c993a h1:40BIa59lae2xZ7iieb3UU4/X57jZsWZ6QgqwdjDQhig=
+github.com/qri-io/didmod v0.0.0-20201123165422-8b2e224c993a/go.mod h1:McauRlmqMSY+kX0OXdD9OX4DrelHDA8HHJtkakKuQCY=
 github.com/qri-io/doggos v0.1.0 h1:B7Hn9ssRGDAonMhJ4UwDtPDmG9GtvLR8f7VFec7Rs7M=
 github.com/qri-io/doggos v0.1.0/go.mod h1:FmyznoDwt2mhskYpnasyoEsxNr490qVbX9Sf6NP2Crg=
 github.com/qri-io/go-ipfs-http-client v0.0.6-0.20200623125303-7a2eee881baa h1:tROl0xAldO4jT4Bez0rAQxSa+bWbjrtOheBiUHbEx7g=

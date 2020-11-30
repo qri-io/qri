@@ -110,6 +110,8 @@ type SearchTestRunner struct {
 }
 
 // NewSearchTestRunner sets up state needed for the search test
+// TODO (b5) - add an explicit RepoPath to the SearchTestRunner. Tests are
+// relying on the "RootPath" property, which should be configurable per-test
 func NewSearchTestRunner(t *testing.T) *SearchTestRunner {
 	run := SearchTestRunner{}
 
@@ -164,7 +166,7 @@ func TestSearchRun(t *testing.T) {
 	}))
 	rc := regclient.NewClient(&regclient.Config{Location: server.URL})
 
-	f, err := NewTestFactoryInstanceOptions(ctx, lib.OptRegistryClient(rc))
+	f, err := NewTestFactoryInstanceOptions(ctx, run.RootPath, lib.OptRegistryClient(rc))
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return

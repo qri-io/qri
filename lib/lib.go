@@ -70,7 +70,7 @@ type InstanceOptions struct {
 	Cfg     *config.Config
 	Streams ioes.IOStreams
 
-	statsCache *stats.Cache
+	statsCache stats.Cache
 	node       *p2p.QriNode
 	repo       repo.Repo
 	qfs        *muxfs.Mux
@@ -255,7 +255,7 @@ func OptRegistryClient(cli *regclient.Client) Option {
 }
 
 // OptStatsCache overrides the configured stats cache
-func OptStatsCache(statsCache *stats.Cache) Option {
+func OptStatsCache(statsCache stats.Cache) Option {
 	return func(o *InstanceOptions) error {
 		o.statsCache = statsCache
 		return nil
@@ -443,9 +443,11 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if o.statsCache != nil {
-		inst.stats = stats.New(*o.statsCache)
+		inst.stats = stats.New(o.statsCache)
 	} else if inst.stats == nil {
-		inst.stats = newStats(inst.repoPath, cfg)
+		if inst.stats, err = newStats(cfg, inst.repoPath); err != nil {
+			return nil, err
+		}
 	}
 
 	if inst.repo != nil {
@@ -575,21 +577,25 @@ func newEventBus(ctx context.Context) event.Bus {
 	return event.NewBus(ctx)
 }
 
-func newStats(repoPath string, cfg *config.Config) *stats.Stats {
+func newStats(cfg *config.Config, repoPath string) (*stats.Service, error) {
 	// The stats cache default location is repoPath/stats
 	// can be overridden in the config: cfg.Stats.Path
 	path := filepath.Join(repoPath, "stats")
 	if cfg.Stats == nil {
-		return stats.New(nil)
+		return stats.New(nil), nil
 	}
 	if cfg.Stats.Cache.Path != "" {
 		path = cfg.Stats.Cache.Path
 	}
 	switch cfg.Stats.Cache.Type {
-	case "fs":
-		return stats.New(stats.NewOSCache(path, cfg.Stats.Cache.MaxSize))
+	case "fs", "local":
+		cache, err := stats.NewLocalCache(path, int64(cfg.Stats.Cache.MaxSize))
+		if err != nil {
+			return nil, err
+		}
+		return stats.New(cache), nil
 	default:
-		return stats.New(nil)
+		return stats.New(nil), nil
 	}
 }
 
@@ -631,9 +637,10 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		cfg:     cfg,
 		node:    node,
 		dscache: dc,
-		stats:   stats.New(nil),
 		logbook: r.Logbook(),
 	}
+
+	inst.stats = stats.New(nil)
 
 	if node != nil && r != nil {
 		inst.repo = r
@@ -674,7 +681,7 @@ type Instance struct {
 	remote          *remote.Remote
 	remoteClient    remote.Client
 	registry        *regclient.Client
-	stats           *stats.Stats
+	stats           *stats.Service
 	logbook         *logbook.Book
 	dscache         *dscache.Dscache
 	bus             event.Bus

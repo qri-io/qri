@@ -16,7 +16,6 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
@@ -343,11 +342,14 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		statsParams := &StatsParams{
 			Dataset: res.Dataset,
 		}
-		statsRes := &StatsResponse{}
-		if err = m.Stats(statsParams, statsRes); err != nil {
+		sa := &dataset.Stats{}
+		if err = m.Stats(statsParams, sa); err != nil {
 			return err
 		}
-		res.Bytes = statsRes.StatsBytes
+		res.Bytes, err = json.Marshal(sa.Stats)
+		if err != nil {
+			return err
+		}
 		return m.maybeWriteOutfile(p, res)
 	}
 	var value interface{}
@@ -1219,49 +1221,31 @@ type StatsParams struct {
 	Dataset *dataset.Dataset
 }
 
-// StatsResponse defines the response for a Stats request
-type StatsResponse struct {
-	StatsBytes []byte
-}
-
 // Stats generates stats for a dataset
-func (m *DatasetMethods) Stats(p *StatsParams, res *StatsResponse) error {
+func (m *DatasetMethods) Stats(p *StatsParams, res *dataset.Stats) error {
 	var err error
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Stats", p, res))
 	}
 	ctx := context.TODO()
 
-	if p.Dataset == nil {
+	if p.Ref == "" && p.Dataset == nil {
+		return fmt.Errorf("either a reference or dataset is required")
+	}
+
+	ds := p.Dataset
+	if ds == nil {
 		// TODO (b5) - stats is currently local-only, supply a source parameter
 		ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
 		if err != nil {
 			return err
 		}
-		p.Dataset, err = m.inst.LoadDataset(ctx, ref, source)
-		if err != nil {
-			return fmt.Errorf("loading dataset: %w", err)
+		if ds, err = m.inst.LoadDataset(ctx, ref, source); err != nil {
+			return err
 		}
 	}
 
-	if p.Dataset.Structure == nil || p.Dataset.Structure.IsEmpty() {
-		p.Dataset.Structure = &dataset.Structure{}
-		p.Dataset.Structure.Format = filepath.Ext(p.Dataset.BodyFile().FileName())
-		p.Dataset.Structure.Schema, _, err = detect.Schema(p.Dataset.Structure, p.Dataset.BodyFile())
-		if err != nil {
-			return err
-		}
-		// TODO (ramfox): this feels gross, but since we consume the reader when
-		// detecting the schema, we need to open up the file again, since we don't
-		// have the option to seek back to the front
-		if err = p.Dataset.OpenBodyFile(ctx, m.inst.repo.Filesystem()); err != nil {
-			return err
-		}
-	}
-	reader, err := m.inst.stats.JSON(ctx, p.Dataset)
-	if err != nil {
-		return err
-	}
-	res.StatsBytes, err = ioutil.ReadAll(reader)
+	sa, err := m.inst.stats.Stats(ctx, ds)
+	*res = *sa
 	return err
 }

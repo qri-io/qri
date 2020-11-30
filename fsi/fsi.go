@@ -27,19 +27,37 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// package level logger
 var (
+	// package level logger
 	log = golog.Logger("fsi")
-
-	// ErrNotLinkedToFilesystem is the err implementers should return when we
-	// are expecting the dataset to have a file system link, but fsiPath is empty
+	// ErrNoLink is the err implementers should return when we are expecting the
+	// dataset to have a file system link, but fsiPath is empty
 	ErrNoLink = fmt.Errorf("dataset is not linked to the filesystem")
 )
+
+// PathPrefix indicates paths that are using file system integration
+const PathPrefix = "/fsi"
 
 // FilesystemPathToLocal converts a qfs.Filesystem path that has an /fsi prefix
 // to a local path
 func FilesystemPathToLocal(qfsPath string) string {
-	return strings.TrimPrefix(qfsPath, "/fsi")
+	return strings.TrimPrefix(qfsPath, PathPrefix)
+}
+
+func localPathToFSIPath(absLocalPath string) string {
+	if absLocalPath == "" {
+		return ""
+	}
+	if strings.HasPrefix(absLocalPath, PathPrefix) {
+		return absLocalPath
+	}
+	return fmt.Sprintf("%s%s", PathPrefix, absLocalPath)
+}
+
+// IsFSIPath is a utility function that returns whether the given path is a
+// local filesystem path
+func IsFSIPath(path string) bool {
+	return strings.HasPrefix(path, PathPrefix)
 }
 
 // GetLinkedFilesysRef returns whether a directory is linked to a dataset in your repo, and
@@ -100,18 +118,10 @@ func (fsi *FSI) ResolvedPath(ref *dsref.Ref) error {
 	}
 
 	if vi.FSIPath != "" {
-		ref.Path = fmt.Sprintf("/fsi%s", vi.FSIPath)
+		ref.Path = fmt.Sprintf("%s%s", PathPrefix, vi.FSIPath)
 		return nil
 	}
 	return ErrNoLink
-}
-
-// IsFSIPath is a utility function that returns whether the given path is a
-// local filesystem path
-// TODO (ramfox) - remove this function & replace with a call to qfs.PathKind when it
-// supports the fsi prefix
-func IsFSIPath(path string) bool {
-	return strings.HasPrefix(path, "/fsi")
 }
 
 // ListLinks returns a list of linked datasets and their connected
