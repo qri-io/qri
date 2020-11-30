@@ -19,10 +19,23 @@ var (
 	GolangVersion = "n/a"
 )
 
+// Map returns a summary of build info as a string map
+func Map() map[string]string {
+	return map[string]string{
+		"version":       Version,
+		"gitCommit":     GitCommit,
+		"gitBranch":     GitBranch,
+		"gitState":      GitState,
+		"gitSummary":    GitSummary,
+		"buildDate":     BuildDate,
+		"golangVersion": GolangVersion,
+	}
+}
+
 // Summary prints a summary of all build info.
 func Summary() string {
 	return fmt.Sprintf(
-		"version:\t%s\n\nbuild date:\t%s\ngit summary:\t%s\ngit branch:\t%s\ngit commit:\t%s\ngit state:\t%s\ngolang version:\t%s",
+		"version:\t%s\nbuild date:\t%s\ngit summary:\t%s\ngit branch:\t%s\ngit commit:\t%s\ngit state:\t%s\ngolang version:\t%s",
 		Version,
 		BuildDate,
 		GitSummary,
