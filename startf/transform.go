@@ -23,7 +23,7 @@ import (
 )
 
 // Version is the version of qri that this transform was run with
-var Version = version.String
+var Version = version.Version
 
 // ExecOpts defines options for execution
 type ExecOpts struct {

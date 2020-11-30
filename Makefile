@@ -1,6 +1,13 @@
 
 default: build
 
+QRI_VERSION?="0.9.14-dev"
+
+BUILD_FLAGS?=CGO_ENABLED=0
+PKG=$(shell go list ./version)
+GOLANG_VERSION=$(shell go version | awk '{print $$3}')
+GOVVV_FLAGS=$(shell govvv -flags -pkg $(PKG) -version $(QRI_VERSION))
+
 require-goversion:
 	$(eval minver := go1.13)
 # Get the version of the current go binary
@@ -18,24 +25,11 @@ require-goversion:
 	fi;
 
 build: require-goversion
-	go install
+	$(BUILD_FLAGS) go build -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} ${GOVVV_FLAGS}" .
 
-build-latest:
-	git checkout master && git pull
-	build
-
-update-qri-deps: require-gopath
-	cd $$GOPATH/src/github.com/qri-io/qri && git checkout master && git pull && gx install
-	cd $$GOPATH/src/github.com/qri-io/qfs && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/qri/registry && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/dataset && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/varName && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/deepdiff && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/jsonschema && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/starlib && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/dag && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/ioes && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/qri
+install: require-goversion
+	$(BUILD_FLAGS) go install -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} ${GOVVV_FLAGS}" .
+.PHONY: install
 
 dscache_fbs:
 	cd dscache && flatc --go def.fbs

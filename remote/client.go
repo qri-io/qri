@@ -741,7 +741,7 @@ func (c *client) signHTTPRequest(req *http.Request) error {
 	req.Header.Add("timestamp", now)
 	req.Header.Add("pid", peerID)
 	req.Header.Add("signature", b64Sig)
-	req.Header.Add("qri-version", version.String)
+	req.Header.Add("qri-version", version.Version)
 	return nil
 }
 

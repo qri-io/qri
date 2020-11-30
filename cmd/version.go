@@ -19,7 +19,7 @@ For updates & further information check https://github.com/qri-io/qri/releases`,
 		},
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			printInfo(ioStreams.Out, version.String)
+			printInfo(ioStreams.Out, version.Summary())
 			return nil
 		},
 	}

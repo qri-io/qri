@@ -13,7 +13,7 @@ import (
 var (
 	log = golog.Logger("qrip2p")
 	// QriServiceTag marks the type & version of the qri service
-	QriServiceTag = fmt.Sprintf("qri/%s", version.String)
+	QriServiceTag = fmt.Sprintf("qri/%s", version.Version)
 	// ErrNotConnected is for a missing required network connection
 	ErrNotConnected = fmt.Errorf("no p2p connection")
 	// ErrQriProtocolNotSupported is returned when a connection can't be upgraded
