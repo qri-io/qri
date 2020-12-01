@@ -6,7 +6,6 @@ QRI_VERSION?="0.9.14-dev"
 BUILD_FLAGS?=CGO_ENABLED=0
 PKG=$(shell go list ./version)
 GOLANG_VERSION=$(shell go version | awk '{print $$3}')
-GOVVV_FLAGS=$(shell govvv -flags -pkg $(PKG) -version $(QRI_VERSION))
 
 require-goversion:
 	$(eval minver := go1.13)
@@ -24,11 +23,17 @@ require-goversion:
 		fi; \
 	fi;
 
-build: require-goversion
-	$(BUILD_FLAGS) go build -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} ${GOVVV_FLAGS}" .
+require-govvv:
+	$(eval govvv_loc := $(shell which govvv))
+	@if [ "$(govvv_loc)" == "" ]; then go install github.com/ahmetb/govvv; fi;
 
-install: require-goversion
-	$(BUILD_FLAGS) go install -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} ${GOVVV_FLAGS}" .
+govvv_version_flags:= $(shell govvv -flags -pkg $(PKG) -version $(QRI_VERSION))
+
+build: require-goversion require-govvv
+	$(BUILD_FLAGS) go build -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} $(govvv_version_flags)" .
+
+install: require-goversion require-govvv
+	$(BUILD_FLAGS) go install -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} $(govvv_version_flags)" .
 .PHONY: install
 
 dscache_fbs:
@@ -51,33 +56,3 @@ cli-docs:
 
 update-changelog:
 	conventional-changelog -p angular -i CHANGELOG.md -s
-
-build-cross-platform:
-	@echo "building qri_windows_amd64"
-	mkdir qri_windows_amd64
-	env GOOS=windows GOARCH=amd64 go build -o qri_windows_amd64/qri .
-	zip -r qri_windows_amd64.zip qri_windows_amd64 && rm -r qri_windows_amd64
-	@echo "building qri_windows_386"
-	mkdir qri_windows_386
-	env GOOS=windows GOARCH=386 go build -o qri_windows_386/qri .
-	zip -r qri_windows_386.zip qri_windows_386 && rm -r qri_windows_386
-	@echo "building qri_linux_arm"
-	mkdir qri_linux_arm
-	env GOOS=linux GOARCH=arm go build -o qri_linux_arm/qri .
-	zip -r qri_linux_arm.zip qri_linux_arm && rm -r qri_linux_arm
-	@echo "building qri_linux_amd64"
-	mkdir qri_linux_amd64
-	env GOOS=linux GOARCH=amd64 go build -o qri_linux_amd64/qri .
-	zip -r qri_linux_amd64.zip qri_linux_amd64 && rm -r qri_linux_amd64
-	@echo "building qri_linux_386"
-	mkdir qri_linux_386
-	env GOOS=linux GOARCH=386 go build -o qri_linux_386/qri .
-	zip -r qri_linux_386.zip qri_linux_386 && rm -r qri_linux_386
-	@echo "building qri_darwin_386"
-	mkdir qri_darwin_386
-	env GOOS=darwin GOARCH=386 go build -o qri_darwin_386/qri .
-	zip -r qri_darwin_386.zip qri_darwin_386 && rm -r qri_darwin_386	
-	@echo "building qri_darwin_amd64"
-	mkdir qri_darwin_amd64
-	env GOOS=darwin GOARCH=amd64 go build -o qri_darwin_amd64/qri .
-	zip -r qri_darwin_amd64.zip qri_darwin_amd64 && rm -r qri_darwin_amd64
