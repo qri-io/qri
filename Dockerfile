@@ -1,29 +1,51 @@
-FROM golang:1.14.6
+# build image to construct the binary
+FROM golang:1.14.6-alpine AS builder
 LABEL maintainer="sparkle_pony_2000@qri.io"
 
-ADD . /go/src/github.com/qri-io/qri
+RUN apk update \
+    && apk upgrade \
+    && apk add --no-cache \
+       bash git make openssh
 
-ENV GO111MODULE=on
+# build environment variables:
+#   * enable go modules
+#   * use goproxy
+#   * disable cgo for our builds
+#   * ensure target os is linux
+ENV GO111MODULE=on \
+    GOPROXY=https://proxy.golang.org \
+    CGO_ENABLED=0 \
+    GOOS=linux
 
-# run build
-RUN cd /go/src/github.com/qri-io/qri && make build
+# add sorce code to a "/qri" directory on the build image
+ADD . /qri
+# use that directory for working
+WORKDIR /qri
 
-# set default port to 8080, default log level, QRI_PATH env, IPFS_PATH env
-ENV PORT=8080 IPFS_LOGGING="" QRI_PATH=/data/qri IPFS_PATH=/data/ipfs
+# build using make command
+RUN make build
 
-# Ports for Swarm TCP, Swarm uTP, API, Gateway, Swarm Websockets
-EXPOSE 4001 4002/udp 5001 8080 8081
+# *** production image ***
+# use alpine as base for smaller images
+FROM alpine:latest as production
+LABEL maintainer="sparkle_pony_2000@qri.io" 
 
 # create directories for IPFS & QRI, setting proper owners
-RUN mkdir -p $IPFS_PATH && mkdir -p $QRI_PATH \
-  && adduser --disabled-password --home $IPFS_PATH --uid 1000 --gid 100 ipfs \
-  && chown 1000:100 $IPFS_PATH \
-  && chown 1000:100 $QRI_PATH
+RUN mkdir -p $QRI_PATH /app
 
-# Expose the fs-repo & qri-repos as volumes.
-# Important this happens after the USER directive so permission are correct.
-# VOLUME $IPFS_PATH
-# VOLUME $QRI_PATH
+WORKDIR /app
+
+# Copy our static executable from the builder image
+COPY --from=builder /qri/qri /bin/qri
+
+# need to update to latest ca-certificates, otherwise TLS won't work properly.
+# Informative:
+# https://hackernoon.com/alpine-docker-image-with-secured-communication-ssl-tls-go-restful-api-128eb6b54f1f
+RUN apk update \
+    && apk upgrade \
+    && apk add --no-cache \
+       ca-certificates \
+    && update-ca-certificates 2>/dev/null || true
 
 # Set binary as entrypoint
 # the setup flag initalizes ipfs & qri repos if none is mounted

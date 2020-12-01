@@ -24,16 +24,16 @@ require-goversion:
 	fi;
 
 require-govvv:
-	$(eval govvv_loc := $(shell which govvv))
-	@if [ "$(govvv_loc)" == "" ]; then go install github.com/ahmetb/govvv; fi;
-
-govvv_version_flags:= $(shell govvv -flags -pkg $(PKG) -version $(QRI_VERSION))
+ifeq (,$(shell which govvv))
+	@echo "installing govvv"
+	$(shell go install github.com/ahmetb/govvv)
+endif
 
 build: require-goversion require-govvv
-	$(BUILD_FLAGS) go build -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} $(govvv_version_flags)" .
+	$(BUILD_FLAGS) go build -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} $(shell govvv -flags -pkg $(PKG) -version $(QRI_VERSION))" .
 
 install: require-goversion require-govvv
-	$(BUILD_FLAGS) go install -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} $(govvv_version_flags)" .
+	$(BUILD_FLAGS) go install -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} $(shell govvv -flags -pkg $(PKG) -version $(QRI_VERSION))" .
 .PHONY: install
 
 dscache_fbs:
