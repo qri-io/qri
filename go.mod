@@ -3,6 +3,7 @@ module github.com/qri-io/qri
 go 1.13
 
 require (
+	github.com/ahmetb/govvv v0.3.0 // indirect
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
 	github.com/cheggaaa/pb/v3 v3.0.4

@@ -17,7 +17,7 @@ import (
 var (
 	log = golog.Logger("qriapi")
 	// APIVersion is the version string that is written in API responses
-	APIVersion = version.String
+	APIVersion = version.Version
 )
 
 const (

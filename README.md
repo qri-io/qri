@@ -2,13 +2,13 @@
 
 [![Qri](https://img.shields.io/badge/made%20by-qri-magenta.svg?style=flat-square)](https://qri.io) [![GoDoc](https://godoc.org/github.com/qri-io/qri?status.svg)](http://godoc.org/github.com/qri-io/qri) [![License](https://img.shields.io/github/license/qri-io/qri.svg?style=flat-square)](./LICENSE) [![Codecov](https://img.shields.io/codecov/c/github/qri-io/qri.svg?style=flat-square)](https://codecov.io/gh/qri-io/qri) [![CI](https://img.shields.io/circleci/project/github/qri-io/qri.svg?style=flat-square)](https://circleci.com/gh/qri-io/qri)
 
-<h1 align="center">Qri Backend and CLI</h1>
+<h1 align="center">Qri CLI</h1>
 
 <div align="center">
   <img alt="logo" src="https://qri.io/img/blobs/blob_trio.png" width="128">
 </div>
 <div align="center">
-  <strong>a global dataset version control system (GDVCS) built on the distributed web</strong>
+  <strong>a dataset version control system built on the distributed web</strong>
 </div>
 
 <div align="center">
@@ -54,7 +54,7 @@
 | "I want to help build the Qri backend" | [Read the Contributing guides](https://github.com/qri-io/qri/blob/master/CONTRIBUTOR.md) |
 | "I want to build Qri from source" | [Build Qri from source](#build)
 
-__qri is a global dataset version control system (GDVCS) built on the distributed web__
+__qri is a global dataset version control system built on the distributed web__
 
 Breaking that down:
 
@@ -71,6 +71,77 @@ If you’re unfamiliar with *version control,* particularly the distributed kind
 4. **Sync** _How do I handle changes in data?_
 
 Because qri is *global* and *content-addressed*, adding data to qri also checks the entire network to see if someone has added it before. Since qri is focused solely on datasets, it can provide meaningful search results. Every change on qri is associated with a peer, creating an audit-able trail you can use to quickly see what has changed and who has changed it. All datasets on qri are automatically described at the time of ingest using a flexible schema that makes data naturally inter-operate. Qri comes with tools to turn *all* datasets on the network into a JSON API with a single command. Finally, all changes in qri are tracked & synced.
+
+<a id="build"></a>
+## Building From Source
+
+To build qri you'll need the [go programming language](https://golang.org/dl/) on your machine.
+
+```shell
+$ git clone https://github.com/qri-io/qri
+$ cd qri
+$ make install
+```
+
+If this is your first time building, this command will have a lot of output. That's good! Its means it's working :) It'll take a minute or two to build.
+
+After this is done, there will be a new binary `qri` in your `~/go/bin` directory if using go modules, and `$GOPATH/bin` directory otherwise. You should be able to run:
+
+```shell
+$ qri help
+```
+and see help output.
+
+### Building on Windows
+
+To start, make sure that you have enabled [Developer Mode](https://docs.microsoft.com/en-us/windows/uwp/get-started/enable-your-device-for-development). A library that we depend on needs it enabled in order to properly handle symlinks. If not done, you'll likely get the error message "A required privilege is not held by the client".
+
+You should not need to Run As Administrator to build or run `qri`. We do not recommend using administrator to run `qri`.
+
+#### Shell
+
+For your shell, we recommend using [msys2](https://www.msys2.org/). Other shells, such as `cmd`, `Powershell`, or `cygwin` may also be usable, but `msys2` makes it easy to install our required dependencies. IPFS also recommends `msys2`, and `qri` is built on top of IPFS.
+
+#### Dependencies
+
+Building depends upon having `git` and `make` installed. If using `msys2`, you can easily install these by using the package manager "pacman". In a shell, type:
+
+```shell
+pacman -S git make
+```
+
+Assuming you've also installed `go` using the official Windows installer linked above, you will also need to add `go` to your `PATH` by modifying your environment variable. See the next section on "Environment variables" for more information.
+
+Due to how msys2 treats the `PATH` variable, you also need to add a new environment variable `MSYS2_PATH_TYPE`, with the value `inherit`, using the same procedure.
+
+Once these steps are complete, proceed to <a href="#building">building</a>.
+
+### Building on Rasberry PI
+
+On a Raspberry PI, you'll need to increase your swap file size in order to build. Normal desktop and server linux OSes should be fine to proceed to <a href="#building">building</a>.
+
+One symptom of having not enough swap space is the `go install` command producing an error message ending with:
+
+```
+link: signal: killed
+```
+
+To increase your swapfile size, first turn off the swapfile:
+
+```
+sudo dphys-swapfile swapoff
+```
+
+Then edit `/etc/dphys-swapfile` as root and set `CONF_SWAPSIZE` to 1024.
+
+Finally turn on the swapfile again:
+
+```
+sudo dphys-swapfile swapon
+```
+
+Otherwise linux machines with reduced memory will have other ways to increase their swap file sizes. Check documentation for your particular machine.
+
 
 ## Packages
 
@@ -98,94 +169,6 @@ The following packages are not under Qri, but are important dependencies, so we 
 | Package | Version |
 |--------|-------|
 | `ipfs` | [![ipfs version](https://img.shields.io/badge/ipfs-v0.6.0-blue.svg)](https://github.com/ipfs/go-ipfs/) |
-
-<a id="build"></a>
-## Building From Source
-
-To build qri you'll need the [go programming language](https://golang.org/dl/) on your machine. We require at least `go` version 1.13 to build qri.
-
-If you are new to using `go`, you should set your PATH environment variable to include the location that your go tool installs binaries to, which is usually `~/go/bin`. For more information about environment variables see [this tutorial](https://www.twilio.com/blog/2017/01/how-to-set-environment-variables.html).
-
-Building then depends upon your operating system:
-
-### Mac OSX
-
-Having `go` installed is enough, proceed to <a href="#building">building</a>.
-
-### Windows
-
-To start, make sure that you have enabled [Developer Mode](https://docs.microsoft.com/en-us/windows/uwp/get-started/enable-your-device-for-development). A library that we depend on needs it enabled in order to properly handle symlinks. If not done, you'll likely get the error message "A required privilege is not held by the client".
-
-You should not need to Run As Administrator to build or run `qri`. We do not recommend using administrator to run `qri`.
-
-#### Shell
-
-For your shell, we recommend using [msys2](https://www.msys2.org/). Other shells, such as `cmd`, `Powershell`, or `cygwin` may also be usable, but `msys2` makes it easy to install our required dependencies. IPFS also recommends `msys2`, and `qri` is built on top of IPFS.
-
-#### Dependencies
-
-Building depends upon having `git` and `make` installed. If using `msys2`, you can easily install these by using the package manager "pacman". In a shell, type:
-
-```shell
-pacman -S git make
-```
-
-Assuming you've also installed `go` using the official Windows installer linked above, you will also need to add `go` to your `PATH` by modifying your environment variable. See the next section on "Environment variables" for more information.
-
-Due to how msys2 treats the `PATH` variable, you also need to add a new environment variable `MSYS2_PATH_TYPE`, with the value `inherit`, using the same procedure.
-
-Once these steps are complete, proceed to <a href="#building">building</a>.
-
-### Linux
-
-On a Raspberry PI, you'll need to increase your swap file size in order to build. Normal desktop and server linux OSes should be fine to proceed to <a href="#building">building</a>.
-
-One symptom of having not enough swap space is the `go install` command producing an error message ending with:
-
-```
-link: signal: killed
-```
-
-To increase your swapfile size, first turn off the swapfile:
-
-```
-sudo dphys-swapfile swapoff
-```
-
-Then edit `/etc/dphys-swapfile` as root and set `CONF_SWAPSIZE` to 1024.
-
-Finally turn on the swapfile again:
-
-```
-sudo dphys-swapfile swapon
-```
-
-Otherwise linux machines with reduced memory will have other ways to increase their swap file sizes. Check documentation for your particular machine.
-
-### Building
-
-In your terminal, navigate to some directory that you want to work within. Let's say we're using a directory in our home folder called "go-code".
-
-```shell
-$ cd go-code
-$ git clone https://github.com/qri-io/qri
-```
-
-Once this repository is cloned, enter it and install:
-
-```shell
-$ cd qri
-$ go install
-```
-
-If this is your first time building, this command will have a lot of output. That's good! Its means it's working :) It'll take a minute or two to build.
-
-After this is done, there will be a new binary `qri` in your `~/go/bin` directory if using go modules, and `$GOPATH/bin` directory otherwise. You should be able to run:
-
-```shell
-$ qri help
-```
-and see help output.
 
 
 ###### This documentation has been adapted from the [Cycle.js](https://github.com/cyclejs/cyclejs) documentation.
