@@ -2,16 +2,10 @@
 FROM golang:1.14.6-alpine AS builder
 LABEL maintainer="sparkle_pony_2000@qri.io"
 
-RUN apk update && apk upgrade && \
-apk add --no-cache bash git openssh
-
-# RUN apk add --no-cache autoconf automake libtool gettext gettext-dev make g++ texinfo curl
-# WORKDIR /root
-# RUN wget https://github.com/emcrisostomo/fswatch/releases/download/1.14.0/fswatch-1.14.0.tar.gz
-# RUN tar -xvzf fswatch-1.14.0.tar.gz
-# WORKDIR /root/fswatch-1.14.0
-# RUN ./configure
-# RUN make && make install
+RUN apk update \
+    && apk upgrade \
+    && apk add --no-cache \
+       bash git make openssh
 
 # build environment variables:
 #   * enable go modules
@@ -19,30 +13,17 @@ apk add --no-cache bash git openssh
 #   * disable cgo for our builds
 #   * ensure target os is linux
 ENV GO111MODULE=on \
-  GOPROXY=https://proxy.golang.org \
-  CGO_ENABLED=0 \
-  GOOS=linux
+    GOPROXY=https://proxy.golang.org \
+    CGO_ENABLED=0 \
+    GOOS=linux
 
-# need to update to latest ca-certificates, otherwise TLS won't work properly.
-# Informative:
-# https://hackernoon.com/alpine-docker-image-with-secured-communication-ssl-tls-go-restful-api-128eb6b54f1f
-RUN apk update \
-    && apk upgrade \
-    && apk add --no-cache \
-    ca-certificates \
-    && update-ca-certificates 2>/dev/null || true
-
-# add local files to cloud backend
+# add sorce code to a "/qri" directory on the build image
 ADD . /qri
+# use that directory for working
 WORKDIR /qri
 
-# install to produce a binary called "main" in the pwd
-#   -a flag rebuild all the packages we’re using,
-#      which means all the imports will be rebuilt with cgo disabled.
-#   -installsuffix cgo keeps output separate in build caches
-#   -o sets the output name to main
-#   . says "build this package"
-RUN go build -a -installsuffix cgo -o main .
+# build using make command
+RUN make build
 
 # *** production image ***
 # use alpine as base for smaller images
@@ -54,8 +35,8 @@ RUN mkdir -p $QRI_PATH /app
 
 WORKDIR /app
 
-# Copy our static executable, qri and IPFS directories, which are empty
-COPY --from=builder /qri/main /bin/qri
+# Copy our static executable from the builder image
+COPY --from=builder /qri/qri /bin/qri
 
 # need to update to latest ca-certificates, otherwise TLS won't work properly.
 # Informative:
@@ -63,7 +44,7 @@ COPY --from=builder /qri/main /bin/qri
 RUN apk update \
     && apk upgrade \
     && apk add --no-cache \
-    ca-certificates \
+       ca-certificates \
     && update-ca-certificates 2>/dev/null || true
 
 # Set binary as entrypoint
