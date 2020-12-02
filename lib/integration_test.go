@@ -61,7 +61,11 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	}
 
 	// 5. nasim commits a new version
+<<<<<<< HEAD
 	ref = Commit2WorldBank(tr.Ctx, t, nasim)
+=======
+	ref = Commit2WorldBank(t, nasim, ref)
+>>>>>>> test(lib): TwoKeypairIntegrationTest to show collaboration
 
 	// 6. nasim re-publishes to the registry
 	PushToRegistry(tr.Ctx, t, nasim, ref.Alias())
@@ -194,6 +198,56 @@ def transform(ds, ctx):
 
 	if logRes[0].Published != true {
 		t.Errorf("adnan's log expects head was published, ref[0] published is false")
+	}
+}
+
+func TestTwoKeypairCollaboration(t *testing.T) {
+	tr := NewNetworkIntegrationTestRunner(t, "integration_reference_pulling")
+	defer tr.Cleanup()
+
+	nasim := tr.InitNasim(t)
+
+	// - nasim creates a dataset, publishes to registry
+	worldBankRef := InitWorldBankDataset(t, nasim)
+
+	hinshun := tr.InitHinshun(t)
+
+	// - get hinshun's peer info to nasim
+	// ...
+
+	// - nasim gives hinshun write access to nasim/world_bank_population
+	// ...
+	// nam := newAccessMethods(nasim)
+	// nam.Grant(...)
+
+	res := &dataset.Dataset{}
+	hinshunRemoteMethods := NewRemoteMethods(hinshun)
+	err := hinshunRemoteMethods.Pull(&PushParams{
+		Ref: worldBankRef.String(),
+		// RemoteName: nasim
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// hinshun commits to nasim's dataset
+	worldBankRef = Commit2WorldBank(t, hinshun, worldBankRef)
+
+	err = hinshunRemoteMethods.Push(&PushParams{
+		Ref:        worldBankRef,
+		RemoteNAme: nasim,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := dsref.MustParse(worldBankRef.Human())
+	if _, err := nasim.ResolveReference(ctx.Background(), &ref, "local"); err != nil {
+		t.Fatal(err)
+	}
+
+	if !got.Equals(worldBankRef) {
+		t.Errorf("reference mismatch.\nwant: %q\ngot:  %q", worldBankRef, got)
 	}
 }
 
@@ -390,9 +444,16 @@ d,e,f,false,3`),
 	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
 }
 
+<<<<<<< HEAD
 func Commit2WorldBank(ctx context.Context, t *testing.T, inst *Instance) dsref.Ref {
 	res, err := inst.Dataset().Save(ctx, &SaveParams{
 		Ref: "me/world_bank_population",
+=======
+func Commit2WorldBank(t *testing.T, inst *Instance, ref dsref.Ref) dsref.Ref {
+	res := &dataset.Dataset{}
+	err := NewDatasetMethods(inst).Save(&SaveParams{
+		Ref: ref.Human(),
+>>>>>>> test(lib): TwoKeypairIntegrationTest to show collaboration
 		Dataset: &dataset.Dataset{
 			Meta: &dataset.Meta{
 				Title: "World Bank Population",
