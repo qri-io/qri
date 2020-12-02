@@ -3,13 +3,10 @@ module github.com/qri-io/qri
 go 1.13
 
 require (
-	github.com/ahmetb/govvv v0.3.0 // indirect
-	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
 	github.com/cheggaaa/pb/v3 v3.0.4
 	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/dgryski/go-topk v0.0.0-20191119021947-593b4f2374c9
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0
 	github.com/fsnotify/fsnotify v1.4.9
@@ -17,7 +14,6 @@ require (
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.12.1-0.20200706154056-969d0f7a6317
 	github.com/google/go-cmp v0.5.3
-	github.com/google/martian v2.1.0+incompatible
 	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/ipfs/go-ipfs v0.6.0

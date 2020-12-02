@@ -13,9 +13,9 @@ import (
 	host "github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
+	"github.com/qri-io/qri/profile"
 )
 
 var (
@@ -88,10 +88,10 @@ func New(book *logbook.Book, opts ...func(*Options)) *Logsync {
 }
 
 // Hook is a function called at specified points in the sync lifecycle
-type Hook func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error
+type Hook func(ctx context.Context, author profile.Author, ref dsref.Ref, l *oplog.Log) error
 
 // Author is the local author of lsync's logbook
-func (lsync *Logsync) Author() identity.Author {
+func (lsync *Logsync) Author() profile.Author {
 	if lsync == nil {
 		return nil
 	}
@@ -189,9 +189,9 @@ func (lsync *Logsync) remoteClient(ctx context.Context, remoteAddr string) (rem 
 // client protocol
 type remote interface {
 	addr() string
-	put(ctx context.Context, author identity.Author, ref dsref.Ref, r io.Reader) error
-	get(ctx context.Context, author identity.Author, ref dsref.Ref) (sender identity.Author, data io.Reader, err error)
-	del(ctx context.Context, author identity.Author, ref dsref.Ref) error
+	put(ctx context.Context, author profile.Author, ref dsref.Ref, r io.Reader) error
+	get(ctx context.Context, author profile.Author, ref dsref.Ref) (sender profile.Author, data io.Reader, err error)
+	del(ctx context.Context, author profile.Author, ref dsref.Ref) error
 }
 
 // assert at compile-time that Logsync is a remote
@@ -202,7 +202,7 @@ func (lsync *Logsync) addr() string {
 	panic("cannot get the address of logsync itself")
 }
 
-func (lsync *Logsync) put(ctx context.Context, author identity.Author, ref dsref.Ref, r io.Reader) error {
+func (lsync *Logsync) put(ctx context.Context, author profile.Author, ref dsref.Ref, r io.Reader) error {
 	if lsync == nil {
 		return ErrNoLogsync
 	}
@@ -249,7 +249,7 @@ func (lsync *Logsync) put(ctx context.Context, author identity.Author, ref dsref
 	return nil
 }
 
-func (lsync *Logsync) get(ctx context.Context, author identity.Author, ref dsref.Ref) (identity.Author, io.Reader, error) {
+func (lsync *Logsync) get(ctx context.Context, author profile.Author, ref dsref.Ref) (profile.Author, io.Reader, error) {
 	log.Debugf("logsync.get author.AuthorID=%q ref=%q", author.AuthorID, ref)
 	if lsync == nil {
 		return nil, nil, ErrNoLogsync
@@ -288,7 +288,7 @@ func (lsync *Logsync) get(ctx context.Context, author identity.Author, ref dsref
 	return lsync.Author(), bytes.NewReader(data), nil
 }
 
-func (lsync *Logsync) del(ctx context.Context, sender identity.Author, ref dsref.Ref) error {
+func (lsync *Logsync) del(ctx context.Context, sender profile.Author, ref dsref.Ref) error {
 	if lsync == nil {
 		return ErrNoLogsync
 	}

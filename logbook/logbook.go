@@ -21,8 +21,8 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
+	"github.com/qri-io/qri/profile"
 )
 
 var (
@@ -146,7 +146,7 @@ func NewJournal(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesy
 }
 
 func (book *Book) initialize(ctx context.Context) error {
-	keyID, err := identity.KeyIDFromPriv(book.pk)
+	keyID, err := profile.KeyIDFromPriv(book.pk)
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (book *Book) ActivePeerID(ctx context.Context) (id string, err error) {
 }
 
 // Author returns this book's author
-func (book *Book) Author() identity.Author {
+func (book *Book) Author() profile.Author {
 	return book
 }
 
@@ -938,7 +938,7 @@ func DsrefAliasForLog(log *oplog.Log) (dsref.Ref, error) {
 }
 
 // MergeLog adds a log to the logbook, merging with any existing log data
-func (book *Book) MergeLog(ctx context.Context, sender identity.Author, lg *oplog.Log) error {
+func (book *Book) MergeLog(ctx context.Context, sender profile.Author, lg *oplog.Log) error {
 	if book == nil {
 		return ErrNoLogbook
 	}

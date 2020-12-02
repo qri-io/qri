@@ -19,9 +19,9 @@ import (
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
+	"github.com/qri-io/qri/profile"
 )
 
 func Example() {
@@ -255,7 +255,7 @@ func TestResolveRef(t *testing.T) {
 	}
 
 	book := tr.Book
-	dsrefspec.AssertResolverSpec(t, book, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, book, func(ref dsref.Ref, author profile.Author, log *oplog.Log) error {
 		return book.MergeLog(context.Background(), author, log)
 	})
 }

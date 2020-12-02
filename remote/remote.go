@@ -20,7 +20,6 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/logsync"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -495,10 +494,10 @@ func (r *Remote) subjAndRefFromMeta(meta map[string]string) (*profile.Profile, d
 }
 
 func (r *Remote) logHook(name string, h Hook) logsync.Hook {
-	return func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error {
+	return func(ctx context.Context, author profile.Author, ref dsref.Ref, l *oplog.Log) error {
 		if h != nil {
 			log.Debugf("remote.logHook name=%q ref=%q", name, ref)
-			kid, err := identity.KeyIDFromPub(author.AuthorPubKey())
+			kid, err := profile.KeyIDFromPub(author.AuthorPubKey())
 			if err != nil {
 				return err
 			}
@@ -522,9 +521,9 @@ func (r *Remote) logHook(name string, h Hook) logsync.Hook {
 }
 
 func (r *Remote) logPreCheckHook(name string, action string, h Hook) logsync.Hook {
-	return func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error {
+	return func(ctx context.Context, author profile.Author, ref dsref.Ref, l *oplog.Log) error {
 		log.Debugf("remote.logPreCheckHook hook=%q ref=%q", name, ref)
-		kid, err := identity.KeyIDFromPub(author.AuthorPubKey())
+		kid, err := profile.KeyIDFromPub(author.AuthorPubKey())
 		if err != nil {
 			return err
 		}
