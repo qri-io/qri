@@ -13,9 +13,9 @@ import (
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
-	"github.com/qri-io/qri/repo/profile"
 )
 
 // Options provides additional fields to new

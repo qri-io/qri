@@ -16,7 +16,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 // PrepareSaveRef works out a dataset reference for saving a dataset version.

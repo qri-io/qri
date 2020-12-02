@@ -33,11 +33,11 @@ import (
 	"github.com/qri-io/qri/fsi/hiddenfile"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/buildrepo"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/stats"
 	"github.com/qri-io/qri/watchfs"
 )
@@ -374,7 +374,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// if logAll is enabled, turn on debug level logging for all qri packages. Packages need to
 	// be explicitly enumerated here
 	if o.logAll {
-		allPackages := []string{"qriapi", "qrip2p", "base", "cmd", "config", "dsref", "dsfs", "friendly", "fsi", "lib", "logbook", "repo"}
+		allPackages := []string{"qriapi", "qrip2p", "base", "cmd", "config", "dsref", "dsfs", "friendly", "fsi", "lib", "logbook", "profile", "repo"}
 		for _, name := range allPackages {
 			golog.SetLogLevel(name, "debug")
 		}

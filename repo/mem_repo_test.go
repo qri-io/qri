@@ -12,7 +12,7 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 func TestMemRepoResolveRef(t *testing.T) {

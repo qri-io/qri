@@ -9,8 +9,8 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 )
 
 // SaveSwitches is an alias for the switches that control how saves happen

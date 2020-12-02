@@ -10,8 +10,8 @@ import (
 	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 

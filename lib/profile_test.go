@@ -12,9 +12,9 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/registry"
 	regmock "github.com/qri-io/qri/registry/regserver"
-	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )

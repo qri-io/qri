@@ -23,8 +23,8 @@ import (
 	qipfs "github.com/qri-io/qfs/qipfs"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
+	profile "github.com/qri-io/qri/profile"
 	qrirepo "github.com/qri-io/qri/repo"
-	profile "github.com/qri-io/qri/repo/profile"
 )
 
 // MakeRepoFromIPFSNode wraps an ipfs node with a mock qri repo

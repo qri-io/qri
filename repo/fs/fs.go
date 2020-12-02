@@ -14,16 +14,12 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 var log = golog.Logger("fsrepo")
-
-func init() {
-	golog.SetLogLevel("fsrepo", "info")
-}
 
 // Repo is a filesystem-based implementation of the Repo interface
 type Repo struct {
@@ -37,7 +33,7 @@ type Repo struct {
 	fsys     *muxfs.Mux
 	logbook  *logbook.Book
 	dscache  *dscache.Dscache
-	profiles *ProfileStore
+	profiles profile.Store
 
 	doneWg  sync.WaitGroup
 	doneCh  chan struct{}
@@ -68,7 +64,7 @@ func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Ds
 		dscache:  cache,
 
 		Refstore: Refstore{basepath: bp, file: FileRefs},
-		profiles: NewProfileStore(bp),
+		profiles: profile.NewLocalStore(bp.filepath(FilePeers)),
 
 		doneCh: make(chan struct{}),
 	}

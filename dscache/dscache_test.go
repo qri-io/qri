@@ -17,7 +17,7 @@ import (
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 // TODO(dlong): Test NewDscache, IsEmpty, Assign, ListRefs, Update

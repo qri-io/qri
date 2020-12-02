@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 

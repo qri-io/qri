@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	swarm "github.com/libp2p/go-libp2p-swarm"

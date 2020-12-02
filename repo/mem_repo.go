@@ -12,7 +12,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 // MemRepo is an in-memory implementation of the Repo interface

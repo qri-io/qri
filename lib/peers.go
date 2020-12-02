@@ -7,8 +7,8 @@ import (
 
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"

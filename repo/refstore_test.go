@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 

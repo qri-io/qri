@@ -7,7 +7,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/qri-io/qri/access"
 	cfgtest "github.com/qri-io/qri/config/test"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 // AssertTokenSourceSpec ensures a TokenSource implementation behaves as

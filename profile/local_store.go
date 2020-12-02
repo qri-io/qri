@@ -1,4 +1,4 @@
-package fsrepo
+package profile
 
 import (
 	"encoding/json"
@@ -7,35 +7,34 @@ import (
 	"os"
 	"sync"
 
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/theckman/go-flock"
-
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-// ErrNotFound is for when a qri profile isn't found
-var ErrNotFound = fmt.Errorf("Not Found")
-
-// ProfileStore is an on-disk json file implementation of the
+// LocalStore is an on-disk json file implementation of the
 // repo.Peers interface
-type ProfileStore struct {
+type LocalStore struct {
 	sync.Mutex
-	basepath
-	flock *flock.Flock
+	filename string
+	flock    *flock.Flock
 }
 
-// NewProfileStore allocates a ProfileStore
-func NewProfileStore(bp basepath) *ProfileStore {
-	return &ProfileStore{
-		basepath: bp,
-		flock:    flock.NewFlock(bp.filepath(FilePeers) + ".lock"),
+// NewLocalStore allocates a LocalStore
+func NewLocalStore(filename string) *LocalStore {
+	return &LocalStore{
+		filename: filename,
+		flock:    flock.NewFlock(lockPath(filename)),
 	}
 }
 
+func lockPath(filename string) string {
+	return fmt.Sprintf("%s.lock", filename)
+}
+
 // PutProfile adds a peer to the store
-func (r *ProfileStore) PutProfile(p *profile.Profile) error {
+func (r *LocalStore) PutProfile(p *Profile) error {
 	log.Debugf("put profile: %s", p.ID.String())
 	if p.ID.String() == "" {
 		return fmt.Errorf("profile ID is required")
@@ -57,11 +56,11 @@ func (r *ProfileStore) PutProfile(p *profile.Profile) error {
 		return err
 	}
 	ps[p.ID.String()] = enc
-	return r.saveFile(ps, FilePeers)
+	return r.saveFile(ps)
 }
 
 // PeerIDs gives the peer.IDs list for a given peername
-func (r *ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
+func (r *LocalStore) PeerIDs(id ID) ([]peer.ID, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -74,7 +73,7 @@ func (r *ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
 
 	for proid, cp := range ps {
 		if ids == proid {
-			pro := &profile.Profile{}
+			pro := &Profile{}
 			if err := pro.Decode(cp); err != nil {
 				return nil, err
 			}
@@ -86,20 +85,20 @@ func (r *ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
 }
 
 // List hands back the list of peers
-func (r *ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
+func (r *LocalStore) List() (map[ID]*Profile, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	ps, err := r.profiles()
 	if err != nil && err.Error() == "EOF" {
-		return map[profile.ID]*profile.Profile{}, nil
+		return map[ID]*Profile{}, nil
 	} else if err != nil {
 		return nil, err
 	}
 
-	profiles := map[profile.ID]*profile.Profile{}
+	profiles := map[ID]*Profile{}
 	for _, cp := range ps {
-		pro := &profile.Profile{}
+		pro := &Profile{}
 		if err := pro.Decode(cp); err != nil {
 			return nil, err
 		}
@@ -109,8 +108,8 @@ func (r *ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
 	return profiles, nil
 }
 
-// PeernameID gives the profile.ID for a given peername
-func (r *ProfileStore) PeernameID(peername string) (profile.ID, error) {
+// PeernameID gives the ID for a given peername
+func (r *LocalStore) PeernameID(peername string) (ID, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -121,14 +120,14 @@ func (r *ProfileStore) PeernameID(peername string) (profile.ID, error) {
 
 	for id, cp := range ps {
 		if cp.Peername == peername {
-			return profile.IDB58Decode(id)
+			return IDB58Decode(id)
 		}
 	}
 	return "", qfs.ErrNotFound
 }
 
 // GetProfile fetches a profile from the store
-func (r *ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
+func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
 	log.Debugf("get profile: %s", id.String())
 
 	r.Lock()
@@ -143,7 +142,7 @@ func (r *ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 
 	for proid, p := range ps {
 		if ids == proid {
-			pro := &profile.Profile{}
+			pro := &Profile{}
 			err := pro.Decode(p)
 			return pro, err
 		}
@@ -153,7 +152,7 @@ func (r *ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 }
 
 // PeerProfile gives the profile that corresponds with a given peer.ID
-func (r *ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
+func (r *LocalStore) PeerProfile(id peer.ID) (*Profile, error) {
 	log.Debugf("peerProfile: %s", id.Pretty())
 
 	r.Lock()
@@ -168,7 +167,7 @@ func (r *ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
 	for _, p := range ps {
 		for _, id := range p.PeerIDs {
 			if id == str {
-				pro := &profile.Profile{}
+				pro := &Profile{}
 				err := pro.Decode(p)
 				return pro, err
 			}
@@ -179,7 +178,7 @@ func (r *ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
 }
 
 // DeleteProfile removes a profile from the store
-func (r *ProfileStore) DeleteProfile(id profile.ID) error {
+func (r *LocalStore) DeleteProfile(id ID) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -188,10 +187,10 @@ func (r *ProfileStore) DeleteProfile(id profile.ID) error {
 		return err
 	}
 	delete(ps, id.String())
-	return r.saveFile(ps, FilePeers)
+	return r.saveFile(ps)
 }
 
-func (r *ProfileStore) saveFile(ps map[string]*config.ProfilePod, f File) error {
+func (r *LocalStore) saveFile(ps map[string]*config.ProfilePod) error {
 
 	data, err := json.Marshal(ps)
 	if err != nil {
@@ -199,7 +198,7 @@ func (r *ProfileStore) saveFile(ps map[string]*config.ProfilePod, f File) error 
 		return err
 	}
 
-	log.Debugf("writing profiles: %s", r.filepath(f))
+	log.Debugf("writing profiles: %s", r.filename)
 	if err := r.flock.Lock(); err != nil {
 		return err
 	}
@@ -207,10 +206,10 @@ func (r *ProfileStore) saveFile(ps map[string]*config.ProfilePod, f File) error 
 		r.flock.Unlock()
 		log.Debugf("profiles written")
 	}()
-	return ioutil.WriteFile(r.filepath(f), data, os.ModePerm)
+	return ioutil.WriteFile(r.filename, data, 0644)
 }
 
-func (r *ProfileStore) profiles() (map[string]*config.ProfilePod, error) {
+func (r *LocalStore) profiles() (map[string]*config.ProfilePod, error) {
 	log.Debug("reading profiles")
 
 	if err := r.flock.Lock(); err != nil {
@@ -222,7 +221,7 @@ func (r *ProfileStore) profiles() (map[string]*config.ProfilePod, error) {
 	}()
 
 	pp := map[string]*config.ProfilePod{}
-	data, err := ioutil.ReadFile(r.filepath(FilePeers))
+	data, err := ioutil.ReadFile(r.filename)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return pp, nil

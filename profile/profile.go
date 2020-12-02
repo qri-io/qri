@@ -7,12 +7,14 @@ import (
 	"strings"
 	"time"
 
+	logger "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/qri-io/qri/config"
-
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/qri-io/qri/config"
 )
+
+var log = logger.Logger("profile")
 
 // Profile defines peer profile details
 type Profile struct {

@@ -5,8 +5,8 @@ import (
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/registry"
-	"github.com/qri-io/qri/repo/profile"
 )
 
 // RegistryClientMethods defines business logic for working with registries

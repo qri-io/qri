@@ -17,8 +17,8 @@ import (
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/test"
 )

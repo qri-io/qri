@@ -75,7 +75,7 @@ ok    github.com/qri-io/qri/p2p/test  (cached)
 ok    github.com/qri-io/qri/repo  (cached)
 ok    github.com/qri-io/qri/repo/fs (cached)
 ?     github.com/qri-io/qri/repo/gen  [no test files]
-ok    github.com/qri-io/qri/repo/profile  (cached)
+ok    github.com/qri-io/qri/profile  (cached)
 ok    github.com/qri-io/qri/repo/test (cached)
 ok    github.com/qri-io/qri/rev (cached)
 ```

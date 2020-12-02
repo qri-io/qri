@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/access"
 	cfgtest "github.com/qri-io/qri/config/test"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 // AssertTokenStoreSpec ensures an access.TokenStore implementation behaves as

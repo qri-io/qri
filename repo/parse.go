@@ -6,7 +6,7 @@ import (
 
 	"github.com/mr-tron/base58/base58"
 	"github.com/multiformats/go-multihash"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 

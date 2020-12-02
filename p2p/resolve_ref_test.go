@@ -14,7 +14,7 @@ import (
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 	p2ptest "github.com/qri-io/qri/p2p/test"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 func TestResolveRef(t *testing.T) {
