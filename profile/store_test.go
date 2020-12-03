@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/key"
 	cfgtest "github.com/qri-io/qri/config/test"
 )
 
@@ -35,7 +36,12 @@ func TestPutProfileWithAddresses(t *testing.T) {
 	}
 
 	pi0 := cfgtest.GetTestPeerInfo(0)
-	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: pi0.PrivKey, Peername: "user"})
+	ks, err := key.NewMemStore(pid, pi0.PrivKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: pi0.PrivKey, Peername: "user"}, ks)
 	if err != nil {
 		t.Fatal(err)
 	}
