@@ -11,6 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/key"
 	"github.com/theckman/go-flock"
 )
 
@@ -24,6 +25,8 @@ type Store interface {
 	Owner() *Profile
 	// SetOwner handles updates to the current user profile at runtime
 	SetOwner(own *Profile) error
+	// profile stores are built atop a store of keypairs
+	KeyStore() key.Store
 
 	// put a profile in the store
 	PutProfile(profile *Profile) error
@@ -52,15 +55,20 @@ func NewStore(cfg *config.Config) (Store, error) {
 		return nil, err
 	}
 
+	keyStore, err := key.NewStore(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	if cfg.Repo == nil {
-		return NewMemStore(pro)
+		return NewMemStore(pro, keyStore)
 	}
 
 	switch cfg.Repo.Type {
 	case "fs":
-		return NewLocalStore(filepath.Join(filepath.Dir(cfg.Path()), "peers.json"), pro)
+		return NewLocalStore(filepath.Join(filepath.Dir(cfg.Path()), "peers.json"), pro, keyStore)
 	case "mem":
-		return NewMemStore(pro)
+		return NewMemStore(pro, keyStore)
 	default:
 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
 	}
@@ -69,12 +77,13 @@ func NewStore(cfg *config.Config) (Store, error) {
 // MemStore is an in-memory implementation of the profile Store interface
 type MemStore struct {
 	sync.Mutex
-	owner *Profile
-	store map[ID]*Profile
+	owner    *Profile
+	store    map[ID]*Profile
+	keyStore key.Store
 }
 
 // NewMemStore allocates a MemStore
-func NewMemStore(owner *Profile) (Store, error) {
+func NewMemStore(owner *Profile, ks key.Store) (Store, error) {
 	if err := owner.ValidOwnerProfile(); err != nil {
 		return nil, err
 	}
@@ -84,6 +93,7 @@ func NewMemStore(owner *Profile) (Store, error) {
 		store: map[ID]*Profile{
 			owner.ID: owner,
 		},
+		keyStore: ks,
 	}, nil
 }
 
@@ -98,15 +108,24 @@ func (m *MemStore) SetOwner(own *Profile) error {
 	return nil
 }
 
+// KeyStore accesses the underlying key.Store
+func (m *MemStore) KeyStore() key.Store {
+	return m.keyStore
+}
+
 // PutProfile adds a peer to this store
-func (m *MemStore) PutProfile(profile *Profile) error {
-	if profile.ID.String() == "" {
+func (m *MemStore) PutProfile(p *Profile) error {
+	if p.ID.String() == "" {
 		return fmt.Errorf("profile.ID is required")
 	}
 
 	m.Lock()
-	m.store[profile.ID] = profile
+	m.store[p.ID] = p
 	m.Unlock()
+
+	if p.Key != nil {
+		return m.keyStore.AddPubKey(p.Key.ID, p.Key.Key)
+	}
 	return nil
 }
 
@@ -194,18 +213,20 @@ func (m *MemStore) DeleteProfile(id ID) error {
 type LocalStore struct {
 	sync.Mutex
 	owner    *Profile
+	keyStore key.Store
 	filename string
 	flock    *flock.Flock
 }
 
 // NewLocalStore allocates a LocalStore
-func NewLocalStore(filename string, owner *Profile) (Store, error) {
+func NewLocalStore(filename string, owner *Profile, ks key.Store) (Store, error) {
 	if err := owner.ValidOwnerProfile(); err != nil {
 		return nil, err
 	}
 
 	return &LocalStore{
 		owner:    owner,
+		keyStore: ks,
 		filename: filename,
 		flock:    flock.NewFlock(lockPath(filename)),
 	}, nil
@@ -226,6 +247,11 @@ func (r *LocalStore) SetOwner(own *Profile) error {
 	return nil
 }
 
+// KeyStore accesses the underlying key.Store
+func (r *LocalStore) KeyStore() key.Store {
+	return r.keyStore
+}
+
 // PutProfile adds a peer to the store
 func (r *LocalStore) PutProfile(p *Profile) error {
 	log.Debugf("put profile: %s", p.ID.String())
@@ -240,6 +266,12 @@ func (r *LocalStore) PutProfile(p *Profile) error {
 
 	// explicitly remove Online flag
 	enc.Online = false
+
+	if p.Key != nil {
+		if err := r.keyStore.AddPubKey(p.Key.ID, p.Key.Key); err != nil {
+			return err
+		}
+	}
 
 	r.Lock()
 	defer r.Unlock()
