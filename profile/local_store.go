@@ -17,20 +17,37 @@ import (
 // repo.Peers interface
 type LocalStore struct {
 	sync.Mutex
+	owner    *Profile
 	filename string
 	flock    *flock.Flock
 }
 
 // NewLocalStore allocates a LocalStore
-func NewLocalStore(filename string) *LocalStore {
+func NewLocalStore(filename string, owner *Profile) (Store, error) {
+	if err := owner.ValidOwnerProfile(); err != nil {
+		return nil, err
+	}
+
 	return &LocalStore{
+		owner:    owner,
 		filename: filename,
 		flock:    flock.NewFlock(lockPath(filename)),
-	}
+	}, nil
 }
 
 func lockPath(filename string) string {
 	return fmt.Sprintf("%s.lock", filename)
+}
+
+// Owner accesses the current user profile
+func (r *LocalStore) Owner() *Profile {
+	return r.owner
+}
+
+// SetOwner updates the owner profile
+func (r *LocalStore) SetOwner(own *Profile) error {
+	r.owner = own
+	return nil
 }
 
 // PutProfile adds a peer to the store

@@ -164,3 +164,15 @@ func (p Profile) Encode() (*config.ProfilePod, error) {
 	}
 	return pp, nil
 }
+
+// ValidOwnerProfile checks if a profile can be used as an owner profile
+func (p *Profile) ValidOwnerProfile() error {
+	if p == nil {
+		return fmt.Errorf("profile cannot be nil")
+	}
+	if p.PrivKey == nil {
+		return fmt.Errorf("private key is required")
+	}
+	// TODO (b5) - confirm PrivKey is valid
+	return nil
+}

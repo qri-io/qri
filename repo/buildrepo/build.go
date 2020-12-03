@@ -20,6 +20,7 @@ import (
 
 // Options provides additional fields to new
 type Options struct {
+	Profiles   profile.Store
 	Filesystem *muxfs.Mux
 	Logbook    *logbook.Book
 	Dscache    *dscache.Dscache
@@ -34,6 +35,11 @@ func New(ctx context.Context, path string, cfg *config.Config, opts ...func(o *O
 	}
 
 	var err error
+	if o.Profiles == nil {
+		if o.Profiles, err = profile.NewStore(cfg); err != nil {
+			return nil, err
+		}
+	}
 	if o.Filesystem == nil {
 		if o.Filesystem, err = NewFilesystem(ctx, cfg); err != nil {
 			return nil, err
@@ -43,10 +49,7 @@ func New(ctx context.Context, path string, cfg *config.Config, opts ...func(o *O
 		o.Bus = event.NilBus
 	}
 
-	pro, err := profile.NewProfile(cfg.Profile)
-	if err != nil {
-		return nil, err
-	}
+	pro := o.Profiles.Owner()
 
 	switch cfg.Repo.Type {
 	case "fs":
@@ -61,10 +64,9 @@ func New(ctx context.Context, path string, cfg *config.Config, opts ...func(o *O
 			}
 		}
 
-		r, err := fsrepo.NewRepo(path, o.Filesystem, o.Logbook, o.Dscache, pro, o.Bus)
-		return r, err
+		return fsrepo.NewRepo(path, o.Filesystem, o.Logbook, o.Dscache, o.Profiles, o.Bus)
 	case "mem":
-		return repo.NewMemRepo(ctx, pro, o.Filesystem, o.Bus)
+		return repo.NewMemRepo(ctx, o.Profiles, o.Filesystem, o.Bus)
 	default:
 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
 	}

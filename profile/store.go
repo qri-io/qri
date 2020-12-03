@@ -2,9 +2,11 @@ package profile
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/qri-io/qri/config"
 )
 
 // ErrNotFound is the not found err for the profile package
@@ -12,6 +14,11 @@ var ErrNotFound = fmt.Errorf("profile: not found")
 
 // Store is a store of profile information
 type Store interface {
+	// Owner is a single profile that represents the current user
+	Owner() *Profile
+	// SetOwner handles updates to the current user profile at runtime
+	SetOwner(own *Profile) error
+
 	List() (map[ID]*Profile, error)
 	PeerIDs(id ID) ([]peer.ID, error)
 	PeernameID(peername string) (ID, error)
@@ -21,17 +28,57 @@ type Store interface {
 	DeleteProfile(id ID) error
 }
 
+// NewStore creates a profile store from configuration
+func NewStore(cfg *config.Config) (Store, error) {
+	pro, err := NewProfile(cfg.Profile)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.Repo == nil {
+		return NewMemStore(pro)
+	}
+
+	switch cfg.Repo.Type {
+	case "fs":
+		return NewLocalStore(filepath.Join(filepath.Dir(cfg.Path()), "peers.json"), pro)
+	case "mem":
+		return NewMemStore(pro)
+	default:
+		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
+	}
+}
+
 // MemStore is an in-memory implementation of the profile Store interface
 type MemStore struct {
 	sync.Mutex
+	owner *Profile
 	store map[ID]*Profile
 }
 
 // NewMemStore allocates a MemStore
-func NewMemStore() Store {
-	return &MemStore{
-		store: map[ID]*Profile{},
+func NewMemStore(owner *Profile) (Store, error) {
+	if err := owner.ValidOwnerProfile(); err != nil {
+		return nil, err
 	}
+
+	return &MemStore{
+		owner: owner,
+		store: map[ID]*Profile{
+			owner.ID: owner,
+		},
+	}, nil
+}
+
+// Owner accesses the current user profile
+func (m *MemStore) Owner() *Profile {
+	return m.owner
+}
+
+// SetOwner updates the owner profile
+func (m *MemStore) SetOwner(own *Profile) error {
+	m.owner = own
+	return nil
 }
 
 // PutProfile adds a peer to this store

@@ -83,8 +83,6 @@ type Repo interface {
 	// A repository must maintain profile information about the owner of this dataset.
 	// The value returned by Profile() should represent the peer.
 	Profile() (*profile.Profile, error)
-	// SetProfile sets this repo's current profile. Profiles must contain a private key
-	SetProfile(*profile.Profile) error
 	// PrivateKey hands over this repo's private key
 	PrivateKey() crypto.PrivKey
 	// A repository must maintain profile information about encountered peers.

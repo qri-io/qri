@@ -97,7 +97,7 @@ func (m RegistryClientMethods) updateConfig(pro *registry.Profile) error {
 		}
 	}
 
-	if err := m.inst.Repo().SetProfile(repoPro); err != nil {
+	if err := m.inst.Repo().Profiles().SetOwner(repoPro); err != nil {
 		return err
 	}
 

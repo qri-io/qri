@@ -27,12 +27,11 @@ type Repo struct {
 
 	repo.Refstore
 
-	profile *profile.Profile
+	bus     event.Bus
+	fsys    *muxfs.Mux
+	logbook *logbook.Book
+	dscache *dscache.Dscache
 
-	bus      event.Bus
-	fsys     *muxfs.Mux
-	logbook  *logbook.Book
-	dscache  *dscache.Dscache
 	profiles profile.Store
 
 	doneWg  sync.WaitGroup
@@ -43,20 +42,14 @@ type Repo struct {
 var _ repo.Repo = (*Repo)(nil)
 
 // NewRepo creates a new file-based repository
-func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Dscache, pro *profile.Profile, bus event.Bus) (repo.Repo, error) {
+func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Dscache, pro profile.Store, bus event.Bus) (repo.Repo, error) {
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		log.Error(err)
 		return nil, err
 	}
 	bp := basepath(path)
 
-	if pro.PrivKey == nil {
-		return nil, fmt.Errorf("Expected: PrivateKey")
-	}
-
 	r := &Repo{
-		profile: pro,
-
 		bus:      bus,
 		fsys:     fsys,
 		basepath: bp,
@@ -64,7 +57,7 @@ func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Ds
 		dscache:  cache,
 
 		Refstore: Refstore{basepath: bp, file: FileRefs},
-		profiles: profile.NewLocalStore(bp.filepath(FilePeers)),
+		profiles: pro,
 
 		doneCh: make(chan struct{}),
 	}
@@ -85,9 +78,10 @@ func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Ds
 		return nil, err
 	}
 
+	own := pro.Owner()
 	// add our own profile to the store if it doesn't already exist.
-	if _, e := r.Profiles().GetProfile(pro.ID); e != nil {
-		if err := r.Profiles().PutProfile(pro); err != nil {
+	if _, e := r.Profiles().GetProfile(own.ID); e != nil {
+		if err := r.Profiles().PutProfile(own); err != nil {
 			return nil, err
 		}
 	}
@@ -156,7 +150,7 @@ func (r *Repo) SetFilesystem(fs *muxfs.Mux) {
 
 // Profile gives this repo's peer profile
 func (r *Repo) Profile() (*profile.Profile, error) {
-	return r.profile, nil
+	return r.profiles.Owner(), nil
 }
 
 // Logbook stores operation logs for coordinating state across peers
@@ -169,15 +163,9 @@ func (r *Repo) Dscache() *dscache.Dscache {
 	return r.dscache
 }
 
-// SetProfile updates this repo's peer profile info
-func (r *Repo) SetProfile(p *profile.Profile) error {
-	r.profile = p
-	return r.Profiles().PutProfile(p)
-}
-
 // PrivateKey returns this repo's private key
 func (r *Repo) PrivateKey() crypto.PrivKey {
-	return r.profile.PrivKey
+	return r.profiles.Owner().PrivKey
 }
 
 // Profiles returns this repo's Peers implementation

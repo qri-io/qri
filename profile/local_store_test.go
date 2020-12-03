@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qri/config"
+	cfgtest "github.com/qri-io/qri/config/test"
 )
 
 func TestPutProfileWithAddresses(t *testing.T) {
@@ -32,7 +33,13 @@ func TestPutProfileWithAddresses(t *testing.T) {
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		t.Errorf("error creating tmp directory: %s", err.Error())
 	}
-	ps := NewLocalStore(filepath.Join(path, "profiles.json"))
+
+	pi0 := cfgtest.GetTestPeerInfo(0)
+	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: pi0.PrivKey, Peername: "user"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	err = ps.PutProfile(pro)
 	if err != nil {
 		t.Errorf("error putting profile: %s", err.Error())

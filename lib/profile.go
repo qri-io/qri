@@ -142,7 +142,7 @@ func (m *ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePo
 	if err != nil {
 		return err
 	}
-	if err := r.SetProfile(pro); err != nil {
+	if err := r.Profiles().SetOwner(pro); err != nil {
 		return err
 	}
 
@@ -240,7 +240,7 @@ func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) 
 	if err != nil {
 		return err
 	}
-	if err := r.SetProfile(pro); err != nil {
+	if err := r.Profiles().SetOwner(pro); err != nil {
 		return err
 	}
 
@@ -331,7 +331,7 @@ func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) e
 	if err != nil {
 		return err
 	}
-	if err := r.SetProfile(pro); err != nil {
+	if err := r.Profiles().SetOwner(pro); err != nil {
 		return err
 	}
 

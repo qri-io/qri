@@ -47,6 +47,11 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		pros, err := profile.NewMemStore(pro)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, "/mem/logbook.qfb")
 		if err != nil {
 			t.Fatal(err)
@@ -54,7 +59,7 @@ func TestRepo(t *testing.T) {
 
 		cache := dscache.NewDscache(ctx, fs, bus, pro.Peername, "")
 
-		r, err := NewRepo(path, fs, book, cache, pro, bus)
+		r, err := NewRepo(path, fs, book, cache, pros, bus)
 		if err != nil {
 			t.Fatalf("error creating repo: %s", err.Error())
 		}
@@ -97,6 +102,11 @@ func TestResolveRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	pros, err := profile.NewMemStore(pro)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
@@ -104,7 +114,7 @@ func TestResolveRef(t *testing.T) {
 
 	cache := dscache.NewDscache(ctx, fs, bus, "", "")
 
-	r, err := NewRepo(path, fs, book, cache, pro, bus)
+	r, err := NewRepo(path, fs, book, cache, pros, bus)
 	if err != nil {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}

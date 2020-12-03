@@ -435,11 +435,16 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefAlphabetized(t *testing.T) {
 	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion3", `{}`)
 
 	// Add association between profileID and username
-	profiles := profile.NewMemStore()
-	profiles.PutProfile(&profile.Profile{
+	pro := &profile.Profile{
 		ID:       profile.IDFromPeerID(peerInfo.PeerID),
 		Peername: "test_user",
-	})
+		PrivKey:  peerInfo.PrivKey,
+	}
+	profiles, err := profile.NewMemStore(pro)
+	if err != nil {
+		t.Fatal(err)
+	}
+	profiles.PutProfile(pro)
 
 	dsrefs := []reporef.DatasetRef{}
 	fs := qfs.NewMemFS()
@@ -503,11 +508,16 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 }`)
 
 	// Add association between profileID and username
-	profiles := profile.NewMemStore()
-	profiles.PutProfile(&profile.Profile{
+	pro := &profile.Profile{
 		ID:       profile.IDFromPeerID(peerInfo.PeerID),
 		Peername: "test_user",
-	})
+		PrivKey:  peerInfo.PrivKey,
+	}
+	profiles, err := profile.NewMemStore(pro)
+	if err != nil {
+		t.Fatal(err)
+	}
+	profiles.PutProfile(pro)
 
 	dsrefs := []reporef.DatasetRef{}
 	fs2 := qfs.NewMemFS()

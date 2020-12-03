@@ -170,7 +170,7 @@ func TestReceivers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := repo.NewMemRepo(ctx, &profile.Profile{PrivKey: privKey}, fs, event.NilBus)
+	r, err := repo.NewMemRepoProfile(ctx, &profile.Profile{PrivKey: privKey}, fs, event.NilBus)
 	if err != nil {
 		t.Errorf("error creating mem repo: %s", err)
 		return

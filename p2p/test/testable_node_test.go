@@ -71,7 +71,7 @@ func (n *TestableNode) GoOnline(_ context.Context) error {
 	p.PeerIDs = []peer.ID{n.host.ID()}
 
 	// update profile with our p2p addresses
-	if err := n.Repo.SetProfile(p); err != nil {
+	if err := n.Repo.Profiles().SetOwner(p); err != nil {
 		return err
 	}
 

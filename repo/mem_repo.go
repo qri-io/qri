@@ -25,7 +25,6 @@ type MemRepo struct {
 	logbook    *logbook.Book
 	dscache    *dscache.Dscache
 
-	profile  *profile.Profile
 	profiles profile.Store
 
 	doneWg  sync.WaitGroup
@@ -35,13 +34,23 @@ type MemRepo struct {
 
 var _ Repo = (*MemRepo)(nil)
 
+// NewMemRepoProfile creates a new in-memory repository and an empty profile
+// store owned by the given profile
+func NewMemRepoProfile(ctx context.Context, owner *profile.Profile, fs *muxfs.Mux, bus event.Bus) (*MemRepo, error) {
+	pros, err := profile.NewMemStore(owner)
+	if err != nil {
+		return nil, err
+	}
+	return NewMemRepo(ctx, pros, fs, bus)
+}
+
 // NewMemRepo creates a new in-memory repository
-// TODO (b5) - this constructor should have an event.bus argument
-func NewMemRepo(ctx context.Context, p *profile.Profile, fs *muxfs.Mux, bus event.Bus) (*MemRepo, error) {
+func NewMemRepo(ctx context.Context, pros profile.Store, fs *muxfs.Mux, bus event.Bus) (*MemRepo, error) {
 	if fs.Filesystem(qfs.MemFilestoreType) == nil {
 		fs.SetFilesystem(qfs.NewMemFS())
 	}
 
+	p := pros.Owner()
 	book, err := logbook.NewJournal(p.PrivKey, p.Peername, bus, fs, "/mem/logbook.qfb")
 	if err != nil {
 		return nil, err
@@ -58,8 +67,7 @@ func NewMemRepo(ctx context.Context, p *profile.Profile, fs *muxfs.Mux, bus even
 		refCache:    &MemRefstore{},
 		logbook:     book,
 		dscache:     cache,
-		profile:     p,
-		profiles:    profile.NewMemStore(),
+		profiles:    pros,
 
 		doneCh: make(chan struct{}),
 	}
@@ -136,10 +144,7 @@ func (r *MemRepo) SetFilesystem(fs *muxfs.Mux) {
 
 // PrivateKey returns this repo's private key
 func (r *MemRepo) PrivateKey() crypto.PrivKey {
-	if r.profile == nil {
-		return nil
-	}
-	return r.profile.PrivKey
+	return r.profiles.Owner().PrivKey
 }
 
 // RefCache gives access to the ephemeral Refstore
@@ -149,13 +154,7 @@ func (r *MemRepo) RefCache() Refstore {
 
 // Profile returns the peer profile for this repository
 func (r *MemRepo) Profile() (*profile.Profile, error) {
-	return r.profile, nil
-}
-
-// SetProfile updates this repo's profile
-func (r *MemRepo) SetProfile(p *profile.Profile) error {
-	r.profile = p
-	return nil
+	return r.profiles.Owner(), nil
 }
 
 // Profiles gives this repo's Peer interface implementation

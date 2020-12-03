@@ -76,6 +76,7 @@ type InstanceOptions struct {
 	qfs        *muxfs.Mux
 	regclient  *regclient.Client
 	logbook    *logbook.Book
+	profiles   profile.Store
 	logAll     bool
 
 	remoteMockClient bool
@@ -284,6 +285,14 @@ func OptEventHandler(handler event.Handler, events ...event.Type) Option {
 	}
 }
 
+// OptProfiles supplies a profile store for the instance
+func OptProfiles(pros profile.Store) Option {
+	return func(o *InstanceOptions) error {
+		o.profiles = pros
+		return nil
+	}
+}
+
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
@@ -360,6 +369,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		streams:  o.Streams,
 		registry: o.regclient,
 		logbook:  o.logbook,
+		profiles: o.profiles,
 		bus:      event.NewBus(ctx),
 	}
 	qri = inst
@@ -415,10 +425,13 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}()
 	}
 
-	var pro *profile.Profile
-	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
-		return nil, fmt.Errorf("newProfile: %s", err)
+	if inst.profiles == nil {
+		if inst.profiles, err = profile.NewStore(cfg); err != nil {
+			return nil, fmt.Errorf("initializing profile service: %w", err)
+		}
 	}
+
+	pro := inst.profiles.Owner()
 
 	if inst.logbook == nil {
 		inst.logbook, err = newLogbook(inst.qfs, cfg, inst.bus, pro, inst.repoPath)
@@ -434,6 +447,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if inst.repo == nil {
 		if inst.repo, err = buildrepo.New(ctx, inst.repoPath, cfg, func(o *buildrepo.Options) {
 			o.Filesystem = inst.qfs
+			o.Profiles = inst.profiles
 			o.Logbook = inst.logbook
 			o.Dscache = inst.dscache
 		}); err != nil {
@@ -686,6 +700,7 @@ type Instance struct {
 	dscache         *dscache.Dscache
 	bus             event.Bus
 	watcher         *watchfs.FilesysWatcher
+	profiles        profile.Store
 	remoteOptsFuncs []remote.OptionsFunc
 
 	rpc *rpc.Client

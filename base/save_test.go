@@ -104,7 +104,7 @@ func TestCreateDataset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := repo.NewMemRepo(ctx, testPeerProfile, fs, event.NilBus)
+	r, err := repo.NewMemRepoProfile(ctx, testPeerProfile, fs, event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
