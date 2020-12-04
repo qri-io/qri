@@ -2,6 +2,8 @@ module github.com/qri-io/qri
 
 go 1.13
 
+replace github.com/qri-io/ucan => /Users/b5/qri/ucan
+
 require (
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
 	github.com/cheggaaa/pb/v3 v3.0.4
@@ -25,7 +27,7 @@ require (
 	github.com/libp2p/go-libp2p v0.11.0
 	github.com/libp2p/go-libp2p-circuit v0.3.1
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
-	github.com/libp2p/go-libp2p-core v0.6.1
+	github.com/libp2p/go-libp2p-core v0.7.0
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
 	github.com/libp2p/go-libp2p-swarm v0.2.8
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
@@ -47,6 +49,7 @@ require (
 	github.com/qri-io/jsonschema v0.2.0
 	github.com/qri-io/qfs v0.5.1-0.20201119141805-fb13393b2d1f
 	github.com/qri-io/starlib v0.4.2
+	github.com/qri-io/ucan v0.0.0-00010101000000-000000000000
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.1.0
 	github.com/sirupsen/logrus v1.6.0
