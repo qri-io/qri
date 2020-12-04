@@ -7,3 +7,5 @@ codecov:
 coverage:
   range: "80...100"
 comment: off
+github_checks:
+  annotations: false
