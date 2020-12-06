@@ -14,10 +14,9 @@ import (
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 // TODO(dlong): Test NewDscache, IsEmpty, Assign, ListRefs, Update
@@ -96,9 +95,9 @@ func TestResolveRef(t *testing.T) {
 	path := filepath.Join(tmpdir, "dscache.qfb")
 	dsc := NewDscache(ctx, fs, event.NilBus, "test_resolve_ref_user", path)
 
-	dsrefspec.AssertResolverSpec(t, dsc, func(r dsref.Ref, author identity.Author, _ *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, dsc, func(r dsref.Ref, author profile.Author, _ *oplog.Log) error {
 		builder := NewBuilder()
-		pid, err := identity.KeyIDFromPub(author.AuthorPubKey())
+		pid, err := profile.KeyIDFromPub(author.AuthorPubKey())
 		builder.AddUser(r.Username, pid)
 		if err != nil {
 			return err

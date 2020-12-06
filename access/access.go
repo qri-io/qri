@@ -7,7 +7,7 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 // special tokens in access grammer

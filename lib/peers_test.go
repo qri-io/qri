@@ -11,8 +11,8 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -235,7 +235,7 @@ func newTestQriNode(t *testing.T) *p2p.QriNode {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	r, err := repo.NewMemRepo(ctx, testPeerProfile, newTestFS(ctx), event.NilBus)
+	r, err := repo.NewMemRepoWithProfile(ctx, testPeerProfile, newTestFS(ctx), event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +263,7 @@ func newTestFS(ctx context.Context) *muxfs.Mux {
 func newTestDisconnectedQriNode() (*p2p.QriNode, error) {
 	ctx := context.TODO()
 	pro := &profile.Profile{PrivKey: privKey}
-	r, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx), event.NilBus)
+	r, err := repo.NewMemRepoWithProfile(ctx, pro, newTestFS(ctx), event.NilBus)
 	if err != nil {
 		return nil, err
 	}

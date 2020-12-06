@@ -1,18 +1,16 @@
-package fsrepo
+package profile
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/repo/profile"
-	"github.com/sergi/go-diff/diffmatchpatch"
-
+	"github.com/google/go-cmp/cmp"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/qri-io/qri/config"
+	cfgtest "github.com/qri-io/qri/config/test"
 )
 
 func TestPutProfileWithAddresses(t *testing.T) {
@@ -22,7 +20,7 @@ func TestPutProfileWithAddresses(t *testing.T) {
 		Created:  time.Unix(1234567890, 0).In(time.UTC),
 		Updated:  time.Unix(1234567890, 0).In(time.UTC),
 	}
-	pro, err := profile.NewProfile(pp)
+	pro, err := NewProfile(pp)
 	if err != nil {
 		t.Errorf("error creating new profile: %s", err.Error())
 	}
@@ -35,14 +33,20 @@ func TestPutProfileWithAddresses(t *testing.T) {
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		t.Errorf("error creating tmp directory: %s", err.Error())
 	}
-	ps := NewProfileStore(basepath(path))
+
+	pi0 := cfgtest.GetTestPeerInfo(0)
+	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: pi0.PrivKey, Peername: "user"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	err = ps.PutProfile(pro)
 	if err != nil {
 		t.Errorf("error putting profile: %s", err.Error())
 	}
 
 	golden := "testdata/simple.json"
-	path = filepath.Join(path, "peers.json")
+	path = filepath.Join(path, "profiles.json")
 	f1, err := ioutil.ReadFile(golden)
 	if err != nil {
 		t.Errorf("error reading golden file: %s", err.Error())
@@ -52,10 +56,7 @@ func TestPutProfileWithAddresses(t *testing.T) {
 		t.Errorf("error reading written file: %s", err.Error())
 	}
 
-	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(string(f1), string(f2), false)
-	if len(diffs) > 1 {
-		fmt.Println(dmp.DiffPrettyText(diffs))
-		t.Errorf("failed to match: %s <> %s", golden, path)
+	if diff := cmp.Diff(f1, f2); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }

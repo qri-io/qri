@@ -15,7 +15,7 @@ import (
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/qri-io/dag/dsync/p2putil"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/identity"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -50,7 +50,7 @@ func (c *p2pClient) addr() string {
 	return c.remotePeerID.Pretty()
 }
 
-func (c *p2pClient) put(ctx context.Context, author identity.Author, ref dsref.Ref, r io.Reader) (err error) {
+func (c *p2pClient) put(ctx context.Context, author profile.Author, ref dsref.Ref, r io.Reader) (err error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func (c *p2pClient) put(ctx context.Context, author identity.Author, ref dsref.R
 	return err
 }
 
-func (c *p2pClient) get(ctx context.Context, author identity.Author, ref dsref.Ref) (sender identity.Author, data io.Reader, err error) {
+func (c *p2pClient) get(ctx context.Context, author profile.Author, ref dsref.Ref) (sender profile.Author, data io.Reader, err error) {
 	headers := []string{
 		"phase", "request",
 		"ref", ref.String(),
@@ -90,7 +90,7 @@ func (c *p2pClient) get(ctx context.Context, author identity.Author, ref dsref.R
 	return sender, bytes.NewReader(res.Body), err
 }
 
-func (c *p2pClient) del(ctx context.Context, author identity.Author, ref dsref.Ref) error {
+func (c *p2pClient) del(ctx context.Context, author profile.Author, ref dsref.Ref) error {
 	headers := []string{
 		"phase", "request",
 		"ref", ref.String(),
@@ -105,7 +105,7 @@ func (c *p2pClient) del(ctx context.Context, author identity.Author, ref dsref.R
 	return err
 }
 
-func addAuthorP2PHeaders(h []string, author identity.Author) ([]string, error) {
+func addAuthorP2PHeaders(h []string, author profile.Author) ([]string, error) {
 	pkb, err := author.AuthorPubKey().Bytes()
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func addAuthorP2PHeaders(h []string, author identity.Author) ([]string, error) {
 	return append(h, "author_id", author.AuthorID(), "pub_key", pubKey, "author_username", author.Username()), nil
 }
 
-func authorFromP2PHeaders(msg p2putil.Message) (identity.Author, error) {
+func authorFromP2PHeaders(msg p2putil.Message) (profile.Author, error) {
 	data, err := base64.StdEncoding.DecodeString(msg.Header("pub_key"))
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func authorFromP2PHeaders(msg p2putil.Message) (identity.Author, error) {
 		return nil, fmt.Errorf("decoding public key: %s", err)
 	}
 
-	return identity.NewAuthor(msg.Header("author_id"), pub, msg.Header("author_username")), nil
+	return profile.NewAuthor(msg.Header("author_id"), pub, msg.Header("author_username")), nil
 }
 
 // p2pHandler implements logsync as a libp2p protocol handler

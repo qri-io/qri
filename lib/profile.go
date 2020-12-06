@@ -9,9 +9,9 @@ import (
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -142,7 +142,7 @@ func (m *ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePo
 	if err != nil {
 		return err
 	}
-	if err := r.SetProfile(pro); err != nil {
+	if err := r.Profiles().SetOwner(pro); err != nil {
 		return err
 	}
 
@@ -240,7 +240,7 @@ func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) 
 	if err != nil {
 		return err
 	}
-	if err := r.SetProfile(pro); err != nil {
+	if err := r.Profiles().SetOwner(pro); err != nil {
 		return err
 	}
 
@@ -331,7 +331,7 @@ func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) e
 	if err != nil {
 		return err
 	}
-	if err := r.SetProfile(pro); err != nil {
+	if err := r.Profiles().SetOwner(pro); err != nil {
 		return err
 	}
 

@@ -18,7 +18,7 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 

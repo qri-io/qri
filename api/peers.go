@@ -7,7 +7,7 @@ import (
 	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 // PeerHandlers wraps a requests struct to interface with http.HandlerFunc

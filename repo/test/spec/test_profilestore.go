@@ -3,7 +3,7 @@ package spec
 import (
 	"testing"
 
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 func testProfileStore(t *testing.T, rmf RepoMakerFunc) {

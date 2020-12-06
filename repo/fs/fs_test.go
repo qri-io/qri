@@ -13,11 +13,10 @@ import (
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/test/spec"
 )
@@ -48,6 +47,11 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		pros, err := profile.NewMemStore(pro)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, "/mem/logbook.qfb")
 		if err != nil {
 			t.Fatal(err)
@@ -55,7 +59,7 @@ func TestRepo(t *testing.T) {
 
 		cache := dscache.NewDscache(ctx, fs, bus, pro.Peername, "")
 
-		r, err := NewRepo(path, fs, book, cache, pro, bus)
+		r, err := NewRepo(path, fs, book, cache, pros, bus)
 		if err != nil {
 			t.Fatalf("error creating repo: %s", err.Error())
 		}
@@ -98,6 +102,11 @@ func TestResolveRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	pros, err := profile.NewMemStore(pro)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
@@ -105,12 +114,12 @@ func TestResolveRef(t *testing.T) {
 
 	cache := dscache.NewDscache(ctx, fs, bus, "", "")
 
-	r, err := NewRepo(path, fs, book, cache, pro, bus)
+	r, err := NewRepo(path, fs, book, cache, pros, bus)
 	if err != nil {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}
 
-	dsrefspec.AssertResolverSpec(t, r, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, r, func(ref dsref.Ref, author profile.Author, log *oplog.Log) error {
 		datasetRef := reporef.RefFromDsref(ref)
 		err := r.PutRef(datasetRef)
 		if err != nil {

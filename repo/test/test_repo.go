@@ -18,8 +18,8 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -77,7 +77,7 @@ func NewEmptyTestRepo(bus event.Bus) (mr *repo.MemRepo, err error) {
 		ID:       profile.IDB58MustDecode(profileID),
 		PrivKey:  privKey,
 	}
-	return repo.NewMemRepo(ctx, pro, newTestFS(ctx), bus)
+	return repo.NewMemRepoWithProfile(ctx, pro, newTestFS(ctx), bus)
 }
 
 func newTestFS(ctx context.Context) *muxfs.Mux {
@@ -158,7 +158,7 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		return nil, err
 	}
 
-	r, err := repo.NewMemRepo(ctx, &profile.Profile{
+	r, err := repo.NewMemRepoWithProfile(ctx, &profile.Profile{
 		ID:       id,
 		Peername: fmt.Sprintf("test-repo-%d", peerNum),
 		PrivKey:  pk,
@@ -302,7 +302,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 		return nil, nil, err
 	}
 
-	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx), event.NilBus)
+	mr, err := repo.NewMemRepoWithProfile(ctx, pro, newTestFS(ctx), event.NilBus)
 	if err != nil {
 		return mr, pro.PrivKey, err
 	}

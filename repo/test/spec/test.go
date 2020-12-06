@@ -47,7 +47,7 @@ func testProfile(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	err = r.SetProfile(p)
+	err = r.Profiles().SetOwner(p)
 	if err != nil {
 		t.Errorf("Unexpected SetProfile error: %s", err.Error())
 		return

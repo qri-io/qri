@@ -14,12 +14,11 @@ import (
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -85,7 +84,7 @@ func TestNewRemoteRefResolver(t *testing.T) {
 	cli := tr.NodeBClient(t)
 	resolver := cli.NewRemoteRefResolver(s.URL)
 
-	dsrefspec.AssertResolverSpec(t, resolver, func(r dsref.Ref, author identity.Author, log *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, resolver, func(r dsref.Ref, author profile.Author, log *oplog.Log) error {
 		return remA.Node().Repo.Logbook().MergeLog(context.Background(), author, log)
 	})
 }
@@ -144,7 +143,7 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 		ID:       profile.IDFromPeerID(pi.PeerID),
 		PrivKey:  pi.PrivKey,
 	}
-	mr, err := repo.NewMemRepo(ctx, pro, newTestFS(ctx, fs), event.NilBus)
+	mr, err := repo.NewMemRepoWithProfile(ctx, pro, newTestFS(ctx, fs), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -6,8 +6,8 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 

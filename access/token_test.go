@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/qri/access"
 	access_spec "github.com/qri-io/qri/access/spec"
 	cfgtest "github.com/qri-io/qri/config/test"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 func TestPrivKeyTokens(t *testing.T) {

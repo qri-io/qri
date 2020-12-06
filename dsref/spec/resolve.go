@@ -15,16 +15,16 @@ import (
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
+	"github.com/qri-io/qri/profile"
 )
 
 // PutRefFunc adds a reference to a system that retains references
 // PutRefFunc is required to run the ResolverSpec test, when called the Resolver
 // should retain the reference for later retrieval by the spec test. PutRefFunc
 // also passes the author & oplog that back the reference
-type PutRefFunc func(ref dsref.Ref, author identity.Author, log *oplog.Log) error
+type PutRefFunc func(ref dsref.Ref, author profile.Author, log *oplog.Log) error
 
 // AssertResolverSpec confirms the expected behaviour of a dsref.Resolver
 // Interface implementation. In addition to this test passing, implementations
@@ -37,7 +37,7 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 		journal          = ForeignLogbook(t, username)
 	)
 
-	pubKeyID, err := identity.KeyIDFromPub(journal.AuthorPubKey())
+	pubKeyID, err := profile.KeyIDFromPub(journal.AuthorPubKey())
 	if err != nil {
 		t.Fatal(err)
 	}

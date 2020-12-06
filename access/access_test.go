@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 func ExamplePolicy() {

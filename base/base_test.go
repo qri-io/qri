@@ -16,8 +16,8 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -58,7 +58,7 @@ func newTestRepo(t *testing.T) repo.Repo {
 		t.Fatal(err)
 	}
 
-	mr, err := repo.NewMemRepo(ctx, testPeerProfile, mux, event.NilBus)
+	mr, err := repo.NewMemRepoWithProfile(ctx, testPeerProfile, mux, event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -5,7 +5,7 @@ import (
 
 	"github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 func TestVerifySigParams(t *testing.T) {

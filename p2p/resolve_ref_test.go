@@ -11,10 +11,9 @@ import (
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 	p2ptest "github.com/qri-io/qri/p2p/test"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 func TestResolveRef(t *testing.T) {
@@ -124,9 +123,9 @@ func TestResolveRef(t *testing.T) {
 
 	p2pRefResolver := node.NewP2PRefResolver()
 
-	dsrefspec.AssertResolverSpec(t, p2pRefResolver, func(r dsref.Ref, author identity.Author, _ *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, p2pRefResolver, func(r dsref.Ref, author profile.Author, _ *oplog.Log) error {
 		builder := dscache.NewBuilder()
-		pid, err := identity.KeyIDFromPub(author.AuthorPubKey())
+		pid, err := profile.KeyIDFromPub(author.AuthorPubKey())
 		builder.AddUser(r.Username, pid)
 		if err != nil {
 			return err

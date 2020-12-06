@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/qri-io/qri/api/util"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 // DefaultPageSize is the max number of items in a page if no

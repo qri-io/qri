@@ -5,7 +5,7 @@ import (
 
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 // DatasetLogItem aliases the type from logbook

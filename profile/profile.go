@@ -7,12 +7,14 @@ import (
 	"strings"
 	"time"
 
+	logger "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/qri-io/qri/config"
-
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/qri-io/qri/config"
 )
+
+var log = logger.Logger("profile")
 
 // Profile defines peer profile details
 type Profile struct {
@@ -161,4 +163,16 @@ func (p Profile) Encode() (*config.ProfilePod, error) {
 		NetworkAddrs: addrs,
 	}
 	return pp, nil
+}
+
+// ValidOwnerProfile checks if a profile can be used as an owner profile
+func (p *Profile) ValidOwnerProfile() error {
+	if p == nil {
+		return fmt.Errorf("profile cannot be nil")
+	}
+	if p.PrivKey == nil {
+		return fmt.Errorf("private key is required")
+	}
+	// TODO (b5) - confirm PrivKey is valid
+	return nil
 }

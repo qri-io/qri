@@ -15,9 +15,9 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
+	"github.com/qri-io/qri/profile"
 )
 
 func Example() {
@@ -36,14 +36,14 @@ func Example() {
 	basitLogsync := New(basitsLogbook, func(o *Options) {
 		// we MUST override the PreCheck function. In this example we're only going
 		// to allow pushes from johnathon
-		o.PushPreCheck = func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error {
+		o.PushPreCheck = func(ctx context.Context, author profile.Author, ref dsref.Ref, l *oplog.Log) error {
 			if author.AuthorID() != johnathonsLogbook.Author().AuthorID() {
 				return fmt.Errorf("rejected for secret reasons")
 			}
 			return nil
 		}
 
-		o.Pushed = func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error {
+		o.Pushed = func(ctx context.Context, author profile.Author, ref dsref.Ref, l *oplog.Log) error {
 			wait <- struct{}{}
 			return nil
 		}
@@ -120,7 +120,7 @@ func TestHookCalls(t *testing.T) {
 
 	hooksCalled := []string{}
 	callCheck := func(s string) Hook {
-		return func(ctx context.Context, a identity.Author, ref dsref.Ref, l *oplog.Log) error {
+		return func(ctx context.Context, a profile.Author, ref dsref.Ref, l *oplog.Log) error {
 			hooksCalled = append(hooksCalled, s)
 			return nil
 		}
@@ -198,7 +198,7 @@ func TestHookErrors(t *testing.T) {
 
 	hooksCalled := []string{}
 	callCheck := func(s string) Hook {
-		return func(ctx context.Context, a identity.Author, ref dsref.Ref, l *oplog.Log) error {
+		return func(ctx context.Context, a profile.Author, ref dsref.Ref, l *oplog.Log) error {
 			hooksCalled = append(hooksCalled, s)
 			return fmt.Errorf("hook failed")
 		}

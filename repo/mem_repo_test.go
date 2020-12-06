@@ -10,9 +10,8 @@ import (
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 func TestMemRepoResolveRef(t *testing.T) {
@@ -29,12 +28,12 @@ func TestMemRepoResolveRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r, err := NewMemRepo(ctx, pro, fs, event.NilBus)
+	r, err := NewMemRepoWithProfile(ctx, pro, fs, event.NilBus)
 	if err != nil {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}
 
-	dsrefspec.AssertResolverSpec(t, r, func(ref dsref.Ref, author identity.Author, log *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, r, func(ref dsref.Ref, author profile.Author, log *oplog.Log) error {
 		return r.Logbook().MergeLog(ctx, author, log)
 	})
 }

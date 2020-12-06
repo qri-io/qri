@@ -13,8 +13,8 @@ import (
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 )
 
 const (

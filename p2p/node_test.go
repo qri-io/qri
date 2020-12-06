@@ -12,7 +12,7 @@ import (
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	p2ptest "github.com/qri-io/qri/p2p/test"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo/test"
 )
 

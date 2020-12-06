@@ -2,7 +2,7 @@ package repo
 
 import (
 	flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 	repofb "github.com/qri-io/qri/repo/repo_fbs"
 )

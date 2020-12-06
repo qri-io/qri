@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/profile"
 )
 
 // DatasetRef encapsulates a reference to a dataset. This needs to exist to bind
