@@ -58,7 +58,7 @@ func newTestRepo(t *testing.T) repo.Repo {
 		t.Fatal(err)
 	}
 
-	mr, err := repo.NewMemRepoProfile(ctx, testPeerProfile, mux, event.NilBus)
+	mr, err := repo.NewMemRepoWithProfile(ctx, testPeerProfile, mux, event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

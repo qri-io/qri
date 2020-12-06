@@ -63,7 +63,7 @@ func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username str
 		return nil, err
 	}
 
-	return qrirepo.NewMemRepoProfile(ctx, p, mux, bus)
+	return qrirepo.NewMemRepoWithProfile(ctx, p, mux, bus)
 }
 
 // MakeIPFSNode creates a single mock IPFS Node

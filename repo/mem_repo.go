@@ -34,9 +34,9 @@ type MemRepo struct {
 
 var _ Repo = (*MemRepo)(nil)
 
-// NewMemRepoProfile creates a new in-memory repository and an empty profile
+// NewMemRepoWithProfile creates a new in-memory repository and an empty profile
 // store owned by the given profile
-func NewMemRepoProfile(ctx context.Context, owner *profile.Profile, fs *muxfs.Mux, bus event.Bus) (*MemRepo, error) {
+func NewMemRepoWithProfile(ctx context.Context, owner *profile.Profile, fs *muxfs.Mux, bus event.Bus) (*MemRepo, error) {
 	pros, err := profile.NewMemStore(owner)
 	if err != nil {
 		return nil, err

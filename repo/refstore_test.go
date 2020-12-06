@@ -341,7 +341,7 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	memRepo, err := NewMemRepoProfile(ctx, lucille, fs, event.NilBus)
+	memRepo, err := NewMemRepoWithProfile(ctx, lucille, fs, event.NilBus)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
@@ -414,7 +414,7 @@ func TestCanonicalizeDatasetRefFSI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	memRepo, err := NewMemRepoProfile(ctx, prof, fs, event.NilBus)
+	memRepo, err := NewMemRepoWithProfile(ctx, prof, fs, event.NilBus)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -474,7 +474,7 @@ func TestCanonicalizeProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	repo, err := NewMemRepoProfile(ctx, prof, fs, event.NilBus)
+	repo, err := NewMemRepoWithProfile(ctx, prof, fs, event.NilBus)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return

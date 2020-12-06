@@ -1,7 +1,7 @@
 package profile
 
 import (
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
 // Author uses keypair cryptography to distinguish between different log sources
@@ -35,10 +35,6 @@ func NewAuthor(id string, pubKey crypto.PubKey, username string) Author {
 
 func (a author) AuthorID() string {
 	return a.id
-}
-
-func (a author) AuthorPubKeyID() crypto.PubKey {
-	return a.pubKey
 }
 
 func (a author) AuthorPubKey() crypto.PubKey {

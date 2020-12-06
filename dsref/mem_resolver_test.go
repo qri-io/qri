@@ -6,8 +6,8 @@ import (
 
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
-	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/logbook/oplog"
+	"github.com/qri-io/qri/profile"
 )
 
 func TestMemResolver(t *testing.T) {

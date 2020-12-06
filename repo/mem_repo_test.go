@@ -28,7 +28,7 @@ func TestMemRepoResolveRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r, err := NewMemRepoProfile(ctx, pro, fs, event.NilBus)
+	r, err := NewMemRepoWithProfile(ctx, pro, fs, event.NilBus)
 	if err != nil {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}

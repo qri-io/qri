@@ -143,7 +143,7 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 		ID:       profile.IDFromPeerID(pi.PeerID),
 		PrivKey:  pi.PrivKey,
 	}
-	mr, err := repo.NewMemRepoProfile(ctx, pro, newTestFS(ctx, fs), event.NilBus)
+	mr, err := repo.NewMemRepoWithProfile(ctx, pro, newTestFS(ctx, fs), event.NilBus)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
