@@ -111,6 +111,8 @@ func DerefDataset(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset
 
 // SaveSwitches represents options for saving a dataset
 type SaveSwitches struct {
+	// Use a custom timestamp, defaults to time.Now if unset
+	Time time.Time
 	// Replace is whether the save is a full replacement or a set of patches to previous
 	Replace bool
 	// Pin is whether the dataset should be pinned

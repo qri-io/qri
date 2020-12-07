@@ -168,8 +168,12 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 	}
 
 	cff.Lock()
-	// assign timestamp early. saving process on large files can take many minutes
-	cff.ds.Commit.Timestamp = Timestamp()
+	if cff.ds.Commit.Timestamp.IsZero() {
+		// assign timestamp early. saving process on large files can take many minutes
+		cff.ds.Commit.Timestamp = Timestamp()
+	} else {
+		cff.ds.Commit.Timestamp = cff.ds.Commit.Timestamp.In(time.UTC)
+	}
 	cff.acc = dsstats.NewAccumulator(st)
 	cff.Unlock()
 

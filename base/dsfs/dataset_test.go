@@ -112,7 +112,6 @@ func TestLoadDataset(t *testing.T) {
 			continue
 		}
 	}
-
 }
 
 func TestCreateDataset(t *testing.T) {
@@ -295,6 +294,34 @@ func TestCreateDataset(t *testing.T) {
 	})
 
 	// case: previous dataset isn't valid
+}
+
+func TestDatasetSaveCustomTimestamp(t *testing.T) {
+	ctx := context.Background()
+	fs := qfs.NewMemFS()
+	privKey := testPeers.GetTestPeerInfo(10).PrivKey
+
+	// use a custom timestamp in local zone. should be converted to UTC for saving
+	ts := time.Date(2100, 1, 2, 3, 4, 5, 6, time.Local)
+
+	ds := &dataset.Dataset{
+		Commit: &dataset.Commit{
+			Timestamp: ts,
+		},
+		Structure: &dataset.Structure{Format: "json", Schema: dataset.BaseSchemaArray},
+	}
+	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte(`[]`)))
+
+	path, err := CreateDataset(ctx, fs, fs, ds, nil, privKey, SaveSwitches{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := LoadDataset(ctx, fs, path)
+
+	if !ts.In(time.UTC).Equal(got.Commit.Timestamp) {
+		t.Errorf("result timestamp mismatch.\nwant: %q\ngot:  %q", ts.In(time.UTC), got.Commit.Timestamp)
+	}
 }
 
 // BaseTabularSchema is the base schema for tabular data
