@@ -2,8 +2,7 @@
   "qri": "ds:0",
   "commit" : {
     "qri" : "cm:0",
-    "title" : "initial commit",
-    "timestamp": "2017-04-01T01:00:00.000Z"
+    "title" : "initial commit"
   },
   "structure": {
     "checksum": "QmPT7t4GQaBN4uxCdv3PD8A5vWaJ1ELCKCaZEjYYvUhe4W",
