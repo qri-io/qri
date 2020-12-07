@@ -4,15 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/cheggaaa/pb/v3"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -753,66 +750,4 @@ func (c *client) Done() <-chan struct{} {
 // DoneErr gives an error that occurred during the shutdown process
 func (c *client) DoneErr() error {
 	return c.doneErr
-}
-
-// PrintProgressBarsOnPushPull writes progress data to the given writer on
-// push & pull. requires the event bus that a remote.Client is publishing on
-func PrintProgressBarsOnPushPull(w io.Writer, bus event.Bus) {
-	var lock sync.Mutex
-	progress := map[string]*pb.ProgressBar{}
-
-	// wire up a subscription to print download progress to streams
-	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
-		lock.Lock()
-		defer lock.Unlock()
-
-		switch typ {
-		case event.ETRemoteClientPushVersionProgress:
-			if evt, ok := payload.(event.RemoteEvent); ok {
-				bar, exists := progress[evt.Ref.String()]
-				if !exists {
-					bar = pb.New(len(evt.Progress))
-					bar.SetWriter(w)
-					bar.SetMaxWidth(80)
-					bar.Start()
-					progress[evt.Ref.String()] = bar
-				}
-				bar.SetCurrent(int64(evt.Progress.CompletedBlocks()))
-			}
-		case event.ETRemoteClientPushVersionCompleted:
-			if evt, ok := payload.(event.RemoteEvent); ok {
-				if bar, exists := progress[evt.Ref.String()]; exists {
-					bar.SetCurrent(bar.Total())
-					bar.Finish()
-					delete(progress, evt.Ref.String())
-				}
-			}
-		case event.ETRemoteClientPullVersionProgress:
-			if evt, ok := payload.(event.RemoteEvent); ok {
-				bar, exists := progress[evt.Ref.String()]
-				if !exists {
-					bar = pb.New(len(evt.Progress))
-					bar.SetWriter(w)
-					bar.SetMaxWidth(80)
-					bar.Start()
-					progress[evt.Ref.String()] = bar
-				}
-				bar.SetCurrent(int64(evt.Progress.CompletedBlocks()))
-			}
-		case event.ETRemoteClientPullVersionCompleted:
-			if evt, ok := payload.(event.RemoteEvent); ok {
-				if bar, exists := progress[evt.Ref.String()]; exists {
-					bar.SetCurrent(bar.Total())
-					bar.Finish()
-					delete(progress, evt.Ref.String())
-				}
-			}
-		}
-		return nil
-	},
-		event.ETRemoteClientPushVersionProgress,
-		event.ETRemoteClientPushVersionCompleted,
-		event.ETRemoteClientPullVersionProgress,
-		event.ETRemoteClientPullVersionCompleted,
-	)
 }

@@ -145,9 +145,6 @@ func (o *SaveOptions) Validate() error {
 func (o *SaveOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
-	o.StartSpinner()
-	defer o.StopSpinner()
-
 	p := &lib.SaveParams{
 		Ref:      o.Refs.Ref(),
 		BodyPath: o.BodyPath,
@@ -169,17 +166,12 @@ func (o *SaveOptions) Run() (err error) {
 	}
 
 	if o.Secrets != nil {
-		// Stop the spinner so the user can see the prompt, and the answer they type will
-		// not be erased. Output the message to error stream in case stdout is captured.
-		o.StopSpinner()
 		if !confirm(o.ErrOut, o.In, `
 Warning: You are providing secrets to a dataset transformation.
 Never provide secrets to a transformation you do not trust.
 continue?`, true) {
 			return
 		}
-		// Restart the spinner.
-		o.StartSpinner()
 		if p.Secrets, err = parseSecrets(o.Secrets...); err != nil {
 			return err
 		}
@@ -190,7 +182,6 @@ continue?`, true) {
 		return err
 	}
 
-	o.StopSpinner()
 	ref := dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
 	ref.ProfileID = ""
 	printSuccess(o.ErrOut, "dataset saved: %s", ref.String())

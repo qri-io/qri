@@ -7,6 +7,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
+	"github.com/qri-io/qri/event"
 )
 
 func TestLoadDataset(t *testing.T) {
@@ -24,6 +25,7 @@ func TestLoadDataset(t *testing.T) {
 			tr.Ctx,
 			fs,
 			fs.DefaultWriteFS(),
+			event.NilBus,
 			ds,
 			nil,
 			tr.Instance.repo.PrivateKey(),

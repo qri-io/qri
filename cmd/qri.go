@@ -161,6 +161,14 @@ func (o *QriOptions) Init() (err error) {
 	}
 	setNoColor(!shouldColorOutput)
 
+	// TODO (b5) - this is a hack to make progress bars not show up while running
+	// tests. It does have the real-world implication that "shouldColorOutput"
+	// being false also disables progress bars, which may be what we want (ahem: TTY
+	// detection), but even if so, isn't the right use of this variable name
+	if shouldColorOutput {
+		PrintProgressBarsOnEvents(o.IOStreams.ErrOut, o.inst.Bus())
+	}
+
 	log.Debugf("running cmd %q", os.Args)
 
 	return

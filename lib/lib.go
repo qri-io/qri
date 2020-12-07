@@ -446,6 +446,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	if inst.repo == nil {
 		if inst.repo, err = buildrepo.New(ctx, inst.repoPath, cfg, func(o *buildrepo.Options) {
+			o.Bus = inst.bus
 			o.Filesystem = inst.qfs
 			o.Profiles = inst.profiles
 			o.Logbook = inst.logbook
@@ -456,18 +457,16 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	// Try to make the repo a hidden directory, but it's okay if we can't. Ignore the error.
+	_ = hiddenfile.SetFileHidden(inst.repoPath)
+	inst.fsi = fsi.NewFSI(inst.repo, inst.bus)
+
 	if o.statsCache != nil {
 		inst.stats = stats.New(o.statsCache)
 	} else if inst.stats == nil {
 		if inst.stats, err = newStats(cfg, inst.repoPath); err != nil {
 			return nil, err
 		}
-	}
-
-	if inst.repo != nil {
-		// Try to make the repo a hidden directory, but it's okay if we can't. Ignore the error.
-		_ = hiddenfile.SetFileHidden(inst.repoPath)
-		inst.fsi = fsi.NewFSI(inst.repo, inst.bus)
 	}
 
 	if inst.dscache == nil {
@@ -492,7 +491,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// Check if this is coming from a test, which is requesting a MockRemoteClient.
 	key := InstanceContextKey("RemoteClient")
 	if v := ctx.Value(key); v != nil && v == "mock" && inst.node != nil {
-		inst.node.LocalStreams = o.Streams
+		inst.node.LocalStreams = inst.streams
 		if inst.remoteClient, err = remote.NewMockClient(ctx, inst.node, inst.logbook); err != nil {
 			return
 		}
@@ -503,14 +502,13 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}()
 
 	} else if inst.node != nil {
-		inst.node.LocalStreams = o.Streams
+		inst.node.LocalStreams = inst.streams
 
 		if _, e := inst.node.IPFSCoreAPI(); e == nil {
 			if inst.remoteClient, err = remote.NewClient(ctx, inst.node, inst.bus); err != nil {
 				log.Error("initializing remote client:", err.Error())
 				return
 			}
-			remote.PrintProgressBarsOnPushPull(inst.streams.ErrOut, inst.bus)
 			go func() {
 				inst.releasers.Add(1)
 				<-inst.remoteClient.Done()
@@ -872,6 +870,14 @@ func (inst *Instance) RemoteClient() remote.Client {
 		return nil
 	}
 	return inst.remoteClient
+}
+
+// Bus exposes the instance event bus
+func (inst *Instance) Bus() event.Bus {
+	if inst == nil {
+		return nil
+	}
+	return inst.bus
 }
 
 // checkRPCError validates RPC errors and in case of EOF returns a

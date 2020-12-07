@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
@@ -20,6 +21,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/toqtype"
 	testPeers "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/event"
 )
 
 func TestLoadDataset(t *testing.T) {
@@ -47,7 +49,7 @@ func TestLoadDataset(t *testing.T) {
 	info := testPeers.GetTestPeerInfo(10)
 	pk := info.PrivKey
 
-	apath, err := WriteDataset(ctx, &sync.Mutex{}, fs, ds, pk, SaveSwitches{})
+	apath, err := WriteDataset(ctx, &sync.Mutex{}, fs, event.NilBus, ds, pk, SaveSwitches{})
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -156,7 +158,7 @@ func TestCreateDataset(t *testing.T) {
 				t.Fatalf("creating test case: %s", err)
 			}
 
-			_, err = CreateDataset(ctx, fs, fs, tc.Input, c.prev, privKey, SaveSwitches{ShouldRender: true})
+			_, err = CreateDataset(ctx, fs, fs, event.NilBus, tc.Input, c.prev, privKey, SaveSwitches{ShouldRender: true})
 			if err == nil {
 				t.Fatalf("CreateDataset expected error. got nil")
 			}
@@ -189,7 +191,7 @@ func TestCreateDataset(t *testing.T) {
 				t.Fatalf("creating test case: %s", err)
 			}
 
-			path, err := CreateDataset(ctx, fs, fs, tc.Input, c.prev, privKey, SaveSwitches{ShouldRender: true})
+			path, err := CreateDataset(ctx, fs, fs, event.NilBus, tc.Input, c.prev, privKey, SaveSwitches{ShouldRender: true})
 			if err != nil {
 				t.Fatalf("CreateDataset: %s", err)
 			}
@@ -218,7 +220,7 @@ func TestCreateDataset(t *testing.T) {
 	}
 
 	t.Run("no_priv_key", func(t *testing.T) {
-		_, err := CreateDataset(ctx, fs, fs, nil, nil, nil, SaveSwitches{ShouldRender: true})
+		_, err := CreateDataset(ctx, fs, fs, event.NilBus, nil, nil, nil, SaveSwitches{ShouldRender: true})
 		if err == nil {
 			t.Fatal("expected call without prvate key to error")
 		}
@@ -242,7 +244,7 @@ func TestCreateDataset(t *testing.T) {
 			t.Errorf("case nil body and previous body files, error reading data file: %s", err.Error())
 		}
 		expectedErr := "bodyfile or previous bodyfile needed"
-		_, err = CreateDataset(ctx, fs, fs, ds, nil, privKey, SaveSwitches{ShouldRender: true})
+		_, err = CreateDataset(ctx, fs, fs, event.NilBus, ds, nil, privKey, SaveSwitches{ShouldRender: true})
 		if err.Error() != expectedErr {
 			t.Errorf("case nil body and previous body files, error mismatch: expected '%s', got '%s'", expectedErr, err.Error())
 		}
@@ -272,7 +274,7 @@ func TestCreateDataset(t *testing.T) {
 		}
 		ds.SetBodyFile(qfs.NewMemfileBytes("body.csv", bodyBytes))
 
-		path, err := CreateDataset(ctx, fs, fs, ds, dsPrev, privKey, SaveSwitches{ShouldRender: true})
+		path, err := CreateDataset(ctx, fs, fs, event.NilBus, ds, dsPrev, privKey, SaveSwitches{ShouldRender: true})
 		if err != nil && err.Error() != expectedErr {
 			t.Fatalf("mismatch: expected %q, got %q", expectedErr, err.Error())
 		} else if err == nil {
@@ -312,7 +314,7 @@ func TestDatasetSaveCustomTimestamp(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte(`[]`)))
 
-	path, err := CreateDataset(ctx, fs, fs, ds, nil, privKey, SaveSwitches{})
+	path, err := CreateDataset(ctx, fs, fs, event.NilBus, ds, nil, privKey, SaveSwitches{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -321,6 +323,47 @@ func TestDatasetSaveCustomTimestamp(t *testing.T) {
 
 	if !ts.In(time.UTC).Equal(got.Commit.Timestamp) {
 		t.Errorf("result timestamp mismatch.\nwant: %q\ngot:  %q", ts.In(time.UTC), got.Commit.Timestamp)
+	}
+}
+
+func TestDatasetSaveEvents(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fs := qfs.NewMemFS()
+	privKey := testPeers.GetTestPeerInfo(10).PrivKey
+	bus := event.NewBus(ctx)
+
+	fired := map[event.Type]int{}
+	bus.Subscribe(func(ctx context.Context, t event.Type, payload interface{}) error {
+		fired[t]++
+		return nil
+	},
+		event.ETDatasetSaveStarted,
+		event.ETDatasetSaveProgress,
+		event.ETDatasetSaveCompleted,
+	)
+
+	ds := &dataset.Dataset{
+		Commit: &dataset.Commit{
+			Timestamp: time.Date(2100, 1, 2, 3, 4, 5, 6, time.Local),
+		},
+		Structure: &dataset.Structure{Format: "json", Schema: dataset.BaseSchemaArray},
+	}
+	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte(`[]`)))
+
+	if _, err := CreateDataset(ctx, fs, fs, bus, ds, nil, privKey, SaveSwitches{}); err != nil {
+		t.Fatal(err)
+	}
+
+	expect := map[event.Type]int{
+		event.ETDatasetSaveStarted:   1,
+		event.ETDatasetSaveProgress:  2,
+		event.ETDatasetSaveCompleted: 1,
+	}
+
+	if diff := cmp.Diff(expect, fired); diff != "" {
+		t.Errorf("fired event count mismatch. (-want +got):%s\n", diff)
 	}
 }
 
@@ -374,7 +417,7 @@ func TestCreateDatasetBodyTooLarge(t *testing.T) {
 	}
 	nextDs.SetBodyFile(qfs.NewMemfileBytes(testBodyPath, testBodyBytes))
 
-	path, err := CreateDataset(ctx, fs, fs, &nextDs, &prevDs, privKey, SaveSwitches{ShouldRender: true})
+	path, err := CreateDataset(ctx, fs, fs, event.NilBus, &nextDs, &prevDs, privKey, SaveSwitches{ShouldRender: true})
 	if err != nil {
 		t.Fatalf("CreateDataset: %s", err)
 	}
@@ -403,7 +446,7 @@ func TestWriteDataset(t *testing.T) {
 	info := testPeers.GetTestPeerInfo(10)
 	pk := info.PrivKey
 
-	if _, err := WriteDataset(ctx, &sync.Mutex{}, fs, &dataset.Dataset{}, pk, SaveSwitches{Pin: true}); err == nil || err.Error() != "cannot save empty dataset" {
+	if _, err := WriteDataset(ctx, &sync.Mutex{}, fs, event.NilBus, &dataset.Dataset{}, pk, SaveSwitches{Pin: true}); err == nil || err.Error() != "cannot save empty dataset" {
 		t.Errorf("didn't reject empty dataset: %s", err)
 	}
 
@@ -426,7 +469,7 @@ func TestWriteDataset(t *testing.T) {
 
 		ds := tc.Input
 
-		got, err := WriteDataset(ctx, &sync.Mutex{}, fs, ds, pk, SaveSwitches{Pin: true})
+		got, err := WriteDataset(ctx, &sync.Mutex{}, fs, event.NilBus, ds, pk, SaveSwitches{Pin: true})
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
@@ -1011,7 +1054,7 @@ func BenchmarkCreateDatasetCSV(b *testing.B) {
 				_, dataset := GenerateDataset(b, sampleSize, "csv")
 
 				b.StartTimer()
-				_, err := CreateDataset(ctx, fs, fs, dataset, nil, privKey, SaveSwitches{ShouldRender: true})
+				_, err := CreateDataset(ctx, fs, fs, event.NilBus, dataset, nil, privKey, SaveSwitches{ShouldRender: true})
 				if err != nil {
 					b.Errorf("error creating dataset: %s", err.Error())
 				}

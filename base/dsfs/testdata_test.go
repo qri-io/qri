@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	testPeers "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/event"
 )
 
 var AirportCodes = &dataset.Dataset{
@@ -178,7 +179,7 @@ func makeFilestore() (map[string]string, qfs.Filesystem, error) {
 
 		ds.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("/body.%s", ds.Structure.Format), data))
 
-		dskey, err := WriteDataset(ctx, &sync.Mutex{}, fs, ds, pk, SaveSwitches{Pin: true})
+		dskey, err := WriteDataset(ctx, &sync.Mutex{}, fs, event.NilBus, ds, pk, SaveSwitches{Pin: true})
 		if err != nil {
 			return datasets, nil, fmt.Errorf("dataset: %s write error: %s", k, err.Error())
 		}

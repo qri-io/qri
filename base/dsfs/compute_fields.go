@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/dataset/dsstats"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/event"
 )
 
 type computeFieldsFile struct {
@@ -48,7 +49,15 @@ var (
 	_ statsComponentFile = (*computeFieldsFile)(nil)
 )
 
-func newComputeFieldsFile(ctx context.Context, dsLk *sync.Mutex, fs qfs.Filesystem, pk crypto.PrivKey, ds, prev *dataset.Dataset, sw SaveSwitches) (qfs.File, error) {
+func newComputeFieldsFile(
+	ctx context.Context,
+	dsLk *sync.Mutex,
+	fs qfs.Filesystem,
+	pub event.Publisher,
+	pk crypto.PrivKey,
+	ds *dataset.Dataset,
+	prev *dataset.Dataset,
+	sw SaveSwitches) (qfs.File, error) {
 	var (
 		bf     = ds.BodyFile()
 		bfPrev qfs.File
@@ -84,7 +93,7 @@ func newComputeFieldsFile(ctx context.Context, dsLk *sync.Mutex, fs qfs.Filesyst
 		done:       make(chan error),
 	}
 
-	go cff.handleRows(ctx)
+	go cff.handleRows(ctx, pub)
 
 	return cff, nil
 }
@@ -151,7 +160,7 @@ func (cff *computeFieldsFile) StatsComponent() (*dataset.Stats, error) {
 	}, nil
 }
 
-func (cff *computeFieldsFile) handleRows(ctx context.Context) {
+func (cff *computeFieldsFile) handleRows(ctx context.Context, pub event.Publisher) {
 	var (
 		batchBuf      *dsio.EntryBuffer
 		st            = cff.ds.Structure
@@ -200,6 +209,16 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 		cff.done <- fmt.Errorf("allocating data buffer: %w", err)
 		return
 	}
+
+	// publish here so we know that if the user sees the "processing body file"
+	// message, we know that a compute-fields-file has made it all the way through
+	// setup
+	go event.PublishLogError(ctx, pub, log, event.ETDatasetSaveProgress, event.DsSaveEvent{
+		Username:   cff.ds.Peername,
+		Name:       cff.ds.Name,
+		Message:    "processing body file",
+		Completion: 0.1,
+	})
 
 	go func() {
 		err = dsio.EachEntry(r, func(i int, ent dsio.Entry, err error) error {

@@ -40,16 +40,26 @@ type Publisher interface {
 	Publish(ctx context.Context, t Type, payload interface{}) error
 }
 
+// PublishLogError is a convenience function that fires an event to a publisher
+// and logs any error using an external logger. Exists to make publishing in a
+// goroutine a one-liner, eg:
+//   go event.PublishLogErr(ctx, pub, log, event.ETSaveStarted, payload)
+func PublishLogError(ctx context.Context, pub Publisher, logger golog.StandardLogger, t Type, payload interface{}) {
+	if err := pub.Publish(ctx, t, payload); err != nil {
+		logger.Debug(err)
+	}
+}
+
 // Bus is a central coordination point for event publication and subscription
-// zero or more subscribers register topics to be notified of, a publisher
+// zero or more subscribers register eventTypes to be notified of, a publisher
 // writes a topic event to the bus, which broadcasts to all subscribers of that
 // topic
 type Bus interface {
 	// Publish an event to the bus
 	Publish(ctx context.Context, t Type, data interface{}) error
-	// Subscribe to one or more topics with a handler function that will be called
+	// Subscribe to one or more eventTypes with a handler function that will be called
 	// whenever the event topic is published
-	Subscribe(handler Handler, topics ...Type)
+	Subscribe(handler Handler, eventTypes ...Type)
 	// NumSubscriptions returns the number of subscribers to the bus's events
 	NumSubscribers() int
 }
@@ -68,7 +78,7 @@ func (nilBus) Publish(_ context.Context, _ Type, _ interface{}) error {
 	return nil
 }
 
-func (nilBus) Subscribe(handler Handler, topics ...Type) {}
+func (nilBus) Subscribe(handler Handler, eventTypes ...Type) {}
 
 func (nilBus) NumSubscribers() int {
 	return 0
@@ -108,6 +118,7 @@ func NewBus(ctx context.Context) Bus {
 func (b *bus) Publish(ctx context.Context, topic Type, data interface{}) error {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
+	log.Debugw("publish", "topic", topic, "payload", data)
 
 	if b.closed {
 		return ErrBusClosed
@@ -123,12 +134,12 @@ func (b *bus) Publish(ctx context.Context, topic Type, data interface{}) error {
 }
 
 // Subscribe requests events from the given topic, returning a channel of those events
-func (b *bus) Subscribe(handler Handler, topics ...Type) {
+func (b *bus) Subscribe(handler Handler, eventTypes ...Type) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
-	log.Debugf("Subscribe: %v", topics)
+	log.Debugf("Subscribe: %v", eventTypes)
 
-	for _, topic := range topics {
+	for _, topic := range eventTypes {
 		b.subs[topic] = append(b.subs[topic], handler)
 	}
 }

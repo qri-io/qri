@@ -1,6 +1,7 @@
 package base
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -97,14 +98,16 @@ func TestSaveDatasetReplace(t *testing.T) {
 }
 
 func TestCreateDataset(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	fs, err := muxfs.New(ctx, []qfs.Config{
 		{Type: "mem"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := repo.NewMemRepoWithProfile(ctx, testPeerProfile, fs, event.NilBus)
+	r, err := repo.NewMemRepoWithProfile(ctx, testPeerProfile, fs, event.NewBus(ctx))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -120,6 +123,7 @@ func TestCreateDataset(t *testing.T) {
 		},
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
+	PrintProgressBarsOnSave(&bytes.Buffer{}, r.Bus())
 
 	if _, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), &dataset.Dataset{}, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected bad dataset to error")

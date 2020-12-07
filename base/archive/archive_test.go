@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
 	testPeers "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/event"
 )
 
 func TestGenerateFilename(t *testing.T) {
@@ -132,7 +133,7 @@ func testFS() (qfs.Filesystem, map[string]string, error) {
 	ds.SetBodyFile(dataf)
 
 	fs := qfs.NewMemFS()
-	dskey, err := dsfs.WriteDataset(ctx, nil, fs, ds, pk, dsfs.SaveSwitches{})
+	dskey, err := dsfs.WriteDataset(ctx, nil, fs, event.NilBus, ds, pk, dsfs.SaveSwitches{})
 	if err != nil {
 		return fs, ns, err
 	}
@@ -179,7 +180,7 @@ func testFSWithVizAndTransform() (qfs.Filesystem, map[string]string, error) {
 	privKey := testPeers.GetTestPeerInfo(10).PrivKey
 
 	var dsLk sync.Mutex
-	dskey, err := dsfs.WriteDataset(ctx, &dsLk, st, ds, privKey, dsfs.SaveSwitches{Pin: true})
+	dskey, err := dsfs.WriteDataset(ctx, &dsLk, st, event.NilBus, ds, privKey, dsfs.SaveSwitches{Pin: true})
 	if err != nil {
 		return st, ns, err
 	}
