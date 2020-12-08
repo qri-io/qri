@@ -91,6 +91,7 @@ func (inst *Instance) ServeWebsocket(ctx context.Context) {
 		event.ETDeletedFile,
 		event.ETRenamedFolder,
 		event.ETRemovedFolder,
+
 		event.ETRemoteClientPushVersionProgress,
 		event.ETRemoteClientPushVersionCompleted,
 		event.ETRemoteClientPushDatasetCompleted,
@@ -98,6 +99,10 @@ func (inst *Instance) ServeWebsocket(ctx context.Context) {
 		event.ETRemoteClientPullVersionCompleted,
 		event.ETRemoteClientPullDatasetCompleted,
 		event.ETRemoteClientRemoveDatasetCompleted,
+
+		event.ETDatasetSaveStarted,
+		event.ETDatasetSaveProgress,
+		event.ETDatasetSaveCompleted,
 	)
 
 	// Start http server for websocket.
