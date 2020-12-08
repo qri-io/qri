@@ -213,12 +213,17 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context, pub event.Publishe
 	// publish here so we know that if the user sees the "processing body file"
 	// message, we know that a compute-fields-file has made it all the way through
 	// setup
-	go event.PublishLogError(ctx, pub, log, event.ETDatasetSaveProgress, event.DsSaveEvent{
-		Username:   cff.ds.Peername,
-		Name:       cff.ds.Name,
-		Message:    "processing body file",
-		Completion: 0.1,
-	})
+	go func() {
+		evtErr := pub.Publish(ctx, event.ETDatasetSaveProgress, event.DsSaveEvent{
+			Username:   cff.ds.Peername,
+			Name:       cff.ds.Name,
+			Message:    "processing body file",
+			Completion: 0.1,
+		})
+		if evtErr != nil {
+			log.Debugw("ignored error while publishing save progress", "evtErr", evtErr)
+		}
+	}()
 
 	go func() {
 		err = dsio.EachEntry(r, func(i int, ent dsio.Entry, err error) error {

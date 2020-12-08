@@ -40,16 +40,6 @@ type Publisher interface {
 	Publish(ctx context.Context, t Type, payload interface{}) error
 }
 
-// PublishLogError is a convenience function that fires an event to a publisher
-// and logs any error using an external logger. Exists to make publishing in a
-// goroutine a one-liner, eg:
-//   go event.PublishLogErr(ctx, pub, log, event.ETSaveStarted, payload)
-func PublishLogError(ctx context.Context, pub Publisher, logger golog.StandardLogger, t Type, payload interface{}) {
-	if err := pub.Publish(ctx, t, payload); err != nil {
-		logger.Debug(err)
-	}
-}
-
 // Bus is a central coordination point for event publication and subscription
 // zero or more subscribers register eventTypes to be notified of, a publisher
 // writes a topic event to the bus, which broadcasts to all subscribers of that

@@ -442,18 +442,19 @@ func (c *client) pushDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAd
 	}
 	push.SetMeta(params)
 
+	progEvt := event.RemoteEvent{
+		Ref:        ref,
+		RemoteAddr: remoteAddr,
+	}
+
 	go func() {
 		updates := push.Updates()
 		for {
 			select {
 			case update := <-updates:
 				go func() {
-					prog := event.RemoteEvent{
-						Ref:        ref,
-						RemoteAddr: remoteAddr,
-						Progress:   update,
-					}
-					if err := c.events.Publish(ctx, event.ETRemoteClientPushVersionProgress, prog); err != nil {
+					progEvt.Progress = update
+					if err := c.events.Publish(ctx, event.ETRemoteClientPushVersionProgress, progEvt); err != nil {
 						log.Debugf("publishing eventType=%q error=%q", event.ETRemoteClientPushVersionProgress, err)
 					}
 				}()
@@ -464,13 +465,18 @@ func (c *client) pushDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAd
 	}()
 
 	if err := push.Do(ctx); err != nil {
+		progEvt.Error = err
+		if evtErr := c.events.Publish(ctx, event.ETRemoteClientPushVersionCompleted, progEvt); evtErr != nil {
+			log.Debugw("ignored error while publishing pushVersionCompleted", "evtErr", evtErr)
+		}
 		return err
 	}
 
-	return c.events.Publish(ctx, event.ETRemoteClientPushVersionCompleted, event.RemoteEvent{
-		Ref:        ref,
-		RemoteAddr: remoteAddr,
-	})
+	for i := range progEvt.Progress {
+		progEvt.Progress[i] = 100
+	}
+
+	return c.events.Publish(ctx, event.ETRemoteClientPushVersionCompleted, progEvt)
 }
 
 // PullDataset fetches & pins a dataset to the store, adding it to the list of
@@ -585,18 +591,19 @@ func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteA
 		return err
 	}
 
+	progEvt := event.RemoteEvent{
+		Ref:        *ref,
+		RemoteAddr: remoteAddr,
+	}
+
 	go func() {
 		updates := pull.Updates()
 		for {
 			select {
 			case update := <-updates:
 				go func() {
-					prog := event.RemoteEvent{
-						Ref:        *ref,
-						RemoteAddr: remoteAddr,
-						Progress:   update,
-					}
-					if err := c.events.Publish(ctx, event.ETRemoteClientPullVersionProgress, prog); err != nil {
+					progEvt.Progress = update
+					if err := c.events.Publish(ctx, event.ETRemoteClientPullVersionProgress, progEvt); err != nil {
 						log.Error("publishing %q event: %q", event.ETRemoteClientPullVersionProgress, err)
 					}
 				}()
@@ -617,10 +624,14 @@ func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteA
 		}
 	}
 
-	return c.events.Publish(ctx, event.ETRemoteClientPullVersionCompleted, event.RemoteEvent{
-		Ref:        *ref,
-		RemoteAddr: remoteAddr,
-	})
+	// set progress to 100%
+	// TODO (b5) - it'd be great if the dag package had a convenience function for
+	// this
+	for i := range progEvt.Progress {
+		progEvt.Progress[i] = 100
+	}
+
+	return c.events.Publish(ctx, event.ETRemoteClientPullVersionCompleted, progEvt)
 }
 
 // RemoveDataset requests a remote remove logbook data from an address

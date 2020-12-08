@@ -206,22 +206,29 @@ func CreateDataset(
 	}
 	ds.SetBodyFile(bodyFile)
 
-	go event.PublishLogError(ctx, pub, log, event.ETDatasetSaveStarted, event.DsSaveEvent{
-		Username:   peername,
-		Name:       name,
-		Message:    "save started",
-		Completion: 0,
-	})
+	go func() {
+		evtErr := pub.Publish(ctx, event.ETDatasetSaveStarted, event.DsSaveEvent{
+			Username:   peername,
+			Name:       name,
+			Message:    "save started",
+			Completion: 0,
+		})
+		if evtErr != nil {
+			log.Debugw("ignored error while publishing save start event", "evtErr", evtErr)
+		}
+	}()
 
 	path, err := WriteDataset(ctx, dsLk, destination, pub, ds, pk, sw)
 	if err != nil {
 		log.Debug(err.Error())
-		event.PublishLogError(ctx, pub, log, event.ETDatasetSaveCompleted, event.DsSaveEvent{
+		if evtErr := pub.Publish(ctx, event.ETDatasetSaveCompleted, event.DsSaveEvent{
 			Username:   peername,
 			Name:       name,
 			Error:      err,
 			Completion: 1.0,
-		})
+		}); evtErr != nil {
+			log.Debugw("ignored error while publishing save completed", "evtErr", evtErr)
+		}
 		return "", err
 	}
 
@@ -230,12 +237,14 @@ func CreateDataset(
 	// the caller doesn't use the ds arg afterward
 	// might make sense to have a wrapper function that writes and loads on success
 	if err := DerefDataset(ctx, destination, ds); err != nil {
-		event.PublishLogError(ctx, pub, log, event.ETDatasetSaveCompleted, event.DsSaveEvent{
+		if evtErr := pub.Publish(ctx, event.ETDatasetSaveCompleted, event.DsSaveEvent{
 			Username:   peername,
 			Name:       name,
 			Error:      err,
 			Completion: 1.0,
-		})
+		}); evtErr != nil {
+			log.Debugw("ignored error while publishing save completed", "evtErr", evtErr)
+		}
 		return path, err
 	}
 

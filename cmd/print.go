@@ -241,13 +241,14 @@ func renderTable(writer io.Writer, header []string, data [][]string) {
 func PrintProgressBarsOnEvents(w io.Writer, bus event.Bus) {
 	var lock sync.Mutex
 	// initialize progress container, with custom width
-	p := mpb.New(mpb.WithWidth(80))
+	p := mpb.New(mpb.WithWidth(80), mpb.WithOutput(w))
 	progress := map[string]*mpb.Bar{}
 
 	// wire up a subscription to print download progress to streams
 	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
 		lock.Lock()
 		defer lock.Unlock()
+		log.Debugw("handle event", "type", typ, "payload", payload)
 
 		switch evt := payload.(type) {
 		case event.DsSaveEvent:
@@ -286,7 +287,7 @@ func PrintProgressBarsOnEvents(w io.Writer, bus event.Bus) {
 				bar.SetCurrent(int64(evt.Progress.CompletedBlocks()))
 			case event.ETRemoteClientPushVersionCompleted:
 				if bar, exists := progress[evt.Ref.String()]; exists {
-					bar.SetCurrent(int64(len(evt.Progress)))
+					bar.SetTotal(int64(len(evt.Progress)), true)
 					delete(progress, evt.Ref.String())
 				}
 
@@ -299,7 +300,7 @@ func PrintProgressBarsOnEvents(w io.Writer, bus event.Bus) {
 				bar.SetCurrent(int64(evt.Progress.CompletedBlocks()))
 			case event.ETRemoteClientPullVersionCompleted:
 				if bar, exists := progress[evt.Ref.String()]; exists {
-					bar.SetCurrent(int64(len(evt.Progress)))
+					bar.SetTotal(int64(len(evt.Progress)), true)
 					delete(progress, evt.Ref.String())
 				}
 			}
@@ -307,7 +308,7 @@ func PrintProgressBarsOnEvents(w io.Writer, bus event.Bus) {
 
 		if len(progress) == 0 {
 			p.Wait()
-			p = mpb.New(mpb.WithWidth(80))
+			p = mpb.New(mpb.WithWidth(80), mpb.WithOutput(w))
 		}
 		return nil
 	},
@@ -317,6 +318,7 @@ func PrintProgressBarsOnEvents(w io.Writer, bus event.Bus) {
 
 		event.ETRemoteClientPushVersionProgress,
 		event.ETRemoteClientPushVersionCompleted,
+
 		event.ETRemoteClientPullVersionProgress,
 		event.ETRemoteClientPullVersionCompleted,
 	)

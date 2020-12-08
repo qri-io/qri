@@ -43,4 +43,5 @@ type RemoteEvent struct {
 	Ref        dsref.Ref      `json:"ref"`
 	RemoteAddr string         `json:"remoteAddr"`
 	Progress   dag.Completion `json:"progress"`
+	Error      error          `json:"error,omitempty"`
 }

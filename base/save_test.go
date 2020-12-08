@@ -1,7 +1,6 @@
 package base
 
 import (
-	"bytes"
 	"context"
 	"testing"
 
@@ -123,7 +122,6 @@ func TestCreateDataset(t *testing.T) {
 		},
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
-	PrintProgressBarsOnSave(&bytes.Buffer{}, r.Bus())
 
 	if _, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), &dataset.Dataset{}, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected bad dataset to error")

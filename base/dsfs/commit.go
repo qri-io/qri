@@ -70,12 +70,14 @@ func commitFileAddFunc(privKey crypto.PrivKey, pub event.Publisher) addWriteFile
 		}
 
 		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
-			go event.PublishLogError(ctx, pub, log, event.ETDatasetSaveProgress, event.DsSaveEvent{
+			if evtErr := pub.Publish(ctx, event.ETDatasetSaveProgress, event.DsSaveEvent{
 				Username:   ds.Peername,
 				Name:       ds.Name,
 				Message:    "finalizing",
 				Completion: 0.9,
-			})
+			}); evtErr != nil {
+				log.Debugw("publish event errored", "error", evtErr)
+			}
 
 			if cff, ok := wfs.body.(*computeFieldsFile); ok {
 				updateScriptPaths(ds, added)

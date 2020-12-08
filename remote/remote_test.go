@@ -103,7 +103,6 @@ func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 	)
 
 	progBuf := &bytes.Buffer{}
-	PrintProgressBarsOnPushPull(progBuf, tr.NodeB.Repo.Bus())
 
 	relRef := &dsref.Ref{Username: wbp.Username, Name: wbp.Name}
 	if _, err := cli.NewRemoteRefResolver(server.URL).ResolveRef(tr.Ctx, relRef); err != nil {
