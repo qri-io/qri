@@ -2,8 +2,6 @@ package changes
 
 import (
 	"context"
-	"io/ioutil"
-	"os"
 	"sort"
 	"testing"
 
@@ -19,37 +17,6 @@ import (
 	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/stats"
 )
-
-func newTestService(t *testing.T, r repo.Repo, workDir string) *Service {
-	cache, err := stats.NewLocalCache(workDir, 1000<<8)
-	if err != nil {
-		t.Fatal(err)
-	}
-	statsSvc := stats.New(cache)
-	loader := base.NewLocalDatasetLoader(r.Filesystem())
-
-	return New(loader, statsSvc)
-}
-
-func updateDataset(t *testing.T, r repo.Repo, ds *dataset.Dataset, newBody string) dsref.Ref {
-	ctx := context.Background()
-	currRef := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
-
-	ds.SetBodyFile(qfs.NewMemfileBytes("body.csv", []byte(newBody)))
-	ds.PreviousPath = currRef.Path
-
-	// force recalculate structure as that is what we rely on for the change reports
-	ds.Structure = nil
-	if err := base.InferStructure(ds); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	res, err := base.CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, nil, dsfs.SaveSwitches{Pin: true, ShouldRender: true})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
-}
 
 func getBaseCols() []*ChangeReportDeltaComponent {
 	return []*ChangeReportDeltaComponent{
@@ -253,47 +220,16 @@ func getBaseCols() []*ChangeReportDeltaComponent {
 
 func TestStatsDiff(t *testing.T) {
 	ctx := context.Background()
+	run := newTestRunner(t)
+	svc := run.Service
 
-	workDir, err := ioutil.TempDir("", "qri_test_changes_service")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(workDir)
+	cities1 := run.MustResolve(t, "peer/cities")
+	cities2 := run.updateCitiesDataset(t)
 
-	mr, err := repotest.NewTestRepo()
-	if err != nil {
-		t.Fatal(err)
-	}
+	leftDs := run.MustLoadRef(t, cities1)
+	rightDs := run.MustLoadRef(t, cities2)
 
-	svc := newTestService(t, mr, workDir)
-
-	ref := dsref.MustParse("peer/cities")
-	if _, err := mr.ResolveRef(ctx, &ref); err != nil {
-		t.Fatal(err)
-	}
-
-	ds, err := dsfs.LoadDataset(ctx, mr.Filesystem(), ref.Path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = base.OpenDataset(ctx, mr.Filesystem(), ds); err != nil {
-		t.Fatal(err)
-	}
-
-	ds.Name = "cities"
-	leftDs := *ds
-
-	// alter body file
-	const alteredBodyData = `city,pop,avg_age,in_usa
-toronto,4000000,55.0,false
-new york,850000,44.0,false
-chicago,30000,440.4,false
-chatham,3500,650.25,false
-raleigh,25000,5000.65,false`
-
-	updateDataset(t, mr, ds, alteredBodyData)
-
-	res, err := svc.statsDiff(ctx, &leftDs, ds)
+	res, err := svc.statsDiff(ctx, leftDs, rightDs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -324,33 +260,11 @@ raleigh,25000,5000.65,false`
 }
 
 func TestParseColumns(t *testing.T) {
-	ctx := context.Background()
+	run := newTestRunner(t)
+	svc := run.Service
 
-	workDir, err := ioutil.TempDir("", "qri_test_changes_service")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(workDir)
-
-	mr, err := repotest.NewTestRepo()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	svc := newTestService(t, mr, workDir)
-
-	ref := dsref.MustParse("peer/cities")
-	if _, err := mr.ResolveRef(ctx, &ref); err != nil {
-		t.Fatal(err)
-	}
-
-	ds, err := dsfs.LoadDataset(ctx, mr.Filesystem(), ref.Path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = base.OpenDataset(ctx, mr.Filesystem(), ds); err != nil {
-		t.Fatal(err)
-	}
+	ref := run.MustResolve(t, "peer/cities")
+	ds := run.MustLoadRef(t, ref)
 
 	var colItems tabular.Columns
 	summary, err := svc.parseColumns(&colItems, ds)
@@ -394,32 +308,11 @@ func TestParseColumns(t *testing.T) {
 
 func TestMaybeLoadStats(t *testing.T) {
 	ctx := context.Background()
+	run := newTestRunner(t)
+	svc := run.Service
 
-	workDir, err := ioutil.TempDir("", "qri_test_changes_service")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(workDir)
-
-	mr, err := repotest.NewTestRepo()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	svc := newTestService(t, mr, workDir)
-
-	ref := dsref.MustParse("peer/cities")
-	if _, err := mr.ResolveRef(ctx, &ref); err != nil {
-		t.Fatal(err)
-	}
-
-	ds, err := dsfs.LoadDataset(ctx, mr.Filesystem(), ref.Path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = base.OpenDataset(ctx, mr.Filesystem(), ds); err != nil {
-		t.Fatal(err)
-	}
+	ref := run.MustResolve(t, "peer/cities")
+	ds := run.MustLoadRef(t, ref)
 
 	if ds.Stats == nil {
 		t.Fatal("stats are nil")
@@ -435,32 +328,11 @@ func TestMaybeLoadStats(t *testing.T) {
 
 func TestMatchColumns(t *testing.T) {
 	ctx := context.Background()
+	run := newTestRunner(t)
+	svc := run.Service
 
-	workDir, err := ioutil.TempDir("", "qri_test_changes_service")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(workDir)
-
-	mr, err := repotest.NewTestRepo()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	svc := newTestService(t, mr, workDir)
-
-	ref := dsref.MustParse("peer/cities")
-	if _, err := mr.ResolveRef(ctx, &ref); err != nil {
-		t.Fatal(err)
-	}
-
-	ds, err := dsfs.LoadDataset(ctx, mr.Filesystem(), ref.Path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = base.OpenDataset(ctx, mr.Filesystem(), ds); err != nil {
-		t.Fatal(err)
-	}
+	ref := run.MustResolve(t, "peer/cities")
+	ds := run.MustLoadRef(t, ref)
 
 	ds.Name = "cities"
 	leftDs := *ds
@@ -473,10 +345,10 @@ chicago,30000,440.4,false
 chatham,3500,650.25,false
 raleigh,25000,5000.65,false`
 
-	updateDataset(t, mr, ds, alteredBodyData)
+	run.updateDataset(t, ds, alteredBodyData)
 
 	var leftColItems tabular.Columns
-	_, err = svc.parseColumns(&leftColItems, &leftDs)
+	_, err := svc.parseColumns(&leftColItems, &leftDs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -521,8 +393,8 @@ raleigh,5000.65,false`
 
 	ds.Name = "cities"
 
-	updateDataset(t, mr, ds, alteredBodyDataColumns1)
-	if err = base.OpenDataset(ctx, mr.Filesystem(), ds); err != nil {
+	run.updateDataset(t, ds, alteredBodyDataColumns1)
+	if err = base.OpenDataset(ctx, run.Repo.Filesystem(), ds); err != nil {
 		t.Fatal(err)
 	}
 
@@ -602,7 +474,7 @@ raleigh,25000,5000.65,false,5`
 
 	ds.Name = "cities"
 
-	updateDataset(t, mr, ds, alteredBodyDataColumns2)
+	run.updateDataset(t, ds, alteredBodyDataColumns2)
 
 	_, err = svc.parseColumns(&rightColItems, ds)
 	if err != nil {
@@ -669,4 +541,118 @@ raleigh,25000,5000.65,false,5`
 	if diff := cmp.Diff(report, expect); diff != "" {
 		t.Errorf("column items result mismatch. (-want +got):%s\n", diff)
 	}
+}
+
+func TestReport(t *testing.T) {
+	ctx := context.Background()
+	run := newTestRunner(t)
+	svc := run.Service
+
+	cities1 := dsref.MustParse("peer/cities")
+	if _, err := run.Repo.ResolveRef(ctx, &cities1); err != nil {
+		t.Fatal(err)
+	}
+
+	cities2 := run.updateCitiesDataset(t)
+
+	_, err := svc.Report(ctx, cities1, cities2, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+type testRunner struct {
+	Repo    repo.Repo
+	Service *Service
+}
+
+func newTestRunner(t *testing.T) (run *testRunner) {
+	t.Helper()
+
+	r, err := repotest.NewTestRepo()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	statsSvc := stats.New(nil)
+	loader := base.NewLocalDatasetLoader(r.Filesystem())
+
+	return &testRunner{
+		Repo:    r,
+		Service: New(loader, statsSvc),
+	}
+}
+
+func (run *testRunner) MustResolve(t *testing.T, refstr string) dsref.Ref {
+	t.Helper()
+	ctx := context.Background()
+
+	ref := dsref.MustParse("peer/cities")
+	if _, err := run.Repo.ResolveRef(ctx, &ref); err != nil {
+		t.Fatal(err)
+	}
+	return ref
+}
+
+func (run *testRunner) MustLoadRef(t *testing.T, ref dsref.Ref) *dataset.Dataset {
+	t.Helper()
+	ctx := context.Background()
+
+	ds, err := dsfs.LoadDataset(ctx, run.Repo.Filesystem(), ref.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = base.OpenDataset(ctx, run.Repo.Filesystem(), ds); err != nil {
+		t.Fatal(err)
+	}
+	return ds
+}
+
+func (run *testRunner) updateDataset(t *testing.T, ds *dataset.Dataset, newBody string) dsref.Ref {
+	t.Helper()
+	r := run.Repo
+
+	ctx := context.Background()
+	currRef := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
+
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.csv", []byte(newBody)))
+	ds.PreviousPath = currRef.Path
+
+	// force recalculate structure as that is what we rely on for the change reports
+	ds.Structure = nil
+	if err := base.InferStructure(ds); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	res, err := base.CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, nil, dsfs.SaveSwitches{Pin: true, ShouldRender: true})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
+}
+
+func (run *testRunner) updateCitiesDataset(t *testing.T) dsref.Ref {
+	t.Helper()
+	ctx := context.Background()
+
+	ref := run.MustResolve(t, "peer/cities")
+	ds, err := dsfs.LoadDataset(ctx, run.Repo.Filesystem(), ref.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = base.OpenDataset(ctx, run.Repo.Filesystem(), ds); err != nil {
+		t.Fatal(err)
+	}
+
+	ds.Name = "cities"
+
+	// alter body file
+	const alteredBodyData = `city,pop,avg_age,in_usa
+toronto,4000000,55.0,false
+new york,850000,44.0,false
+chicago,30000,440.4,false
+chatham,3500,650.25,false
+raleigh,25000,5000.65,false`
+
+	return run.updateDataset(t, ds, alteredBodyData)
 }
