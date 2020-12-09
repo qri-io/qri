@@ -284,6 +284,9 @@ func (book *Book) WriteAuthorRename(ctx context.Context, newName string) error {
 }
 
 // WriteDatasetInit initializes a new dataset name within the author's namespace
+// TODO (b5) - this should accept a username param. In the future "org" type
+// users will want to delegate dataset creation to different keys, where the org
+// username is used
 func (book *Book) WriteDatasetInit(ctx context.Context, dsName string) (string, error) {
 	if book == nil {
 		return "", ErrNoLogbook
@@ -294,8 +297,16 @@ func (book *Book) WriteDatasetInit(ctx context.Context, dsName string) (string, 
 	if !dsref.IsValidName(dsName) {
 		return "", fmt.Errorf("logbook: dataset name %q invalid", dsName)
 	}
-	if _, err := book.DatasetRef(ctx, dsref.Ref{Username: book.Username(), Name: dsName}); err == nil {
-		return "", fmt.Errorf("logbook: dataset named %q already exists", dsName)
+	if dsLog, err := book.DatasetRef(ctx, dsref.Ref{Username: book.Username(), Name: dsName}); err == nil {
+		// check for "blank" logs, and remove them
+		if len(dsLog.Ops) == 1 && len(dsLog.Logs) == 1 && len(dsLog.Logs[0].Ops) == 1 {
+			log.Debugw("removing stranded reference", "ref", dsref.Ref{Username: book.Username(), Name: dsName})
+			if err := book.RemoveLog(ctx, dsref.Ref{Username: book.Username(), Name: dsName}); err != nil {
+				return "", fmt.Errorf("logbook: removing stray log: %w", err)
+			}
+		} else {
+			return "", fmt.Errorf("logbook: dataset named %q already exists", dsName)
+		}
 	}
 
 	authorLog, err := book.authorLog(ctx)

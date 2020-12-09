@@ -37,11 +37,10 @@ type computeFieldsFile struct {
 
 	pipeReader *io.PipeReader
 	pipeWriter *io.PipeWriter
-	teeReader  io.Reader
+	teeReader  *dsio.TrackedReader
 	done       chan error
 
-	batches   int
-	bytesRead int
+	batches int
 }
 
 var (
@@ -89,7 +88,7 @@ func newComputeFieldsFile(
 		bodyAct:    BodyDefault,
 		pipeReader: pr,
 		pipeWriter: pw,
-		teeReader:  tr,
+		teeReader:  dsio.NewTrackedReader(tr),
 		done:       make(chan error),
 	}
 
@@ -124,10 +123,6 @@ func (cff *computeFieldsFile) NextFile() (qfs.File, error) {
 
 func (cff *computeFieldsFile) Read(p []byte) (n int, err error) {
 	n, err = cff.teeReader.Read(p)
-
-	cff.Lock()
-	defer cff.Unlock()
-	cff.bytesRead += n
 
 	if err != nil && err.Error() == "EOF" {
 		cff.pipeWriter.Close()
@@ -291,11 +286,11 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context, pub event.Publishe
 
 		cff.Lock()
 		defer cff.Unlock()
-		log.Debugf("determined structure values. ErrCount=%d Entries=%d Depth=%d Length=%d", valErrorCount, entries, depth, cff.bytesRead)
+		log.Debugw("determined structure values", "errCount", valErrorCount, "entries", entries, "depth", depth, "bytecount", cff.teeReader.BytesRead())
 		cff.ds.Structure.ErrCount = valErrorCount
 		cff.ds.Structure.Entries = entries
 		cff.ds.Structure.Depth = depth + 1 // need to add one for the original enclosure
-		cff.ds.Structure.Length = cff.bytesRead
+		cff.ds.Structure.Length = cff.teeReader.BytesRead()
 
 		// as we're using a manual setup on the EntryReader we also need
 		// to manually close the accumulator to finalize results before write
@@ -314,8 +309,8 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context, pub event.Publishe
 			}
 		}
 
-		log.Debugf("done handling structured entries")
 		cff.done <- nil
+		log.Debugf("done handling structured entries")
 	}()
 
 	return
@@ -325,7 +320,7 @@ func (cff *computeFieldsFile) flushBatch(ctx context.Context, buf *dsio.EntryBuf
 	log.Debugf("flushing batch %d", cff.batches)
 	cff.batches++
 
-	if cff.diffMessageBuf != nil && cff.bytesRead > BodySizeSmallEnoughToDiff {
+	if cff.diffMessageBuf != nil && cff.teeReader.BytesRead() > BodySizeSmallEnoughToDiff {
 		log.Debugf("removing diffMessage data buffer. bytesRead exceeds %d bytes", BodySizeSmallEnoughToDiff)
 		cff.diffMessageBuf.Close()
 		cff.diffMessageBuf = nil
