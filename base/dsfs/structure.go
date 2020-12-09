@@ -48,14 +48,14 @@ func structureFileAddFunc(destFS qfs.Filesystem) addWriteFileFunc {
 		ds.Structure.DropTransientValues()
 
 		if wfs.body == nil {
+			log.Debugf("body is nil, using json structure file")
 			wfs.structure, err = JSONFile(PackageFileStructure.Filename(), ds.Structure)
 			return err
 		}
 
 		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
 			if processingFile, ok := wfs.body.(doneProcessingFile); ok {
-				err := <-processingFile.DoneProcessing()
-				if err != nil {
+				if err := <-processingFile.DoneProcessing(); err != nil {
 					return nil, err
 				}
 			}

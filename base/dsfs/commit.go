@@ -90,7 +90,6 @@ func commitFileAddFunc(privKey crypto.PrivKey, pub event.Publisher) addWriteFile
 					log.Debugf("ensureCommitTitleAndMessage: %s", err)
 					return nil, fmt.Errorf("error saving: %w", err)
 				}
-
 			}
 
 			replaceComponentsWithRefs(ds, added, wfs.body.FullPath())
