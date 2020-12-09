@@ -543,9 +543,7 @@ func TestDatasetLogNaming(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error writing valid dataset name: %s", err)
 	}
-	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err == nil {
-		t.Error("expected initializing a name that already exists to error")
-	}
+
 	if err = tr.Book.WriteDatasetRename(tr.Ctx, firstInitID, "iata_airport_codes"); err != nil {
 		t.Errorf("unexpected error renaming dataset: %s", err)
 	}
@@ -624,6 +622,29 @@ func TestDatasetLogNaming(t *testing.T) {
 
 	if diff := cmp.Diff(expect, got); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+
+	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, "overwrite"); err != nil {
+		t.Fatalf("unexpected error writing valid dataset name: %s", err)
+	}
+	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, "overwrite"); err != nil {
+		t.Fatalf("unexpected error overwrite an empty dataset history: %s", err)
+	}
+	err = tr.Book.WriteVersionSave(tr.Ctx, firstInitID, &dataset.Dataset{
+		Peername: tr.Username,
+		Name:     "atmospheric_particulates",
+		Commit: &dataset.Commit{
+			Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			Title:     "initial commit",
+		},
+		Path: "HashOfVersion1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, "overwrite"); err != nil {
+		t.Error("expected initializing a name that exists with a history to error")
 	}
 }
 
