@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/event"
 )
 
 // number of entries to per batch when processing body data in WriteDataset
@@ -142,6 +143,7 @@ func CreateDataset(
 	ctx context.Context,
 	source qfs.Filesystem,
 	destination qfs.Filesystem,
+	pub event.Publisher,
 	ds *dataset.Dataset,
 	prev *dataset.Dataset,
 	pk crypto.PrivKey,
@@ -192,17 +194,41 @@ func CreateDataset(
 	}
 
 	// lock for editing dataset pointer
-	var dsLk = &sync.Mutex{}
+	var (
+		dsLk     = &sync.Mutex{}
+		peername = ds.Peername
+		name     = ds.Name
+	)
 
-	bodyFile, err := newComputeFieldsFile(ctx, dsLk, source, pk, ds, prev, sw)
+	bodyFile, err := newComputeFieldsFile(ctx, dsLk, source, pub, pk, ds, prev, sw)
 	if err != nil {
 		return "", err
 	}
 	ds.SetBodyFile(bodyFile)
 
-	path, err := WriteDataset(ctx, dsLk, destination, ds, pk, sw)
+	go func() {
+		evtErr := pub.Publish(ctx, event.ETDatasetSaveStarted, event.DsSaveEvent{
+			Username:   peername,
+			Name:       name,
+			Message:    "save started",
+			Completion: 0,
+		})
+		if evtErr != nil {
+			log.Debugw("ignored error while publishing save start event", "evtErr", evtErr)
+		}
+	}()
+
+	path, err := WriteDataset(ctx, dsLk, destination, pub, ds, pk, sw)
 	if err != nil {
 		log.Debug(err.Error())
+		if evtErr := pub.Publish(ctx, event.ETDatasetSaveCompleted, event.DsSaveEvent{
+			Username:   peername,
+			Name:       name,
+			Error:      err,
+			Completion: 1.0,
+		}); evtErr != nil {
+			log.Debugw("ignored error while publishing save completed", "evtErr", evtErr)
+		}
 		return "", err
 	}
 
@@ -211,9 +237,24 @@ func CreateDataset(
 	// the caller doesn't use the ds arg afterward
 	// might make sense to have a wrapper function that writes and loads on success
 	if err := DerefDataset(ctx, destination, ds); err != nil {
+		if evtErr := pub.Publish(ctx, event.ETDatasetSaveCompleted, event.DsSaveEvent{
+			Username:   peername,
+			Name:       name,
+			Error:      err,
+			Completion: 1.0,
+		}); evtErr != nil {
+			log.Debugw("ignored error while publishing save completed", "evtErr", evtErr)
+		}
 		return path, err
 	}
-	return path, nil
+
+	return path, pub.Publish(ctx, event.ETDatasetSaveCompleted, event.DsSaveEvent{
+		Username:   peername,
+		Name:       name,
+		Message:    "dataset saved",
+		Path:       path,
+		Completion: 1.0,
+	})
 }
 
 // WriteDataset persists a datasets to a destination filesystem
@@ -221,6 +262,7 @@ func WriteDataset(
 	ctx context.Context,
 	dsLk *sync.Mutex,
 	destination qfs.Filesystem,
+	pub event.Publisher,
 	ds *dataset.Dataset,
 	pk crypto.PrivKey,
 	sw SaveSwitches,
@@ -240,7 +282,7 @@ func WriteDataset(
 		addStatsFile,
 		addReadmeFile,
 		vizFilesAddFunc(destination, sw),
-		commitFileAddFunc(pk),
+		commitFileAddFunc(pk, pub),
 		addDatasetFile,
 	}
 

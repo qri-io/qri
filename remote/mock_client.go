@@ -187,7 +187,7 @@ func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) err
 
 	// Store with dsfs
 	sw := dsfs.SaveSwitches{}
-	path, err := dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), &ds, nil, other.info.PrivKey, sw)
+	path, err := dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), event.NilBus, &ds, nil, other.info.PrivKey, sw)
 	if err != nil {
 		return err
 	}

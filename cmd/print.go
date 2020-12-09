@@ -2,19 +2,25 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/deepdiff"
 	qrierr "github.com/qri-io/qri/errors"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/lib"
+	"github.com/vbauerster/mpb/v5"
+	"github.com/vbauerster/mpb/v5/decor"
 )
 
 var noPrompt = false
@@ -229,4 +235,115 @@ func renderTable(writer io.Writer, header []string, data [][]string) {
 	table.SetNoWhiteSpace(true)
 	table.AppendBulk(data)
 	table.Render()
+}
+
+// PrintProgressBarsOnEvents writes save progress data to the given writer
+func PrintProgressBarsOnEvents(w io.Writer, bus event.Bus) {
+	var lock sync.Mutex
+	// initialize progress container, with custom width
+	p := mpb.New(mpb.WithWidth(80), mpb.WithOutput(w))
+	progress := map[string]*mpb.Bar{}
+
+	// wire up a subscription to print download progress to streams
+	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
+		lock.Lock()
+		defer lock.Unlock()
+		log.Debugw("handle event", "type", typ, "payload", payload)
+
+		switch evt := payload.(type) {
+		case event.DsSaveEvent:
+			evtID := fmt.Sprintf("%s/%s", evt.Username, evt.Name)
+			cpl := int64(math.Ceil(evt.Completion * 100))
+
+			switch typ {
+			case event.ETDatasetSaveStarted:
+				bar, exists := progress[evtID]
+				if !exists {
+					bar = addElapsedBar(p, 100, "saving")
+					progress[evtID] = bar
+				}
+				bar.SetCurrent(cpl)
+			case event.ETDatasetSaveProgress:
+				bar, exists := progress[evtID]
+				if !exists {
+					bar = addElapsedBar(p, 100, "saving")
+					progress[evtID] = bar
+				}
+				bar.SetCurrent(cpl)
+			case event.ETDatasetSaveCompleted:
+				if bar, exists := progress[evtID]; exists {
+					bar.SetTotal(100, true)
+					delete(progress, evtID)
+				}
+			}
+		case event.RemoteEvent:
+			switch typ {
+			case event.ETRemoteClientPushVersionProgress:
+				bar, exists := progress[evt.Ref.String()]
+				if !exists {
+					bar = addBar(p, int64(len(evt.Progress)), "pushing")
+					progress[evt.Ref.String()] = bar
+				}
+				bar.SetCurrent(int64(evt.Progress.CompletedBlocks()))
+			case event.ETRemoteClientPushVersionCompleted:
+				if bar, exists := progress[evt.Ref.String()]; exists {
+					bar.SetTotal(int64(len(evt.Progress)), true)
+					delete(progress, evt.Ref.String())
+				}
+
+			case event.ETRemoteClientPullVersionProgress:
+				bar, exists := progress[evt.Ref.String()]
+				if !exists {
+					bar = addBar(p, int64(len(evt.Progress)), "pulling")
+					progress[evt.Ref.String()] = bar
+				}
+				bar.SetCurrent(int64(evt.Progress.CompletedBlocks()))
+			case event.ETRemoteClientPullVersionCompleted:
+				if bar, exists := progress[evt.Ref.String()]; exists {
+					bar.SetTotal(int64(len(evt.Progress)), true)
+					delete(progress, evt.Ref.String())
+				}
+			}
+		}
+
+		if len(progress) == 0 {
+			p.Wait()
+			p = mpb.New(mpb.WithWidth(80), mpb.WithOutput(w))
+		}
+		return nil
+	},
+		event.ETDatasetSaveStarted,
+		event.ETDatasetSaveProgress,
+		event.ETDatasetSaveCompleted,
+
+		event.ETRemoteClientPushVersionProgress,
+		event.ETRemoteClientPushVersionCompleted,
+
+		event.ETRemoteClientPullVersionProgress,
+		event.ETRemoteClientPullVersionCompleted,
+	)
+}
+
+func addBar(p *mpb.Progress, total int64, title string) *mpb.Bar {
+	return p.AddBar(100,
+		mpb.PrependDecorators(
+			// display our name with one space on the right
+			decor.Name(title, decor.WC{W: len(title) + 1, C: decor.DidentRight}),
+			// replace ETA decorator with "done" message, OnComplete event
+			decor.OnComplete(
+				decor.AverageETA(decor.ET_STYLE_GO, decor.WC{W: 4}), "done",
+			),
+		))
+}
+
+func addElapsedBar(p *mpb.Progress, total int64, title string) *mpb.Bar {
+	return p.AddBar(100,
+		mpb.PrependDecorators(
+			// display our name with one space on the right
+			decor.Name(title, decor.WC{W: len(title) + 1, C: decor.DidentRight}),
+			// replace ETA decorator with "done" message, OnComplete event
+			decor.OnComplete(
+				decor.Elapsed(decor.ET_STYLE_GO, decor.WC{W: 4}), "done",
+			),
+		))
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/friendly"
 	"github.com/qri-io/qri/base/toqtype"
+	"github.com/qri-io/qri/event"
 )
 
 // Timestamp is an function for getting commit timestamps
@@ -62,13 +63,21 @@ func loadCommit(ctx context.Context, fs qfs.Filesystem, path string) (st *datase
 	return dataset.UnmarshalCommit(data)
 }
 
-func commitFileAddFunc(privKey crypto.PrivKey) addWriteFileFunc {
+func commitFileAddFunc(privKey crypto.PrivKey, pub event.Publisher) addWriteFileFunc {
 	return func(ds *dataset.Dataset, wfs *writeFiles) error {
 		if ds.Commit == nil {
 			return nil
 		}
 
 		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
+			if evtErr := pub.Publish(ctx, event.ETDatasetSaveProgress, event.DsSaveEvent{
+				Username:   ds.Peername,
+				Name:       ds.Name,
+				Message:    "finalizing",
+				Completion: 0.9,
+			}); evtErr != nil {
+				log.Debugw("publish event errored", "error", evtErr)
+			}
 
 			if cff, ok := wfs.body.(*computeFieldsFile); ok {
 				updateScriptPaths(ds, added)

@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	testPeers "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/event"
 )
 
 func TestLoadTransform(t *testing.T) {
@@ -45,7 +46,7 @@ func TestLoadTransformScript(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	path, err := CreateDataset(ctx, fs, fs, tc.Input, nil, privKey, SaveSwitches{Pin: true, ShouldRender: true})
+	path, err := CreateDataset(ctx, fs, fs, event.NilBus, tc.Input, nil, privKey, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -64,7 +65,7 @@ func TestLoadTransformScript(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	tc.Input.Transform.ScriptPath = transformPath
-	path, err = CreateDataset(ctx, fs, fs, tc.Input, nil, privKey, SaveSwitches{Pin: true, ShouldRender: true})
+	path, err = CreateDataset(ctx, fs, fs, event.NilBus, tc.Input, nil, privKey, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

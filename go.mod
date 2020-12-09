@@ -53,10 +53,12 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/theckman/go-flock v0.7.1
 	github.com/ugorji/go/codec v1.1.7
+	github.com/vbauerster/mpb v3.4.0+incompatible
+	github.com/vbauerster/mpb/v5 v5.3.0
 	go.starlark.net v0.0.0-20200619143648-50ca820fafb9
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
-	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
+	golang.org/x/sys v0.0.0-20200810151505-1b9f1253b3ed
 	golang.org/x/text v0.3.3
 	gopkg.in/yaml.v2 v2.3.0
 	nhooyr.io/websocket v1.8.6
