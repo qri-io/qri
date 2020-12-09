@@ -63,21 +63,29 @@ type StatsChangeSummaryFields struct {
 // that a key is present in the response even if empty and not be nil
 type EmptyObject map[string]interface{}
 
+// Service generates a change report between two datasets
+type Service interface {
+	Report(ctx context.Context, leftRef, rightRef dsref.Ref, loadSource string) (*ChangeReportResponse, error)
+}
+
 // Service can generate a change report between two datasets
-type Service struct {
+type service struct {
 	loader dsref.Loader
 	stats  *stats.Service
 }
 
+// assert at compile time that service implements the Service interface
+var _ Service = (*service)(nil)
+
 // New allocates a Change service
-func New(loader dsref.Loader, stats *stats.Service) *Service {
-	return &Service{
+func New(loader dsref.Loader, stats *stats.Service) Service {
+	return &service{
 		loader: loader,
 		stats:  stats,
 	}
 }
 
-func (svc *Service) parseColumns(colItems *tabular.Columns, data *dataset.Dataset) (interface{}, error) {
+func (svc *service) parseColumns(colItems *tabular.Columns, data *dataset.Dataset) (interface{}, error) {
 	var sErr error
 	if data.Structure != nil {
 		*colItems, _, sErr = tabular.ColumnsFromJSONSchema(data.Structure.Schema)
@@ -96,7 +104,7 @@ func (svc *Service) parseColumns(colItems *tabular.Columns, data *dataset.Datase
 // maybeLoadStats attempts to load stats if not alredy present
 // errors out if it fails as stats are required and some datasets might not yet have
 // a stats component attached to it
-func (svc *Service) maybeLoadStats(ctx context.Context, ds *dataset.Dataset) error {
+func (svc *service) maybeLoadStats(ctx context.Context, ds *dataset.Dataset) error {
 	if ds.Stats != nil {
 		return nil
 	}
@@ -110,7 +118,7 @@ func (svc *Service) maybeLoadStats(ctx context.Context, ds *dataset.Dataset) err
 
 // parseStats uses json serializing > deserializing to easily parse the stats
 // interface as we have little type safety in the dataset.stats component right now
-func (svc *Service) parseStats(ds *dataset.Dataset) ([]EmptyObject, error) {
+func (svc *service) parseStats(ds *dataset.Dataset) ([]EmptyObject, error) {
 	statsStr, err := json.Marshal(ds.Stats.Stats)
 	if err != nil {
 		log.Debugf("failed to load stats: %s", err.Error())
@@ -126,7 +134,7 @@ func (svc *Service) parseStats(ds *dataset.Dataset) ([]EmptyObject, error) {
 	return stats, nil
 }
 
-func (svc *Service) statsDiff(ctx context.Context, leftDs *dataset.Dataset, rightDs *dataset.Dataset) (*StatsChangeComponent, error) {
+func (svc *service) statsDiff(ctx context.Context, leftDs *dataset.Dataset, rightDs *dataset.Dataset) (*StatsChangeComponent, error) {
 	res := &StatsChangeComponent{}
 
 	res.Summary = &ChangeReportDeltaComponent{
@@ -204,7 +212,7 @@ func (svc *Service) statsDiff(ctx context.Context, leftDs *dataset.Dataset, righ
 // this is not ideal as datasets without a header have generic column names and in case of adding a column
 // before the end might shift the alignment and break comparison due to type differences of columns which
 // are not properly handled yet
-func (svc *Service) matchColumns(leftColCount, rightColCount int, leftColItems, rightColItems tabular.Columns, leftStats, rightStats []EmptyObject) ([]*ChangeReportDeltaComponent, error) {
+func (svc *service) matchColumns(leftColCount, rightColCount int, leftColItems, rightColItems tabular.Columns, leftStats, rightStats []EmptyObject) ([]*ChangeReportDeltaComponent, error) {
 	maxColCount := leftColCount
 	if rightColCount > maxColCount {
 		maxColCount = rightColCount
@@ -287,7 +295,7 @@ func parseStatsMap(stats interface{}) (map[string]interface{}, error) {
 	return statsMap, nil
 }
 
-func (svc *Service) columnStatsDelta(left, right interface{}, lCol, rCol *tabular.Column, hasLeft, hasRight bool) (map[string]interface{}, map[string]interface{}, error) {
+func (svc *service) columnStatsDelta(left, right interface{}, lCol, rCol *tabular.Column, hasLeft, hasRight bool) (map[string]interface{}, map[string]interface{}, error) {
 	var deltaCol map[string]interface{}
 	aboutCol := map[string]interface{}{}
 	var leftStatsMap, rightStatsMap map[string]interface{}
@@ -377,7 +385,7 @@ func (svc *Service) columnStatsDelta(left, right interface{}, lCol, rCol *tabula
 
 // Report computes the change report of two sources
 // This takes some assumptions - we work only with tabular data, with header rows and functional structure.json
-func (svc *Service) Report(ctx context.Context, leftRef, rightRef dsref.Ref, loadSource string) (*ChangeReportResponse, error) {
+func (svc *service) Report(ctx context.Context, leftRef, rightRef dsref.Ref, loadSource string) (*ChangeReportResponse, error) {
 	leftDs, err := svc.loader.LoadDataset(ctx, leftRef, loadSource)
 	if err != nil {
 		return nil, err

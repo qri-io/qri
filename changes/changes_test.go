@@ -563,7 +563,7 @@ func TestReport(t *testing.T) {
 
 type testRunner struct {
 	Repo    repo.Repo
-	Service *Service
+	Service *service
 }
 
 func newTestRunner(t *testing.T) (run *testRunner) {
@@ -579,7 +579,7 @@ func newTestRunner(t *testing.T) (run *testRunner) {
 
 	return &testRunner{
 		Repo:    r,
-		Service: New(loader, statsSvc),
+		Service: New(loader, statsSvc).(*service),
 	}
 }
 
