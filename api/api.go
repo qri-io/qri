@@ -167,6 +167,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/get/", s.middleware(dsh.GetHandler))
 	m.Handle("/rename", s.middleware(dsh.RenameHandler))
 	m.Handle("/diff", s.middleware(dsh.DiffHandler))
+	m.Handle("/changes", s.middleware(dsh.ChangesHandler))
 	// Deprecated, use /get/username/name?component=body or /get/username/name/body.csv
 	m.Handle("/body/", s.middleware(dsh.BodyHandler))
 	m.Handle("/stats/", s.middleware(dsh.StatsHandler))

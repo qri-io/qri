@@ -25,6 +25,8 @@ var (
 	STRemoved = "removed"
 	// STParseError is a component that didn't parse
 	STParseError = "parse error"
+	// STMissing is a component that is missing
+	STMissing = "missing"
 	// STConflictError is a component with a conflict
 	STConflictError = "conflict error"
 	// ErrWorkingDirectoryDirty is the error for when the working directory is not clean
