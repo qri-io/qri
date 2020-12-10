@@ -218,8 +218,6 @@ func (svc *service) matchColumns(leftColCount, rightColCount int, leftColItems, 
 		maxColCount = rightColCount
 	}
 
-	columns := make([]*ChangeReportDeltaComponent, maxColCount)
-
 	type cIndex struct {
 		LPos int
 		RPos int
@@ -248,6 +246,8 @@ func (svc *service) matchColumns(leftColCount, rightColCount int, leftColItems, 
 			}
 		}
 	}
+
+	columns := make([]*ChangeReportDeltaComponent, len(colIndex))
 
 	i := 0
 	for k, v := range colIndex {

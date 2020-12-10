@@ -541,6 +541,129 @@ raleigh,25000,5000.65,false,5`
 	if diff := cmp.Diff(report, expect); diff != "" {
 		t.Errorf("column items result mismatch. (-want +got):%s\n", diff)
 	}
+
+	// alter body file - rename column
+	const alteredBodyDataColumns3 = `city,popz,avg_age,in_usa
+toronto,4000000,55.0,false
+new york,850000,44.0,false
+chicago,30000,440.4,false
+chatham,3500,650.25,false
+raleigh,25000,5000.65,false`
+
+	ds.Name = "cities"
+
+	run.updateDataset(t, ds, alteredBodyDataColumns3)
+
+	_, err = svc.parseColumns(&rightColItems, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rightStats, err = svc.parseStats(ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	report, err = svc.matchColumns(4, 4, leftColItems, rightColItems, leftStats, rightStats)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// output order is not strict so we need to enfore it here
+	sort.SliceStable(report, func(i, j int) bool {
+		return report[i].Title < report[j].Title
+	})
+
+	expect = getBaseCols()
+	expect[3] = &ChangeReportDeltaComponent{
+		ChangeReportComponent: ChangeReportComponent{
+			Left: EmptyObject{
+				"count":  float64(5),
+				"max":    float64(40000000),
+				"min":    float64(35000),
+				"mean":   float64(9817000),
+				"median": float64(300000),
+				"histogram": map[string]interface{}{
+					"bins": []interface{}{
+						float64(35000),
+						float64(250000),
+						float64(300000),
+						float64(8500000),
+						float64(40000000),
+						float64(40000001),
+					},
+					"frequencies": []interface{}{
+						float64(1),
+						float64(1),
+						float64(1),
+						float64(1),
+						float64(1),
+					},
+				},
+				"type": "numeric",
+			},
+			Right: EmptyObject{},
+			About: map[string]interface{}{
+				"status": fsi.STRemoved,
+			},
+		},
+		Title: "pop",
+		Delta: map[string]interface{}{
+			"count":  float64(-5),
+			"max":    float64(-40000000),
+			"mean":   float64(-9817000),
+			"median": float64(-300000),
+			"min":    float64(-35000),
+		},
+	}
+	expect = append(expect, &ChangeReportDeltaComponent{
+		ChangeReportComponent: ChangeReportComponent{
+			Left: EmptyObject{},
+			Right: EmptyObject{
+				"count":  float64(5),
+				"max":    float64(4000000),
+				"min":    float64(3500),
+				"mean":   float64(981700),
+				"median": float64(30000),
+				"histogram": map[string]interface{}{
+					"bins": []interface{}{
+						float64(3500),
+						float64(25000),
+						float64(30000),
+						float64(850000),
+						float64(4000000),
+						float64(4000001),
+					},
+					"frequencies": []interface{}{
+						float64(1),
+						float64(1),
+						float64(1),
+						float64(1),
+						float64(1),
+					},
+				},
+				"type": "numeric",
+			},
+			About: map[string]interface{}{
+				"status": fsi.STAdd,
+			},
+		},
+		Title: "popz",
+		Delta: map[string]interface{}{
+			"count":  float64(5),
+			"max":    float64(4000000),
+			"mean":   float64(981700),
+			"median": float64(30000),
+			"min":    float64(3500),
+		},
+	})
+
+	sort.SliceStable(expect, func(i, j int) bool {
+		return expect[i].Title < expect[j].Title
+	})
+
+	if diff := cmp.Diff(report, expect); diff != "" {
+		t.Errorf("column items result mismatch. (-want +got):%s\n", diff)
+	}
 }
 
 func TestReport(t *testing.T) {
