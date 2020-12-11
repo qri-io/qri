@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ipfs/go-cid"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 )
@@ -106,6 +107,16 @@ func GetHashBase(in string) string {
 	}
 	in = strings.TrimLeft(in, "/")
 	return strings.Split(in, "/")[0]
+}
+
+// GetHashCID fetches a content identifier for a given input string
+func GetHashCID(in string) (cid.Cid, error) {
+	in = strings.TrimLeft(in, "/")
+	for _, fsType := range muxfs.KnownFSTypes() {
+		in = strings.TrimPrefix(in, fsType)
+	}
+	in = strings.TrimLeft(in, "/")
+	return cid.Parse(strings.Split(in, "/")[0])
 }
 
 // PackageFilepath returns the path to a package file for a given base path

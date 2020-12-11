@@ -38,9 +38,8 @@ require (
 	github.com/multiformats/go-multihash v0.0.14
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pkg/errors v0.9.1
+	github.com/qri-io/dag v0.2.2-0.20201211173123-aa53e99ef051
 	github.com/qri-io/dataset v0.2.1-0.20201201155506-9b4fc79ffde8
-	github.com/qri-io/dag v0.2.2-0.20201208212257-ae00241c4b48
-	github.com/qri-io/dataset v0.2.1-0.20201124144731-82162a0f76e6
 	github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b
 	github.com/qri-io/didmod v0.0.0-20201123165422-8b2e224c993a
 	github.com/qri-io/doggos v0.1.0

@@ -431,7 +431,11 @@ func (c *client) pushDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAd
 	if t := addressType(remoteAddr); t == "http" {
 		remoteAddr = remoteAddr + "/remote/dsync"
 	}
-	push, err := c.ds.NewPush(ref.Path, remoteAddr, true)
+	cid, err := ref.PathCID()
+	if err != nil {
+		return err
+	}
+	push, err := c.ds.NewPush(cid, remoteAddr, true)
 	if err != nil {
 		return err
 	}
@@ -585,7 +589,11 @@ func (c *client) pullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteA
 		remoteAddr = remoteAddr + "/remote/dsync"
 	}
 
-	pull, err := c.ds.NewPull(ref.Path, remoteAddr, params)
+	cid, err := ref.PathCID()
+	if err != nil {
+		return err
+	}
+	pull, err := c.ds.NewPull(cid, remoteAddr, params)
 	if err != nil {
 		log.Debugf("NewPull error=%q", err)
 		return err

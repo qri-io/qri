@@ -67,53 +67,79 @@ func newDAGInfo(ctx context.Context, fs qfs.Filesystem, ng ipld.NodeGetter, path
 
 	info.Labels = map[string]int{}
 	if ds.BodyPath != "" {
-		err := info.AddLabelByID("bd", dsfs.GetHashBase(ds.BodyPath))
+		cid, err := dsfs.GetHashCID(ds.BodyPath)
 		if err != nil {
+			return nil, err
+		}
+		if err = info.AddLabelByID("bd", cid); err != nil {
 			return nil, fmt.Errorf("adding body label: %w", err)
 		}
 	}
 	if ds.Viz != nil && ds.Viz.Path != "" {
-		err := info.AddLabelByID("vz", dsfs.GetHashBase(ds.Viz.Path))
+		cid, err := dsfs.GetHashCID(ds.Viz.Path)
 		if err != nil {
+			return nil, err
+		}
+		if err = info.AddLabelByID("vz", cid); err != nil {
 			return nil, fmt.Errorf("adding viz label: %w", err)
 		}
 		if err := dsfs.DerefViz(ctx, fs, ds); err != nil {
 			return nil, err
 		}
 		if ds.Viz.RenderedPath != "" {
-			err := info.AddLabelByID("rd", dsfs.GetHashBase(ds.Viz.RenderedPath))
+			cid, err := dsfs.GetHashCID(ds.Viz.RenderedPath)
 			if err != nil {
+				return nil, err
+			}
+			if err = info.AddLabelByID("rd", cid); err != nil {
 				return nil, err
 			}
 		}
 	}
 	if ds.Transform != nil && ds.Transform.Path != "" {
-		err := info.AddLabelByID("tf", dsfs.GetHashBase(ds.Transform.Path))
+		cid, err := dsfs.GetHashCID(ds.Transform.Path)
 		if err != nil {
+			return nil, err
+		}
+		if err = info.AddLabelByID("tf", cid); err != nil {
 			return nil, fmt.Errorf("adding transform label: %w", err)
 		}
 	}
 	if ds.Meta != nil && ds.Meta.Path != "" {
-		err := info.AddLabelByID("md", dsfs.GetHashBase(ds.Meta.Path))
+		cid, err := dsfs.GetHashCID(ds.Meta.Path)
 		if err != nil {
+			return nil, err
+		}
+		if err = info.AddLabelByID("md", cid); err != nil {
 			return nil, fmt.Errorf("adding meta label %w", err)
 		}
 	}
 	if ds.Structure != nil && ds.Structure.Path != "" {
-		err := info.AddLabelByID("st", dsfs.GetHashBase(ds.Structure.Path))
+		cid, err := dsfs.GetHashCID(ds.Structure.Path)
 		if err != nil {
+			return nil, err
+		}
+		if err = info.AddLabelByID("st", cid); err != nil {
 			return nil, fmt.Errorf("adding structure label: %w", err)
 		}
 	}
 	if ds.Stats != nil && ds.Stats.Path != "" {
-		err := info.AddLabelByID("sa", dsfs.GetHashBase(ds.Stats.Path))
+		cid, err := dsfs.GetHashCID(ds.Stats.Path)
 		if err != nil {
+			return nil, err
+		}
+
+		if err := info.AddLabelByID("sa", cid); err != nil {
 			return nil, fmt.Errorf("adding stats label: %w", err)
 		}
 	}
 	if ds.Commit != nil && ds.Commit.Path != "" {
-		err := info.AddLabelByID("cm", dsfs.GetHashBase(ds.Commit.Path))
+		cid, err := dsfs.GetHashCID(ds.Commit.Path)
 		if err != nil {
+			return nil, err
+		}
+
+		if err = info.AddLabelByID("cm", cid); err != nil {
 			return nil, fmt.Errorf("adding commit label: %w", err)
 		}
 	}

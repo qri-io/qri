@@ -1,5 +1,12 @@
 package dsref
 
+import (
+	"strings"
+
+	"github.com/ipfs/go-cid"
+	"github.com/qri-io/qfs/muxfs"
+)
+
 // Ref is a reference to a dataset
 type Ref struct {
 	// InitID is the canonical identifer for a dataset history
@@ -83,4 +90,14 @@ func (r Ref) VersionInfo() VersionInfo {
 		Name:      r.Name,
 		Path:      r.Path,
 	}
+}
+
+// PathCID gets ref.Path as a CID
+func (r Ref) PathCID() (cid.Cid, error) {
+	in := strings.TrimLeft(r.Path, "/")
+	for _, fsType := range muxfs.KnownFSTypes() {
+		in = strings.TrimPrefix(in, fsType)
+	}
+	in = strings.TrimLeft(in, "/")
+	return cid.Parse(in)
 }
