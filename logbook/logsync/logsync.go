@@ -226,13 +226,19 @@ func (lsync *Logsync) put(ctx context.Context, author profile.Author, ref dsref.
 		return err
 	}
 
-	ref, err = logbook.DsrefAliasForLog(lg)
+	// Get the ref that is in use within the logbook data
+	logRef, err := logbook.DsrefAliasForLog(lg)
 	if err != nil {
 		return err
 	}
 
+	// Validate that data in the logbook matches the ref being synced
+	if logRef.Username != ref.Username || logRef.Name != ref.Name || logRef.ProfileID != ref.ProfileID {
+		return fmt.Errorf("ref contained in log data does not match")
+	}
+
 	if lsync.pushFinalCheck != nil {
-		if err := lsync.pushFinalCheck(ctx, author, ref, lg); err != nil {
+		if err := lsync.pushFinalCheck(ctx, author, logRef, lg); err != nil {
 			return err
 		}
 	}

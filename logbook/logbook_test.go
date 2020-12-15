@@ -385,8 +385,9 @@ func TestDsRefAliasForLog(t *testing.T) {
 	}
 
 	expect := dsref.Ref{
-		Username: tr.RenameRef().Username,
-		Name:     tr.RenameRef().Name,
+		Username:  tr.RenameRef().Username,
+		Name:      tr.RenameRef().Name,
+		ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
 	}
 
 	if diff := cmp.Diff(expect, ref); diff != "" {
