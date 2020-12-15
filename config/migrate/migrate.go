@@ -51,6 +51,11 @@ func RunMigrations(streams ioes.IOStreams, cfg *config.Config, shouldRun func() 
 				return err
 			}
 		}
+		if cfg.Revision == 2 {
+			if err := TwoToThree(cfg); err != nil {
+				return err
+			}
+		}
 		streams.PrintErr("done!\n")
 
 		if errorOnSuccess {
@@ -157,6 +162,48 @@ func oneToTwoConfig(cfg *config.Config) error {
 	}
 
 	cfg.Filesystems = config.DefaultFilesystems()
+
+	return nil
+}
+
+// TwoToThree migrates a configuration from Revision 2 to Revision 3
+func TwoToThree(cfg *config.Config) error {
+	if cfg.P2P != nil {
+		removes := map[string]bool{
+			"/ip4/35.239.80.82/tcp/4001/ipfs/QmdpGkbqDYRPCcwLYnEm8oYGz2G9aUZn9WwPjqvqw3XUAc":   true, // red
+			"/ip4/35.225.152.38/tcp/4001/ipfs/QmTRqTLbKndFC2rp6VzpyApxHCLrFV35setF1DQZaRWPVf":  true, // orange
+			"/ip4/35.202.155.225/tcp/4001/ipfs/QmegNYmwHUQFc3v3eemsYUVf3WiSg4RcMrh3hovA5LncJ2": true, // yellow
+			"/ip4/35.238.10.180/tcp/4001/ipfs/QmessbA6uGLJ7HTwbUJ2niE49WbdPfzi27tdYXdAaGRB4G":  true, // green
+			"/ip4/35.238.105.35/tcp/4001/ipfs/Qmc353gHY5Wx5iHKHPYj3QDqHP4hVA1MpoSsT6hwSyVx3r":  true, // blue
+			"/ip4/35.239.138.186/tcp/4001/ipfs/QmT9YHJF2YkysLqWhhiVTL5526VFtavic3bVueF9rCsjVi": true, // indigo
+			"/ip4/35.226.44.58/tcp/4001/ipfs/QmQS2ryqZrjJtPKDy9VTkdPwdUSpTi1TdpGUaqAVwfxcNh":   true, // violet
+		}
+
+		adds := map[string]bool{}
+		for _, addr := range config.DefaultP2P().QriBootstrapAddrs {
+			adds[addr] = true
+		}
+
+		res := []string{}
+
+		for _, addr := range cfg.P2P.QriBootstrapAddrs {
+			if removes[addr] || adds[addr] {
+				continue
+			}
+			res = append(res, addr)
+		}
+
+		res = append(res, config.DefaultP2P().QriBootstrapAddrs...)
+
+		cfg.P2P.QriBootstrapAddrs = res
+	}
+
+	cfg.Revision = 3
+
+	if err := safeWriteConfig(cfg); err != nil {
+		rollbackConfigWrite(cfg)
+		return err
+	}
 
 	return nil
 }
