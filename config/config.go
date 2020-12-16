@@ -18,7 +18,7 @@ import (
 
 // CurrentConfigRevision is the latest configuration revision configurations
 // that don't match this revision number should be migrated up
-const CurrentConfigRevision = 2
+const CurrentConfigRevision = 3
 
 // Config encapsulates all configuration details for qri
 type Config struct {

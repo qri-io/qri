@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
@@ -51,6 +52,49 @@ func TestOneToTwo(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	buildrepo.New(ctx, repoPath, cfg)
+}
+
+func TestTwoToThree(t *testing.T) {
+	// setup a repo in the v2 arrangement
+	dir, err := ioutil.TempDir("", "testTwoToThree")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	repoPath := filepath.Join(dir, "qri")
+	os.MkdirAll(repoPath, 0774)
+
+	input, err := ioutil.ReadFile("testdata/two_to_three/qri_config.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ioutil.WriteFile(filepath.Join(repoPath, "config.yaml"), input, 0774)
+
+	cfg, err := config.ReadFromFile(filepath.Join(repoPath, "config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// call TwoToThree
+	if err := migrate.RunMigrations(ioes.NewStdIOStreams(), cfg, func() bool { return true }, false); err != nil {
+		t.Error(err)
+	}
+
+	expect := []string{
+		"/ip4/1.2.3.4/tcp/4001/ipfs/QmTestPersistingManuallyAddedBootstrappers",            // should persist unknown
+		"/ip4/35.231.230.13/tcp/4001/ipfs/QmdpGkbqDYRPCcwLYnEm8oYGz2G9aUZn9WwPjqvqw3XUAc",  // red
+		"/ip4/34.75.40.163/tcp/4001/ipfs/QmTRqTLbKndFC2rp6VzpyApxHCLrFV35setF1DQZaRWPVf",   // orange
+		"/ip4/35.237.172.74/tcp/4001/ipfs/QmegNYmwHUQFc3v3eemsYUVf3WiSg4RcMrh3hovA5LncJ2",  // yellow
+		"/ip4/35.231.155.111/tcp/4001/ipfs/QmessbA6uGLJ7HTwbUJ2niE49WbdPfzi27tdYXdAaGRB4G", // green
+		"/ip4/35.237.232.64/tcp/4001/ipfs/Qmc353gHY5Wx5iHKHPYj3QDqHP4hVA1MpoSsT6hwSyVx3r",  // blue
+		"/ip4/35.185.20.61/tcp/4001/ipfs/QmT9YHJF2YkysLqWhhiVTL5526VFtavic3bVueF9rCsjVi",   // indigo
+		"/ip4/35.231.246.50/tcp/4001/ipfs/QmQS2ryqZrjJtPKDy9VTkdPwdUSpTi1TdpGUaqAVwfxcNh",  // violet
+	}
+
+	if diff := cmp.Diff(cfg.P2P.QriBootstrapAddrs, expect); diff != "" {
+		t.Errorf("config.p2p.QriBootstrapAddrs result mismatch. (-want +got):%s\n", diff)
+	}
 }
 
 func unzipFile(sourceZip, destDir string) {

@@ -1,0 +1,71 @@
+API:
+  address: /ip4/127.0.0.1/tcp/2503
+  allowedorigins:
+  - electron://local.qri.io
+  - http://app.qri.io
+  - https://app.qri.io
+  disablewebui: false
+  enabled: true
+  readonly: false
+  serveremotetraffic: false
+  websocketaddress: /ip4/127.0.0.1/tcp/2506
+CLI:
+  colorizeoutput: true
+Filesystems:
+- config:
+    path: /Users/test/.qri/ipfs
+  type: ipfs
+- type: local
+- type: http
+Logging:
+  levels:
+    lib: info
+    qriapi: info
+    qrip2p: error
+P2P:
+  addrs: null
+  autoNAT: false
+  bootstrapaddrs: null
+  enabled: true
+  peerid: QmTCc3annoyEniMyz6to8cZLGPbXLh64oVzVMiMBoXp2u9
+  port: 0
+  privkey: CAASpwkwggSjAgEAAoIBAQDwntvAyYXW2KjWsttn0EydRgqlIJuITqUhWV41g5+AvEUYwGpFuKYvi5bW28cWUaeFKTAx9i3lX/J+Wq4XSH+yM4Tr+QhvtR0E/hFMU++ZpyBBk/v6RnusIAFwnKYgrrGIoK2o4UPcook1pKF+ptMlnQ6+a8GbijXR4iq8BOCNY9JcaaUXjqQ3cXPTkqeG4QlsReG/ERSUJo+Rx0lOtgI5IGgEisp6XceDsWzjXwTEoGagOsBQPH1KvGivp1myf9Sf1H+7RiswXiOXOmLaLc7VOGyuHtyvXxMP62B00hzuhcZB4nxtN1W2rA+fJ1xz2tSYxUeJV4SZ28hmSgje3FFhAgMBAAECggEBALaLXh3xBMeMkPJouEkW3rjGJVdG2JfdSit1uCITHBO3QRhZCYahYfpaBPI1w+Dry5IbQEP3BrSoSLiRJNfnGXFg4mt+/2Z32W8rLIZiezhvcOovUY96n2Ji2ZTMUsAip+8GLxka5Lfi2wNGRXpnJ3K2pzPRXg0ZGmGDGnaPoKfB5YSIvJGXMr1dt5HrA1gpxXT5wSomWgV9qtaPFWf3HHY9VnzL3I23+q+E4FzkwjNtJy39ANxL9btnE80Xowkwa95em65ixpmqUNcw9skRn0uzkVGQqhjTiqqqxcz+pK0OoFYdpSQTArtMU1KUTgz4LkcvY8H/ljYcCjDK8fm70U0CgYEA+U9yS8dL0UnzCIQsy+9wT7g/9RIOKtE3UcilP6XPkEjPNWdnEYDbkZIXDfOX+XKkDSfx9jzeA785/E3WuZkNEcjaZSVK/QGVphNi8s6W0g/EBMtFCi92QXQRmr9ESGvByCTqo32FdZR1xAVh0/rj4covVyNseDzrBPi3DtM4t3MCgYEA9xO4Zb8bycPM74bEPIeaAvQLP29oJpDqCgr3uVS5AjcduFS+YnBJZoGHQjOb5posCSvkzYy1tow18KRXlA/lB/nBbeKpdOAY+IFLONFOj4EJTXtQ7eERDM9o7QB+mJq+HZxL2ywh3FpMlka0qsX4kF9z56XoSZHtSUvNMmw+ltsCgYBrC0SM6t5P10uFbZL6YS083WSAqibxFXGGKPtiz6PGVKy7RlGHv2cHIs3JTL0E+scbavpF+q5st2+DODyo5eEpsK6s3Q1MgqCpdQt4K2GwgdptIIXdMLG6usZQRi1gVvwWHluspNlnub2y04jEhqXPrYsUA/6vxaA3Oz8GG4TvpwKBgHaMgrxm/tlHVkxTOFLmqVHjcIYmWS2v+GuLKaNF8GMMuPjZyGOJBt7lJVXxV0tFC/32jpjFe+azzanB4LeNDNJP1qx3xeDrKXAK8WG4o94dBq6jjYglpj2kQu78fsGP9cpVVNw7h5+nv/mWwVbzGDmFYyJxq0upddXmRfV8lGdjAoGAGC7BoXWYGi7bAaRFZM48h8mxSEaff0SrD5ryeQ+Uzd2BR36tu3tRL7jbh7iBdb/J3K74UOIYN/XQTqq7JMQvYzVc+uVTWKmh2RNJV6iy3Nbb5T26uOtmMmWJx85tKDKXUbFZlVboKPE2Fpr+GGpPabOQRxi3XSpRCQL6LWwrn8w=
+  qribootstrapaddrs:
+  - /ip4/35.239.80.82/tcp/4001/ipfs/QmdpGkbqDYRPCcwLYnEm8oYGz2G9aUZn9WwPjqvqw3XUAc
+  - /ip4/35.225.152.38/tcp/4001/ipfs/QmTRqTLbKndFC2rp6VzpyApxHCLrFV35setF1DQZaRWPVf
+  - /ip4/35.202.155.225/tcp/4001/ipfs/QmegNYmwHUQFc3v3eemsYUVf3WiSg4RcMrh3hovA5LncJ2
+  - /ip4/35.238.10.180/tcp/4001/ipfs/QmessbA6uGLJ7HTwbUJ2niE49WbdPfzi27tdYXdAaGRB4G
+  - /ip4/35.238.105.35/tcp/4001/ipfs/Qmc353gHY5Wx5iHKHPYj3QDqHP4hVA1MpoSsT6hwSyVx3r
+  - /ip4/35.239.138.186/tcp/4001/ipfs/QmT9YHJF2YkysLqWhhiVTL5526VFtavic3bVueF9rCsjVi
+  - /ip4/35.226.44.58/tcp/4001/ipfs/QmQS2ryqZrjJtPKDy9VTkdPwdUSpTi1TdpGUaqAVwfxcNh
+  - /ip4/1.2.3.4/tcp/4001/ipfs/QmTestPersistingManuallyAddedBootstrappers
+Profile:
+  color: ""
+  created: "2020-01-15T23:03:22Z"
+  description: ""
+  email: brendan+rm_me_1@qri.io
+  homeurl: ""
+  id: QmTCc3annoyEniMyz6to8cZLGPbXLh64oVzVMiMBoXp2u9
+  name: ""
+  peername: rm_me_1
+  photo: https://qri-user-images.storage.googleapis.com/1570029806838.png
+  poster: ""
+  privkey: CAASpwkwggSjAgEAAoIBAQDwntvAyYXW2KjWsttn0EydRgqlIJuITqUhWV41g5+AvEUYwGpFuKYvi5bW28cWUaeFKTAx9i3lX/J+Wq4XSH+yM4Tr+QhvtR0E/hFMU++ZpyBBk/v6RnusIAFwnKYgrrGIoK2o4UPcook1pKF+ptMlnQ6+a8GbijXR4iq8BOCNY9JcaaUXjqQ3cXPTkqeG4QlsReG/ERSUJo+Rx0lOtgI5IGgEisp6XceDsWzjXwTEoGagOsBQPH1KvGivp1myf9Sf1H+7RiswXiOXOmLaLc7VOGyuHtyvXxMP62B00hzuhcZB4nxtN1W2rA+fJ1xz2tSYxUeJV4SZ28hmSgje3FFhAgMBAAECggEBALaLXh3xBMeMkPJouEkW3rjGJVdG2JfdSit1uCITHBO3QRhZCYahYfpaBPI1w+Dry5IbQEP3BrSoSLiRJNfnGXFg4mt+/2Z32W8rLIZiezhvcOovUY96n2Ji2ZTMUsAip+8GLxka5Lfi2wNGRXpnJ3K2pzPRXg0ZGmGDGnaPoKfB5YSIvJGXMr1dt5HrA1gpxXT5wSomWgV9qtaPFWf3HHY9VnzL3I23+q+E4FzkwjNtJy39ANxL9btnE80Xowkwa95em65ixpmqUNcw9skRn0uzkVGQqhjTiqqqxcz+pK0OoFYdpSQTArtMU1KUTgz4LkcvY8H/ljYcCjDK8fm70U0CgYEA+U9yS8dL0UnzCIQsy+9wT7g/9RIOKtE3UcilP6XPkEjPNWdnEYDbkZIXDfOX+XKkDSfx9jzeA785/E3WuZkNEcjaZSVK/QGVphNi8s6W0g/EBMtFCi92QXQRmr9ESGvByCTqo32FdZR1xAVh0/rj4covVyNseDzrBPi3DtM4t3MCgYEA9xO4Zb8bycPM74bEPIeaAvQLP29oJpDqCgr3uVS5AjcduFS+YnBJZoGHQjOb5posCSvkzYy1tow18KRXlA/lB/nBbeKpdOAY+IFLONFOj4EJTXtQ7eERDM9o7QB+mJq+HZxL2ywh3FpMlka0qsX4kF9z56XoSZHtSUvNMmw+ltsCgYBrC0SM6t5P10uFbZL6YS083WSAqibxFXGGKPtiz6PGVKy7RlGHv2cHIs3JTL0E+scbavpF+q5st2+DODyo5eEpsK6s3Q1MgqCpdQt4K2GwgdptIIXdMLG6usZQRi1gVvwWHluspNlnub2y04jEhqXPrYsUA/6vxaA3Oz8GG4TvpwKBgHaMgrxm/tlHVkxTOFLmqVHjcIYmWS2v+GuLKaNF8GMMuPjZyGOJBt7lJVXxV0tFC/32jpjFe+azzanB4LeNDNJP1qx3xeDrKXAK8WG4o94dBq6jjYglpj2kQu78fsGP9cpVVNw7h5+nv/mWwVbzGDmFYyJxq0upddXmRfV8lGdjAoGAGC7BoXWYGi7bAaRFZM48h8mxSEaff0SrD5ryeQ+Uzd2BR36tu3tRL7jbh7iBdb/J3K74UOIYN/XQTqq7JMQvYzVc+uVTWKmh2RNJV6iy3Nbb5T26uOtmMmWJx85tKDKXUbFZlVboKPE2Fpr+GGpPabOQRxi3XSpRCQL6LWwrn8w=
+  thumb: ""
+  twitter: ""
+  type: peer
+  updated: "2020-01-15T18:01:36.486248-05:00"
+RPC:
+  address: /ip4/127.0.0.1/tcp/2504
+  enabled: true
+Registry:
+  location: http://localhost:3100
+Remote: null
+Remotes: null
+Repo:
+  type: fs
+Revision: 2
+Stats:
+  cache:
+    maxsize: 25600
+    type: fs
