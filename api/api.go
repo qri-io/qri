@@ -35,11 +35,14 @@ func init() {
 // Create one with New, start it up with Serve
 type Server struct {
 	*lib.Instance
+	Mux *http.ServeMux
 }
 
 // New creates a new qri server from a p2p node & configuration
 func New(inst *lib.Instance) (s Server) {
-	return Server{Instance: inst}
+	s = Server{Instance: inst}
+	s.Mux = NewServerRoutes(s)
+	return s
 }
 
 // Serve starts the server. It will block while the server is running
@@ -51,9 +54,9 @@ func (s Server) Serve(ctx context.Context) (err error) {
 		return err
 	}
 
-	server := &http.Server{}
-	mux := NewServerRoutes(s)
-	server.Handler = mux
+	server := &http.Server{
+		Handler: s.Mux,
+	}
 
 	go s.ServeRPC(ctx)
 	go s.ServeWebsocket(ctx)
