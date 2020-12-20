@@ -925,7 +925,7 @@ func (book Book) LogBytes(log *oplog.Log) ([]byte, error) {
 }
 
 // DsrefAliasForLog parses log data into a dataset alias reference, populating
-// only the username and name components of a dataset.
+// only the username, name, and profileID the dataset.
 // the passed in oplog must refer unambiguously to a dataset or branch.
 // book.Log() returns exact log references
 func DsrefAliasForLog(log *oplog.Log) (dsref.Ref, error) {
@@ -941,8 +941,9 @@ func DsrefAliasForLog(log *oplog.Log) (dsref.Ref, error) {
 	}
 
 	ref = dsref.Ref{
-		Username: log.Name(),
-		Name:     log.Logs[0].Name(),
+		Username:  log.Name(),
+		Name:      log.Logs[0].Name(),
+		ProfileID: log.FirstOpAuthorID(),
 	}
 
 	return ref, nil

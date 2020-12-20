@@ -13,6 +13,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -62,7 +63,7 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("johnathon has %d references for %s\n", len(items), worldBankDatasetRef)
+	fmt.Printf("johnathon has %d references for %s\n", len(items), worldBankDatasetRef.Human())
 
 	// johnathon creates a new push
 	johnathonLogsync := New(johnathonsLogbook)
@@ -81,7 +82,7 @@ func Example() {
 	if items, err = basitsLogbook.Items(ctx, worldBankDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
-	fmt.Printf("basit has %d references for %s\n", len(items), worldBankDatasetRef)
+	fmt.Printf("basit has %d references for %s\n", len(items), worldBankDatasetRef.Human())
 
 	// this time basit creates a history
 	nasdaqDatasetRef := makeNasdaqLogs(ctx, basitsLogbook)
@@ -89,7 +90,7 @@ func Example() {
 	if items, err = basitsLogbook.Items(ctx, nasdaqDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
-	fmt.Printf("basit has %d references for %s\n", len(items), nasdaqDatasetRef)
+	fmt.Printf("basit has %d references for %s\n", len(items), nasdaqDatasetRef.Human())
 
 	// prepare to pull nasdaq refs from basit
 	pull, err := johnathonLogsync.NewPull(nasdaqDatasetRef, server.URL)
@@ -106,7 +107,7 @@ func Example() {
 	if items, err = johnathonsLogbook.Items(ctx, nasdaqDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
-	fmt.Printf("johnathon has %d references for %s\n", len(items), nasdaqDatasetRef)
+	fmt.Printf("johnathon has %d references for %s\n", len(items), nasdaqDatasetRef.Human())
 
 	// Output: johnathon has 3 references for johnathon/world_bank_population
 	// basit has 3 references for johnathon/world_bank_population
@@ -297,6 +298,54 @@ func TestHookErrors(t *testing.T) {
 	}
 }
 
+func TestWrongProfileID(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	worldBankRef, err := writeWorldBankLogs(tr.Ctx, tr.B)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nasdaqRef, err := writeNasdaqLogs(tr.Ctx, tr.A)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Modify the profileID of this reference, which should cause it to fail to push
+	worldBankRef.ProfileID = testPeers.GetTestPeerInfo(1).EncodedPeerID
+
+	lsA := New(tr.A)
+
+	s := httptest.NewServer(HTTPHandler(lsA))
+	defer s.Close()
+
+	lsB := New(tr.B)
+	pull, err := lsB.NewPull(nasdaqRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pull.Merge = true
+	if _, err := pull.Do(tr.Ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// B tries to push, but the profileID it uses has been modifed to something else
+	// Logsync will catch this error.
+	push, err := lsB.NewPush(worldBankRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = push.Do(tr.Ctx)
+	if err == nil {
+		t.Errorf("expected error but did not get one")
+	}
+	expectErr := `ref contained in log data does not match`
+	if expectErr != err.Error() {
+		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
+	}
+}
+
 func TestNilCallable(t *testing.T) {
 	var logsync *Logsync
 
@@ -316,6 +365,8 @@ func TestNilCallable(t *testing.T) {
 }
 
 func makeJohnathonLogbook() *logbook.Book {
+	var aPk = testPeers.GetTestPeerInfo(10).EncodedPrivKey
+
 	pk, err := decodePk(aPk)
 	if err != nil {
 		panic(err)
@@ -329,6 +380,8 @@ func makeJohnathonLogbook() *logbook.Book {
 }
 
 func makeBasitLogbook() *logbook.Book {
+	var bPk = testPeers.GetTestPeerInfo(9).EncodedPrivKey
+
 	pk, err := decodePk(bPk)
 	if err != nil {
 		panic(err)
@@ -368,6 +421,9 @@ func (tr *testRunner) DefaultLogsyncs() (a, b *Logsync) {
 }
 
 func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
+	var aPk = testPeers.GetTestPeerInfo(10).EncodedPrivKey
+	var bPk = testPeers.GetTestPeerInfo(9).EncodedPrivKey
+
 	var err error
 	tr = &testRunner{
 		Ctx: context.Background(),
@@ -452,6 +508,11 @@ func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, er
 
 func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, err error) {
 	name := "world_bank_population"
+	peerID, err := book.ActivePeerID(ctx)
+	if err != nil {
+		return dsref.Ref{}, err
+	}
+
 	initID, err := book.WriteDatasetInit(ctx, name)
 	if err != nil {
 		return ref, err
@@ -464,7 +525,7 @@ func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref,
 			Timestamp: time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC),
 			Title:     "init dataset",
 		},
-		Path:         "v0",
+		Path:         "/ipfs/QmVersion0",
 		PreviousPath: "",
 	}
 
@@ -472,27 +533,25 @@ func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref,
 		return ref, err
 	}
 
-	ds.Path = "v1"
-	ds.PreviousPath = "v0"
+	ds.Path = "/ipfs/QmVersion1"
+	ds.PreviousPath = "/ipfs/QmVesion0"
 
 	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
 		return ref, err
 	}
 
-	ds.Path = "v2"
-	ds.PreviousPath = "v1"
+	ds.Path = "/ipfs/QmVersion2"
+	ds.PreviousPath = "/ipfs/QmVersion1"
 
 	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
 		return ref, err
 	}
 
 	return dsref.Ref{
-		Username: book.Username(),
-		Name:     name,
-		InitID:   initID,
+		Username:  book.Username(),
+		Name:      name,
+		ProfileID: peerID,
+		InitID:    initID,
+		Path:      ds.Path,
 	}, nil
 }
-
-var aPk = `CAASpgkwggSiAgEAAoIBAQC/7Q7fILQ8hc9g07a4HAiDKE4FahzL2eO8OlB1K99Ad4L1zc2dCg+gDVuGwdbOC29IngMA7O3UXijycckOSChgFyW3PafXoBF8Zg9MRBDIBo0lXRhW4TrVytm4Etzp4pQMyTeRYyWR8e2hGXeHArXM1R/A/SjzZUbjJYHhgvEE4OZy7WpcYcW6K3qqBGOU5GDMPuCcJWac2NgXzw6JeNsZuTimfVCJHupqG/dLPMnBOypR22dO7yJIaQ3d0PFLxiDG84X9YupF914RzJlopfdcuipI+6gFAgBw3vi6gbECEzcohjKf/4nqBOEvCDD6SXfl5F/MxoHurbGBYB2CJp+FAgMBAAECggEAaVOxe6Y5A5XzrxHBDtzjlwcBels3nm/fWScvjH4dMQXlavwcwPgKhy2NczDhr4X69oEw6Msd4hQiqJrlWd8juUg6vIsrl1wS/JAOCS65fuyJfV3Pw64rWbTPMwO3FOvxj+rFghZFQgjg/i45uHA2UUkM+h504M5Nzs6Arr/rgV7uPGR5e5OBw3lfiS9ZaA7QZiOq7sMy1L0qD49YO1ojqWu3b7UaMaBQx1Dty7b5IVOSYG+Y3U/dLjhTj4Hg1VtCHWRm3nMOE9cVpMJRhRzKhkq6gnZmni8obz2BBDF02X34oQLcHC/Wn8F3E8RiBjZDI66g+iZeCCUXvYz0vxWAQQKBgQDEJu6flyHPvyBPAC4EOxZAw0zh6SF/r8VgjbKO3n/8d+kZJeVmYnbsLodIEEyXQnr35o2CLqhCvR2kstsRSfRz79nMIt6aPWuwYkXNHQGE8rnCxxyJmxV4S63GczLk7SIn4KmqPlCI08AU0TXJS3zwh7O6e6kBljjPt1mnMgvr3QKBgQD6fAkdI0FRZSXwzygx4uSg47Co6X6ESZ9FDf6ph63lvSK5/eue/ugX6p/olMYq5CHXbLpgM4EJYdRfrH6pwqtBwUJhlh1xI6C48nonnw+oh8YPlFCDLxNG4tq6JVo071qH6CFXCIank3ThZeW5a3ZSe5pBZ8h4bUZ9H8pJL4C7yQKBgFb8SN/+/qCJSoOeOcnohhLMSSD56MAeK7KIxAF1jF5isr1TP+rqiYBtldKQX9bIRY3/8QslM7r88NNj+aAuIrjzSausXvkZedMrkXbHgS/7EAPflrkzTA8fyH10AsLgoj/68mKr5bz34nuY13hgAJUOKNbvFeC9RI5g6eIqYH0FAoGAVqFTXZp12rrK1nAvDKHWRLa6wJCQyxvTU8S1UNi2EgDJ492oAgNTLgJdb8kUiH0CH0lhZCgr9py5IKW94OSM6l72oF2UrS6PRafHC7D9b2IV5Al9lwFO/3MyBrMocapeeyaTcVBnkclz4Qim3OwHrhtFjF1ifhP9DwVRpuIg+dECgYANwlHxLe//tr6BM31PUUrOxP5Y/cj+ydxqM/z6papZFkK6Mvi/vMQQNQkh95GH9zqyC5Z/yLxur4ry1eNYty/9FnuZRAkEmlUSZ/DobhU0Pmj8Hep6JsTuMutref6vCk2n02jc9qYmJuD7iXkdXDSawbEG6f5C4MUkJ38z1t1OjA==`
-
-var bPk = "CAASpwkwggSjAgEAAoIBAQDACiqtbAeIR0gKZZfWuNgDssXnQnEQNrAlISlNMrtULuCtsLBk2tZ4C508T4/JQHfvbazZ/aPvkhr9KBaH8AzDU3FngHQnWblGtfm/0FAXbXPfn6DZ1rbA9rx9XpVZ+pUBDve0YxTSPOo5wOOR9u30JEvO47n1R/bF+wtMRHvDyRuoy4H86XxwMR76LYbgSlJm6SSKnrAVoWR9zqjXdaF1QljO77VbivnR5aS9vQ5Sd1mktwgb3SYUMlEGedtcMdLd3MPVCLFzq6cdjhSwVAxZ3RowR2m0hSEE/p6CKH9xz4wkMmjVrADfQTYU7spym1NBaNCrW1f+r4ScDEqI1yynAgMBAAECggEAWuJ04C5IQk654XHDMnO4h8eLsa7YI3w+UNQo38gqr+SfoJQGZzTKW3XjrC9bNTu1hzK4o1JOy4qyCy11vE/3Olm7SeiZECZ+cOCemhDUVsIOHL9HONFNHHWpLwwcUsEs05tpz400xWrezwZirSnX47tpxTgxQcwVFg2Bg07F5BntepqX+Ns7s2XTEc7YO8o77viYbpfPSjrsToahWP7ngIL4ymDjrZjgWTPZC7AzobDbhjTh5XuVKh60eUz0O7/Ezj2QK00NNkkD7nplU0tojZF10qXKCbECPn3pocVPAetTkwB1Zabq2tC2Y10dYlef0B2fkktJ4PAJyMszx4toQQKBgQD+69aoMf3Wcbw1Z1e9IcOutArrnSi9N0lVD7X2B6HHQGbHkuVyEXR10/8u4HVtbM850ZQjVnSTa4i9XJAy98FWwNS4zFh3OWVhgp/hXIetIlZF72GEi/yVFBhFMcKvXEpO/orEXMOJRdLb/7kNpMvl4MQ/fGWOmQ3InkKxLZFJ+wKBgQDA2jUTvSjjFVtOJBYVuTkfO1DKRGu7QQqNeF978ZEoU0b887kPu2yzx9pK0PzjPffpfUsa9myDSu7rncBX1FP0gNmSIAUja2pwMvJDU2VmE3Ua30Z1gVG1enCdl5ZWufum8Q+0AUqVkBdhPxw+XDJStA95FUArJzeZ2MTwbZH0RQKBgDG188og1Ys36qfPW0C6kNpEqcyAfS1I1rgLtEQiAN5GJMTOVIgF91vy11Rg2QVZrp9ryyOI/HqzAZtLraMCxWURfWn8D1RQkQCO5HaiAKM2ivRgVffvBHZd0M3NglWH/cWhxZW9MTRXtWLJX2DVvh0504s9yuAf4Jw6oG7EoAx5AoGBAJluAURO/jSMTTQB6cAmuJdsbX4+qSc1O9wJpI3LRp06hAPDM7ycdIMjwTw8wLVaG96bXCF7ZCGggCzcOKanupOP34kuCGiBkRDqt2tw8f8gA875S+k4lXU4kFgQvf8JwHi02LVxQZF0LeWkfCfw2eiKcLT4fzDV5ppzp1tREQmxAoGAGOXFomnMU9WPxJp6oaw1ZimtOXcAGHzKwiwQiw7AAWbQ+8RrL2AQHq0hD0eeacOAKsh89OXsdS9iW9GQ1mFR3FA7Kp5srjCMKNMgNSBNIb49iiG9O6P6UcO+RbYGg3CkSTG33W8l2pFIjBrtGktF5GoJudAPR4RXhVsRYZMiGag="

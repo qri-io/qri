@@ -148,7 +148,7 @@ func (cfg Config) WriteToFile(path string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, data, 06777)
+	return ioutil.WriteFile(path, data, 0644)
 }
 
 // Get a config value with case.insensitive.dot.separated.paths
