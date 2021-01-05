@@ -103,6 +103,11 @@ func (inst *Instance) ServeWebsocket(ctx context.Context) {
 		event.ETDatasetSaveStarted,
 		event.ETDatasetSaveProgress,
 		event.ETDatasetSaveCompleted,
+
+		event.ETCronJobScheduled,
+		event.ETCronJobUnscheduled,
+		event.ETCronJobStarted,
+		event.ETCronJobCompleted,
 	)
 
 	// Start http server for websocket.
