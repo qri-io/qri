@@ -185,3 +185,7 @@ func (t TestFactory) SQLMethods() (*lib.SQLMethods, error) {
 func (t TestFactory) RenderMethods() (*lib.RenderMethods, error) {
 	return lib.NewRenderMethods(t.inst), nil
 }
+
+func (t TestFactory) TransformMethods() (*lib.TransformMethods, error) {
+	return lib.NewTransformMethods(t.inst), nil
+}

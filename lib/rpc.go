@@ -31,17 +31,18 @@ func init() {
 // API of lib methods
 func Receivers(inst *Instance) []Methods {
 	return []Methods{
+		NewConfigMethods(inst),
 		NewDatasetMethods(inst),
-		NewRegistryClientMethods(inst),
-		NewRemoteMethods(inst),
+		NewFSIMethods(inst),
 		NewLogMethods(inst),
 		NewPeerMethods(inst),
 		NewProfileMethods(inst),
-		NewConfigMethods(inst),
+		NewRegistryClientMethods(inst),
+		NewRemoteMethods(inst),
+		NewRenderMethods(inst),
 		NewSearchMethods(inst),
 		NewSQLMethods(inst),
-		NewRenderMethods(inst),
-		NewFSIMethods(inst),
+		NewTransformMethods(inst),
 	}
 }
 

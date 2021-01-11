@@ -207,6 +207,9 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	sqlh := NewSQLHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/sql", s.Middleware(sqlh.QueryHandler("/sql")))
 
+	tfh := NewTransformHandlers(s.Instance)
+	m.Handle("/apply", s.Middleware(tfh.ApplyHandler("/apply")))
+
 	if !cfg.API.DisableWebui {
 		m.Handle("/webui", s.Middleware(WebuiHandler))
 	}

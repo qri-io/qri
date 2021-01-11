@@ -43,6 +43,7 @@ https://github.com/qri-io/qri/issues`,
 	cmd.PersistentFlags().BoolVarP(&opt.LogAll, "log-all", "", false, "log all activity")
 
 	cmd.AddCommand(
+		NewApplyCommand(opt, ioStreams),
 		NewAutocompleteCommand(opt, ioStreams),
 		NewCheckoutCommand(opt, ioStreams),
 		NewConfigCommand(opt, ioStreams),
@@ -319,6 +320,15 @@ func (o *QriOptions) FSIMethods() (m *lib.FSIMethods, err error) {
 	}
 
 	return lib.NewFSIMethods(o.inst), nil
+}
+
+// TransformMethods generates a lib.TransformMethods from internal state
+func (o *QriOptions) TransformMethods() (m *lib.TransformMethods, err error) {
+	if err = o.Init(); err != nil {
+		return nil, err
+	}
+
+	return lib.NewTransformMethods(o.inst), nil
 }
 
 // Shutdown closes the instance
