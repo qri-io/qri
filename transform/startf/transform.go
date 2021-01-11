@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	skyctx "github.com/qri-io/qri/transform/startf/context"
 	skyds "github.com/qri-io/qri/transform/startf/ds"
@@ -120,6 +121,7 @@ type transform struct {
 	bodyFile     qfs.File
 	stderr       io.Writer
 	moduleLoader ModuleLoader
+	eventsCh     chan eventData
 
 	download starlark.Iterable
 }
@@ -132,16 +134,36 @@ var DefaultModuleLoader = func(thread *starlark.Thread, module string) (dict sta
 	return starlib.Loader(thread, module)
 }
 
+type eventData struct {
+	typ  event.Type
+	data interface{}
+}
+
 // ExecScript executes a transformation against a starlark script file. The next dataset pointer
 // may be modified, while the prev dataset point is read-only. At a bare minimum this function
 // will set transformation details, but starlark scripts can modify many parts of the dataset
 // pointer, including meta, structure, and transform. opts may provide more ways for output to
 // be produced from this function.
-func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o *ExecOpts)) error {
+func ExecScript(ctx context.Context, pub event.Publisher, runID string, next, prev *dataset.Dataset, opts ...func(o *ExecOpts)) error {
 	var err error
 	if next.Transform == nil || next.Transform.ScriptFile() == nil {
 		return fmt.Errorf("no script to execute")
 	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	eventsCh := make(chan eventData)
+
+	go func() {
+		for {
+			select {
+			case event := <-eventsCh:
+				pub.PublishID(ctx, event.typ, runID, event.data)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	o := &ExecOpts{}
 	DefaultExecOpts(o)
@@ -182,9 +204,10 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 		checkFunc:    o.MutateFieldCheck,
 		stderr:       o.ErrWriter,
 		moduleLoader: o.ModuleLoader,
+		eventsCh:     eventsCh,
 	}
 
-	skyCtx := skyctx.NewContext(next.Transform.Config, o.Secrets)
+	tfCtx := skyctx.NewContext(next.Transform.Config, o.Secrets)
 
 	thread := &starlark.Thread{
 		Load: t.ModuleLoader,
@@ -194,14 +217,25 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 		},
 	}
 
+	eventsCh <- eventData{event.ETTransformStart, event.TransformLifecycle{
+		RunID: runID,
+	}}
+
 	// execute the transformation
+	eventsCh <- eventData{event.ETTransformStepStart, event.TransformStepLifecycle{Name: "setup"}}
+
 	t.globals, err = starlark.ExecFile(thread, pipeScript.FileName(), pipeScript, t.locals())
 	if err != nil {
 		if evalErr, ok := err.(*starlark.EvalError); ok {
+			eventsCh <- eventData{event.ETError, event.TransformMessage{Msg: evalErr.Backtrace()}}
+			eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: "setup", Status: "failed"}}
 			return fmt.Errorf(evalErr.Backtrace())
 		}
+		eventsCh <- eventData{event.ETError, event.TransformMessage{Msg: err.Error()}}
+		eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: "setup", Status: "failed"}}
 		return err
 	}
+	eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: "setup", Status: "succeeded"}}
 
 	funcs, err := t.specialFuncs()
 	if err != nil {
@@ -209,25 +243,46 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 	}
 
 	for name, fn := range funcs {
-		val, err := fn(t, thread, skyCtx)
+		eventsCh <- eventData{event.ETTransformStepStart, event.TransformStepLifecycle{Name: name}}
+		val, err := fn(t, thread, tfCtx)
 
 		if err != nil {
 			if evalErr, ok := err.(*starlark.EvalError); ok {
+				eventsCh <- eventData{event.ETError, event.TransformMessage{Msg: evalErr.Backtrace()}}
+				eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: name, Status: "failed"}}
 				return fmt.Errorf(evalErr.Backtrace())
 			}
+			eventsCh <- eventData{event.ETError, event.TransformMessage{Msg: err.Error()}}
+			eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: name, Status: "failed"}}
 			return err
 		}
 
-		skyCtx.SetResult(name, val)
+		eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: name, Status: "succeeded"}}
+		tfCtx.SetResult(name, val)
 	}
 
-	err = callTransformFunc(t, thread, skyCtx)
-	if evalErr, ok := err.(*starlark.EvalError); ok {
-		return fmt.Errorf(evalErr.Backtrace())
+	eventsCh <- eventData{event.ETTransformStepStart, event.TransformStepLifecycle{Name: "transform"}}
+	err = callTransformFunc(t, thread, tfCtx)
+	if err != nil {
+		if evalErr, ok := err.(*starlark.EvalError); ok {
+			eventsCh <- eventData{event.ETError, event.TransformMessage{Msg: evalErr.Backtrace()}}
+			eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: "transform", Status: "failed"}}
+			return fmt.Errorf(evalErr.Backtrace())
+		}
+		eventsCh <- eventData{event.ETError, event.TransformMessage{Msg: err.Error()}}
+		eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: "transform", Status: "failed"}}
+		return err
 	}
+	eventsCh <- eventData{event.ETDataset, next}
+	eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: "transform", Status: "succeeded"}}
 
 	// restore consumed script file
 	next.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", buf.Bytes()))
+
+	eventsCh <- eventData{event.ETTransformStop, event.TransformLifecycle{
+		RunID:  runID,
+		Status: "succeeded",
+	}}
 
 	return err
 }
@@ -283,7 +338,6 @@ type specialFunc func(t *transform, thread *starlark.Thread, ctx *skyctx.Context
 func callDownloadFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (result starlark.Value, err error) {
 	httpGuard.EnableNtwk()
 	defer httpGuard.DisableNtwk()
-	t.print("📡 running download...\n")
 
 	var download *starlark.Function
 	if download, err = t.globalFunc("download"); err != nil {
@@ -304,7 +358,6 @@ func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Contex
 		}
 		return err
 	}
-	t.print("🤖  running transform...\n")
 
 	d := skyds.NewDataset(t.prev, t.checkFunc)
 	d.SetMutable(t.next)
@@ -314,14 +367,10 @@ func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Contex
 	return nil
 }
 
-// print writes output only if a node is specified
-func (t *transform) print(msg string) {
-	t.stderr.Write([]byte(msg))
-}
-
 func (t *transform) locals() starlark.StringDict {
 	return starlark.StringDict{
 		"load_dataset": starlark.NewBuiltin("load_dataset", t.LoadDataset),
+		"print":        starlark.NewBuiltin("print", t.print),
 	}
 }
 
@@ -367,6 +416,17 @@ func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, ar
 	}
 
 	return skyds.NewDataset(ds, nil).Methods(), nil
+}
+
+func (t *transform) print(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var message starlark.String
+	if err := starlark.UnpackArgs("print", args, kwargs, "message", &message); err != nil {
+		return starlark.None, err
+	}
+
+	t.eventsCh <- eventData{typ: event.ETPrint, data: event.TransformMessage{Msg: message.GoString()}}
+
+	return starlark.None, nil
 }
 
 // MutatedComponentsFunc returns a function for checking if a field has been

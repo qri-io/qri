@@ -335,7 +335,7 @@ func TestDatasetSaveEvents(t *testing.T) {
 	bus := event.NewBus(ctx)
 
 	fired := map[event.Type]int{}
-	bus.Subscribe(func(ctx context.Context, t event.Type, payload interface{}) error {
+	bus.Subscribe(func(ctx context.Context, t event.Type, ts int64, sid string, payload interface{}) error {
 		fired[t]++
 		return nil
 	},

@@ -18,7 +18,7 @@ func Example() {
 	bus := NewBus(ctx)
 
 	makeDoneHandler := func(label string) Handler {
-		return func(ctx context.Context, t Type, payload interface{}) error {
+		return func(ctx context.Context, t Type, ts int64, id string, payload interface{}) error {
 			fmt.Printf("%s handler called\n", label)
 			return nil
 		}

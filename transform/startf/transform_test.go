@@ -58,7 +58,7 @@ func TestExecScript(t *testing.T) {
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/tf.star"))
 
 	stderr := &bytes.Buffer{}
-	err := ExecScript(ctx, ds, nil, SetErrWriter(stderr))
+	err := ExecScript(ctx, "TODO", ds, nil, SetErrWriter(stderr))
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -107,7 +107,7 @@ func TestExecScript2(t *testing.T) {
 		Transform: &dataset.Transform{},
 	}
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/fetch.star"))
-	err := ExecScript(ctx, ds, nil, func(o *ExecOpts) {
+	err := ExecScript(ctx, "TODO", ds, nil, func(o *ExecOpts) {
 		o.Globals["test_server_url"] = starlark.String(s.URL)
 	})
 
@@ -132,7 +132,7 @@ def transform(ds, ctx):
 		Transform: &dataset.Transform{},
 	}
 	ds.Transform.SetScriptFile(scriptFile)
-	if err := ExecScript(ctx, ds, nil); err == nil {
+	if err := ExecScript(ctx, "TODO", ds, nil); err == nil {
 		t.Errorf("expected script to error. got nil")
 	}
 }
@@ -146,7 +146,7 @@ func TestLoadDataset(t *testing.T) {
 	}
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/load_ds.star"))
 
-	err := ExecScript(ctx, ds, nil, func(o *ExecOpts) {
+	err := ExecScript(ctx, "TODO", ds, nil, func(o *ExecOpts) {
 		o.Repo = r
 		o.ModuleLoader = testModuleLoader(t)
 		o.DatasetLoader = newParseResolveLoadFunc("", r, repoLoader{r})
@@ -215,7 +215,7 @@ func TestGetMetaNilPrev(t *testing.T) {
 		Transform: &dataset.Transform{},
 	}
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/meta_title.star"))
-	err := ExecScript(ctx, ds, nil)
+	err := ExecScript(ctx, "TODO", ds, nil)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -239,7 +239,7 @@ func TestGetMetaWithPrev(t *testing.T) {
 			Title: "test_title",
 		},
 	}
-	err := ExecScript(ctx, ds, prev)
+	err := ExecScript(ctx, "TODO", ds, prev)
 	if err != nil {
 		t.Error(err.Error())
 		return

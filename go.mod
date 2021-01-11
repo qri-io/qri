@@ -14,6 +14,7 @@ require (
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.12.1-0.20200706154056-969d0f7a6317
 	github.com/google/go-cmp v0.5.3
+	github.com/google/uuid v1.1.1
 	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/ipfs/go-ipfs v0.6.0
@@ -38,9 +39,8 @@ require (
 	github.com/multiformats/go-multihash v0.0.14
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pkg/errors v0.9.1
-	github.com/qri-io/dataset v0.2.1-0.20201201155506-9b4fc79ffde8
 	github.com/qri-io/dag v0.2.2-0.20201208212257-ae00241c4b48
-	github.com/qri-io/dataset v0.2.1-0.20201124144731-82162a0f76e6
+	github.com/qri-io/dataset v0.2.1-0.20201201155506-9b4fc79ffde8
 	github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b
 	github.com/qri-io/didmod v0.0.0-20201123165422-8b2e224c993a
 	github.com/qri-io/doggos v0.1.0

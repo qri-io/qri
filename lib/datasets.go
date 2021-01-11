@@ -624,7 +624,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
 
 		// apply the transform
-		err := transform.Apply(ctx, ds, r, loader, str, scriptOut, secrets)
+		err := transform.Apply(ctx, ds, r, loader, m.inst.bus, str, scriptOut, secrets)
 		if err != nil {
 			return err
 		}

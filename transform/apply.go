@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/transform/startf"
 )
@@ -21,6 +22,7 @@ func Apply(
 	ds *dataset.Dataset,
 	r repo.Repo,
 	loader dsref.ParseResolveLoad,
+	pub event.Publisher,
 	str ioes.IOStreams,
 	scriptOut io.Writer,
 	secrets map[string]string,
@@ -62,7 +64,7 @@ func Apply(
 		startf.AddDatasetLoader(loader),
 	}
 
-	if err = startf.ExecScript(ctx, target, head, opts...); err != nil {
+	if err = startf.ExecScript(ctx, pub, "TODO", target, head, opts...); err != nil {
 		return err
 	}
 

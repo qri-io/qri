@@ -52,6 +52,7 @@ type ApplyResult struct {
 	Data *dataset.Dataset
 	// TODO(dustmop): Make Apply asynchronous, running the transform in a go-routine.
 	// Return a channel that will send progress on the execution.
+	RunID string `json:"runID"`
 }
 
 // Apply runs a transform script
@@ -88,8 +89,27 @@ func (m *TransformMethods) Apply(p *ApplyParams, res *ApplyResult) error {
 	str := m.inst.node.LocalStreams
 	loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
 
+	// runID := startf.NewRunID()
+	// next := &dataset.Dataset{
+	// 	Transform: p.Transform,
+	// }
+
+	// go func() {
+	// 	err := startf.ExecScript(ctx, m.inst.bus, runID, next, prev,
+	// 		startf.AddDatasetLoader(prlf),
+	// 		startf.SetSecrets(next.Transform.Secrets),
+	// 	)
+	// 	if err != nil {
+	// 		log.Debug(err)
+	// 	}
+	// }()
+
+	// *res = ApplyResponse{
+	// 	RunID: runID,
+	// }
+
 	scriptOut := p.ScriptOutput
-	err = transform.Apply(ctx, ds, r, loader, str, scriptOut, p.Secrets)
+	err = transform.Apply(ctx, ds, r, loader, m.inst.bus, str, scriptOut, p.Secrets)
 	if err != nil {
 		return err
 	}

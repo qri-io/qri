@@ -65,10 +65,12 @@ func (inst *Instance) ServeWebsocket(ctx context.Context) {
 	}
 	defer srv.Close()
 
-	handler := func(_ context.Context, t event.Type, payload interface{}) error {
+	handler := func(_ context.Context, t event.Type, ts int64, sid string, payload interface{}) error {
 		ctx := context.Background()
 		evt := map[string]interface{}{
 			"type": string(t),
+			"ts":   ts / 1000,
+			"sid":  sid,
 			"data": payload,
 		}
 
@@ -84,31 +86,7 @@ func (inst *Instance) ServeWebsocket(ctx context.Context) {
 		return nil
 	}
 
-	inst.bus.Subscribe(handler,
-		event.ETFSICreateLinkEvent,
-		event.ETCreatedNewFile,
-		event.ETModifiedFile,
-		event.ETDeletedFile,
-		event.ETRenamedFolder,
-		event.ETRemovedFolder,
-
-		event.ETRemoteClientPushVersionProgress,
-		event.ETRemoteClientPushVersionCompleted,
-		event.ETRemoteClientPushDatasetCompleted,
-		event.ETRemoteClientPullVersionProgress,
-		event.ETRemoteClientPullVersionCompleted,
-		event.ETRemoteClientPullDatasetCompleted,
-		event.ETRemoteClientRemoveDatasetCompleted,
-
-		event.ETDatasetSaveStarted,
-		event.ETDatasetSaveProgress,
-		event.ETDatasetSaveCompleted,
-
-		event.ETCronJobScheduled,
-		event.ETCronJobUnscheduled,
-		event.ETCronJobStarted,
-		event.ETCronJobCompleted,
-	)
+	inst.bus.SubscribeAll(handler)
 
 	// Start http server for websocket.
 	go func() {

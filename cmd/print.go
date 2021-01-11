@@ -245,7 +245,7 @@ func PrintProgressBarsOnEvents(w io.Writer, bus event.Bus) {
 	progress := map[string]*mpb.Bar{}
 
 	// wire up a subscription to print download progress to streams
-	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
+	bus.Subscribe(func(_ context.Context, typ event.Type, ts int64, sid string, payload interface{}) error {
 		lock.Lock()
 		defer lock.Unlock()
 		log.Debugw("handle event", "type", typ, "payload", payload)

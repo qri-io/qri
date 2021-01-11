@@ -79,7 +79,7 @@ func TestQriProfileService(t *testing.T) {
 
 	unexpectedPeers := peer.IDSlice{}
 
-	watchP2PQriEvents := func(_ context.Context, typ event.Type, payload interface{}) error {
+	watchP2PQriEvents := func(_ context.Context, typ event.Type, ts int64, sid string, payload interface{}) error {
 		pro, ok := payload.(*profile.Profile)
 		if !ok {
 			t.Error("payload for event.ETP2PQriPeerConnected not a *profile.Profile as expected")
@@ -245,7 +245,7 @@ func TestDiscoveryConnection(t *testing.T) {
 	// create a new, disconnected node
 	busA := event.NewBus(ctx)
 
-	watchP2PQriEvents := func(_ context.Context, typ event.Type, payload interface{}) error {
+	watchP2PQriEvents := func(_ context.Context, typ event.Type, ts int64, sid string, payload interface{}) error {
 		pro, ok := payload.(*profile.Profile)
 		if !ok {
 			t.Error("payload for event.ETP2PQriPeerConnected not a *profile.Profile as expected")

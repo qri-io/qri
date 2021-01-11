@@ -30,7 +30,7 @@ func TestNewNode(t *testing.T) {
 	bus := event.NewBus(ctx)
 
 	eventFired := make(chan struct{}, 1)
-	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
+	bus.Subscribe(func(_ context.Context, typ event.Type, ts int64, sid string, payload interface{}) error {
 		if typ == event.ETP2PGoneOnline {
 			if _, ok := payload.([]ma.Multiaddr); !ok {
 				t.Errorf("expected %q event to have a payload of []multiaddr.Multiaddr, got: %T", event.ETP2PGoneOnline, payload)
@@ -87,7 +87,7 @@ func TestNodeEvents(t *testing.T) {
 	// "stream reset" error, we can add this back in
 	// qriPeerConnectedCh := make(chan struct{}, 1)
 
-	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
+	bus.Subscribe(func(_ context.Context, typ event.Type, ts int64, sid string, payload interface{}) error {
 		calledMu.Lock()
 		defer calledMu.Unlock()
 		if called[typ] {

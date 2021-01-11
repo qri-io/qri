@@ -237,7 +237,7 @@ func (d *Dscache) validateProfileID(profileID string) bool {
 	return len(profileID) == lengthOfProfileID
 }
 
-func (d *Dscache) handler(_ context.Context, t event.Type, payload interface{}) error {
+func (d *Dscache) handler(_ context.Context, t event.Type, ts int64, sid string, payload interface{}) error {
 	act, ok := payload.(event.DsChange)
 	if !ok {
 		log.Error("dscache got an event with a payload that isn't a event.DsChange type: %v", payload)

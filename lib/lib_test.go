@@ -79,7 +79,7 @@ func TestNewInstance(t *testing.T) {
 
 	var firedEventWg sync.WaitGroup
 	firedEventWg.Add(1)
-	handler := func(_ context.Context, t event.Type, _ interface{}) error {
+	handler := func(_ context.Context, t event.Type, _ int64, _ string, _ interface{}) error {
 		if t == event.ETInstanceConstructed {
 			firedEventWg.Done()
 		}
@@ -186,7 +186,7 @@ func TestReceivers(t *testing.T) {
 	inst := &Instance{node: node, cfg: cfg}
 
 	reqs := Receivers(inst)
-	expect := 11
+	expect := 12
 	if len(reqs) != expect {
 		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", expect, len(reqs))
 		return
@@ -254,7 +254,7 @@ func TestInstanceEventSubscription(t *testing.T) {
 
 	eventCh := make(chan event.Type, 1)
 	expect := event.ETP2PGoneOnline
-	eventHandler := func(_ context.Context, t event.Type, payload interface{}) error {
+	eventHandler := func(_ context.Context, t event.Type, _ int64, _ string, _ interface{}) error {
 		eventCh <- t
 		return nil
 	}
