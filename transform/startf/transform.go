@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
@@ -22,6 +23,8 @@ import (
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 )
+
+var log = golog.Logger("startf")
 
 // Version is the version of qri that this transform was run with
 var Version = version.Version
@@ -272,6 +275,12 @@ func ExecScript(ctx context.Context, pub event.Publisher, runID string, next, pr
 		eventsCh <- eventData{event.ETError, event.TransformMessage{Msg: err.Error()}}
 		eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: "transform", Status: "failed"}}
 		return err
+	}
+
+	if f := next.BodyFile(); f != nil {
+		if err := InlineJSONBody(next); err != nil {
+			log.Debugw("inlining resulting dataset JSON body", "err", err)
+		}
 	}
 	eventsCh <- eventData{event.ETDataset, next}
 	eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: "transform", Status: "succeeded"}}
