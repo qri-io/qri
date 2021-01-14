@@ -10,8 +10,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/key"
 	cfgtest "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/key"
 )
 
 func TestPutProfileWithAddresses(t *testing.T) {
@@ -36,7 +36,8 @@ func TestPutProfileWithAddresses(t *testing.T) {
 	}
 
 	pi0 := cfgtest.GetTestPeerInfo(0)
-	ks, err := key.NewMemStore(pid, pi0.PrivKey)
+
+	ks, err := key.NewMemStore()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,5 +65,56 @@ func TestPutProfileWithAddresses(t *testing.T) {
 
 	if diff := cmp.Diff(f1, f2); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestProfilesWithKeys(t *testing.T) {
+	pi0 := cfgtest.GetTestPeerInfo(0)
+
+	ks, err := key.NewMemStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	path := filepath.Join(os.TempDir(), "profile_keys")
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		t.Errorf("error creating tmp directory: %s", err.Error())
+	}
+
+	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: pi0.PrivKey, Peername: "user"}, ks)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pp := &config.ProfilePod{
+		ID:       pi0.PeerID.String(),
+		Peername: "p0",
+		Created:  time.Unix(1234567890, 0).In(time.UTC),
+		Updated:  time.Unix(1234567890, 0).In(time.UTC),
+	}
+	pro, err := NewProfile(pp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pro.PrivKey = pi0.PrivKey
+	pro.PubKey = pi0.PubKey
+
+	err = ps.PutProfile(pro)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tPro, err := ps.GetProfile(pro.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tPro.PrivKey != pi0.PrivKey {
+		t.Fatalf("keys don't match")
+	}
+
+	if tPro.PubKey != pi0.PubKey {
+		t.Fatalf("keys don't match")
 	}
 }

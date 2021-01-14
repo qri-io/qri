@@ -1,78 +1,184 @@
 package key
 
 import (
-	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sync"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	"github.com/qri-io/qri/config"
+	"github.com/theckman/go-flock"
 )
 
-// Store is an abstraction over a libp2p.KeyBook
+// Store is an abstraction over a KeyBook
 // In the future we may expand this interface to store symmetric encryption keys
 type Store interface {
-	peerstore.KeyBook
-
-	Owner() (peer.ID, crypto.PrivKey)
+	Book
 }
 
-// NewStore constructs a keys.Store backed by memory
+// NewStore constructs a keys.Store backed by memory or local file
 func NewStore(cfg *config.Config) (Store, error) {
-	if cfg.Profile == nil {
-		return nil, fmt.Errorf("profile is required")
-	}
-	if cfg.Profile.PrivKey == "" {
-		return nil, fmt.Errorf("profile private key is required")
+	if cfg.Repo == nil {
+		return NewMemStore()
 	}
 
-	data, err := base64.StdEncoding.DecodeString(cfg.Profile.PrivKey)
-	if err != nil {
-		return nil, fmt.Errorf("decoding private key: %w", err)
+	switch cfg.Repo.Type {
+	case "fs":
+		return NewLocalStore(filepath.Join(filepath.Dir(cfg.Path()), "keystore.json"))
+	case "mem":
+		return NewMemStore()
+	default:
+		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
 	}
-
-	pk, err := crypto.UnmarshalPrivateKey(data)
-	if err != nil {
-		return nil, fmt.Errorf("invalid private key: %w", err)
-	}
-
-	id, err := peer.IDB58Decode(cfg.Profile.ID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid owner ID: %w", err)
-	}
-
-	return NewMemStore(id, pk)
-	// switch cfg.Repo.Type {
-	// case "fs":
-	// case "mem":
-	// 	return NewMemStore(pro)
-	// default:
-	// 	// return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
-	// }
 }
 
 type memStore struct {
-	peerstore.KeyBook
-	ownerID  peer.ID
-	ownerKey crypto.PrivKey
+	Book
 }
 
-// NewMemStore constructs an in-memory keys.Store
-func NewMemStore(ownerID peer.ID, ownerKey crypto.PrivKey) (Store, error) {
-	return NewMemStoreKeybook(ownerID, ownerKey, pstoremem.NewKeyBook())
-}
-
-// NewMemStoreKeybook creates an in-memory keys.Store with a custom keybook
-func NewMemStoreKeybook(ownerID peer.ID, ownerKey crypto.PrivKey, kb peerstore.KeyBook) (Store, error) {
+// NewMemStore constructs an in-memory key.Store
+func NewMemStore() (Store, error) {
 	return &memStore{
-		ownerID:  ownerID,
-		ownerKey: ownerKey,
-		KeyBook:  kb,
+		Book: newKeyBook(),
 	}, nil
 }
 
-func (s *memStore) Owner() (peer.ID, crypto.PrivKey) {
-	return s.ownerID, s.ownerKey
+type localStore struct {
+	sync.Mutex
+	filename string
+	flock    *flock.Flock
+}
+
+// NewLocalStore constructs a local file backed key.Store
+func NewLocalStore(filename string) (Store, error) {
+	return &localStore{
+		filename: filename,
+		flock:    flock.NewFlock(lockPath(filename)),
+	}, nil
+}
+
+func lockPath(filename string) string {
+	return fmt.Sprintf("%s.lock", filename)
+}
+
+// PubKey returns the public key for a given ID if it exists
+func (s *localStore) PubKey(keyID ID) crypto.PubKey {
+	s.Lock()
+	defer s.Unlock()
+
+	kb, err := s.keys()
+	if err != nil {
+		return nil
+	}
+	return kb.PubKey(keyID)
+}
+
+// PrivKey returns the private key for a given ID if it exists
+func (s *localStore) PrivKey(keyID ID) crypto.PrivKey {
+	s.Lock()
+	defer s.Unlock()
+
+	kb, err := s.keys()
+	if err != nil {
+		return nil
+	}
+	return kb.PrivKey(keyID)
+}
+
+// AddPubKey inserts a public key for a given ID
+func (s *localStore) AddPubKey(keyID ID, pubKey crypto.PubKey) error {
+	s.Lock()
+	defer s.Unlock()
+
+	kb, err := s.keys()
+	if err != nil {
+		return err
+	}
+	err = kb.AddPubKey(keyID, pubKey)
+	if err != nil {
+		return err
+	}
+
+	return s.saveFile(kb)
+}
+
+// AddPrivKey inserts a private key for a given ID
+func (s *localStore) AddPrivKey(keyID ID, privKey crypto.PrivKey) error {
+	s.Lock()
+	defer s.Unlock()
+
+	kb, err := s.keys()
+	if err != nil {
+		return err
+	}
+	err = kb.AddPrivKey(keyID, privKey)
+	if err != nil {
+		return err
+	}
+
+	return s.saveFile(kb)
+}
+
+// IDsWithKeys returns the list of IDs in the KeyBook
+func (s *localStore) IDsWithKeys() []ID {
+	s.Lock()
+	defer s.Unlock()
+
+	kb, err := s.keys()
+	if err != nil {
+		// the keys method will safely return an empty list which we can use bellow
+		log.Debugf("error loading peers with keys: %q", err.Error())
+		return []ID{}
+	}
+	return kb.IDsWithKeys()
+}
+
+func (s *localStore) keys() (Book, error) {
+	log.Debug("reading keys")
+
+	if err := s.flock.Lock(); err != nil {
+		return nil, err
+	}
+	defer func() {
+		log.Debug("keys read")
+		s.flock.Unlock()
+	}()
+
+	kb := newKeyBook()
+	data, err := ioutil.ReadFile(s.filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return kb, nil
+		}
+		log.Debug(err.Error())
+		return kb, fmt.Errorf("error loading keys: %s", err.Error())
+	}
+
+	if err := json.Unmarshal(data, kb); err != nil {
+		log.Error(err.Error())
+		// on bad parsing we simply return an empty keybook
+		return kb, nil
+	}
+	return kb, nil
+}
+
+func (s *localStore) saveFile(kb Book) error {
+	data, err := json.Marshal(kb)
+	if err != nil {
+		log.Debug(err.Error())
+		return err
+	}
+
+	log.Debugf("writing keys: %s", s.filename)
+	if err := s.flock.Lock(); err != nil {
+		return err
+	}
+	defer func() {
+		s.flock.Unlock()
+		log.Debug("keys written")
+	}()
+	return ioutil.WriteFile(s.filename, data, 0644)
 }

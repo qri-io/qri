@@ -6,11 +6,13 @@ import (
 	"sync"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
+
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/key"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/profile"
 )
@@ -37,7 +39,11 @@ var _ Repo = (*MemRepo)(nil)
 // NewMemRepoWithProfile creates a new in-memory repository and an empty profile
 // store owned by the given profile
 func NewMemRepoWithProfile(ctx context.Context, owner *profile.Profile, fs *muxfs.Mux, bus event.Bus) (*MemRepo, error) {
-	pros, err := profile.NewMemStore(owner)
+	keyStore, err := key.NewMemStore()
+	if err != nil {
+		return nil, err
+	}
+	pros, err := profile.NewMemStore(owner, keyStore)
 	if err != nil {
 		return nil, err
 	}

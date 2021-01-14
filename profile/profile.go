@@ -19,10 +19,13 @@ var log = logger.Logger("profile")
 
 // Profile defines peer profile details
 type Profile struct {
+	// All Profiles are built on public key infrastructure
 	// PrivKey is the peer's private key, should only be present for the current peer
 	PrivKey crypto.PrivKey `json:"_,omitempty"`
-	// All Profiles are built on public key infrastructure
-	Key *key.Public `json:"key,omitempty"`
+	// PubKey is the peer's public key
+	PubKey crypto.PubKey `json:"key,omitempty"`
+	// KeyID is the key identifier used for the keystore
+	KeyID key.ID `json:"key_id,omitempty"`
 
 	ID ID `json:"id"`
 	// Created timestamp
@@ -114,6 +117,8 @@ func (p *Profile) Decode(sp *config.ProfilePod) error {
 			return fmt.Errorf("invalid private key: %s", err.Error())
 		}
 		pro.PrivKey = pk
+		pro.PubKey = pk.GetPublic()
+		pro.KeyID = pro.GetKeyID()
 	}
 
 	if sp.Thumb != "" {
@@ -180,4 +185,13 @@ func (p *Profile) ValidOwnerProfile() error {
 	}
 	// TODO (b5) - confirm PrivKey is valid
 	return nil
+}
+
+// GetKeyID returns a KeyID assigned to the profile or falls back
+// to the profile ID if none is present
+func (p *Profile) GetKeyID() key.ID {
+	if p.KeyID == key.ID("") {
+		p.KeyID = key.ID(p.ID.String())
+	}
+	return p.KeyID
 }

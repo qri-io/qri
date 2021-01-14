@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/key"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/profile"
@@ -47,7 +48,12 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		pros, err := profile.NewMemStore(pro)
+		keyStore, err := key.NewMemStore()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		pros, err := profile.NewMemStore(pro, keyStore)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -102,7 +108,12 @@ func TestResolveRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pros, err := profile.NewMemStore(pro)
+	keyStore, err := key.NewMemStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pros, err := profile.NewMemStore(pro, keyStore)
 	if err != nil {
 		t.Fatal(err)
 	}

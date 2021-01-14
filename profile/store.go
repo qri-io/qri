@@ -25,8 +25,6 @@ type Store interface {
 	Owner() *Profile
 	// SetOwner handles updates to the current user profile at runtime
 	SetOwner(own *Profile) error
-	// profile stores are built atop a store of keypairs
-	KeyStore() key.Store
 
 	// put a profile in the store
 	PutProfile(profile *Profile) error
@@ -108,11 +106,6 @@ func (m *MemStore) SetOwner(own *Profile) error {
 	return nil
 }
 
-// KeyStore accesses the underlying key.Store
-func (m *MemStore) KeyStore() key.Store {
-	return m.keyStore
-}
-
 // PutProfile adds a peer to this store
 func (m *MemStore) PutProfile(p *Profile) error {
 	if p.ID.String() == "" {
@@ -123,8 +116,15 @@ func (m *MemStore) PutProfile(p *Profile) error {
 	m.store[p.ID] = p
 	m.Unlock()
 
-	if p.Key != nil {
-		return m.keyStore.AddPubKey(p.Key.ID, p.Key.Key)
+	if p.PubKey != nil {
+		if err := m.keyStore.AddPubKey(p.GetKeyID(), p.PubKey); err != nil {
+			return err
+		}
+	}
+	if p.PrivKey != nil {
+		if err := m.keyStore.AddPrivKey(p.GetKeyID(), p.PrivKey); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -196,7 +196,13 @@ func (m *MemStore) GetProfile(id ID) (*Profile, error) {
 	if m.store[id] == nil {
 		return nil, ErrNotFound
 	}
-	return m.store[id], nil
+
+	pro := m.store[id]
+	pro.KeyID = pro.GetKeyID()
+	pro.PubKey = m.keyStore.PubKey(pro.GetKeyID())
+	pro.PrivKey = m.keyStore.PrivKey(pro.GetKeyID())
+
+	return pro, nil
 }
 
 // DeleteProfile removes a peer from this store
@@ -244,12 +250,7 @@ func (r *LocalStore) Owner() *Profile {
 // SetOwner updates the owner profile
 func (r *LocalStore) SetOwner(own *Profile) error {
 	r.owner = own
-	return nil
-}
-
-// KeyStore accesses the underlying key.Store
-func (r *LocalStore) KeyStore() key.Store {
-	return r.keyStore
+	return r.PutProfile(own)
 }
 
 // PutProfile adds a peer to the store
@@ -267,8 +268,13 @@ func (r *LocalStore) PutProfile(p *Profile) error {
 	// explicitly remove Online flag
 	enc.Online = false
 
-	if p.Key != nil {
-		if err := r.keyStore.AddPubKey(p.Key.ID, p.Key.Key); err != nil {
+	if p.PubKey != nil {
+		if err := r.keyStore.AddPubKey(p.GetKeyID(), p.PubKey); err != nil {
+			return err
+		}
+	}
+	if p.PrivKey != nil {
+		if err := r.keyStore.AddPrivKey(p.GetKeyID(), p.PrivKey); err != nil {
 			return err
 		}
 	}
@@ -369,6 +375,9 @@ func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
 		if ids == proid {
 			pro := &Profile{}
 			err := pro.Decode(p)
+			pro.KeyID = pro.GetKeyID()
+			pro.PubKey = r.keyStore.PubKey(pro.GetKeyID())
+			pro.PrivKey = r.keyStore.PrivKey(pro.GetKeyID())
 			return pro, err
 		}
 	}
