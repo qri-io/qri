@@ -36,7 +36,7 @@ func TransformApply(
 	)
 
 	if target.Transform == nil || target.Transform.ScriptFile() == nil {
-		return errors.New("apply requires a transform with script file")
+		return errors.New("apply requires a transform component with a script file")
 	}
 
 	if ds.Name != "" {

@@ -22,9 +22,13 @@ func NewApplyCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Long: `Apply runs a transform script. The result of the transform is displayed after
 the command completes.
 
-Nothing is saved in the user's repository.`,
-		Example: `  # Apply a transform and display the output:
- $ qri apply --script transform.star`,
+The apply command itself does not commit results to the repository. Use
+the --apply flag on the save command to commit results from transforms.`,
+		Example: ` # Apply a transform and display the output:
+ $ qri apply --file transform.star
+
+ # Apply a transform using an existing dataset version:
+ $ qri apply --file transform.star me/my_dataset`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},

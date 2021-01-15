@@ -11,7 +11,6 @@ import (
 )
 
 // TransformMethods encapsulates business logic for transforms
-// TODO (b5): switch to using an Instance instead of separate fields
 type TransformMethods struct {
 	inst *Instance
 }
