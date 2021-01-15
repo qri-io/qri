@@ -229,23 +229,6 @@ func saveDataset(ctx context.Context, r repo.Repo, ds *dataset.Dataset, sw base.
 	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef(), nil
 }
 
-func addNowTransformDataset(t *testing.T, node *p2p.QriNode) dsref.Ref {
-	ctx := context.Background()
-	tc, err := dstest.NewTestCaseFromDir("testdata/now_tf")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	ds := tc.Input
-	ds.Name = tc.Name
-	ds.Transform.ScriptPath = "testdata/now_tf/transform.star"
-
-	ref, err := saveDataset(ctx, node.Repo, ds, base.SaveSwitches{Pin: true})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	return ref
-}
-
 func TestInstanceEventSubscription(t *testing.T) {
 	timeoutMs := time.Millisecond * 250
 	if runtime.GOOS == "windows" {

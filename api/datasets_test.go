@@ -133,8 +133,7 @@ func TestDatasetHandlers(t *testing.T) {
 			},
 			map[string]string{
 				"peername": "peer",
-				"name":     "cities_dry_run",
-				"dry_run":  "true",
+				"name":     "cities_2",
 			},
 		},
 	}

@@ -454,14 +454,8 @@ type SaveParams struct {
 	// option to make dataset private. private data is not currently implimented,
 	// see https://github.com/qri-io/qri/issues/291 for updates
 	Private bool
-	// run without saving, returning results
-	DryRun bool
-	// if true, res.Dataset.Body will be a fs.file of the body
-	ReturnBody bool
 	// if true, convert body to the format of the previous version, if applicable
 	ConvertFormatToPrev bool
-	// string of references to recall before saving
-	Recall string
 	// comma separated list of component names to delete before saving
 	Drop string
 	// force a new commit, even if no changes are detected
@@ -511,7 +505,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 	}
 
 	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
-	if p.UseDscache && !p.DryRun {
+	if p.UseDscache {
 		c := m.inst.dscache
 		c.CreateNewEnabled = true
 	}
@@ -560,9 +554,8 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 
 	success := false
 	defer func() {
-		// if creating a new dataset fails, or we're doing a dry-run on a new dataset
-		// we need to remove the dataset
-		if isNew && (!success || p.DryRun) {
+		// if creating a new dataset fails, we need to remove the dataset
+		if isNew && !success {
 			log.Debugf("removing unused log for new dataset %s", ref)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 			if err := m.inst.logbook.RemoveLog(ctx, ref); err != nil {
@@ -590,15 +583,6 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		}
 	}
 
-	if p.Recall != "" {
-		recall, err := base.Recall(ctx, m.inst.qfs.DefaultWriteFS(), ref, p.Recall)
-		if err != nil {
-			return err
-		}
-		recall.Assign(ds)
-		ds = recall
-	}
-
 	if !p.Force && p.Drop == "" &&
 		ds.BodyPath == "" &&
 		ds.Body == nil &&
@@ -624,11 +608,6 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		scriptOut := p.ScriptOutput
 		secrets := p.Secrets
 		r := m.inst.repo
-		if p.DryRun {
-			str.PrintErr("🏃🏽‍♀️ dry run\n")
-			// dry run writes to an ephemeral mapstore
-			writeDest = qfs.NewMemFS()
-		}
 
 		// create a loader so transforms can call `load_dataset`
 		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverForMode
@@ -642,15 +621,6 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	if p.DryRun {
-		// Tests expect a that a call to `qri save --dry-run` will still construct a full
-		// reference with an IPFS path and Name, etc. This isn't actually a valid reference,
-		// since nothing is written to the repo, so relying on this is a bit hacky. But using
-		// dry-run to save is going away once `apply` exists, so this is temporary anyway.
-		*res = *ds
-		return nil
 	}
 
 	if fsiPath != "" && p.Drop != "" {
@@ -681,7 +651,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 	success = true
 
 	// TODO (b5) - this should be integrated into base.SaveDataset
-	if fsiPath != "" && !p.DryRun {
+	if fsiPath != "" {
 		vi := dsref.ConvertDatasetToVersionInfo(savedDs)
 		vi.FSIPath = fsiPath
 		if err = repo.PutVersionInfoShim(m.inst.repo, &vi); err != nil {
@@ -689,15 +659,9 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		}
 	}
 
-	if p.ReturnBody {
-		if err = base.InlineJSONBody(savedDs); err != nil {
-			return err
-		}
-	}
-
 	*res = *savedDs
 
-	if fsiPath != "" && !p.DryRun {
+	if fsiPath != "" {
 		// Need to pass filesystem here so that we can read the README component and write it
 		// properly back to disk.
 		if writeErr := fsi.WriteComponents(savedDs, fsiPath, m.inst.repo.Filesystem()); err != nil {

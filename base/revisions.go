@@ -10,29 +10,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 )
 
-// Recall loads revisions of a dataset from history of a resolved dataset
-// reference
-func Recall(ctx context.Context, fs qfs.Filesystem, ref dsref.Ref, revStr string) (*dataset.Dataset, error) {
-	if revStr == "" {
-		return &dataset.Dataset{}, nil
-	}
-	if ref.Path == "" {
-		return nil, fmt.Errorf("can only recall from a resolved reference with a path value")
-	}
-
-	revs, err := dsref.ParseRevs(revStr)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := LoadRevs(ctx, fs, ref, revs)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
 // LoadRevs grabs a component of a dataset that exists <n>th generation ancestor
 // of the referenced version, where presence of a component in a previous snapshot constitutes ancestry
 func LoadRevs(ctx context.Context, fs qfs.Filesystem, ref dsref.Ref, revs []*dsref.Rev) (res *dataset.Dataset, err error) {

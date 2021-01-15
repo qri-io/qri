@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/qri-io/dataset"
@@ -65,13 +64,12 @@ commit message and title to the save.`,
 	cmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message for save")
 	cmd.Flags().StringVarP(&o.BodyPath, "body", "", "", "path to file or url of data to add as dataset contents")
 	cmd.MarkFlagFilename("body")
-	cmd.Flags().StringVarP(&o.Recall, "recall", "", "", "restore revisions from dataset history")
 	// cmd.Flags().BoolVarP(&o.ShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
-	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate saving a dataset")
+	cmd.Flags().BoolVar(&o.DeprecatedDryRun, "dry-run", false, "deprecated: use `qri apply` instead")
 	cmd.Flags().BoolVar(&o.Force, "force", false, "force a new commit, even if no changes are detected")
 	cmd.Flags().BoolVarP(&o.KeepFormat, "keep-format", "k", false, "convert incoming data to stored data format")
-	// TODO(dlong): --no-render is deprecated, viz are being phased out, in favor of readme.
+	// TODO(dustmop): --no-render is deprecated, viz are being phased out, in favor of readme.
 	cmd.Flags().BoolVar(&o.NoRender, "no-render", false, "don't store a rendered version of the the visualization")
 	cmd.Flags().BoolVarP(&o.NewName, "new", "n", false, "save a new dataset only, using an available name")
 	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "experimental: build and use dscache if none exists")
@@ -87,7 +85,6 @@ type SaveOptions struct {
 	Refs      *RefSelect
 	FilePaths []string
 	BodyPath  string
-	Recall    string
 	Drop      string
 
 	Title   string
@@ -95,13 +92,15 @@ type SaveOptions struct {
 
 	Replace        bool
 	ShowValidation bool
-	DryRun         bool
-	KeepFormat     bool
-	Force          bool
-	NoRender       bool
-	Secrets        []string
-	NewName        bool
-	UseDscache     bool
+
+	DeprecatedDryRun bool
+
+	KeepFormat bool
+	Force      bool
+	NoRender   bool
+	Secrets    []string
+	NewName    bool
+	UseDscache bool
 
 	DatasetMethods *lib.DatasetMethods
 	FSIMethods     *lib.FSIMethods
@@ -109,6 +108,10 @@ type SaveOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
+	if o.DeprecatedDryRun {
+		return fmt.Errorf("--dry-run has been removed, use `qri apply` command instead")
+	}
+
 	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
 		return
 	}
@@ -154,12 +157,9 @@ func (o *SaveOptions) Run() (err error) {
 		ScriptOutput:        o.ErrOut,
 		FilePaths:           o.FilePaths,
 		Private:             false,
-		DryRun:              o.DryRun,
-		Recall:              o.Recall,
 		Drop:                o.Drop,
 		ConvertFormatToPrev: o.KeepFormat,
 		Force:               o.Force,
-		ReturnBody:          o.DryRun,
 		ShouldRender:        !o.NoRender,
 		NewName:             o.NewName,
 		UseDscache:          o.UseDscache,
@@ -187,14 +187,6 @@ continue?`, true) {
 	printSuccess(o.ErrOut, "dataset saved: %s", ref.String())
 	if res.Structure != nil && res.Structure.ErrCount > 0 {
 		printWarning(o.ErrOut, fmt.Sprintf("this dataset has %d validation errors", res.Structure.ErrCount))
-	}
-
-	if o.DryRun {
-		data, err := json.MarshalIndent(res, "", "  ")
-		if err != nil {
-			return err
-		}
-		fmt.Fprint(o.Out, string(data))
 	}
 
 	return nil
