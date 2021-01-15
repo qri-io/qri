@@ -64,7 +64,7 @@ func (inst *Instance) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*dat
 		}
 	} else {
 		// Load from dsfs
-		if ds, err = dsfs.LoadDataset(ctx, inst.qfs.DefaultWriteFS(), ref.Path); err != nil {
+		if ds, err = dsfs.LoadDataset(ctx, inst.qfs, ref.Path); err != nil {
 			return nil, err
 		}
 	}
