@@ -190,6 +190,7 @@ def transform(ds, ctx):
 		FilePaths: []string{
 			scriptPath,
 		},
+		Apply: true,
 	}
 	res := &dataset.Dataset{}
 	if err := dsm.Save(saveParams, res); err != nil {

@@ -482,14 +482,12 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	p := &lib.SaveParams{
 		Ref:          ref.AliasString(),
 		Dataset:      ds,
+		Apply:        r.FormValue("apply") == "true",
 		Private:      r.FormValue("private") == "true",
-		DryRun:       r.FormValue("dry_run") == "true",
-		ReturnBody:   r.FormValue("return_body") == "true",
 		Force:        r.FormValue("force") == "true",
 		ShouldRender: !(r.FormValue("no_render") == "true"),
 		NewName:      r.FormValue("new") == "true",
 		BodyPath:     r.FormValue("bodypath"),
-		Recall:       r.FormValue("recall"),
 		Drop:         r.FormValue("drop"),
 
 		ConvertFormatToPrev: true,

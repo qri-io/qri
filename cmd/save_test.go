@@ -128,21 +128,18 @@ func TestSaveRun(t *testing.T) {
 		bodypath    string
 		title       string
 		message     string
-		dryrun      bool
 		noRender    bool
 		expect      string
 		err         string
 		msg         string
 	}{
-		{"no data", "me/bad_dataset", "", "", "", "", false, true, "", "no changes to save", ""},
-		{"bad dataset file", "me/cities", "bad/filpath.json", "", "", "", false, true, "", "open bad/filpath.json: no such file or directory", ""},
-		{"bad body file", "me/cities", "", "bad/bodypath.csv", "", "", false, true, "", "opening body file: opening dataset.bodyPath 'bad/bodypath.csv': path not found", ""},
-		{"good inputs, dryrun", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, true, "dataset saved: peer/movies\n", "", ""},
-		{"good inputs", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", false, true, "dataset saved: peer/movies@/mem/QmT7w7Lr2macJ33NA1aiPyCSpM4vPrNUuo4xGdGzwsmL6J\nthis dataset has 1 validation errors\n", "", ""},
-		{"add rows, dry run", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, true, "dataset saved: peer/movies\n", "", ""},
-		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", false, true, "dataset saved: peer/movies@/mem/QmTb4ZF9igbKz7ir6b9bbpBvqH7zAsWC1j2h8aaijzjQGA\nthis dataset has 1 validation errors\n", "", ""},
-		{"no changes", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, true, "", "error saving: no changes", ""},
-		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, "dataset saved: peer/movies@/mem/QmXNfs9TeHN9rpyeUb2aABeTq6NKGhKEj94hjUff3YgkBT\nthis dataset has 1 validation errors\n", "", ""},
+		{"no data", "me/bad_dataset", "", "", "", "", true, "", "no changes to save", ""},
+		{"bad dataset file", "me/cities", "bad/filpath.json", "", "", "", true, "", "open bad/filpath.json: no such file or directory", ""},
+		{"bad body file", "me/cities", "", "bad/bodypath.csv", "", "", true, "", "opening body file: opening dataset.bodyPath 'bad/bodypath.csv': path not found", ""},
+		{"good inputs", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@/mem/QmT7w7Lr2macJ33NA1aiPyCSpM4vPrNUuo4xGdGzwsmL6J\nthis dataset has 1 validation errors\n", "", ""},
+		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@/mem/QmTb4ZF9igbKz7ir6b9bbpBvqH7zAsWC1j2h8aaijzjQGA\nthis dataset has 1 validation errors\n", "", ""},
+		{"no changes", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", true, "", "error saving: no changes", ""},
+		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, "dataset saved: peer/movies@/mem/QmXNfs9TeHN9rpyeUb2aABeTq6NKGhKEj94hjUff3YgkBT\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
 	for _, c := range cases {
@@ -165,7 +162,6 @@ func TestSaveRun(t *testing.T) {
 			BodyPath:       c.bodypath,
 			Title:          c.title,
 			Message:        c.message,
-			DryRun:         c.dryrun,
 			NoRender:       c.noRender,
 			DatasetMethods: dsm,
 		}
@@ -1001,7 +997,7 @@ func TestSaveTwiceWithTransform(t *testing.T) {
 	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_twice_with_xform/my_ds")
 
 	// Save a second version with a transform
-	run.MustExec(t, "qri save --file testdata/movies/tf_one_movie.star test_peer_save_twice_with_xform/my_ds")
+	run.MustExec(t, "qri save --apply --file testdata/movies/tf_one_movie.star test_peer_save_twice_with_xform/my_ds")
 
 	// Get the saved transform, make sure it matches the source file
 	output := run.MustExec(t, "qri get transform.script test_peer_save_twice_with_xform/my_ds")
@@ -1021,7 +1017,7 @@ func TestSaveTransformUsingPrev(t *testing.T) {
 	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_using_prev/my_ds")
 
 	// Save a second version with a transform
-	run.MustExec(t, "qri save --file testdata/movies/tf_set_len.star test_peer_save_using_prev/my_ds")
+	run.MustExec(t, "qri save --apply --file testdata/movies/tf_set_len.star test_peer_save_using_prev/my_ds")
 
 	// Read body from the dataset that was saved.
 	dsPath := run.GetPathForDataset(t, 0)
@@ -1041,7 +1037,7 @@ func TestSaveTransformUsingConfigSecret(t *testing.T) {
 	defer run.Delete()
 
 	// Save a version with a transform that has config and secret data
-	run.MustExec(t, "qri save --file testdata/movies/tf_using_config_secret.json --secrets animal_sound,meow test_peer_save_twice_with_xform/my_ds")
+	run.MustExec(t, "qri save --apply --file testdata/movies/tf_using_config_secret.json --secrets animal_sound,meow test_peer_save_twice_with_xform/my_ds")
 
 	// Read body from the dataset that was saved.
 	dsPath := run.GetPathForDataset(t, 0)
@@ -1064,7 +1060,7 @@ func TestSaveTransformSetMeta(t *testing.T) {
 	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_set_meta/my_ds")
 
 	// Save another version with a transform that sets the meta
-	run.MustExec(t, "qri save --file testdata/movies/tf_set_meta.star test_peer_save_set_meta/my_ds")
+	run.MustExec(t, "qri save --apply --file testdata/movies/tf_set_meta.star test_peer_save_set_meta/my_ds")
 
 	// Read body from the dataset that was saved.
 	dsPath := run.GetPathForDataset(t, 0)
@@ -1087,7 +1083,7 @@ func TestSaveTransformChangeMetaAndBody(t *testing.T) {
 	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_set_meta_and_body/my_ds")
 
 	// Save another version with a transform that sets the body and a manual meta change
-	err := run.ExecCommand("qri save --file testdata/movies/tf_set_len.star --file testdata/movies/meta_override.yaml test_peer_save_set_meta_and_body/my_ds")
+	err := run.ExecCommand("qri save --apply --file testdata/movies/tf_set_len.star --file testdata/movies/meta_override.yaml test_peer_save_set_meta_and_body/my_ds")
 	if err != nil {
 		t.Errorf("unexpected error: %q", err)
 	}
@@ -1101,7 +1097,7 @@ func TestSaveTransformConflictWithBody(t *testing.T) {
 	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_conflict_with_body/my_ds")
 
 	// Save another version with a transform that sets the body and a manual body change
-	err := run.ExecCommand("qri save --file testdata/movies/tf_set_len.star --body testdata/movies/body_twenty.csv test_peer_save_conflict_with_body/my_ds")
+	err := run.ExecCommand("qri save --apply --file testdata/movies/tf_set_len.star --body testdata/movies/body_twenty.csv test_peer_save_conflict_with_body/my_ds")
 	if err == nil {
 		t.Fatal("expected error trying to save, did not get an error")
 	}
@@ -1119,13 +1115,61 @@ func TestSaveTransformConflictWithMeta(t *testing.T) {
 	run.MustExec(t, "qri save --body testdata/movies/body_ten.csv test_peer_save_conflict_with_meta/my_ds")
 
 	// Save another version with a transform that sets the meta and a manual meta change
-	err := run.ExecCommand("qri save --file testdata/movies/tf_set_meta.star --file testdata/movies/meta_override.yaml test_peer_save_conflict_with_meta/my_ds")
+	err := run.ExecCommand("qri save --apply --file testdata/movies/tf_set_meta.star --file testdata/movies/meta_override.yaml test_peer_save_conflict_with_meta/my_ds")
 	if err == nil {
 		t.Fatal("expected error trying to save, did not get an error")
 	}
 	expectContains := "transform script and user-supplied dataset are both trying to set:\n  meta"
 	if !strings.Contains(err.Error(), expectContains) {
 		t.Errorf("expected error to contain %q, but got %s", expectContains, err.Error())
+	}
+}
+
+func TestDryRunIsAnError(t *testing.T) {
+	run := NewTestRunner(t, "test_peer_dry_run_err", "qri_test_dry_run_err")
+	defer run.Delete()
+
+	err := run.ExecCommand("qri save --dry-run --body testdata/movies/body_ten.csv test_peer_dry_run_err/my_ds")
+	if err == nil {
+		t.Fatal("expectd error trying to dry run, did not get an error")
+	}
+	expectErr := "--dry-run has been removed, use `qri apply` command instead"
+	if diff := cmp.Diff(expectErr, err.Error()); diff != "" {
+		t.Errorf("error mismatch (-want +got):%s\n", diff)
+	}
+}
+
+func TestSaveApply(t *testing.T) {
+	run := NewTestRunner(t, "test_peer_save_apply", "qri_test_save_apply")
+	defer run.Delete()
+
+	// Error to use --file with neither --apply nor --no-apply
+	err := run.ExecCommand("qri save --file testdata/movies/tf_one_movie.star test_peer_save_apply/my_ds")
+	if err == nil {
+		t.Fatal("expectd error trying to dry run, did not get an error")
+	}
+	expectErr := `saving with a new transform requires either --apply or --no-apply flag`
+	if diff := cmp.Diff(expectErr, err.Error()); diff != "" {
+		t.Errorf("error mismatch (-want +got):%s\n", diff)
+	}
+
+	// Save using --apply and --file
+	err = run.ExecCommand("qri save --apply --file testdata/movies/tf_one_movie.star test_peer_save_apply/one_movie")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Save using --no-apply, adds a transform but doesn't run it
+	err = run.ExecCommand("qri save --no-apply --file testdata/movies/tf_set_meta.star test_peer_save_apply/one_movie")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// No meta, because the previous transform wasn't applied
+	output := run.MustExec(t, "qri get meta me/one_movie")
+	expect := "null\n\n"
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
 }
 

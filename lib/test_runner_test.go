@@ -168,6 +168,25 @@ func (tr *testRunner) SaveWithParams(p *SaveParams) (dsref.Ref, error) {
 	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef(), nil
 }
 
+func (tr *testRunner) MustGet(t *testing.T, refstr string) *dataset.Dataset {
+	m := NewDatasetMethods(tr.Instance)
+	p := GetParams{Refstr: refstr}
+	res := GetResult{}
+	if err := m.Get(&p, &res); err != nil {
+		t.Fatal(err)
+	}
+	return res.Dataset
+}
+
+func (tr *testRunner) ApplyWithParams(p *ApplyParams) (*dataset.Dataset, error) {
+	m := NewTransformMethods(tr.Instance)
+	res := ApplyResult{}
+	if err := m.Apply(p, &res); err != nil {
+		return nil, err
+	}
+	return res.Data, nil
+}
+
 func (tr *testRunner) Diff(left, right, selector string) (string, error) {
 	m := NewDatasetMethods(tr.Instance)
 	p := DiffParams{

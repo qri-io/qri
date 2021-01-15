@@ -301,7 +301,7 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 
 	// Save a version, then save another with a transform
 	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
-	run.MustExec(t, "qri save --file=testdata/movies/tf.star me/test_ds")
+	run.MustExec(t, "qri save --apply --file=testdata/movies/tf.star me/test_ds")
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
@@ -343,7 +343,7 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 
 	// Save a version, then save another with three components at once
 	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
-	run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/tf.star --file=testdata/template.html me/test_ds")
+	run.MustExec(t, "qri save --apply --file=testdata/movies/meta_override.yaml --file=testdata/movies/tf.star --file=testdata/template.html me/test_ds")
 
 	// Read head from the dataset that was saved, as json string.
 	dsPath := run.GetPathForDataset(t, 0)
@@ -404,14 +404,14 @@ func TestSaveTransformWithoutChanges(t *testing.T) {
 	defer run.Delete()
 
 	// Save a version, then another with no changes
-	run.MustExec(t, "qri save --file=testdata/movies/tf_123.star me/test_ds")
+	run.MustExec(t, "qri save --apply --file=testdata/movies/tf_123.star me/test_ds")
 
 	errOut := run.GetCommandErrOutput()
 	if !strings.Contains(errOut, "setting body") {
 		t.Errorf("expected ErrOutput to contain print statement from transform script. errOutput:\n%s", errOut)
 	}
 
-	err := run.ExecCommand("qri save --file=testdata/movies/tf_123.star me/test_ds")
+	err := run.ExecCommand("qri save --apply --file=testdata/movies/tf_123.star me/test_ds")
 	expect := `error saving: no changes`
 	if err == nil {
 		t.Fatalf("expected error: did not get one")
@@ -432,7 +432,7 @@ func TestTransformUsingGetBodyAndSetBody(t *testing.T) {
 
 	// Save two versions, the second of which uses get_body in a transformation
 	run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/test_ds")
-	run.MustExec(t, "qri save --file=testdata/movies/tf_add_one.star me/test_ds")
+	run.MustExec(t, "qri save --apply --file=testdata/movies/tf_add_one.star me/test_ds")
 
 	// Read body from the dataset that was created with the transform
 	dsPath := run.GetPathForDataset(t, 0)
@@ -455,10 +455,10 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
 	defer run.Delete()
 
 	// Save a version
-	run.MustExec(t, "qri save --file=testdata/movies/tf_123.star me/test_ds")
+	run.MustExec(t, "qri save --apply --file=testdata/movies/tf_123.star me/test_ds")
 
 	// Save another version with a modified transform that produces the same body
-	err := run.ExecCommand("qri save --file=testdata/movies/tf_modified.star me/test_ds")
+	err := run.ExecCommand("qri save --apply --file=testdata/movies/tf_modified.star me/test_ds")
 
 	if err != nil {
 		t.Errorf("unexpected error: %q", err)

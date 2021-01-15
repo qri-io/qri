@@ -35,6 +35,10 @@ func TransformApply(
 		head   *dataset.Dataset
 	)
 
+	if target.Transform == nil || target.Transform.ScriptFile() == nil {
+		return errors.New("apply requires a transform component with a script file")
+	}
+
 	if ds.Name != "" {
 		head, err = loader(ctx, fmt.Sprintf("%s/%s", pro.Peername, ds.Name))
 		if errors.Is(err, dsref.ErrRefNotFound) || errors.Is(err, dsref.ErrNoHistory) {
