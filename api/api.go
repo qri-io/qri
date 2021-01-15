@@ -208,11 +208,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/sql", s.Middleware(sqlh.QueryHandler("/sql")))
 
 	tfh := NewTransformHandlers(s.Instance)
-<<<<<<< HEAD
-	m.Handle("/apply", s.middleware(tfh.ApplyHandler("/apply")))
-=======
 	m.Handle("/apply", s.Middleware(tfh.ApplyHandler("/apply")))
->>>>>>> feat(apply): rough-draft apply command
 
 	if !cfg.API.DisableWebui {
 		m.Handle("/webui", s.Middleware(WebuiHandler))

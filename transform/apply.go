@@ -23,22 +23,24 @@ func Apply(
 	r repo.Repo,
 	loader dsref.ParseResolveLoad,
 	pub event.Publisher,
+	wait bool,
 	str ioes.IOStreams,
 	scriptOut io.Writer,
 	secrets map[string]string,
-) error {
+) (string, error) {
 	pro, err := r.Profile()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	var (
 		target = ds
 		head   *dataset.Dataset
+		runID  = startf.NewRunID()
 	)
 
 	if target.Transform == nil || target.Transform.ScriptFile() == nil {
-		return errors.New("apply requires a transform component with a script file")
+		return runID, errors.New("apply requires a transform component with a script file")
 	}
 
 	if ds.Name != "" {
@@ -48,7 +50,7 @@ func Apply(
 			head = &dataset.Dataset{}
 			err = nil
 		} else if err != nil {
-			return err
+			return runID, err
 		}
 	}
 
@@ -64,11 +66,20 @@ func Apply(
 		startf.AddDatasetLoader(loader),
 	}
 
-	if err = startf.ExecScript(ctx, pub, "TODO", target, head, opts...); err != nil {
-		return err
-	}
+	doneCh := make(chan error)
 
-	str.PrintErr("✅ transform complete\n")
+	go func() {
+		if !wait {
+			doneCh <- nil
+		}
 
-	return nil
+		err = startf.ExecScript(ctx, pub, runID, target, head, opts...)
+		if err == nil {
+			str.PrintErr("✅ transform complete\n")
+		}
+		doneCh <- err
+	}()
+
+	err = <-doneCh
+	return runID, err
 }

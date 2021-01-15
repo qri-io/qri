@@ -30,12 +30,10 @@ func NewTransformMethods(inst *Instance) *TransformMethods {
 type ApplyParams struct {
 	Refstr    string
 	Transform *dataset.Transform
-	Source    string
 	Secrets   map[string]string
+	Wait      bool
 
-	// TODO(dustmop): add `Wait bool`, if false, run the save asynchronously
-	// and return events on the bus that provide the progress of the save operation
-
+	Source       string
 	ScriptOutput io.Writer
 }
 
@@ -49,10 +47,9 @@ func (p *ApplyParams) Valid() error {
 
 // ApplyResult is the result of an apply command
 type ApplyResult struct {
-	Data *dataset.Dataset
-	// TODO(dustmop): Make Apply asynchronous, running the transform in a go-routine.
-	// Return a channel that will send progress on the execution.
+	Data  *dataset.Dataset
 	RunID string `json:"runID"`
+	// TODO(dustmop): Return a channel that will send progress on the execution.
 }
 
 // Apply runs a transform script
@@ -89,34 +86,17 @@ func (m *TransformMethods) Apply(p *ApplyParams, res *ApplyResult) error {
 	str := m.inst.node.LocalStreams
 	loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
 
-	// runID := startf.NewRunID()
-	// next := &dataset.Dataset{
-	// 	Transform: p.Transform,
-	// }
-
-	// go func() {
-	// 	err := startf.ExecScript(ctx, m.inst.bus, runID, next, prev,
-	// 		startf.AddDatasetLoader(prlf),
-	// 		startf.SetSecrets(next.Transform.Secrets),
-	// 	)
-	// 	if err != nil {
-	// 		log.Debug(err)
-	// 	}
-	// }()
-
-	// *res = ApplyResponse{
-	// 	RunID: runID,
-	// }
-
 	scriptOut := p.ScriptOutput
-	err = transform.Apply(ctx, ds, r, loader, m.inst.bus, str, scriptOut, p.Secrets)
+	res.RunID, err = transform.Apply(ctx, ds, r, loader, m.inst.bus, p.Wait, str, scriptOut, p.Secrets)
 	if err != nil {
 		return err
 	}
 
-	if err = base.InlineJSONBody(ds); err != nil && err != base.ErrNoBodyToInline {
-		return err
+	if p.Wait {
+		if err = base.InlineJSONBody(ds); err != nil && err != base.ErrNoBodyToInline {
+			return err
+		}
+		res.Data = ds
 	}
-	res.Data = ds
 	return nil
 }
