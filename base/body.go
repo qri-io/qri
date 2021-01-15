@@ -3,6 +3,7 @@ package base
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -10,6 +11,9 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs"
 )
+
+// ErrNoBodyToInline is an error returned when a dataset has no body for inlining
+var ErrNoBodyToInline = errors.New("no body to inline")
 
 // ReadBody grabs some or all of a dataset's body, writing an output in the desired format
 func ReadBody(ds *dataset.Dataset, format dataset.DataFormat, fcfg dataset.FormatConfig, limit, offset int, all bool) (data []byte, err error) {
@@ -78,8 +82,7 @@ func ReadEntries(reader dsio.EntryReader) (interface{}, error) {
 func InlineJSONBody(ds *dataset.Dataset) error {
 	file := ds.BodyFile()
 	if file == nil {
-		log.Error("no body file")
-		return fmt.Errorf("no response body file")
+		return ErrNoBodyToInline
 	}
 
 	if ds.Structure.Format == dataset.JSONDataFormat.String() {

@@ -195,6 +195,89 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 		t.Fatalf("Expected 'Test Repo', got '%s'", res.Meta.Title)
 	}
 }
+
+func TestDatasetRequestsSaveApply(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	// Trying to save using apply without a transform is an error
+	_, err := run.SaveWithParams(&SaveParams{
+		Ref:      "me/cities_ds",
+		BodyPath: "testdata/cities_2/body.csv",
+		Apply:    true,
+	})
+	if err == nil {
+		t.Fatal("expected an error, did not get one")
+	}
+	expectErr := `cannot apply while saving without a transform`
+	if diff := cmp.Diff(expectErr, err.Error()); diff != "" {
+		t.Errorf("error mismatch (-want +got):%s\n", diff)
+	}
+
+	// Save using apply and a transform, for a new dataset
+	_, err = run.SaveWithParams(&SaveParams{
+		Ref:       "me/hello",
+		FilePaths: []string{"testdata/tf/transform.star"},
+		Apply:     true,
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Save another dataset with a body
+	_, err = run.SaveWithParams(&SaveParams{
+		Ref:      "me/existing_ds",
+		BodyPath: "testdata/cities_2/body.csv",
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	ds := run.MustGet(t, "me/existing_ds")
+	bodyPath := ds.BodyPath
+
+	// Save using apply and a transform, for dataset that already exists
+	_, err = run.SaveWithParams(&SaveParams{
+		Ref:       "me/existing_ds",
+		FilePaths: []string{"testdata/cities_2/add_city.star"},
+		Apply:     true,
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	ds = run.MustGet(t, "me/existing_ds")
+	if ds.BodyPath == bodyPath {
+		t.Error("expected body path to change, but it did not change")
+	}
+
+	// Save another dataset with a body
+	_, err = run.SaveWithParams(&SaveParams{
+		Ref:      "me/another_ds",
+		BodyPath: "testdata/cities_2/body.csv",
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	ds = run.MustGet(t, "me/another_ds")
+	bodyPath = ds.BodyPath
+
+	// Save by adding a transform, but do not apply it. Body is unchanged.
+	_, err = run.SaveWithParams(&SaveParams{
+		Ref:       "me/another_ds",
+		FilePaths: []string{"testdata/tf/transform.star"},
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
+	ds = run.MustGet(t, "me/another_ds")
+	if ds.BodyPath != bodyPath {
+		t.Error("unexpected: body path changed")
+	}
+}
+
 func TestDatasetRequestsList(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()

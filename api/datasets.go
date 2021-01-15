@@ -482,6 +482,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	p := &lib.SaveParams{
 		Ref:          ref.AliasString(),
 		Dataset:      ds,
+		Apply:        r.FormValue("apply") == "true",
 		Private:      r.FormValue("private") == "true",
 		Force:        r.FormValue("force") == "true",
 		ShouldRender: !(r.FormValue("no_render") == "true"),

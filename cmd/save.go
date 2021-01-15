@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
@@ -65,6 +66,8 @@ commit message and title to the save.`,
 	cmd.Flags().StringVarP(&o.BodyPath, "body", "", "", "path to file or url of data to add as dataset contents")
 	cmd.MarkFlagFilename("body")
 	// cmd.Flags().BoolVarP(&o.ShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
+	cmd.Flags().BoolVar(&o.Apply, "apply", false, "apply a transformation and save the result")
+	cmd.Flags().BoolVar(&o.NoApply, "no-apply", false, "don't apply any transforms that are added")
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
 	cmd.Flags().BoolVar(&o.DeprecatedDryRun, "dry-run", false, "deprecated: use `qri apply` instead")
 	cmd.Flags().BoolVar(&o.Force, "force", false, "force a new commit, even if no changes are detected")
@@ -90,17 +93,18 @@ type SaveOptions struct {
 	Title   string
 	Message string
 
+	Apply            bool
+	NoApply          bool
+	DeprecatedDryRun bool
+	Secrets          []string
+
 	Replace        bool
 	ShowValidation bool
-
-	DeprecatedDryRun bool
-
-	KeepFormat bool
-	Force      bool
-	NoRender   bool
-	Secrets    []string
-	NewName    bool
-	UseDscache bool
+	KeepFormat     bool
+	Force          bool
+	NoRender       bool
+	NewName        bool
+	UseDscache     bool
 
 	DatasetMethods *lib.DatasetMethods
 	FSIMethods     *lib.FSIMethods
@@ -154,16 +158,35 @@ func (o *SaveOptions) Run() (err error) {
 		Title:    o.Title,
 		Message:  o.Message,
 
-		ScriptOutput:        o.ErrOut,
-		FilePaths:           o.FilePaths,
-		Private:             false,
-		Drop:                o.Drop,
+		ScriptOutput: o.ErrOut,
+		FilePaths:    o.FilePaths,
+		Private:      false,
+		Apply:        o.Apply,
+		Drop:         o.Drop,
+
 		ConvertFormatToPrev: o.KeepFormat,
 		Force:               o.Force,
-		ShouldRender:        !o.NoRender,
-		NewName:             o.NewName,
-		UseDscache:          o.UseDscache,
+
+		ShouldRender: !o.NoRender,
+		NewName:      o.NewName,
+		UseDscache:   o.UseDscache,
 	}
+
+	// Check if file ends in '.star'. If so, either Apply or NoApply is required.
+	// Apply is passed down to the lib level, NoApply ends here. NoApply's only purpose
+	// is to ensure that the user wants to add a transform without running it, and explicitly
+	// agrees that they're not expecting the old behavior: wherein adding a transform
+	// would always run it.
+	for _, file := range o.FilePaths {
+		if strings.HasSuffix(file, ".star") {
+			if !o.Apply && !o.NoApply {
+				return fmt.Errorf("saving with a new transform requires either --apply or --no-apply flag")
+			}
+		}
+	}
+
+	// TODO(dustmop): Support component files, like .json and .yaml, which can contain
+	// transform scripts.
 
 	if o.Secrets != nil {
 		if !confirm(o.ErrOut, o.In, `

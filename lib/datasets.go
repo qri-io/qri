@@ -448,6 +448,11 @@ type SaveParams struct {
 	// note: this won't work over RPC, only on local calls
 	ScriptOutput io.Writer
 
+	// TODO(dustmop): add `Wait bool`, if false, run the save asynchronously
+	// and return events on the bus that provide the progress of the save operation
+
+	// Apply runs a transform script to create the next version to save
+	Apply bool
 	// Replace writes the entire given dataset as a new snapshot instead of
 	// applying save params as augmentations to the existing history
 	Replace bool
@@ -600,10 +605,11 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		return err
 	}
 
-	// If a transform is being provided, execute its script
-	// TODO(dustmop): This will become a call to `apply` in the future, and will require the
-	// `--apply` flag to be true.
-	if ds.Transform != nil {
+	// If applying a transform, execute its script before saving
+	if p.Apply {
+		if ds.Transform == nil {
+			return fmt.Errorf("cannot apply while saving without a transform")
+		}
 		str := m.inst.node.LocalStreams
 		scriptOut := p.ScriptOutput
 		secrets := p.Secrets
