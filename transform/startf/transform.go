@@ -12,6 +12,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
@@ -278,7 +279,15 @@ func ExecScript(ctx context.Context, pub event.Publisher, runID string, next, pr
 	}
 
 	if f := next.BodyFile(); f != nil {
-		if err := InlineJSONBody(next); err != nil {
+		if next.Structure == nil {
+			if err := base.InferStructure(next); err != nil {
+				log.Debugw("inferring structure", "err", err)
+				eventsCh <- eventData{event.ETError, event.TransformMessage{Msg: err.Error()}}
+				eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: "transform", Status: "failed"}}
+				return err
+			}
+		}
+		if err := base.InlineJSONBody(next); err != nil {
 			log.Debugw("inlining resulting dataset JSON body", "err", err)
 		}
 	}

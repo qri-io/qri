@@ -100,6 +100,7 @@ func (o *ApplyOptions) Run() error {
 		Refstr:       o.Refs.Ref(),
 		Transform:    &tf,
 		ScriptOutput: o.Out,
+		Wait:         true,
 	}
 	res := lib.ApplyResult{}
 	if err = o.TransformMethods.Apply(&params, &res); err != nil {
