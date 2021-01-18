@@ -89,17 +89,36 @@ func Apply(
 
 		eventsCh <- event.Event{Type: event.ETTransformStart, Payload: event.TransformLifecycle{RunID: runID}}
 
+		hasFailedStep := false
 		for i, step := range ds.Transform.Steps {
+			if hasFailedStep {
+				eventsCh <- event.Event{Type: event.ETTransformStepSkip, Payload: event.TransformStepLifecycle{Name: step.Name, Type: step.Type}}
+				continue
+			}
+
+			eventsCh <- event.Event{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Name: step.Name, Type: step.Type}}
+			status := "succeeded"
+
 			switch step.Syntax {
 			case "starlark":
 				log.Debugw("runnning starlark step", "step", step)
 				if err := stepRunner.RunStep(ctx, ds, step); err != nil {
 					log.Debugw("running transform step", "index", i, "err", err)
+					eventsCh <- event.Event{Type: event.ETError, Payload: event.TransformMessage{Msg: err.Error()}}
+					status = "failed"
 				}
+			case "qri":
+
 			default:
 				log.Debugw("skipping default step", "step", step)
-				eventsCh <- event.Event{Type: event.ETTransformStepSkip, Payload: event.TransformStepLifecycle{Name: step.Name, Status: ""}}
+				eventsCh <- event.Event{Type: event.ETError, Payload: event.TransformMessage{Msg: fmt.Sprintf("unsupported transform syntax %q", step.Syntax)}}
+				status = "failed"
 			}
+
+			if status == "failed" {
+				hasFailedStep = true
+			}
+			eventsCh <- event.Event{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Name: step.Name, Status: status}}
 		}
 
 		// if f := ds.BodyFile(); f != nil {
@@ -118,17 +137,14 @@ func Apply(
 		// eventsCh <- event.Event{Type: event.ETDataset, Payload: ds}
 		// eventsCh <- event.Event{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Name: "stepRunner", Status: "succeeded"}}
 
-		// err = startf.ExecScript(ctx, pub, runID, target, head, opts...)
-		// if err == nil {
-		// 	str.PrintErr("✅ transform complete\n")
-		// }
-
 		// restore consumed script file
 		// next.Transform.SetScriptFile(qfs.NewMemfileBytes("stepRunner.star", buf.Bytes()))
-		// eventsCh <- eventData{event.ETTransformStop, event.TransformLifecycle{
-		// 	RunID:  runID,
-		// 	Status: "succeeded",
-		// }}
+
+		tfStatus := "succeeded"
+		if hasFailedStep {
+			tfStatus = "failed"
+		}
+		eventsCh <- event.Event{Type: event.ETTransformStop, Payload: event.TransformLifecycle{RunID: runID, Status: tfStatus}}
 
 		doneCh <- err
 	}()

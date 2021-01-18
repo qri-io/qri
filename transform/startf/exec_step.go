@@ -88,25 +88,17 @@ func (r *stepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *datas
 		},
 	}
 
-	r.eventsCh <- event.Event{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Name: st.Name, Type: st.Type, Syntax: "starlark"}}
-
 	globals, err := starlark.ExecFile(thread, fmt.Sprintf("%s.star", st.Name), strings.NewReader(st.Value), r.locals(ctx))
 	if err != nil {
 		if evalErr, ok := err.(*starlark.EvalError); ok {
-			r.eventsCh <- event.Event{Type: event.ETError, Payload: event.TransformMessage{Msg: evalErr.Backtrace()}}
-			r.eventsCh <- event.Event{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Name: st.Name, Type: st.Type, Status: "failed", Syntax: "starlark"}}
 			return fmt.Errorf(evalErr.Backtrace())
 		}
-		r.eventsCh <- event.Event{Type: event.ETError, Payload: event.TransformMessage{Msg: err.Error()}}
-		r.eventsCh <- event.Event{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Name: st.Name, Status: "failed"}}
 		return err
 	}
 
 	if err := r.callStepFunc(globals, thread, st.Type); err != nil {
 		return err
 	}
-
-	r.eventsCh <- event.Event{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Name: st.Name, Status: "succeeded"}}
 
 	// funcs, err := t.specialFuncs()
 	// if err != nil {
@@ -146,6 +138,7 @@ func (r *stepRunner) ModuleLoader(thread *starlark.Thread, module string) (dict 
 }
 
 func (r *stepRunner) callStepFunc(globals starlark.StringDict, thread *starlark.Thread, stepType string) error {
+	log.Debugw("calling step function", "step", stepType, "globals", globals)
 	if stepType == "setup" {
 		r.globals = globals
 		return nil
@@ -158,19 +151,12 @@ func (r *stepRunner) callStepFunc(globals starlark.StringDict, thread *starlark.
 
 	switch stepType {
 	case "download":
-		value, err := r.callDownloadFunc(thread, stepFunc)
-		if err != nil {
-			return err
-		}
-		r.starCtx.SetResult(stepType, value)
-		return nil
+		return r.callDownloadFunc(thread, stepFunc)
 	case "transform":
 		return r.callTransformFunc(thread, stepFunc)
-
 	default:
-		return fmt.Errorf("unrecognized step type %q", stepType)
+		return fmt.Errorf("unrecognized starlark step type %q", stepType)
 	}
-
 }
 
 // func (r *stepRunner) specialFuncs() (defined map[string]specialFunc, err error) {
@@ -209,11 +195,17 @@ func (r *stepRunner) globalFunc(name string) (fn *starlark.Function, err error) 
 
 type specialFunc func(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (result starlark.Value, err error)
 
-func (r *stepRunner) callDownloadFunc(thread *starlark.Thread, download *starlark.Function) (result starlark.Value, err error) {
+func (r *stepRunner) callDownloadFunc(thread *starlark.Thread, download *starlark.Function) (err error) {
 	httpGuard.EnableNtwk()
 	defer httpGuard.DisableNtwk()
 
-	return starlark.Call(thread, download, starlark.Tuple{r.starCtx.Struct()}, nil)
+	val, err := starlark.Call(thread, download, starlark.Tuple{r.starCtx.Struct()}, nil)
+	if err != nil {
+		return err
+	}
+
+	r.starCtx.SetResult("download", val)
+	return nil
 }
 
 func (r *stepRunner) callTransformFunc(thread *starlark.Thread, transform *starlark.Function) (err error) {
@@ -229,8 +221,6 @@ func (r *stepRunner) callTransformFunc(thread *starlark.Thread, transform *starl
 		if ds.Structure == nil {
 			if err := base.InferStructure(ds); err != nil {
 				log.Debugw("inferring structure", "err", err)
-				r.eventsCh <- event.Event{Type: event.ETError, Payload: event.TransformMessage{Msg: err.Error()}}
-				r.eventsCh <- event.Event{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Name: "stepRunner", Status: "failed"}}
 				return err
 			}
 		}
