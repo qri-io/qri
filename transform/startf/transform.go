@@ -351,8 +351,6 @@ func (t *transform) specialFuncs() (defined map[string]specialFunc, err error) {
 	return
 }
 
-type specialFunc func(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (result starlark.Value, err error)
-
 func callDownloadFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (result starlark.Value, err error) {
 	httpGuard.EnableNtwk()
 	defer httpGuard.DisableNtwk()

@@ -82,12 +82,11 @@ func (m *TransformMethods) Apply(p *ApplyParams, res *ApplyResult) error {
 		ds.Transform.OpenScriptFile(ctx, m.inst.repo.Filesystem())
 	}
 
-	r := m.inst.Repo()
 	str := m.inst.node.LocalStreams
 	loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
 
 	scriptOut := p.ScriptOutput
-	res.RunID, err = transform.Apply(ctx, ds, r, loader, m.inst.bus, p.Wait, str, scriptOut, p.Secrets)
+	res.RunID, err = transform.Apply(ctx, ds, loader, m.inst.bus, p.Wait, str, scriptOut, p.Secrets)
 	if err != nil {
 		return err
 	}

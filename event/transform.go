@@ -66,10 +66,10 @@ type TransformLifecycle struct {
 // TransformStepLifecycle captures state about the execution of a transform
 // script. Payload of ETTransformStepStart/Stop/Skip
 type TransformStepLifecycle struct {
+	Syntax string `json:"syntax"`
 	Name   string `json:"name"`
+	Type   string `json:"type"`
 	Status string `json:"status,omitempty"`
-	Msg    string `json:"msg,omitempty"`
-	Error  string `json:"error,omitempty"`
 }
 
 // HTTPRequestDetails describes an HTTP request within a transform script

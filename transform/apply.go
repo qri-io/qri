@@ -6,21 +6,20 @@ import (
 	"fmt"
 	"io"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/transform/startf"
 )
 
-// TODO(dustmop): Tests. Especially once the `apply` command exists.
+var log = golog.Logger("transform")
 
-// Apply applies the transform script to order to modify the changing dataset
+// Apply executes the transform script to order to modify the changing dataset
 func Apply(
 	ctx context.Context,
 	ds *dataset.Dataset,
-	r repo.Repo,
 	loader dsref.ParseResolveLoad,
 	pub event.Publisher,
 	wait bool,
@@ -28,28 +27,29 @@ func Apply(
 	scriptOut io.Writer,
 	secrets map[string]string,
 ) (string, error) {
-	pro, err := r.Profile()
-	if err != nil {
-		return "", err
-	}
-
 	var (
 		target = ds
 		head   *dataset.Dataset
-		runID  = startf.NewRunID()
+		runID  = NewRunID()
+		doneCh = make(chan error)
+		err    error
 	)
 
+	log.Debugw("applying transform", "runID", runID, "wait", wait)
+
 	if target.Transform == nil || target.Transform.ScriptFile() == nil {
+		log.Debugw("validating transform", "transform", target.Transform)
 		return runID, errors.New("apply requires a transform component with a script file")
 	}
 
 	if ds.Name != "" {
-		head, err = loader(ctx, fmt.Sprintf("%s/%s", pro.Peername, ds.Name))
+		head, err = loader(ctx, fmt.Sprintf("%s/%s", ds.Peername, ds.Name))
 		if errors.Is(err, dsref.ErrRefNotFound) || errors.Is(err, dsref.ErrNoHistory) {
 			// Dataset either does not exist yet, or has no history. Not an error
 			head = &dataset.Dataset{}
 			err = nil
 		} else if err != nil {
+			log.Debugw("loading head dataset", "err", err)
 			return runID, err
 		}
 	}
@@ -59,24 +59,77 @@ func Apply(
 	mutateCheck := startf.MutatedComponentsFunc(target)
 
 	opts := []func(*startf.ExecOpts){
-		startf.AddQriRepo(r),
 		startf.AddMutateFieldCheck(mutateCheck),
 		startf.SetErrWriter(scriptOut),
 		startf.SetSecrets(secrets),
 		startf.AddDatasetLoader(loader),
 	}
 
-	doneCh := make(chan error)
+	eventsCh := make(chan event.Event)
+	stepRunner := startf.NewStepRunner(eventsCh, runID, head, ds, opts...)
 
 	go func() {
 		if !wait {
 			doneCh <- nil
 		}
 
-		err = startf.ExecScript(ctx, pub, runID, target, head, opts...)
-		if err == nil {
-			str.PrintErr("✅ transform complete\n")
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		go func() {
+			for {
+				select {
+				case event := <-eventsCh:
+					pub.PublishID(ctx, event.Type, runID, event.Payload)
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+
+		eventsCh <- event.Event{Type: event.ETTransformStart, Payload: event.TransformLifecycle{RunID: runID}}
+
+		for i, step := range ds.Transform.Steps {
+			switch step.Syntax {
+			case "starlark":
+				log.Debugw("runnning starlark step", "step", step)
+				if err := stepRunner.RunStep(ctx, ds, step); err != nil {
+					log.Debugw("running transform step", "index", i, "err", err)
+				}
+			default:
+				log.Debugw("skipping default step", "step", step)
+				eventsCh <- event.Event{Type: event.ETTransformStepSkip, Payload: event.TransformStepLifecycle{Name: step.Name, Status: ""}}
+			}
 		}
+
+		// if f := ds.BodyFile(); f != nil {
+		// 	if ds.Structure == nil {
+		// 		if err := base.InferStructure(ds); err != nil {
+		// 			log.Debugw("inferring structure", "err", err)
+		// 			eventsCh <- event.Event{Type: event.ETError, Payload: event.TransformMessage{Msg: err.Error()}}
+		// 			eventsCh <- event.Event{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Name: "stepRunner", Status: "failed"}}
+		// 			return
+		// 		}
+		// 	}
+		// 	if err := base.InlineJSONBody(ds); err != nil {
+		// 		log.Debugw("inlining resulting dataset JSON body", "err", err)
+		// 	}
+		// }
+		// eventsCh <- event.Event{Type: event.ETDataset, Payload: ds}
+		// eventsCh <- event.Event{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Name: "stepRunner", Status: "succeeded"}}
+
+		// err = startf.ExecScript(ctx, pub, runID, target, head, opts...)
+		// if err == nil {
+		// 	str.PrintErr("✅ transform complete\n")
+		// }
+
+		// restore consumed script file
+		// next.Transform.SetScriptFile(qfs.NewMemfileBytes("stepRunner.star", buf.Bytes()))
+		// eventsCh <- eventData{event.ETTransformStop, event.TransformLifecycle{
+		// 	RunID:  runID,
+		// 	Status: "succeeded",
+		// }}
+
 		doneCh <- err
 	}()
 

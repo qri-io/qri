@@ -27,6 +27,14 @@ var (
 // declare Types as constants and document the expected payload type.
 type Type string
 
+// Event encapsulates a single event, handled by subscribers
+type Event struct {
+	Type      Type
+	Timestamp int64
+	Sid       string
+	Payload   interface{}
+}
+
 // Handler is a function that will be called by the event bus whenever a
 // subscribed topic is published. Handler calls are blocking, called in order
 // of subscription. Any error returned by a handler is passed back to the
