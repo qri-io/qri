@@ -30,6 +30,7 @@ import (
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
+	"github.com/qri-io/qri/transform"
 )
 
 // DatasetMethods encapsulates business logic for working with Datasets on Qri
@@ -623,7 +624,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
 
 		// apply the transform
-		err := base.TransformApply(ctx, ds, r, loader, str, scriptOut, secrets)
+		err := transform.Apply(ctx, ds, r, loader, str, scriptOut, secrets)
 		if err != nil {
 			return err
 		}
