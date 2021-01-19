@@ -35,7 +35,7 @@ func TestProgressBars(t *testing.T) {
 	ref := dsref.MustParse("c/d")
 
 	events := []struct {
-		t event.Type
+		t event.Topic
 		p interface{}
 	}{
 		{event.ETDatasetSaveStarted, event.DsSaveEvent{Username: "a", Name: "b", Completion: 0.1}},

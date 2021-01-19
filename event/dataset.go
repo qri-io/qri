@@ -7,32 +7,32 @@ import (
 const (
 	// ETDatasetNameInit is when a dataset is initialized
 	// payload is a DsChange
-	ETDatasetNameInit = Type("dataset:Init")
+	ETDatasetNameInit = Topic("dataset:Init")
 	// ETDatasetCommitChange is when a dataset changes its newest commit
 	// payload is a DsChange
-	ETDatasetCommitChange = Type("dataset:CommitChange")
+	ETDatasetCommitChange = Topic("dataset:CommitChange")
 	// ETDatasetDeleteAll is when a dataset is entirely deleted
 	// payload is a DsChange
-	ETDatasetDeleteAll = Type("dataset:DeleteAll")
+	ETDatasetDeleteAll = Topic("dataset:DeleteAll")
 	// ETDatasetRename is when a dataset is renamed
 	// payload is a DsChange
-	ETDatasetRename = Type("dataset:Rename")
+	ETDatasetRename = Topic("dataset:Rename")
 	// ETDatasetCreateLink is when a dataset is linked to a working directory
 	// payload is a DsChange
-	ETDatasetCreateLink = Type("dataset:CreateLink")
+	ETDatasetCreateLink = Topic("dataset:CreateLink")
 
 	// ETDatasetSaveStarted fires when saving a dataset starts
 	// subscriptions do not block the publisher
 	// payload will be a DsSaveEvent
-	ETDatasetSaveStarted = Type("dataset:SaveStarted")
+	ETDatasetSaveStarted = Topic("dataset:SaveStarted")
 	// ETDatasetSaveProgress indicates a change in progress of dataset version
 	// creation.
 	// subscriptions do not block the publisher
 	// payload will be a DsSaveEvent
-	ETDatasetSaveProgress = Type("dataset:SaveProgress")
+	ETDatasetSaveProgress = Topic("dataset:SaveProgress")
 	// ETDatasetSaveCompleted indicates creating a dataset version finished
 	// payload will be a DsSaveEvent
-	ETDatasetSaveCompleted = Type("dataset:SaveCompleted")
+	ETDatasetSaveCompleted = Topic("dataset:SaveCompleted")
 )
 
 // DsChange represents the result of a change to a dataset

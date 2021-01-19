@@ -30,10 +30,10 @@ func TestNewNode(t *testing.T) {
 	bus := event.NewBus(ctx)
 
 	eventFired := make(chan struct{}, 1)
-	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
-		if typ == event.ETP2PGoneOnline {
-			if _, ok := payload.([]ma.Multiaddr); !ok {
-				t.Errorf("expected %q event to have a payload of []multiaddr.Multiaddr, got: %T", event.ETP2PGoneOnline, payload)
+	bus.SubscribeTopics(func(_ context.Context, e event.Event) error {
+		if e.Topic == event.ETP2PGoneOnline {
+			if _, ok := e.Payload.([]ma.Multiaddr); !ok {
+				t.Errorf("expected %q event to have a payload of []multiaddr.Multiaddr, got: %T", event.ETP2PGoneOnline, e.Payload)
 			}
 			eventFired <- struct{}{}
 		}
@@ -65,7 +65,7 @@ func TestNodeEvents(t *testing.T) {
 
 	bus := event.NewBus(ctx)
 	result := make(chan error, 1)
-	events := []event.Type{
+	events := []event.Topic{
 		// TODO (b5) - can't check onlineness because of the way this test is constructed
 		// event.ETP2PGoneOnline,
 		event.ETP2PGoneOffline,
@@ -79,7 +79,7 @@ func TestNodeEvents(t *testing.T) {
 		event.ETP2PPeerDisconnected,
 	}
 
-	called := map[event.Type]bool{}
+	called := map[event.Topic]bool{}
 	calledMu := sync.Mutex{}
 	remaining := len(events)
 
@@ -87,13 +87,13 @@ func TestNodeEvents(t *testing.T) {
 	// "stream reset" error, we can add this back in
 	// qriPeerConnectedCh := make(chan struct{}, 1)
 
-	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
+	bus.SubscribeTopics(func(_ context.Context, e event.Event) error {
 		calledMu.Lock()
 		defer calledMu.Unlock()
-		if called[typ] {
+		if called[e.Topic] {
 			// TODO (ramfox): this is commented out currently because I'm not totally
 			// sure why connects and disconnects are fireing multiple times
-			t.Logf("expected event %q to only fire once", typ)
+			t.Logf("expected event %q to only fire once", e.Topic)
 			return nil
 		}
 
@@ -103,7 +103,7 @@ func TestNodeEvents(t *testing.T) {
 		// 		qriPeerConnectedCh <- struct{}{}
 		// 	}
 
-		called[typ] = true
+		called[e.Topic] = true
 		remaining--
 		t.Logf("remaining: %d", remaining)
 		if remaining == 0 {

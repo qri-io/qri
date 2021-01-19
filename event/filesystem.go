@@ -7,7 +7,7 @@ import (
 const (
 	// ETFSICreateLinkEvent type for when FSI creates a link between a dataset
 	// and working directory
-	ETFSICreateLinkEvent = Type("fsi:CreateLinkEvent")
+	ETFSICreateLinkEvent = Topic("fsi:CreateLinkEvent")
 )
 
 // FSICreateLinkEvent describes an FSI created link
@@ -19,15 +19,15 @@ type FSICreateLinkEvent struct {
 
 const (
 	// ETCreatedNewFile is the event for creating a new file
-	ETCreatedNewFile = Type("watchfs:CreatedNewFile")
+	ETCreatedNewFile = Topic("watchfs:CreatedNewFile")
 	// ETModifiedFile is the event for modifying a file
-	ETModifiedFile = Type("watchfs:ModifiedFile")
+	ETModifiedFile = Topic("watchfs:ModifiedFile")
 	// ETDeletedFile is the event for deleting a file
-	ETDeletedFile = Type("watchfs:DeletedFile")
+	ETDeletedFile = Topic("watchfs:DeletedFile")
 	// ETRenamedFolder is the event for renaming a folder
-	ETRenamedFolder = Type("watchfs:RenamedFolder")
+	ETRenamedFolder = Topic("watchfs:RenamedFolder")
 	// ETRemovedFolder is the event for removing a folder
-	ETRemovedFolder = Type("watchfs:RemovedFolder")
+	ETRemovedFolder = Topic("watchfs:RemovedFolder")
 )
 
 // WatchfsChange represents events for filesystem changes

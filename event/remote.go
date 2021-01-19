@@ -10,32 +10,32 @@ const (
 	// dataset version push. Progress can fire as much as once-per-block.
 	// subscriptions do not block the publisher
 	// payload will be a RemoteEvent
-	ETRemoteClientPushVersionProgress = Type("remoteClient:PushVersionProgress")
+	ETRemoteClientPushVersionProgress = Topic("remoteClient:PushVersionProgress")
 	// ETRemoteClientPushVersionCompleted indicates a version successfully pushed
 	// to a remote.
 	// payload will be a RemoteEvent
-	ETRemoteClientPushVersionCompleted = Type("remoteClient:PushVersionCompleted")
+	ETRemoteClientPushVersionCompleted = Topic("remoteClient:PushVersionCompleted")
 	// ETRemoteClientPushDatasetCompleted indicates pushing a dataset
 	// (logbook + versions) completed
 	// payload will be a RemoteEvent
-	ETRemoteClientPushDatasetCompleted = Type("remoteClient:PushDatasetCompleted")
+	ETRemoteClientPushDatasetCompleted = Topic("remoteClient:PushDatasetCompleted")
 	// ETRemoteClientPullVersionProgress indicates a change in progress of a
 	// dataset version pull. Progress can fire as much as once-per-block.
 	// subscriptions do not block the publisher
 	// payload will be a RemoteEvent
-	ETRemoteClientPullVersionProgress = Type("remoteClient:PullVersionProgress")
+	ETRemoteClientPullVersionProgress = Topic("remoteClient:PullVersionProgress")
 	// ETRemoteClientPullVersionCompleted indicates a version successfully pulled
 	// from a remote.
 	// payload will be a RemoteEvent
-	ETRemoteClientPullVersionCompleted = Type("remoteClient:PullVersionCompleted")
+	ETRemoteClientPullVersionCompleted = Topic("remoteClient:PullVersionCompleted")
 	// ETRemoteClientPullDatasetCompleted indicates pulling a dataset
 	// (logbook + versions) completed
 	// payload will be a RemoteEvent
-	ETRemoteClientPullDatasetCompleted = Type("remoteClient:PullDatasetCompleted")
+	ETRemoteClientPullDatasetCompleted = Topic("remoteClient:PullDatasetCompleted")
 	// ETRemoteClientRemoveDatasetCompleted indicates removing a dataset
 	// (logbook + versions) remove completed
 	// payload will be a RemoteEvent
-	ETRemoteClientRemoveDatasetCompleted = Type("remoteClient:RemoveDatasetCompleted")
+	ETRemoteClientRemoveDatasetCompleted = Topic("remoteClient:RemoveDatasetCompleted")
 )
 
 // RemoteEvent encapsulates the push / pull progress of a dataset version

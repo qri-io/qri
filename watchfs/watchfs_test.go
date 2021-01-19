@@ -32,12 +32,12 @@ func TestFilesysWatcher(t *testing.T) {
 	)
 
 	wg.Add(1)
-	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
+	bus.SubscribeTopics(func(_ context.Context, e event.Event) error {
 		t.Logf("got event!")
-		if typ != event.ETCreatedNewFile {
-			t.Errorf("wrong event type. wanted: %q, got: %q", event.ETCreatedNewFile, typ)
+		if e.Topic != event.ETCreatedNewFile {
+			t.Errorf("wrong event type. wanted: %q, got: %q", event.ETCreatedNewFile, e.Topic)
 		}
-		got = payload.(event.WatchfsChange)
+		got = e.Payload.(event.WatchfsChange)
 		wg.Done()
 		return nil
 	}, event.ETCreatedNewFile)
