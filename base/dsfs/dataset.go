@@ -37,6 +37,10 @@ var (
 // LoadDataset reads a dataset from a cafs and dereferences structure, transform, and commitMsg if they exist,
 // returning a fully-hydrated dataset
 func LoadDataset(ctx context.Context, store qfs.Filesystem, path string) (*dataset.Dataset, error) {
+	if store == nil {
+		return nil, fmt.Errorf("loading dataset: store is nil")
+	}
+
 	log.Debugf("LoadDataset path=%q", path)
 	// set a timeout to handle long-lived requests when connected to IPFS.
 	// if we don't have the dataset locally, IPFS will reach out onto the d.web to
