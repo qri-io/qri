@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/transform"
 )
 
 // TransformMethods encapsulates business logic for transforms
@@ -88,7 +89,7 @@ func (m *TransformMethods) Apply(p *ApplyParams, res *ApplyResult) error {
 	loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
 
 	scriptOut := p.ScriptOutput
-	err = base.TransformApply(ctx, ds, r, loader, str, scriptOut, p.Secrets)
+	err = transform.Apply(ctx, ds, r, loader, str, scriptOut, p.Secrets)
 	if err != nil {
 		return err
 	}

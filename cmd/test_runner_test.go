@@ -29,7 +29,7 @@ import (
 	"github.com/qri-io/qri/repo/gen"
 	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
-	"github.com/qri-io/qri/startf"
+	"github.com/qri-io/qri/transform/startf"
 	"github.com/spf13/cobra"
 )
 

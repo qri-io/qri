@@ -1,4 +1,4 @@
-package base
+package transform
 
 import (
 	"context"
@@ -10,13 +10,13 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/startf"
+	"github.com/qri-io/qri/transform/startf"
 )
 
 // TODO(dustmop): Tests. Especially once the `apply` command exists.
 
-// TransformApply applies the transform script to order to modify the changing dataset
-func TransformApply(
+// Apply applies the transform script to order to modify the changing dataset
+func Apply(
 	ctx context.Context,
 	ds *dataset.Dataset,
 	r repo.Repo,
