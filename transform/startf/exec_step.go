@@ -3,7 +3,6 @@ package startf
 import (
 	"context"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/qri-io/dataset"
@@ -14,7 +13,6 @@ import (
 	"github.com/qri-io/qri/repo"
 	skyctx "github.com/qri-io/qri/transform/startf/context"
 	skyds "github.com/qri-io/qri/transform/startf/ds"
-	skyqri "github.com/qri-io/qri/transform/startf/qri"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 )
@@ -24,19 +22,17 @@ type StepRunner interface {
 }
 
 type stepRunner struct {
-	runID        string
-	starCtx      *skyctx.Context
-	loadDataset  dsref.ParseResolveLoad
-	repo         repo.Repo
-	next         *dataset.Dataset
-	prev         *dataset.Dataset
-	skyqri       *skyqri.Module
-	checkFunc    func(path ...string) error
-	globals      starlark.StringDict
-	bodyFile     qfs.File
-	stderr       io.Writer
-	moduleLoader ModuleLoader
-	eventsCh     chan event.Event
+	runID       string
+	starCtx     *skyctx.Context
+	loadDataset dsref.ParseResolveLoad
+	repo        repo.Repo
+	next        *dataset.Dataset
+	prev        *dataset.Dataset
+	checkFunc   func(path ...string) error
+	globals     starlark.StringDict
+	bodyFile    qfs.File
+	eventsCh    chan event.Event
+	thread      *starlark.Thread
 
 	download starlark.Iterable
 }
@@ -53,6 +49,7 @@ func NewStepRunner(eventsCh chan event.Event, runID string, prev, next *dataset.
 	resolve.AllowSet = o.AllowSet
 	resolve.AllowLambda = o.AllowLambda
 	resolve.AllowNestedDef = o.AllowNestedDef
+	resolve.LoadBindsGlobally = true
 
 	// add error func to starlark environment
 	starlark.Universe["error"] = starlark.NewBuiltin("error", Error)
@@ -60,35 +57,42 @@ func NewStepRunner(eventsCh chan event.Event, runID string, prev, next *dataset.
 		starlark.Universe[key] = val
 	}
 
+	thread := &starlark.Thread{
+		Load: o.ModuleLoader,
+		Print: func(thread *starlark.Thread, msg string) {
+			// note we're ignoring a returned error here
+			_, _ = o.ErrWriter.Write([]byte(msg))
+		},
+	}
+
 	// starCtx := skyctx.NewContext(o.Config, o.Secrets)
 	starCtx := skyctx.NewContext(nil, o.Secrets)
 
 	r := &stepRunner{
-		starCtx:      starCtx,
-		loadDataset:  o.DatasetLoader,
-		repo:         o.Repo,
-		skyqri:       skyqri.NewModule(o.Repo),
-		prev:         prev,
-		next:         next,
-		checkFunc:    o.MutateFieldCheck,
-		stderr:       o.ErrWriter,
-		moduleLoader: o.ModuleLoader,
-		eventsCh:     eventsCh,
+		starCtx:     starCtx,
+		loadDataset: o.DatasetLoader,
+		repo:        o.Repo,
+		prev:        prev,
+		next:        next,
+		checkFunc:   o.MutateFieldCheck,
+		eventsCh:    eventsCh,
+		thread:      thread,
+		globals:     starlark.StringDict{},
 	}
 
 	return r
 }
 
 func (r *stepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *dataset.TransformStep) error {
-	thread := &starlark.Thread{
-		Load: r.ModuleLoader,
-		Print: func(thread *starlark.Thread, msg string) {
-			// note we're ignoring a returned error here
-			_, _ = r.stderr.Write([]byte(msg))
-		},
+	r.globals["print"] = starlark.NewBuiltin("print", r.print)
+	r.globals["load_dataset"] = starlark.NewBuiltin("load_dataset", r.LoadDatasetFunc(ctx))
+
+	script, ok := st.Script.(string)
+	if !ok {
+		return fmt.Errorf("starlark step Script must be a string. got %T", st.Script)
 	}
 
-	globals, err := starlark.ExecFile(thread, fmt.Sprintf("%s.star", st.Name), strings.NewReader(st.Value), r.locals(ctx))
+	globals, err := starlark.ExecFile(r.thread, fmt.Sprintf("%s.star", st.Name), strings.NewReader(script), r.globals)
 	if err != nil {
 		if evalErr, ok := err.(*starlark.EvalError); ok {
 			return fmt.Errorf(evalErr.Backtrace())
@@ -96,51 +100,21 @@ func (r *stepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *datas
 		return err
 	}
 
-	if err := r.callStepFunc(globals, thread, st.Type); err != nil {
+	log.Debugw("executing file got", "globals", globals)
+	for key, val := range globals {
+		r.globals[key] = val
+	}
+
+	if err := r.callStepFunc(r.thread, st.Category); err != nil {
 		return err
 	}
 
-	// funcs, err := t.specialFuncs()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// for name, fn := range funcs {
-	// 	eventsCh <- eventData{event.ETTransformStepStart, event.TransformStepLifecycle{Name: name}}
-	// 	val, err := fn(t, thread, tfCtx)
-
-	// 	if err != nil {
-	// 		if evalErr, ok := err.(*starlark.EvalError); ok {
-	// 			eventsCh <- eventData{event.ETError, event.TransformMessage{Msg: evalErr.Backtrace()}}
-	// 			eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: name, Status: "failed"}}
-	// 			return fmt.Errorf(evalErr.Backtrace())
-	// 		}
-	// 		eventsCh <- eventData{event.ETError, event.TransformMessage{Msg: err.Error()}}
-	// 		eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: name, Status: "failed"}}
-	// 		return err
-	// 	}
-
-	// 	eventsCh <- eventData{event.ETTransformStepStop, event.TransformStepLifecycle{Name: name, Status: "succeeded"}}
-	// 	tfCtx.SetResult(name, val)
-	// }
-
-	// return err
 	return nil
 }
 
-// ModuleLoader sums all loading assets to resolve a module name during transform execution
-func (r *stepRunner) ModuleLoader(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
-	if r.moduleLoader == nil {
-		return nil, fmt.Errorf("couldn't load module: %s", module)
-	}
-
-	return r.moduleLoader(thread, module)
-}
-
-func (r *stepRunner) callStepFunc(globals starlark.StringDict, thread *starlark.Thread, stepType string) error {
-	log.Debugw("calling step function", "step", stepType, "globals", globals)
+func (r *stepRunner) callStepFunc(thread *starlark.Thread, stepType string) error {
+	log.Debugw("calling step function", "step", stepType, "globals", r.globals)
 	if stepType == "setup" {
-		r.globals = globals
 		return nil
 	}
 
@@ -158,28 +132,6 @@ func (r *stepRunner) callStepFunc(globals starlark.StringDict, thread *starlark.
 		return fmt.Errorf("unrecognized starlark step type %q", stepType)
 	}
 }
-
-// func (r *stepRunner) specialFuncs() (defined map[string]specialFunc, err error) {
-// 	specialFuncs := map[string]specialFunc{
-// 		"setup": r.callSetupFunc,
-// 		"download": r.callDownloadFunc,
-// 	}
-
-// 	defined = map[string]specialFunc{}
-
-// 	for name, fn := range specialFuncs {
-// 		if _, err = t.globalFunc(name); err != nil {
-// 			if err == ErrNotDefined {
-// 				err = nil
-// 				continue
-// 			}
-// 			return nil, err
-// 		}
-// 		defined[name] = fn
-// 	}
-
-// 	return
-// }
 
 // globalFunc checks if a global function is defined
 func (r *stepRunner) globalFunc(name string) (fn *starlark.Function, err error) {
@@ -232,18 +184,6 @@ func (r *stepRunner) callTransformFunc(thread *starlark.Thread, transform *starl
 	// r.eventsCh <- event.Event{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Name: "stepRunner", Status: "succeeded"}}
 
 	return nil
-}
-
-func (r *stepRunner) locals(ctx context.Context) starlark.StringDict {
-	log.Debugw("globals", "globals", r.globals)
-	if r.globals == nil {
-		return starlark.StringDict{
-			"load_dataset": starlark.NewBuiltin("load_dataset", r.LoadDatasetFunc(ctx)),
-			"print":        starlark.NewBuiltin("print", r.print),
-		}
-	}
-
-	return r.globals
 }
 
 // LoadDataset implements the starlark load_dataset function

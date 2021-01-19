@@ -14,6 +14,7 @@ func NewRunID() string {
 // Run represents the state of a transform execution
 type Run struct {
 	ID          string     `json:"ID"`
+	Number      int        `json:"number"`
 	Start       *time.Time `json:"start"`
 	Stop        *time.Time `json:"stop"`
 	Error       string     `json:"error,omitempty"`

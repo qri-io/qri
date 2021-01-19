@@ -92,11 +92,11 @@ func Apply(
 		hasFailedStep := false
 		for i, step := range ds.Transform.Steps {
 			if hasFailedStep {
-				eventsCh <- event.Event{Type: event.ETTransformStepSkip, Payload: event.TransformStepLifecycle{Name: step.Name, Type: step.Type}}
+				eventsCh <- event.Event{Type: event.ETTransformStepSkip, Payload: event.TransformStepLifecycle{Name: step.Name, Type: step.Category}}
 				continue
 			}
 
-			eventsCh <- event.Event{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Name: step.Name, Type: step.Type}}
+			eventsCh <- event.Event{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Name: step.Name, Type: step.Category}}
 			status := "succeeded"
 
 			switch step.Syntax {
