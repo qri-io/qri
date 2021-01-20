@@ -11,6 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/key"
 	"github.com/theckman/go-flock"
 )
 
@@ -52,15 +53,20 @@ func NewStore(cfg *config.Config) (Store, error) {
 		return nil, err
 	}
 
+	keyStore, err := key.NewStore(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	if cfg.Repo == nil {
-		return NewMemStore(pro)
+		return NewMemStore(pro, keyStore)
 	}
 
 	switch cfg.Repo.Type {
 	case "fs":
-		return NewLocalStore(filepath.Join(filepath.Dir(cfg.Path()), "peers.json"), pro)
+		return NewLocalStore(filepath.Join(filepath.Dir(cfg.Path()), "peers.json"), pro, keyStore)
 	case "mem":
-		return NewMemStore(pro)
+		return NewMemStore(pro, keyStore)
 	default:
 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
 	}
@@ -69,12 +75,13 @@ func NewStore(cfg *config.Config) (Store, error) {
 // MemStore is an in-memory implementation of the profile Store interface
 type MemStore struct {
 	sync.Mutex
-	owner *Profile
-	store map[ID]*Profile
+	owner    *Profile
+	store    map[ID]*Profile
+	keyStore key.Store
 }
 
 // NewMemStore allocates a MemStore
-func NewMemStore(owner *Profile) (Store, error) {
+func NewMemStore(owner *Profile, ks key.Store) (Store, error) {
 	if err := owner.ValidOwnerProfile(); err != nil {
 		return nil, err
 	}
@@ -84,6 +91,7 @@ func NewMemStore(owner *Profile) (Store, error) {
 		store: map[ID]*Profile{
 			owner.ID: owner,
 		},
+		keyStore: ks,
 	}, nil
 }
 
@@ -99,14 +107,25 @@ func (m *MemStore) SetOwner(own *Profile) error {
 }
 
 // PutProfile adds a peer to this store
-func (m *MemStore) PutProfile(profile *Profile) error {
-	if profile.ID.String() == "" {
+func (m *MemStore) PutProfile(p *Profile) error {
+	if p.ID.String() == "" {
 		return fmt.Errorf("profile.ID is required")
 	}
 
 	m.Lock()
-	m.store[profile.ID] = profile
+	m.store[p.ID] = p
 	m.Unlock()
+
+	if p.PubKey != nil {
+		if err := m.keyStore.AddPubKey(p.GetKeyID(), p.PubKey); err != nil {
+			return err
+		}
+	}
+	if p.PrivKey != nil {
+		if err := m.keyStore.AddPrivKey(p.GetKeyID(), p.PrivKey); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -177,7 +196,13 @@ func (m *MemStore) GetProfile(id ID) (*Profile, error) {
 	if m.store[id] == nil {
 		return nil, ErrNotFound
 	}
-	return m.store[id], nil
+
+	pro := m.store[id]
+	pro.KeyID = pro.GetKeyID()
+	pro.PubKey = m.keyStore.PubKey(pro.GetKeyID())
+	pro.PrivKey = m.keyStore.PrivKey(pro.GetKeyID())
+
+	return pro, nil
 }
 
 // DeleteProfile removes a peer from this store
@@ -194,18 +219,20 @@ func (m *MemStore) DeleteProfile(id ID) error {
 type LocalStore struct {
 	sync.Mutex
 	owner    *Profile
+	keyStore key.Store
 	filename string
 	flock    *flock.Flock
 }
 
 // NewLocalStore allocates a LocalStore
-func NewLocalStore(filename string, owner *Profile) (Store, error) {
+func NewLocalStore(filename string, owner *Profile, ks key.Store) (Store, error) {
 	if err := owner.ValidOwnerProfile(); err != nil {
 		return nil, err
 	}
 
 	return &LocalStore{
 		owner:    owner,
+		keyStore: ks,
 		filename: filename,
 		flock:    flock.NewFlock(lockPath(filename)),
 	}, nil
@@ -223,7 +250,7 @@ func (r *LocalStore) Owner() *Profile {
 // SetOwner updates the owner profile
 func (r *LocalStore) SetOwner(own *Profile) error {
 	r.owner = own
-	return nil
+	return r.PutProfile(own)
 }
 
 // PutProfile adds a peer to the store
@@ -240,6 +267,17 @@ func (r *LocalStore) PutProfile(p *Profile) error {
 
 	// explicitly remove Online flag
 	enc.Online = false
+
+	if p.PubKey != nil {
+		if err := r.keyStore.AddPubKey(p.GetKeyID(), p.PubKey); err != nil {
+			return err
+		}
+	}
+	if p.PrivKey != nil {
+		if err := r.keyStore.AddPrivKey(p.GetKeyID(), p.PrivKey); err != nil {
+			return err
+		}
+	}
 
 	r.Lock()
 	defer r.Unlock()
@@ -337,6 +375,9 @@ func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
 		if ids == proid {
 			pro := &Profile{}
 			err := pro.Decode(p)
+			pro.KeyID = pro.GetKeyID()
+			pro.PubKey = r.keyStore.PubKey(pro.GetKeyID())
+			pro.PrivKey = r.keyStore.PrivKey(pro.GetKeyID())
 			return pro, err
 		}
 	}

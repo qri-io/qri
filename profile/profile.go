@@ -12,19 +12,26 @@ import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/key"
 )
 
 var log = logger.Logger("profile")
 
 // Profile defines peer profile details
 type Profile struct {
+	// All Profiles are built on public key infrastructure
+	// PrivKey is the peer's private key, should only be present for the current peer
+	PrivKey crypto.PrivKey `json:"_,omitempty"`
+	// PubKey is the peer's public key
+	PubKey crypto.PubKey `json:"key,omitempty"`
+	// KeyID is the key identifier used for the keystore
+	KeyID key.ID `json:"key_id,omitempty"`
+
 	ID ID `json:"id"`
 	// Created timestamp
 	Created time.Time `json:"created,omitempty"`
 	// Updated timestamp
 	Updated time.Time `json:"updated,omitempty"`
-	// PrivKey is the peer's private key, should only be present for the current peer
-	PrivKey crypto.PrivKey `json:"_,omitempty"`
 	// Peername a handle for the user. min 1 character, max 80. composed of [_,-,a-z,A-Z,1-9]
 	Peername string `json:"peername"`
 	// specifies weather this is a user or an organization
@@ -49,6 +56,7 @@ type Profile struct {
 	Twitter string `json:"twitter"`
 	// Online indicates if this peer is currently connected to the network
 	Online bool `json:"online,omitempty"`
+
 	// PeerIDs lists any network PeerIDs associated with this profile
 	// in the form /network/peerID
 	PeerIDs []peer.ID `json:"peerIDs"`
@@ -109,6 +117,8 @@ func (p *Profile) Decode(sp *config.ProfilePod) error {
 			return fmt.Errorf("invalid private key: %s", err.Error())
 		}
 		pro.PrivKey = pk
+		pro.PubKey = pk.GetPublic()
+		pro.KeyID = pro.GetKeyID()
 	}
 
 	if sp.Thumb != "" {
@@ -175,4 +185,13 @@ func (p *Profile) ValidOwnerProfile() error {
 	}
 	// TODO (b5) - confirm PrivKey is valid
 	return nil
+}
+
+// GetKeyID returns a KeyID assigned to the profile or falls back
+// to the profile ID if none is present
+func (p *Profile) GetKeyID() key.ID {
+	if p.KeyID == key.ID("") {
+		p.KeyID = key.ID(p.ID.String())
+	}
+	return p.KeyID
 }

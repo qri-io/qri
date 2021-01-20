@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qfs"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/key"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -440,7 +441,11 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefAlphabetized(t *testing.T) {
 		Peername: "test_user",
 		PrivKey:  peerInfo.PrivKey,
 	}
-	profiles, err := profile.NewMemStore(pro)
+	keyStore, err := key.NewMemStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	profiles, err := profile.NewMemStore(pro, keyStore)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -513,7 +518,11 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 		Peername: "test_user",
 		PrivKey:  peerInfo.PrivKey,
 	}
-	profiles, err := profile.NewMemStore(pro)
+	keyStore, err := key.NewMemStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	profiles, err := profile.NewMemStore(pro, keyStore)
 	if err != nil {
 		t.Fatal(err)
 	}

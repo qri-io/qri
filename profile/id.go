@@ -15,6 +15,11 @@ func (id ID) String() string {
 	return peer.ID(id).Pretty()
 }
 
+// Validate exposes the validation interface for ID
+func (id ID) Validate() error {
+	return peer.ID(id).Validate()
+}
+
 // MarshalJSON implements the json.Marshaler interface for ID
 func (id ID) MarshalJSON() ([]byte, error) {
 	return json.Marshal(id.String())
