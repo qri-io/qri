@@ -8,12 +8,13 @@ import (
 	"github.com/qri-io/qri/api/util"
 )
 
-// middleware handles request logging
-func (s Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
+// Middleware handles request logging
+func (s Server) Middleware(handler http.HandlerFunc) http.HandlerFunc {
 	return s.mwFunc(handler, true)
 }
 
-func (s Server) noLogMiddleware(handler http.HandlerFunc) http.HandlerFunc {
+// NoLogMiddleware runs middleware without logging the request
+func (s Server) NoLogMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return s.mwFunc(handler, false)
 }
 
