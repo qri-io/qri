@@ -80,7 +80,7 @@ func TestNewInstance(t *testing.T) {
 	var firedEventWg sync.WaitGroup
 	firedEventWg.Add(1)
 	handler := func(_ context.Context, e event.Event) error {
-		if e.Topic == event.ETInstanceConstructed {
+		if e.Type == event.ETInstanceConstructed {
 			firedEventWg.Done()
 		}
 		return nil
@@ -252,10 +252,10 @@ func TestInstanceEventSubscription(t *testing.T) {
 	// remove default ipfs fs, not needed for this test
 	cfg.Filesystems = []qfs.Config{{Type: "mem"}}
 
-	eventCh := make(chan event.Topic, 1)
+	eventCh := make(chan event.Type, 1)
 	expect := event.ETP2PGoneOnline
 	eventHandler := func(_ context.Context, e event.Event) error {
-		eventCh <- e.Topic
+		eventCh <- e.Type
 		return nil
 	}
 

@@ -55,7 +55,7 @@ func NewDscache(ctx context.Context, fsys qfs.Filesystem, bus event.Bus, usernam
 		}
 	}
 	cache.DefaultUsername = username
-	bus.SubscribeTopics(cache.handler,
+	bus.SubscribeTypes(cache.handler,
 		event.ETDatasetNameInit,
 		event.ETDatasetCommitChange,
 		event.ETDatasetDeleteAll,
@@ -244,7 +244,7 @@ func (d *Dscache) handler(_ context.Context, e event.Event) error {
 		return nil
 	}
 
-	switch e.Topic {
+	switch e.Type {
 	case event.ETDatasetNameInit:
 		if err := d.updateInitDataset(act); err != nil && err != ErrNoDscache {
 			log.Error(err)

@@ -102,7 +102,7 @@ func TestQriProfileService(t *testing.T) {
 			unexpectedPeers = append(unexpectedPeers, pid)
 			return nil
 		}
-		if e.Topic == event.ETP2PQriPeerConnected {
+		if e.Type == event.ETP2PQriPeerConnected {
 			connectedPeersMu.Lock()
 			defer connectedPeersMu.Unlock()
 			t.Log("Qri Peer Connected: ", pid)
@@ -117,7 +117,7 @@ func TestQriProfileService(t *testing.T) {
 				close(qriPeerConnWaitCh)
 			}
 		}
-		if e.Topic == event.ETP2PQriPeerDisconnected {
+		if e.Type == event.ETP2PQriPeerDisconnected {
 			disconnectedPeersMu.Lock()
 			defer disconnectedPeersMu.Unlock()
 			t.Log("Qri Peer Disconnected: ", pid)
@@ -134,7 +134,7 @@ func TestQriProfileService(t *testing.T) {
 		}
 		return nil
 	}
-	bus.SubscribeTopics(watchP2PQriEvents, event.ETP2PQriPeerConnected, event.ETP2PQriPeerDisconnected)
+	bus.SubscribeTypes(watchP2PQriEvents, event.ETP2PQriPeerConnected, event.ETP2PQriPeerDisconnected)
 
 	// create a new, disconnected node
 	testnode, err := p2ptest.NewNodeWithBus(ctx, factory, bus)
@@ -252,15 +252,15 @@ func TestDiscoveryConnection(t *testing.T) {
 			return fmt.Errorf("payload for event.ETP2PQriPeerConnected not a *profile.Profile as expected")
 		}
 		pid := pro.PeerIDs[0]
-		if e.Topic == event.ETP2PQriPeerConnected {
+		if e.Type == event.ETP2PQriPeerConnected {
 			t.Log("Qri Peer Connected: ", pid)
 		}
-		if e.Topic == event.ETP2PQriPeerDisconnected {
+		if e.Type == event.ETP2PQriPeerDisconnected {
 			t.Log("Qri Peer Disconnected: ", pid)
 		}
 		return nil
 	}
-	busA.SubscribeTopics(watchP2PQriEvents, event.ETP2PQriPeerConnected, event.ETP2PQriPeerDisconnected)
+	busA.SubscribeTypes(watchP2PQriEvents, event.ETP2PQriPeerConnected, event.ETP2PQriPeerDisconnected)
 
 	testNodeA, err := p2ptest.NewNodeWithBus(ctx, factory, busA)
 	if err != nil {

@@ -75,7 +75,7 @@ func TestResolveRef(t *testing.T) {
 			t.Logf("peer %q event occurred, but not an expected peer", pid)
 			return nil
 		}
-		if e.Topic == event.ETP2PQriPeerConnected {
+		if e.Type == event.ETP2PQriPeerConnected {
 			connectedPeersMu.Lock()
 			defer connectedPeersMu.Unlock()
 			t.Log("Qri Peer Connected: ", pid)
@@ -92,7 +92,7 @@ func TestResolveRef(t *testing.T) {
 		}
 		return nil
 	}
-	bus.SubscribeTopics(watchP2PQriEvents, event.ETP2PQriPeerConnected)
+	bus.SubscribeTypes(watchP2PQriEvents, event.ETP2PQriPeerConnected)
 
 	// create a new, disconnected node
 	testnode, err := p2ptest.NewNodeWithBus(ctx, factory, bus)

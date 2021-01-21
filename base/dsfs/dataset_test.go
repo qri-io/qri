@@ -334,9 +334,9 @@ func TestDatasetSaveEvents(t *testing.T) {
 	privKey := testPeers.GetTestPeerInfo(10).PrivKey
 	bus := event.NewBus(ctx)
 
-	fired := map[event.Topic]int{}
-	bus.SubscribeTopics(func(ctx context.Context, e event.Event) error {
-		fired[e.Topic]++
+	fired := map[event.Type]int{}
+	bus.SubscribeTypes(func(ctx context.Context, e event.Event) error {
+		fired[e.Type]++
 		return nil
 	},
 		event.ETDatasetSaveStarted,
@@ -356,7 +356,7 @@ func TestDatasetSaveEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expect := map[event.Topic]int{
+	expect := map[event.Type]int{
 		event.ETDatasetSaveStarted:   1,
 		event.ETDatasetSaveProgress:  2,
 		event.ETDatasetSaveCompleted: 1,

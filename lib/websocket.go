@@ -68,11 +68,11 @@ func (inst *Instance) ServeWebsocket(ctx context.Context) {
 	handler := func(_ context.Context, e event.Event) error {
 		ctx := context.Background()
 		evt := map[string]interface{}{
-			"type": string(e.Topic),
+			"type": string(e.Type),
 			"data": e.Payload,
 		}
 
-		log.Debugf("sending event %q to %d websocket conns", e.Topic, len(connections))
+		log.Debugf("sending event %q to %d websocket conns", e.Type, len(connections))
 		for k, c := range connections {
 			go func(k int, c *websocket.Conn) {
 				err := wsjson.Write(ctx, c, evt)

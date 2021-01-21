@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	ETMainSaidHello   = Topic("main:SaidHello")
-	ETMainOpSucceeded = Topic("main:OperationSucceeded")
-	ETMainOpFailed    = Topic("main:OperationFailed")
+	ETMainSaidHello   = Type("main:SaidHello")
+	ETMainOpSucceeded = Type("main:OperationSucceeded")
+	ETMainOpFailed    = Type("main:OperationFailed")
 )
 
 func Example() {
@@ -28,9 +28,9 @@ func Example() {
 		}
 	}
 
-	bus.SubscribeTopics(makeDoneHandler("first"), ETMainSaidHello, ETMainOpSucceeded)
-	bus.SubscribeTopics(makeDoneHandler("second"), ETMainSaidHello)
-	bus.SubscribeTopics(makeDoneHandler("third"), ETMainSaidHello)
+	bus.SubscribeTypes(makeDoneHandler("first"), ETMainSaidHello, ETMainOpSucceeded)
+	bus.SubscribeTypes(makeDoneHandler("second"), ETMainSaidHello)
+	bus.SubscribeTypes(makeDoneHandler("third"), ETMainSaidHello)
 
 	bus.Publish(ctx, ETMainSaidHello, "hello")
 	bus.Publish(ctx, ETMainOpSucceeded, "operation worked!")
@@ -41,7 +41,7 @@ func Example() {
 	// first handler called
 }
 
-func TestEventSubscribeTopics(t *testing.T) {
+func TestEventSubscribeTypes(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
@@ -65,7 +65,7 @@ func TestEventSubscribeTopics(t *testing.T) {
 		return nil
 	}
 
-	bus.SubscribeTopics(handler, ETMainSaidHello)
+	bus.SubscribeTypes(handler, ETMainSaidHello)
 
 	bus.Publish(ctx, ETMainOpFailed, "ignore me")
 	bus.Publish(ctx, ETMainSaidHello, "hello")
@@ -81,7 +81,7 @@ func TestEventSubscribeTopics(t *testing.T) {
 	if diff := cmp.Diff(expectTs, gotTimestamp); diff != "" {
 		t.Errorf("timestamp (-want +got):\n%s", diff)
 	}
-	// Only topic we care about sets the payload value
+	// Only type we care about sets the payload value
 	expectPayload := "hello"
 	if diff := cmp.Diff(expectPayload, gotPayload); diff != "" {
 		t.Errorf("payload (-want +got):\n%s", diff)
@@ -129,7 +129,7 @@ func TestEventSubscribeID(t *testing.T) {
 	if diff := cmp.Diff(expectTs, gotTimestamp); diff != "" {
 		t.Errorf("timestamp (-want +got):\n%s", diff)
 	}
-	// Only topic we care about sets the payload value
+	// Only id we care about sets the payload value
 	expectPayload := "hi3"
 	if diff := cmp.Diff(expectPayload, gotPayload); diff != "" {
 		t.Errorf("payload (-want +got):\n%s", diff)

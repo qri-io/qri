@@ -54,7 +54,7 @@ func NewFilesysWatcher(ctx context.Context, bus event.Bus) (*FilesysWatcher, err
 		bus:     bus,
 	}
 
-	bus.SubscribeTopics(w.eventHandler,
+	bus.SubscribeTypes(w.eventHandler,
 		event.ETFSICreateLinkEvent,
 	)
 
@@ -87,7 +87,7 @@ func NewFilesysWatcher(ctx context.Context, bus event.Bus) (*FilesysWatcher, err
 }
 
 func (w *FilesysWatcher) eventHandler(ctx context.Context, e event.Event) error {
-	switch e.Topic {
+	switch e.Type {
 	case event.ETFSICreateLinkEvent:
 		go func() {
 			if fce, ok := e.Payload.(event.FSICreateLinkEvent); ok {
@@ -146,9 +146,9 @@ func (w *FilesysWatcher) Watch(path EventPath) {
 }
 
 // publishEvent sends a message on the channel about an event
-func (w *FilesysWatcher) publishEvent(topic event.Topic, sour, dest string) {
+func (w *FilesysWatcher) publishEvent(typ event.Type, sour, dest string) {
 	if w.filterSource(sour) {
-		log.Debugf("filesystem event %q %s -> %s\n", topic, sour, dest)
+		log.Debugf("filesystem event %q %s -> %s\n", typ, sour, dest)
 
 		dir := filepath.Dir(sour)
 		ep := w.assoc[dir]
@@ -161,7 +161,7 @@ func (w *FilesysWatcher) publishEvent(topic event.Topic, sour, dest string) {
 		}
 
 		go func() {
-			if err := w.bus.Publish(context.Background(), topic, event); err != nil {
+			if err := w.bus.Publish(context.Background(), typ, event); err != nil {
 				log.Error(err)
 			}
 		}()

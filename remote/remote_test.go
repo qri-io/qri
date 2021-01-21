@@ -79,18 +79,18 @@ func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 	cli := tr.NodeBClient(t)
 
 	var (
-		firedEvents            []event.Topic
+		firedEvents            []event.Type
 		pushProgressEventFired bool
 		pullProgressEventFired bool
 	)
-	tr.NodeB.Repo.Bus().SubscribeTopics(func(_ context.Context, e event.Event) error {
-		switch e.Topic {
+	tr.NodeB.Repo.Bus().SubscribeTypes(func(_ context.Context, e event.Event) error {
+		switch e.Type {
 		case event.ETRemoteClientPushVersionProgress:
 			pushProgressEventFired = true
 		case event.ETRemoteClientPullVersionProgress:
 			pullProgressEventFired = true
 		default:
-			firedEvents = append(firedEvents, e.Topic)
+			firedEvents = append(firedEvents, e.Type)
 		}
 		return nil
 	},
@@ -155,7 +155,7 @@ func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 
-	expectEventsOrder := []event.Topic{
+	expectEventsOrder := []event.Type{
 		event.ETRemoteClientPullDatasetCompleted,
 		event.ETRemoteClientPushVersionCompleted,
 		event.ETRemoteClientPushDatasetCompleted,

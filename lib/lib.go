@@ -84,7 +84,7 @@ type InstanceOptions struct {
 	remoteOptsFuncs []remote.OptionsFunc
 
 	eventHandler event.Handler
-	events       []event.Topic
+	events       []event.Type
 }
 
 // InstanceContextKey is used by context to set keys for constucting a lib.Instance
@@ -277,7 +277,7 @@ func OptLogbook(bk *logbook.Book) Option {
 // plase note that event handlers in qri are synchronous. A handler function
 // that takes a long time to return will slow down the performance of qri
 // generally
-func OptEventHandler(handler event.Handler, events ...event.Topic) Option {
+func OptEventHandler(handler event.Handler, events ...event.Type) Option {
 	return func(o *InstanceOptions) error {
 		o.eventHandler = handler
 		o.events = events
@@ -408,7 +408,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if o.eventHandler != nil && o.events != nil {
-		inst.bus.SubscribeTopics(o.eventHandler, o.events...)
+		inst.bus.SubscribeTypes(o.eventHandler, o.events...)
 	}
 
 	if inst.qfs == nil {
