@@ -53,8 +53,8 @@ func TestResolveRef(t *testing.T) {
 
 	node := &QriNode{}
 
-	watchP2PQriEvents := func(_ context.Context, typ event.Type, payload interface{}) error {
-		pro, ok := payload.(*profile.Profile)
+	watchP2PQriEvents := func(_ context.Context, e event.Event) error {
+		pro, ok := e.Payload.(*profile.Profile)
 		if !ok {
 			t.Error("payload for event.ETP2PQriPeerConnected not a *profile.Profile as expected")
 			return fmt.Errorf("payload for event.ETP2PQriPeerConnected not a *profile.Profile as expected")
@@ -75,7 +75,7 @@ func TestResolveRef(t *testing.T) {
 			t.Logf("peer %q event occurred, but not an expected peer", pid)
 			return nil
 		}
-		if typ == event.ETP2PQriPeerConnected {
+		if e.Type == event.ETP2PQriPeerConnected {
 			connectedPeersMu.Lock()
 			defer connectedPeersMu.Unlock()
 			t.Log("Qri Peer Connected: ", pid)
@@ -92,7 +92,7 @@ func TestResolveRef(t *testing.T) {
 		}
 		return nil
 	}
-	bus.Subscribe(watchP2PQriEvents, event.ETP2PQriPeerConnected)
+	bus.SubscribeTypes(watchP2PQriEvents, event.ETP2PQriPeerConnected)
 
 	// create a new, disconnected node
 	testnode, err := p2ptest.NewNodeWithBus(ctx, factory, bus)

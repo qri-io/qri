@@ -83,14 +83,14 @@ func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 		pushProgressEventFired bool
 		pullProgressEventFired bool
 	)
-	tr.NodeB.Repo.Bus().Subscribe(func(_ context.Context, typ event.Type, _ interface{}) error {
-		switch typ {
+	tr.NodeB.Repo.Bus().SubscribeTypes(func(_ context.Context, e event.Event) error {
+		switch e.Type {
 		case event.ETRemoteClientPushVersionProgress:
 			pushProgressEventFired = true
 		case event.ETRemoteClientPullVersionProgress:
 			pullProgressEventFired = true
 		default:
-			firedEvents = append(firedEvents, typ)
+			firedEvents = append(firedEvents, e.Type)
 		}
 		return nil
 	},

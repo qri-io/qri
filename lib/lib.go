@@ -408,7 +408,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if o.eventHandler != nil && o.events != nil {
-		inst.bus.Subscribe(o.eventHandler, o.events...)
+		inst.bus.SubscribeTypes(o.eventHandler, o.events...)
 	}
 
 	if inst.qfs == nil {

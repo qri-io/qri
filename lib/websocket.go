@@ -65,14 +65,14 @@ func (inst *Instance) ServeWebsocket(ctx context.Context) {
 	}
 	defer srv.Close()
 
-	handler := func(_ context.Context, t event.Type, payload interface{}) error {
+	handler := func(_ context.Context, e event.Event) error {
 		ctx := context.Background()
 		evt := map[string]interface{}{
-			"type": string(t),
-			"data": payload,
+			"type": string(e.Type),
+			"data": e.Payload,
 		}
 
-		log.Debugf("sending event %q to %d websocket conns", t, len(connections))
+		log.Debugf("sending event %q to %d websocket conns", e.Type, len(connections))
 		for k, c := range connections {
 			go func(k int, c *websocket.Conn) {
 				err := wsjson.Write(ctx, c, evt)
@@ -84,26 +84,7 @@ func (inst *Instance) ServeWebsocket(ctx context.Context) {
 		return nil
 	}
 
-	inst.bus.Subscribe(handler,
-		event.ETFSICreateLinkEvent,
-		event.ETCreatedNewFile,
-		event.ETModifiedFile,
-		event.ETDeletedFile,
-		event.ETRenamedFolder,
-		event.ETRemovedFolder,
-
-		event.ETRemoteClientPushVersionProgress,
-		event.ETRemoteClientPushVersionCompleted,
-		event.ETRemoteClientPushDatasetCompleted,
-		event.ETRemoteClientPullVersionProgress,
-		event.ETRemoteClientPullVersionCompleted,
-		event.ETRemoteClientPullDatasetCompleted,
-		event.ETRemoteClientRemoveDatasetCompleted,
-
-		event.ETDatasetSaveStarted,
-		event.ETDatasetSaveProgress,
-		event.ETDatasetSaveCompleted,
-	)
+	inst.bus.SubscribeAll(handler)
 
 	// Start http server for websocket.
 	go func() {

@@ -55,7 +55,7 @@ func NewDscache(ctx context.Context, fsys qfs.Filesystem, bus event.Bus, usernam
 		}
 	}
 	cache.DefaultUsername = username
-	bus.Subscribe(cache.handler,
+	bus.SubscribeTypes(cache.handler,
 		event.ETDatasetNameInit,
 		event.ETDatasetCommitChange,
 		event.ETDatasetDeleteAll,
@@ -237,14 +237,14 @@ func (d *Dscache) validateProfileID(profileID string) bool {
 	return len(profileID) == lengthOfProfileID
 }
 
-func (d *Dscache) handler(_ context.Context, t event.Type, payload interface{}) error {
-	act, ok := payload.(event.DsChange)
+func (d *Dscache) handler(_ context.Context, e event.Event) error {
+	act, ok := e.Payload.(event.DsChange)
 	if !ok {
-		log.Error("dscache got an event with a payload that isn't a event.DsChange type: %v", payload)
+		log.Error("dscache got an event with a payload that isn't a event.DsChange type: %v", e.Payload)
 		return nil
 	}
 
-	switch t {
+	switch e.Type {
 	case event.ETDatasetNameInit:
 		if err := d.updateInitDataset(act); err != nil && err != ErrNoDscache {
 			log.Error(err)

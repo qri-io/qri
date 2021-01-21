@@ -614,7 +614,6 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		str := m.inst.node.LocalStreams
 		scriptOut := p.ScriptOutput
 		secrets := p.Secrets
-		r := m.inst.repo
 
 		// create a loader so transforms can call `load_dataset`
 		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverForMode
@@ -624,7 +623,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
 
 		// apply the transform
-		err := transform.Apply(ctx, ds, r, loader, str, scriptOut, secrets)
+		err := transform.Apply(ctx, ds, loader, str, scriptOut, secrets)
 		if err != nil {
 			return err
 		}

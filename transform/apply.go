@@ -9,7 +9,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/transform/startf"
 )
 
@@ -19,17 +18,11 @@ import (
 func Apply(
 	ctx context.Context,
 	ds *dataset.Dataset,
-	r repo.Repo,
 	loader dsref.ParseResolveLoad,
 	str ioes.IOStreams,
 	scriptOut io.Writer,
 	secrets map[string]string,
-) error {
-	pro, err := r.Profile()
-	if err != nil {
-		return err
-	}
-
+) (err error) {
 	var (
 		target = ds
 		head   *dataset.Dataset
@@ -40,7 +33,7 @@ func Apply(
 	}
 
 	if ds.Name != "" {
-		head, err = loader(ctx, fmt.Sprintf("%s/%s", pro.Peername, ds.Name))
+		head, err = loader(ctx, fmt.Sprintf("%s/%s", ds.Peername, ds.Name))
 		if errors.Is(err, dsref.ErrRefNotFound) || errors.Is(err, dsref.ErrNoHistory) {
 			// Dataset either does not exist yet, or has no history. Not an error
 			head = &dataset.Dataset{}
@@ -55,7 +48,6 @@ func Apply(
 	mutateCheck := startf.MutatedComponentsFunc(target)
 
 	opts := []func(*startf.ExecOpts){
-		startf.AddQriRepo(r),
 		startf.AddMutateFieldCheck(mutateCheck),
 		startf.SetErrWriter(scriptOut),
 		startf.SetSecrets(secrets),

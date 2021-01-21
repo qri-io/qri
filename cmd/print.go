@@ -245,17 +245,17 @@ func PrintProgressBarsOnEvents(w io.Writer, bus event.Bus) {
 	progress := map[string]*mpb.Bar{}
 
 	// wire up a subscription to print download progress to streams
-	bus.Subscribe(func(_ context.Context, typ event.Type, payload interface{}) error {
+	bus.SubscribeTypes(func(_ context.Context, e event.Event) error {
 		lock.Lock()
 		defer lock.Unlock()
-		log.Debugw("handle event", "type", typ, "payload", payload)
+		log.Debugw("handle event", "type", e.Type, "payload", e.Payload)
 
-		switch evt := payload.(type) {
+		switch evt := e.Payload.(type) {
 		case event.DsSaveEvent:
 			evtID := fmt.Sprintf("%s/%s", evt.Username, evt.Name)
 			cpl := int64(math.Ceil(evt.Completion * 100))
 
-			switch typ {
+			switch e.Type {
 			case event.ETDatasetSaveStarted:
 				bar, exists := progress[evtID]
 				if !exists {
@@ -277,7 +277,7 @@ func PrintProgressBarsOnEvents(w io.Writer, bus event.Bus) {
 				}
 			}
 		case event.RemoteEvent:
-			switch typ {
+			switch e.Type {
 			case event.ETRemoteClientPushVersionProgress:
 				bar, exists := progress[evt.Ref.String()]
 				if !exists {
