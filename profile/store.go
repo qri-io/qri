@@ -53,6 +53,11 @@ func NewStore(cfg *config.Config) (Store, error) {
 		return nil, err
 	}
 
+	// Don't create a localstore with the empty path, this will use the current directory
+	if cfg.Repo.Type == "fs" && cfg.Path() == "" {
+		return nil, fmt.Errorf("new Profile.FilesystemStore requires non-empty path")
+	}
+
 	keyStore, err := key.NewStore(cfg)
 	if err != nil {
 		return nil, err
