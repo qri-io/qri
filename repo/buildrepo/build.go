@@ -34,6 +34,11 @@ func New(ctx context.Context, path string, cfg *config.Config, opts ...func(o *O
 		opt(o)
 	}
 
+	// Don't create a localstore with the empty path, this will use the current directory
+	if cfg.Repo.Type == "fs" && cfg.Path() == "" {
+		return nil, fmt.Errorf("buildRepo.New using filesystem requires non-empty path")
+	}
+
 	var err error
 	if o.Profiles == nil {
 		if o.Profiles, err = profile.NewStore(cfg); err != nil {

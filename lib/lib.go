@@ -356,6 +356,12 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		return
 	}
 
+	// If configuration does not have a path assigned, but the repo has a path and
+	// is stored on the filesystem, add that path to the configuration.
+	if cfg.Repo.Type == "fs" && cfg.Path() == "" {
+		cfg.SetPath(filepath.Join(repoPath, "config.yal"))
+	}
+
 	inst := &Instance{
 		cancel: cancel,
 		doneCh: make(chan struct{}),

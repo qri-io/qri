@@ -27,6 +27,10 @@ func NewStore(cfg *config.Config) (Store, error) {
 
 	switch cfg.Repo.Type {
 	case "fs":
+		// Don't create a localstore with the empty path, this will use the current directory
+		if cfg.Path() == "" {
+			return nil, fmt.Errorf("new key.LocalStore requires non-empty path")
+		}
 		return NewLocalStore(filepath.Join(filepath.Dir(cfg.Path()), "keystore.json"))
 	case "mem":
 		return NewMemStore()
