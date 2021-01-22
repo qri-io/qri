@@ -28,7 +28,6 @@ func Apply(
 	secrets map[string]string,
 ) (string, error) {
 	var (
-		target = ds
 		head   *dataset.Dataset
 		runID  = NewRunID()
 		doneCh = make(chan error)
@@ -37,8 +36,8 @@ func Apply(
 
 	log.Debugw("applying transform", "runID", runID, "wait", wait)
 
-	if target.Transform == nil || target.Transform.ScriptFile() == nil {
-		log.Debugw("validating transform", "transform", target.Transform)
+	if ds.Transform == nil || ds.Transform.ScriptFile() == nil {
+		log.Debugw("validating transform", "transform", ds.Transform)
 		return runID, errors.New("apply requires a transform component with a script file")
 	}
 
@@ -56,7 +55,7 @@ func Apply(
 
 	// create a check func from a record of all the parts that the datasetPod is changing,
 	// the startf package will use this function to ensure the same components aren't modified
-	mutateCheck := startf.MutatedComponentsFunc(target)
+	mutateCheck := startf.MutatedComponentsFunc(ds)
 
 	opts := []func(*startf.ExecOpts){
 		startf.AddMutateFieldCheck(mutateCheck),
@@ -66,7 +65,7 @@ func Apply(
 	}
 
 	eventsCh := make(chan event.Event)
-	stepRunner := startf.NewStepRunner(eventsCh, runID, head, ds, opts...)
+	stepRunner := startf.NewStepRunner(eventsCh, runID, head, opts...)
 
 	go func() {
 		if !wait {
@@ -107,8 +106,8 @@ func Apply(
 					eventsCh <- event.Event{Type: event.ETError, Payload: event.TransformMessage{Msg: err.Error()}}
 					status = "failed"
 				}
-			case "qri":
-
+			case "save":
+				eventsCh <- event.Event{Type: event.ETPrint, Payload: event.TransformMessage{Msg: fmt.Sprintf("skipping 'save' step b/c it's not supported in the backend as a transform step yet")}}
 			default:
 				log.Debugw("skipping default step", "step", step)
 				eventsCh <- event.Event{Type: event.ETError, Payload: event.TransformMessage{Msg: fmt.Sprintf("unsupported transform syntax %q", step.Syntax)}}
@@ -145,7 +144,6 @@ func Apply(
 			tfStatus = "failed"
 		}
 		eventsCh <- event.Event{Type: event.ETTransformStop, Payload: event.TransformLifecycle{RunID: runID, Status: tfStatus}}
-
 		doneCh <- err
 	}()
 

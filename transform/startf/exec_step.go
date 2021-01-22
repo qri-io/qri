@@ -10,7 +10,6 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/repo"
 	skyctx "github.com/qri-io/qri/transform/startf/context"
 	skyds "github.com/qri-io/qri/transform/startf/ds"
 	"go.starlark.net/resolve"
@@ -25,8 +24,6 @@ type stepRunner struct {
 	runID       string
 	starCtx     *skyctx.Context
 	loadDataset dsref.ParseResolveLoad
-	repo        repo.Repo
-	next        *dataset.Dataset
 	prev        *dataset.Dataset
 	checkFunc   func(path ...string) error
 	globals     starlark.StringDict
@@ -37,7 +34,7 @@ type stepRunner struct {
 	download starlark.Iterable
 }
 
-func NewStepRunner(eventsCh chan event.Event, runID string, prev, next *dataset.Dataset, opts ...func(o *ExecOpts)) StepRunner {
+func NewStepRunner(eventsCh chan event.Event, runID string, prev *dataset.Dataset, opts ...func(o *ExecOpts)) StepRunner {
 	o := &ExecOpts{}
 	DefaultExecOpts(o)
 	for _, opt := range opts {
@@ -71,9 +68,7 @@ func NewStepRunner(eventsCh chan event.Event, runID string, prev, next *dataset.
 	r := &stepRunner{
 		starCtx:     starCtx,
 		loadDataset: o.DatasetLoader,
-		repo:        o.Repo,
 		prev:        prev,
-		next:        next,
 		checkFunc:   o.MutateFieldCheck,
 		eventsCh:    eventsCh,
 		thread:      thread,
@@ -85,7 +80,7 @@ func NewStepRunner(eventsCh chan event.Event, runID string, prev, next *dataset.
 
 func (r *stepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *dataset.TransformStep) error {
 	r.globals["print"] = starlark.NewBuiltin("print", r.print)
-	r.globals["load_dataset"] = starlark.NewBuiltin("load_dataset", r.LoadDatasetFunc(ctx))
+	r.globals["load_dataset"] = starlark.NewBuiltin("load_dataset", r.LoadDatasetFunc(ctx, ds))
 
 	script, ok := st.Script.(string)
 	if !ok {
@@ -100,20 +95,18 @@ func (r *stepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *datas
 		return err
 	}
 
-	log.Debugw("executing file got", "globals", globals)
 	for key, val := range globals {
 		r.globals[key] = val
 	}
 
-	if err := r.callStepFunc(r.thread, st.Category); err != nil {
+	if err := r.callStepFunc(r.thread, st.Category, ds); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *stepRunner) callStepFunc(thread *starlark.Thread, stepType string) error {
-	log.Debugw("calling step function", "step", stepType, "globals", r.globals)
+func (r *stepRunner) callStepFunc(thread *starlark.Thread, stepType string, ds *dataset.Dataset) error {
 	if stepType == "setup" {
 		return nil
 	}
@@ -127,7 +120,7 @@ func (r *stepRunner) callStepFunc(thread *starlark.Thread, stepType string) erro
 	case "download":
 		return r.callDownloadFunc(thread, stepFunc)
 	case "transform":
-		return r.callTransformFunc(thread, stepFunc)
+		return r.callTransformFunc(thread, stepFunc, ds)
 	default:
 		return fmt.Errorf("unrecognized starlark step type %q", stepType)
 	}
@@ -160,14 +153,12 @@ func (r *stepRunner) callDownloadFunc(thread *starlark.Thread, download *starlar
 	return nil
 }
 
-func (r *stepRunner) callTransformFunc(thread *starlark.Thread, transform *starlark.Function) (err error) {
+func (r *stepRunner) callTransformFunc(thread *starlark.Thread, transform *starlark.Function, ds *dataset.Dataset) (err error) {
 	d := skyds.NewDataset(r.prev, r.checkFunc)
-	d.SetMutable(r.next)
+	d.SetMutable(ds)
 	if _, err = starlark.Call(thread, transform, starlark.Tuple{d.Methods(), r.starCtx.Struct()}, nil); err != nil {
 		return err
 	}
-
-	ds := r.next
 
 	if f := ds.BodyFile(); f != nil {
 		if ds.Structure == nil {
@@ -179,6 +170,7 @@ func (r *stepRunner) callTransformFunc(thread *starlark.Thread, transform *starl
 		if err := base.InlineJSONBody(ds); err != nil {
 			log.Debugw("inlining resulting dataset JSON body", "err", err)
 		}
+		ds.SetBodyFile(qfs.NewMemfileBytes("body.json", ds.BodyBytes))
 	}
 	r.eventsCh <- event.Event{Type: event.ETDataset, Payload: ds}
 	// r.eventsCh <- event.Event{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Name: "stepRunner", Status: "succeeded"}}
@@ -187,7 +179,7 @@ func (r *stepRunner) callTransformFunc(thread *starlark.Thread, transform *starl
 }
 
 // LoadDataset implements the starlark load_dataset function
-func (r *stepRunner) LoadDatasetFunc(ctx context.Context) func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (r *stepRunner) LoadDatasetFunc(ctx context.Context, target *dataset.Dataset) func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	return func(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var refstr starlark.String
 		if err := starlark.UnpackArgs("load_dataset", args, kwargs, "ref", &refstr); err != nil {
@@ -203,11 +195,11 @@ func (r *stepRunner) LoadDatasetFunc(ctx context.Context) func(thread *starlark.
 			return starlark.None, err
 		}
 
-		if r.next.Transform.Resources == nil {
-			r.next.Transform.Resources = map[string]*dataset.TransformResource{}
+		if target.Transform.Resources == nil {
+			target.Transform.Resources = map[string]*dataset.TransformResource{}
 		}
 
-		r.next.Transform.Resources[ds.Path] = &dataset.TransformResource{
+		target.Transform.Resources[ds.Path] = &dataset.TransformResource{
 			// TODO(b5) - this should be a method on dataset.Dataset
 			// we should add an ID field to dataset, set that to the InitID, and
 			// add fields to dataset.TransformResource that effectively make it the
