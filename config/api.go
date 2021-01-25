@@ -13,9 +13,6 @@ var DefaultAPIPort = "2503"
 // DefaultAPIAddress is the address the webapp serves on by default
 var DefaultAPIAddress = fmt.Sprintf("/ip4/127.0.0.1/tcp/%s", DefaultAPIPort)
 
-// DefaultAPIWebsocketAddress is the websocket address the webapp serves on by default
-var DefaultAPIWebsocketAddress = "/ip4/127.0.0.1/tcp/2506"
-
 // API holds configuration for the qri JSON api
 type API struct {
 	// APIAddress specifies the multiaddress to listen for JSON API calls
@@ -31,6 +28,8 @@ type API struct {
 	AllowedOrigins []string `json:"allowedorigins"`
 	// whether to allow requests from addresses other than localhost
 	ServeRemoteTraffic bool `json:"serveremotetraffic"`
+	// Deprecated - web sockets now use the same port as the Address field
+	// TODO (arqu): we should remove this on next config migration
 	// WebsocketAddress specifies the multiaddress to listen for websocket
 	WebsocketAddress string `json:"websocketaddress"`
 	// DisableWebui when true stops qri from serving the webui when the node is online
@@ -96,7 +95,7 @@ func DefaultAPI() *API {
 	return &API{
 		Enabled:          true,
 		Address:          DefaultAPIAddress,
-		WebsocketAddress: DefaultAPIWebsocketAddress,
+		WebsocketAddress: DefaultAPIAddress,
 		AllowedOrigins: []string{
 			"electron://local.qri.io",
 			"http://app.qri.io",
