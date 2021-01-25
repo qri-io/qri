@@ -31,13 +31,18 @@ func TestWebsocket(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	subsCount := inst.bus.NumSubscribers()
+
 	wsCtx, wsCancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go func() {
-		inst.ServeWebsocket(wsCtx)
-		done <- struct{}{}
-	}()
+	_, err = NewWebsocketHandler(wsCtx, inst)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// websockets should subscribe 2 new handlers: FS Watcher & the WS message handler
+	if inst.bus.NumSubscribers() != subsCount+2 {
+		t.Fatalf("failed to subscribe websocket handlers")
+	}
 
 	wsCancel()
-	<-done
 }

@@ -35,20 +35,28 @@ func init() {
 // Create one with New, start it up with Serve
 type Server struct {
 	*lib.Instance
-	Mux *http.ServeMux
+	Mux       *http.ServeMux
+	websocket lib.WebsocketHandler
 }
 
 // New creates a new qri server from a p2p node & configuration
-func New(inst *lib.Instance) (s Server) {
-	s = Server{Instance: inst}
-	s.Mux = NewServerRoutes(s)
-	return s
+func New(inst *lib.Instance) Server {
+	return Server{
+		Instance: inst,
+	}
 }
 
 // Serve starts the server. It will block while the server is running
 func (s Server) Serve(ctx context.Context) (err error) {
 	node := s.Node()
 	cfg := s.Config()
+
+	ws, err := lib.NewWebsocketHandler(ctx, s.Instance)
+	if err != nil {
+		return err
+	}
+	s.websocket = ws
+	s.Mux = NewServerRoutes(s)
 
 	if err := s.Instance.Connect(ctx); err != nil {
 		return err
@@ -59,7 +67,6 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	}
 
 	go s.ServeRPC(ctx)
-	go s.ServeWebsocket(ctx)
 
 	info := "\n📡  Success! You are now connected to the d.web. Here's your connection details:\n"
 	info += cfg.SummaryString()
@@ -114,13 +121,18 @@ func readOnlyResponse(w http.ResponseWriter, endpoint string) {
 
 // HomeHandler responds with a health check on the empty path, 404 for
 // everything else
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "" || r.URL.Path == "/" {
-		HealthCheckHandler(w, r)
-		return
-	}
+func (s *Server) HomeHandler(w http.ResponseWriter, r *http.Request) {
+	upgrade := r.Header.Get("Upgrade")
+	if upgrade == "websocket" {
+		s.websocket.WSConnectionHandler(w, r)
+	} else {
+		if r.URL.Path == "" || r.URL.Path == "/" {
+			HealthCheckHandler(w, r)
+			return
+		}
 
-	apiutil.NotFoundHandler(w, r)
+		apiutil.NotFoundHandler(w, r)
+	}
 }
 
 // HealthCheckHandler is a basic ok response for load balancers & co
@@ -136,7 +148,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 
 	m := http.NewServeMux()
 
-	m.Handle("/", s.NoLogMiddleware(HomeHandler))
+	m.Handle("/", s.NoLogMiddleware(s.HomeHandler))
 	m.Handle("/health", s.NoLogMiddleware(HealthCheckHandler))
 	m.Handle("/ipfs/", s.Middleware(s.HandleIPFSPath))
 
