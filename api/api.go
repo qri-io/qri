@@ -146,7 +146,10 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 func NewServerRoutes(s Server) *http.ServeMux {
 	cfg := s.Config()
 
-	m := http.NewServeMux()
+	m := s.Mux
+	if m == nil {
+		m = http.NewServeMux()
+	}
 
 	m.Handle("/", s.NoLogMiddleware(s.HomeHandler))
 	m.Handle("/health", s.NoLogMiddleware(HealthCheckHandler))
