@@ -34,28 +34,5 @@
     "schema": {
       "type": "array"
     }
-  },
-  "stats": {
-    "path": "/ipfs/QmQYhY2RaVLn36MrjLQG9XJk6QQMHkSvvPUXZ9J9MDf6Ur",
-    "qri": "sa:0",
-    "stats": [
-      {
-        "count": 1,
-        "histogram": {
-          "bins": [
-            100,
-            101
-          ],
-          "frequencies": [
-            1
-          ]
-        },
-        "max": 100,
-        "mean": 100,
-        "median": 100,
-        "min": 100,
-        "type": "numeric"
-      }
-    ]
   }
 }
