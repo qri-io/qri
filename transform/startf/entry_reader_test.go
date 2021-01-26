@@ -2,7 +2,6 @@ package startf
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -37,7 +36,7 @@ func TestEntryReaderSimpleList(t *testing.T) {
 	for i, e := range expect {
 		ent, err := r.ReadEntry()
 		if err != nil {
-			log.Fatal(err)
+			t.Fatal(err)
 		}
 
 		if e.index != ent.Index {
@@ -77,7 +76,7 @@ func TestEntryReaderSimpleDict(t *testing.T) {
 	for i, e := range expect {
 		ent, err := r.ReadEntry()
 		if err != nil {
-			log.Fatal(err)
+			t.Fatal(err)
 		}
 
 		if e.index != ent.Index {

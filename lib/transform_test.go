@@ -27,6 +27,7 @@ func TestApplyTransform(t *testing.T) {
 		Transform: &dataset.Transform{
 			ScriptPath: "testdata/cities_2/add_city.star",
 		},
+		Wait: true,
 	})
 	if err != nil {
 		t.Error(err)

@@ -6,30 +6,40 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/google/uuid"
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/transform/startf"
 )
 
-// TODO(dustmop): Tests. Especially once the `apply` command exists.
+var log = golog.Logger("transform")
 
 // Apply applies the transform script to order to modify the changing dataset
 func Apply(
 	ctx context.Context,
 	ds *dataset.Dataset,
 	loader dsref.ParseResolveLoad,
+	runID string,
+	pub event.Publisher,
+	wait bool,
 	str ioes.IOStreams,
 	scriptOut io.Writer,
 	secrets map[string]string,
-) (err error) {
+) error {
 	var (
 		target = ds
 		head   *dataset.Dataset
+		err    error
 	)
 
 	if target.Transform == nil || target.Transform.ScriptFile() == nil {
 		return errors.New("apply requires a transform component with a script file")
+	}
+	if runID == "" {
+		return errors.New("apply requires a runID")
 	}
 
 	if ds.Name != "" {
@@ -54,11 +64,18 @@ func Apply(
 		startf.AddDatasetLoader(loader),
 	}
 
+	pub.PublishID(ctx, event.ETTransformStart, runID, "")
+
 	if err = startf.ExecScript(ctx, target, head, opts...); err != nil {
+		pub.PublishID(ctx, event.ETTransformFailure, runID, "")
 		return err
 	}
 
-	str.PrintErr("✅ transform complete\n")
-
+	pub.PublishID(ctx, event.ETTransformComplete, runID, "")
 	return nil
+}
+
+// NewRunID creates a run identifier
+func NewRunID() string {
+	return uuid.New().String()
 }
