@@ -143,7 +143,7 @@ func (b *bus) Publish(ctx context.Context, typ Type, payload interface{}) error 
 	return b.publish(ctx, typ, "", payload)
 }
 
-// Publish sends an event with a given sessionID to the bus
+// PublishID sends an event with a given sessionID to the bus
 func (b *bus) PublishID(ctx context.Context, typ Type, sessionID string, payload interface{}) error {
 	return b.publish(ctx, typ, sessionID, payload)
 }
@@ -209,7 +209,7 @@ func (b *bus) SubscribeID(handler Handler, sessionID string) {
 	b.idSubs[sessionID] = append(b.idSubs[sessionID], handler)
 }
 
-// SubscribeAll requets all events from the bus
+// SubscribeAll requests all events from the bus
 func (b *bus) SubscribeAll(handler Handler) {
 	b.lk.Lock()
 	defer b.lk.Unlock()

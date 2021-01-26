@@ -64,8 +64,10 @@ func (h *wsHandler) WSConnectionHandler(w http.ResponseWriter, r *http.Request) 
 func (h *wsHandler) wsMessageHandler(_ context.Context, e event.Event) error {
 	ctx := context.Background()
 	evt := map[string]interface{}{
-		"type": string(e.Type),
-		"data": e.Payload,
+		"type":      string(e.Type),
+		"ts":        e.Timestamp,
+		"sessionID": e.SessionID,
+		"data":      e.Payload,
 	}
 
 	log.Debugf("sending event %q to %d websocket conns", e.Type, len(h.conns))

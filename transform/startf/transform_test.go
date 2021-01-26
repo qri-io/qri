@@ -71,8 +71,7 @@ func TestExecScript(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expect := `🤖  running transform...
-hello world!`
+	expect := "hello world!\n"
 	if string(output) != expect {
 		t.Errorf("stderr mismatch. expected: '%s', got: '%s'", expect, string(output))
 	}

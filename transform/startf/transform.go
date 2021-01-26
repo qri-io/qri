@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
@@ -21,6 +22,8 @@ import (
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 )
+
+var log = golog.Logger("startf")
 
 // Version is the version of qri that this transform was run with
 var Version = version.Version
@@ -283,7 +286,6 @@ type specialFunc func(t *transform, thread *starlark.Thread, ctx *skyctx.Context
 func callDownloadFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (result starlark.Value, err error) {
 	httpGuard.EnableNtwk()
 	defer httpGuard.DisableNtwk()
-	t.print("📡 running download...\n")
 
 	var download *starlark.Function
 	if download, err = t.globalFunc("download"); err != nil {
@@ -304,7 +306,6 @@ func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Contex
 		}
 		return err
 	}
-	t.print("🤖  running transform...\n")
 
 	d := skyds.NewDataset(t.prev, t.checkFunc)
 	d.SetMutable(t.next)
@@ -314,14 +315,10 @@ func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Contex
 	return nil
 }
 
-// print writes output only if a node is specified
-func (t *transform) print(msg string) {
-	t.stderr.Write([]byte(msg))
-}
-
 func (t *transform) locals() starlark.StringDict {
 	return starlark.StringDict{
 		"load_dataset": starlark.NewBuiltin("load_dataset", t.LoadDataset),
+		"print":        starlark.NewBuiltin("print", t.print),
 	}
 }
 
@@ -369,6 +366,16 @@ func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, ar
 	return skyds.NewDataset(ds, nil).Methods(), nil
 }
 
+func (t *transform) print(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var message starlark.String
+	if err := starlark.UnpackArgs("print", args, kwargs, "message", &message); err != nil {
+		return starlark.None, err
+	}
+	t.stderr.Write([]byte(message))
+	io.WriteString(t.stderr, "\n")
+	return starlark.None, nil
+}
+
 // MutatedComponentsFunc returns a function for checking if a field has been
 // modified. it's a kind of data structure mutual exclusion lock
 // TODO (b5) - this should be refactored & expanded
@@ -398,7 +405,7 @@ func MutatedComponentsFunc(dsp *dataset.Dataset) func(path ...string) error {
 			return fmt.Errorf(`transform script and user-supplied dataset are both trying to set:
   %s
 
-please adjust either the transform script or remove the supplied '%s'`, path[0], path[0])
+please adjust either the transform script or remove the supplied %q`, path[0], path[0])
 		}
 		return nil
 	}

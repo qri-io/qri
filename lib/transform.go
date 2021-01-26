@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/transform"
 )
 
@@ -30,12 +32,10 @@ func NewTransformMethods(inst *Instance) *TransformMethods {
 type ApplyParams struct {
 	Refstr    string
 	Transform *dataset.Transform
-	Source    string
 	Secrets   map[string]string
+	Wait      bool
 
-	// TODO(dustmop): add `Wait bool`, if false, run the save asynchronously
-	// and return events on the bus that provide the progress of the save operation
-
+	Source       string
 	ScriptOutput io.Writer
 }
 
@@ -49,9 +49,8 @@ func (p *ApplyParams) Valid() error {
 
 // ApplyResult is the result of an apply command
 type ApplyResult struct {
-	Data *dataset.Dataset
-	// TODO(dustmop): Make Apply asynchronous, running the transform in a go-routine.
-	// Return a channel that will send progress on the execution.
+	Data  *dataset.Dataset
+	RunID string `json:"runID"`
 }
 
 // Apply runs a transform script
@@ -87,15 +86,26 @@ func (m *TransformMethods) Apply(p *ApplyParams, res *ApplyResult) error {
 	str := m.inst.node.LocalStreams
 	loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
 
+	// allocate an ID for the transform, for now just log the events it produces
+	runID := transform.NewRunID()
+	m.inst.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
+		when := time.Unix(e.Timestamp/1000000000, e.Timestamp%1000000000)
+		log.Infof("[%s] event %s: %s", when, e.Type, e.Payload)
+		return nil
+	}, runID)
+
 	scriptOut := p.ScriptOutput
-	err = transform.Apply(ctx, ds, loader, str, scriptOut, p.Secrets)
+	err = transform.Apply(ctx, ds, loader, runID, m.inst.bus, p.Wait, str, scriptOut, p.Secrets)
 	if err != nil {
 		return err
 	}
 
-	if err = base.InlineJSONBody(ds); err != nil && err != base.ErrNoBodyToInline {
-		return err
+	if p.Wait {
+		if err = base.InlineJSONBody(ds); err != nil && err != base.ErrNoBodyToInline {
+			return err
+		}
+		res.Data = ds
 	}
-	res.Data = ds
+	res.RunID = runID
 	return nil
 }

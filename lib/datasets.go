@@ -26,6 +26,7 @@ import (
 	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
 	qrierr "github.com/qri-io/qri/errors"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/repo"
@@ -622,8 +623,17 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		// string and control how transform functions
 		loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
 
+		// allocate an ID for the transform, for now just log the events it produces
+		runID := transform.NewRunID()
+		m.inst.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
+			when := time.Unix(e.Timestamp/1000000000, e.Timestamp%1000000000)
+			log.Infof("[%s] event %s: %s", when, e.Type, e.Payload)
+			return nil
+		}, runID)
+
 		// apply the transform
-		err := transform.Apply(ctx, ds, loader, str, scriptOut, secrets)
+		shouldWait := true
+		err := transform.Apply(ctx, ds, loader, runID, m.inst.bus, shouldWait, str, scriptOut, secrets)
 		if err != nil {
 			return err
 		}
