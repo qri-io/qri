@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 )
@@ -99,7 +101,21 @@ func (rp LocalPreviews) Preview(ctx context.Context, _, refStr string) (*dataset
 		return nil, err
 	}
 
-	return base.CreatePreview(ctx, rp.fs, ref)
+	ds, err := dsfs.LoadDataset(ctx, rp.fs, ref.Path)
+	if err != nil {
+		log.Errorf("remote.Preview loading dataset: %w", err.Error())
+		return nil, err
+	}
+
+	ds.Name = ref.Name
+	ds.Peername = ref.Username
+
+	if err := base.OpenDataset(ctx, rp.fs, ds); err != nil {
+		log.Errorf("remote.Preview opening dataset: %w", err.Error())
+		return nil, err
+	}
+
+	return preview.CreatePreview(ctx, ds)
 }
 
 // PreviewComponent gets a component for a reference & component name

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/component"
 )
 
@@ -79,5 +79,5 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 		structure.Schema = assign.Schema
 	}
 
-	return base.ConvertBodyFile(file, structure, st, limit, offset, all)
+	return dsio.ConvertFile(file, structure, st, limit, offset, all)
 }

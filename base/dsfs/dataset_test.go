@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/dataset/generate"
+	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/toqtype"
@@ -367,17 +368,6 @@ func TestDatasetSaveEvents(t *testing.T) {
 	}
 }
 
-// BaseTabularSchema is the base schema for tabular data
-// NOTE: Do not use if possible, prefer github.com/qri-io/dataset/tabular
-// TODO(dustmop): Possibly move this to tabular package
-var BaseTabularSchema = map[string]interface{}{
-	"type": "array",
-	"items": map[string]interface{}{
-		"type":  "array",
-		"items": []interface{}{},
-	},
-}
-
 // Test that if the body is too large, the commit message just assumes the body changed
 func TestCreateDatasetBodyTooLarge(t *testing.T) {
 	ctx := context.Background()
@@ -400,7 +390,7 @@ func TestCreateDatasetBodyTooLarge(t *testing.T) {
 		Commit: &dataset.Commit{},
 		Structure: &dataset.Structure{
 			Format: "csv",
-			Schema: BaseTabularSchema,
+			Schema: tabular.BaseTabularSchema,
 		},
 	}
 
@@ -412,7 +402,7 @@ func TestCreateDatasetBodyTooLarge(t *testing.T) {
 		Commit: &dataset.Commit{},
 		Structure: &dataset.Structure{
 			Format: "csv",
-			Schema: BaseTabularSchema,
+			Schema: tabular.BaseTabularSchema,
 		},
 	}
 	nextDs.SetBodyFile(qfs.NewMemfileBytes(testBodyPath, testBodyBytes))

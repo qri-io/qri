@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
-	github.com/cheggaaa/pb/v3 v3.0.4
 	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dustin/go-humanize v1.0.0
@@ -40,7 +39,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pkg/errors v0.9.1
 	github.com/qri-io/dag v0.2.2-0.20201208212257-ae00241c4b48
-	github.com/qri-io/dataset v0.2.1-0.20210119191645-a8a3aa840464
+	github.com/qri-io/dataset v0.2.1-0.20210126031523-f94fd2290107
 	github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b
 	github.com/qri-io/didmod v0.0.0-20201123165422-8b2e224c993a
 	github.com/qri-io/doggos v0.1.0
@@ -54,7 +53,6 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/theckman/go-flock v0.7.1
 	github.com/ugorji/go/codec v1.1.7
-	github.com/vbauerster/mpb v3.4.0+incompatible
 	github.com/vbauerster/mpb/v5 v5.3.0
 	go.starlark.net v0.0.0-20200619143648-50ca820fafb9
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
