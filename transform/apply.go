@@ -36,8 +36,11 @@ func Apply(
 
 	log.Debugw("applying transform", "runID", runID, "wait", wait)
 
-	if target.Transform == nil || target.Transform.ScriptFile() == nil {
-		return errors.New("apply requires a transform component with a script file")
+	if target.Transform == nil {
+		return errors.New("apply requires a transform component")
+	}
+	if len(target.Transform.Steps) == 0 && target.Transform.ScriptFile() == nil {
+		return errors.New("apply requires either transform component with steps or a script file")
 	}
 	if runID == "" {
 		return errors.New("apply requires a runID")
@@ -138,7 +141,7 @@ func Apply(
 
 			switch step.Syntax {
 			case "starlark":
-				log.Debugw("runnning starlark step", step)
+				log.Debugw("runnning starlark step", "step", step)
 				runErr = stepRunner.RunStep(ctx, target, step)
 				if runErr != nil {
 					log.Debugw("running transform step", "index", i, "err", runErr)
@@ -154,7 +157,7 @@ func Apply(
 				if step.Syntax == "qri" && step.Name == "save" {
 					log.Infow("ignoring qri save step")
 				} else {
-					log.Debugw("skipping unknown step", step.Syntax)
+					log.Debugw("skipping unknown step", "syntax", step.Syntax)
 					eventsCh <- event.Event{
 						Type: event.ETTransformError,
 						Payload: event.TransformMessage{
