@@ -3,6 +3,7 @@ package startf
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -116,6 +117,38 @@ func TestExecScript2(t *testing.T) {
 	}
 	if ds.Transform == nil {
 		t.Error("expected transform")
+	}
+}
+
+func TestExecStep(t *testing.T) {
+	ctx := context.Background()
+	ds := &dataset.Dataset{
+		Transform: &dataset.Transform{
+			Steps: []*dataset.TransformStep{
+				&dataset.TransformStep{
+					Name:     "transform",
+					Syntax:   "starlark",
+					Category: "transform",
+					Script:   "def transform(ds, ctx):\n  ds.set_body([[1,2,3]])",
+				},
+			},
+		},
+	}
+	// Run the single step.
+	stepRunner := NewStepRunner(ds)
+	err := stepRunner.RunStep(ctx, ds, ds.Transform.Steps[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Check that body was set by the transform step.
+	data, err := json.Marshal(ds.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual := string(data)
+	expect := `[[1,2,3]]`
+	if actual != expect {
+		t.Errorf("expected: \"%s\", actual: \"%s\"", expect, actual)
 	}
 }
 
