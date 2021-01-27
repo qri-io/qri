@@ -3,27 +3,27 @@ package event
 const (
 	// ETTransformStart signals the start a transform execution
 	// Payload will be a TransformLifecycle
-	ETTransformStart = Type("transform:Start")
+	ETTransformStart = Type("tf:Start")
 	// ETTransformStop signals the completion of a transform execution
 	// Payload will be a TransformLifecycle
-	ETTransformStop = Type("transform:Stop")
+	ETTransformStop = Type("tf:Stop")
 
 	// ETTransformStepStart signals a step is starting.
 	// Payload will be a StepDetail
-	ETTransformStepStart = Type("transform:StepStart")
+	ETTransformStepStart = Type("tf:StepStart")
 	// ETTransformStepStop signals a step has stopped.
 	// Payload will be a StepDetail
-	ETTransformStepStop = Type("transform:StepStop")
+	ETTransformStepStop = Type("tf:StepStop")
 	// ETTransformStepSkip signals a step was skipped.
 	// Payload will be a StepDetail
-	ETTransformStepSkip = Type("transform:StepSkip")
+	ETTransformStepSkip = Type("tf:StepSkip")
 
 	// ETTransformPrint is sent by print commands.
 	// Payload will be a Message
-	ETTransformPrint = Type("transform:Print")
+	ETTransformPrint = Type("tf:Print")
 	// ETTransformError is for when a tranform program execution error occurs.
 	// Payload will be a Message
-	ETTransformError = Type("transform:Error")
+	ETTransformError = Type("tf:Error")
 )
 
 // TransformLifecycle captures state about the execution of an entire transform
