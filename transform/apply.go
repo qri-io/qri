@@ -17,6 +17,27 @@ import (
 
 var log = golog.Logger("transform")
 
+const (
+	// SyntaxStarlark identifies steps & scripts written in starlark syntax
+	// they're executed by the startf subpackage
+	SyntaxStarlark = "starlark"
+	// SyntaxQri is not currently in use. It's planned for deprecation & removal
+	SyntaxQri = "qri"
+)
+
+const (
+	// StatusWaiting is the canonical constant for "waiting" execution state
+	StatusWaiting = "waiting"
+	// StatusRunning is the canonical constant for "running" execution state
+	StatusRunning = "running"
+	// StatusSucceeded is the canonical constant for "succeeded" execution state
+	StatusSucceeded = "succeeded"
+	// StatusFailed is the canonical constant for "failed" execution state
+	StatusFailed = "failed"
+	// StatusSkipped is the canonical constant for "skipped" execution state
+	StatusSkipped = "skipped"
+)
+
 // Apply applies the transform script to order to modify the changing dataset
 func Apply(
 	ctx context.Context,
@@ -95,21 +116,32 @@ func Apply(
 			}
 		}()
 
-		eventsCh <- event.Event{Type: event.ETTransformStart}
+		eventsCh <- event.Event{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: len(target.Transform.Steps)}}
 
-		var runErr error
+		var (
+			runErr error
+			status = StatusSucceeded
+		)
 
 		// Single-file transform scripts do not have steps, should be executed all at once.
 		if len(target.Transform.Steps) == 0 {
 			runErr = startf.ExecScript(ctx, target, head, opts...)
-			if runErr == nil {
+			if runErr != nil {
+				status = StatusFailed
 				eventsCh <- event.Event{
-					Type: event.ETTransformComplete,
+					Type: event.ETTransformError,
+					Payload: event.TransformMessage{
+						Lvl: event.TransformMsgLvlError,
+						Msg: runErr.Error(),
+					},
 				}
-			} else {
-				eventsCh <- event.Event{
-					Type: event.ETTransformFailure,
-				}
+			}
+
+			eventsCh <- event.Event{
+				Type: event.ETTransformStop,
+				Payload: event.TransformLifecycle{
+					Status: status,
+				},
 			}
 			doneCh <- runErr
 			return
@@ -117,13 +149,12 @@ func Apply(
 
 		// Run each step using a StepRunner
 		stepRunner := startf.NewStepRunner(head, opts...)
-		stepSuccess := true
 		for i, step := range target.Transform.Steps {
 			// If the transform has failed at some step, emit skip events for remaining steps.
-			if !stepSuccess {
+			if status != StatusSucceeded {
 				eventsCh <- event.Event{
 					Type: event.ETTransformStepSkip,
-					Payload: event.TransformStepDetail{
+					Payload: event.TransformStepLifecycle{
 						Name:     step.Name,
 						Category: step.Category,
 					},
@@ -133,14 +164,14 @@ func Apply(
 
 			eventsCh <- event.Event{
 				Type: event.ETTransformStepStart,
-				Payload: event.TransformStepDetail{
+				Payload: event.TransformStepLifecycle{
 					Name:     step.Name,
 					Category: step.Category,
 				},
 			}
 
 			switch step.Syntax {
-			case "starlark":
+			case SyntaxStarlark:
 				log.Debugw("runnning starlark step", "step", step)
 				runErr = stepRunner.RunStep(ctx, target, step)
 				if runErr != nil {
@@ -148,44 +179,43 @@ func Apply(
 					eventsCh <- event.Event{
 						Type: event.ETTransformError,
 						Payload: event.TransformMessage{
+							Lvl: event.TransformMsgLvlError,
 							Msg: runErr.Error(),
 						},
 					}
-					stepSuccess = false
+					status = StatusFailed
 				}
 			default:
-				if step.Syntax == "qri" && step.Name == "save" {
-					log.Infow("ignoring qri save step")
+				if step.Syntax == SyntaxQri && step.Name == "save" {
+					log.Info("ignoring qri save step")
 				} else {
 					log.Debugw("skipping unknown step", "syntax", step.Syntax)
 					eventsCh <- event.Event{
 						Type: event.ETTransformError,
 						Payload: event.TransformMessage{
+							Lvl: event.TransformMsgLvlError,
 							Msg: fmt.Sprintf("unsupported transform syntax %q", step.Syntax),
 						},
 					}
-					stepSuccess = false
+					status = StatusFailed
 				}
 			}
 
 			eventsCh <- event.Event{
 				Type: event.ETTransformStepStop,
-				Payload: event.TransformStepDetail{
+				Payload: event.TransformStepLifecycle{
 					Name:     step.Name,
 					Category: step.Category,
-					Success:  stepSuccess,
+					Status:   status,
 				},
 			}
 		}
 
-		if stepSuccess {
-			eventsCh <- event.Event{
-				Type: event.ETTransformComplete,
-			}
-		} else {
-			eventsCh <- event.Event{
-				Type: event.ETTransformFailure,
-			}
+		eventsCh <- event.Event{
+			Type: event.ETTransformStop,
+			Payload: event.TransformLifecycle{
+				Status: status,
+			},
 		}
 		doneCh <- runErr
 	}()
