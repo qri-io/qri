@@ -9,10 +9,10 @@ import (
 	"io"
 	"io/ioutil"
 
-	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	skyctx "github.com/qri-io/qri/transform/startf/context"
 	skyds "github.com/qri-io/qri/transform/startf/ds"
@@ -22,8 +22,6 @@ import (
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 )
-
-var log = golog.Logger("startf")
 
 // Version is the version of qri that this transform was run with
 var Version = version.Version
@@ -52,6 +50,8 @@ type ExecOpts struct {
 	ErrWriter io.Writer
 	// starlark module loader function
 	ModuleLoader ModuleLoader
+	// channel to send events on
+	EventsCh chan event.Event
 }
 
 // AddDatasetLoader is required to enable the load_dataset starlark builtin
@@ -66,6 +66,13 @@ func AddDatasetLoader(prl dsref.ParseResolveLoad) func(o *ExecOpts) {
 func AddQriRepo(repo repo.Repo) func(o *ExecOpts) {
 	return func(o *ExecOpts) {
 		o.Repo = repo
+	}
+}
+
+// AddEventsChannel sets an event channel to send events on
+func AddEventsChannel(eventsCh chan event.Event) func(o *ExecOpts) {
+	return func(o *ExecOpts) {
+		o.EventsCh = eventsCh
 	}
 }
 
@@ -115,6 +122,7 @@ type transform struct {
 	ctx          context.Context
 	loadDataset  dsref.ParseResolveLoad
 	repo         repo.Repo
+	eventsCh     chan event.Event
 	next         *dataset.Dataset
 	prev         *dataset.Dataset
 	skyqri       *skyqri.Module
@@ -178,7 +186,7 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 	t := &transform{
 		ctx:          ctx,
 		loadDataset:  o.DatasetLoader,
-		repo:         o.Repo,
+		eventsCh:     o.EventsCh,
 		next:         next,
 		prev:         prev,
 		skyqri:       skyqri.NewModule(o.Repo),
@@ -188,14 +196,7 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 	}
 
 	skyCtx := skyctx.NewContext(next.Transform.Config, o.Secrets)
-
-	thread := &starlark.Thread{
-		Load: t.ModuleLoader,
-		Print: func(thread *starlark.Thread, msg string) {
-			// note we're ignoring a returned error here
-			_, _ = t.stderr.Write([]byte(msg))
-		},
-	}
+	thread := &starlark.Thread{Load: t.ModuleLoader}
 
 	// execute the transformation
 	t.globals, err = starlark.ExecFile(thread, pipeScript.FileName(), pipeScript, t.locals())
@@ -280,8 +281,6 @@ func (t *transform) specialFuncs() (defined map[string]specialFunc, err error) {
 
 	return
 }
-
-type specialFunc func(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (result starlark.Value, err error)
 
 func callDownloadFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (result starlark.Value, err error) {
 	httpGuard.EnableNtwk()
@@ -371,8 +370,17 @@ func (t *transform) print(thread *starlark.Thread, _ *starlark.Builtin, args sta
 	if err := starlark.UnpackArgs("print", args, kwargs, "message", &message); err != nil {
 		return starlark.None, err
 	}
-	t.stderr.Write([]byte(message))
-	io.WriteString(t.stderr, "\n")
+	if t.eventsCh != nil {
+		t.eventsCh <- event.Event{
+			Type: event.ETTransformPrint,
+			Payload: event.TransformMessage{
+				Msg: message.GoString(),
+			},
+		}
+	} else {
+		t.stderr.Write([]byte(message.GoString()))
+		t.stderr.Write([]byte("\n"))
+	}
 	return starlark.None, nil
 }
 
