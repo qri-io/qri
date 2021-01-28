@@ -170,7 +170,7 @@ func (r *StepRunner) callTransformFunc(ctx context.Context, thread *starlark.Thr
 	}
 
 	if r.eventsCh != nil {
-		pview, err := preview.CreatePreview(ctx, ds)
+		pview, err := preview.Create(ctx, ds)
 		if err != nil {
 			return err
 		}

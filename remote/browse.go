@@ -115,7 +115,7 @@ func (rp LocalPreviews) Preview(ctx context.Context, _, refStr string) (*dataset
 		return nil, err
 	}
 
-	return preview.CreatePreview(ctx, ds)
+	return preview.Create(ctx, ds)
 }
 
 // PreviewComponent gets a component for a reference & component name

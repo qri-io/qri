@@ -91,8 +91,10 @@ func (m *TransformMethods) Apply(p *ApplyParams, res *ApplyResult) error {
 		log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
 		if e.Type == event.ETTransformPrint {
 			if msg, ok := e.Payload.(event.TransformMessage); ok {
-				io.WriteString(p.ScriptOutput, msg.Msg)
-				io.WriteString(p.ScriptOutput, "\n")
+				if p.ScriptOutput != nil {
+					io.WriteString(p.ScriptOutput, msg.Msg)
+					io.WriteString(p.ScriptOutput, "\n")
+				}
 			}
 		}
 		return nil
