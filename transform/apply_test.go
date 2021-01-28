@@ -3,9 +3,11 @@ package transform
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
@@ -35,6 +37,7 @@ func TestApply(t *testing.T) {
 				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "download"}},
 				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "download", Status: StatusSucceeded}},
 				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "transform"}},
+				{Type: event.ETTransformDatasetPreview, Payload: threeStepDatasetPreview},
 				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "transform", Status: StatusSucceeded}},
 				{Type: event.ETTransformStop, Payload: event.TransformLifecycle{Status: StatusSucceeded}},
 			},
@@ -111,7 +114,26 @@ func compareEventLogs(t *testing.T, expect, log []event.Event) {
 			return false
 		}
 	}
-	if diff := cmp.Diff(expect, log, cmp.FilterPath(ignorePaths, cmp.Ignore())); diff != "" {
+	ignoreUnexported := cmpopts.IgnoreUnexported(
+		dataset.Dataset{},
+		dataset.Transform{},
+	)
+	if diff := cmp.Diff(expect, log, cmp.FilterPath(ignorePaths, cmp.Ignore()), ignoreUnexported); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
+}
+
+var threeStepDatasetPreview = &dataset.Dataset{
+	Body: json.RawMessage(`[[1,2,3]]`),
+	Structure: &dataset.Structure{
+		Format: "json",
+		Schema: map[string]interface{}{"type": "array"},
+	},
+	Transform: &dataset.Transform{
+		Steps: []*dataset.TransformStep{
+			{Syntax: "starlark", Category: "setup", Script: `print("oh, hello!")`},
+			{Syntax: "starlark", Category: "download", Script: "def download(ctx):\n\treturn"},
+			{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.set_body([[1,2,3]])"},
+		},
+	},
 }

@@ -24,6 +24,9 @@ const (
 	// ETTransformError is for when a tranform program execution error occurs.
 	// Payload will be a Message
 	ETTransformError = Type("tf:Error")
+	// ETTransformDatasetPreview is an abbreviated dataset document in a transform
+	// Payload will be a *dataset.Dataset Preview
+	ETTransformDatasetPreview = Type("tf:DatasetPreview")
 )
 
 // TransformLifecycle captures state about the execution of an entire transform

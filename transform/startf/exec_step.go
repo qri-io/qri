@@ -7,6 +7,7 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
@@ -97,14 +98,14 @@ func (r *StepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *datas
 		r.globals[key] = val
 	}
 
-	if err := r.callStepFunc(r.thread, st.Category, ds); err != nil {
+	if err := r.callStepFunc(ctx, r.thread, st.Category, ds); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *StepRunner) callStepFunc(thread *starlark.Thread, stepType string, ds *dataset.Dataset) error {
+func (r *StepRunner) callStepFunc(ctx context.Context, thread *starlark.Thread, stepType string, ds *dataset.Dataset) error {
 	if stepType == "setup" {
 		return nil
 	}
@@ -118,7 +119,7 @@ func (r *StepRunner) callStepFunc(thread *starlark.Thread, stepType string, ds *
 	case "download":
 		return r.callDownloadFunc(thread, stepFunc)
 	case "transform":
-		return r.callTransformFunc(thread, stepFunc, ds)
+		return r.callTransformFunc(ctx, thread, stepFunc, ds)
 	default:
 		return fmt.Errorf("unrecognized starlark step type %q", stepType)
 	}
@@ -151,13 +152,14 @@ func (r *StepRunner) callDownloadFunc(thread *starlark.Thread, download *starlar
 	return nil
 }
 
-func (r *StepRunner) callTransformFunc(thread *starlark.Thread, transform *starlark.Function, ds *dataset.Dataset) (err error) {
+func (r *StepRunner) callTransformFunc(ctx context.Context, thread *starlark.Thread, transform *starlark.Function, ds *dataset.Dataset) (err error) {
 	d := skyds.NewDataset(r.prev, r.checkFunc)
 	d.SetMutable(ds)
 	if _, err = starlark.Call(thread, transform, starlark.Tuple{d.Methods(), r.starCtx.Struct()}, nil); err != nil {
 		return err
 	}
 
+	// TODO (b5) - this should happen in ds.set_body method call
 	if f := ds.BodyFile(); f != nil {
 		if ds.Structure == nil {
 			if err := base.InferStructure(ds); err != nil {
@@ -165,10 +167,14 @@ func (r *StepRunner) callTransformFunc(thread *starlark.Thread, transform *starl
 				return err
 			}
 		}
-		if err := base.InlineJSONBody(ds); err != nil {
-			log.Debugw("inlining resulting dataset JSON body", "err", err)
+	}
+
+	if r.eventsCh != nil {
+		pview, err := preview.CreatePreview(ctx, ds)
+		if err != nil {
+			return err
 		}
-		ds.SetBodyFile(qfs.NewMemfileBytes("body.json", ds.BodyBytes))
+		r.eventsCh <- event.Event{Type: event.ETTransformDatasetPreview, Payload: pview}
 	}
 
 	return nil
