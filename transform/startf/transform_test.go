@@ -3,7 +3,6 @@ package startf
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -141,14 +140,14 @@ func TestExecStep(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Check that body was set by the transform step.
-	data, err := json.Marshal(ds.Body)
+	data, err := ioutil.ReadAll(ds.BodyFile())
 	if err != nil {
 		t.Fatal(err)
 	}
 	actual := string(data)
 	expect := `[[1,2,3]]`
 	if actual != expect {
-		t.Errorf("expected: \"%s\", actual: \"%s\"", expect, actual)
+		t.Errorf("expected: %q, actual: %q", expect, actual)
 	}
 }
 

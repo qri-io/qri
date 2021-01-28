@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
@@ -89,8 +88,7 @@ func (m *TransformMethods) Apply(p *ApplyParams, res *ApplyResult) error {
 	// allocate an ID for the transform, for now just log the events it produces
 	runID := transform.NewRunID()
 	m.inst.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
-		when := time.Unix(e.Timestamp/1000000000, e.Timestamp%1000000000)
-		log.Infof("[%s] event %s: %s", when, e.Type, e.Payload)
+		log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
 		if e.Type == event.ETTransformPrint {
 			if msg, ok := e.Payload.(event.TransformMessage); ok {
 				io.WriteString(p.ScriptOutput, msg.Msg)
