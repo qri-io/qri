@@ -626,12 +626,12 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		// allocate an ID for the transform, for now just log the events it produces
 		runID := transform.NewRunID()
 		m.inst.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
-			when := time.Unix(e.Timestamp/1000000000, e.Timestamp%1000000000)
-			log.Infof("[%s] event %s: %s", when, e.Type, e.Payload)
 			if e.Type == event.ETTransformPrint {
 				if msg, ok := e.Payload.(event.TransformMessage); ok {
-					io.WriteString(scriptOut, msg.Msg)
-					io.WriteString(scriptOut, "\n")
+					if p.ScriptOutput != nil {
+						io.WriteString(scriptOut, msg.Msg)
+						io.WriteString(scriptOut, "\n")
+					}
 				}
 			}
 			return nil
