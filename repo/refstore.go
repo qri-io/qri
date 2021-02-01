@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/qri-io/qri/dsref"
@@ -55,11 +56,11 @@ func GetVersionInfoShim(r Repo, ref dsref.Ref) (*dsref.VersionInfo, error) {
 // PutVersionInfoShim is a shim for getting away from old stack of
 // DatasetRef, CanonicalizeDatasetRef, and RefStores
 // while still safely interacting with the repo.Refstore API
-func PutVersionInfoShim(r Repo, vi *dsref.VersionInfo) error {
+func PutVersionInfoShim(ctx context.Context, r Repo, vi *dsref.VersionInfo) error {
 	// attempt to look up peerIDs when not set
 	if vi.ProfileID == "" && vi.Username != "" {
 		rref := &reporef.DatasetRef{Peername: vi.Username}
-		if err := CanonicalizeProfile(r, rref); err == nil {
+		if err := CanonicalizeProfile(ctx, r, rref); err == nil {
 			vi.ProfileID = rref.ProfileID.String()
 		}
 	}
@@ -69,9 +70,9 @@ func PutVersionInfoShim(r Repo, vi *dsref.VersionInfo) error {
 // DeleteVersionInfoShim is a shim for getting away from the old stack of
 // DatasetRef, CanonicalizeDatasetRef, and RefStore
 // while still safely interacting with the repo.Refstore API
-func DeleteVersionInfoShim(r Repo, ref dsref.Ref) (*dsref.VersionInfo, error) {
+func DeleteVersionInfoShim(ctx context.Context, r Repo, ref dsref.Ref) (*dsref.VersionInfo, error) {
 	rref := reporef.RefFromDsref(ref)
-	if err := CanonicalizeDatasetRef(r, &rref); err != nil && err != ErrNoHistory {
+	if err := CanonicalizeDatasetRef(ctx, r, &rref); err != nil && err != ErrNoHistory {
 		return nil, err
 	}
 	if err := r.DeleteRef(rref); err != nil {
@@ -113,12 +114,12 @@ func ListDatasetsShim(r Repo, offset, limit int) ([]dsref.VersionInfo, error) {
 // references using known canonical peernames and paths. If the provided reference is not
 // in the local repo, still do the work of handling aliases, but return a repo.ErrNotFound
 // error, which callers can respond to by possibly contacting remote repos.
-func CanonicalizeDatasetRef(r Repo, ref *reporef.DatasetRef) error {
+func CanonicalizeDatasetRef(ctx context.Context, r Repo, ref *reporef.DatasetRef) error {
 	if ref.IsEmpty() {
 		return ErrEmptyRef
 	}
 
-	if err := CanonicalizeProfile(r, ref); err != nil {
+	if err := CanonicalizeProfile(ctx, r, ref); err != nil {
 		return err
 	}
 
@@ -157,12 +158,12 @@ func CanonicalizeDatasetRef(r Repo, ref *reporef.DatasetRef) error {
 
 // CanonicalizeProfile populates dataset reporef.DatasetRef ProfileID and Peername properties,
 // changing aliases to known names, and adding ProfileID from a peerstore
-func CanonicalizeProfile(r Repo, ref *reporef.DatasetRef) error {
+func CanonicalizeProfile(ctx context.Context, r Repo, ref *reporef.DatasetRef) error {
 	if ref.Peername == "" && ref.ProfileID == "" {
 		return nil
 	}
 
-	p, err := r.Profile()
+	p, err := r.Profile(ctx)
 	if err != nil {
 		return err
 	}

@@ -96,7 +96,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) dsref.Ref {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	pro, err := r.Profile()
+	pro, err := r.Profile(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -50,7 +50,7 @@ func TestFSIMethodsWrite(t *testing.T) {
 		Format:    "csv",
 	}
 	var noHistoryName string
-	if err := methods.InitDataset(initp, &noHistoryName); err != nil {
+	if err := methods.InitDataset(ctx, initp, &noHistoryName); err != nil {
 		t.Fatal(err)
 	}
 

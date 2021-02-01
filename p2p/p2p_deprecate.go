@@ -82,7 +82,7 @@ func (n *QriNode) handleProfile(ws *WrappedStream, msg Message) (hangup bool) {
 }
 
 func (n *QriNode) profileBytes() ([]byte, error) {
-	p, err := n.Repo.Profile()
+	p, err := n.Repo.Owner()
 	if err != nil {
 		log.Debugf("error getting repo profile: %s\n", err.Error())
 		return nil, err

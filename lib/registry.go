@@ -28,12 +28,12 @@ func (RegistryClientMethods) CoreRequestsName() string { return "registry" }
 type RegistryProfile = registry.Profile
 
 // CreateProfile creates a profile
-func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err error) {
+func (m RegistryClientMethods) CreateProfile(ctx context.Context, p *RegistryProfile, ok *bool) (err error) {
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok))
 	}
 
-	pro, err := m.inst.registry.CreateProfile(p, m.inst.repo.PrivateKey())
+	pro, err := m.inst.registry.CreateProfile(p, m.inst.repo.PrivateKey(ctx))
 	if err != nil {
 		return err
 	}
@@ -46,12 +46,12 @@ func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err 
 
 // ProveProfileKey asserts to a registry that this user has control of a
 // specified private key
-func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) error {
+func (m RegistryClientMethods) ProveProfileKey(ctx context.Context, p *RegistryProfile, ok *bool) error {
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok))
 	}
 
-	pro, err := m.inst.registry.ProveProfileKey(p, m.inst.repo.PrivateKey())
+	pro, err := m.inst.registry.ProveProfileKey(p, m.inst.repo.PrivateKey(ctx))
 	if err != nil {
 		return err
 	}

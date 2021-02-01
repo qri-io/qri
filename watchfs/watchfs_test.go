@@ -76,6 +76,7 @@ func TestFilesysWatcher(t *testing.T) {
 }
 
 func TestWatchAllFSIPaths(t *testing.T) {
+	ctx := context.Background()
 
 	// set up a repo w/ a dataset that has an FSIPath
 	r, err := repotest.NewTestRepo()
@@ -83,7 +84,7 @@ func TestWatchAllFSIPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pro, err := r.Profile()
+	pro, err := r.Profile(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

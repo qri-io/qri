@@ -84,7 +84,7 @@ func TestProfilePhotoHandler(t *testing.T) {
 	cfg := config.DefaultConfigForTesting()
 	// newTestNode uses a different profile. assign here so instance config.Profile
 	// node config.Profile match
-	pro, _ := node.Repo.Profile()
+	pro, _ := node.Repo.Profile(ctx)
 	cfg.Profile, _ = pro.Encode()
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
@@ -143,7 +143,7 @@ func TestProfilePosterHandler(t *testing.T) {
 	cfg := config.DefaultConfigForTesting()
 	// newTestNode uses a different profile. assign here so instance config.Profile
 	// node config.Profile match
-	pro, _ := node.Repo.Profile()
+	pro, _ := node.Repo.Profile(ctx)
 	cfg.Profile, _ = pro.Encode()
 
 	// TODO (b5) - hack until tests have better instance-generation primitives

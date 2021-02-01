@@ -1,6 +1,7 @@
 package base
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -13,28 +14,30 @@ import (
 
 func TestInLocalNamespace(t *testing.T) {
 	r := newTestRepo(t)
+	ctx := context.Background()
 	ref := addCitiesDataset(t, r)
 
-	if !InLocalNamespace(r, ref) {
+	if !InLocalNamespace(ctx, r, ref) {
 		t.Errorf("expected %s true", ref.String())
 	}
 
 	ref = dsref.Ref{}
-	if InLocalNamespace(r, ref) {
+	if InLocalNamespace(ctx, r, ref) {
 		t.Errorf("expected %s false", ref.String())
 	}
 
 	ref = dsref.Ref{ProfileID: "fake"}
-	if InLocalNamespace(r, ref) {
+	if InLocalNamespace(ctx, r, ref) {
 		t.Errorf("expected %s false", ref.String())
 	}
 }
 
 func TestSetPublishStatus(t *testing.T) {
 	r := newTestRepo(t)
+	ctx := context.Background()
 	ref := addCitiesDataset(t, r)
 
-	if err := SetPublishStatus(r, ref, true); err != nil {
+	if err := SetPublishStatus(ctx, r, ref, true); err != nil {
 		t.Error(err)
 	}
 
@@ -46,7 +49,7 @@ func TestSetPublishStatus(t *testing.T) {
 		t.Errorf("expected published to equal true: %v,%v", ref, res)
 	}
 
-	if err := SetPublishStatus(r, ref, false); err != nil {
+	if err := SetPublishStatus(ctx, r, ref, false); err != nil {
 		t.Error(err)
 	}
 	res, err = repo.GetVersionInfoShim(r, ref)
@@ -57,19 +60,19 @@ func TestSetPublishStatus(t *testing.T) {
 		t.Errorf("expected published to equal false: %v,%v", ref, res)
 	}
 
-	if err := SetPublishStatus(r, dsref.Ref{Name: "foo"}, false); err == nil {
+	if err := SetPublishStatus(ctx, r, dsref.Ref{Name: "foo"}, false); err == nil {
 		t.Error("expected invalid reference to error")
 	}
 
 	outside := dsref.MustParse("a/b@QmX1oSPMbzkhk33EutuadL4sqsivsRKmMx5hAnZL2mRAM1/ipfs/Qmd")
 	vi := dsref.NewVersionInfoFromRef(outside)
-	if err := repo.PutVersionInfoShim(r, &vi); err != nil {
+	if err := repo.PutVersionInfoShim(ctx, r, &vi); err != nil {
 		t.Fatal(err)
 	}
 
 	r.Profiles().PutProfile(&profile.Profile{ID: profile.IDB58DecodeOrEmpty(outside.ProfileID), Peername: outside.Username})
 
-	if err := SetPublishStatus(r, outside, true); err == nil {
+	if err := SetPublishStatus(ctx, r, outside, true); err == nil {
 		t.Error("expected setting the publish status of a name outside peer's namespace to fail")
 	}
 }

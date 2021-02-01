@@ -632,7 +632,8 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 	ctx, cancel := context.WithCancel(ctx)
 
 	r := node.Repo
-	pro, err := r.Profile()
+	// TODO(aqru): should be owner?
+	pro, err := r.Profile(ctx)
 	if err != nil {
 		cancel()
 		panic(err)

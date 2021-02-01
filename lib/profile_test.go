@@ -49,7 +49,7 @@ func TestProfileRequestsGet(t *testing.T) {
 
 	for i, c := range cases {
 		got := &config.ProfilePod{}
-		err := m.GetProfile(&c.in, got)
+		err := m.GetProfile(ctx, &c.in, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -222,7 +222,7 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 
 	m := NewProfileMethods(inst)
 
-	pro, err := node.Repo.Profile()
+	pro, err := node.Repo.Profile(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

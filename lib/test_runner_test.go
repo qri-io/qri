@@ -222,6 +222,7 @@ func (tr *testRunner) DiffWithParams(p *DiffParams) (string, error) {
 }
 
 func (tr *testRunner) Init(refstr, format string) error {
+	ctx := context.Background()
 	ref, err := dsref.Parse(refstr)
 	if err != nil {
 		return err
@@ -233,13 +234,14 @@ func (tr *testRunner) Init(refstr, format string) error {
 		TargetDir: tr.WorkDir,
 		Format:    format,
 	}
-	return m.InitDataset(&p, &out)
+	return m.InitDataset(ctx, &p, &out)
 }
 
 func (tr *testRunner) InitWithParams(p *InitDatasetParams) error {
+	ctx := context.Background()
 	m := NewFSIMethods(tr.Instance)
 	out := ""
-	return m.InitDataset(p, &out)
+	return m.InitDataset(ctx, p, &out)
 }
 
 func (tr *testRunner) Checkout(refstr, dir string) error {

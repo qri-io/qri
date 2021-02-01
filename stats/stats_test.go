@@ -140,7 +140,7 @@ func TestStatsFSI(t *testing.T) {
 	}
 
 	fsiSvc := fsi.NewFSI(mr, nil)
-	vi, _, err := fsiSvc.CreateLink(fsiDir, ref)
+	vi, _, err := fsiSvc.CreateLink(ctx, fsiDir, ref)
 	if err != nil {
 		t.Fatal(err)
 	}

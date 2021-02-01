@@ -6,6 +6,7 @@
 package spec
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/qri/repo"
@@ -39,8 +40,9 @@ func RunRepoTests(t *testing.T, rmf RepoMakerFunc) {
 func testProfile(t *testing.T, rmf RepoMakerFunc) {
 	r, cleanup := rmf(t)
 	defer cleanup()
+	ctx := context.Background()
 
-	p, err := r.Profile()
+	p, err := r.Profile(ctx)
 	if err != nil {
 		t.Errorf("%s", string(p.ID))
 		t.Errorf("Unexpected Profile error: %s", err.Error())

@@ -10,7 +10,7 @@ import (
 func ListPeers(node *QriNode, limit, offset int, onlineOnly bool) ([]*config.ProfilePod, error) {
 
 	r := node.Repo
-	user, err := r.Profile()
+	user, err := r.Owner()
 	if err != nil {
 		return nil, err
 	}

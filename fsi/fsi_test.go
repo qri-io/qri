@@ -1,6 +1,7 @@
 package fsi
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -71,11 +72,12 @@ func (t *TmpPaths) Close() {
 }
 
 func TestCreateLink(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	vi, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/movies"))
+	vi, _, err := fsi.CreateLink(ctx, paths.firstDir, dsref.MustParse("peer/movies"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -119,15 +121,16 @@ func TestResolvedRef(t *testing.T) {
 }
 
 func TestCreateLinkTwice(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
+	_, _, err := fsi.CreateLink(ctx, paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	_, _, err = fsi.CreateLink(paths.secondDir, dsref.MustParse("peer/movies"))
+	_, _, err = fsi.CreateLink(ctx, paths.secondDir, dsref.MustParse("peer/movies"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -172,15 +175,16 @@ func TestCreateLinkTwice(t *testing.T) {
 }
 
 func TestCreateLinkAlreadyLinked(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
+	_, _, err := fsi.CreateLink(ctx, paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	_, _, err = fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
+	_, _, err = fsi.CreateLink(ctx, paths.firstDir, dsref.MustParse("peer/cities"))
 	if err == nil {
 		t.Errorf("expected an error, did not get one")
 		return
@@ -193,17 +197,18 @@ func TestCreateLinkAlreadyLinked(t *testing.T) {
 }
 
 func TestCreateLinkAgainOnceQriRefRemoved(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
+	_, _, err := fsi.CreateLink(ctx, paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	// Remove the .qri-ref link file, then CreateLink again.
 	os.Remove(filepath.Join(paths.firstDir, ".qri-ref"))
-	_, _, err = fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
+	_, _, err = fsi.CreateLink(ctx, paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -235,11 +240,12 @@ func TestCreateLinkAgainOnceQriRefRemoved(t *testing.T) {
 
 // Test that ModifyLinkReference changes what is in the .qri-ref linkfile
 func TestModifyLinkReference(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
+	_, _, err := fsi.CreateLink(ctx, paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +265,7 @@ func TestModifyLinkReference(t *testing.T) {
 	}
 
 	vi.Name = "cities_2"
-	err = repo.PutVersionInfoShim(paths.testRepo, vi)
+	err = repo.PutVersionInfoShim(ctx, paths.testRepo, vi)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,15 +289,16 @@ func TestModifyLinkReference(t *testing.T) {
 
 // Test that ModifyLinkDirectory changes the FSIPath in the repo
 func TestModifyLinkDirectory(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/movies"))
+	_, _, err := fsi.CreateLink(ctx, paths.firstDir, dsref.MustParse("peer/movies"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = fsi.ModifyLinkDirectory(paths.secondDir, dsref.MustParse("peer/movies"))
+	_, err = fsi.ModifyLinkDirectory(ctx, paths.secondDir, dsref.MustParse("peer/movies"))
 	if err != nil {
 		t.Errorf("expected ModifyLinkReference to succeed, got: %s", err.Error())
 	}
@@ -321,20 +328,21 @@ func TestModifyLinkDirectory(t *testing.T) {
 }
 
 func TestUnlink(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, dsref.MustParse("peer/cities"))
+	_, _, err := fsi.CreateLink(ctx, paths.firstDir, dsref.MustParse("peer/cities"))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	if err := fsi.Unlink(paths.firstDir, dsref.MustParse("peer/mismatched_reference")); err == nil {
+	if err := fsi.Unlink(ctx, paths.firstDir, dsref.MustParse("peer/mismatched_reference")); err == nil {
 		t.Errorf("expected unlinking mismatched reference to error")
 	}
 
-	if err := fsi.Unlink(paths.firstDir, dsref.MustParse("peer/cities")); err != nil {
+	if err := fsi.Unlink(ctx, paths.firstDir, dsref.MustParse("peer/cities")); err != nil {
 		t.Errorf("unlinking valid reference: %s", err.Error())
 	}
 }

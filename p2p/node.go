@@ -209,7 +209,7 @@ func (n *QriNode) GoOnline(c context.Context) (err error) {
 		return err
 	}
 
-	p, err := n.Repo.Profile()
+	p, err := n.Repo.Owner()
 	if err != nil {
 		log.Errorf("error getting repo profile: %s\n", err.Error())
 		cancel()

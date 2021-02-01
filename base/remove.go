@@ -60,7 +60,7 @@ func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, histor
 	if _, err := repo.GetVersionInfoShim(r, ref); err == nil {
 		didRemove = appendString(didRemove, "refstore")
 	}
-	if _, err := repo.DeleteVersionInfoShim(r, ref); err != nil {
+	if _, err := repo.DeleteVersionInfoShim(ctx, r, ref); err != nil {
 		log.Debugf("Remove, DeleteRef failed, error: %s", err)
 		removeErr = err
 	}
@@ -189,12 +189,12 @@ func RewindDatasetRef(ctx context.Context, r repo.Repo, curr, next dsref.Ref) (*
 		return nil, fmt.Errorf("error with existing reference: %s", err.Error())
 	}
 
-	if _, err := repo.DeleteVersionInfoShim(r, currVi.SimpleRef()); err != nil {
+	if _, err := repo.DeleteVersionInfoShim(ctx, r, currVi.SimpleRef()); err != nil {
 		return nil, err
 	}
 
 	nextVi.Path = next.Path
-	if err := repo.PutVersionInfoShim(r, nextVi); err != nil {
+	if err := repo.PutVersionInfoShim(ctx, r, nextVi); err != nil {
 		return nil, err
 	}
 	return nextVi, nil

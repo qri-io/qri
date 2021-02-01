@@ -419,7 +419,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 				t.Errorf("error listing dataset: %s", err.Error())
 			}
 			// Get number from end of peername, use that to find dataset name.
-			profile, _ := node.Repo.Profile()
+			profile, _ := node.Repo.Profile(ctx)
 			num := profile.Peername[len(profile.Peername)-1:]
 			index, _ := strconv.ParseInt(num, 10, 32)
 			expect := datasets[index]
@@ -695,7 +695,7 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 		go func(node *p2p.QriNode) {
 			defer wg.Done()
 			// Get number from end of peername, use that to create dataset name.
-			profile, _ := node.Repo.Profile()
+			profile, _ := node.Repo.Profile(ctx)
 			num := profile.Peername[len(profile.Peername)-1:]
 			index, _ := strconv.ParseInt(num, 10, 32)
 			name := datasets[index]
@@ -792,6 +792,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 }
 
 func TestRenameNoHistory(t *testing.T) {
+	ctx := context.Background()
 	tr := newTestRunner(t)
 	defer tr.Delete()
 
@@ -802,7 +803,7 @@ func TestRenameNoHistory(t *testing.T) {
 		Format:    "csv",
 	}
 	var refstr string
-	if err := NewFSIMethods(tr.Instance).InitDataset(initP, &refstr); err != nil {
+	if err := NewFSIMethods(tr.Instance).InitDataset(ctx, initP, &refstr); err != nil {
 		t.Fatal(err)
 	}
 
@@ -864,7 +865,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		Format:    "csv",
 	}
 	var noHistoryName string
-	if err := fsim.InitDataset(initp, &noHistoryName); err != nil {
+	if err := fsim.InitDataset(ctx, initp, &noHistoryName); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1034,7 +1035,7 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 				defer wg.Done()
 
 				// Get ref to dataset that peer2 has.
-				profile, _ := p1.Repo.Profile()
+				profile, _ := p1.Repo.Profile(ctx)
 				num := profile.Peername[len(profile.Peername)-1:]
 				index, _ := strconv.ParseInt(num, 10, 32)
 				name := datasets[index]
@@ -1050,8 +1051,8 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 
 				err := dsm.Pull(p, got)
 				if err != nil {
-					pro1, _ := p0.Repo.Profile()
-					pro2, _ := p1.Repo.Profile()
+					pro1, _ := p0.Repo.Profile(ctx)
+					pro2, _ := p1.Repo.Profile(ctx)
 					t.Errorf("error adding dataset for %s from %s to %s: %s",
 						ref.Name, pro2.Peername, pro1.Peername, err.Error())
 				}
@@ -1136,6 +1137,7 @@ Pirates of the Caribbean: At World's End ,foo
 }
 
 func TestDatasetRequestsValidateFSI(t *testing.T) {
+	ctx := context.Background()
 	tr := newTestRunner(t)
 	defer tr.Delete()
 
@@ -1146,7 +1148,7 @@ func TestDatasetRequestsValidateFSI(t *testing.T) {
 		Format:    "csv",
 	}
 	var refstr string
-	if err := NewFSIMethods(tr.Instance).InitDataset(initP, &refstr); err != nil {
+	if err := NewFSIMethods(tr.Instance).InitDataset(ctx, initP, &refstr); err != nil {
 		t.Fatal(err)
 	}
 

@@ -147,7 +147,7 @@ func TestDatasetLogForeignTimeout(t *testing.T) {
 
 	vi := dsref.NewVersionInfoFromRef(ref)
 	// Add a reference to the repo which uses a path not in our filestore
-	err := repo.PutVersionInfoShim(mr, &vi)
+	err := repo.PutVersionInfoShim(ctx, mr, &vi)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	ref := updateCitiesDataset(t, mr, "")
 
 	// add the logbook back
-	p, err := mr.Profile()
+	p, err := mr.Profile(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -117,7 +117,7 @@ func (r *RemoteMethods) Push(p *PushParams, res *dsref.Ref) error {
 
 	datasetRef := reporef.RefFromDsref(ref)
 	datasetRef.Published = true
-	if err = base.SetPublishStatus(r.inst.node.Repo, ref, true); err != nil {
+	if err = base.SetPublishStatus(ctx, r.inst.node.Repo, ref, true); err != nil {
 		return err
 	}
 
@@ -174,7 +174,7 @@ func (r *RemoteMethods) Remove(p *PushParams, res *dsref.Ref) error {
 		return err
 	}
 
-	if err = base.SetPublishStatus(r.inst.node.Repo, ref, false); err != nil {
+	if err = base.SetPublishStatus(ctx, r.inst.node.Repo, ref, false); err != nil {
 		return err
 	}
 

@@ -81,7 +81,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 
 	// remove the ds reference to the cities dataset before we populate
 	// the repo with cities datasets again
-	repo.DeleteVersionInfoShim(r, initDs)
+	repo.DeleteVersionInfoShim(ctx, r, initDs)
 
 	// create test repo and history
 	// create history of 10 versions

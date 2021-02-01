@@ -163,8 +163,7 @@ func (fsi *FSI) EnsureRefNotLinked(ref dsref.Ref) error {
 
 // CreateLink links a working directory to an existing dataset. Returning
 // updated VersionInfo and a rollback function if no error occurs
-func (fsi *FSI) CreateLink(dirPath string, ref dsref.Ref) (vi *dsref.VersionInfo, rollback func(), err error) {
-	ctx := context.TODO()
+func (fsi *FSI) CreateLink(ctx context.Context, dirPath string, ref dsref.Ref) (vi *dsref.VersionInfo, rollback func(), err error) {
 	rollback = func() {}
 
 	// todo(arqu): should utilize rollback as other operations bellow
@@ -175,7 +174,7 @@ func (fsi *FSI) CreateLink(dirPath string, ref dsref.Ref) (vi *dsref.VersionInfo
 
 	// Link the FSIPath to the reference before putting it into the repo
 	log.Debugf("fsi.CreateLink: linking ref=%q, FSIPath=%q", ref, dirPath)
-	vi, err = fsi.ModifyLinkDirectory(dirPath, ref)
+	vi, err = fsi.ModifyLinkDirectory(ctx, dirPath, ref)
 	if err != nil {
 		return nil, rollback, err
 	}
@@ -183,7 +182,7 @@ func (fsi *FSI) CreateLink(dirPath string, ref dsref.Ref) (vi *dsref.VersionInfo
 	// If future steps fail, remove the ref we just put
 	removeRefFunc := func() {
 		log.Debugf("removing repo.ref %q during rollback", ref)
-		if _, err := repo.DeleteVersionInfoShim(fsi.repo, ref); err != nil {
+		if _, err := repo.DeleteVersionInfoShim(ctx, fsi.repo, ref); err != nil {
 			log.Debugf("error while removing repo.ref %q: %s", ref, err)
 		}
 	}
@@ -230,7 +229,7 @@ func (fsi *FSI) CreateLink(dirPath string, ref dsref.Ref) (vi *dsref.VersionInfo
 // interface or filesystem watcher detects that a working folder has been moved.
 // TODO(dlong): Add a filesystem watcher that behaves as described
 // TODO(dlong): Perhaps add a `qri mv` command that explicitly changes a working directory location
-func (fsi *FSI) ModifyLinkDirectory(dirPath string, ref dsref.Ref) (*dsref.VersionInfo, error) {
+func (fsi *FSI) ModifyLinkDirectory(ctx context.Context, dirPath string, ref dsref.Ref) (*dsref.VersionInfo, error) {
 	vi, err := repo.GetVersionInfoShim(fsi.repo, ref)
 	if err != nil {
 		return nil, err
@@ -241,7 +240,7 @@ func (fsi *FSI) ModifyLinkDirectory(dirPath string, ref dsref.Ref) (*dsref.Versi
 
 	log.Debugf("fsi.ModifyLinkDirectory: modify ref=%q, FSIPath was %q, changing to %q", ref, vi.FSIPath, dirPath)
 	vi.FSIPath = dirPath
-	err = repo.PutVersionInfoShim(fsi.repo, vi)
+	err = repo.PutVersionInfoShim(ctx, fsi.repo, vi)
 	return vi, err
 }
 
@@ -256,7 +255,7 @@ func (fsi *FSI) ModifyLinkReference(dirPath string, ref dsref.Ref) (string, erro
 
 // Unlink removes the link file (.qri-ref) in the directory, and removes the fsi path
 // from the reference in the refstore
-func (fsi *FSI) Unlink(dirPath string, ref dsref.Ref) error {
+func (fsi *FSI) Unlink(ctx context.Context, dirPath string, ref dsref.Ref) error {
 	removeErr := os.Remove(filepath.Join(dirPath, linkfile.RefLinkHiddenFilename))
 	if removeErr != nil {
 		log.Debugf("removing link file: %s", removeErr.Error())
@@ -275,11 +274,11 @@ func (fsi *FSI) Unlink(dirPath string, ref dsref.Ref) error {
 
 	// if we're unlinking a ref without history, delete it
 	if ref.Path == "" {
-		_, err := repo.DeleteVersionInfoShim(fsi.repo, ref)
+		_, err := repo.DeleteVersionInfoShim(ctx, fsi.repo, ref)
 		return err
 	}
 	// Otherwise just update the refstore
-	return repo.PutVersionInfoShim(fsi.repo, vi)
+	return repo.PutVersionInfoShim(ctx, fsi.repo, vi)
 }
 
 // Remove attempts to remove the dataset directory
