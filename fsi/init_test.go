@@ -1,6 +1,7 @@
 package fsi
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -8,12 +9,13 @@ import (
 )
 
 func TestInitDataset(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
 
-	_, err := fsi.InitDataset(InitParams{
+	_, err := fsi.InitDataset(ctx, InitParams{
 		Name:      "test_ds",
 		TargetDir: paths.firstDir,
 		Format:    "csv",

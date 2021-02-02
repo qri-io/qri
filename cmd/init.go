@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -125,8 +126,10 @@ func (o *InitOptions) Run() (err error) {
 		BodyPath:   o.BodyPath,
 		UseDscache: o.UseDscache,
 	}
+
+	ctx := context.TODO()
 	var refstr string
-	if err = o.FSIMethods.InitDataset(p, &refstr); err != nil {
+	if err = o.FSIMethods.InitDataset(ctx, p, &refstr); err != nil {
 		return err
 	}
 

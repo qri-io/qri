@@ -148,7 +148,7 @@ func (q *QriProfileService) ProfileHandler(s network.Stream) {
 
 	log.Debugf("%s received a profile request from %s %s", ProfileProtocolID, p, s.Conn().RemoteMultiaddr())
 
-	pro, err = q.repo.Profile()
+	pro, err = q.repo.Owner()
 	if err != nil {
 		log.Debugf("%s error getting this node's profile: %s", ProfileProtocolID, err)
 		return

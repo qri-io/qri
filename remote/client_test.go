@@ -95,7 +95,7 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 
 	worldBankRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 	wbp := reporef.RefFromDsref(worldBankRef)
-	setRefPublished(t, tr.NodeA.Repo, &wbp)
+	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, &wbp)
 
 	rem := tr.NodeARemote(t)
 	server := tr.RemoteTestServer(rem)

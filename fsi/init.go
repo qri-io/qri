@@ -38,9 +38,7 @@ var PrepareToWrite = func(comp component.Component) {
 }
 
 // InitDataset creates a new dataset
-func (fsi *FSI) InitDataset(p InitParams) (ref dsref.Ref, err error) {
-	ctx := context.TODO()
-
+func (fsi *FSI) InitDataset(ctx context.Context, p InitParams) (ref dsref.Ref, err error) {
 	// Create a rollback handler
 	rollback := func() {
 		log.Debug("did rollback InitDataset due to error")
@@ -133,13 +131,13 @@ to create a working directory for an existing dataset`
 	// that both the exported CreateLink & Init can call
 	vi := ref.VersionInfo()
 	vi.FSIPath = p.TargetDir
-	if err := repo.PutVersionInfoShim(fsi.repo, &vi); err != nil {
+	if err := repo.PutVersionInfoShim(ctx, fsi.repo, &vi); err != nil {
 		return ref, err
 	}
 
 	// Create the link file, containing the dataset reference.
 	var undo func()
-	if _, undo, err = fsi.CreateLink(p.TargetDir, ref); err != nil {
+	if _, undo, err = fsi.CreateLink(ctx, p.TargetDir, ref); err != nil {
 		return ref, err
 	}
 	// If future steps fail, rollback the link creation.

@@ -21,12 +21,13 @@ func TestPrepareSaveRef(t *testing.T) {
 	}()
 
 	r := newTestRepo(t)
+	ctx := context.Background()
 
-	pro, err := r.Profile()
+	pro, err := r.Profile(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx := context.Background()
+
 	book := r.Logbook()
 
 	book.WriteDatasetInit(ctx, "cities")
@@ -96,7 +97,8 @@ func TestPrepareSaveRef(t *testing.T) {
 
 func TestInferValues(t *testing.T) {
 	r := newTestRepo(t)
-	pro, err := r.Profile()
+	ctx := context.Background()
+	pro, err := r.Profile(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +168,8 @@ func TestInferStructureSchema(t *testing.T) {
 
 func TestInferValuesDontOverwriteSchema(t *testing.T) {
 	r := newTestRepo(t)
-	pro, err := r.Profile()
+	ctx := context.Background()
+	pro, err := r.Profile(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +214,8 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 
 func TestMaybeAddDefaultViz(t *testing.T) {
 	r := newTestRepo(t)
-	_, err := r.Profile()
+	ctx := context.Background()
+	_, err := r.Profile(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

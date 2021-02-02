@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -25,6 +26,8 @@ type Store interface {
 	Owner() *Profile
 	// SetOwner handles updates to the current user profile at runtime
 	SetOwner(own *Profile) error
+	// Active is the active profile that represents the current user
+	Active(ctx context.Context) *Profile
 
 	// put a profile in the store
 	PutProfile(profile *Profile) error
@@ -100,7 +103,7 @@ func NewMemStore(owner *Profile, ks key.Store) (Store, error) {
 	}, nil
 }
 
-// Owner accesses the current user profile
+// Owner accesses the current owner user profile
 func (m *MemStore) Owner() *Profile {
 	return m.owner
 }
@@ -109,6 +112,11 @@ func (m *MemStore) Owner() *Profile {
 func (m *MemStore) SetOwner(own *Profile) error {
 	m.owner = own
 	return nil
+}
+
+// Active is the curernt active profile
+func (m *MemStore) Active(ctx context.Context) *Profile {
+	return m.Owner()
 }
 
 // PutProfile adds a peer to this store
@@ -247,7 +255,7 @@ func lockPath(filename string) string {
 	return fmt.Sprintf("%s.lock", filename)
 }
 
-// Owner accesses the current user profile
+// Owner accesses the current owner user profile
 func (r *LocalStore) Owner() *Profile {
 	return r.owner
 }
@@ -256,6 +264,11 @@ func (r *LocalStore) Owner() *Profile {
 func (r *LocalStore) SetOwner(own *Profile) error {
 	r.owner = own
 	return r.PutProfile(own)
+}
+
+// Active is the curernt active profile
+func (r *LocalStore) Active(ctx context.Context) *Profile {
+	return r.Owner()
 }
 
 // PutProfile adds a peer to the store

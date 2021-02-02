@@ -149,7 +149,12 @@ func (r *Repo) SetFilesystem(fs *muxfs.Mux) {
 }
 
 // Profile gives this repo's peer profile
-func (r *Repo) Profile() (*profile.Profile, error) {
+func (r *Repo) Profile(ctx context.Context) (*profile.Profile, error) {
+	return r.profiles.Active(ctx), nil
+}
+
+// Owner returns the owner profile for this repository
+func (r *Repo) Owner() (*profile.Profile, error) {
 	return r.profiles.Owner(), nil
 }
 
@@ -164,8 +169,8 @@ func (r *Repo) Dscache() *dscache.Dscache {
 }
 
 // PrivateKey returns this repo's private key
-func (r *Repo) PrivateKey() crypto.PrivKey {
-	return r.profiles.Owner().PrivKey
+func (r *Repo) PrivateKey(ctx context.Context) crypto.PrivKey {
+	return r.profiles.Active(ctx).PrivKey
 }
 
 // Profiles returns this repo's Peers implementation

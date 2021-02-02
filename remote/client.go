@@ -127,13 +127,13 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 		})
 	}
 
-	pro, err := node.Repo.Profile()
+	pro, err := node.Repo.Profile(ctx)
 	if err != nil {
 		log.Debug("cannot get profile from repo, need username for access control on the remote to function")
 	}
 
 	cli := &client{
-		pk:      node.Repo.PrivateKey(),
+		pk:      node.Repo.PrivateKey(ctx),
 		profile: pro,
 		ds:      ds,
 		logsync: ls,
@@ -174,7 +174,7 @@ func (c *client) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsr
 		return nil, err
 	}
 
-	if err := c.signHTTPRequest(req); err != nil {
+	if err := c.signHTTPRequest(ctx, req); err != nil {
 		return nil, err
 	}
 
@@ -218,7 +218,7 @@ func (c *client) Feed(ctx context.Context, remoteAddr, feedName string, page, pa
 		return nil, err
 	}
 
-	if err := c.signHTTPRequest(req); err != nil {
+	if err := c.signHTTPRequest(ctx, req); err != nil {
 		return nil, err
 	}
 
@@ -269,7 +269,7 @@ func (c *client) previewDatasetVersionHTTP(ctx context.Context, ref dsref.Ref, r
 		return nil, err
 	}
 
-	if err := c.signHTTPRequest(req); err != nil {
+	if err := c.signHTTPRequest(ctx, req); err != nil {
 		return nil, err
 	}
 
@@ -731,8 +731,8 @@ func addressType(remoteAddr string) string {
 	return ""
 }
 
-func (c *client) signHTTPRequest(req *http.Request) error {
-	pk := c.node.Repo.PrivateKey()
+func (c *client) signHTTPRequest(ctx context.Context, req *http.Request) error {
+	pk := c.node.Repo.PrivateKey(ctx)
 	now := fmt.Sprintf("%d", nowFunc().In(time.UTC).Unix())
 
 	// TODO (b5) - we shouldn't be calculating profile IDs here

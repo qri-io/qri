@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -234,7 +235,8 @@ func (e *FSIRefLinkEnsurer) EnsureRef(refs *RefSelect) error {
 	}
 	p := lib.EnsureParams{Dir: refs.Dir(), Ref: refs.Ref()}
 	info := dsref.VersionInfo{}
+	ctx := context.TODO()
 	// Lib call matches the gorpc method signature, but `out` is not used
-	err := e.FSIMethods.EnsureRef(&p, &info)
+	err := e.FSIMethods.EnsureRef(ctx, &p, &info)
 	return err
 }

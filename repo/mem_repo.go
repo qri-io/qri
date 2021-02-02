@@ -149,8 +149,8 @@ func (r *MemRepo) SetFilesystem(fs *muxfs.Mux) {
 }
 
 // PrivateKey returns this repo's private key
-func (r *MemRepo) PrivateKey() crypto.PrivKey {
-	return r.profiles.Owner().PrivKey
+func (r *MemRepo) PrivateKey(ctx context.Context) crypto.PrivKey {
+	return r.profiles.Active(ctx).PrivKey
 }
 
 // RefCache gives access to the ephemeral Refstore
@@ -159,7 +159,12 @@ func (r *MemRepo) RefCache() Refstore {
 }
 
 // Profile returns the peer profile for this repository
-func (r *MemRepo) Profile() (*profile.Profile, error) {
+func (r *MemRepo) Profile(ctx context.Context) (*profile.Profile, error) {
+	return r.profiles.Active(ctx), nil
+}
+
+// Owner returns the owner profile for this repository
+func (r *MemRepo) Owner() (*profile.Profile, error) {
 	return r.profiles.Owner(), nil
 }
 

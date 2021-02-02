@@ -202,7 +202,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 		path    string
 		resBody qfs.File
 	)
-	pro, err = r.Profile()
+	pro, err = r.Profile(ctx)
 	if err != nil {
 		return
 	}
@@ -218,7 +218,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 
 	sw := dsfs.SaveSwitches{Pin: true, ShouldRender: true}
 	fs := r.Filesystem()
-	if path, err = dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), r.Bus(), ds, nil, r.PrivateKey(), sw); err != nil {
+	if path, err = dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), r.Bus(), ds, nil, r.PrivateKey(ctx), sw); err != nil {
 		return
 	}
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {

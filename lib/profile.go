@@ -34,7 +34,7 @@ func NewProfileMethods(inst *Instance) *ProfileMethods {
 }
 
 // GetProfile get's this node's peer profile
-func (m *ProfileMethods) GetProfile(in *bool, res *config.ProfilePod) (err error) {
+func (m *ProfileMethods) GetProfile(ctx context.Context, in *bool, res *config.ProfilePod) (err error) {
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("ProfileMethods.GetProfile", in, res))
 	}
@@ -44,9 +44,9 @@ func (m *ProfileMethods) GetProfile(in *bool, res *config.ProfilePod) (err error
 
 	// TODO - this is a carry-over from when GetProfile only supported getting
 	if res.ID == "" && res.Peername == "" {
-		pro, err = r.Profile()
+		pro, err = r.Profile(ctx)
 	} else {
-		pro, err = m.getProfile(r, res.ID, res.Peername)
+		pro, err = m.getProfile(ctx, r, res.ID, res.Peername)
 	}
 
 	if err != nil {
@@ -69,13 +69,13 @@ func (m *ProfileMethods) GetProfile(in *bool, res *config.ProfilePod) (err error
 	return nil
 }
 
-func (m *ProfileMethods) getProfile(r repo.Repo, idStr, peername string) (pro *profile.Profile, err error) {
+func (m *ProfileMethods) getProfile(ctx context.Context, r repo.Repo, idStr, peername string) (pro *profile.Profile, err error) {
 	var id profile.ID
 	if idStr == "" {
 		ref := &reporef.DatasetRef{
 			Peername: peername,
 		}
-		if err = repo.CanonicalizeProfile(r, ref); err != nil {
+		if err = repo.CanonicalizeProfile(ctx, r, ref); err != nil {
 			log.Error("error canonicalizing profile", err.Error())
 			return nil, err
 		}
@@ -89,7 +89,7 @@ func (m *ProfileMethods) getProfile(r repo.Repo, idStr, peername string) (pro *p
 	}
 
 	// TODO - own profile should just be inside the profile store
-	profile, err := r.Profile()
+	profile, err := r.Owner()
 	if err == nil && profile.ID.String() == id.String() {
 		return profile, nil
 	}
@@ -167,7 +167,7 @@ func (m *ProfileMethods) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err 
 
 	r := m.inst.repo
 
-	pro, e := m.getProfile(r, req.ID, req.Peername)
+	pro, e := m.getProfile(ctx, r, req.ID, req.Peername)
 	if e != nil {
 		return e
 	}
@@ -244,7 +244,7 @@ func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) 
 		return err
 	}
 
-	newPro, err := r.Profile()
+	newPro, err := r.Profile(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting newly set profile: %s", err)
 	}
@@ -266,7 +266,7 @@ func (m *ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err e
 	ctx := context.TODO()
 
 	r := m.inst.repo
-	pro, e := m.getProfile(r, req.ID, req.Peername)
+	pro, e := m.getProfile(ctx, r, req.ID, req.Peername)
 	if e != nil {
 		return e
 	}
@@ -335,7 +335,7 @@ func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) e
 		return err
 	}
 
-	newPro, err := r.Profile()
+	newPro, err := r.Profile(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting newly set profile: %s", err)
 	}

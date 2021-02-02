@@ -279,7 +279,7 @@ func (c *MockClient) mockDagSync(ctx context.Context, ref dsref.Ref) (*dsref.Ver
 		Username:  ref.Username,
 		Name:      ref.Name,
 	}
-	if err := repo.PutVersionInfoShim(c.node.Repo, &vi); err != nil {
+	if err := repo.PutVersionInfoShim(ctx, c.node.Repo, &vi); err != nil {
 		return nil, err
 	}
 

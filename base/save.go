@@ -23,7 +23,7 @@ var ErrNameTaken = fmt.Errorf("name already in use")
 func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, initID, prevPath string, changes *dataset.Dataset, sw SaveSwitches) (ds *dataset.Dataset, err error) {
 	log.Debugf("SaveDataset initID=%q prevPath=%q", initID, prevPath)
 	var pro *profile.Profile
-	if pro, err = r.Profile(); err != nil {
+	if pro, err = r.Profile(ctx); err != nil {
 		return nil, err
 	}
 	if initID == "" {
@@ -125,7 +125,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 		resBody qfs.File
 	)
 
-	pro, err = r.Profile()
+	pro, err = r.Profile(ctx)
 	if err != nil {
 		log.Debugf("getting repo profile: %s", err)
 		return
@@ -146,7 +146,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 		return
 	}
 
-	if path, err = dsfs.CreateDataset(ctx, r.Filesystem(), writeDest, r.Bus(), ds, dsPrev, r.PrivateKey(), sw); err != nil {
+	if path, err = dsfs.CreateDataset(ctx, r.Filesystem(), writeDest, r.Bus(), ds, dsPrev, r.PrivateKey(ctx), sw); err != nil {
 		log.Debugf("dsfs.CreateDataset: %s", err)
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
 		// should be ok to skip this error. we may not have the previous
 		// reference locally
-		repo.DeleteVersionInfoShim(r, dsref.Ref{
+		repo.DeleteVersionInfoShim(ctx, r, dsref.Ref{
 			ProfileID: pro.ID.String(),
 			Username:  pro.Peername,
 			Name:      dsName,
@@ -176,7 +176,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 	// and dscache, this will no longer be necessary, updating logbook will be enough.
 	vi := dsref.ConvertDatasetToVersionInfo(ds)
 
-	if err := repo.PutVersionInfoShim(r, &vi); err != nil {
+	if err := repo.PutVersionInfoShim(ctx, r, &vi); err != nil {
 		return nil, err
 	}
 

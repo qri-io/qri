@@ -424,7 +424,7 @@ func (r *Remote) dsPushComplete(ctx context.Context, info dag.Info, meta map[str
 
 	// TODO (b5) - this could overwrite any FSI links & other ref details,
 	// need to investigate
-	return repo.PutVersionInfoShim(r.node.Repo, &vi)
+	return repo.PutVersionInfoShim(ctx, r.node.Repo, &vi)
 }
 
 func (r *Remote) dsRemovePreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {

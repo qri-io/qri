@@ -14,8 +14,8 @@ import (
 
 // InLocalNamespace checks if a dataset ref is local, assumes the reference is
 // already resolved
-func InLocalNamespace(r repo.Repo, ref dsref.Ref) bool {
-	p, err := r.Profile()
+func InLocalNamespace(ctx context.Context, r repo.Repo, ref dsref.Ref) bool {
+	p, err := r.Profile(ctx)
 	if err != nil {
 		return false
 	}
@@ -24,14 +24,14 @@ func InLocalNamespace(r repo.Repo, ref dsref.Ref) bool {
 }
 
 // SetPublishStatus updates the Published field of a dataset ref
-func SetPublishStatus(r repo.Repo, ref dsref.Ref, published bool) error {
-	if !InLocalNamespace(r, ref) {
+func SetPublishStatus(ctx context.Context, r repo.Repo, ref dsref.Ref, published bool) error {
+	if !InLocalNamespace(ctx, r, ref) {
 		return fmt.Errorf("can't publish datasets that are not in your namespace")
 	}
 
 	vi := dsref.NewVersionInfoFromRef(ref)
 	vi.Published = published
-	return repo.PutVersionInfoShim(r, &vi)
+	return repo.PutVersionInfoShim(ctx, r, &vi)
 }
 
 // ReplaceRefIfMoreRecent replaces the given ref in the ref store, if
@@ -88,13 +88,13 @@ func RenameDatasetRef(ctx context.Context, r repo.Repo, ref dsref.Ref, newName s
 
 	// use the versionInfo returned from the delete to preserve fields like
 	// FSIPath when replaced
-	vi, err := repo.DeleteVersionInfoShim(r, ref)
+	vi, err := repo.DeleteVersionInfoShim(ctx, r, ref)
 	if err != nil {
 		return nil, err
 	}
 	vi.InitID = ref.InitID
 	vi.Name = newName
-	err = repo.PutVersionInfoShim(r, vi)
+	err = repo.PutVersionInfoShim(ctx, r, vi)
 	return vi, err
 }
 

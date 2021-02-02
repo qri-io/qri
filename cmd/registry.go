@@ -141,6 +141,7 @@ func (o *RegistryOptions) Signup() error {
 		Email:    o.Email,
 		Password: password,
 	}
+
 	var ok bool
 	if err := o.RegistryClientMethods.CreateProfile(p, &ok); err != nil {
 		return err
@@ -160,6 +161,7 @@ func (o *RegistryOptions) Prove() error {
 		Email:    o.Email,
 		Password: password,
 	}
+
 	var ok bool
 	if err := o.RegistryClientMethods.ProveProfileKey(p, &ok); err != nil {
 		return err

@@ -33,7 +33,9 @@ func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err 
 		return checkRPCError(m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok))
 	}
 
-	pro, err := m.inst.registry.CreateProfile(p, m.inst.repo.PrivateKey())
+	ctx := context.TODO()
+	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
+	pro, err := m.inst.registry.CreateProfile(p, m.inst.repo.PrivateKey(ctx))
 	if err != nil {
 		return err
 	}
@@ -51,7 +53,9 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 		return checkRPCError(m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok))
 	}
 
-	pro, err := m.inst.registry.ProveProfileKey(p, m.inst.repo.PrivateKey())
+	ctx := context.TODO()
+	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
+	pro, err := m.inst.registry.ProveProfileKey(p, m.inst.repo.PrivateKey(ctx))
 	if err != nil {
 		return err
 	}

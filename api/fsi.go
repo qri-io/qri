@@ -144,7 +144,7 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		var name string
-		if err := h.InitDataset(p, &name); err != nil {
+		if err := h.InitDataset(r.Context(), p, &name); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}

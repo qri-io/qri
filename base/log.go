@@ -76,7 +76,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset i
 	}
 
 	// add a history entry b/c we didn't have one, but repo didn't error
-	if pro, err := r.Profile(); err == nil && ref.Username == pro.Peername {
+	if pro, err := r.Profile(ctx); err == nil && ref.Username == pro.Peername {
 		go func() {
 			if err := constructDatasetLogFromHistory(context.Background(), r, ref); err != nil {
 				log.Errorf("constructDatasetLogFromHistory: %s", err)

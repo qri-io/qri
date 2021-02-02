@@ -220,11 +220,11 @@ func TestFeeds(t *testing.T) {
 
 	wbp := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 	wbpRepoRef := reporef.RefFromDsref(wbp)
-	setRefPublished(t, tr.NodeA.Repo, &wbpRepoRef)
+	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, &wbpRepoRef)
 
 	vvs := writeVideoViewStats(tr.Ctx, t, tr.NodeA.Repo)
 	vvsRepoRef := reporef.RefFromDsref(vvs)
-	setRefPublished(t, tr.NodeA.Repo, &vvsRepoRef)
+	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, &vvsRepoRef)
 
 	aCfg := &config.Remote{
 		Enabled:       true,
@@ -483,8 +483,8 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) ds
 	return saveDataset(ctx, r, "peer", ds)
 }
 
-func setRefPublished(t *testing.T, r repo.Repo, ref *reporef.DatasetRef) {
-	if err := base.SetPublishStatus(r, reporef.ConvertToDsref(*ref), true); err != nil {
+func setRefPublished(ctx context.Context, t *testing.T, r repo.Repo, ref *reporef.DatasetRef) {
+	if err := base.SetPublishStatus(ctx, r, reporef.ConvertToDsref(*ref), true); err != nil {
 		t.Fatal(err)
 	}
 }

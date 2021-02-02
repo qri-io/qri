@@ -86,6 +86,7 @@ func TestFSIHandlers(t *testing.T) {
 // statusHandler
 // each test should test responses for a dataset with no history, fsi=true and fsi=false
 func TestNoHistory(t *testing.T) {
+	ctx := context.Background()
 	run := NewAPITestRunner(t)
 	defer run.Delete()
 
@@ -93,7 +94,7 @@ func TestNoHistory(t *testing.T) {
 	workDir := run.MustMakeWorkDir(t, subDir)
 
 	// Create a linked dataset without saving, it has no versions in the repository
-	ref, err := run.Inst.FSI().InitDataset(fsi.InitParams{
+	ref, err := run.Inst.FSI().InitDataset(ctx, fsi.InitParams{
 		TargetDir: workDir,
 		Name:      "test_ds",
 		Format:    "csv",

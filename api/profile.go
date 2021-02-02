@@ -45,7 +45,7 @@ func (h *ProfileHandlers) ProfileHandler(w http.ResponseWriter, r *http.Request)
 func (h *ProfileHandlers) getProfileHandler(w http.ResponseWriter, r *http.Request) {
 	args := true
 	res := &config.ProfilePod{}
-	if err := h.GetProfile(&args, res); err != nil {
+	if err := h.GetProfile(r.Context(), &args, res); err != nil {
 		log.Infof("error getting profile: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

@@ -75,11 +75,11 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		Peername:  p.Peername,
 		ProfileID: p.ProfileID,
 	}
-	if err := repo.CanonicalizeProfile(m.inst.repo, ref); err != nil {
+	if err := repo.CanonicalizeProfile(ctx, m.inst.repo, ref); err != nil {
 		return fmt.Errorf("error canonicalizing peer: %w", err)
 	}
 
-	pro, err := m.inst.repo.Profile()
+	pro, err := m.inst.repo.Profile(ctx)
 	if err != nil {
 		return err
 	}
@@ -549,7 +549,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		return err
 	}
 
-	pro, err := m.inst.repo.Profile()
+	pro, err := m.inst.repo.Profile(ctx)
 	if err != nil {
 		return err
 	}
@@ -676,7 +676,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 	if fsiPath != "" {
 		vi := dsref.ConvertDatasetToVersionInfo(savedDs)
 		vi.FSIPath = fsiPath
-		if err = repo.PutVersionInfoShim(m.inst.repo, &vi); err != nil {
+		if err = repo.PutVersionInfoShim(ctx, m.inst.repo, &vi); err != nil {
 			return err
 		}
 	}
@@ -786,7 +786,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 		return err
 	}
 
-	if canonErr := repo.CanonicalizeDatasetRef(m.inst.repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
+	if canonErr := repo.CanonicalizeDatasetRef(ctx, m.inst.repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
 		log.Debugf("Remove, repo.CanonicalizeDatasetRef failed, error: %s", canonErr)
 		if p.Force {
 			didRemove, _ := base.RemoveEntireDataset(ctx, m.inst.repo, reporef.ConvertToDsref(ref), []DatasetLogItem{})
@@ -849,7 +849,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 		// removing all revisions of a dataset must unlink it
 		if ref.FSIPath != "" {
 			dr := reporef.ConvertToDsref(ref)
-			if err := m.inst.fsi.Unlink(ref.FSIPath, dr); err == nil {
+			if err := m.inst.fsi.Unlink(ctx, ref.FSIPath, dr); err == nil {
 				res.Unlinked = true
 			} else {
 				log.Errorf("during Remove, dataset did not unlink: %s", err)
@@ -1140,7 +1140,7 @@ func (m *DatasetMethods) Manifest(refstr *string, mfst *dag.Manifest) error {
 	if err != nil {
 		return err
 	}
-	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
+	if err = repo.CanonicalizeDatasetRef(ctx, m.inst.repo, &ref); err != nil {
 		return err
 	}
 
@@ -1185,7 +1185,7 @@ func (m *DatasetMethods) DAGInfo(s *DAGInfoParams, i *dag.Info) error {
 	if err != nil {
 		return err
 	}
-	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
+	if err = repo.CanonicalizeDatasetRef(ctx, m.inst.repo, &ref); err != nil {
 		return err
 	}
 

@@ -56,7 +56,7 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *dsref.VersionInfo) (err erro
 		return err
 	}
 
-	res, _, err = m.inst.fsi.CreateLink(p.Dir, ref)
+	res, _, err = m.inst.fsi.CreateLink(ctx, p.Dir, ref)
 	return err
 }
 
@@ -90,7 +90,7 @@ func (m *FSIMethods) Unlink(p *LinkParams, res *string) (err error) {
 		p.Dir = vi.FSIPath
 	}
 
-	if err := m.inst.fsi.Unlink(p.Dir, ref); err != nil {
+	if err := m.inst.fsi.Unlink(ctx, p.Dir, ref); err != nil {
 		return err
 	}
 
@@ -210,7 +210,7 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	log.Debugf("Checkout made directory %q", p.Dir)
 
 	// Create the link file, containing the dataset reference.
-	if _, _, err = m.inst.fsi.CreateLink(p.Dir, ref); err != nil {
+	if _, _, err = m.inst.fsi.CreateLink(ctx, p.Dir, ref); err != nil {
 		log.Debugf("Checkout, fsi.CreateLink failed, error: %s", ref)
 		return err
 	}
@@ -249,7 +249,7 @@ func (m *FSIMethods) Write(p *FSIWriteParams, res *[]StatusItem) (err error) {
 	}
 
 	datasetRef := reporef.RefFromDsref(ref)
-	err = repo.CanonicalizeDatasetRef(m.inst.node.Repo, &datasetRef)
+	err = repo.CanonicalizeDatasetRef(ctx, m.inst.node.Repo, &datasetRef)
 	if err != nil && err != repo.ErrNoHistory {
 		return err
 	}
@@ -344,7 +344,7 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 type InitDatasetParams = fsi.InitParams
 
 // InitDataset creates a new dataset in a working directory
-func (m *FSIMethods) InitDataset(p *InitDatasetParams, refstr *string) (err error) {
+func (m *FSIMethods) InitDataset(ctx context.Context, p *InitDatasetParams, refstr *string) (err error) {
 	if err = qfs.AbsPath(&p.BodyPath); err != nil {
 		return err
 	}
@@ -365,7 +365,7 @@ func (m *FSIMethods) InitDataset(p *InitDatasetParams, refstr *string) (err erro
 		m.inst.Dscache().CreateNewEnabled = true
 	}
 
-	ref, err := m.inst.fsi.InitDataset(*p)
+	ref, err := m.inst.fsi.InitDataset(ctx, *p)
 	*refstr = ref.Human()
 	return err
 }
@@ -384,7 +384,7 @@ type EnsureParams struct {
 }
 
 // EnsureRef will modify the directory path in the repo for the given reference
-func (m *FSIMethods) EnsureRef(p *EnsureParams, out *dsref.VersionInfo) error {
+func (m *FSIMethods) EnsureRef(ctx context.Context, p *EnsureParams, out *dsref.VersionInfo) error {
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("FSIMethods.EnsureRef", p, out))
 	}
@@ -394,7 +394,7 @@ func (m *FSIMethods) EnsureRef(p *EnsureParams, out *dsref.VersionInfo) error {
 		return err
 	}
 
-	vi, err := m.inst.fsi.ModifyLinkDirectory(p.Dir, ref)
+	vi, err := m.inst.fsi.ModifyLinkDirectory(ctx, p.Dir, ref)
 	*out = *vi
 	return err
 }

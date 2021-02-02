@@ -38,7 +38,7 @@ func TestStatusValid(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, err := fsi.InitDataset(InitParams{
+	_, err := fsi.InitDataset(ctx, InitParams{
 		Name:      "test_ds",
 		TargetDir: paths.firstDir,
 		Format:    "csv",
@@ -86,7 +86,7 @@ func TestStatusInvalidDataset(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, err := fsi.InitDataset(InitParams{
+	_, err := fsi.InitDataset(ctx, InitParams{
 		Name:      "test_ds",
 		TargetDir: paths.firstDir,
 		Format:    "csv",
@@ -114,7 +114,7 @@ func TestStatusInvalidMeta(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, err := fsi.InitDataset(InitParams{
+	_, err := fsi.InitDataset(ctx, InitParams{
 		Name:      "test_ds",
 		TargetDir: paths.firstDir,
 		Format:    "csv",
@@ -140,7 +140,7 @@ func TestStatusNotFound(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, err := fsi.InitDataset(InitParams{
+	_, err := fsi.InitDataset(ctx, InitParams{
 		Name:      "test_ds",
 		TargetDir: paths.firstDir,
 		Format:    "csv",
