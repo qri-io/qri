@@ -53,12 +53,16 @@ func NewDatasetMethods(inst *Instance) *DatasetMethods {
 }
 
 // List gets the reflist for either the local repo or a peer
-func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
-	if m.inst.rpc != nil {
+func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
+	if m.inst.http != nil {
+		res := []dsref.VersionInfo{}
 		p.RPC = true
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.List", p, res))
+		err := m.inst.http.Call(ctx, "DatasetMethods.List", p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
 	// ensure valid limit value
 	if p.Limit <= 0 {
@@ -76,12 +80,12 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		ProfileID: p.ProfileID,
 	}
 	if err := repo.CanonicalizeProfile(ctx, m.inst.repo, ref); err != nil {
-		return fmt.Errorf("error canonicalizing peer: %w", err)
+		return nil, fmt.Errorf("error canonicalizing peer: %w", err)
 	}
 
 	pro, err := m.inst.repo.Profile(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If the list operation leads to a warning, store it in this var
@@ -94,7 +98,7 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 			log.Infof("building dscache from repo's logbook, profile, and dsref")
 			built, err := build.DscacheFromRepo(ctx, m.inst.repo)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			err = c.Assign(built)
 			if err != nil {
@@ -103,7 +107,7 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		}
 		refs, err = c.ListRefs()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// Filter references so that only with a matching name are returned
 		if p.Term != "" {
@@ -135,10 +139,10 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 			err = nil
 		}
 	} else {
-		return fmt.Errorf("listing datasets on a peer is not implemented")
+		return nil, fmt.Errorf("listing datasets on a peer is not implemented")
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if p.EnsureFSIExists {
@@ -167,13 +171,12 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 	for i, r := range refs {
 		infos[i] = reporef.ConvertToVersionInfo(&r)
 	}
-	*res = infos
 
 	if listWarning != nil {
-		err = listWarning
+		return nil, listWarning
 	}
 
-	return err
+	return infos, nil
 }
 
 // ListRawRefs gets the list of raw references as string

@@ -22,7 +22,7 @@ func TestApplyTransform(t *testing.T) {
 	}
 
 	// Apply a transformation
-	res, err := tr.ApplyWithParams(&ApplyParams{
+	res, err := tr.ApplyWithParams(tr.Ctx, &ApplyParams{
 		Refstr: "me/cities_ds",
 		Transform: &dataset.Transform{
 			ScriptPath: "testdata/cities_2/add_city.star",

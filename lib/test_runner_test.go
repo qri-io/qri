@@ -178,10 +178,10 @@ func (tr *testRunner) MustGet(t *testing.T, refstr string) *dataset.Dataset {
 	return res.Dataset
 }
 
-func (tr *testRunner) ApplyWithParams(p *ApplyParams) (*dataset.Dataset, error) {
+func (tr *testRunner) ApplyWithParams(ctx context.Context, p *ApplyParams) (*dataset.Dataset, error) {
 	m := NewTransformMethods(tr.Instance)
-	res := ApplyResult{}
-	if err := m.Apply(p, &res); err != nil {
+	res, err := m.Apply(ctx, p)
+	if err != nil {
 		return nil, err
 	}
 	return res.Data, nil

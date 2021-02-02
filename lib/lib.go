@@ -17,7 +17,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
@@ -408,6 +408,19 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			// we have a connection
 			log.Debugf("using RPC address %s", cfg.RPC.Address)
 			inst.rpc = rpc.NewClient(conn)
+
+			// TODO(arqu): I blindly assume this means we have a working API connection
+			// till the HTTPClient is fleshed out
+			maAddr, err := ma.NewMultiaddr(cfg.API.Address)
+			if err != nil {
+				return nil, err
+			}
+			httpAddr, err := manet.ToNetAddr(maAddr)
+			if err != nil {
+				return nil, err
+			}
+			inst.http = NewHTTPClient(httpAddr.String())
+
 			go inst.waitForAllDone()
 			return qri, err
 		}
@@ -708,7 +721,8 @@ type Instance struct {
 	profiles        profile.Store
 	remoteOptsFuncs []remote.OptionsFunc
 
-	rpc *rpc.Client
+	rpc  *rpc.Client
+	http *HTTPClient
 
 	cancel    context.CancelFunc
 	doneCh    chan struct{}
@@ -861,6 +875,14 @@ func (inst *Instance) RPC() *rpc.Client {
 		return nil
 	}
 	return inst.rpc
+}
+
+// HTTP accesses the instance HTTP client if one exists
+func (inst *Instance) HTTP() *HTTPClient {
+	if inst == nil {
+		return nil
+	}
+	return inst.http
 }
 
 // Remote accesses the remote subsystem if one exists
