@@ -5,13 +5,27 @@ import (
 	"net/http"
 )
 
+// Response is the JSON API response object wrapper
+type Response struct {
+	Data       interface{} `json:"data,omitempty"`
+	Meta       *Meta       `json:"meta,omitempty"`
+	Pagination *Page       `json:"pagination,omitempty"`
+}
+
+// Meta is the JSON API response meta object wrapper
+type Meta struct {
+	Code    int    `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+	Error   string `json:"error,omitempty"`
+}
+
 // WriteResponse wraps response data in an envelope & writes it
 func WriteResponse(w http.ResponseWriter, data interface{}) error {
-	env := map[string]interface{}{
-		"meta": map[string]interface{}{
-			"code": http.StatusOK,
+	env := Response{
+		Meta: &Meta{
+			Code: http.StatusOK,
 		},
-		"data": data,
+		Data: data,
 	}
 	return jsonResponse(w, env)
 }
@@ -26,24 +40,25 @@ func WritePageResponse(w http.ResponseWriter, data interface{}, r *http.Request,
 		p.NextURL = p.Next().SetQueryParams(r.URL).String()
 	}
 
-	env := map[string]interface{}{
-		"meta": map[string]interface{}{
-			"code": http.StatusOK,
+	env := Response{
+		Meta: &Meta{
+			Code: http.StatusOK,
 		},
-		"data":       data,
-		"pagination": p,
+		Data:       data,
+		Pagination: &p,
 	}
+
 	return jsonResponse(w, env)
 }
 
 // WriteMessageResponse includes a message with a data response
 func WriteMessageResponse(w http.ResponseWriter, message string, data interface{}) error {
-	env := map[string]interface{}{
-		"meta": map[string]interface{}{
-			"code":    http.StatusOK,
-			"message": message,
+	env := Response{
+		Meta: &Meta{
+			Code:    http.StatusOK,
+			Message: message,
 		},
-		"data": data,
+		Data: data,
 	}
 
 	return jsonResponse(w, env)
@@ -51,10 +66,10 @@ func WriteMessageResponse(w http.ResponseWriter, message string, data interface{
 
 // WriteErrResponse writes a JSON error response message & HTTP status
 func WriteErrResponse(w http.ResponseWriter, code int, err error) error {
-	env := map[string]interface{}{
-		"meta": map[string]interface{}{
-			"code":  code,
-			"error": err.Error(),
+	env := Response{
+		Meta: &Meta{
+			Code:  code,
+			Error: err.Error(),
 		},
 	}
 
