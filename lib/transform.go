@@ -34,8 +34,9 @@ type ApplyParams struct {
 	Secrets   map[string]string
 	Wait      bool
 
-	Source       string
-	ScriptOutput io.Writer
+	Source string
+	// TODO(arqu): substitute with websockets when working over the wire
+	ScriptOutput io.Writer `json:"-"`
 }
 
 // Valid returns an error if ApplyParams fields are in an invalid state
@@ -53,22 +54,27 @@ type ApplyResult struct {
 }
 
 // Apply runs a transform script
-func (m *TransformMethods) Apply(p *ApplyParams, res *ApplyResult) error {
+func (m *TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
 	err := p.Valid()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("TransformMethods.Apply", p, res))
+	res := &ApplyResult{}
+
+	if m.inst.http != nil {
+		err = m.inst.http.Call(ctx, "TransformMethods.Apply", p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
 
-	ctx := context.TODO()
 	ref := dsref.Ref{}
 	if p.Refstr != "" {
 		ref, _, err = m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, "")
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -103,15 +109,15 @@ func (m *TransformMethods) Apply(p *ApplyParams, res *ApplyResult) error {
 	scriptOut := p.ScriptOutput
 	err = transform.Apply(ctx, ds, loader, runID, m.inst.bus, p.Wait, str, scriptOut, p.Secrets)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if p.Wait {
 		if err = base.InlineJSONBody(ds); err != nil && err != base.ErrNoBodyToInline {
-			return err
+			return nil, err
 		}
 		res.Data = ds
 	}
 	res.RunID = runID
-	return nil
+	return res, nil
 }
