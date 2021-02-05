@@ -7,7 +7,7 @@ import (
 	"time"
 
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/qri-io/qri/config"
 )
 
