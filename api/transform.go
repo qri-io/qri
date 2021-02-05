@@ -27,8 +27,8 @@ func (h TransformHandlers) ApplyHandler(prefix string) http.HandlerFunc {
 			return
 		}
 
-		res := lib.ApplyResult{}
-		if err := h.TransformMethods.Apply(&p, &res); err != nil {
+		res, err := h.TransformMethods.Apply(r.Context(), &p)
+		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}

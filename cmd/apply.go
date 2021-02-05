@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"path/filepath"
@@ -98,14 +99,15 @@ func (o *ApplyOptions) Run() error {
 		}
 	}
 
+	ctx := context.TODO()
 	params := lib.ApplyParams{
 		Refstr:       o.Refs.Ref(),
 		Transform:    &tf,
 		ScriptOutput: o.Out,
 		Wait:         true,
 	}
-	res := lib.ApplyResult{}
-	if err = o.TransformMethods.Apply(&params, &res); err != nil {
+	res, err := o.TransformMethods.Apply(ctx, &params)
+	if err != nil {
 		return err
 	}
 
