@@ -2,6 +2,8 @@ package lib
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
@@ -46,27 +48,58 @@ func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err 
 	return m.updateConfig(pro)
 }
 
-// ProveProfileKey asserts to a registry that this user has control of a
-// specified private key
+// ProveProfileKey sends proof to the registry that this user has control of a
+// specified private key, and modifies the user's config in order to reconcile
+// it with any already existing identity the registry knows about
 func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) error {
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok))
 	}
 
-	ctx := context.TODO()
+	ctx := context.Background()
+
+	// For signing the outgoing message
 	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
-	pro, err := m.inst.registry.ProveProfileKey(p, m.inst.repo.PrivateKey(ctx))
+	privKey := m.inst.repo.PrivateKey(ctx)
+
+	// Get public key to send to server
+	pro, err := m.inst.repo.Profile(ctx)
+	if err != nil {
+		return err
+	}
+	pubkeybytes, err := pro.PubKey.Bytes()
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("prove profile response: %v", pro)
-	*p = *pro
+	p.ProfileID = pro.ID.String()
+	p.PublicKey = base64.StdEncoding.EncodeToString(pubkeybytes)
+	// TODO(dustmop): Expand the signature to sign more than just the username
+	sigbytes, err := privKey.Sign([]byte(p.Username))
+	p.Signature = base64.StdEncoding.EncodeToString(sigbytes)
 
-	return m.updateConfig(pro)
+	// Send proof to the registry
+	res, err := m.inst.registry.ProveKeyForProfile(p)
+	if err != nil {
+		return err
+	}
+	log.Debugf("prove profile response: %v", res)
+
+	// Convert the profile to a configuration, assign the registry provided profileID
+	cfg := m.configFromProfile(p)
+	if profileID, ok := res["profileID"]; ok {
+		cfg.Profile.ID = profileID
+	} else {
+		return fmt.Errorf("prove: server response invalid, did not have profileID")
+	}
+	// TODO(dustmop): Also get logbook
+
+	// Save the modified config
+	return m.inst.ChangeConfig(cfg)
 }
 
-func (m RegistryClientMethods) configChanges(pro *registry.Profile) *config.Config {
+// Construct a config with the same values as the profile
+func (m RegistryClientMethods) configFromProfile(pro *registry.Profile) *config.Config {
 	cfg := m.inst.cfg.Copy()
 	cfg.Profile.Peername = pro.Username
 	cfg.Profile.Created = pro.Created
@@ -83,7 +116,7 @@ func (m RegistryClientMethods) configChanges(pro *registry.Profile) *config.Conf
 
 func (m RegistryClientMethods) updateConfig(pro *registry.Profile) error {
 	ctx := context.TODO()
-	cfg := m.configChanges(pro)
+	cfg := m.configFromProfile(pro)
 
 	// TODO (b5) - this should be automatically done by m.inst.ChangeConfig
 	repoPro, err := profile.NewProfile(cfg.Profile)
