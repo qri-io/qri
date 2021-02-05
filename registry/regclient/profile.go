@@ -11,6 +11,8 @@ import (
 	"github.com/qri-io/qri/registry"
 )
 
+const proveKeyAPIEndpoint = "/registry/provekey"
+
 // GetProfile fills in missing fields in p with registry data
 func (c Client) GetProfile(p *registry.Profile) error {
 	pro, err := c.doJSONProfileReq("GET", p)
@@ -67,7 +69,7 @@ func (c *Client) ProveKeyForProfile(p *registry.Profile) (map[string]string, err
 
 	// Send proof request to the registry
 	res := RegistryResponse{}
-	err := c.doJSONRegistryRequest("PUT", "/registry/provekey", p, &res)
+	err := c.doJSONRegistryRequest("PUT", proveKeyAPIEndpoint, p, &res)
 	if err != nil {
 		return nil, err
 	}
@@ -173,6 +175,7 @@ func (c Client) doJSONProfileReq(method string, p *registry.Profile) (*registry.
 
 // RegistryResponse is a generic container for registry requests
 // TODO(dustmop): Only used currently for ProveKey
+// TODO(arqu): update with common API response object
 type RegistryResponse struct {
 	Data map[string]string
 	Meta struct {

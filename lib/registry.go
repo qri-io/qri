@@ -87,7 +87,7 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 
 	// Convert the profile to a configuration, assign the registry provided profileID
 	cfg := m.configFromProfile(p)
-	if profileID, ok := res["ProfileID"]; ok {
+	if profileID, ok := res["profileID"]; ok {
 		cfg.Profile.ID = profileID
 	} else {
 		return fmt.Errorf("prove: server response invalid, did not have profileID")
