@@ -63,7 +63,7 @@ func (m *TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyRes
 	res := &ApplyResult{}
 
 	if m.inst.http != nil {
-		err = m.inst.http.Call(ctx, "TransformMethods.Apply", p, res)
+		err = m.inst.http.Call(ctx, AEApply, p, res)
 		if err != nil {
 			return nil, err
 		}
