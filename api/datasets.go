@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -42,7 +43,7 @@ func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
 // ListHandler is a dataset list endpoint
 func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodGet:
+	case http.MethodGet, http.MethodPost:
 		if h.ReadOnly {
 			readOnlyResponse(w, "/list")
 			return
@@ -76,7 +77,7 @@ func (h *DatasetHandlers) RemoveHandler(w http.ResponseWriter, r *http.Request) 
 // GetHandler is a dataset single endpoint
 func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodGet:
+	case http.MethodGet, http.MethodPost:
 		h.getHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -197,14 +198,69 @@ func extensionToMimeType(ext string) string {
 	}
 }
 
+// snoop reads from an io.ReadCloser and restores it so it can be read again
+func snoop(body *io.ReadCloser) (string, error) {
+	if body != nil && *body != nil {
+		result, err := ioutil.ReadAll(*body)
+		(*body).Close()
+
+		if err != nil {
+			return "", err
+		}
+
+		*body = ioutil.NopCloser(bytes.NewReader(result))
+		return string(result), nil
+	}
+	return "", nil
+}
+
+func parseProxyParams(r *http.Request, res interface{}) error {
+	if r.Method != http.MethodPost && r.Method != http.MethodPut {
+		return fmt.Errorf("not proxy params")
+	}
+	if r.Header.Get("Content-Type") == "application/json" {
+		tmp := struct {
+			Proxy bool
+		}{
+			Proxy: false,
+		}
+		body, err := snoop(&r.Body)
+		if err != nil {
+			return fmt.Errorf("bad request")
+		}
+		if err := json.Unmarshal([]byte(body), &tmp); err != nil {
+			return fmt.Errorf("bad request")
+		}
+		if !tmp.Proxy {
+			return fmt.Errorf("not proxy params")
+		}
+		if err := json.Unmarshal([]byte(body), res); err != nil {
+			log.Debugf("API.parseProxyParams error parsing body: %q", err.Error())
+			return fmt.Errorf("bad request: error parsing body")
+		}
+		// if !res.(lib.BaseParams).Proxied() {
+		// 	return fmt.Errorf("not proxy params")
+		// }
+		return nil
+	}
+	return fmt.Errorf("not proxy params")
+}
+
 func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
-	args := lib.ListParamsFromRequest(r)
-	args.OrderBy = "created"
+	args := lib.ListParams{}
+	err := parseProxyParams(r, &args)
+	if err != nil && err.Error() == "bad request" {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	if err != nil {
+		args = lib.ListParamsFromRequest(r)
+		args.OrderBy = "created"
+		args.Term = r.FormValue("term")
+	}
 
-	args.Term = r.FormValue("term")
-
-	res := []dsref.VersionInfo{}
-	if err := h.List(&args, &res); err != nil {
+	res, err := h.List(r.Context(), &args)
+	if err != nil {
 		if errors.Is(err, lib.ErrListWarning) {
 			log.Error(err)
 			err = nil
@@ -220,31 +276,69 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := parseGetReqArgs(r, strings.TrimPrefix(r.URL.Path, "/get/"))
+	params := lib.GetParams{}
+	args := &GetReqArgs{}
+	err := parseProxyParams(r, &params)
+	if err != nil && err.Error() == "bad request" {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	if err != nil {
+		args, err = parseGetReqArgs(r, strings.TrimPrefix(r.URL.Path, "/get/"))
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
+		params = args.Params
+	} else {
+		// TODO(arqu): get rid of this once we move the proxy call above lib
+		args.Params = params
+		ref, err := dsref.Parse(params.Refstr)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+		}
+		args.Ref = ref
+		// TODO(arqu): fix raw download on proxy. Requires GetReqArgs to be proxied too
+		args.RawDownload = false
+	}
+
+	result, err := h.Get(r.Context(), &params)
 	if err != nil {
 		util.RespondWithError(w, err)
 		return
 	}
 
-	params := &args.Params
-	result := &lib.GetResult{}
-	err = h.Get(params, result)
-	if err != nil {
-		util.RespondWithError(w, err)
-		return
-	}
-
-	h.replyWithGetResponse(w, r, params, result, args)
+	h.replyWithGetResponse(w, r, &params, result, args)
 }
 
+// bodyHandler is deprecated and you should use the getHandler
 func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := parseGetReqArgs(r, strings.TrimPrefix(r.URL.Path, "/body/"))
-	if err != nil {
-		util.RespondWithError(w, err)
+	params := lib.GetParams{}
+	args := &GetReqArgs{}
+	err := parseProxyParams(r, &params)
+	if err != nil && err.Error() == "bad request" {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
+	if err != nil {
+		args, err = parseGetReqArgs(r, strings.TrimPrefix(r.URL.Path, "/body/"))
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
+		params = args.Params
+	} else {
+		// TODO(arqu): get rid of this once we move the proxy call above lib
+		args.Params = params
+		ref, err := dsref.Parse(params.Refstr)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+		}
+		args.Ref = ref
+		// TODO(arqu): fix raw download on proxy. Requires GetReqArgs to be proxied too
+		args.RawDownload = false
+	}
 
-	params := &args.Params
 	// When using the old /body endpoint, it's invalid to specify a different component
 	if params.Selector != "" && params.Selector != "body" {
 		err := fmt.Errorf("cannot specify component %q for /body", params.Selector)
@@ -253,14 +347,13 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	params.Selector = "body"
 
-	result := &lib.GetResult{}
-	err = h.Get(params, result)
+	result, err := h.Get(r.Context(), &params)
 	if err != nil {
 		util.RespondWithError(w, err)
 		return
 	}
 
-	h.replyWithGetResponse(w, r, params, result, args)
+	h.replyWithGetResponse(w, r, &params, result, args)
 }
 
 // replyWithGetResponse writes an http response back to the client, based upon what sort of
@@ -401,8 +494,8 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 		p.Peername = ref.Peername
 	}
 
-	res := []dsref.VersionInfo{}
-	if err := h.List(&p, &res); err != nil {
+	res, err := h.List(r.Context(), &p)
+	if err != nil {
 		log.Infof("error listing peer's datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -436,6 +529,33 @@ func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
+	params := lib.SaveParams{}
+	err := parseProxyParams(r, &params)
+	if err != nil && err.Error() == "bad request" {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	if err == nil {
+		res, err := h.Save(r.Context(), &params)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		// Don't leak paths across the API, it's possible they contain absolute paths or tmp dirs.
+		res.BodyPath = filepath.Base(res.BodyPath)
+
+		resRef := reporef.DatasetRef{
+			Peername:  res.Peername,
+			Name:      res.Name,
+			ProfileID: profile.IDB58DecodeOrEmpty(res.ProfileID),
+			Path:      res.Path,
+			Dataset:   res,
+		}
+
+		util.WriteMessageResponse(w, "", resRef)
+		return
+	}
+
 	ds := &dataset.Dataset{}
 
 	if r.Header.Get("Content-Type") == "application/json" {
@@ -477,7 +597,6 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		Peername: ds.Peername,
 	}
 
-	res := &dataset.Dataset{}
 	scriptOutput := &bytes.Buffer{}
 	p := &lib.SaveParams{
 		Ref:          ref.AliasString(),
@@ -505,7 +624,8 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		p.Secrets = ds.Transform.Secrets
 	}
 
-	if err := h.Save(p, res); err != nil {
+	res, err := h.Save(r.Context(), p)
+	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -704,8 +824,7 @@ func (h DatasetHandlers) statsHandler(w http.ResponseWriter, r *http.Request) {
 		Refstr:   HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/stats/")),
 		Selector: "stats",
 	}
-	res := lib.GetResult{}
-	err := h.Get(&p, &res)
+	res, err := h.Get(r.Context(), &p)
 	if err != nil {
 		if err == repo.ErrNoHistory {
 			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)

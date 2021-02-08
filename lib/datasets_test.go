@@ -77,7 +77,8 @@ func TestDatasetRequestsSave(t *testing.T) {
 	m := NewDatasetMethods(inst)
 
 	privateErrMsg := "option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates"
-	if err := m.Save(&SaveParams{Private: true}, nil); err == nil {
+	_, err = m.Save(ctx, &SaveParams{Private: true})
+	if err == nil {
 		t.Errorf("expected datset to error")
 	} else if err.Error() != privateErrMsg {
 		t.Errorf("private flag error mismatch: expected: '%s', got: '%s'", privateErrMsg, err.Error())
@@ -94,8 +95,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 
 	for i, c := range good {
-		got := &dataset.Dataset{}
-		err := m.Save(&c.params, got)
+		got, err := m.Save(ctx, &c.params)
 		if err != nil {
 			t.Errorf("case %d: '%s' unexpected error: %s", i, c.description, err.Error())
 			continue
@@ -121,8 +121,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 
 	for i, c := range bad {
-		got := &dataset.Dataset{}
-		err := m.Save(&c.params, got)
+		_, err := m.Save(ctx, &c.params)
 		if err == nil {
 			t.Errorf("case %d: '%s' returned no error", i, c.description)
 		}
@@ -152,15 +151,16 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
-	res := &dataset.Dataset{}
-	if err := m.Save(&SaveParams{Ref: ref.Alias()}, res); err == nil {
+	_, err := m.Save(ctx, &SaveParams{Ref: ref.Alias()})
+	if err == nil {
 		t.Error("expected empty save without force flag to error")
 	}
 
-	if err := m.Save(&SaveParams{
+	_, err = m.Save(ctx, &SaveParams{
 		Ref:   ref.Alias(),
 		Force: true,
-	}, res); err != nil {
+	})
+	if err != nil {
 		t.Errorf("expected empty save with flag to not error. got: %s", err.Error())
 	}
 }
@@ -180,10 +180,9 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
-	res := &dataset.Dataset{}
 	// TODO (b5): import.zip has a ref.txt file that specifies test_user/test_repo as the dataset name,
 	// save now requires a string reference. we need to pick a behaviour here & write a test that enforces it
-	err = m.Save(&SaveParams{Ref: "me/huh", FilePaths: []string{"testdata/import.zip"}}, res)
+	res, err := m.Save(ctx, &SaveParams{Ref: "me/huh", FilePaths: []string{"testdata/import.zip"}})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -340,8 +339,7 @@ func TestDatasetRequestsList(t *testing.T) {
 
 	m := NewDatasetMethods(inst)
 	for _, c := range cases {
-		got := []dsref.VersionInfo{}
-		err := m.List(c.p, &got)
+		got, err := m.List(ctx, c.p)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)
@@ -413,8 +411,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 			inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 			m := NewDatasetMethods(inst)
 			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
-			var res []dsref.VersionInfo
-			err := m.List(p, &res)
+			res, err := m.List(ctx, p)
 			if err != nil {
 				t.Errorf("error listing dataset: %s", err.Error())
 			}
@@ -553,8 +550,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 	dsm := NewDatasetMethods(inst)
 	for _, c := range cases {
 		t.Run(c.description, func(t *testing.T) {
-			got := &GetResult{}
-			err := dsm.Get(c.params, got)
+			got, err := dsm.Get(ctx, c.params)
 			if err != nil {
 				if err.Error() != c.expect {
 					t.Errorf("error mismatch: expected: %s, got: %s", c.expect, err)
@@ -599,11 +595,11 @@ func TestDatasetRequestsGetFSIPath(t *testing.T) {
 	}
 
 	dsm := NewDatasetMethods(inst)
-	got := &GetResult{}
 	getParams := &GetParams{
 		Refstr: "peer/movies",
 	}
-	if err := dsm.Get(getParams, got); err != nil {
+	got, err := dsm.Get(ctx, getParams)
+	if err != nil {
 		t.Fatalf("error getting fsi dataset: %s", err)
 	}
 	if got.Ref.Username != "peer" {
@@ -703,10 +699,9 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 
 			inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 			m := NewDatasetMethods(inst)
-			got := &GetResult{}
 			// TODO (b5) - we're using "JSON" here b/c the "craigslist" test dataset
 			// is tripping up the YAML serializer
-			err = m.Get(&GetParams{Refstr: ref.String(), Format: "json"}, got)
+			got, err := m.Get(ctx, &GetParams{Refstr: ref.String(), Format: "json"})
 			if err != nil {
 				t.Errorf("error getting dataset for %q: %s", ref, err.Error())
 			}
@@ -880,8 +875,8 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 
 	// add a commit to craigslist
-	saveRes := &dataset.Dataset{}
-	if err := dsm.Save(&SaveParams{Ref: "peer/craigslist", Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh word"}}}, saveRes); err != nil {
+	_, err = dsm.Save(ctx, &SaveParams{Ref: "peer/craigslist", Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh word"}}})
+	if err != nil {
 		t.Fatal(err)
 	}
 

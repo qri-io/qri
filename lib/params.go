@@ -11,11 +11,16 @@ import (
 // Limit param is provided to a paginated method
 const DefaultPageSize = 100
 
+// BaseParams defines the basic HTTP params for all requests
+type BaseParams interface {
+	Proxied() bool
+}
+
 // ListParams is the general input for any sort of Paginated Request
 // ListParams define limits & offsets, not pages & page sizes.
 // TODO - rename this to PageParams.
 type ListParams struct {
-	ProfileID profile.ID
+	ProfileID profile.ID `json:"-"`
 	Term      string
 	Peername  string
 	OrderBy   string
@@ -33,6 +38,9 @@ type ListParams struct {
 	EnsureFSIExists bool
 	// UseDscache controls whether to build a dscache to use to list the references
 	UseDscache bool
+
+	// Proxy identifies whether a call has been proxied from another instance
+	Proxy bool
 }
 
 // NewListParams creates a ListParams from page & pagesize, pages are 1-indexed
@@ -71,4 +79,10 @@ func (lp ListParams) Page() util.Page {
 	}
 	number = lp.Offset/size + 1
 	return util.NewPage(number, size)
+}
+
+// Proxied implements the BaseParams interface and
+// identifies whether a call has been proxied from another instance
+func (lp ListParams) Proxied() bool {
+	return lp.Proxy
 }

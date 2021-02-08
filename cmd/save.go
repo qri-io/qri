@@ -1,10 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
@@ -200,8 +200,9 @@ continue?`, true) {
 		}
 	}
 
-	res := &dataset.Dataset{}
-	if err = o.DatasetMethods.Save(p, res); err != nil {
+	ctx := context.TODO()
+	res, err := o.DatasetMethods.Save(ctx, p)
+	if err != nil {
 		return err
 	}
 

@@ -53,12 +53,17 @@ func NewDatasetMethods(inst *Instance) *DatasetMethods {
 }
 
 // List gets the reflist for either the local repo or a peer
-func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
-	if m.inst.rpc != nil {
+func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
+	if m.inst.http != nil {
+		res := []dsref.VersionInfo{}
 		p.RPC = true
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.List", p, res))
+		p.Proxy = true
+		err := m.inst.http.Call(ctx, AEList, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
 	// ensure valid limit value
 	if p.Limit <= 0 {
@@ -76,12 +81,12 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		ProfileID: p.ProfileID,
 	}
 	if err := repo.CanonicalizeProfile(ctx, m.inst.repo, ref); err != nil {
-		return fmt.Errorf("error canonicalizing peer: %w", err)
+		return nil, fmt.Errorf("error canonicalizing peer: %w", err)
 	}
 
 	pro, err := m.inst.repo.Profile(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If the list operation leads to a warning, store it in this var
@@ -94,7 +99,7 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 			log.Infof("building dscache from repo's logbook, profile, and dsref")
 			built, err := build.DscacheFromRepo(ctx, m.inst.repo)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			err = c.Assign(built)
 			if err != nil {
@@ -103,7 +108,7 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		}
 		refs, err = c.ListRefs()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// Filter references so that only with a matching name are returned
 		if p.Term != "" {
@@ -135,10 +140,10 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 			err = nil
 		}
 	} else {
-		return fmt.Errorf("listing datasets on a peer is not implemented")
+		return nil, fmt.Errorf("listing datasets on a peer is not implemented")
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if p.EnsureFSIExists {
@@ -167,18 +172,18 @@ func (m *DatasetMethods) List(p *ListParams, res *[]dsref.VersionInfo) error {
 	for i, r := range refs {
 		infos[i] = reporef.ConvertToVersionInfo(&r)
 	}
-	*res = infos
 
 	if listWarning != nil {
-		err = listWarning
+		return nil, listWarning
 	}
 
-	return err
+	return infos, nil
 }
 
 // ListRawRefs gets the list of raw references as string
 func (m *DatasetMethods) ListRawRefs(p *ListParams, text *string) error {
 	var err error
+	// TODO(arqu): implement api
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("DatasetMethods.ListRawRefs", p, text))
 	}
@@ -214,6 +219,15 @@ type GetParams struct {
 	// whether to generate a filename from the dataset name instead
 	GenFilename bool
 	Remote      string
+
+	// Proxy identifies whether a call has been proxied from another instance
+	Proxy bool
+}
+
+// Proxied implements the BaseParams interface and
+// identifies whether a call has been proxied from another instance
+func (p GetParams) Proxied() bool {
+	return p.Proxy
 }
 
 // GetResult combines data with it's hashed path
@@ -233,24 +247,29 @@ type GetResult struct {
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
 // with the generated stats.
-func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
+func (m *DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, error) {
 	if err := qfs.AbsPath(&p.Outfile); err != nil {
-		return err
+		return nil, err
 	}
+	res := &GetResult{}
 
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Get", p, res))
+	if m.inst.http != nil {
+		p.Proxy = true
+		err := m.inst.http.Call(ctx, AEGet, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
 	var ds *dataset.Dataset
 	ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, p.Remote)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ds, err = m.inst.LoadDataset(ctx, ref, source)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	res.Ref = &ref
@@ -264,7 +283,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 
 	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
-		return err
+		return nil, err
 	}
 
 	if p.Format == "zip" {
@@ -281,7 +300,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		} else {
 			zipFile, err = os.Create(p.Outfile)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
@@ -289,11 +308,11 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		// necessary until dscache is in use.
 		initID, err := m.inst.repo.Logbook().RefToInitID(currRef)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		err = archive.WriteZip(ctx, m.inst.repo.Filesystem(), ds, "json", initID, currRef, zipFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// Handle output. If outfile is empty, return the raw bytes. Otherwise provide a helpful
 		// message for the user
@@ -302,18 +321,18 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		} else {
 			res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
 		}
-		return nil
+		return res, nil
 	}
 
 	if p.Selector == "body" {
 		// `qri get body` loads the body
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
-			return fmt.Errorf("invalid limit / offset settings")
+			return nil, fmt.Errorf("invalid limit / offset settings")
 		}
 		df, err := dataset.ParseDataFormatString(p.Format)
 		if err != nil {
 			log.Debugf("Get dataset, ParseDataFormatString %q failed, error: %s", p.Format, err)
-			return err
+			return nil, err
 		}
 
 		if fsi.IsFSIPath(ref.Path) {
@@ -323,36 +342,52 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 			res.Bytes, err = fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), df, p.FormatConfig, p.Offset, p.Limit, p.All)
 			if err != nil {
 				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
-				return err
+				return nil, err
 			}
-			return m.maybeWriteOutfile(p, res)
+			err = m.maybeWriteOutfile(p, res)
+			if err != nil {
+				return nil, err
+			}
+			return res, nil
 		}
 		res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
 		if err != nil {
 			log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
-			return err
+			return nil, err
 		}
-		return m.maybeWriteOutfile(p, res)
+		err = m.maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
 		// Fields that have qfs.File types should be read and returned
 		res.Bytes, err = ioutil.ReadAll(scriptFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		return m.maybeWriteOutfile(p, res)
+		err = m.maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	} else if p.Selector == "stats" {
 		statsParams := &StatsParams{
 			Dataset: res.Dataset,
 		}
 		sa := &dataset.Stats{}
 		if err = m.Stats(statsParams, sa); err != nil {
-			return err
+			return nil, err
 		}
 		res.Bytes, err = json.Marshal(sa.Stats)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		return m.maybeWriteOutfile(p, res)
+		err = m.maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
 	var value interface{}
 	if p.Selector == "" {
@@ -362,7 +397,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		// `qri get <selector>` loads only the applicable component / field
 		value, err = base.ApplyPath(res.Dataset, p.Selector)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	switch p.Format {
@@ -378,23 +413,27 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		if pretty {
 			res.Bytes, err = json.MarshalIndent(value, "", " ")
 			if err != nil {
-				return err
+				return nil, err
 			}
 		} else {
 			res.Bytes, err = json.Marshal(value)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	case "yaml", "":
 		res.Bytes, err = yaml.Marshal(value)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	default:
-		return fmt.Errorf("unknown format: \"%s\"", p.Format)
+		return nil, fmt.Errorf("unknown format: \"%s\"", p.Format)
 	}
-	return m.maybeWriteOutfile(p, res)
+	err = m.maybeWriteOutfile(p, res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func (m *DatasetMethods) maybeWriteOutfile(p *GetParams, res *GetResult) error {
@@ -448,7 +487,7 @@ type SaveParams struct {
 	Secrets map[string]string
 	// optional writer to have transform script record standard output to
 	// note: this won't work over RPC, only on local calls
-	ScriptOutput io.Writer
+	ScriptOutput io.Writer `json:"-"`
 
 	// TODO(dustmop): add `Wait bool`, if false, run the save asynchronously
 	// and return events on the bus that provide the progress of the save operation
@@ -473,6 +512,9 @@ type SaveParams struct {
 	NewName bool
 	// whether to create a new dscache if none exists
 	UseDscache bool
+
+	// Proxy identifies whether a call has been proxied from another instance
+	Proxy bool
 }
 
 // AbsolutizePaths converts any relative path references to their absolute
@@ -494,21 +536,33 @@ func (p *SaveParams) AbsolutizePaths() error {
 	return nil
 }
 
+// Proxied implements the BaseParams interface and
+// identifies whether a call has been proxied from another instance
+func (p SaveParams) Proxied() bool {
+	return p.Proxy
+}
+
 // Save adds a history entry, updating a dataset
-func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
+func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Dataset, error) {
 	log.Debugf("DatasetMethods.Save p=%v", p)
-	if m.inst.rpc != nil {
+	res := &dataset.Dataset{}
+
+	if m.inst.http != nil {
 		p.ScriptOutput = nil
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Save", p, res))
+		p.Proxy = true
+		err := m.inst.http.Call(ctx, AESave, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
 
 	var (
-		ctx       = context.TODO()
 		writeDest = m.inst.qfs.DefaultWriteFS() // filesystem dataset will be written to
 	)
 
 	if p.Private {
-		return fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
+		return nil, fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}
 
 	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
@@ -534,7 +588,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		// TODO (b5): handle this with a qfs.Filesystem
 		dsf, err := ReadDatasetFiles(p.FilePaths...)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		dsf.Assign(ds)
 		ds = dsf
@@ -546,17 +600,17 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 
 	resolver, err := m.inst.resolverForMode("local")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	pro, err := m.inst.repo.Profile(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ref, isNew, err := base.PrepareSaveRef(ctx, pro, m.inst.logbook, resolver, p.Ref, ds.BodyPath, p.NewName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	success := false
@@ -583,7 +637,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 			fsiPath = fsi.FilesystemPathToLocal(fsiRef.Path)
 			fsiDs, err := fsi.ReadDir(fsiPath)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			fsiDs.Assign(ds)
 			ds = fsiDs
@@ -599,18 +653,18 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		ds.Readme == nil &&
 		ds.Viz == nil &&
 		ds.Transform == nil {
-		return fmt.Errorf("no changes to save")
+		return nil, fmt.Errorf("no changes to save")
 	}
 
 	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 		log.Debugf("open ds error: %s", err.Error())
-		return err
+		return nil, err
 	}
 
 	// If applying a transform, execute its script before saving
 	if p.Apply {
 		if ds.Transform == nil {
-			return fmt.Errorf("cannot apply while saving without a transform")
+			return nil, fmt.Errorf("cannot apply while saving without a transform")
 		}
 		str := m.inst.node.LocalStreams
 		scriptOut := p.ScriptOutput
@@ -641,12 +695,12 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		shouldWait := true
 		err := transform.Apply(ctx, ds, loader, runID, m.inst.bus, shouldWait, str, scriptOut, secrets)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if fsiPath != "" && p.Drop != "" {
-		return qrierr.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
+		return nil, qrierr.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
 	}
 
 	fileHint := p.BodyPath
@@ -667,7 +721,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 	savedDs, err := base.SaveDataset(ctx, m.inst.repo, writeDest, ref.InitID, ref.Path, ds, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
-		return err
+		return nil, err
 	}
 
 	success = true
@@ -677,7 +731,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		vi := dsref.ConvertDatasetToVersionInfo(savedDs)
 		vi.FSIPath = fsiPath
 		if err = repo.PutVersionInfoShim(ctx, m.inst.repo, &vi); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -690,7 +744,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 			log.Error(writeErr)
 		}
 	}
-	return nil
+	return res, nil
 }
 
 // RenameParams defines parameters for Dataset renaming

@@ -249,8 +249,8 @@ func TestFSIWrite(t *testing.T) {
 		},
 		BodyPath: "testdata/cities/data.csv",
 	}
-	res := &dataset.Dataset{}
-	if err := dsm.Save(&saveParams, res); err != nil {
+	_, err := dsm.Save(ctx, &saveParams)
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -336,8 +336,8 @@ func TestCheckoutAndRestore(t *testing.T) {
 		},
 		BodyPath: "testdata/cities/data.csv",
 	}
-	res := &dataset.Dataset{}
-	if err := dsm.Save(&saveParams, res); err != nil {
+	res, err := dsm.Save(ctx, &saveParams)
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -354,7 +354,8 @@ func TestCheckoutAndRestore(t *testing.T) {
 			},
 		},
 	}
-	if err := dsm.Save(&saveParams, res); err != nil {
+	res, err = dsm.Save(ctx, &saveParams)
+	if err != nil {
 		t.Fatal(err)
 	}
 

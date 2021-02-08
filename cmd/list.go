@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	apiutil "github.com/qri-io/qri/api/util"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -108,7 +108,6 @@ func (o *ListOptions) Run() (err error) {
 		return nil
 	}
 
-	infos := []dsref.VersionInfo{}
 	p := &lib.ListParams{
 		Term:            o.Term,
 		Peername:        o.Peername,
@@ -119,7 +118,9 @@ func (o *ListOptions) Run() (err error) {
 		EnsureFSIExists: true,
 		UseDscache:      o.UseDscache,
 	}
-	if err = o.DatasetMethods.List(p, &infos); err != nil {
+	ctx := context.TODO()
+	infos, err := o.DatasetMethods.List(ctx, p)
+	if err != nil {
 		if errors.Is(err, lib.ErrListWarning) {
 			printWarning(o.ErrOut, fmt.Sprintf("%s\n", err))
 			err = nil

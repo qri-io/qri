@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"github.com/qri-io/dataset"
@@ -168,8 +169,9 @@ func (o *GetOptions) Run() (err error) {
 		GenFilename: o.Outfile == "" && stdoutIsTerminal() && o.Format == "zip",
 		Remote:      o.Remote,
 	}
-	res := lib.GetResult{}
-	if err = o.DatasetMethods.Get(&p, &res); err != nil {
+	ctx := context.TODO()
+	res, err := o.DatasetMethods.Get(ctx, &p)
+	if err != nil {
 		return err
 	}
 	if res.Message != "" {

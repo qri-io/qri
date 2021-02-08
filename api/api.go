@@ -28,7 +28,7 @@ const (
 )
 
 func init() {
-	golog.SetLogLevel("qriapi", "info")
+	golog.SetLogLevel("qriapi", "debug")
 }
 
 // Server wraps a qri p2p node, providing traditional access via http

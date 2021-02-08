@@ -17,6 +17,7 @@ import (
 
 type APITestRunner struct {
 	cancelCtx    context.CancelFunc
+	Ctx          context.Context
 	Node         *p2p.QriNode
 	NodeTeardown func()
 	Inst         *lib.Instance
@@ -30,6 +31,7 @@ func NewAPITestRunner(t *testing.T) *APITestRunner {
 	ctx, cancel := context.WithCancel(context.Background())
 	run := APITestRunner{
 		cancelCtx: cancel,
+		Ctx:       ctx,
 	}
 	run.Node, run.NodeTeardown = newTestNode(t)
 
@@ -84,8 +86,8 @@ func (r *APITestRunner) SaveDataset(ds *dataset.Dataset, bodyFilename string) {
 		Dataset:  ds,
 		BodyPath: bodyFilename,
 	}
-	res := &dataset.Dataset{}
-	if err := dsm.Save(&saveParams, res); err != nil {
+	_, err := dsm.Save(r.Ctx, &saveParams)
+	if err != nil {
 		panic(err)
 	}
 }

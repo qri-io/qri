@@ -154,8 +154,7 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 		gp := lib.GetParams{
 			Refstr: name,
 		}
-		res := lib.GetResult{}
-		err := h.dsm.Get(&gp, &res)
+		res, err := h.dsm.Get(r.Context(), &gp)
 		if err != nil {
 			if err == repo.ErrNotFound {
 				util.NotFoundHandler(w, r)

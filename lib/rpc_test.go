@@ -15,7 +15,7 @@ func TestRPCRequest(t *testing.T) {
 
 	adnanInst := tr.InitAdnan(t)
 
-	ref := InitWorldBankDataset(t, adnanInst)
+	ref := InitWorldBankDataset(tr.Ctx, t, adnanInst)
 
 	repoLockCtx, closeAdnanInst := context.WithCancel(context.Background())
 	defer closeAdnanInst()
@@ -30,10 +30,9 @@ func TestRPCRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res := &GetResult{}
-	err = NewDatasetMethods(adnanInst).Get(&GetParams{
+	_, err = NewDatasetMethods(adnanInst).Get(tr.Ctx, &GetParams{
 		Refstr: ref.Alias(),
-	}, res)
+	})
 
 	if err != nil {
 		t.Error(err)

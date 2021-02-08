@@ -152,8 +152,8 @@ func (tr *testRunner) MustSaveFromBody(t *testing.T, dsName, bodyFilename string
 		Ref:      fmt.Sprintf("peer/%s", dsName),
 		BodyPath: bodyFilename,
 	}
-	res := &dataset.Dataset{}
-	if err := m.Save(&p, res); err != nil {
+	res, err := m.Save(tr.Ctx, &p)
+	if err != nil {
 		t.Fatal(err)
 	}
 	return res
@@ -161,8 +161,8 @@ func (tr *testRunner) MustSaveFromBody(t *testing.T, dsName, bodyFilename string
 
 func (tr *testRunner) SaveWithParams(p *SaveParams) (dsref.Ref, error) {
 	m := NewDatasetMethods(tr.Instance)
-	res := &dataset.Dataset{}
-	if err := m.Save(p, res); err != nil {
+	res, err := m.Save(tr.Ctx, p)
+	if err != nil {
 		return dsref.Ref{}, err
 	}
 	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef(), nil
@@ -171,8 +171,8 @@ func (tr *testRunner) SaveWithParams(p *SaveParams) (dsref.Ref, error) {
 func (tr *testRunner) MustGet(t *testing.T, refstr string) *dataset.Dataset {
 	m := NewDatasetMethods(tr.Instance)
 	p := GetParams{Refstr: refstr}
-	res := GetResult{}
-	if err := m.Get(&p, &res); err != nil {
+	res, err := m.Get(tr.Ctx, &p)
+	if err != nil {
 		t.Fatal(err)
 	}
 	return res.Dataset
