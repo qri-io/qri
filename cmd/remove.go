@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/qri-io/ioes"
@@ -152,8 +153,9 @@ func (o *RemoveOptions) Run() (err error) {
 		Force:     o.Force,
 	}
 
-	res := lib.RemoveResponse{}
-	if err = o.DatasetMethods.Remove(&params, &res); err != nil {
+	ctx := context.TODO()
+	res, err := o.DatasetMethods.Remove(ctx, &params)
+	if err != nil {
 		if err == repo.ErrNotFound {
 			return errors.New(err, fmt.Sprintf("could not find dataset '%s'", o.Refs.Ref()))
 		}

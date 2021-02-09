@@ -185,19 +185,51 @@ func extensionToMimeType(ext string) string {
 	}
 }
 
+// snoop reads from an io.ReadCloser and restores it so it can be read again
+func snoop(body *io.ReadCloser) (io.ReadCloser, error) {
+	if body != nil && *body != nil {
+		result, err := ioutil.ReadAll(*body)
+		(*body).Close()
+
+		if err != nil {
+			return nil, err
+		}
+		if len(result) == 0 {
+			return nil, io.EOF
+		}
+
+		*body = ioutil.NopCloser(bytes.NewReader(result))
+		return ioutil.NopCloser(bytes.NewReader(result)), nil
+	}
+	return nil, io.EOF
+}
+
 var decoder = schema.NewDecoder()
 
 // UnmarshalParams deserialzes a lib req params stuct pointer from an HTTP
 // request
 func UnmarshalParams(r *http.Request, p interface{}) error {
-	defer func() {
-		if defSetter, ok := p.(lib.NZDefaultSetter); ok {
-			defSetter.SetNonZeroDefaults()
-		}
-	}()
+	// TODO(arqu): this should be set on the global decoder
+	// probably means the decoder should live in the API struct or somewhere similar
+	decoder.IgnoreUnknownKeys(true)
+	if r.Method == http.MethodPost || r.Method == http.MethodPut {
+		defer func() {
+			if defSetter, ok := p.(lib.NZDefaultSetter); ok {
+				defSetter.SetNonZeroDefaults()
+			}
+		}()
 
-	if r.Header.Get("Content-Type") == jsonContentType {
-		return json.NewDecoder(r.Body).Decode(p)
+		if r.Header.Get("Content-Type") == jsonContentType {
+			body, err := snoop(&r.Body)
+			if err != nil && err != io.EOF {
+				return err
+			}
+			// this avoids resolving on empty body requests
+			// and tries to handle it almost like a GET
+			if err != io.EOF {
+				return json.NewDecoder(body).Decode(p)
+			}
+		}
 	}
 
 	if ru, ok := p.(lib.RequestUnmarshaller); ok {
@@ -210,67 +242,12 @@ func UnmarshalParams(r *http.Request, p interface{}) error {
 	return decoder.Decode(p, r.Form)
 }
 
-// snoop reads from an io.ReadCloser and restores it so it can be read again
-func snoop(body *io.ReadCloser) (string, error) {
-	if body != nil && *body != nil {
-		result, err := ioutil.ReadAll(*body)
-		(*body).Close()
-
-		if err != nil {
-			return "", err
-		}
-
-		*body = ioutil.NopCloser(bytes.NewReader(result))
-		return string(result), nil
-	}
-	return "", nil
-}
-
-func parseProxyParams(r *http.Request, res interface{}) error {
-	if r.Method != http.MethodPost && r.Method != http.MethodPut {
-		return fmt.Errorf("not proxy params")
-	}
-	if r.Header.Get("Content-Type") == "application/json" {
-		tmp := struct {
-			Proxy bool
-		}{
-			Proxy: false,
-		}
-		body, err := snoop(&r.Body)
-		if err != nil {
-			return fmt.Errorf("bad request")
-		}
-		if err := json.Unmarshal([]byte(body), &tmp); err != nil {
-			return fmt.Errorf("bad request")
-		}
-		if !tmp.Proxy {
-			return fmt.Errorf("not proxy params")
-		}
-		if err := json.Unmarshal([]byte(body), res); err != nil {
-			log.Debugf("API.parseProxyParams error parsing body: %q", err.Error())
-			return fmt.Errorf("bad request: error parsing body")
-		}
-		// if !res.(lib.BaseParams).Proxied() {
-		// 	return fmt.Errorf("not proxy params")
-		// }
-		return nil
-	}
-	return fmt.Errorf("not proxy params")
-}
-
 func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	args := &lib.ListParams{}
 	if err := UnmarshalParams(r, args); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-
-	// if err := r.ParseForm(); err != nil {
-	// 	util.WriteErrResponse(w, http.StatusBadRequest, err)
-	// 	return
-	// }
-
-	log.Warnf("%#v", args)
 
 	res, err := h.List(r.Context(), args)
 	if err != nil {
@@ -293,11 +270,11 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	args := &GetReqArgs{}
 
 	err := UnmarshalParams(r, &params)
-	if err != nil && err.Error() == "bad request" {
+	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	if err != nil {
+	if !params.Proxy {
 		args, err = parseGetReqArgs(r, strings.TrimPrefix(r.URL.Path, "/get/"))
 		if err != nil {
 			util.RespondWithError(w, err)
@@ -499,13 +476,12 @@ func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	params := lib.SaveParams{}
-	// err := parseProxyParams(r, &params)
 	err := UnmarshalParams(r, &params)
-	if err != nil && err.Error() == "bad request" {
+	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	if err == nil {
+	if params.Proxy {
 		res, err := h.Save(r.Context(), &params)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -526,15 +502,10 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ds := &dataset.Dataset{}
-
-	if r.Header.Get("Content-Type") == "application/json" {
-		err := json.NewDecoder(r.Body).Decode(ds)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
+	if params.Dataset != nil || r.Header.Get("Content-Type") == "application/json" {
+		if params.Dataset == nil {
+			params.Dataset = &dataset.Dataset{}
 		}
-
 		if strings.Contains(r.URL.Path, "/save/") {
 			args, err := DatasetRefFromPath(r.URL.Path[len("/save/"):])
 			if err != nil {
@@ -547,12 +518,15 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			if args.Peername != "" {
-				ds.Peername = args.Peername
-				ds.Name = args.Name
+				params.Dataset.Peername = args.Peername
+				params.Dataset.Name = args.Name
 			}
 		}
 	} else {
-		if err := formFileDataset(r, ds); err != nil {
+		if params.Dataset == nil {
+			params.Dataset = &dataset.Dataset{}
+		}
+		if err := formFileDataset(r, params.Dataset); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -563,14 +537,14 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	// to extract a valid dataset reference from the resulting dataset,
 	// and use that as a save target.
 	ref := reporef.DatasetRef{
-		Name:     ds.Name,
-		Peername: ds.Peername,
+		Name:     params.Dataset.Name,
+		Peername: params.Dataset.Peername,
 	}
 
 	scriptOutput := &bytes.Buffer{}
 	p := &lib.SaveParams{
 		Ref:          ref.AliasString(),
-		Dataset:      ds,
+		Dataset:      params.Dataset,
 		Apply:        r.FormValue("apply") == "true",
 		Private:      r.FormValue("private") == "true",
 		Force:        r.FormValue("force") == "true",
@@ -589,9 +563,9 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("parsing secrets: %s", err))
 			return
 		}
-	} else if ds.Transform != nil && ds.Transform.Secrets != nil {
+	} else if params.Dataset.Transform != nil && params.Dataset.Transform.Secrets != nil {
 		// TODO remove this, require API consumers to send secrets separately
-		p.Secrets = ds.Transform.Secrets
+		p.Secrets = params.Dataset.Transform.Secrets
 	}
 
 	res, err := h.Save(r.Context(), p)
@@ -615,6 +589,24 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
+	params := lib.RemoveParams{}
+	err := UnmarshalParams(r, &params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	if params.Proxy {
+		res, err := h.Remove(r.Context(), &params)
+		if err != nil {
+			log.Infof("error deleting dataset: %s", err.Error())
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		util.WriteResponse(w, res)
+		return
+	}
+
 	ref := HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/remove/"))
 
 	if remote := r.FormValue("remote"); remote != "" {
@@ -642,8 +634,8 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 		p.Revision = dsref.NewAllRevisions()
 	}
 
-	res := lib.RemoveResponse{}
-	if err := h.Remove(&p, &res); err != nil {
+	res, err := h.Remove(r.Context(), &p)
+	if err != nil {
 		log.Infof("error deleting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -653,22 +645,15 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
-	p := &lib.RenameParams{}
-	if r.Header.Get("Content-Type") == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-	} else {
-		p.Current = r.URL.Query().Get("current")
-		p.Next = r.URL.Query().Get("new")
-		if p.Next == "" {
-			p.Next = r.URL.Query().Get("next")
-		}
+	params := &lib.RenameParams{}
+	err := UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
 	}
 
-	res := &dsref.VersionInfo{}
-	if err := h.Rename(p, res); err != nil {
+	res, err := h.Rename(r.Context(), params)
+	if err != nil {
 		log.Infof("error renaming dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return

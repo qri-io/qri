@@ -56,8 +56,8 @@ func NewDatasetMethods(inst *Instance) *DatasetMethods {
 func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
 	if m.inst.http != nil {
 		res := []dsref.VersionInfo{}
-		p.RPC = true
 		p.Proxy = true
+		p.RPC = true
 		err := m.inst.http.Call(ctx, AEList, p, &res)
 		if err != nil {
 			return nil, err
@@ -199,45 +199,6 @@ func (m *DatasetMethods) ListRawRefs(p *ListParams, text *string) error {
 
 	*text, err = base.RawDatasetRefs(ctx, m.inst.repo)
 	return err
-}
-
-// GetParams defines parameters for looking up the head or body of a dataset
-type GetParams struct {
-	// Refstr to get, representing a dataset ref to be parsed
-	Refstr   string
-	Selector string
-
-	// read from a filesystem link instead of stored version
-	Format       string
-	FormatConfig dataset.FormatConfig
-
-	Limit, Offset int
-	All           bool
-
-	// outfile is a filename to save the dataset to
-	Outfile string
-	// whether to generate a filename from the dataset name instead
-	GenFilename bool
-	Remote      string
-
-	// Proxy identifies whether a call has been proxied from another instance
-	Proxy bool
-}
-
-// Proxied implements the BaseParams interface and
-// identifies whether a call has been proxied from another instance
-func (p GetParams) Proxied() bool {
-	return p.Proxy
-}
-
-// GetResult combines data with it's hashed path
-type GetResult struct {
-	Ref       *dsref.Ref       `json:"ref"`
-	Dataset   *dataset.Dataset `json:"data"`
-	Bytes     []byte           `json:"bytes"`
-	Message   string           `json:"message"`
-	FSIPath   string           `json:"fsipath"`
-	Published bool             `json:"published"`
 }
 
 // Get retrieves datasets and components for a given reference. p.Refstr is parsed to create
@@ -467,89 +428,14 @@ func scriptFileSelection(ds *dataset.Dataset, selector string) (qfs.File, bool) 
 	return nil, false
 }
 
-// SaveParams encapsulates arguments to Save
-type SaveParams struct {
-	// dataset supplies params directly, all other param fields override values
-	// supplied by dataset
-	Dataset *dataset.Dataset
-
-	// dataset reference string, the name to save to
-	Ref string
-	// commit title, defaults to a generated string based on diff
-	Title string
-	// commit message, defaults to blank
-	Message string
-	// path to body data
-	BodyPath string
-	// absolute path or URL to the list of dataset files or components to load
-	FilePaths []string
-	// secrets for transform execution
-	Secrets map[string]string
-	// optional writer to have transform script record standard output to
-	// note: this won't work over RPC, only on local calls
-	ScriptOutput io.Writer `json:"-"`
-
-	// TODO(dustmop): add `Wait bool`, if false, run the save asynchronously
-	// and return events on the bus that provide the progress of the save operation
-
-	// Apply runs a transform script to create the next version to save
-	Apply bool
-	// Replace writes the entire given dataset as a new snapshot instead of
-	// applying save params as augmentations to the existing history
-	Replace bool
-	// option to make dataset private. private data is not currently implimented,
-	// see https://github.com/qri-io/qri/issues/291 for updates
-	Private bool
-	// if true, convert body to the format of the previous version, if applicable
-	ConvertFormatToPrev bool
-	// comma separated list of component names to delete before saving
-	Drop string
-	// force a new commit, even if no changes are detected
-	Force bool
-	// save a rendered version of the template along with the dataset
-	ShouldRender bool
-	// new dataset only, don't create a commit on an existing dataset, name will be unused
-	NewName bool
-	// whether to create a new dscache if none exists
-	UseDscache bool
-
-	// Proxy identifies whether a call has been proxied from another instance
-	Proxy bool
-}
-
-// AbsolutizePaths converts any relative path references to their absolute
-// variations, safe to call on a nil instance
-func (p *SaveParams) AbsolutizePaths() error {
-	if p == nil {
-		return nil
-	}
-
-	for i := range p.FilePaths {
-		if err := qfs.AbsPath(&p.FilePaths[i]); err != nil {
-			return err
-		}
-	}
-
-	if err := qfs.AbsPath(&p.BodyPath); err != nil {
-		return fmt.Errorf("body file: %w", err)
-	}
-	return nil
-}
-
-// Proxied implements the BaseParams interface and
-// identifies whether a call has been proxied from another instance
-func (p SaveParams) Proxied() bool {
-	return p.Proxy
-}
-
 // Save adds a history entry, updating a dataset
 func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Dataset, error) {
 	log.Debugf("DatasetMethods.Save p=%v", p)
 	res := &dataset.Dataset{}
 
 	if m.inst.http != nil {
-		p.ScriptOutput = nil
 		p.Proxy = true
+		p.ScriptOutput = nil
 		err := m.inst.http.Call(ctx, AESave, p, &res)
 		if err != nil {
 			return nil, err
@@ -747,97 +633,84 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 	return res, nil
 }
 
-// RenameParams defines parameters for Dataset renaming
-type RenameParams struct {
-	Current, Next string
-}
-
 // Rename changes a user's given name for a dataset
-func (m *DatasetMethods) Rename(p *RenameParams, res *dsref.VersionInfo) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Rename", p, res))
+func (m *DatasetMethods) Rename(ctx context.Context, p *RenameParams) (*dsref.VersionInfo, error) {
+	if m.inst.http != nil {
+		res := &dsref.VersionInfo{}
+		err := m.inst.http.Call(ctx, AERename, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
 	if p.Current == "" {
-		return fmt.Errorf("current name is required to rename a dataset")
+		return nil, fmt.Errorf("current name is required to rename a dataset")
 	}
 
 	ref, err := dsref.ParseHumanFriendly(p.Current)
 	// Allow bad upper-case characters in the left-hand side name, because it's needed to let users
 	// fix badly named datasets.
 	if err != nil && err != dsref.ErrBadCaseName {
-		return fmt.Errorf("original name: %w", err)
+		return nil, fmt.Errorf("original name: %w", err)
 	}
 	if _, err := m.inst.ResolveReference(ctx, &ref, "local"); err != nil {
-		return err
+		return nil, err
 	}
 
 	next, err := dsref.ParseHumanFriendly(p.Next)
 	if errors.Is(err, dsref.ErrNotHumanFriendly) {
-		return fmt.Errorf("destination name: %s", err)
+		return nil, fmt.Errorf("destination name: %s", err)
 	} else if err != nil {
-		return fmt.Errorf("destination name: %s", dsref.ErrDescribeValidName)
+		return nil, fmt.Errorf("destination name: %s", dsref.ErrDescribeValidName)
 	}
 	if ref.Username != next.Username && next.Username != "me" {
-		return fmt.Errorf("cannot change username or profileID of a dataset")
+		return nil, fmt.Errorf("cannot change username or profileID of a dataset")
 	}
 
 	// Update the reference stored in the repo
 	vi, err := base.RenameDatasetRef(ctx, m.inst.repo, ref, next.Name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If the dataset is linked to a working directory, update the ref
 	if vi.FSIPath != "" {
 		if _, err = m.inst.fsi.ModifyLinkReference(vi.FSIPath, vi.SimpleRef()); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	*res = *vi
-	return nil
-}
-
-// RemoveParams defines parameters for remove command
-type RemoveParams struct {
-	Ref       string
-	Revision  dsref.Rev
-	KeepFiles bool
-	Force     bool
-}
-
-// RemoveResponse gives the results of a remove
-type RemoveResponse struct {
-	Ref        string
-	NumDeleted int
-	Message    string
-	Unlinked   bool
+	return vi, nil
 }
 
 // ErrCantRemoveDirectoryDirty is returned when a directory is dirty so the files cant' be removed
 var ErrCantRemoveDirectoryDirty = fmt.Errorf("cannot remove files while working directory is dirty")
 
 // Remove a dataset entirely or remove a certain number of revisions
-func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Remove", p, res))
+func (m *DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveResponse, error) {
+	res := &RemoveResponse{}
+	if m.inst.http != nil {
+		p.Proxy = true
+		err := m.inst.http.Call(ctx, AERemove, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
 	log.Debugf("Remove dataset ref %q, revisions %v", p.Ref, p.Revision)
 
 	if p.Revision.Gen == 0 {
-		return fmt.Errorf("invalid number of revisions to delete: 0")
+		return nil, fmt.Errorf("invalid number of revisions to delete: 0")
 	}
 	if p.Revision.Field != "ds" {
-		return fmt.Errorf("can only remove whole dataset versions, not individual components")
+		return nil, fmt.Errorf("can only remove whole dataset versions, not individual components")
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if canonErr := repo.CanonicalizeDatasetRef(ctx, m.inst.repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
@@ -847,10 +720,10 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 			if didRemove != "" {
 				log.Debugf("Remove cleaned up data found in %s", didRemove)
 				res.Message = didRemove
-				return nil
+				return res, nil
 			}
 		}
-		return canonErr
+		return nil, canonErr
 	}
 	res.Ref = ref.String()
 
@@ -863,7 +736,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 			if wdErr != nil {
 				if wdErr == fsi.ErrWorkingDirectoryDirty {
 					log.Debugf("Remove, IsWorkingDirectoryDirty")
-					return ErrCantRemoveDirectoryDirty
+					return nil, ErrCantRemoveDirectoryDirty
 				}
 				if strings.Contains(wdErr.Error(), "not a linked directory") {
 					// If the working directory has been removed (or renamed), could not get the
@@ -873,13 +746,13 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 					wdErr = nil
 				} else {
 					log.Debugf("Remove, IsWorkingDirectoryClean error: %s", err)
-					return wdErr
+					return nil, wdErr
 				}
 			}
 		}
 	} else if p.KeepFiles {
 		// If dataset is not linked in a working directory, --keep-files can't be used.
-		return fmt.Errorf("dataset is not linked to filesystem, cannot use keep-files")
+		return nil, fmt.Errorf("dataset is not linked to filesystem, cannot use keep-files")
 	}
 
 	// Get the revisions that will be deleted.
@@ -932,7 +805,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 					err = nil
 				} else {
 					log.Debugf("Remove, os.Remove failed, error: %s", err)
-					return err
+					return nil, err
 				}
 			}
 		}
@@ -941,7 +814,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 		info, err := base.RemoveNVersionsFromStore(ctx, m.inst.repo, reporef.ConvertToDsref(ref), p.Revision.Gen)
 		if err != nil {
 			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
-			return err
+			return nil, err
 		}
 		res.NumDeleted = p.Revision.Gen
 
@@ -950,13 +823,13 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 			ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), info.Path)
 			if err != nil {
 				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
-				return err
+				return nil, err
 			}
 			ds.Name = info.Name
 			ds.Peername = info.Username
 			if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 				log.Debugf("Remove, base.OpenDataset failed, error: %s", err)
-				return err
+				return nil, err
 			}
 
 			// TODO(dlong): Add a method to FSI called ProjectOntoDirectory, use it here
@@ -973,15 +846,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 		}
 	}
 	log.Debugf("Remove finished")
-	return nil
-}
-
-// PullParams encapsulates parameters to the add command
-type PullParams struct {
-	Ref      string
-	LinkDir  string
-	Remote   string // remote to attempt to pull from
-	LogsOnly bool   // only fetch logbook data
+	return res, nil
 }
 
 // Pull downloads and stores an existing dataset to a peer's repository via

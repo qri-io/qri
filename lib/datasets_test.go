@@ -742,8 +742,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_%d", i), func(t *testing.T) {
-			got := &dsref.VersionInfo{}
-			err := m.Rename(c.p, got)
+			_, err := m.Rename(ctx, c.p)
 
 			if err == nil {
 				t.Fatalf("test didn't error")
@@ -765,8 +764,8 @@ func TestDatasetRequestsRename(t *testing.T) {
 		Next:    "peer/new_movies",
 	}
 
-	res := &dsref.VersionInfo{}
-	if err := m.Rename(p, res); err != nil {
+	res, err := m.Rename(ctx, p)
+	if err != nil {
 		t.Errorf("unexpected error renaming: %s", err)
 	}
 
@@ -814,8 +813,8 @@ func TestRenameNoHistory(t *testing.T) {
 		Current: "me/remove_no_history",
 		Next:    "me/remove_second_name",
 	}
-	res := new(dsref.VersionInfo)
-	if err := NewDatasetMethods(tr.Instance).Rename(renameP, res); err != nil {
+	_, err := NewDatasetMethods(tr.Instance).Rename(ctx, renameP)
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -902,8 +901,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 
 	for i, c := range badCases {
 		t.Run(fmt.Sprintf("bad_case_%s", c.err), func(t *testing.T) {
-			res := RemoveResponse{}
-			err := dsm.Remove(&c.params, &res)
+			_, err := dsm.Remove(ctx, &c.params)
 
 			if err == nil {
 				t.Errorf("case %d: expected error. got nil", i)
@@ -931,8 +929,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 
 	for _, c := range goodCases {
 		t.Run(fmt.Sprintf("good_case_%s", c.description), func(t *testing.T) {
-			res := RemoveResponse{}
-			err := dsm.Remove(&c.params, &res)
+			res, err := dsm.Remove(ctx, &c.params)
 
 			if err != nil {
 				t.Errorf("unexpected error: %s", err)

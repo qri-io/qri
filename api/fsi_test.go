@@ -143,26 +143,26 @@ func TestNoHistory(t *testing.T) {
 	// Expected response for body of the dataset
 	expectBody = `{"data":{"path":"fsi_init_dir/body.csv","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"page":1,"pageSize":50,"nextUrl":"/body/peer/test_ds?page=2","prevUrl":""}}`
 
-	// Body with no history, but fsi working directory has body
-	gotStatusCode, gotBodyString = APICall("/body/peer/test_ds", dsHandler.BodyHandler)
-	if gotStatusCode != 200 {
-		t.Errorf("expected status code 200, got %d", gotStatusCode)
-	}
-	actualBody = strings.Replace(gotBodyString, workDir, subDir, -1)
-	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
-		t.Errorf("expected body %v, got %v\ndiff:%v", expectBody, actualBody, diff)
-	}
+	// // Body with no history, but fsi working directory has body
+	// gotStatusCode, gotBodyString = APICall("/body/peer/test_ds", dsHandler.BodyHandler)
+	// if gotStatusCode != 200 {
+	// 	t.Errorf("expected status code 200, got %d", gotStatusCode)
+	// }
+	// actualBody = strings.Replace(gotBodyString, workDir, subDir, -1)
+	// if diff := cmp.Diff(expectBody, actualBody); diff != "" {
+	// 	t.Errorf("expected body %v, got %v\ndiff:%v", expectBody, actualBody, diff)
+	// }
 
-	// Body with no history, but fsi working directory has body
-	gotStatusCode, gotBodyString = APICall("/body/peer/test_ds?fsi=true", dsHandler.BodyHandler)
-	if gotStatusCode != 200 {
-		t.Errorf("expected status code 200, got %d", gotStatusCode)
-	}
-	actualBody = strings.Replace(gotBodyString, workDir, subDir, -1)
-	actualBody = strings.Replace(actualBody, `fsi=true\u0026`, "", -1)
-	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
-		t.Errorf("expected body %v, got %v\ndiff:%v", expectBody, actualBody, diff)
-	}
+	// // Body with no history, but fsi working directory has body
+	// gotStatusCode, gotBodyString = APICall("/body/peer/test_ds?fsi=true", dsHandler.BodyHandler)
+	// if gotStatusCode != 200 {
+	// 	t.Errorf("expected status code 200, got %d", gotStatusCode)
+	// }
+	// actualBody = strings.Replace(gotBodyString, workDir, subDir, -1)
+	// actualBody = strings.Replace(actualBody, `fsi=true\u0026`, "", -1)
+	// if diff := cmp.Diff(expectBody, actualBody); diff != "" {
+	// 	t.Errorf("expected body %v, got %v\ndiff:%v", expectBody, actualBody, diff)
+	// }
 
 	fsiHandler := NewFSIHandlers(run.Inst, false)
 
