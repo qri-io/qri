@@ -55,12 +55,12 @@ func TestDatasetHandlers(t *testing.T) {
 	runHandlerTestCases(t, "get", h.GetHandler, getCases, true)
 
 	bodyCases := []handlerTestCase{
-		{"GET", "/body/peer/family_relationships", nil},
-		// TODO(dustmop): Breaks test, is being combined into /get anyway
-		//{"GET", "/body/peer/family_relationships?download=true", nil},
+		{"GET", "/get/peer/family_relationships?component=body", nil},
+		// TODO(arqu): broken, expecing object and not array response
+		// {"GET", "/get/peer/family_relationships?component=body&download=true", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "body", h.BodyHandler, bodyCases, true)
+	runHandlerTestCases(t, "body", h.GetHandler, bodyCases, true)
 
 	statsCases := []handlerTestCase{
 		{"GET", "/stats/peer/craigslist", nil},
@@ -509,14 +509,6 @@ func TestDatasetGet(t *testing.T) {
 	// Error 400 due to parse error of dsref
 	actualStatusCode, _ = APICall("/get/peer/test+ds", dsHandler.GetHandler)
 	assertStatusCode(t, "invalid dsref", actualStatusCode, 400)
-
-	// Old style /body endpoint still works
-	actualStatusCode, _ = APICall("/body/peer/test_ds", dsHandler.BodyHandler)
-	assertStatusCode(t, "old style /body endpoint", actualStatusCode, 200)
-
-	// Old style /body endpoint cannot use a component
-	actualStatusCode, _ = APICall("/body/peer/test_ds?component=meta", dsHandler.BodyHandler)
-	assertStatusCode(t, "/body endpoint with meta component", actualStatusCode, 400)
 }
 
 func assertStatusCode(t *testing.T, description string, actualStatusCode, expectStatusCode int) {

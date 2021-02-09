@@ -191,8 +191,6 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle(lib.AERename.String(), s.Middleware(dsh.RenameHandler))
 	m.Handle(lib.AEDiff.String(), s.Middleware(dsh.DiffHandler))
 	m.Handle(lib.AEChanges.String(), s.Middleware(dsh.ChangesHandler))
-	// Deprecated, use /get/username/name?component=body or /get/username/name/body.csv
-	m.Handle(lib.AEBody.String(), s.Middleware(dsh.BodyHandler))
 	m.Handle(lib.AEStats.String(), s.Middleware(dsh.StatsHandler))
 	m.Handle(lib.AEUnpack.String(), s.Middleware(dsh.UnpackHandler))
 

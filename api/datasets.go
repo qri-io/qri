@@ -141,20 +141,6 @@ func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// BodyHandler gets the contents of a dataset
-func (h *DatasetHandlers) BodyHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		if h.ReadOnly {
-			readOnlyResponse(w, "/body/")
-			return
-		}
-		h.bodyHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
-	}
-}
-
 // StatsHandler gets stats about the dataset
 func (h *DatasetHandlers) StatsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -228,32 +214,6 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := &args.Params
-	result := &lib.GetResult{}
-	err = h.Get(params, result)
-	if err != nil {
-		util.RespondWithError(w, err)
-		return
-	}
-
-	h.replyWithGetResponse(w, r, params, result, args)
-}
-
-func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := parseGetReqArgs(r, strings.TrimPrefix(r.URL.Path, "/body/"))
-	if err != nil {
-		util.RespondWithError(w, err)
-		return
-	}
-
-	params := &args.Params
-	// When using the old /body endpoint, it's invalid to specify a different component
-	if params.Selector != "" && params.Selector != "body" {
-		err := fmt.Errorf("cannot specify component %q for /body", params.Selector)
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-	params.Selector = "body"
-
 	result := &lib.GetResult{}
 	err = h.Get(params, result)
 	if err != nil {

@@ -237,7 +237,6 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"PUT", "/rename", 403},
 		{"POST", "/diff", 403},
 		{"GET", "/diff", 403},
-		{"GET", "/body/", 403},
 		{"POST", "/registry/", 403},
 		{"GET", "/checkout", 403},
 		{"GET", "/status", 403},
