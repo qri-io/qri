@@ -43,6 +43,20 @@ type ListParams struct {
 	Proxy bool
 }
 
+// SetNonZeroDefaults sets OrderBy to "created" if it's value is the empty string
+func (p *ListParams) SetNonZeroDefaults() {
+	if p.OrderBy == "" {
+		p.OrderBy = "created"
+	}
+}
+
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *ListParams) UnmarshalFromRequest(r *http.Request) error {
+	lp := ListParamsFromRequest(r)
+	*p = lp
+	return nil
+}
+
 // NewListParams creates a ListParams from page & pagesize, pages are 1-indexed
 // (the first element is 1, not 0), NewListParams performs the conversion
 func NewListParams(orderBy string, page, pageSize int) ListParams {
@@ -85,4 +99,14 @@ func (lp ListParams) Page() util.Page {
 // identifies whether a call has been proxied from another instance
 func (lp ListParams) Proxied() bool {
 	return lp.Proxy
+}
+
+// NZDefaultSetter modifies zero values to non-zero defaults when called
+type NZDefaultSetter interface {
+	SetNonZeroDefaults()
+}
+
+// RequestUnmarshaller is an interface for deserializing from an HTTP request
+type RequestUnmarshaller interface {
+	UnmarshalFromRequest(r *http.Request) error
 }
