@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gorilla/schema"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/archive"
@@ -142,20 +143,6 @@ func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// BodyHandler gets the contents of a dataset
-func (h *DatasetHandlers) BodyHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		if h.ReadOnly {
-			readOnlyResponse(w, "/body/")
-			return
-		}
-		h.bodyHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
-	}
-}
-
 // StatsHandler gets stats about the dataset
 func (h *DatasetHandlers) StatsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -196,6 +183,31 @@ func extensionToMimeType(ext string) string {
 	default:
 		return ""
 	}
+}
+
+var decoder = schema.NewDecoder()
+
+// UnmarshalParams deserialzes a lib req params stuct pointer from an HTTP
+// request
+func UnmarshalParams(r *http.Request, p interface{}) error {
+	defer func() {
+		if defSetter, ok := p.(lib.NZDefaultSetter); ok {
+			defSetter.SetNonZeroDefaults()
+		}
+	}()
+
+	if r.Header.Get("Content-Type") == jsonContentType {
+		return json.NewDecoder(r.Body).Decode(p)
+	}
+
+	if ru, ok := p.(lib.RequestUnmarshaller); ok {
+		return ru.UnmarshalFromRequest(r)
+	}
+
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+	return decoder.Decode(p, r.Form)
 }
 
 // snoop reads from an io.ReadCloser and restores it so it can be read again
@@ -247,19 +259,20 @@ func parseProxyParams(r *http.Request, res interface{}) error {
 }
 
 func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
-	args := lib.ListParams{}
-	err := parseProxyParams(r, &args)
-	if err != nil && err.Error() == "bad request" {
+	args := &lib.ListParams{}
+	if err := UnmarshalParams(r, args); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	if err != nil {
-		args = lib.ListParamsFromRequest(r)
-		args.OrderBy = "created"
-		args.Term = r.FormValue("term")
-	}
 
-	res, err := h.List(r.Context(), &args)
+	// if err := r.ParseForm(); err != nil {
+	// 	util.WriteErrResponse(w, http.StatusBadRequest, err)
+	// 	return
+	// }
+
+	log.Warnf("%#v", args)
+
+	res, err := h.List(r.Context(), args)
 	if err != nil {
 		if errors.Is(err, lib.ErrListWarning) {
 			log.Error(err)
@@ -278,7 +291,8 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	params := lib.GetParams{}
 	args := &GetReqArgs{}
-	err := parseProxyParams(r, &params)
+
+	err := UnmarshalParams(r, &params)
 	if err != nil && err.Error() == "bad request" {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -301,51 +315,6 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		// TODO(arqu): fix raw download on proxy. Requires GetReqArgs to be proxied too
 		args.RawDownload = false
 	}
-
-	result, err := h.Get(r.Context(), &params)
-	if err != nil {
-		util.RespondWithError(w, err)
-		return
-	}
-
-	h.replyWithGetResponse(w, r, &params, result, args)
-}
-
-// bodyHandler is deprecated and you should use the getHandler
-func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
-	params := lib.GetParams{}
-	args := &GetReqArgs{}
-	err := parseProxyParams(r, &params)
-	if err != nil && err.Error() == "bad request" {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-	if err != nil {
-		args, err = parseGetReqArgs(r, strings.TrimPrefix(r.URL.Path, "/body/"))
-		if err != nil {
-			util.RespondWithError(w, err)
-			return
-		}
-		params = args.Params
-	} else {
-		// TODO(arqu): get rid of this once we move the proxy call above lib
-		args.Params = params
-		ref, err := dsref.Parse(params.Refstr)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-		}
-		args.Ref = ref
-		// TODO(arqu): fix raw download on proxy. Requires GetReqArgs to be proxied too
-		args.RawDownload = false
-	}
-
-	// When using the old /body endpoint, it's invalid to specify a different component
-	if params.Selector != "" && params.Selector != "body" {
-		err := fmt.Errorf("cannot specify component %q for /body", params.Selector)
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-	params.Selector = "body"
 
 	result, err := h.Get(r.Context(), &params)
 	if err != nil {
@@ -530,7 +499,8 @@ func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	params := lib.SaveParams{}
-	err := parseProxyParams(r, &params)
+	// err := parseProxyParams(r, &params)
+	err := UnmarshalParams(r, &params)
 	if err != nil && err.Error() == "bad request" {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
