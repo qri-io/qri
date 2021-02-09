@@ -11,11 +11,21 @@ import (
 // Limit param is provided to a paginated method
 const DefaultPageSize = 100
 
+// NZDefaultSetter modifies zero values to non-zero defaults when called
+type NZDefaultSetter interface {
+	SetNonZeroDefaults()
+}
+
+// RequestUnmarshaller is an interface for deserializing from an HTTP request
+type RequestUnmarshaller interface {
+	UnmarshalFromRequest(r *http.Request) error
+}
+
 // ListParams is the general input for any sort of Paginated Request
 // ListParams define limits & offsets, not pages & page sizes.
 // TODO - rename this to PageParams.
 type ListParams struct {
-	ProfileID profile.ID
+	ProfileID profile.ID `json:"-"`
 	Term      string
 	Peername  string
 	OrderBy   string
@@ -33,6 +43,23 @@ type ListParams struct {
 	EnsureFSIExists bool
 	// UseDscache controls whether to build a dscache to use to list the references
 	UseDscache bool
+
+	// Proxy identifies whether a call has been proxied from another instance
+	Proxy bool
+}
+
+// SetNonZeroDefaults sets OrderBy to "created" if it's value is the empty string
+func (p *ListParams) SetNonZeroDefaults() {
+	if p.OrderBy == "" {
+		p.OrderBy = "created"
+	}
+}
+
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *ListParams) UnmarshalFromRequest(r *http.Request) error {
+	lp := ListParamsFromRequest(r)
+	*p = lp
+	return nil
 }
 
 // NewListParams creates a ListParams from page & pagesize, pages are 1-indexed
@@ -63,12 +90,12 @@ func ListParamsFromRequest(r *http.Request) ListParams {
 }
 
 // Page converts a ListParams struct to a util.Page struct
-func (lp ListParams) Page() util.Page {
+func (p ListParams) Page() util.Page {
 	var number, size int
-	size = lp.Limit
+	size = p.Limit
 	if size <= 0 {
 		size = DefaultPageSize
 	}
-	number = lp.Offset/size + 1
+	number = p.Offset/size + 1
 	return util.NewPage(number, size)
 }

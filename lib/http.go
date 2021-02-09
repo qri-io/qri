@@ -123,7 +123,7 @@ func (c HTTPClient) checkError(meta *apiutil.Meta) error {
 		return fmt.Errorf("HTTPClient req error: invalid meta response")
 	}
 	if meta.Code != 200 {
-		return fmt.Errorf("HTTPClient req error: %d - %q", meta.Code, meta.Message)
+		return fmt.Errorf("HTTPClient req error: %d - %q", meta.Code, meta.Error)
 	}
 	return nil
 }
