@@ -141,10 +141,10 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Expected response for body of the dataset
-	expectBody = `{"data":{"path":"fsi_init_dir/body.csv","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"page":1,"pageSize":50,"nextUrl":"/body/peer/test_ds?page=2","prevUrl":""}}`
+	expectBody = `{"data":{"path":"fsi_init_dir/body.csv","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"page":1,"pageSize":50,"nextUrl":"/get/peer/test_ds?component=body\u0026page=2","prevUrl":""}}`
 
 	// Body with no history, but fsi working directory has body
-	gotStatusCode, gotBodyString = APICall("/body/peer/test_ds", dsHandler.BodyHandler)
+	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds?component=body", dsHandler.GetHandler)
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -154,7 +154,7 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Body with no history, but fsi working directory has body
-	gotStatusCode, gotBodyString = APICall("/body/peer/test_ds?fsi=true", dsHandler.BodyHandler)
+	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds?component=body&fsi=true", dsHandler.GetHandler)
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
