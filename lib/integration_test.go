@@ -55,7 +55,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	Preview(t, hinshun, ref.String())
 
 	// - hinshun pulls nasim's dataset
-	Pull(t, hinshun, ref.Alias())
+	Pull(tr.Ctx, t, hinshun, ref.Alias())
 
 	if err := AssertLogsEqual(nasim, hinshun, ref); err != nil {
 		t.Error(err)
@@ -69,8 +69,8 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
 	dsm := NewDatasetMethods(hinshun)
-	res := &dataset.Dataset{}
-	if err := dsm.Pull(&PullParams{LogsOnly: true, Ref: ref.String()}, res); err != nil {
+	_, err := dsm.Pull(tr.Ctx, &PullParams{LogsOnly: true, Ref: ref.String()})
+	if err != nil {
 		t.Errorf("cloning logs: %s", err)
 	}
 
@@ -81,7 +81,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	// TODO (b5) - assert hinshun DOES NOT have blocks for the latest commit to world bank dataset
 
 	// 8. hinshun pulls latest version
-	Pull(t, hinshun, ref.Alias())
+	Pull(tr.Ctx, t, hinshun, ref.Alias())
 
 	// TODO (b5) - assert hinshun has world bank dataset blocks
 
@@ -108,13 +108,12 @@ func TestAddCheckoutIntegration(t *testing.T) {
 
 	hinshun := tr.InitHinshun(t)
 	dsm := NewDatasetMethods(hinshun)
-	res := &dataset.Dataset{}
 
 	checkoutPath := filepath.Join(tr.hinshunRepo.RootPath, "wbp")
-	err := dsm.Pull(&PullParams{
+	_, err := dsm.Pull(tr.Ctx, &PullParams{
 		Ref:     ref.String(),
 		LinkDir: checkoutPath,
-	}, res)
+	})
 	if err != nil {
 		t.Errorf("adding with linked directory: %s", err)
 	}
@@ -445,10 +444,10 @@ func SearchFor(t *testing.T, inst *Instance, term string) []SearchResult {
 	return results
 }
 
-func Pull(t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
+func Pull(ctx context.Context, t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
 	t.Helper()
-	res := &dataset.Dataset{}
-	if err := NewDatasetMethods(inst).Pull(&PullParams{Ref: refstr}, res); err != nil {
+	res, err := NewDatasetMethods(inst).Pull(ctx, &PullParams{Ref: refstr})
+	if err != nil {
 		t.Fatalf("cloning dataset %s: %s", refstr, err)
 	}
 	return res

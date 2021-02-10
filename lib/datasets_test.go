@@ -976,8 +976,7 @@ func TestDatasetRequestsPull(t *testing.T) {
 	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_case_%d", i), func(t *testing.T) {
-			got := &dataset.Dataset{}
-			err := m.Pull(&c.p, got)
+			_, err := m.Pull(ctx, &c.p)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -1046,9 +1045,8 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 				// Build requests for peer1 to peer2.
 				inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), p0)
 				dsm := NewDatasetMethods(inst)
-				got := &dataset.Dataset{}
 
-				err := dsm.Pull(p, got)
+				_, err := dsm.Pull(ctx, p)
 				if err != nil {
 					pro1, _ := p0.Repo.Profile(ctx)
 					pro2, _ := p1.Repo.Profile(ctx)

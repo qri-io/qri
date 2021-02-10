@@ -1175,17 +1175,29 @@ type PullParams struct {
 	LogsOnly bool   // only fetch logbook data
 }
 
-// Pull downloads and stores an existing dataset to a peer's repository via
-// a network connection
-func (m *DatasetMethods) Pull(p *PullParams, res *dataset.Dataset) error {
-	if err := qfs.AbsPath(&p.LinkDir); err != nil {
-		return err
-	}
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Pull", p, res))
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *PullParams) UnmarshalFromRequest(r *http.Request) error {
+	if p.Ref == "" {
+		p.Ref = r.FormValue("refstr")
 	}
 
-	ctx := context.TODO()
+	return nil
+}
+
+// Pull downloads and stores an existing dataset to a peer's repository via
+// a network connection
+func (m *DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Dataset, error) {
+	if err := qfs.AbsPath(&p.LinkDir); err != nil {
+		return nil, err
+	}
+	res := &dataset.Dataset{}
+	if m.inst.http != nil {
+		err := m.inst.http.Call(ctx, AEPull, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	}
 
 	source := p.Remote
 	if source == "" {
@@ -1195,13 +1207,13 @@ func (m *DatasetMethods) Pull(p *PullParams, res *dataset.Dataset) error {
 	ref, source, err := m.inst.ParseAndResolveRef(ctx, p.Ref, source)
 	if err != nil {
 		log.Debugf("resolving reference: %s", err)
-		return err
+		return nil, err
 	}
 
 	ds, err := m.inst.remoteClient.PullDataset(ctx, &ref, source)
 	if err != nil {
 		log.Debugf("pulling dataset: %s", err)
-		return err
+		return nil, err
 	}
 
 	*res = *ds
@@ -1214,11 +1226,11 @@ func (m *DatasetMethods) Pull(p *PullParams, res *dataset.Dataset) error {
 		m := NewFSIMethods(m.inst)
 		checkoutRes := ""
 		if err = m.Checkout(checkoutp, &checkoutRes); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return res, nil
 }
 
 // ValidateParams defines parameters for dataset data validation

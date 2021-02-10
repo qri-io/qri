@@ -90,7 +90,7 @@ const (
 	// AEPush facilitates dataset push requests to a remote
 	AEPush = APIEndpoint("/push/{path:.*}")
 	// AEPull facilittates dataset pull requests from a remote
-	AEPull = APIEndpoint("/pull/{path:.*}")
+	AEPull = APIEndpoint("/pull")
 	// AEFeeds fetches and index of named feeds
 	AEFeeds = APIEndpoint("/feeds")
 	// AEPreview fetches a dataset preview from the registry
