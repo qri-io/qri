@@ -42,7 +42,7 @@ func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
 // ListHandler is a dataset list endpoint
 func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodGet:
+	case http.MethodGet, http.MethodPost:
 		if h.ReadOnly {
 			readOnlyResponse(w, "/list")
 			return
@@ -198,13 +198,14 @@ func extensionToMimeType(ext string) string {
 }
 
 func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
-	args := lib.ListParamsFromRequest(r)
-	args.OrderBy = "created"
+	params := &lib.ListParams{}
+	if err := UnmarshalParams(r, params); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
 
-	args.Term = r.FormValue("term")
-
-	res := []dsref.VersionInfo{}
-	if err := h.List(&args, &res); err != nil {
+	res, err := h.List(r.Context(), params)
+	if err != nil {
 		if errors.Is(err, lib.ErrListWarning) {
 			log.Error(err)
 			err = nil
@@ -214,7 +215,7 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := util.WritePageResponse(w, res, r, args.Page()); err != nil {
+	if err := util.WritePageResponse(w, res, r, params.Page()); err != nil {
 		log.Infof("error list datasests response: %s", err.Error())
 	}
 }
@@ -401,8 +402,8 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 		p.Peername = ref.Peername
 	}
 
-	res := []dsref.VersionInfo{}
-	if err := h.List(&p, &res); err != nil {
+	res, err := h.List(r.Context(), &p)
+	if err != nil {
 		log.Infof("error listing peer's datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
