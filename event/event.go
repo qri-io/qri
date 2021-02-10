@@ -164,6 +164,10 @@ func (b *bus) publish(ctx context.Context, typ Type, sessionID string, payload i
 		Payload:   payload,
 	}
 
+	if b.closed {
+		return e, ErrBusClosed
+	}
+
 	// TODO(dustmop): Add instrumentation, perhaps to ctx, to make logging / tracing
 	// a single event easier to do.
 
