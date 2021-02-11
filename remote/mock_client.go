@@ -199,7 +199,7 @@ func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) err
 	ref.Path = path
 
 	// Add a save operation to logbook
-	err = other.book.WriteVersionSave(ctx, ref.InitID, &ds)
+	err = other.book.WriteVersionSave(ctx, ref.InitID, &ds, nil)
 	if err != nil {
 		return err
 	}

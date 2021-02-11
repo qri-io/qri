@@ -85,7 +85,7 @@ func (b *BookBuilder) Commit(ctx context.Context, t *testing.T, initID, title, i
 		Path:         ipfsHash,
 		PreviousPath: ref.Path,
 	}
-	if err := b.Book.WriteVersionSave(ctx, initID, &ds); err != nil {
+	if err := b.Book.WriteVersionSave(ctx, initID, &ds, nil); err != nil {
 		t.Fatal(err)
 	}
 	b.Dsrefs[ref.Name] = append(b.Dsrefs[ref.Name], ipfsHash)

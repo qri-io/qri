@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/profile"
+	"github.com/qri-io/qri/transform/run"
 )
 
 var (
@@ -56,14 +57,21 @@ const (
 	CommitModel
 	// PushModel is the enum for a push model
 	PushModel
+	// RunModel is the enum for transform execution
+	RunModel
 	// ACLModel is the enum for a acl model
 	ACLModel
 )
 
-// DefaultBranchName is the default name all branch-level logbook data is read
-// from and written to. we currently don't present branches as a user-facing
-// feature in qri, but logbook supports them
-const DefaultBranchName = "main"
+const (
+	// DefaultBranchName is the default name all branch-level logbook data is read
+	// from and written to. we currently don't present branches as a user-facing
+	// feature in qri, but logbook supports them
+	DefaultBranchName = "main"
+	// runIDRelPrefix is a string prefix for op.Relations when recording commit ops
+	// that have a non-empty Commit.RunID field
+	runIDRelPrefix = "runID:"
+)
 
 // ModelString gets a unique string descriptor for an integral model identifier
 func ModelString(m uint32) string {
@@ -80,6 +88,8 @@ func ModelString(m uint32) string {
 		return "push"
 	case ACLModel:
 		return "acl"
+	case RunModel:
+		return "run"
 	default:
 		return ""
 	}
@@ -492,9 +502,13 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, initID string) error {
 	return book.save(ctx)
 }
 
-// WriteVersionSave adds an operation to a log marking the creation of a
-// dataset version. Book will copy details from the provided dataset pointer
-func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *dataset.Dataset) error {
+// WriteVersionSave adds 1 or 2 operations marking the creation of a dataset
+// version. If the run.State arg is nil only one commit operation is written
+//
+// If a run.State argument is non-nil two operations are written to the log,
+// one op for the run followed by a commit op for the dataset save.
+// If run.State is non-nil the dataset.Commit.RunID and rs.ID fields must match
+func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *dataset.Dataset, rs *run.State) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
@@ -507,6 +521,13 @@ func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *datas
 
 	if err := book.hasWriteAccess(branchLog.l); err != nil {
 		return err
+	}
+
+	if rs != nil {
+		if rs.ID != ds.Commit.RunID {
+			return fmt.Errorf("dataset.Commit.RunID does not match the provided run.ID")
+		}
+		book.appendTransformRun(branchLog, rs)
 	}
 
 	topIndex := book.appendVersionSave(branchLog, ds)
@@ -531,6 +552,33 @@ func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *datas
 	return nil
 }
 
+// WriteTransformRun adds an operation to a log marking the execution of a
+// dataset transform script
+func (book *Book) WriteTransformRun(ctx context.Context, initID string, rs *run.State) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
+	log.Debugf("WriteTransformRun: %s", initID)
+	branchLog, err := book.branchLog(ctx, initID)
+	if err != nil {
+		return err
+	}
+
+	if err := book.hasWriteAccess(branchLog.l); err != nil {
+		return err
+	}
+
+	book.appendTransformRun(branchLog, rs)
+	// TODO(dlong): Think about how to handle a failure exactly here, what needs to be rolled back?
+	err = book.save(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (book *Book) appendVersionSave(blog *BranchLog, ds *dataset.Dataset) int {
 	op := oplog.Op{
 		Type:  oplog.OpTypeInit,
@@ -544,6 +592,27 @@ func (book *Book) appendVersionSave(blog *BranchLog, ds *dataset.Dataset) int {
 
 	if ds.Structure != nil {
 		op.Size = int64(ds.Structure.Length)
+	}
+	if ds.Commit.RunID != "" {
+		op.Relations = []string{fmt.Sprintf("%s%s", runIDRelPrefix, ds.Commit.RunID)}
+	}
+
+	blog.Append(op)
+
+	return blog.Size() - 1
+}
+
+// appendTransformRun maps fields from run.State to an operation.
+func (book *Book) appendTransformRun(blog *BranchLog, rs *run.State) int {
+	op := oplog.Op{
+		Type:  oplog.OpTypeInit,
+		Model: RunModel,
+		Ref:   rs.ID,
+		Name:  fmt.Sprintf("%d", rs.Number),
+
+		Timestamp: rs.StartTime.UnixNano(),
+		Size:      int64(rs.Duration),
+		Note:      string(rs.Status),
 	}
 
 	blog.Append(op)
@@ -1018,6 +1087,24 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, histor
 	return book.save(ctx)
 }
 
+func commitOpRunID(op oplog.Op) string {
+	for _, str := range op.Relations {
+		if strings.HasPrefix(str, runIDRelPrefix) {
+			return strings.TrimPrefix(str, runIDRelPrefix)
+		}
+	}
+	return ""
+}
+
+// func versionInfoFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
+// 	return dsref.VersionInfo{
+// 		Username:    ref.Username,
+// 		ProfileID:   ref.ProfileID,
+// 		Name:        ref.Name,
+// 		Path:        op.Ref,
+// 		CommitTime:  time.Unix(0, op.Timestamp),
+// 		BodySize:    int(op.Size),
+
 func versionInfoFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
 	return dsref.VersionInfo{
 		Username:    ref.Username,
@@ -1028,6 +1115,27 @@ func versionInfoFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
 		BodySize:    int(op.Size),
 		CommitTitle: op.Note,
 	}
+}
+
+func runItemFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
+	return dsref.VersionInfo{
+		Username:    ref.Username,
+		ProfileID:   ref.ProfileID,
+		Name:        ref.Name,
+		CommitTime:  time.Unix(0, op.Timestamp),
+		RunID:       op.Ref,
+		RunStatus:   op.Note,
+		RunDuration: int(op.Size),
+		// TODO(B5): read run number, defaulting to -1 in the event of an error
+		// RunNumber: strconv.ParseInt(op.Name),
+	}
+}
+
+func addCommitDetailsToRunItem(li dsref.VersionInfo, op oplog.Op) dsref.VersionInfo {
+	li.CommitTitle = op.Note
+	li.BodySize = int(op.Size)
+	li.Path = op.Ref
+	return li
 }
 
 // Items collapses the history of a dataset branch into linear log items
@@ -1060,7 +1168,17 @@ func branchToVersionInfos(blog *BranchLog, ref dsref.Ref, offset, limit int, col
 		case CommitModel:
 			switch op.Type {
 			case oplog.OpTypeInit:
-				refs = append(refs, versionInfoFromOp(ref, op))
+				// run operations & commit operations often occur next to each other in
+				// the log.
+				// if the last item in the slice has a runID that matches a runID resource
+				// from this commit, combine them into one Log item that describes both
+				// the run and the save
+				commitRunID := commitOpRunID(op)
+				if commitRunID != "" && len(refs) > 0 && commitRunID == refs[len(refs)-1].RunID {
+					refs[len(refs)-1] = addCommitDetailsToRunItem(refs[len(refs)-1], op)
+				} else {
+					refs = append(refs, versionInfoFromOp(ref, op))
+				}
 			case oplog.OpTypeAmend:
 				deleteAtEnd = 0
 				refs[len(refs)-1] = versionInfoFromOp(ref, op)
@@ -1071,6 +1189,9 @@ func branchToVersionInfos(blog *BranchLog, ref dsref.Ref, offset, limit int, col
 					deleteAtEnd += int(op.Size)
 				}
 			}
+		case RunModel:
+			// runs are only ever "init" op type
+			refs = append(refs, runItemFromOp(ref, op))
 		case PushModel:
 			switch op.Type {
 			case oplog.OpTypeInit:

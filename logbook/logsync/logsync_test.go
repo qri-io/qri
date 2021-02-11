@@ -488,14 +488,14 @@ func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, er
 		PreviousPath: "",
 	}
 
-	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, initID, ds, nil); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "v1"
 	ds.PreviousPath = "v0"
 
-	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, initID, ds, nil); err != nil {
 		return ref, err
 	}
 
@@ -529,21 +529,21 @@ func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref,
 		PreviousPath: "",
 	}
 
-	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, initID, ds, nil); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "/ipfs/QmVersion1"
 	ds.PreviousPath = "/ipfs/QmVesion0"
 
-	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, initID, ds, nil); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "/ipfs/QmVersion2"
 	ds.PreviousPath = "/ipfs/QmVersion1"
 
-	if err = book.WriteVersionSave(ctx, initID, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, initID, ds, nil); err != nil {
 		return ref, err
 	}
 
