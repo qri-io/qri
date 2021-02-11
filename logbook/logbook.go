@@ -1125,7 +1125,7 @@ func runItemFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
 		CommitTime:  time.Unix(0, op.Timestamp),
 		RunID:       op.Ref,
 		RunStatus:   op.Note,
-		RunDuration: int(op.Size),
+		RunDuration: int64(op.Size),
 		// TODO(B5): read run number, defaulting to -1 in the event of an error
 		// RunNumber: strconv.ParseInt(op.Name),
 	}

@@ -9,13 +9,13 @@ const (
 	ETTransformStop = Type("tf:Stop")
 
 	// ETTransformStepStart signals a step is starting.
-	// Payload will be a StepDetail
+	// Payload will be a TransformStepLifecycle
 	ETTransformStepStart = Type("tf:StepStart")
 	// ETTransformStepStop signals a step has stopped.
-	// Payload will be a StepDetail
+	// Payload will be a TransformStepLifecycle
 	ETTransformStepStop = Type("tf:StepStop")
 	// ETTransformStepSkip signals a step was skipped.
-	// Payload will be a StepDetail
+	// Payload will be a TransformStepLifecycle
 	ETTransformStepSkip = Type("tf:StepSkip")
 
 	// ETTransformPrint is sent by print commands.

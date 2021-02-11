@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/google/uuid"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/transform/run"
 	"github.com/qri-io/qri/transform/startf"
 )
 
@@ -37,6 +37,10 @@ const (
 	// StatusSkipped is the canonical constant for "skipped" execution state
 	StatusSkipped = "skipped"
 )
+
+// NewRunID aliases the run identifier creation function to avoid requiring the
+// run package to invoke Apply
+var NewRunID = run.NewID
 
 // Apply applies the transform script to order to modify the changing dataset
 func Apply(
@@ -222,9 +226,4 @@ func Apply(
 
 	err = <-doneCh
 	return err
-}
-
-// NewRunID creates a run identifier
-func NewRunID() string {
-	return uuid.New().String()
 }
