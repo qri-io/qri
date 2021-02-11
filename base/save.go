@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 )
@@ -53,11 +52,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ini
 			return nil, err
 		}
 
-		// TODO(dustmop): Stop removing the transform once we move to apply, and untangle the
-		// save command from applying a transform.
-		// remove the Transform & commit
-		// transform & commit must be created from scratch with each new version
-		mutable.Transform = nil
+		// remove the commit. commit must be created from scratch with each new version
 		mutable.Commit = nil
 	}
 
@@ -108,11 +103,6 @@ func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ini
 		return nil, err
 	}
 
-	// Write the save to logbook
-	err = r.Logbook().WriteVersionSave(ctx, initID, ds)
-	if err != nil && err != logbook.ErrNoLogbook {
-		return ds, err
-	}
 	return ds, nil
 }
 

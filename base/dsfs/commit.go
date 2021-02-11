@@ -97,7 +97,7 @@ func commitFileAddFunc(privKey crypto.PrivKey, pub event.Publisher) addWriteFile
 			signedBytes, err := privKey.Sign(ds.SigningBytes())
 			if err != nil {
 				log.Debug(err.Error())
-				return nil, fmt.Errorf("error signing commit title: %s", err.Error())
+				return nil, fmt.Errorf("error signing commit title: %w", err)
 			}
 			ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
 			return JSONFile(PackageFileCommit.Filename(), ds.Commit)
@@ -173,7 +173,7 @@ func confirmByteChangesExist(ds, prev *dataset.Dataset, added map[string]string,
 		}
 	}
 
-	return fmt.Errorf("no changes")
+	return ErrNoChanges
 }
 
 // ensureCommitTitleAndMessage creates the commit and title, message, skipping
@@ -423,7 +423,7 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 		if forceIfNoChanges {
 			return "forced update", "forced update", nil
 		}
-		return "", "", fmt.Errorf("no changes")
+		return "", "", ErrNoChanges
 	}
 
 	log.Debugf("set friendly diff descriptions. shortTitle=%q message=%q", shortTitle, longMessage)

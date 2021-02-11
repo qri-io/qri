@@ -15,7 +15,7 @@ func DerefReadme(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset)
 		rm, err := loadReadme(ctx, store, ds.Readme.Path)
 		if err != nil {
 			log.Debug(err.Error())
-			return fmt.Errorf("loading dataset readme: %s", err)
+			return fmt.Errorf("loading dataset readme: %w", err)
 		}
 		rm.Path = ds.Readme.Path
 		ds.Readme = rm
@@ -28,13 +28,10 @@ func loadReadme(ctx context.Context, fs qfs.Filesystem, path string) (st *datase
 	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
 		log.Debug(err.Error())
-		return nil, fmt.Errorf("error loading readme file: %s", err.Error())
+		return nil, fmt.Errorf("error loading readme file: %w", err)
 	}
 	return dataset.UnmarshalReadme(data)
 }
-
-// ErrNoReadme is the error for asking a dataset without a readme component for readme info
-var ErrNoReadme = fmt.Errorf("this dataset has no readme component")
 
 // LoadReadmeScript loads script data from a dataset path if the given dataset has a readme script is specified
 // the returned qfs.File will be the value of dataset.Readme.ScriptPath
