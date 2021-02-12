@@ -176,7 +176,7 @@ func Apply(
 
 			switch step.Syntax {
 			case SyntaxStarlark:
-				log.Debugw("runnning starlark step", "step", step)
+				log.Debugw("runnning starlark step", "runID", runID, "category", step.Category, "name", step.Name, "scriptLen", scriptLen(step))
 				runErr = stepRunner.RunStep(ctx, target, step)
 				if runErr != nil {
 					log.Debugw("running transform step", "index", i, "err", runErr)
@@ -191,9 +191,9 @@ func Apply(
 				}
 			default:
 				if step.Syntax == SyntaxQri && step.Name == "save" {
-					log.Info("ignoring qri save step")
+					log.Infow("ignoring qri save step", "runID", runID)
 				} else {
-					log.Debugw("skipping unknown step", "syntax", step.Syntax)
+					log.Debugw("skipping unknown step", "runID", runID, "syntax", step.Syntax, "name", step.Name)
 					eventsCh <- event.Event{
 						Type: event.ETTransformError,
 						Payload: event.TransformMessage{
@@ -226,4 +226,13 @@ func Apply(
 
 	err = <-doneCh
 	return err
+}
+
+// scriptLen returns the length of the script string, -1 if the script is not
+// a string type
+func scriptLen(step *dataset.TransformStep) int {
+	if str, ok := step.Script.(string); ok {
+		return len(str)
+	}
+	return -1
 }

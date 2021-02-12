@@ -162,7 +162,6 @@ func NewStepStateFromEvent(e event.Event) (*StepState, error) {
 }
 
 func toTimePointer(unixnano int64) *time.Time {
-	// TODO (b5) - we're dropping nanosecond precision here :/
-	t := time.Unix(unixnano, 0)
+	t := time.Unix(0, unixnano)
 	return &t
 }
