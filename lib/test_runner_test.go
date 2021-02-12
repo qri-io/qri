@@ -170,9 +170,13 @@ func (tr *testRunner) SaveWithParams(p *SaveParams) (dsref.Ref, error) {
 
 func (tr *testRunner) MustGet(t *testing.T, refstr string) *dataset.Dataset {
 	m := NewDatasetMethods(tr.Instance)
-	p := GetParams{Refstr: refstr}
-	res := GetResult{}
-	if err := m.Get(&p, &res); err != nil {
+	ref, err := dsref.Parse(refstr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := GetParams{Ref: ref}
+	res, err := m.Get(tr.Ctx, &p)
+	if err != nil {
 		t.Fatal(err)
 	}
 	return res.Dataset

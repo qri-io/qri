@@ -8,6 +8,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/profile"
@@ -149,13 +150,19 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
+		gr, err := dsref.Parse(name)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
 		// Get code taken
 		// taken from ./root.go
 		gp := lib.GetParams{
-			Refstr: name,
+			Ref: gr,
 		}
-		res := lib.GetResult{}
-		err := h.dsm.Get(&gp, &res)
+
+		res, err := h.dsm.Get(r.Context(), &gp)
 		if err != nil {
 			if err == repo.ErrNotFound {
 				util.NotFoundHandler(w, r)

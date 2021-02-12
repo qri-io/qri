@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/component"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -151,10 +153,15 @@ func (o *GetOptions) Run() (err error) {
 	// 1) Correctly handling the pager output, and having headers between each ref
 	// 2) Identifying cases that limit Get to only work on 1 dataset. For example, the -o flag
 
+	r, err := dsref.Parse(o.Refs.Ref())
+	if err != nil && err != dsref.ErrBadCaseName {
+		return err
+	}
+
 	// convert Page and PageSize to Limit and Offset
 	page := apiutil.NewPage(o.Page, o.PageSize)
 	p := lib.GetParams{
-		Refstr:       o.Refs.Ref(),
+		Ref:          r,
 		Selector:     o.Selector,
 		Format:       o.Format,
 		FormatConfig: fc,
@@ -168,8 +175,9 @@ func (o *GetOptions) Run() (err error) {
 		GenFilename: o.Outfile == "" && stdoutIsTerminal() && o.Format == "zip",
 		Remote:      o.Remote,
 	}
-	res := lib.GetResult{}
-	if err = o.DatasetMethods.Get(&p, &res); err != nil {
+	ctx := context.TODO()
+	res, err := o.DatasetMethods.Get(ctx, &p)
+	if err != nil {
 		return err
 	}
 	if res.Message != "" {

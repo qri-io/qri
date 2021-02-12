@@ -8,12 +8,15 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/ghodss/yaml"
+	"github.com/gorilla/mux"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/jsonschema"
@@ -203,22 +206,149 @@ func (m *DatasetMethods) ListRawRefs(p *ListParams, text *string) error {
 
 // GetParams defines parameters for looking up the head or body of a dataset
 type GetParams struct {
-	// Refstr to get, representing a dataset ref to be parsed
-	Refstr   string
-	Selector string
+	Ref dsref.Ref `json:"ref"`
+
+	Selector string `json:"selector"`
 
 	// read from a filesystem link instead of stored version
-	Format       string
-	FormatConfig dataset.FormatConfig
+	Format       string               `json:"format"`
+	FormatConfig dataset.FormatConfig `json:"format_config"`
 
-	Limit, Offset int
-	All           bool
+	Limit  int  `json:"limit"`
+	Offset int  `json:"offset"`
+	All    bool `json:"all"`
 
 	// outfile is a filename to save the dataset to
-	Outfile string
+	Outfile string `json:"outfile"`
 	// whether to generate a filename from the dataset name instead
-	GenFilename bool
-	Remote      string
+	GenFilename bool   `json:"genfilename"`
+	Remote      string `json:"remote"`
+}
+
+// SetNonZeroDefaults sets OrderBy to "created" if it's value is the empty string
+func (p *GetParams) SetNonZeroDefaults() {
+	if p.Format == "" {
+		p.Format = "json"
+	}
+}
+
+var validSelector = regexp.MustCompile(`^[\w-\.]*[\w]$`)
+
+func parseSelector(selector string) (string, string, error) {
+	if selector == "" {
+		return "", "", nil
+	}
+
+	format := ""
+
+	if strings.HasSuffix(selector, ".json") {
+		format = "json"
+	}
+	if strings.HasSuffix(selector, ".csv") {
+		format = "csv"
+	}
+	if strings.HasSuffix(selector, ".zip") {
+		format = "zip"
+	}
+
+	if format != "" {
+		selector = selector[:len(selector)-len(format)-1]
+	}
+
+	match := validSelector.FindString(selector)
+	if match == "" || len(match) != len(selector) {
+		return "", "", fmt.Errorf("could not parse request: invalid selector")
+	}
+	return selector, format, nil
+}
+
+func arrayContains(subject []string, target string) bool {
+	for _, v := range subject {
+		if v == target {
+			return true
+		}
+	}
+	return false
+}
+
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
+	mvars := mux.Vars(r)
+
+	if p == nil {
+		p = &GetParams{}
+	}
+
+	params := *p
+
+	if params.Ref.IsEmpty() {
+		ref := &dsref.Ref{}
+
+		if pn, ok := mvars["peername"]; ok {
+			ref.Username = pn
+		}
+		if dn, ok := mvars["name"]; ok {
+			ref.Name = dn
+		}
+		if hs, ok := mvars["hash"]; ok {
+			if hs != "" {
+				hs = fmt.Sprintf("/%s", hs)
+			}
+			ref.Path = hs
+		}
+		if ref.IsEmpty() {
+			return fmt.Errorf("no reference provided")
+		}
+		params.Ref = *ref
+	}
+
+	if params.Ref.Username == "me" {
+		return fmt.Errorf("username \"me\" not allowed")
+	}
+
+	if _, err := dsref.Parse(params.Ref.String()); err != nil {
+		return err
+	}
+
+	if sel, ok := mvars["selector"]; ok && params.Selector == "" {
+		selector, format, err := parseSelector(sel)
+		if err != nil {
+			return err
+		}
+		params.Selector = selector
+		params.Format = format
+	}
+
+	if params.Format == "" {
+		params.Format = r.FormValue("format")
+	}
+
+	// This HTTP header sets the format to csv, and removes the json wrapper
+	if arrayContains(r.Header["Accept"], "text/csv") {
+		if params.Format != "" && params.Format != "csv" {
+			return fmt.Errorf("format %q conflicts with header \"Accept: text/csv\"", params.Format)
+		}
+		params.Format = "csv"
+		params.Selector = "body"
+	}
+
+	if params.Format != "" && params.Format != "json" && params.Format != "csv" && params.Format != "zip" {
+		return fmt.Errorf("invalid extension format")
+	}
+
+	params.Remote = r.FormValue("remote")
+
+	// TODO(arqu): we default to true but should implement a guard and/or respect the page params
+	params.All = true
+	// listParams := ListParamsFromRequest(r)
+	// offset := listParams.Offset
+	// limit := listParams.Limit
+	// if offset == 0 && limit == -1 {
+	// 	params.All = true
+	// }
+
+	*p = params
+	return nil
 }
 
 // GetResult combines data with it's hashed path
@@ -231,6 +361,13 @@ type GetResult struct {
 	Published bool             `json:"published"`
 }
 
+// DataResponse is the struct used to respond to api requests made to the /body endpoint
+// It is necessary because we need to include the 'path' field in the response
+type DataResponse struct {
+	Path string          `json:"path"`
+	Data json.RawMessage `json:"data"`
+}
+
 // Get retrieves datasets and components for a given reference. p.Refstr is parsed to create
 // a reference, which is used to load the dataset. It will be loaded from the local repo
 // or from the filesystem if it has a linked working direoctry.
@@ -238,24 +375,49 @@ type GetResult struct {
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
 // with the generated stats.
-func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
+func (m *DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, error) {
 	if err := qfs.AbsPath(&p.Outfile); err != nil {
-		return err
+		return nil, err
 	}
+	res := &GetResult{}
 
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Get", p, res))
+	if m.inst.http != nil {
+		params := *p
+		if params.Format == "json" {
+			if params.Selector != "" {
+				dr := &DataResponse{}
+				err := m.inst.http.Call(ctx, AEGet, params, &dr)
+				if err != nil {
+					return nil, err
+				}
+				res.Bytes = dr.Data
+				return res, nil
+			}
+
+			err := m.inst.http.Call(ctx, AEGet, params, &res)
+			if err != nil {
+				return nil, err
+			}
+			return res, nil
+		}
+
+		bres := []byte{}
+		err := m.inst.http.CallRaw(ctx, AEGet, params, &bres)
+		if err != nil {
+			return nil, err
+		}
+		res.Bytes = bres
+		return res, nil
 	}
-	ctx := context.TODO()
 
 	var ds *dataset.Dataset
-	ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, p.Remote)
+	ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref.String(), p.Remote)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ds, err = m.inst.LoadDataset(ctx, ref, source)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	res.Ref = &ref
@@ -269,7 +431,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 
 	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
-		return err
+		return nil, err
 	}
 
 	if p.Format == "zip" {
@@ -286,7 +448,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		} else {
 			zipFile, err = os.Create(p.Outfile)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
@@ -294,11 +456,11 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		// necessary until dscache is in use.
 		initID, err := m.inst.repo.Logbook().RefToInitID(currRef)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		err = archive.WriteZip(ctx, m.inst.repo.Filesystem(), ds, "json", initID, currRef, zipFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// Handle output. If outfile is empty, return the raw bytes. Otherwise provide a helpful
 		// message for the user
@@ -307,18 +469,18 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		} else {
 			res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
 		}
-		return nil
+		return res, nil
 	}
 
 	if p.Selector == "body" {
 		// `qri get body` loads the body
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
-			return fmt.Errorf("invalid limit / offset settings")
+			return nil, fmt.Errorf("invalid limit / offset settings")
 		}
 		df, err := dataset.ParseDataFormatString(p.Format)
 		if err != nil {
 			log.Debugf("Get dataset, ParseDataFormatString %q failed, error: %s", p.Format, err)
-			return err
+			return nil, err
 		}
 
 		if fsi.IsFSIPath(ref.Path) {
@@ -328,37 +490,54 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 			res.Bytes, err = fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), df, p.FormatConfig, p.Offset, p.Limit, p.All)
 			if err != nil {
 				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
-				return err
+				return nil, err
 			}
-			return m.maybeWriteOutfile(p, res)
+			err = m.maybeWriteOutfile(p, res)
+			if err != nil {
+				return nil, err
+			}
+			return res, nil
 		}
 		res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
 		if err != nil {
 			log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
-			return err
+			return nil, err
 		}
-		return m.maybeWriteOutfile(p, res)
+		err = m.maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
 		// Fields that have qfs.File types should be read and returned
 		res.Bytes, err = ioutil.ReadAll(scriptFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		return m.maybeWriteOutfile(p, res)
+		err = m.maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	} else if p.Selector == "stats" {
 		statsParams := &StatsParams{
 			Dataset: res.Dataset,
 		}
-		sa := &dataset.Stats{}
-		if err = m.Stats(statsParams, sa); err != nil {
-			return err
+		sa, err := m.Stats(ctx, statsParams)
+		if err != nil {
+			return nil, err
 		}
 		res.Bytes, err = json.Marshal(sa.Stats)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		return m.maybeWriteOutfile(p, res)
+		err = m.maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
+
 	var value interface{}
 	if p.Selector == "" {
 		// `qri get` without a selector loads only the dataset head
@@ -367,7 +546,7 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		// `qri get <selector>` loads only the applicable component / field
 		value, err = base.ApplyPath(res.Dataset, p.Selector)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	switch p.Format {
@@ -383,23 +562,27 @@ func (m *DatasetMethods) Get(p *GetParams, res *GetResult) error {
 		if pretty {
 			res.Bytes, err = json.MarshalIndent(value, "", " ")
 			if err != nil {
-				return err
+				return nil, err
 			}
 		} else {
 			res.Bytes, err = json.Marshal(value)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	case "yaml", "":
 		res.Bytes, err = yaml.Marshal(value)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	default:
-		return fmt.Errorf("unknown format: \"%s\"", p.Format)
+		return nil, fmt.Errorf("unknown format: \"%s\"", p.Format)
 	}
-	return m.maybeWriteOutfile(p, res)
+	err = m.maybeWriteOutfile(p, res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func (m *DatasetMethods) maybeWriteOutfile(p *GetParams, res *GetResult) error {
@@ -1206,37 +1389,42 @@ func (m *DatasetMethods) DAGInfo(s *DAGInfoParams, i *dag.Info) error {
 // StatsParams defines the params for a Stats request
 type StatsParams struct {
 	// string representation of a dataset reference
-	Ref string
+	Ref dsref.Ref
 	// if we get a Dataset from the params, then we do not have to
 	// attempt to open a dataset from the reference
 	Dataset *dataset.Dataset
 }
 
 // Stats generates stats for a dataset
-func (m *DatasetMethods) Stats(p *StatsParams, res *dataset.Stats) error {
-	var err error
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Stats", p, res))
+func (m *DatasetMethods) Stats(ctx context.Context, p *StatsParams) (*dataset.Stats, error) {
+	if m.inst.http != nil {
+		res := &dataset.Stats{}
+		params := &GetParams{
+			Ref:      p.Ref,
+			Selector: "stats",
+		}
+		err := m.inst.http.Call(ctx, AEGet, params, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
-	if p.Ref == "" && p.Dataset == nil {
-		return fmt.Errorf("either a reference or dataset is required")
+	if p.Ref.IsEmpty() && p.Dataset == nil {
+		return nil, fmt.Errorf("either a reference or dataset is required")
 	}
 
 	ds := p.Dataset
 	if ds == nil {
 		// TODO (b5) - stats is currently local-only, supply a source parameter
-		ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
+		ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref.String(), "local")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if ds, err = m.inst.LoadDataset(ctx, ref, source); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	sa, err := m.inst.stats.Stats(ctx, ds)
-	*res = *sa
-	return err
+	return m.inst.stats.Stats(ctx, ds)
 }

@@ -30,10 +30,9 @@ func TestRPCRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res := &GetResult{}
-	err = NewDatasetMethods(adnanInst).Get(&GetParams{
-		Refstr: ref.Alias(),
-	}, res)
+	_, err = NewDatasetMethods(adnanInst).Get(tr.Ctx, &GetParams{
+		Ref: ref,
+	})
 
 	if err != nil {
 		t.Error(err)
