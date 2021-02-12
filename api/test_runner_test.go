@@ -17,6 +17,7 @@ import (
 
 type APITestRunner struct {
 	cancelCtx    context.CancelFunc
+	Ctx          context.Context
 	Node         *p2p.QriNode
 	NodeTeardown func()
 	Inst         *lib.Instance
@@ -30,6 +31,7 @@ func NewAPITestRunner(t *testing.T) *APITestRunner {
 	ctx, cancel := context.WithCancel(context.Background())
 	run := APITestRunner{
 		cancelCtx: cancel,
+		Ctx:       ctx,
 	}
 	run.Node, run.NodeTeardown = newTestNode(t)
 

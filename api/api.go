@@ -272,12 +272,13 @@ func UnmarshalParams(r *http.Request, p interface{}) error {
 	// TODO(arqu): once APIs have a strict mapping to Params this line
 	// should be removed and should error out on unknown keys
 	decoder.IgnoreUnknownKeys(true)
+	defer func() {
+		if defSetter, ok := p.(lib.NZDefaultSetter); ok {
+			defSetter.SetNonZeroDefaults()
+		}
+	}()
+
 	if r.Method == http.MethodPost || r.Method == http.MethodPut {
-		defer func() {
-			if defSetter, ok := p.(lib.NZDefaultSetter); ok {
-				defSetter.SetNonZeroDefaults()
-			}
-		}()
 
 		if r.Header.Get("Content-Type") == jsonContentType {
 			body, err := snoop(&r.Body)

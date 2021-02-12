@@ -77,7 +77,7 @@ func TestHTTPClient(t *testing.T) {
 	httpClient.Address = sURL.Host
 	httpClient.Protocol = "http"
 
-	err = httpClient.Call(ctx, lib.AEHome, nil, &map[string]interface{}{})
+	err = httpClient.CallRaw(ctx, lib.AEHome, nil, []byte{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

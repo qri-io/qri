@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/gorilla/mux"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/dsref"
@@ -210,112 +211,86 @@ func resultText(rec *httptest.ResponseRecorder) string {
 	return string(bytes)
 }
 
-func TestParseGetReqArgs(t *testing.T) {
+func TestParseGetParams(t *testing.T) {
 	cases := []struct {
 		description string
 		url         string
-		expectArgs  *GetReqArgs
+		expectArgs  *lib.GetParams
+		muxVars     *map[string]string
 	}{
 		{
 			"basic get",
 			"/get/peer/my_ds",
-			&GetReqArgs{
-				Ref: dsref.MustParse("peer/my_ds"),
-				Params: lib.GetParams{
-					Refstr: "peer/my_ds",
-					Format: "json",
-					Limit:  100,
-				},
+			&lib.GetParams{
+				Ref:    dsref.Ref{Username: "peer", Name: "my_ds"},
+				Format: "json",
+				All:    true,
 			},
+			&map[string]string{"peername": "peer", "name": "my_ds"},
 		},
 		{
 			"meta component",
-			"/get/peer/my_ds?component=meta",
-			&GetReqArgs{
-				Ref: dsref.MustParse("peer/my_ds"),
-				Params: lib.GetParams{
-					Refstr:   "peer/my_ds",
-					Format:   "json",
-					Selector: "meta",
-					Limit:    100,
-				},
+			"/get/peer/my_ds/meta",
+			&lib.GetParams{
+				Ref:      dsref.Ref{Username: "peer", Name: "my_ds"},
+				Format:   "json",
+				Selector: "meta",
+				All:      true,
 			},
+			&map[string]string{"peername": "peer", "name": "my_ds", "selector": "meta"},
 		},
 		{
 			"body component",
-			"/get/peer/my_ds?component=body",
-			&GetReqArgs{
-				Ref: dsref.MustParse("peer/my_ds"),
-				Params: lib.GetParams{
-					Refstr:   "peer/my_ds",
-					Format:   "json",
-					Selector: "body",
-					Limit:    100,
-				},
+			"/get/peer/my_ds/body",
+			&lib.GetParams{
+				Ref:      dsref.Ref{Username: "peer", Name: "my_ds"},
+				Format:   "json",
+				Selector: "body",
+				All:      true,
 			},
+			&map[string]string{"peername": "peer", "name": "my_ds", "selector": "body"},
 		},
 		{
 			"body.csv path suffix",
 			"/get/peer/my_ds/body.csv",
-			&GetReqArgs{
-				Ref:         dsref.MustParse("peer/my_ds"),
-				RawDownload: true,
-				Params: lib.GetParams{
-					Refstr:   "peer/my_ds",
-					Format:   "csv",
-					Selector: "body",
-					Limit:    100,
-					All:      true,
-				},
+			&lib.GetParams{
+				Ref:      dsref.Ref{Username: "peer", Name: "my_ds"},
+				Format:   "csv",
+				Selector: "body",
+				All:      true,
 			},
+			&map[string]string{"peername": "peer", "name": "my_ds", "selector": "body.csv"},
 		},
 		{
 			"download body as csv",
-			"/get/peer/my_ds?download=true&format=csv&component=body",
-			&GetReqArgs{
-				Ref:         dsref.MustParse("peer/my_ds"),
-				RawDownload: true,
-				Params: lib.GetParams{
-					Refstr:   "peer/my_ds",
-					Format:   "csv",
-					Selector: "body",
-					Limit:    100,
-				},
+			"/get/peer/my_ds/body?format=csv",
+			&lib.GetParams{
+				Ref:      dsref.Ref{Username: "peer", Name: "my_ds"},
+				Format:   "csv",
+				Selector: "body",
+				All:      true,
 			},
-		},
-		{
-			"download all of the body as csv",
-			"/get/peer/my_ds?download=true&format=csv&component=body&all=true",
-			&GetReqArgs{
-				Ref:         dsref.MustParse("peer/my_ds"),
-				RawDownload: true,
-				Params: lib.GetParams{
-					Refstr:   "peer/my_ds",
-					Format:   "csv",
-					Selector: "body",
-					Limit:    100,
-					All:      true,
-				},
-			},
+			&map[string]string{"peername": "peer", "name": "my_ds", "selector": "body"},
 		},
 		{
 			"zip format",
 			"/get/peer/my_ds?format=zip",
-			&GetReqArgs{
-				Ref: dsref.MustParse("peer/my_ds"),
-				Params: lib.GetParams{
-					Refstr: "peer/my_ds",
-					Format: "zip",
-					Limit:  100,
-				},
+			&lib.GetParams{
+				Ref:    dsref.Ref{Username: "peer", Name: "my_ds"},
+				Format: "zip",
+				All:    true,
 			},
+			&map[string]string{"peername": "peer", "name": "my_ds"},
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.description, func(t *testing.T) {
 			r, _ := http.NewRequest("GET", c.url, nil)
-			reqPath := trimGetOrBodyPrefix(r.URL.Path)
-			args, err := parseGetReqArgs(r, reqPath)
+			if c.muxVars != nil {
+				r = mux.SetURLVars(r, *c.muxVars)
+			}
+			args := &lib.GetParams{}
+			err := UnmarshalParams(r, args)
 			if err != nil {
 				t.Error(err)
 				return
@@ -330,30 +305,31 @@ func TestParseGetReqArgs(t *testing.T) {
 		description string
 		url         string
 		expectErr   string
+		muxVars     *map[string]string
 	}{
 		{
 			"get me",
 			"/get/me/my_ds",
 			`username "me" not allowed`,
+			&map[string]string{"peername": "me", "name": "my_ds"},
 		},
 		{
 			"bad parse",
 			"/get/peer/my+ds",
 			`unexpected character at position 7: '+'`,
-		},
-		{
-			"invalid format",
-			"/get/peer/my_ds?format=csv",
-			`only supported formats are "json" and "zip", unless using download parameter or Accept header is set to "text/csv"`,
+			&map[string]string{"peername": "peer", "name": "my+ds"},
 		},
 	}
-	for _, c := range badCases {
+	for i, c := range badCases {
 		t.Run(c.description, func(t *testing.T) {
 			r, _ := http.NewRequest("GET", c.url, nil)
-			reqPath := trimGetOrBodyPrefix(r.URL.Path)
-			_, err := parseGetReqArgs(r, reqPath)
+			if c.muxVars != nil {
+				r = mux.SetURLVars(r, *c.muxVars)
+			}
+			args := &lib.GetParams{}
+			err := UnmarshalParams(r, args)
 			if err == nil {
-				t.Errorf("expected error, but did not get one")
+				t.Errorf("case %d: expected error, but did not get one", i)
 				return
 			}
 			if diff := cmp.Diff(c.expectErr, err.Error()); diff != "" {
@@ -363,25 +339,23 @@ func TestParseGetReqArgs(t *testing.T) {
 	}
 }
 
-func TestParseGetReqArgsAcceptHeader(t *testing.T) {
+func TestParseGetParamsAcceptHeader(t *testing.T) {
 	// Construct a request with "Accept: text/csv"
 	r, _ := http.NewRequest("GET", "/get/peer/my_ds", nil)
 	r.Header.Add("Accept", "text/csv")
-	reqPath := trimGetOrBodyPrefix(r.URL.Path)
-	args, err := parseGetReqArgs(r, reqPath)
+	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
+	args := &lib.GetParams{}
+	err := UnmarshalParams(r, args)
 	if err != nil {
 		t.Fatal(err)
 	}
-	expectArgs := &GetReqArgs{
-		Ref: dsref.MustParse("peer/my_ds"),
-		Params: lib.GetParams{
-			Refstr:   "peer/my_ds",
-			Selector: "body",
-			Format:   "csv",
-			Limit:    100,
-		},
-		RawDownload: true,
+	expectArgs := &lib.GetParams{
+		Ref:      dsref.Ref{Username: "peer", Name: "my_ds"},
+		Selector: "body",
+		Format:   "csv",
+		All:      true,
 	}
+
 	if diff := cmp.Diff(expectArgs, args); diff != "" {
 		t.Errorf("output mismatch (-want +got):\n%s", diff)
 	}
@@ -389,8 +363,9 @@ func TestParseGetReqArgsAcceptHeader(t *testing.T) {
 	// Construct a request with format=csv and "Accept: text/csv", which is ok
 	r, _ = http.NewRequest("GET", "/get/peer/my_ds?format=csv", nil)
 	r.Header.Add("Accept", "text/csv")
-	reqPath = trimGetOrBodyPrefix(r.URL.Path)
-	args, err = parseGetReqArgs(r, reqPath)
+	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
+	args = &lib.GetParams{}
+	err = UnmarshalParams(r, args)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -401,8 +376,9 @@ func TestParseGetReqArgsAcceptHeader(t *testing.T) {
 	// Construct a request with format=json and "Accept: text/csv", which is an error
 	r, _ = http.NewRequest("GET", "/get/peer/my_ds?format=json", nil)
 	r.Header.Add("Accept", "text/csv")
-	reqPath = trimGetOrBodyPrefix(r.URL.Path)
-	args, err = parseGetReqArgs(r, reqPath)
+	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
+	args = &lib.GetParams{}
+	err = UnmarshalParams(r, args)
 	if err == nil {
 		t.Error("expected to get an error, but did not get one")
 	}
