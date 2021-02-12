@@ -28,7 +28,7 @@ const (
 	// AEHealth is the service health check endpoint
 	AEHealth = APIEndpoint("/health")
 	// AEIPFS is the IPFS endpoint
-	AEIPFS = APIEndpoint("/ipfs/")
+	AEIPFS = APIEndpoint("/ipfs/{path:.*}")
 
 	// profile enpoints
 
@@ -46,7 +46,7 @@ const (
 	// AEPeers fetches all the peers
 	AEPeers = APIEndpoint("/peers")
 	// AEPeer fetches a specific peer
-	AEPeer = APIEndpoint("/peers/")
+	AEPeer = APIEndpoint("/peers/{path:.*}")
 	// AEConnect initiates an explicit connection to a peer
 	AEConnect = APIEndpoint("/connect")
 	// AEConnections lists qri & IPFS connections
@@ -67,62 +67,58 @@ const (
 	AEList = APIEndpoint("/list")
 	// AEPeerList lists all datasets in your
 	// collection for a particular peer
-	AEPeerList = APIEndpoint("/list/")
+	AEPeerList = APIEndpoint("/list/{peer}")
 	// AESave is an endpoint for saving a dataset
 	AESave = APIEndpoint("/save")
 	// AESaveAlt is an alias for AESave
-	AESaveAlt = APIEndpoint("/save/")
+	AESaveAlt = APIEndpoint("/save/{path:.*}")
 	// AERemove exposes the dataset remove mechanics
-	AERemove = APIEndpoint("/remove/")
+	AERemove = APIEndpoint("/remove/{path:.*}")
 	// AEGet is an endpoint for fetch individual dataset components
-	AEGet = APIEndpoint("/get/")
+	AEGet = APIEndpoint("/get")
 	// AERename is an endpoint for renaming datasets
 	AERename = APIEndpoint("/rename")
 	// AEDiff is an endpoint for generating dataset diffs
 	AEDiff = APIEndpoint("/diff")
 	// AEChanges is an endpoint for generating dataset change reports
 	AEChanges = APIEndpoint("/changes")
-	// AEBody is deprecated and should use /get/username/name?component=body
-	AEBody = APIEndpoint("/body/")
-	// AEStats is an endpoint to generate dataset stats
-	AEStats = APIEndpoint("/stats/")
 	// AEUnpack unpacks a zip file and sends it back
-	AEUnpack = APIEndpoint("/unpack/")
+	AEUnpack = APIEndpoint("/unpack/{path:.*}")
 
 	// remote client endpoints
 
 	// AEPush facilitates dataset push requests to a remote
-	AEPush = APIEndpoint("/push/")
+	AEPush = APIEndpoint("/push/{path:.*}")
 	// AEPull facilittates dataset pull requests from a remote
-	AEPull = APIEndpoint("/pull/")
+	AEPull = APIEndpoint("/pull/{path:.*}")
 	// AEFeeds fetches and index of named feeds
 	AEFeeds = APIEndpoint("/feeds")
 	// AEPreview fetches a dataset preview from the registry
-	AEPreview = APIEndpoint("/preview/")
+	AEPreview = APIEndpoint("/preview/{path:.*}")
 
 	// fsi endpoints
 
 	// AEStatus returns the filesystem dataset status
-	AEStatus = APIEndpoint("/status/")
+	AEStatus = APIEndpoint("/status/{path:.*}")
 	// AEWhatChanged returns what changed for a specific commit
-	AEWhatChanged = APIEndpoint("/whatchanged/")
+	AEWhatChanged = APIEndpoint("/whatchanged/{path:.*}")
 	// AEInit invokes a dataset initialization on the filesystem
-	AEInit = APIEndpoint("/init/")
+	AEInit = APIEndpoint("/init/{path:.*}")
 	// AECheckout invokes a dataset checkout to the filesystem
-	AECheckout = APIEndpoint("/checkout/")
+	AECheckout = APIEndpoint("/checkout/{path:.*}")
 	// AERestore invokes a restore
-	AERestore = APIEndpoint("/restore/")
+	AERestore = APIEndpoint("/restore/{path:.*}")
 	// AEFSIWrite writes input data to the filesystem
-	AEFSIWrite = APIEndpoint("/fsi/write/")
+	AEFSIWrite = APIEndpoint("/fsi/write/{path:.*}")
 
 	// other endpoints
 
 	// AEHistory returns dataset logs
-	AEHistory = APIEndpoint("/history/")
+	AEHistory = APIEndpoint("/history/{path:.*}")
 	// AERender renders the current dataset ref
 	AERender = APIEndpoint("/render")
 	// AERenderAlt renders a given dataset ref
-	AERenderAlt = APIEndpoint("/render/")
+	AERenderAlt = APIEndpoint("/render/{path:.*}")
 	// AERegistryNew creates a new user on the registry
 	AERegistryNew = APIEndpoint("/registry/profile/new")
 	// AERegistryProve links an the current peer with an existing

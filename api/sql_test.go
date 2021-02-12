@@ -16,13 +16,13 @@ func TestSQLHandler(t *testing.T) {
 	h := NewSQLHandlers(inst, false)
 
 	cases := []handlerTestCase{
-		{"GET", "/sql?query=select%20*%20from%20me/movies%20m%20order%20by%20m.title%20limit%201", nil},
+		{"GET", "/sql?query=select%20*%20from%20me/movies%20m%20order%20by%20m.title%20limit%201", nil, nil},
 	}
 	runHandlerTestCases(t, "sql", h.QueryHandler("/sql"), cases, false)
 
 	jsonCases := []handlerTestCase{
-		{"POST", "/sql", []byte(`{}`)},
-		{"POST", "/sql", []byte(`{"query":"select * from me/movies m order by m.title limit 1"}`)},
+		{"POST", "/sql", []byte(`{}`), nil},
+		{"POST", "/sql", []byte(`{"query":"select * from me/movies m order by m.title limit 1"}`), nil},
 	}
 	runHandlerTestCases(t, "sql", h.QueryHandler("/sql"), jsonCases, true)
 }

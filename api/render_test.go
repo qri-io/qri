@@ -17,7 +17,7 @@ func TestRenderHandler(t *testing.T) {
 	inst := newTestInstanceWithProfileFromNode(ctx, node)
 
 	cases := []handlerTestCase{
-		{"GET", "/render/me/movies?viz=true", nil},
+		{"GET", "/render/me/movies?viz=true", nil, nil},
 	}
 
 	h := NewRenderHandlers(inst)
@@ -36,7 +36,7 @@ func TestRenderReadmeHandler(t *testing.T) {
 
 	// Render the dataset
 	h := run.NewRenderHandlers()
-	actualStatusCode, actualBody := APICall("/render/peer/render_readme_test", h.RenderHandler)
+	actualStatusCode, actualBody := APICall("/render/peer/render_readme_test", h.RenderHandler, nil)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}

@@ -22,8 +22,8 @@ func TestSearchHandlers(t *testing.T) {
 
 	searchCases := []handlerTestCase{
 		// TODO (b5): lol wut Get requests don't have bodies
-		{"GET", "/", mustFile(t, "testdata/searchRequest.json")},
-		{"DELETE", "/", nil},
+		{"GET", "/", mustFile(t, "testdata/searchRequest.json"), nil},
+		{"DELETE", "/", nil, nil},
 	}
 
 	proh := NewSearchHandlers(inst)

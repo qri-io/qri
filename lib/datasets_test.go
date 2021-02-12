@@ -472,78 +472,79 @@ func TestDatasetRequestsGet(t *testing.T) {
 		expect      string
 	}{
 		{"invalid peer name",
-			&GetParams{Refstr: "peer/ABC@abc"}, `"peer/ABC@abc" is not a valid dataset reference: unexpected character at position 8: '@'`},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "ABC@abc"}},
+			`"peer/ABC@abc" is not a valid dataset reference: unexpected character at position 8: '@'`},
 
 		{"peername without path",
-			&GetParams{Refstr: "peer/movies"},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}},
 			componentToString(setDatasetName(moviesDs, "peer/movies"), "yaml")},
 
 		{"peername with path",
-			&GetParams{Refstr: fmt.Sprintf("peer/movies@%s", ref.Path)},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies", Path: ref.Path}},
 			componentToString(setDatasetName(moviesDs, "peer/movies"), "yaml")},
 
 		{"peername as json format",
-			&GetParams{Refstr: "peer/movies", Format: "json"},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Format: "json"},
 			componentToString(setDatasetName(moviesDs, "peer/movies"), "json")},
 
 		{"commit component",
-			&GetParams{Refstr: "peer/movies", Selector: "commit"},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "commit"},
 			componentToString(moviesDs.Commit, "yaml")},
 
 		{"commit component as json format",
-			&GetParams{Refstr: "peer/movies", Selector: "commit", Format: "json"},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "commit", Format: "json"},
 			componentToString(moviesDs.Commit, "json")},
 
 		{"title field of commit component",
-			&GetParams{Refstr: "peer/movies", Selector: "commit.title"}, "initial commit\n"},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "commit.title"}, "initial commit\n"},
 
 		{"title field of commit component as json",
-			&GetParams{Refstr: "peer/movies", Selector: "commit.title", Format: "json"},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "commit.title", Format: "json"},
 			"\"initial commit\""},
 
 		{"title field of commit component as yaml",
-			&GetParams{Refstr: "peer/movies", Selector: "commit.title", Format: "yaml"},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "commit.title", Format: "yaml"},
 			"initial commit\n"},
 
 		{"title field of commit component as mispelled format",
-			&GetParams{Refstr: "peer/movies", Selector: "commit.title", Format: "jason"},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "commit.title", Format: "jason"},
 			"unknown format: \"jason\""},
 
 		{"body as json",
-			&GetParams{Refstr: "peer/movies", Selector: "body", Format: "json"}, "[]"},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "body", Format: "json"}, "[]"},
 
 		{"dataset empty",
-			&GetParams{Refstr: "", Selector: "body", Format: "json"}, `"" is not a valid dataset reference: empty reference`},
+			&GetParams{Ref: dsref.Ref{}, Selector: "body", Format: "json"}, `"" is not a valid dataset reference: empty reference`},
 
 		{"body as csv",
-			&GetParams{Refstr: "peer/movies", Selector: "body", Format: "csv"}, "title,duration\n"},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "body", Format: "csv"}, "title,duration\n"},
 
 		{"body with limit and offfset",
-			&GetParams{Refstr: "peer/movies", Selector: "body", Format: "json",
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "body", Format: "json",
 				Limit: 5, Offset: 0, All: false}, bodyToString(moviesBody[:5])},
 
 		{"body with invalid limit and offset",
-			&GetParams{Refstr: "peer/movies", Selector: "body", Format: "json",
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "body", Format: "json",
 				Limit: -5, Offset: -100, All: false}, "invalid limit / offset settings"},
 
 		{"body with all flag ignores invalid limit and offset",
-			&GetParams{Refstr: "peer/movies", Selector: "body", Format: "json",
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "body", Format: "json",
 				Limit: -5, Offset: -100, All: true}, bodyToString(moviesBody)},
 
 		{"body with all flag",
-			&GetParams{Refstr: "peer/movies", Selector: "body", Format: "json",
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "body", Format: "json",
 				Limit: 0, Offset: 0, All: true}, bodyToString(moviesBody)},
 
 		{"body with limit and non-zero offset",
-			&GetParams{Refstr: "peer/movies", Selector: "body", Format: "json",
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "body", Format: "json",
 				Limit: 2, Offset: 10, All: false}, bodyToString(moviesBody[10:12])},
 
 		{"head non-pretty json",
-			&GetParams{Refstr: "peer/movies", Format: "json", FormatConfig: nonprettyJSONConfig},
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Format: "json", FormatConfig: nonprettyJSONConfig},
 			componentToString(setDatasetName(moviesDs, "peer/movies"), "non-pretty json")},
 
 		{"body pretty json",
-			&GetParams{Refstr: "peer/movies", Selector: "body", Format: "json",
+			&GetParams{Ref: dsref.Ref{Username: "peer", Name: "movies"}, Selector: "body", Format: "json",
 				FormatConfig: prettyJSONConfig, Limit: 3, Offset: 0, All: false},
 			bodyToPrettyString(moviesBody[:3])},
 	}
