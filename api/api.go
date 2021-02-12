@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	golog "github.com/ipfs/go-log"
 	apiutil "github.com/qri-io/qri/api/util"
@@ -40,7 +41,7 @@ func init() {
 // Create one with New, start it up with Serve
 type Server struct {
 	*lib.Instance
-	Mux       *http.ServeMux
+	Mux       *mux.Router
 	websocket lib.WebsocketHandler
 }
 
@@ -147,13 +148,23 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{ "meta": { "code": 200, "status": "ok", "version":"` + APIVersion + `" }, "data": [] }`))
 }
 
+func handleRefRoute(m *mux.Router, ae lib.APIEndpoint, f http.HandlerFunc, extra string) {
+	m.Handle(ae.String(), f)
+	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}"), f)
+	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/at/{hash:(?:mem|ipfs)\\/.*}"), f)
+	if extra != "" {
+		m.Handle(fmt.Sprintf("%s/%s/%s", ae, "{peername}/{name}", extra), f)
+		m.Handle(fmt.Sprintf("%s/%s/%s", ae, "{peername}/{name}/at/{hash:(?:mem|ipfs)\\/.*?\\/}", extra), f)
+	}
+}
+
 // NewServerRoutes returns a Muxer that has all API routes
-func NewServerRoutes(s Server) *http.ServeMux {
+func NewServerRoutes(s Server) *mux.Router {
 	cfg := s.Config()
 
 	m := s.Mux
 	if m == nil {
-		m = http.NewServeMux()
+		m = mux.NewRouter()
 	}
 
 	m.Handle(lib.AEHome.String(), s.NoLogMiddleware(s.HomeHandler))
@@ -187,11 +198,10 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle(lib.AESave.String(), s.Middleware(dsh.SaveHandler))
 	m.Handle(lib.AESaveAlt.String(), s.Middleware(dsh.SaveHandler))
 	m.Handle(lib.AERemove.String(), s.Middleware(dsh.RemoveHandler))
-	m.Handle(lib.AEGet.String(), s.Middleware(dsh.GetHandler))
+	handleRefRoute(m, lib.AEGet, s.Middleware(dsh.GetHandler), "{selector}")
 	m.Handle(lib.AERename.String(), s.Middleware(dsh.RenameHandler))
 	m.Handle(lib.AEDiff.String(), s.Middleware(dsh.DiffHandler))
 	m.Handle(lib.AEChanges.String(), s.Middleware(dsh.ChangesHandler))
-	m.Handle(lib.AEStats.String(), s.Middleware(dsh.StatsHandler))
 	m.Handle(lib.AEUnpack.String(), s.Middleware(dsh.UnpackHandler))
 
 	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)

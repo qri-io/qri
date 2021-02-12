@@ -25,10 +25,10 @@ func TestProfileHandler(t *testing.T) {
 	defer cancel()
 
 	cases := []handlerTestCase{
-		{"GET", "/", nil},
-		{"POST", "/", mustFile(t, "testdata/profileRequest.json")},
-		{"POST", "/", []byte(``)},
-		{"DELETE", "/", nil},
+		{"GET", "/", nil, nil},
+		{"POST", "/", mustFile(t, "testdata/profileRequest.json"), nil},
+		{"POST", "/", []byte(``), nil},
+		{"DELETE", "/", nil, nil},
 	}
 
 	inst := newTestInstanceWithProfileFromNode(ctx, node)
@@ -36,7 +36,7 @@ func TestProfileHandler(t *testing.T) {
 	runHandlerTestCases(t, "profile", proh.ProfileHandler, cases, true)
 
 	readOnlyCases := []handlerTestCase{
-		{"GET", "/", nil},
+		{"GET", "/", nil, nil},
 	}
 	proh.ReadOnly = true
 	runHandlerTestCases(t, "read-only", proh.ProfileHandler, readOnlyCases, true)

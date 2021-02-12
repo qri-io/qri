@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/beme/abide"
+	"github.com/gorilla/mux"
 	golog "github.com/ipfs/go-log"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -88,6 +89,7 @@ func newTestInstanceWithProfileFromNode(ctx context.Context, node *p2p.QriNode) 
 type handlerTestCase struct {
 	method, endpoint string
 	body             []byte
+	muxVars          *map[string]string
 }
 
 // runHandlerTestCases executes a slice of handlerTestCase against a handler
@@ -95,6 +97,9 @@ func runHandlerTestCases(t *testing.T, name string, h http.HandlerFunc, cases []
 	for i, c := range cases {
 		name := fmt.Sprintf("%s %s case %d: %s %s", t.Name(), name, i, c.method, c.endpoint)
 		req := httptest.NewRequest(c.method, c.endpoint, bytes.NewBuffer(c.body))
+		if c.muxVars != nil {
+			req = mux.SetURLVars(req, *c.muxVars)
+		}
 		if jsonHeader {
 			req.Header.Set("Content-Type", "application/json")
 		}
@@ -153,7 +158,7 @@ func TestHealthCheck(t *testing.T) {
 	}()
 
 	healthCheckCases := []handlerTestCase{
-		{"GET", "/", nil},
+		{"GET", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "health check", HealthCheckHandler, healthCheckCases, true)
 }
@@ -231,16 +236,15 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"PUT", "/save/", 403},
 		{"POST", "/remove/", 403},
 		{"DELETE", "/remove/", 403},
-		{"POST", "/add/", 403},
-		{"PUT", "/add/", 403},
 		{"POST", "/rename", 403},
 		{"PUT", "/rename", 403},
 		{"POST", "/diff", 403},
 		{"GET", "/diff", 403},
-		{"POST", "/registry/", 403},
-		{"GET", "/checkout", 403},
-		{"GET", "/status", 403},
-		{"GET", "/init", 403},
+		{"POST", "/registry/profile/new", 403},
+		{"POST", "/registry/profile/prove", 403},
+		{"GET", "/checkout/", 403},
+		{"GET", "/status/", 403},
+		{"GET", "/init/", 403},
 
 		// active endpoints:
 		{"GET", "/health", 200},

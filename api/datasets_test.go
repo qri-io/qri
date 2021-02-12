@@ -32,65 +32,66 @@ func TestDatasetHandlers(t *testing.T) {
 	h := NewDatasetHandlers(run.Inst, false)
 
 	listCases := []handlerTestCase{
-		{"GET", "/", nil},
-		{"DELETE", "/", nil},
+		{"GET", "/", nil, nil},
+		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "list", h.ListHandler, listCases, true)
 
 	// TODO: Remove this case, update API snapshot.
 	saveCases := []handlerTestCase{
-		{"POST", "/", mustFile(t, "testdata/newRequestFromURL.json")},
-		{"DELETE", "/", nil},
+		{"POST", "/", mustFile(t, "testdata/newRequestFromURL.json"), nil},
+		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "init", h.SaveHandler, saveCases, true)
 
 	getCases := []handlerTestCase{
-		{"GET", "/get/peer/family_relationships", nil},
-		{"GET", "/get/peer/family_relationships/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
-		{"GET", "/get/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
+		{"GET", "/get/peer/family_relationships", nil, &map[string]string{"peername": "peer", "name": "family_relationships"}},
+		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", nil, &map[string]string{"peername": "peer", "name": "family_relationships", "hash": "mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg"}},
+		// TODO(arqu): this no longer works with the gorrila.Mux router and URL param extraction
+		// {"GET", "/get/at/map/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", nil},
 		// test that when fsi=true parameter doesn't affect the api response
-		{"GET", "/get/peer/family_relationships?fsi=true", nil},
-		{"DELETE", "/", nil},
+		{"GET", "/get/peer/family_relationships?fsi=true", nil, &map[string]string{"peername": "peer", "name": "family_relationships"}},
+		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "get", h.GetHandler, getCases, true)
 
 	bodyCases := []handlerTestCase{
-		{"GET", "/get/peer/family_relationships?component=body", nil},
+		{"GET", "/get/peer/family_relationships/body", nil, &map[string]string{"peername": "peer", "name": "family_relationships", "selector": "body"}},
 		// TODO(arqu): broken, expecing object and not array response
 		// {"GET", "/get/peer/family_relationships?component=body&download=true", nil},
-		{"DELETE", "/", nil},
+		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "body", h.GetHandler, bodyCases, true)
 
 	statsCases := []handlerTestCase{
-		{"GET", "/stats/peer/craigslist", nil},
-		{"GET", "/stats/peer/family_relationships/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
+		{"GET", "/get/peer/craigslist/stats", nil, &map[string]string{"peername": "peer", "name": "craigslist", "selector": "stats"}},
+		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg/stats", nil, &map[string]string{"peername": "peer", "name": "family_relationships", "hash": "mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", "selector": "stats"}},
 	}
-	runHandlerTestCases(t, "stats", h.StatsHandler, statsCases, false)
+	runHandlerTestCases(t, "stats", h.GetHandler, statsCases, false)
 
 	renameCases := []handlerTestCase{
-		{"POST", "/rename", mustFile(t, "testdata/renameRequest.json")},
-		{"DELETE", "/", nil},
+		{"POST", "/rename", mustFile(t, "testdata/renameRequest.json"), nil},
+		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "rename", h.RenameHandler, renameCases, true)
 
 	// TODO: Perhaps add an option to runHandlerTestCases to set Content-Type, then combin, truee
 	// `runHandlerZipPostTestCases` with `runHandlerTestCases`, true.
 	unpackCases := []handlerTestCase{
-		{"POST", "/unpack/", mustFile(t, "testdata/exported.zip")},
+		{"POST", "/unpack/", mustFile(t, "testdata/exported.zip"), nil},
 	}
 	runHandlerZipPostTestCases(t, "unpack", h.UnpackHandler, unpackCases)
 
 	diffCases := []handlerTestCase{
-		{"GET", "/?left_path=peer/family_relationships&right_path=peer/cities", nil},
-		{"DELETE", "/", nil},
+		{"GET", "/?left_path=peer/family_relationships&right_path=peer/cities", nil, nil},
+		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "diff", h.DiffHandler, diffCases, false)
 
 	removeCases := []handlerTestCase{
-		{"GET", "/", nil},
-		{"POST", "/remove/peer/cities", nil},
-		{"POST", "/remove/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", nil},
+		{"GET", "/", nil, nil},
+		{"POST", "/remove/peer/cities", nil, nil},
+		{"POST", "/remove/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", nil, nil},
 	}
 	runHandlerTestCases(t, "remove", h.RemoveHandler, removeCases, true)
 
@@ -423,7 +424,7 @@ func TestGetZip(t *testing.T) {
 
 	// Get a zip file binary over the API
 	dsHandler := NewDatasetHandlers(run.Inst, false)
-	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler)
+	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds"})
 	if gotStatusCode != 200 {
 		t.Fatalf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -462,52 +463,41 @@ func TestDatasetGet(t *testing.T) {
 	}
 	run.SaveDataset(&ds, "testdata/cities/data.csv")
 
-	actualStatusCode, actualBody := APICall("/get/peer/test_ds", dsHandler.GetHandler)
+	actualStatusCode, actualBody := APICall("/get/peer/test_ds", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds"})
 	assertStatusCode(t, "get dataset", actualStatusCode, 200)
 	got := datasetJSONResponse(t, actualBody)
 	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestDatasetGet.test_ds.json", got)
 
 	// Get csv body using "body.csv" suffix
-	actualStatusCode, actualBody = APICall("/get/peer/test_ds/body.csv", dsHandler.GetHandler)
+	actualStatusCode, actualBody = APICall("/get/peer/test_ds/body.csv", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "selector": "body.csv"})
 	expectBody := "city,pop,avg_age,in_usa\ntoronto,40000000,55.5,false\nnew york,8500000,44.4,true\nchicago,300000,44.4,true\nchatham,35000,65.25,true\nraleigh,250000,50.65,true\n"
 	assertStatusCode(t, "get body.csv using suffix", actualStatusCode, 200)
 	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
 		t.Errorf("output mismatch (-want +got):\n%s", diff)
 	}
 
-	// Same csv body, using download=true and format=csv
-	actualStatusCode, actualBody = APICall("/get/peer/test_ds?download=true&format=csv", dsHandler.GetHandler)
-	assertStatusCode(t, "get csv body using download=true and format=csv", actualStatusCode, 200)
-	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
-		t.Errorf("output mismatch (-want +got):\n%s", diff)
-	}
-
 	// Can get zip file
-	actualStatusCode, _ = APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler)
+	actualStatusCode, _ = APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds"})
 	assertStatusCode(t, "get zip file", actualStatusCode, 200)
 
 	// Can get a single component
-	actualStatusCode, _ = APICall("/get/peer/test_ds?component=meta", dsHandler.GetHandler)
+	actualStatusCode, _ = APICall("/get/peer/test_ds/meta", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "selector": "meta"})
 	assertStatusCode(t, "get meta component", actualStatusCode, 200)
 
 	// Can get at an ipfs version
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr", dsHandler.GetHandler)
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "hash": "mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr"})
 	assertStatusCode(t, "get at content-addressed version", actualStatusCode, 200)
 
 	// Error 404 if ipfs version doesn't exist
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler)
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "hash": "mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6"})
 	assertStatusCode(t, "get missing content-addressed version", actualStatusCode, 404)
 
-	// Error 400 due to format=csv without download=true
-	actualStatusCode, _ = APICall("/get/peer/test_ds?format=csv", dsHandler.GetHandler)
-	assertStatusCode(t, "using format=csv", actualStatusCode, 400)
-
 	// Error 400 due to unknown component
-	actualStatusCode, _ = APICall("/get/peer/test_ds?component=dunno", dsHandler.GetHandler)
+	actualStatusCode, _ = APICall("/get/peer/test_ds/dunno", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "selector": "dunno"})
 	assertStatusCode(t, "unknown component", actualStatusCode, 400)
 
 	// Error 400 due to parse error of dsref
-	actualStatusCode, _ = APICall("/get/peer/test+ds", dsHandler.GetHandler)
+	actualStatusCode, _ = APICall("/get/peer/test+ds", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test+ds"})
 	assertStatusCode(t, "invalid dsref", actualStatusCode, 400)
 }
 

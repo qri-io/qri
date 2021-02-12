@@ -20,16 +20,16 @@ func TestRemoteClientHandlers(t *testing.T) {
 	h := NewRemoteClientHandlers(inst, false)
 
 	publishCases := []handlerTestCase{
-		{"GET", "/publish/", nil},
-		{"POST", "/publish/me/cities", nil},
-		{"DELETE", "/publish/me/cities", nil},
+		{"GET", "/publish/", nil, nil},
+		{"POST", "/publish/me/cities", nil, nil},
+		{"DELETE", "/publish/me/cities", nil, nil},
 	}
 	runHandlerTestCases(t, "publish", h.PushHandler, publishCases, true)
 
 	// tests getting a list of logs from a remote
 	fetchCases := []handlerTestCase{
-		{"GET", "/history/", nil},
-		{"GET", "/history/me/cities", nil},
+		{"GET", "/history/", nil, nil},
+		{"GET", "/history/me/cities", nil, nil},
 	}
 	runHandlerTestCases(t, "fetch", l.LogHandler, fetchCases, true)
 }

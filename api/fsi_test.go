@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/gorilla/mux"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
@@ -42,10 +43,10 @@ func TestFSIHandlers(t *testing.T) {
 	defer os.RemoveAll(filepath.Join("fsi_tests"))
 
 	initCases := []handlerTestCase{
-		{"GET", "/", nil},
-		{"POST", "/", nil},
-		{"POST", fmt.Sprintf("/?filepath=%s", initDir), nil},
-		{"POST", fmt.Sprintf("/?filepath=%s&name=api_test_init_dataset", initDir), nil},
+		{"GET", "/", nil, nil},
+		{"POST", "/", nil, nil},
+		{"POST", fmt.Sprintf("/?filepath=%s", initDir), nil, nil},
+		{"POST", fmt.Sprintf("/?filepath=%s&name=api_test_init_dataset", initDir), nil, nil},
 		// TODO(dlong): Disabled, contains local file paths.
 		//{"POST", fmt.Sprintf("/?filepath=%s&name=api_test_init_dataset&format=csv", initDir), nil},
 		//{"DELETE", "/", nil},
@@ -55,25 +56,25 @@ func TestFSIHandlers(t *testing.T) {
 	statusCases := []handlerTestCase{
 		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
 		// temp directory names
-		{"GET", "/me/movies", nil},
-		{"DELETE", "/", nil},
+		{"GET", "/me/movies", nil, nil},
+		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "status", h.StatusHandler(""), statusCases, true)
 
 	whatChangedCases := []handlerTestCase{
 		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
 		// temp directory names
-		{"GET", "/me/movies", nil},
-		{"DELETE", "/", nil},
+		{"GET", "/me/movies", nil, nil},
+		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "whatchanged", h.WhatChangedHandler(""), whatChangedCases, true)
 
 	checkoutCases := []handlerTestCase{
-		{"POST", "/me/movies", nil},
+		{"POST", "/me/movies", nil, nil},
 		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
 		// temp directory names
 		//{"POST", fmt.Sprintf("/me/movies?dir=%s", checkoutDir), nil},
-		{"DELETE", "/", nil},
+		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "checkout", h.CheckoutHandler(""), checkoutCases, true)
 }
@@ -121,7 +122,7 @@ func TestNoHistory(t *testing.T) {
 	expectBody := `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0"}},"published":false},"meta":{"code":200}}`
 
 	// Dataset with a link to the filesystem, but no history and the api request says fsi=false
-	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds", dsHandler.GetHandler)
+	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds"})
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -131,7 +132,7 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Dataset with a link to the filesystem, but no history and the api request says fsi=true
-	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds?fsi=true", dsHandler.GetHandler)
+	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds?fsi=true", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds"})
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -141,10 +142,10 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Expected response for body of the dataset
-	expectBody = `{"data":{"path":"fsi_init_dir/body.csv","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"page":1,"pageSize":50,"nextUrl":"/get/peer/test_ds?component=body\u0026page=2","prevUrl":""}}`
+	expectBody = `{"data":{"path":"fsi_init_dir/body.csv","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"page":1,"pageSize":50,"nextUrl":"/get/peer/test_ds/body?page=2","prevUrl":""}}`
 
 	// Body with no history, but fsi working directory has body
-	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds?component=body", dsHandler.GetHandler)
+	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds/body", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "selector": "body"})
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -154,12 +155,12 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Body with no history, but fsi working directory has body
-	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds?component=body&fsi=true", dsHandler.GetHandler)
+	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds/body&fsi=true", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "selector": "body"})
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
 	actualBody = strings.Replace(gotBodyString, workDir, subDir, -1)
-	actualBody = strings.Replace(actualBody, `fsi=true\u0026`, "", -1)
+	actualBody = strings.Replace(actualBody, `\u0026fsi=true`, "", -1)
 	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
 		t.Errorf("expected body %v, got %v\ndiff:%v", expectBody, actualBody, diff)
 	}
@@ -171,7 +172,7 @@ func TestNoHistory(t *testing.T) {
 	expectBody = fmt.Sprintf(templateBody, metaMtime, structureMtime, bodyMtime)
 
 	// Status at version with no history
-	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds", fsiHandler.StatusHandler("/status"))
+	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds", fsiHandler.StatusHandler("/status"), nil)
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -181,7 +182,7 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Status with no history, but FSI working directory has contents
-	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds?fsi=true", fsiHandler.StatusHandler("/status"))
+	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds?fsi=true", fsiHandler.StatusHandler("/status"), nil)
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -200,7 +201,7 @@ func TestNoHistory(t *testing.T) {
 }`
 
 	// History with no history
-	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds", logHandler.LogHandler)
+	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds", logHandler.LogHandler, nil)
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
@@ -209,7 +210,7 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// History with no history, still returns ErrNoHistory since this route ignores fsi param
-	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds?fsi=true", logHandler.LogHandler)
+	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds?fsi=true", logHandler.LogHandler, nil)
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
@@ -261,7 +262,7 @@ func TestFSIWrite(t *testing.T) {
 		map[string]string{
 			"dir": workDir,
 		},
-		fsiHandler.CheckoutHandler("/checkout"))
+		fsiHandler.CheckoutHandler("/checkout"), nil)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
@@ -367,7 +368,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 		map[string]string{
 			"dir": workDir,
 		},
-		fsiHandler.CheckoutHandler("/checkout"))
+		fsiHandler.CheckoutHandler("/checkout"), nil)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
@@ -400,7 +401,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 	bodyMtime := st.ModTime().Format(time.RFC3339)
 
 	// Status should show that meta is modified
-	actualStatusCode, actualBody = APICall("/status/peer/fsi_checkout_restore?fsi=true", fsiHandler.StatusHandler("/status"))
+	actualStatusCode, actualBody = APICall("/status/peer/fsi_checkout_restore?fsi=true", fsiHandler.StatusHandler("/status"), nil)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
@@ -419,7 +420,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 		map[string]string{
 			"component": "meta",
 		},
-		fsiHandler.RestoreHandler("/restore"))
+		fsiHandler.RestoreHandler("/restore"), nil)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
@@ -448,7 +449,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 			"dir":  workDir,
 			"path": ref1Path,
 		},
-		fsiHandler.RestoreHandler("/restore"))
+		fsiHandler.RestoreHandler("/restore"), nil)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
@@ -469,12 +470,12 @@ func TestCheckoutAndRestore(t *testing.T) {
 }
 
 // APICall calls the api and returns the status code and body
-func APICall(url string, hf http.HandlerFunc) (int, string) {
-	return APICallWithParams("GET", url, nil, hf)
+func APICall(url string, hf http.HandlerFunc, muxVars *map[string]string) (int, string) {
+	return APICallWithParams("GET", url, nil, hf, muxVars)
 }
 
 // APICallWithParams calls the api and returns the status code and body
-func APICallWithParams(method, reqURL string, params map[string]string, hf http.HandlerFunc) (int, string) {
+func APICallWithParams(method, reqURL string, params map[string]string, hf http.HandlerFunc, muxVars *map[string]string) (int, string) {
 	// Add parameters from map
 	reqParams := url.Values{}
 	if params != nil {
@@ -483,6 +484,9 @@ func APICallWithParams(method, reqURL string, params map[string]string, hf http.
 		}
 	}
 	req := httptest.NewRequest(method, reqURL, strings.NewReader(reqParams.Encode()))
+	if muxVars != nil {
+		req = mux.SetURLVars(req, *muxVars)
+	}
 	// Set form-encoded header so server will find the parameters
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(reqParams.Encode())))
