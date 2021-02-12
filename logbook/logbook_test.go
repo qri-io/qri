@@ -861,32 +861,26 @@ func TestItems(t *testing.T) {
 		t.Error(err)
 	}
 
-	expect := []logbook.DatasetLogItem{
+	expect := []dsref.VersionInfo{
 		{
-			VersionInfo: dsref.VersionInfo{
-				Username:   "test_author",
-				Name:       "world_bank_population",
-				Path:       "QmHashOfVersion5",
-				CommitTime: mustTime("2000-01-04T19:00:00-05:00"),
-			},
+			Username:    "test_author",
+			Name:        "world_bank_population",
+			Path:        "QmHashOfVersion5",
+			CommitTime:  mustTime("2000-01-04T19:00:00-05:00"),
 			CommitTitle: "v5",
 		},
 		{
-			VersionInfo: dsref.VersionInfo{
-				Username:   "test_author",
-				Name:       "world_bank_population",
-				Path:       "QmHashOfVersion4",
-				CommitTime: mustTime("2000-01-03T19:00:00-05:00"),
-			},
+			Username:    "test_author",
+			Name:        "world_bank_population",
+			Path:        "QmHashOfVersion4",
+			CommitTime:  mustTime("2000-01-03T19:00:00-05:00"),
 			CommitTitle: "v4",
 		},
 		{
-			VersionInfo: dsref.VersionInfo{
-				Username:   "test_author",
-				Name:       "world_bank_population",
-				Path:       "QmHashOfVersion3",
-				CommitTime: mustTime("2000-01-02T19:00:00-05:00"),
-			},
+			Username:    "test_author",
+			Name:        "world_bank_population",
+			Path:        "QmHashOfVersion3",
+			CommitTime:  mustTime("2000-01-02T19:00:00-05:00"),
 			CommitTitle: "added meta info",
 		},
 	}
@@ -900,14 +894,12 @@ func TestItems(t *testing.T) {
 		t.Error(err)
 	}
 
-	expect = []logbook.DatasetLogItem{
+	expect = []dsref.VersionInfo{
 		{
-			VersionInfo: dsref.VersionInfo{
-				Username:   "test_author",
-				Name:       "world_bank_population",
-				Path:       "QmHashOfVersion4",
-				CommitTime: mustTime("2000-01-03T19:00:00-05:00"),
-			},
+			Username:    "test_author",
+			Name:        "world_bank_population",
+			Path:        "QmHashOfVersion4",
+			CommitTime:  mustTime("2000-01-03T19:00:00-05:00"),
 			CommitTitle: "v4",
 		},
 	}

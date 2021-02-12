@@ -4,12 +4,8 @@ import (
 	"strings"
 
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/profile"
 )
-
-// DatasetLogItem aliases the type from logbook
-type DatasetLogItem = logbook.DatasetLogItem
 
 // ConvertToVersionInfo converts an old style DatasetRef to the newly preferred dsref.VersionInfo
 func ConvertToVersionInfo(r *DatasetRef) dsref.VersionInfo {
@@ -45,19 +41,6 @@ func ConvertToVersionInfo(r *DatasetRef) dsref.VersionInfo {
 	}
 	if r.FSIPath != "" {
 		build.FSIPath = r.FSIPath
-	}
-	return build
-}
-
-// ConvertToDatasetLogItem converts an old style DatasetRef to the newly preferred DatasetLogItem
-func ConvertToDatasetLogItem(r *DatasetRef) DatasetLogItem {
-	build := DatasetLogItem{
-		VersionInfo: ConvertToVersionInfo(r),
-	}
-	ds := r.Dataset
-	if ds != nil && ds.Commit != nil {
-		build.CommitTitle = ds.Commit.Title
-		build.CommitMessage = ds.Commit.Message
 	}
 	return build
 }

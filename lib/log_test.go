@@ -32,10 +32,10 @@ func TestHistoryRequestsLog(t *testing.T) {
 
 	firstRef := refs[0].String()
 
-	items := make([]DatasetLogItem, len(refs))
+	items := make([]dsref.VersionInfo, len(refs))
 	for i, r := range refs {
 		ds := r.Dataset
-		items[i].VersionInfo = reporef.ConvertToVersionInfo(&r)
+		items[i] = reporef.ConvertToVersionInfo(&r)
 		items[i].MetaTitle = ""
 		items[i].BodyRows = 0
 		items[i].NumErrors = 0
@@ -49,13 +49,13 @@ func TestHistoryRequestsLog(t *testing.T) {
 	cases := []struct {
 		description string
 		p           *LogParams
-		refs        []DatasetLogItem
+		refs        []dsref.VersionInfo
 		err         string
 	}{
 		{"log list - empty",
-			&LogParams{}, []DatasetLogItem{}, `"" is not a valid dataset reference: empty reference`},
+			&LogParams{}, []dsref.VersionInfo{}, `"" is not a valid dataset reference: empty reference`},
 		{"log list - bad path",
-			&LogParams{Ref: "/badpath"}, []DatasetLogItem{}, `"/badpath" is not a valid dataset reference: unexpected character at position 0: '/'`},
+			&LogParams{Ref: "/badpath"}, []dsref.VersionInfo{}, `"/badpath" is not a valid dataset reference: unexpected character at position 0: '/'`},
 		{"log list - default",
 			&LogParams{Ref: firstRef}, items, ""},
 		{"log list - offset 0 limit 3",
@@ -69,7 +69,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewLogMethods(inst)
 	for _, c := range cases {
-		got := []DatasetLogItem{}
+		got := []dsref.VersionInfo{}
 		err := m.Log(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {

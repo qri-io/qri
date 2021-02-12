@@ -17,6 +17,13 @@ func GetRootAsDscache(buf []byte, offset flatbuffers.UOffsetT) *Dscache {
 	return x
 }
 
+func GetSizePrefixedRootAsDscache(buf []byte, offset flatbuffers.UOffsetT) *Dscache {
+	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
+	x := &Dscache{}
+	x.Init(buf, n+offset+flatbuffers.SizeUint32)
+	return x
+}
+
 func (rcv *Dscache) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i

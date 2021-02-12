@@ -8,9 +8,9 @@ import (
 
 	"github.com/qri-io/ioes"
 	apiutil "github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -99,9 +99,6 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
-// DatasetLogItem aliases the type from logbook
-type DatasetLogItem = logbook.DatasetLogItem
-
 // Run executes the log command
 func (o *LogOptions) Run() error {
 	printRefSelect(o.ErrOut, o.Refs)
@@ -109,7 +106,7 @@ func (o *LogOptions) Run() error {
 	// convert Page and PageSize to Limit and Offset
 	page := apiutil.NewPage(o.Page, o.PageSize)
 
-	res := []DatasetLogItem{}
+	res := []dsref.VersionInfo{}
 	p := &lib.LogParams{
 		Ref:    o.Refs.Ref(),
 		Pull:   o.Pull,
@@ -128,7 +125,7 @@ func (o *LogOptions) Run() error {
 	return nil
 }
 
-func makeItemsAndPrint(refs []DatasetLogItem, out io.Writer, page apiutil.Page) {
+func makeItemsAndPrint(refs []dsref.VersionInfo, out io.Writer, page apiutil.Page) {
 	items := make([]fmt.Stringer, len(refs))
 	for i, r := range refs {
 		items[i] = dslogItemStringer(r)

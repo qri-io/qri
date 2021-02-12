@@ -36,6 +36,9 @@ func fillInfoForDatasets(ctx context.Context, fs qfs.Filesystem, entryInfoList [
 		}
 		if ds.Commit != nil {
 			info.CommitTime = ds.Commit.Timestamp
+			info.CommitTitle = ds.Commit.Title
+			info.CommitMessage = ds.Commit.Message
+			info.RunID = ds.Commit.RunID
 		}
 	}
 	return collector.AsSingleError()

@@ -7,15 +7,18 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-// VersionInfo is the way that everything talks about information about datasets in the cases
-// that an entire Dataset is not being returned. Used as an output value for many methods, such
-// as List, and Log.
+// VersionInfo is an aggregation of fields from a dataset version for caching &
+// listing purposes. VersionInfos are typically used when showing a list of
+// datasets or a list of dataset versions ("qri list" and "qri log").
+//
+// VersionInfos can also describe dataset versions that are being created or
+// failed to create. In these cases the calculated VersionInfo.Path value must
+// always equal the empty string.
+//
 // If any fields are added to this struct, keep it in sync with:
 //   dscache/def.fbs       dscache
 //   dscache/fill_info.go  func fillInfoForDatasets
 //   repo/ref/convert.go   func ConvertToVersionInfo
-
-// VersionInfo describes a dataset reference and detailed information about it
 type VersionInfo struct {
 	//
 	// Key as a stable identifier
@@ -64,6 +67,10 @@ type VersionInfo struct {
 	//
 	// Timestamp field from the commit
 	CommitTime time.Time `json:"commitTime,omitempty"`
+	// Title field from the commit
+	CommitTitle string `json:"commitTitle,omitempty"`
+	// Message field from the commit
+	CommitMessage string `json:"commitMessage,omitempty"`
 	//
 	// About the dataset's history and location
 	//
@@ -71,6 +78,20 @@ type VersionInfo struct {
 	NumVersions int `json:"numVersions,omitempty"`
 	// FSIPath is this dataset's link to the local filesystem if one exists
 	FSIPath string `json:"fsiPath,omitempty"`
+	//
+	// Run Fields come from applying a script during version creation
+	//
+	// RunID from either Commit.RunID, or the ID of a failed run when no
+	// Path value (version is present)
+	RunID string `json:"runID,omitempty"`
+	// RunStatus is a string version of the run.Status enumeration. This value will
+	// always be one of:
+	//    ""|"waiting"|"running"|"succeeded"|"failed"|"unchanged"|"skipped"
+	// it's a type a string to follow the "plain old data" pattern
+	RunStatus string `json:"runStatus,omitempty"`
+	// RunDuration is how long the run took/has currently taken in nanoseconds
+	// default value of 0 means no duration data is available
+	RunDuration int `json:"runDuration,omitempty"`
 }
 
 // NewVersionInfoFromRef creates a sparse-populated VersionInfo from a dsref.Ref
@@ -120,6 +141,9 @@ func ConvertDatasetToVersionInfo(ds *dataset.Dataset) VersionInfo {
 	}
 	if ds.Commit != nil {
 		vi.CommitTime = ds.Commit.Timestamp
+		vi.CommitTitle = ds.Commit.Title
+		vi.CommitMessage = ds.Commit.Message
+		vi.RunID = ds.Commit.RunID
 	}
 	if ds.Meta != nil {
 		vi.MetaTitle = ds.Meta.Title

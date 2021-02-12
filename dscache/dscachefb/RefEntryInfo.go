@@ -17,6 +17,13 @@ func GetRootAsRefEntryInfo(buf []byte, offset flatbuffers.UOffsetT) *RefEntryInf
 	return x
 }
 
+func GetSizePrefixedRootAsRefEntryInfo(buf []byte, offset flatbuffers.UOffsetT) *RefEntryInfo {
+	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
+	x := &RefEntryInfo{}
+	x.Init(buf, n+offset+flatbuffers.SizeUint32)
+	return x
+}
+
 func (rcv *RefEntryInfo) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
@@ -171,7 +178,7 @@ func (rcv *RefEntryInfo) MutateCommitTime(n int64) bool {
 }
 
 func (rcv *RefEntryInfo) NumVersions() int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
 	}
@@ -179,11 +186,11 @@ func (rcv *RefEntryInfo) NumVersions() int32 {
 }
 
 func (rcv *RefEntryInfo) MutateNumVersions(n int32) bool {
-	return rcv._tab.MutateInt32Slot(36, n)
+	return rcv._tab.MutateInt32Slot(32, n)
 }
 
 func (rcv *RefEntryInfo) HeadRef() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
@@ -191,6 +198,22 @@ func (rcv *RefEntryInfo) HeadRef() []byte {
 }
 
 func (rcv *RefEntryInfo) FsiPath() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *RefEntryInfo) CommitTitle() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *RefEntryInfo) CommitMessage() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -198,8 +221,36 @@ func (rcv *RefEntryInfo) FsiPath() []byte {
 	return nil
 }
 
+func (rcv *RefEntryInfo) RunID() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *RefEntryInfo) RunStatus() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *RefEntryInfo) RunDuration() int64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(46))
+	if o != 0 {
+		return rcv._tab.GetInt64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *RefEntryInfo) MutateRunDuration(n int64) bool {
+	return rcv._tab.MutateInt64Slot(46, n)
+}
+
 func RefEntryInfoStart(builder *flatbuffers.Builder) {
-	builder.StartObject(19)
+	builder.StartObject(22)
 }
 func RefEntryInfoAddInitID(builder *flatbuffers.Builder, initID flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(initID), 0)
@@ -244,13 +295,28 @@ func RefEntryInfoAddCommitTime(builder *flatbuffers.Builder, commitTime int64) {
 	builder.PrependInt64Slot(13, commitTime, 0)
 }
 func RefEntryInfoAddNumVersions(builder *flatbuffers.Builder, numVersions int32) {
-	builder.PrependInt32Slot(16, numVersions, 0)
+	builder.PrependInt32Slot(14, numVersions, 0)
 }
 func RefEntryInfoAddHeadRef(builder *flatbuffers.Builder, headRef flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(17, flatbuffers.UOffsetT(headRef), 0)
+	builder.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(headRef), 0)
 }
 func RefEntryInfoAddFsiPath(builder *flatbuffers.Builder, fsiPath flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(18, flatbuffers.UOffsetT(fsiPath), 0)
+	builder.PrependUOffsetTSlot(16, flatbuffers.UOffsetT(fsiPath), 0)
+}
+func RefEntryInfoAddCommitTitle(builder *flatbuffers.Builder, commitTitle flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(17, flatbuffers.UOffsetT(commitTitle), 0)
+}
+func RefEntryInfoAddCommitMessage(builder *flatbuffers.Builder, commitMessage flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(18, flatbuffers.UOffsetT(commitMessage), 0)
+}
+func RefEntryInfoAddRunID(builder *flatbuffers.Builder, runID flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(19, flatbuffers.UOffsetT(runID), 0)
+}
+func RefEntryInfoAddRunStatus(builder *flatbuffers.Builder, runStatus flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(20, flatbuffers.UOffsetT(runStatus), 0)
+}
+func RefEntryInfoAddRunDuration(builder *flatbuffers.Builder, runDuration int64) {
+	builder.PrependInt64Slot(21, runDuration, 0)
 }
 func RefEntryInfoEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

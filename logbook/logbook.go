@@ -605,7 +605,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisio
 	})
 
 	// Calculate the commits after collapsing deletions found at the tail of history (most recent).
-	items := branchToLogItems(branchLog, dsref.Ref{}, 0, -1, false)
+	items := branchToVersionInfos(branchLog, dsref.Ref{}, 0, -1, false)
 
 	if len(items) > 0 {
 		lastItem := items[len(items)-1]
@@ -613,7 +613,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisio
 			InitID:   initID,
 			TopIndex: len(items),
 			HeadRef:  lastItem.Path,
-			Info:     &lastItem.VersionInfo,
+			Info:     &lastItem,
 		})
 		if err != nil {
 			log.Error(err)
@@ -1018,22 +1018,20 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, histor
 	return book.save(ctx)
 }
 
-func itemFromOp(ref dsref.Ref, op oplog.Op) DatasetLogItem {
-	return DatasetLogItem{
-		VersionInfo: dsref.VersionInfo{
-			Username:   ref.Username,
-			ProfileID:  ref.ProfileID,
-			Name:       ref.Name,
-			Path:       op.Ref,
-			CommitTime: time.Unix(0, op.Timestamp),
-			BodySize:   int(op.Size),
-		},
+func versionInfoFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
+	return dsref.VersionInfo{
+		Username:    ref.Username,
+		ProfileID:   ref.ProfileID,
+		Name:        ref.Name,
+		Path:        op.Ref,
+		CommitTime:  time.Unix(0, op.Timestamp),
+		BodySize:    int(op.Size),
 		CommitTitle: op.Note,
 	}
 }
 
 // Items collapses the history of a dataset branch into linear log items
-func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int) ([]DatasetLogItem, error) {
+func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int) ([]dsref.VersionInfo, error) {
 	initID, err := book.RefToInitID(dsref.Ref{Username: ref.Username, Name: ref.Name})
 	if err != nil {
 		return nil, err
@@ -1043,29 +1041,29 @@ func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int) ([
 		return nil, err
 	}
 
-	return branchToLogItems(branchLog, ref, offset, limit, true), nil
+	return branchToVersionInfos(branchLog, ref, offset, limit, true), nil
 }
 
-// ConvertLogsToItems collapses the history of a dataset branch into linear log items
-func ConvertLogsToItems(l *oplog.Log, ref dsref.Ref) []DatasetLogItem {
-	return branchToLogItems(newBranchLog(l), ref, 0, -1, true)
+// ConvertLogsToVersionInfos collapses the history of a dataset branch into linear log items
+func ConvertLogsToVersionInfos(l *oplog.Log, ref dsref.Ref) []dsref.VersionInfo {
+	return branchToVersionInfos(newBranchLog(l), ref, 0, -1, true)
 }
 
 // Items collapses the history of a dataset branch into linear log items
 // If collapseAllDeletes is true, all delete operations will remove the refs before them. Otherwise,
 // only refs at the end of history will be removed in this manner.
-func branchToLogItems(blog *BranchLog, ref dsref.Ref, offset, limit int, collapseAllDeletes bool) []DatasetLogItem {
-	refs := []DatasetLogItem{}
+func branchToVersionInfos(blog *BranchLog, ref dsref.Ref, offset, limit int, collapseAllDeletes bool) []dsref.VersionInfo {
+	refs := []dsref.VersionInfo{}
 	deleteAtEnd := 0
 	for _, op := range blog.Ops() {
 		switch op.Model {
 		case CommitModel:
 			switch op.Type {
 			case oplog.OpTypeInit:
-				refs = append(refs, itemFromOp(ref, op))
+				refs = append(refs, versionInfoFromOp(ref, op))
 			case oplog.OpTypeAmend:
 				deleteAtEnd = 0
-				refs[len(refs)-1] = itemFromOp(ref, op)
+				refs[len(refs)-1] = versionInfoFromOp(ref, op)
 			case oplog.OpTypeRemove:
 				if collapseAllDeletes {
 					refs = refs[:len(refs)-int(op.Size)]
@@ -1091,7 +1089,7 @@ func branchToLogItems(blog *BranchLog, ref dsref.Ref, offset, limit int, collaps
 		if deleteAtEnd < len(refs) {
 			refs = refs[:len(refs)-deleteAtEnd]
 		} else {
-			refs = []DatasetLogItem{}
+			refs = []dsref.VersionInfo{}
 		}
 	}
 
@@ -1237,16 +1235,6 @@ func NewPlainLog(lg *oplog.Log) PlainLog {
 		Ops:  ops,
 		Logs: ls,
 	}
-}
-
-// DatasetLogItem is a line item in a dataset response
-type DatasetLogItem struct {
-	// Decription of a dataset reference
-	dsref.VersionInfo
-	// Title field from the commit
-	CommitTitle string `json:"commitTitle,omitempty"`
-	// Message field from the commit
-	CommitMessage string `json:"commitMessage,omitempty"`
 }
 
 // PlainOp is a human-oriented representation of oplog.Op intended for serialization

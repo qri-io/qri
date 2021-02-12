@@ -17,6 +17,13 @@ func GetRootAsUserAssoc(buf []byte, offset flatbuffers.UOffsetT) *UserAssoc {
 	return x
 }
 
+func GetSizePrefixedRootAsUserAssoc(buf []byte, offset flatbuffers.UOffsetT) *UserAssoc {
+	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
+	x := &UserAssoc{}
+	x.Init(buf, n+offset+flatbuffers.SizeUint32)
+	return x
+}
+
 func (rcv *UserAssoc) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i

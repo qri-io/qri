@@ -132,7 +132,7 @@ func TestReferencePulling(t *testing.T) {
 	PushToRegistry(t, nasim, ref.Alias())
 
 	// - nasim's local repo should reflect publication
-	logRes := []DatasetLogItem{}
+	logRes := []dsref.VersionInfo{}
 	err := NewLogMethods(nasim).Log(&LogParams{Ref: ref.Alias(), ListParams: ListParams{Limit: 1}}, &logRes)
 	if err != nil {
 		t.Fatal(err)
@@ -198,7 +198,7 @@ def transform(ds, ctx):
 	}
 
 	// - adnan's local repo should reflect nasim's publication
-	logRes = []DatasetLogItem{}
+	logRes = []dsref.VersionInfo{}
 	err = NewLogMethods(adnan).Log(&LogParams{Ref: ref.Alias(), ListParams: ListParams{Limit: 1}}, &logRes)
 	if err != nil {
 		t.Fatal(err)
