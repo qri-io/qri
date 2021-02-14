@@ -29,6 +29,7 @@ import (
 	"github.com/qri-io/qri/repo/gen"
 	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
+	"github.com/qri-io/qri/transform/run"
 	"github.com/qri-io/qri/transform/startf"
 	"github.com/spf13/cobra"
 )
@@ -128,8 +129,14 @@ func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *Tes
 	return runner
 }
 
+func useConsistentRunIDs() {
+	source := strings.NewReader(strings.Repeat("OmgZombies!?!?!", 200))
+	run.SetIDRand(source)
+}
+
 func newTestRunnerFromRoot(root *repotest.TempRepo) *TestRunner {
 	ctx, cancel := context.WithCancel(context.Background())
+	useConsistentRunIDs()
 
 	run := TestRunner{
 		RepoRoot:    root,
@@ -184,6 +191,8 @@ func (run *TestRunner) Delete() {
 	if run.TmpDir != "" {
 		os.RemoveAll(run.TmpDir)
 	}
+	// restore random RunID generator
+	run.SetIDRand(nil)
 	dsfs.Timestamp = run.DsfsTsFunc
 	logbook.NewTimestamp = run.LogbookTsFunc
 	StringerLocation = run.LocOrig

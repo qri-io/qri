@@ -1193,6 +1193,12 @@ func branchToVersionInfos(blog *BranchLog, ref dsref.Ref, offset, limit int, col
 			// runs are only ever "init" op type
 			refs = append(refs, runItemFromOp(ref, op))
 		case PushModel:
+			// TODO(b5): added this to get remote.TestDatasetPullPushDeleteFeedsPreviewHTTP
+			// to not segfault. I don't think this is the right answer. Understand that
+			// test, bring the failure into a test in logbook, then implement the right fix
+			if len(refs) == 0 {
+				continue
+			}
 			switch op.Type {
 			case oplog.OpTypeInit:
 				for i := 1; i <= int(op.Size); i++ {

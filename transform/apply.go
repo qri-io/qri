@@ -112,8 +112,8 @@ func Apply(
 		go func() {
 			for {
 				select {
-				case event := <-eventsCh:
-					pub.PublishID(ctx, event.Type, runID, event.Payload)
+				case e := <-eventsCh:
+					pub.PublishID(ctx, e.Type, runID, e.Payload)
 				case <-ctx.Done():
 					return
 				}
@@ -176,10 +176,10 @@ func Apply(
 
 			switch step.Syntax {
 			case SyntaxStarlark:
-				log.Debugw("runnning starlark step", "runID", runID, "category", step.Category, "name", step.Name, "scriptLen", scriptLen(step))
+				log.Debugw("running starlark transform step", "runID", runID, "category", step.Category, "name", step.Name, "scriptLen", scriptLen(step))
 				runErr = stepRunner.RunStep(ctx, target, step)
 				if runErr != nil {
-					log.Debugw("running transform step", "index", i, "err", runErr)
+					log.Debugw("error running starlark transform step", "runID", runID, "index", i, "err", runErr)
 					eventsCh <- event.Event{
 						Type: event.ETTransformError,
 						Payload: event.TransformMessage{

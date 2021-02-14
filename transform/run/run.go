@@ -3,6 +3,7 @@ package run
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +13,18 @@ import (
 // NewID creates a run identifier
 func NewID() string {
 	return uuid.New().String()
+}
+
+// SetIDRand sets the random reader that NewID uses as a source of random bytes
+// passing in nil will default to crypto.Rand. This can be used to make ID
+// generation deterministic for tests. eg:
+//    myString := "SomeRandomStringThatIsLong-SoYouCanCallItAsMuchAsNeeded..."
+//    run.SetIDRand(strings.NewReader(myString))
+//    a := NewID()
+//    run.SetIDRand(strings.NewReader(myString))
+//    b := NewID()
+func SetIDRand(r io.Reader) {
+	uuid.SetRand(r)
 }
 
 // Status enumerates all possible execution states of a transform script or

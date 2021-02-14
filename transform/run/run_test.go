@@ -2,11 +2,26 @@ package run
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/event"
 )
+
+func ExampleNewID() {
+	myString := "SomeRandomStringThatIsLong-SoYouCanCallItAsMuchAsNeeded..."
+	SetIDRand(strings.NewReader(myString))
+	a := NewID()
+	SetIDRand(strings.NewReader(myString))
+	b := NewID()
+
+	fmt.Printf("a:  %s\nb:  %s\neq: %t", a, b, a == b)
+	// Output:
+	// a:  536f6d65-5261-4e64-af6d-537472696e67
+	// b:  536f6d65-5261-4e64-af6d-537472696e67
+	// eq: true
+}
 
 func TestStateAddTransformEvent(t *testing.T) {
 	runID := NewID()
@@ -31,20 +46,20 @@ func TestStateAddTransformEvent(t *testing.T) {
 		{
 			event.Event{Type: event.ETTransformStepStop, Timestamp: 1609460900090, SessionID: runID, Payload: event.TransformStepLifecycle{Name: "setup", Status: "succeeded"}},
 			&State{ID: runID, StartTime: toTimePointer(1609460600090), Status: RSRunning, Steps: []*StepState{
-				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000000000000, Status: RSSucceeded},
+				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000, Status: RSSucceeded},
 			}},
 		},
 		{
 			event.Event{Type: event.ETTransformStepStart, Timestamp: 1609461000090, SessionID: runID, Payload: event.TransformStepLifecycle{Name: "download"}},
 			&State{ID: runID, StartTime: toTimePointer(1609460600090), Status: RSRunning, Steps: []*StepState{
-				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000000000000, Status: RSSucceeded},
+				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000, Status: RSSucceeded},
 				{Name: "download", StartTime: toTimePointer(1609461000090), Status: RSRunning},
 			}},
 		},
 		{
 			event.Event{Type: event.ETTransformPrint, Timestamp: 1609461100090, SessionID: runID, Payload: event.TransformMessage{Msg: "oh hai there"}},
 			&State{ID: runID, StartTime: toTimePointer(1609460600090), Status: RSRunning, Steps: []*StepState{
-				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000000000000, Status: RSSucceeded},
+				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000, Status: RSSucceeded},
 				{Name: "download", StartTime: toTimePointer(1609461000090), Status: RSRunning, Output: []event.Event{
 					{Type: event.ETTransformPrint, Timestamp: 1609461100090, SessionID: runID, Payload: event.TransformMessage{Msg: "oh hai there"}},
 				}},
@@ -61,8 +76,8 @@ func TestStateAddTransformEvent(t *testing.T) {
 		{
 			event.Event{Type: event.ETTransformStepStop, Timestamp: 1609461400090, SessionID: runID, Payload: event.TransformStepLifecycle{Name: "download", Status: "succeeded"}},
 			&State{ID: runID, StartTime: toTimePointer(1609460600090), Status: RSRunning, Steps: []*StepState{
-				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000000000000, Status: RSSucceeded},
-				{Name: "download", StartTime: toTimePointer(1609461000090), StopTime: toTimePointer(1609461400090), Duration: 400000000000000, Status: RSSucceeded, Output: []event.Event{
+				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000, Status: RSSucceeded},
+				{Name: "download", StartTime: toTimePointer(1609461000090), StopTime: toTimePointer(1609461400090), Duration: 400000, Status: RSSucceeded, Output: []event.Event{
 					{Type: event.ETTransformPrint, Timestamp: 1609461100090, SessionID: runID, Payload: event.TransformMessage{Msg: "oh hai there"}},
 				}},
 			}},
@@ -70,8 +85,8 @@ func TestStateAddTransformEvent(t *testing.T) {
 		{
 			event.Event{Type: event.ETTransformStepStart, Timestamp: 1609461500090, SessionID: runID, Payload: event.TransformStepLifecycle{Name: "transform"}},
 			&State{ID: runID, StartTime: toTimePointer(1609460600090), Status: RSRunning, Steps: []*StepState{
-				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000000000000, Status: RSSucceeded},
-				{Name: "download", StartTime: toTimePointer(1609461000090), StopTime: toTimePointer(1609461400090), Duration: 400000000000000, Status: RSSucceeded, Output: []event.Event{
+				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000, Status: RSSucceeded},
+				{Name: "download", StartTime: toTimePointer(1609461000090), StopTime: toTimePointer(1609461400090), Duration: 400000, Status: RSSucceeded, Output: []event.Event{
 					{Type: event.ETTransformPrint, Timestamp: 1609461100090, SessionID: runID, Payload: event.TransformMessage{Msg: "oh hai there"}},
 				}},
 				{Name: "transform", StartTime: toTimePointer(1609461500090), Status: RSRunning},
@@ -80,21 +95,21 @@ func TestStateAddTransformEvent(t *testing.T) {
 		{
 			event.Event{Type: event.ETTransformStepStop, Timestamp: 1609461600090, SessionID: runID, Payload: event.TransformStepLifecycle{Name: "transform", Status: "succeeded"}},
 			&State{ID: runID, StartTime: toTimePointer(1609460600090), Status: RSRunning, Steps: []*StepState{
-				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000000000000, Status: RSSucceeded},
-				{Name: "download", StartTime: toTimePointer(1609461000090), StopTime: toTimePointer(1609461400090), Duration: 400000000000000, Status: RSSucceeded, Output: []event.Event{
+				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000, Status: RSSucceeded},
+				{Name: "download", StartTime: toTimePointer(1609461000090), StopTime: toTimePointer(1609461400090), Duration: 400000, Status: RSSucceeded, Output: []event.Event{
 					{Type: event.ETTransformPrint, Timestamp: 1609461100090, SessionID: runID, Payload: event.TransformMessage{Msg: "oh hai there"}},
 				}},
-				{Name: "transform", StartTime: toTimePointer(1609461500090), StopTime: toTimePointer(1609461600090), Duration: 100000000000000, Status: RSSucceeded},
+				{Name: "transform", StartTime: toTimePointer(1609461500090), StopTime: toTimePointer(1609461600090), Duration: 100000, Status: RSSucceeded},
 			}},
 		},
 		{
 			event.Event{Type: event.ETTransformStop, Timestamp: 1609461900090, SessionID: runID, Payload: event.TransformLifecycle{Status: "failed"}},
-			&State{ID: runID, StartTime: toTimePointer(1609460600090), StopTime: toTimePointer(1609461900090), Duration: 1300000000000000, Status: RSFailed, Steps: []*StepState{
-				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000000000000, Status: RSSucceeded},
-				{Name: "download", StartTime: toTimePointer(1609461000090), StopTime: toTimePointer(1609461400090), Duration: 400000000000000, Status: RSSucceeded, Output: []event.Event{
+			&State{ID: runID, StartTime: toTimePointer(1609460600090), StopTime: toTimePointer(1609461900090), Duration: 1300000, Status: RSFailed, Steps: []*StepState{
+				{Name: "setup", StartTime: toTimePointer(1609460700090), StopTime: toTimePointer(1609460900090), Duration: 200000, Status: RSSucceeded},
+				{Name: "download", StartTime: toTimePointer(1609461000090), StopTime: toTimePointer(1609461400090), Duration: 400000, Status: RSSucceeded, Output: []event.Event{
 					{Type: event.ETTransformPrint, Timestamp: 1609461100090, SessionID: runID, Payload: event.TransformMessage{Msg: "oh hai there"}},
 				}},
-				{Name: "transform", StartTime: toTimePointer(1609461500090), StopTime: toTimePointer(1609461600090), Duration: 100000000000000, Status: RSSucceeded},
+				{Name: "transform", StartTime: toTimePointer(1609461500090), StopTime: toTimePointer(1609461600090), Duration: 100000, Status: RSSucceeded},
 			}},
 		},
 	}
