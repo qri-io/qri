@@ -42,8 +42,22 @@ const (
 // run package to invoke Apply
 var NewRunID = run.NewID
 
-// Apply applies the transform script to order to modify the changing dataset
-func Apply(
+// Service applies transform scripts to datasets
+type Service struct {
+	bgCtx context.Context
+}
+
+// NewService constructs a transform service, it accepts a background context
+// that any async transform application will be bound to. Generally bgCtx should
+// be long running, matched to the length of the qri application process
+func NewService(bgCtx context.Context) *Service {
+	return &Service{
+		bgCtx: bgCtx,
+	}
+}
+
+// Apply applies the transform script to a target dataset
+func (svc *Service) Apply(
 	ctx context.Context,
 	target *dataset.Dataset,
 	loader dsref.ParseResolveLoad,
@@ -54,12 +68,15 @@ func Apply(
 	scriptOut io.Writer,
 	secrets map[string]string,
 ) error {
+	if svc == nil {
+		return fmt.Errorf("transform service does not exist")
+	}
+	log.Debugw("applying transform", "runID", runID, "wait", wait)
+
 	var (
 		head *dataset.Dataset
 		err  error
 	)
-
-	log.Debugw("applying transform", "runID", runID, "wait", wait)
 
 	if target.Transform == nil {
 		return errors.New("apply requires a transform component")
@@ -102,6 +119,9 @@ func Apply(
 	// until doneCh gets signaled.
 	go func() {
 		if !wait {
+			// if we're running this script async, bind to the background context
+			// note that we lose any values attached to the given context
+			ctx = svc.bgCtx
 			doneCh <- nil
 		}
 
@@ -110,11 +130,18 @@ func Apply(
 
 		// Forward events from the events channel to the eventBus
 		go func() {
+			receivedTransformStopEvt := false
 			for {
 				select {
 				case e := <-eventsCh:
 					pub.PublishID(ctx, e.Type, runID, e.Payload)
+					if e.Type == event.ETTransformStop {
+						receivedTransformStopEvt = true
+					}
 				case <-ctx.Done():
+					if !receivedTransformStopEvt {
+						log.Warnw("context closed before transform stop event was sent", "runID", runID)
+					}
 					return
 				}
 			}
@@ -176,10 +203,9 @@ func Apply(
 
 			switch step.Syntax {
 			case SyntaxStarlark:
-				log.Debugw("running starlark transform step", "runID", runID, "category", step.Category, "name", step.Name, "scriptLen", scriptLen(step))
 				runErr = stepRunner.RunStep(ctx, target, step)
 				if runErr != nil {
-					log.Debugw("error running starlark transform step", "runID", runID, "index", i, "err", runErr)
+					log.Debugw("error running transform step", "runID", runID, "index", i, "err", runErr)
 					eventsCh <- event.Event{
 						Type: event.ETTransformError,
 						Payload: event.TransformMessage{
@@ -189,6 +215,7 @@ func Apply(
 					}
 					status = StatusFailed
 				}
+				log.Debugw("ran starlark step", "runID", runID, "category", step.Category, "name", step.Name, "scriptLen", scriptLen(step))
 			default:
 				if step.Syntax == SyntaxQri && step.Name == "save" {
 					log.Infow("ignoring qri save step", "runID", runID)

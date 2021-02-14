@@ -109,7 +109,7 @@ func (m *TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyRes
 	}, runID)
 
 	scriptOut := p.ScriptOutput
-	err = transform.Apply(ctx, ds, loader, runID, m.inst.bus, p.Wait, str, scriptOut, p.Secrets)
+	err = m.inst.transform.Apply(ctx, ds, loader, runID, m.inst.bus, p.Wait, str, scriptOut, p.Secrets)
 	if err != nil {
 		return nil, err
 	}

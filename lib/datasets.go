@@ -904,7 +904,7 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 
 		// apply the transform
 		shouldWait := true
-		err := transform.Apply(ctx, ds, loader, runID, m.inst.bus, shouldWait, str, scriptOut, secrets)
+		err := m.inst.transform.Apply(ctx, ds, loader, runID, m.inst.bus, shouldWait, str, scriptOut, secrets)
 		if err != nil {
 			log.Errorw("transform run error", "err", err.Error())
 			runState.Message = err.Error()
