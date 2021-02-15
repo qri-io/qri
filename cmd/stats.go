@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -73,11 +72,9 @@ func (o *StatsOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
 	ctx := context.TODO()
-	sr, err := dsref.Parse(o.Refs.Ref())
-	if err != nil {
-		return fmt.Errorf("either a reference or dataset is required")
+	p := &lib.StatsParams{
+		Refstr: o.Refs.Ref(),
 	}
-	p := &lib.StatsParams{Ref: sr}
 	sa, err := o.DatasetMethods.Stats(ctx, p)
 	if err != nil {
 		return err

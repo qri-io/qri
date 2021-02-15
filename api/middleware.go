@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/dsref"
 )
 
 // Middleware handles request logging
@@ -54,4 +56,43 @@ func (s *Server) addCORSHeaders(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+}
+
+// refStringMiddleware converts gorilla mux params to a "refstr" query parmeter
+// and adds it to an http request
+func refStringMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setRefStringFromMuxVars(r)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func setRefStringFromMuxVars(r *http.Request) {
+	mvars := mux.Vars(r)
+	ref := dsref.Ref{
+		Username: mvars["peername"],
+		Name:     mvars["name"],
+		Path:     muxVarsPath(mvars),
+	}
+
+	if refstr := ref.String(); refstr != "" {
+		q := r.URL.Query()
+		q.Add("refstr", refstr)
+		r.URL.RawQuery = q.Encode()
+	}
+}
+
+func muxVarsPath(mvars map[string]string) string {
+	fs := mvars["fs"]
+	hash := mvars["hash"]
+	if fs != "" && hash != "" {
+		return fmt.Sprintf("/%s/%s", fs, hash)
+	}
+	return ""
+}
+
+func stripServerSideQueryParams(r *http.Request) {
+	q := r.URL.Query()
+	q.Del("refstr")
+	r.URL.RawQuery = q.Encode()
 }

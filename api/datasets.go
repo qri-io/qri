@@ -236,6 +236,7 @@ func (h *DatasetHandlers) replyWithGetResponse(w http.ResponseWriter, r *http.Re
 				Path: result.Dataset.BodyPath,
 				Data: json.RawMessage(result.Bytes),
 			}
+			stripServerSideQueryParams(r)
 			if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
 				log.Infof("error writing response: %s", err.Error())
 			}

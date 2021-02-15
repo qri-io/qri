@@ -148,14 +148,12 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{ "meta": { "code": 200, "status": "ok", "version":"` + APIVersion + `" }, "data": [] }`))
 }
 
-func handleRefRoute(m *mux.Router, ae lib.APIEndpoint, f http.HandlerFunc, extra string) {
+func handleRefRoute(m *mux.Router, ae lib.APIEndpoint, f http.HandlerFunc) {
 	m.Handle(ae.String(), f)
 	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}"), f)
-	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/at/{hash:(?:mem|ipfs)\\/.*}"), f)
-	if extra != "" {
-		m.Handle(fmt.Sprintf("%s/%s/%s", ae, "{peername}/{name}", extra), f)
-		m.Handle(fmt.Sprintf("%s/%s/%s", ae, "{peername}/{name}/at/{hash:(?:mem|ipfs)\\/.*?\\/}", extra), f)
-	}
+	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/{selector}"), f)
+	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/at/{fs}/{hash}"), f)
+	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/at/{fs}/{hash}/{selector}"), f)
 }
 
 // NewServerRoutes returns a Muxer that has all API routes
@@ -198,7 +196,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AESave.String(), s.Middleware(dsh.SaveHandler))
 	m.Handle(lib.AESaveAlt.String(), s.Middleware(dsh.SaveHandler))
 	m.Handle(lib.AERemove.String(), s.Middleware(dsh.RemoveHandler))
-	handleRefRoute(m, lib.AEGet, s.Middleware(dsh.GetHandler), "{selector}")
+	handleRefRoute(m, lib.AEGet, s.Middleware(dsh.GetHandler))
 	m.Handle(lib.AERename.String(), s.Middleware(dsh.RenameHandler))
 	m.Handle(lib.AEDiff.String(), s.Middleware(dsh.DiffHandler))
 	m.Handle(lib.AEChanges.String(), s.Middleware(dsh.ChangesHandler))
@@ -241,6 +239,8 @@ func NewServerRoutes(s Server) *mux.Router {
 	if !cfg.API.DisableWebui {
 		m.Handle(lib.AEWebUI.String(), s.Middleware(WebuiHandler))
 	}
+
+	m.Use(refStringMiddleware)
 
 	return m
 }
