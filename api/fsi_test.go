@@ -487,6 +487,7 @@ func APICallWithParams(method, reqURL string, params map[string]string, hf http.
 	if muxVars != nil {
 		req = mux.SetURLVars(req, *muxVars)
 	}
+	setRefStringFromMuxVars(req)
 	// Set form-encoded header so server will find the parameters
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(reqParams.Encode())))

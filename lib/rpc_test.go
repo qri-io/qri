@@ -31,7 +31,7 @@ func TestRPCRequest(t *testing.T) {
 	}
 
 	_, err = NewDatasetMethods(adnanInst).Get(tr.Ctx, &GetParams{
-		Ref: ref,
+		Refstr: ref.String(),
 	})
 
 	if err != nil {

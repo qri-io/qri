@@ -17,7 +17,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -47,7 +46,7 @@ func TestDatasetHandlers(t *testing.T) {
 
 	getCases := []handlerTestCase{
 		{"GET", "/get/peer/family_relationships", nil, &map[string]string{"peername": "peer", "name": "family_relationships"}},
-		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", nil, &map[string]string{"peername": "peer", "name": "family_relationships", "hash": "mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg"}},
+		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", nil, &map[string]string{"peername": "peer", "name": "family_relationships", "fs": "mem", "hash": "Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg"}},
 		// TODO(arqu): this no longer works with the gorrila.Mux router and URL param extraction
 		// {"GET", "/get/at/map/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", nil},
 		// test that when fsi=true parameter doesn't affect the api response
@@ -66,7 +65,7 @@ func TestDatasetHandlers(t *testing.T) {
 
 	statsCases := []handlerTestCase{
 		{"GET", "/get/peer/craigslist/stats", nil, &map[string]string{"peername": "peer", "name": "craigslist", "selector": "stats"}},
-		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg/stats", nil, &map[string]string{"peername": "peer", "name": "family_relationships", "hash": "mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", "selector": "stats"}},
+		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg/stats", nil, &map[string]string{"peername": "peer", "name": "family_relationships", "fs": "mem", "hash": "Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", "selector": "stats"}},
 	}
 	runHandlerTestCases(t, "stats", h.GetHandler, statsCases, false)
 
@@ -222,7 +221,7 @@ func TestParseGetParams(t *testing.T) {
 			"basic get",
 			"/get/peer/my_ds",
 			&lib.GetParams{
-				Ref:    dsref.Ref{Username: "peer", Name: "my_ds"},
+				Refstr: "peer/my_ds",
 				Format: "json",
 				All:    true,
 			},
@@ -232,7 +231,7 @@ func TestParseGetParams(t *testing.T) {
 			"meta component",
 			"/get/peer/my_ds/meta",
 			&lib.GetParams{
-				Ref:      dsref.Ref{Username: "peer", Name: "my_ds"},
+				Refstr:   "peer/my_ds",
 				Format:   "json",
 				Selector: "meta",
 				All:      true,
@@ -243,7 +242,7 @@ func TestParseGetParams(t *testing.T) {
 			"body component",
 			"/get/peer/my_ds/body",
 			&lib.GetParams{
-				Ref:      dsref.Ref{Username: "peer", Name: "my_ds"},
+				Refstr:   "peer/my_ds",
 				Format:   "json",
 				Selector: "body",
 				All:      true,
@@ -254,7 +253,7 @@ func TestParseGetParams(t *testing.T) {
 			"body.csv path suffix",
 			"/get/peer/my_ds/body.csv",
 			&lib.GetParams{
-				Ref:      dsref.Ref{Username: "peer", Name: "my_ds"},
+				Refstr:   "peer/my_ds",
 				Format:   "csv",
 				Selector: "body",
 				All:      true,
@@ -265,7 +264,7 @@ func TestParseGetParams(t *testing.T) {
 			"download body as csv",
 			"/get/peer/my_ds/body?format=csv",
 			&lib.GetParams{
-				Ref:      dsref.Ref{Username: "peer", Name: "my_ds"},
+				Refstr:   "peer/my_ds",
 				Format:   "csv",
 				Selector: "body",
 				All:      true,
@@ -276,7 +275,7 @@ func TestParseGetParams(t *testing.T) {
 			"zip format",
 			"/get/peer/my_ds?format=zip",
 			&lib.GetParams{
-				Ref:    dsref.Ref{Username: "peer", Name: "my_ds"},
+				Refstr: "peer/my_ds",
 				Format: "zip",
 				All:    true,
 			},
@@ -289,6 +288,7 @@ func TestParseGetParams(t *testing.T) {
 			if c.muxVars != nil {
 				r = mux.SetURLVars(r, *c.muxVars)
 			}
+			setRefStringFromMuxVars(r)
 			args := &lib.GetParams{}
 			err := UnmarshalParams(r, args)
 			if err != nil {
@@ -326,6 +326,7 @@ func TestParseGetParams(t *testing.T) {
 			if c.muxVars != nil {
 				r = mux.SetURLVars(r, *c.muxVars)
 			}
+			setRefStringFromMuxVars(r)
 			args := &lib.GetParams{}
 			err := UnmarshalParams(r, args)
 			if err == nil {
@@ -344,13 +345,14 @@ func TestParseGetParamsAcceptHeader(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/get/peer/my_ds", nil)
 	r.Header.Add("Accept", "text/csv")
 	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
+	setRefStringFromMuxVars(r)
 	args := &lib.GetParams{}
 	err := UnmarshalParams(r, args)
 	if err != nil {
 		t.Fatal(err)
 	}
 	expectArgs := &lib.GetParams{
-		Ref:      dsref.Ref{Username: "peer", Name: "my_ds"},
+		Refstr:   "peer/my_ds",
 		Selector: "body",
 		Format:   "csv",
 		All:      true,
@@ -364,6 +366,7 @@ func TestParseGetParamsAcceptHeader(t *testing.T) {
 	r, _ = http.NewRequest("GET", "/get/peer/my_ds?format=csv", nil)
 	r.Header.Add("Accept", "text/csv")
 	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
+	setRefStringFromMuxVars(r)
 	args = &lib.GetParams{}
 	err = UnmarshalParams(r, args)
 	if err != nil {
@@ -377,6 +380,7 @@ func TestParseGetParamsAcceptHeader(t *testing.T) {
 	r, _ = http.NewRequest("GET", "/get/peer/my_ds?format=json", nil)
 	r.Header.Add("Accept", "text/csv")
 	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
+	setRefStringFromMuxVars(r)
 	args = &lib.GetParams{}
 	err = UnmarshalParams(r, args)
 	if err == nil {
@@ -461,11 +465,11 @@ func TestDatasetGet(t *testing.T) {
 	assertStatusCode(t, "get meta component", actualStatusCode, 200)
 
 	// Can get at an ipfs version
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "hash": "mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "fs": "mem", "hash": "QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr"})
 	assertStatusCode(t, "get at content-addressed version", actualStatusCode, 200)
 
 	// Error 404 if ipfs version doesn't exist
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "hash": "mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "fs": "mem", "hash": "QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6"})
 	assertStatusCode(t, "get missing content-addressed version", actualStatusCode, 404)
 
 	// Error 400 due to unknown component

@@ -206,7 +206,7 @@ func (m *DatasetMethods) ListRawRefs(p *ListParams, text *string) error {
 
 // GetParams defines parameters for looking up the head or body of a dataset
 type GetParams struct {
-	Ref dsref.Ref `json:"ref"`
+	Refstr string `json:"ref"`
 
 	Selector string `json:"selector"`
 
@@ -225,7 +225,7 @@ type GetParams struct {
 	Remote      string `json:"remote"`
 }
 
-// SetNonZeroDefaults sets OrderBy to "created" if it's value is the empty string
+// SetNonZeroDefaults assigns default values
 func (p *GetParams) SetNonZeroDefaults() {
 	if p.Format == "" {
 		p.Format = "json"
@@ -280,34 +280,14 @@ func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
 	}
 
 	params := *p
+	params.Refstr = r.FormValue("refstr")
 
-	if params.Ref.IsEmpty() {
-		ref := &dsref.Ref{}
-
-		if pn, ok := mvars["peername"]; ok {
-			ref.Username = pn
-		}
-		if dn, ok := mvars["name"]; ok {
-			ref.Name = dn
-		}
-		if hs, ok := mvars["hash"]; ok {
-			if hs != "" {
-				hs = fmt.Sprintf("/%s", hs)
-			}
-			ref.Path = hs
-		}
-		if ref.IsEmpty() {
-			return fmt.Errorf("no reference provided")
-		}
-		params.Ref = *ref
-	}
-
-	if params.Ref.Username == "me" {
-		return fmt.Errorf("username \"me\" not allowed")
-	}
-
-	if _, err := dsref.Parse(params.Ref.String()); err != nil {
+	ref, err := dsref.Parse(params.Refstr)
+	if err != nil {
 		return err
+	}
+	if ref.Username == "me" {
+		return fmt.Errorf("username \"me\" not allowed")
 	}
 
 	if sel, ok := mvars["selector"]; ok && params.Selector == "" {
@@ -411,7 +391,7 @@ func (m *DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, err
 	}
 
 	var ds *dataset.Dataset
-	ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref.String(), p.Remote)
+	ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, p.Remote)
 	if err != nil {
 		return nil, err
 	}
@@ -1389,7 +1369,7 @@ func (m *DatasetMethods) DAGInfo(s *DAGInfoParams, i *dag.Info) error {
 // StatsParams defines the params for a Stats request
 type StatsParams struct {
 	// string representation of a dataset reference
-	Ref dsref.Ref
+	Refstr string
 	// if we get a Dataset from the params, then we do not have to
 	// attempt to open a dataset from the reference
 	Dataset *dataset.Dataset
@@ -1400,7 +1380,7 @@ func (m *DatasetMethods) Stats(ctx context.Context, p *StatsParams) (*dataset.St
 	if m.inst.http != nil {
 		res := &dataset.Stats{}
 		params := &GetParams{
-			Ref:      p.Ref,
+			Refstr:   p.Refstr,
 			Selector: "stats",
 		}
 		err := m.inst.http.Call(ctx, AEGet, params, res)
@@ -1410,14 +1390,14 @@ func (m *DatasetMethods) Stats(ctx context.Context, p *StatsParams) (*dataset.St
 		return res, nil
 	}
 
-	if p.Ref.IsEmpty() && p.Dataset == nil {
+	if p.Refstr == "" && p.Dataset == nil {
 		return nil, fmt.Errorf("either a reference or dataset is required")
 	}
 
 	ds := p.Dataset
 	if ds == nil {
 		// TODO (b5) - stats is currently local-only, supply a source parameter
-		ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref.String(), "local")
+		ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, "local")
 		if err != nil {
 			return nil, err
 		}
