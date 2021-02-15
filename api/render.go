@@ -24,7 +24,7 @@ func NewRenderHandlers(inst *lib.Instance) *RenderHandlers {
 // RenderHandler renders a given dataset ref
 func (h *RenderHandlers) RenderHandler(w http.ResponseWriter, r *http.Request) {
 	p := &lib.RenderParams{
-		Ref:       HTTPPathToQriPath(r.URL.Path[len("/render"):]),
+		Ref:       lib.HTTPPathToQriPath(r.URL.Path[len("/render"):]),
 		OutFormat: "html",
 	}
 

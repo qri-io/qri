@@ -15,7 +15,7 @@ func TestRPCRequest(t *testing.T) {
 
 	adnanInst := tr.InitAdnan(t)
 
-	ref := InitWorldBankDataset(t, adnanInst)
+	ref := InitWorldBankDataset(tr.Ctx, t, adnanInst)
 
 	repoLockCtx, closeAdnanInst := context.WithCancel(context.Background())
 	defer closeAdnanInst()

@@ -193,8 +193,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	dsh := NewDatasetHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle(lib.AEList.String(), s.Middleware(dsh.ListHandler))
 	m.Handle(lib.AEPeerList.String(), s.Middleware(dsh.PeerListHandler))
-	m.Handle(lib.AESave.String(), s.Middleware(dsh.SaveHandler))
-	m.Handle(lib.AESaveAlt.String(), s.Middleware(dsh.SaveHandler))
+	handleRefRoute(m, lib.AESave, s.Middleware(dsh.SaveHandler))
 	m.Handle(lib.AERemove.String(), s.Middleware(dsh.RemoveHandler))
 	handleRefRoute(m, lib.AEGet, s.Middleware(dsh.GetHandler))
 	m.Handle(lib.AERename.String(), s.Middleware(dsh.RenameHandler))
@@ -288,7 +287,9 @@ func UnmarshalParams(r *http.Request, p interface{}) error {
 			// this avoids resolving on empty body requests
 			// and tries to handle it almost like a GET
 			if err != io.EOF {
-				return json.NewDecoder(body).Decode(p)
+				if err := json.NewDecoder(body).Decode(p); err != nil {
+					return err
+				}
 			}
 		}
 	}

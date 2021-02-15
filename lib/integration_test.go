@@ -26,7 +26,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	nasim := tr.InitNasim(t)
 
 	// - nasim creates a dataset
-	ref := InitWorldBankDataset(t, nasim)
+	ref := InitWorldBankDataset(tr.Ctx, t, nasim)
 
 	// - nasim publishes to the registry
 	PushToRegistry(t, nasim, ref.Alias())
@@ -62,7 +62,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	}
 
 	// 5. nasim commits a new version
-	ref = Commit2WorldBank(t, nasim)
+	ref = Commit2WorldBank(tr.Ctx, t, nasim)
 
 	// 6. nasim re-publishes to the registry
 	PushToRegistry(t, nasim, ref.Alias())
@@ -103,7 +103,7 @@ func TestAddCheckoutIntegration(t *testing.T) {
 	nasim := tr.InitNasim(t)
 
 	// - nasim creates a dataset, publishes to registry
-	ref := InitWorldBankDataset(t, nasim)
+	ref := InitWorldBankDataset(tr.Ctx, t, nasim)
 	PushToRegistry(t, nasim, ref.Alias())
 
 	hinshun := tr.InitHinshun(t)
@@ -128,7 +128,7 @@ func TestReferencePulling(t *testing.T) {
 	nasim := tr.InitNasim(t)
 
 	// - nasim creates a dataset, publishes to registry
-	ref := InitWorldBankDataset(t, nasim)
+	ref := InitWorldBankDataset(tr.Ctx, t, nasim)
 	PushToRegistry(t, nasim, ref.Alias())
 
 	// - nasim's local repo should reflect publication
@@ -192,8 +192,8 @@ def transform(ds, ctx):
 		},
 		Apply: true,
 	}
-	res := &dataset.Dataset{}
-	if err := dsm.Save(saveParams, res); err != nil {
+	_, err = dsm.Save(tr.Ctx, saveParams)
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -378,9 +378,8 @@ func AssertLogsEqual(a, b *Instance, ref dsref.Ref) error {
 	return nil
 }
 
-func InitWorldBankDataset(t *testing.T, inst *Instance) dsref.Ref {
-	res := &dataset.Dataset{}
-	err := NewDatasetMethods(inst).Save(&SaveParams{
+func InitWorldBankDataset(ctx context.Context, t *testing.T, inst *Instance) dsref.Ref {
+	res, err := NewDatasetMethods(inst).Save(ctx, &SaveParams{
 		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
 			Meta: &dataset.Meta{
@@ -394,7 +393,7 @@ d,e,f,false,3`),
 				ScriptBytes: []byte("#World Bank Population\nhow many people live on this planet?"),
 			},
 		},
-	}, res)
+	})
 
 	if err != nil {
 		log.Fatalf("saving dataset version: %s", err)
@@ -403,9 +402,8 @@ d,e,f,false,3`),
 	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
 }
 
-func Commit2WorldBank(t *testing.T, inst *Instance) dsref.Ref {
-	res := &dataset.Dataset{}
-	err := NewDatasetMethods(inst).Save(&SaveParams{
+func Commit2WorldBank(ctx context.Context, t *testing.T, inst *Instance) dsref.Ref {
+	res, err := NewDatasetMethods(inst).Save(ctx, &SaveParams{
 		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
 			Meta: &dataset.Meta{
@@ -416,7 +414,7 @@ func Commit2WorldBank(t *testing.T, inst *Instance) dsref.Ref {
 d,e,f,false,3
 g,g,i,true,4`),
 		},
-	}, res)
+	})
 
 	if err != nil {
 		log.Fatalf("saving dataset version: %s", err)

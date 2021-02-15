@@ -40,7 +40,7 @@ func (h *RemoteClientHandlers) PushHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ref, err := DatasetRefFromPath(r.URL.Path[len("/push"):])
+	ref, err := lib.DsRefFromPath(r.URL.Path[len("/push"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -109,7 +109,7 @@ func (h *RemoteClientHandlers) DatasetPreviewHandler(w http.ResponseWriter, r *h
 func (h *RemoteClientHandlers) previewHandler(w http.ResponseWriter, r *http.Request) {
 	p := &lib.PreviewParams{
 		RemoteName: r.FormValue("remote"),
-		Ref:        HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/preview/")),
+		Ref:        lib.HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/preview/")),
 	}
 	res := &dataset.Dataset{}
 	if err := h.Preview(p, res); err != nil {

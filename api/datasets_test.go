@@ -39,7 +39,7 @@ func TestDatasetHandlers(t *testing.T) {
 
 	// TODO: Remove this case, update API snapshot.
 	saveCases := []handlerTestCase{
-		{"POST", "/", mustFile(t, "testdata/newRequestFromURL.json"), nil},
+		{"POST", "/?new=true", mustFile(t, "testdata/newRequestFromURL.json"), nil},
 		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "init", h.SaveHandler, saveCases, true)
@@ -111,9 +111,9 @@ func TestDatasetHandlers(t *testing.T) {
 				"metadata":  "testdata/cities/meta.json",
 			},
 			map[string]string{
-				"peername": "peer",
-				"name":     "cities",
-				"private":  "true",
+				"ref":     "peer/cities",
+				"name":    "cities",
+				"private": "true",
 			},
 		},
 		{"POST", "/save",

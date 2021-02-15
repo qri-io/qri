@@ -1,14 +1,18 @@
 package lib
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -77,7 +81,8 @@ func TestDatasetRequestsSave(t *testing.T) {
 	m := NewDatasetMethods(inst)
 
 	privateErrMsg := "option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates"
-	if err := m.Save(&SaveParams{Private: true}, nil); err == nil {
+	_, err = m.Save(ctx, &SaveParams{Private: true})
+	if err == nil {
 		t.Errorf("expected datset to error")
 	} else if err.Error() != privateErrMsg {
 		t.Errorf("private flag error mismatch: expected: '%s', got: '%s'", privateErrMsg, err.Error())
@@ -94,8 +99,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 
 	for i, c := range good {
-		got := &dataset.Dataset{}
-		err := m.Save(&c.params, got)
+		got, err := m.Save(ctx, &c.params)
 		if err != nil {
 			t.Errorf("case %d: '%s' unexpected error: %s", i, c.description, err.Error())
 			continue
@@ -121,8 +125,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 
 	for i, c := range bad {
-		got := &dataset.Dataset{}
-		err := m.Save(&c.params, got)
+		_, err := m.Save(ctx, &c.params)
 		if err == nil {
 			t.Errorf("case %d: '%s' returned no error", i, c.description)
 		}
@@ -152,15 +155,16 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
-	res := &dataset.Dataset{}
-	if err := m.Save(&SaveParams{Ref: ref.Alias()}, res); err == nil {
+	_, err := m.Save(ctx, &SaveParams{Ref: ref.Alias()})
+	if err == nil {
 		t.Error("expected empty save without force flag to error")
 	}
 
-	if err := m.Save(&SaveParams{
+	_, err = m.Save(ctx, &SaveParams{
 		Ref:   ref.Alias(),
 		Force: true,
-	}, res); err != nil {
+	})
+	if err != nil {
 		t.Errorf("expected empty save with flag to not error. got: %s", err.Error())
 	}
 }
@@ -180,10 +184,9 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
-	res := &dataset.Dataset{}
 	// TODO (b5): import.zip has a ref.txt file that specifies test_user/test_repo as the dataset name,
 	// save now requires a string reference. we need to pick a behaviour here & write a test that enforces it
-	err = m.Save(&SaveParams{Ref: "me/huh", FilePaths: []string{"testdata/import.zip"}}, res)
+	res, err := m.Save(ctx, &SaveParams{Ref: "me/huh", FilePaths: []string{"testdata/import.zip"}})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -876,8 +879,8 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 
 	// add a commit to craigslist
-	saveRes := &dataset.Dataset{}
-	if err := dsm.Save(&SaveParams{Ref: "peer/craigslist", Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh word"}}}, saveRes); err != nil {
+	_, err = dsm.Save(ctx, &SaveParams{Ref: "peer/craigslist", Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh word"}}})
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -1297,4 +1300,70 @@ func TestListRawRefs(t *testing.T) {
 	if diff := cmp.Diff(expect, text); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
+}
+
+func TestFormFileDataset(t *testing.T) {
+	r := newFormFileRequest(t, nil, nil)
+	dsp := &dataset.Dataset{}
+	if err := formFileDataset(r, dsp); err != nil {
+		t.Error("expected 'empty' request to be ok")
+	}
+
+	r = newFormFileRequest(t, map[string]string{
+		"file":      dstestTestdataFile("complete/input.dataset.json"),
+		"viz":       dstestTestdataFile("complete/template.html"),
+		"transform": dstestTestdataFile("complete/transform.star"),
+		"body":      dstestTestdataFile("complete/body.csv"),
+	}, nil)
+	if err := formFileDataset(r, dsp); err != nil {
+		t.Error(err)
+	}
+
+	r = newFormFileRequest(t, map[string]string{
+		"file": "testdata/dataset.yml",
+		"body": dstestTestdataFile("complete/body.csv"),
+	}, nil)
+	if err := formFileDataset(r, dsp); err != nil {
+		t.Error(err)
+	}
+}
+
+func newFormFileRequest(t *testing.T, files, params map[string]string) *http.Request {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	for name, path := range files {
+		data, err := os.Open(path)
+		if err != nil {
+			t.Fatalf("error opening datafile: %s %s", name, err)
+		}
+		dataPart, err := writer.CreateFormFile(name, filepath.Base(path))
+		if err != nil {
+			t.Fatalf("error adding data file to form: %s %s", name, err)
+		}
+
+		if _, err := io.Copy(dataPart, data); err != nil {
+			t.Fatalf("error copying data: %s", err)
+		}
+	}
+
+	for key, val := range params {
+		if err := writer.WriteField(key, val); err != nil {
+			t.Fatalf("error adding field to writer: %s", err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		t.Fatalf("error closing writer: %s", err)
+	}
+
+	req := httptest.NewRequest("POST", "/", body)
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+	return req
+}
+
+func dstestTestdataFile(path string) string {
+	_, currfile, _, _ := runtime.Caller(0)
+	testdataPath := filepath.Join(filepath.Dir(currfile), "testdata")
+	return filepath.Join(testdataPath, path)
 }

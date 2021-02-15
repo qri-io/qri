@@ -64,6 +64,15 @@ var (
 
 // Parse a reference from a string
 func Parse(text string) (Ref, error) {
+	return parse(text, false)
+}
+
+// ParsePeerRef a reference from a string where the dataset name is non-mandatory
+func ParsePeerRef(text string) (Ref, error) {
+	return parse(text, true)
+}
+
+func parse(text string, peerRef bool) (Ref, error) {
 	var r Ref
 	origLength := len(text)
 	if origLength == 0 {
@@ -75,6 +84,8 @@ func Parse(text string) (Ref, error) {
 		text = remain
 		r.Username = partial.Username
 		r.Name = partial.Name
+	} else if err.Error() == needUsernameSeparatedErr && peerRef == true {
+		return partial, nil
 	} else if err == ErrUnexpectedChar {
 		// This error must only be returned when the topic string is non-empty, so it's safe to
 		// index it at position 0.
@@ -208,6 +219,8 @@ func EnsureValidUsername(text string) error {
 	return err
 }
 
+const needUsernameSeparatedErr = "need username separated by '/' from dataset name"
+
 // parse the front of a dataset reference, the human friendly portion
 func parseHumanFriendlyPortion(text string) (string, Ref, error) {
 	var r Ref
@@ -220,7 +233,7 @@ func parseHumanFriendlyPortion(text string) (string, Ref, error) {
 	text = text[len(match):]
 	// Check if the remaining text is empty, or there's not a slash next
 	if text == "" {
-		return text, r, NewParseError("need username separated by '/' from dataset name")
+		return text, r, NewParseError(needUsernameSeparatedErr)
 	} else if text[0] != '/' {
 		return text, r, ErrUnexpectedChar
 	}

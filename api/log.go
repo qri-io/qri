@@ -36,7 +36,7 @@ func (h *LogHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := DatasetRefFromPath(r.URL.Path[len("/history"):])
+	args, err := lib.DsRefFromPath(r.URL.Path[len("/history"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -48,7 +48,7 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lp := lib.ListParamsFromRequest(r)
-	lp.Peername = args.Peername
+	lp.Peername = args.Username
 
 	local := r.FormValue("local") == "true"
 	remoteName := r.FormValue("remote")

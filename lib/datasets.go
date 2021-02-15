@@ -19,6 +19,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
@@ -318,7 +319,9 @@ func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
 		return fmt.Errorf("invalid extension format")
 	}
 
-	params.Remote = r.FormValue("remote")
+	if params.Remote == "" {
+		params.Remote = r.FormValue("remote")
+	}
 
 	// TODO(arqu): we default to true but should implement a guard and/or respect the page params
 	params.All = true
@@ -618,7 +621,7 @@ type SaveParams struct {
 	Secrets map[string]string
 	// optional writer to have transform script record standard output to
 	// note: this won't work over RPC, only on local calls
-	ScriptOutput io.Writer
+	ScriptOutput io.Writer `json:"-"`
 
 	// TODO(dustmop): add `Wait bool`, if false, run the save asynchronously
 	// and return events on the bus that provide the progress of the save operation
@@ -645,40 +648,112 @@ type SaveParams struct {
 	UseDscache bool
 }
 
-// AbsolutizePaths converts any relative path references to their absolute
-// variations, safe to call on a nil instance
-func (p *SaveParams) AbsolutizePaths() error {
-	if p == nil {
-		return nil
-	}
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *SaveParams) UnmarshalFromRequest(r *http.Request) error {
 
-	for i := range p.FilePaths {
-		if err := qfs.AbsPath(&p.FilePaths[i]); err != nil {
+	if p.Dataset != nil || r.Header.Get("Content-Type") == "application/json" {
+		if p.Dataset == nil {
+			p.Dataset = &dataset.Dataset{}
+		}
+		pRef := p.Ref
+
+		if pRef == "" {
+			pRef = r.FormValue("refstr")
+		}
+
+		args, err := dsref.Parse(pRef)
+		if err != nil {
+			if err == dsref.ErrEmptyRef && r.FormValue("new") == "true" {
+				err = nil
+			} else {
+				return err
+			}
+		}
+		if args.Username != "" {
+			p.Dataset.Peername = args.Username
+			p.Dataset.Name = args.Name
+		}
+	} else {
+		if p.Dataset == nil {
+			p.Dataset = &dataset.Dataset{}
+		}
+		if err := formFileDataset(r, p.Dataset); err != nil {
 			return err
 		}
 	}
 
-	if err := qfs.AbsPath(&p.BodyPath); err != nil {
-		return fmt.Errorf("body file: %w", err)
+	// TODO (b5) - this should probably be handled by lib
+	// DatasetMethods.Save should fold the provided dataset values *then* attempt
+	// to extract a valid dataset reference from the resulting dataset,
+	// and use that as a save target.
+	ref := reporef.DatasetRef{
+		Name:     p.Dataset.Name,
+		Peername: p.Dataset.Peername,
 	}
+
+	if p.Ref == "" {
+		p.Ref = ref.AliasString()
+	}
+	if v := r.FormValue("apply"); v != "" {
+		p.Apply = v == "true"
+	}
+	if v := r.FormValue("private"); v != "" {
+		p.Private = v == "true"
+	}
+	if v := r.FormValue("force"); v != "" {
+		p.Force = v == "true"
+	}
+	if v := r.FormValue("no_render"); v != "" {
+		p.ShouldRender = !(v == "true")
+	}
+	if v := r.FormValue("new"); v != "" {
+		p.NewName = v == "true"
+	}
+	if v := r.FormValue("bodypath"); v != "" {
+		p.BodyPath = v
+	}
+	if v := r.FormValue("drop"); v != "" {
+		p.Drop = v
+	}
+
+	if r.FormValue("secrets") != "" {
+		p.Secrets = map[string]string{}
+		if err := json.Unmarshal([]byte(r.FormValue("secrets")), &p.Secrets); err != nil {
+			return fmt.Errorf("parsing secrets: %s", err)
+		}
+	} else if p.Dataset.Transform != nil && p.Dataset.Transform.Secrets != nil {
+		// TODO remove this, require API consumers to send secrets separately
+		p.Secrets = p.Dataset.Transform.Secrets
+	}
+
 	return nil
 }
 
+// SetNonZeroDefaults sets basic save path params to defaults
+func (p *SaveParams) SetNonZeroDefaults() {
+	p.ConvertFormatToPrev = true
+}
+
 // Save adds a history entry, updating a dataset
-func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
+func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Dataset, error) {
 	log.Debugf("DatasetMethods.Save p=%v", p)
-	if m.inst.rpc != nil {
+	res := &dataset.Dataset{}
+
+	if m.inst.http != nil {
 		p.ScriptOutput = nil
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Save", p, res))
+		err := m.inst.http.Call(ctx, AESave, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
 
 	var (
-		ctx       = context.TODO()
 		writeDest = m.inst.qfs.DefaultWriteFS() // filesystem dataset will be written to
 	)
 
 	if p.Private {
-		return fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
+		return nil, fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}
 
 	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
@@ -704,7 +779,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		// TODO (b5): handle this with a qfs.Filesystem
 		dsf, err := ReadDatasetFiles(p.FilePaths...)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		dsf.Assign(ds)
 		ds = dsf
@@ -716,17 +791,17 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 
 	resolver, err := m.inst.resolverForMode("local")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	pro, err := m.inst.repo.Profile(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ref, isNew, err := base.PrepareSaveRef(ctx, pro, m.inst.logbook, resolver, p.Ref, ds.BodyPath, p.NewName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	success := false
@@ -753,7 +828,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 			fsiPath = fsi.FilesystemPathToLocal(fsiRef.Path)
 			fsiDs, err := fsi.ReadDir(fsiPath)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			fsiDs.Assign(ds)
 			ds = fsiDs
@@ -769,18 +844,18 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		ds.Readme == nil &&
 		ds.Viz == nil &&
 		ds.Transform == nil {
-		return fmt.Errorf("no changes to save")
+		return nil, fmt.Errorf("no changes to save")
 	}
 
 	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 		log.Debugf("open ds error: %s", err.Error())
-		return err
+		return nil, err
 	}
 
 	// If applying a transform, execute its script before saving
 	if p.Apply {
 		if ds.Transform == nil {
-			return fmt.Errorf("cannot apply while saving without a transform")
+			return nil, fmt.Errorf("cannot apply while saving without a transform")
 		}
 		str := m.inst.node.LocalStreams
 		scriptOut := p.ScriptOutput
@@ -811,12 +886,12 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		shouldWait := true
 		err := transform.Apply(ctx, ds, loader, runID, m.inst.bus, shouldWait, str, scriptOut, secrets)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if fsiPath != "" && p.Drop != "" {
-		return qrierr.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
+		return nil, qrierr.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
 	}
 
 	fileHint := p.BodyPath
@@ -837,7 +912,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 	savedDs, err := base.SaveDataset(ctx, m.inst.repo, writeDest, ref.InitID, ref.Path, ds, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
-		return err
+		return nil, err
 	}
 
 	success = true
@@ -847,7 +922,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 		vi := dsref.ConvertDatasetToVersionInfo(savedDs)
 		vi.FSIPath = fsiPath
 		if err = repo.PutVersionInfoShim(ctx, m.inst.repo, &vi); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -860,7 +935,7 @@ func (m *DatasetMethods) Save(p *SaveParams, res *dataset.Dataset) error {
 			log.Error(writeErr)
 		}
 	}
-	return nil
+	return res, nil
 }
 
 // RenameParams defines parameters for Dataset renaming
@@ -1409,4 +1484,121 @@ func (m *DatasetMethods) Stats(ctx context.Context, p *StatsParams) (*dataset.St
 	}
 
 	return m.inst.stats.Stats(ctx, ds)
+}
+
+// formFileDataset extracts a dataset document from a http Request
+func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
+	datafile, dataHeader, err := r.FormFile("file")
+	if err == http.ErrMissingFile {
+		err = nil
+	} else if err != nil {
+		err = fmt.Errorf("error opening dataset file: %s", err)
+		return
+	}
+	if datafile != nil {
+		switch strings.ToLower(filepath.Ext(dataHeader.Filename)) {
+		case ".yaml", ".yml":
+			var data []byte
+			data, err = ioutil.ReadAll(datafile)
+			if err != nil {
+				err = fmt.Errorf("reading dataset file: %w", err)
+				return
+			}
+			fields := &map[string]interface{}{}
+			if err = yaml.Unmarshal(data, fields); err != nil {
+				err = fmt.Errorf("deserializing YAML file: %w", err)
+				return
+			}
+			if err = fill.Struct(*fields, ds); err != nil {
+				return
+			}
+		case ".json":
+			if err = json.NewDecoder(datafile).Decode(ds); err != nil {
+				err = fmt.Errorf("error decoding json file: %s", err)
+				return
+			}
+		}
+	}
+
+	if peername := r.FormValue("peername"); peername != "" {
+		ds.Peername = peername
+	}
+	if name := r.FormValue("name"); name != "" {
+		ds.Name = name
+	}
+	if bp := r.FormValue("body_path"); bp != "" {
+		ds.BodyPath = bp
+	}
+
+	tfFile, tfHeader, err := r.FormFile("transform")
+	if err == http.ErrMissingFile {
+		err = nil
+	} else if err != nil {
+		err = fmt.Errorf("error opening transform file: %s", err)
+		return
+	}
+	if tfFile != nil {
+		var tfData []byte
+		if tfData, err = ioutil.ReadAll(tfFile); err != nil {
+			return
+		}
+		if ds.Transform == nil {
+			ds.Transform = &dataset.Transform{}
+		}
+		ds.Transform.Syntax = "starlark"
+		ds.Transform.ScriptBytes = tfData
+		ds.Transform.ScriptPath = tfHeader.Filename
+	}
+
+	vizFile, vizHeader, err := r.FormFile("viz")
+	if err == http.ErrMissingFile {
+		err = nil
+	} else if err != nil {
+		err = fmt.Errorf("error opening viz file: %s", err)
+		return
+	}
+	if vizFile != nil {
+		var vizData []byte
+		if vizData, err = ioutil.ReadAll(vizFile); err != nil {
+			return
+		}
+		if ds.Viz == nil {
+			ds.Viz = &dataset.Viz{}
+		}
+		ds.Viz.Format = "html"
+		ds.Viz.ScriptBytes = vizData
+		ds.Viz.ScriptPath = vizHeader.Filename
+	}
+
+	bodyfile, bodyHeader, err := r.FormFile("body")
+	if err == http.ErrMissingFile {
+		err = nil
+	} else if err != nil {
+		err = fmt.Errorf("error opening body file: %s", err)
+		return
+	}
+	if bodyfile != nil {
+		var bodyData []byte
+		if bodyData, err = ioutil.ReadAll(bodyfile); err != nil {
+			return
+		}
+		ds.BodyPath = bodyHeader.Filename
+		ds.BodyBytes = bodyData
+
+		if ds.Structure == nil {
+			// TODO - this is silly and should move into base.PrepareDataset funcs
+			ds.Structure = &dataset.Structure{}
+			format, err := detect.ExtensionDataFormat(bodyHeader.Filename)
+			if err != nil {
+				return err
+			}
+			st, _, err := detect.FromReader(format, bytes.NewReader(ds.BodyBytes))
+			if err != nil {
+				return err
+			}
+			ds.Structure = st
+		}
+	}
+
+	return
 }

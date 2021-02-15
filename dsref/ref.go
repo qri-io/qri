@@ -49,6 +49,11 @@ func (r Ref) IsEmpty() bool {
 	return r.InitID == "" && r.Username == "" && r.ProfileID == "" && r.Name == "" && r.Path == ""
 }
 
+// IsPeerRef returns true if only Peername is set
+func (r Ref) IsPeerRef() bool {
+	return (r.Username != "" || r.ProfileID != "") && r.Name == "" && r.Path == "" && r.InitID == ""
+}
+
 // Complete returns true if all fields are populated
 func (r Ref) Complete() bool {
 	return r.InitID != "" && r.Username != "" && r.ProfileID != "" && r.Name != "" && r.Path != ""
