@@ -18,7 +18,6 @@ func TestHistoryHandlers(t *testing.T) {
 
 	inst := lib.NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 
-	res := &dataset.Dataset{}
 	p := &lib.SaveParams{
 		Ref: "me/cities",
 		Dataset: &dataset.Dataset{
@@ -28,7 +27,8 @@ func TestHistoryHandlers(t *testing.T) {
 		},
 		Private: false,
 	}
-	if err := lib.NewDatasetMethods(inst).Save(p, res); err != nil {
+	_, err := lib.NewDatasetMethods(inst).Save(ctx, p)
+	if err != nil {
 		t.Fatalf("error writing dataset update: %s", err.Error())
 	}
 

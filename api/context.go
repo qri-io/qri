@@ -3,11 +3,14 @@ package api
 import (
 	"context"
 	"net/http"
-	"strings"
 
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/lib"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
+
+// TODO(arqu): this needs to be reworked once are done with the
+// RPC > HTTP transition and should move from query params to context params
 
 // QriCtxKey defines a distinct type for
 // keys for context values should always use custom
@@ -21,17 +24,11 @@ const DatasetRefCtxKey QriCtxKey = "datasetRef"
 
 // DatasetRefFromReq examines the path element of a request URL
 // to
-func DatasetRefFromReq(r *http.Request) (reporef.DatasetRef, error) {
+func DatasetRefFromReq(r *http.Request) (dsref.Ref, error) {
 	if r.URL.String() == "" || r.URL.Path == "" {
-		return reporef.DatasetRef{}, nil
+		return dsref.Ref{}, nil
 	}
-	return DatasetRefFromPath(r.URL.Path)
-}
-
-// DatasetRefFromPath parses a path and returns a datasetRef
-func DatasetRefFromPath(path string) (reporef.DatasetRef, error) {
-	refstr := HTTPPathToQriPath(path)
-	return repo.ParseDatasetRef(refstr)
+	return lib.DsRefFromPath(r.URL.Path)
 }
 
 // DatasetRefFromCtx extracts a Dataset reference from a given
@@ -42,17 +39,4 @@ func DatasetRefFromCtx(ctx context.Context) reporef.DatasetRef {
 		return ref
 	}
 	return reporef.DatasetRef{}
-}
-
-// HTTPPathToQriPath converts a http path to a
-// qri path
-func HTTPPathToQriPath(path string) string {
-	paramIndex := strings.Index(path, "?")
-	if paramIndex != -1 {
-		path = path[:paramIndex]
-	}
-	// TODO(dustmop): If a user has a dataset named "at", this breaks
-	path = strings.Replace(path, "/at/", "@/", 1)
-	path = strings.TrimPrefix(path, "/")
-	return path
 }

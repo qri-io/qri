@@ -213,6 +213,31 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	h.replyWithGetResponse(w, r, &params, result)
 }
 
+// inlineScriptsToBytes consumes all open script files for dataset components
+// other than the body, inlining file data to scriptBytes fields
+func inlineScriptsToBytes(ds *dataset.Dataset) error {
+	var err error
+	if ds.Readme != nil && ds.Readme.ScriptFile() != nil {
+		if ds.Readme.ScriptBytes, err = ioutil.ReadAll(ds.Readme.ScriptFile()); err != nil {
+			return err
+		}
+	}
+
+	if ds.Transform != nil && ds.Transform.ScriptFile() != nil {
+		if ds.Transform.ScriptBytes, err = ioutil.ReadAll(ds.Transform.ScriptFile()); err != nil {
+			return err
+		}
+	}
+
+	if ds.Viz != nil && ds.Viz.ScriptFile() != nil {
+		if ds.Viz.ScriptBytes, err = ioutil.ReadAll(ds.Viz.ScriptFile()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // replyWithGetResponse writes an http response back to the client, based upon what sort of
 // response they requested. Handles raw file downloads (without response wrappers), zip downloads,
 // body pagination, as well as normal head responses. Input logic has already been handled
@@ -328,7 +353,7 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 		// TODO - let's not ignore this error
 		p.ProfileID, _ = profile.IDB58Decode(profileID)
 	} else {
-		ref, err := DatasetRefFromPath(r.URL.Path[len("/list/"):])
+		ref, err := lib.DsRefFromPath(r.URL.Path[len("/list/"):])
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
@@ -337,7 +362,7 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 			util.WriteErrResponse(w, http.StatusBadRequest, errors.New("request needs to be in the form '/list/[peername]'"))
 			return
 		}
-		p.Peername = ref.Peername
+		p.Peername = ref.Username
 	}
 
 	res, err := h.List(r.Context(), &p)
@@ -353,7 +378,7 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 
 func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 	p := &lib.PullParams{
-		Ref:     HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/pull/")),
+		Ref:     lib.HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/pull/")),
 		LinkDir: r.FormValue("dir"),
 		Remote:  r.FormValue("remote"),
 	}
@@ -375,76 +400,18 @@ func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
-	ds := &dataset.Dataset{}
-
-	if r.Header.Get("Content-Type") == "application/json" {
-		err := json.NewDecoder(r.Body).Decode(ds)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		if strings.Contains(r.URL.Path, "/save/") {
-			args, err := DatasetRefFromPath(r.URL.Path[len("/save/"):])
-			if err != nil {
-				if err == repo.ErrEmptyRef && r.FormValue("new") == "true" {
-					// If saving a new dataset, name is not necessary
-					err = nil
-				} else {
-					util.WriteErrResponse(w, http.StatusBadRequest, err)
-					return
-				}
-			}
-			if args.Peername != "" {
-				ds.Peername = args.Peername
-				ds.Name = args.Name
-			}
-		}
-	} else {
-		if err := formFileDataset(r, ds); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
+	params := &lib.SaveParams{}
+	err := UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
 	}
 
-	// TODO (b5) - this should probably be handled by lib
-	// DatasetMethods.Save should fold the provided dataset values *then* attempt
-	// to extract a valid dataset reference from the resulting dataset,
-	// and use that as a save target.
-	ref := reporef.DatasetRef{
-		Name:     ds.Name,
-		Peername: ds.Peername,
-	}
-
-	res := &dataset.Dataset{}
 	scriptOutput := &bytes.Buffer{}
-	p := &lib.SaveParams{
-		Ref:          ref.AliasString(),
-		Dataset:      ds,
-		Apply:        r.FormValue("apply") == "true",
-		Private:      r.FormValue("private") == "true",
-		Force:        r.FormValue("force") == "true",
-		ShouldRender: !(r.FormValue("no_render") == "true"),
-		NewName:      r.FormValue("new") == "true",
-		BodyPath:     r.FormValue("bodypath"),
-		Drop:         r.FormValue("drop"),
+	params.ScriptOutput = scriptOutput
 
-		ConvertFormatToPrev: true,
-		ScriptOutput:        scriptOutput,
-	}
-
-	if r.FormValue("secrets") != "" {
-		p.Secrets = map[string]string{}
-		if err := json.Unmarshal([]byte(r.FormValue("secrets")), &p.Secrets); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("parsing secrets: %s", err))
-			return
-		}
-	} else if ds.Transform != nil && ds.Transform.Secrets != nil {
-		// TODO remove this, require API consumers to send secrets separately
-		p.Secrets = ds.Transform.Secrets
-	}
-
-	if err := h.Save(p, res); err != nil {
+	res, err := h.Save(r.Context(), params)
+	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -464,7 +431,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	ref := HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/remove/"))
+	ref := lib.HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/remove/"))
 
 	if remote := r.FormValue("remote"); remote != "" {
 		res := &dsref.Ref{}

@@ -52,14 +52,14 @@ func (h *FSIHandlers) StatusHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ref, err := DatasetRefFromPath(r.URL.Path[len(routePrefix):])
+		ref, err := lib.DsRefFromPath(r.URL.Path[len(routePrefix):])
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
 			return
 		}
 
 		res := []lib.StatusItem{}
-		alias := ref.AliasString()
+		alias := ref.Alias()
 		err = h.StatusForAlias(&alias, &res)
 		if err == fsi.ErrNoLink {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("no working directory: %s", alias))
@@ -94,7 +94,7 @@ func (h *FSIHandlers) WhatChangedHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) whatChangedHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ref, err := DatasetRefFromPath(r.URL.Path[len(routePrefix):])
+		ref, err := lib.DsRefFromPath(r.URL.Path[len(routePrefix):])
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
 			return
@@ -205,7 +205,7 @@ func (h *FSIHandlers) WriteHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) writeHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ref, err := DatasetRefFromPath(r.URL.Path[len(routePrefix):])
+		ref, err := lib.DsRefFromPath(r.URL.Path[len(routePrefix):])
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
 			return
@@ -218,7 +218,7 @@ func (h *FSIHandlers) writeHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		p := &lib.FSIWriteParams{
-			Ref: ref.AliasString(),
+			Ref: ref.Alias(),
 			Ds:  ds,
 		}
 
@@ -252,7 +252,7 @@ func (h *FSIHandlers) CheckoutHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) checkoutHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ref, err := DatasetRefFromPath(r.URL.Path[len(routePrefix):])
+		ref, err := lib.DsRefFromPath(r.URL.Path[len(routePrefix):])
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
 			return
@@ -293,7 +293,7 @@ func (h *FSIHandlers) RestoreHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) restoreHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ref, err := DatasetRefFromPath(r.URL.Path[len(routePrefix):])
+		ref, err := lib.DsRefFromPath(r.URL.Path[len(routePrefix):])
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
 			return

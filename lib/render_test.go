@@ -140,13 +140,12 @@ func (r *renderTestRunner) Delete() {
 
 // Save saves a version of the dataset with a body
 func (r *renderTestRunner) Save(ref string, ds *dataset.Dataset, bodyPath string) {
-	res := &dataset.Dataset{}
 	params := SaveParams{
 		Ref:      ref,
 		Dataset:  ds,
 		BodyPath: bodyPath,
 	}
-	err := r.DatasetReqs.Save(&params, res)
+	_, err := r.DatasetReqs.Save(r.Context, &params)
 	if err != nil {
 		panic(err)
 	}

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/dsref"
 )
 
@@ -19,21 +18,21 @@ func TestDatasetMethodsDiff(t *testing.T) {
 	djsOnePath := tr.MustWriteTmpFile(t, "djs_1.json", `{ "dj dj booth": { "rating": 1, "uses_soundcloud": true } }`)
 	djsTwoPath := tr.MustWriteTmpFile(t, "djs_2.json", `{ "DJ dj booth": { "rating": 1, "uses_soundcloud": true } }`)
 
-	ds1 := &dataset.Dataset{}
 	initParams := &SaveParams{
 		Ref:      "me/jobs_ranked_by_automation_prob",
 		BodyPath: jobsOnePath,
 	}
-	if err := req.Save(initParams, ds1); err != nil {
+	ds1, err := req.Save(tr.Ctx, initParams)
+	if err != nil {
 		t.Fatalf("couldn't save: %s", err.Error())
 	}
 
-	ds2 := &dataset.Dataset{}
 	initParams = &SaveParams{
 		Ref:      "me/jobs_ranked_by_automation_prob",
 		BodyPath: jobsTwoPath,
 	}
-	if err := req.Save(initParams, ds2); err != nil {
+	ds2, err := req.Save(tr.Ctx, initParams)
+	if err != nil {
 		t.Fatalf("couldn't save second revision: %s", err.Error())
 	}
 

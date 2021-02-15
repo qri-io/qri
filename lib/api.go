@@ -2,6 +2,8 @@ package lib
 
 import (
 	"strings"
+
+	"github.com/qri-io/qri/dsref"
 )
 
 // APIEndpoint is a simple alias to have a consistent definition
@@ -70,8 +72,6 @@ const (
 	AEPeerList = APIEndpoint("/list/{peer}")
 	// AESave is an endpoint for saving a dataset
 	AESave = APIEndpoint("/save")
-	// AESaveAlt is an alias for AESave
-	AESaveAlt = APIEndpoint("/save/{path:.*}")
 	// AERemove exposes the dataset remove mechanics
 	AERemove = APIEndpoint("/remove/{path:.*}")
 	// AEGet is an endpoint for fetch individual dataset components
@@ -133,3 +133,22 @@ const (
 	// AEWebUI serves the remote WebUI
 	AEWebUI = APIEndpoint("/webui")
 )
+
+// DsRefFromPath parses a path and returns a dsref.Ref
+func DsRefFromPath(path string) (dsref.Ref, error) {
+	refstr := HTTPPathToQriPath(path)
+	return dsref.ParsePeerRef(refstr)
+}
+
+// HTTPPathToQriPath converts a http path to a
+// qri path
+func HTTPPathToQriPath(path string) string {
+	paramIndex := strings.Index(path, "?")
+	if paramIndex != -1 {
+		path = path[:paramIndex]
+	}
+	// TODO(dustmop): If a user has a dataset named "at", this breaks
+	path = strings.Replace(path, "/at/", "@/", 1)
+	path = strings.TrimPrefix(path, "/")
+	return path
+}
