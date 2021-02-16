@@ -280,7 +280,9 @@ func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
 	}
 
 	params := *p
-	params.Refstr = r.FormValue("refstr")
+	if params.Refstr == "" {
+		params.Refstr = r.FormValue("refstr")
+	}
 
 	ref, err := dsref.Parse(params.Refstr)
 	if err != nil {
