@@ -133,7 +133,11 @@ func NewJournal(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesy
 
 	if err := book.load(ctx); err != nil {
 		if err == ErrNotFound {
-			err = book.initialize(ctx)
+			keyID, err := profile.KeyIDFromPriv(book.pk)
+			if err != nil {
+				return nil, err
+			}
+			err = book.initialize(ctx, keyID)
 			return book, err
 		}
 		return nil, err
@@ -145,23 +149,51 @@ func NewJournal(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesy
 	return book, nil
 }
 
-func (book *Book) initialize(ctx context.Context) error {
-	keyID, err := profile.KeyIDFromPriv(book.pk)
-	if err != nil {
-		return err
+// NewJournalOverwriteWithProfileID initializes a new logbook using the
+// given profileID. Any existing logbook will be overwritten.
+func NewJournalOverwriteWithProfileID(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesystem, location, profileID string) (*Book, error) {
+	ctx := context.Background()
+	if pk == nil {
+		return nil, fmt.Errorf("logbook: private key is required")
+	}
+	if fs == nil {
+		return nil, fmt.Errorf("logbook: filesystem is required")
+	}
+	if location == "" {
+		return nil, fmt.Errorf("logbook: location is required")
+	}
+	if profileID == "" {
+		return nil, fmt.Errorf("logbook: profileID is required")
+	}
+	if bus == nil {
+		return nil, fmt.Errorf("logbook: event.Bus is required")
 	}
 
+	book := &Book{
+		store:      &oplog.Journal{},
+		fs:         fs,
+		pk:         pk,
+		authorName: username,
+		fsLocation: location,
+		publisher:  bus,
+	}
+
+	err := book.initialize(ctx, profileID)
+	return book, err
+}
+
+func (book *Book) initialize(ctx context.Context, authorID string) error {
 	// initialize author's log of user actions
 	userActions := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     AuthorModel,
 		Name:      book.Username(),
-		AuthorID:  keyID,
+		AuthorID:  authorID,
 		Timestamp: NewTimestamp(),
 	})
 	book.authorID = userActions.ID()
 
-	if err = book.store.MergeLog(ctx, userActions); err != nil {
+	if err := book.store.MergeLog(ctx, userActions); err != nil {
 		return err
 	}
 	if al, ok := book.store.(oplog.AuthorLogstore); ok {
@@ -213,6 +245,16 @@ func (book *Book) RenameAuthor() error {
 // DeleteAuthor removes an author, used on teardown
 func (book *Book) DeleteAuthor() error {
 	return fmt.Errorf("not finished")
+}
+
+// ReplaceAll replaces the contents of the logbook with
+// the provided log data
+func (book *Book) ReplaceAll(ctx context.Context, lg *oplog.Log) error {
+	err := book.store.ReplaceAll(ctx, lg)
+	if err != nil {
+		return err
+	}
+	return book.save(ctx)
 }
 
 // save writes the book to book.fsLocation
