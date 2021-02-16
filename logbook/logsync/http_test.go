@@ -8,11 +8,7 @@ import (
 
 	cmp "github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
 )
-
-// DatasetLogItem aliases the type from logbook
-type DatasetLogItem = logbook.DatasetLogItem
 
 func TestSyncHTTP(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
@@ -42,7 +38,7 @@ func TestSyncHTTP(t *testing.T) {
 		t.Fatalf("pulling nasdaq logs %s", err.Error())
 	}
 
-	var expect, got []DatasetLogItem
+	var expect, got []dsref.VersionInfo
 	if expect, err = tr.A.Items(tr.Ctx, ref, 0, 100); err != nil {
 		t.Error(err)
 	}

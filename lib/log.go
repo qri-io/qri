@@ -6,6 +6,7 @@ import (
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 )
@@ -36,11 +37,8 @@ type LogParams struct {
 	Source string
 }
 
-// DatasetLogItem is a line item in a dataset logbook
-type DatasetLogItem = logbook.DatasetLogItem
-
 // Log returns the history of changes for a given dataset
-func (m *LogMethods) Log(params *LogParams, res *[]DatasetLogItem) error {
+func (m *LogMethods) Log(params *LogParams, res *[]dsref.VersionInfo) error {
 	if m.inst.rpc != nil {
 		return checkRPCError(m.inst.rpc.Call("LogMethods.Log", params, res))
 	}
@@ -91,7 +89,7 @@ func (m *LogMethods) Log(params *LogParams, res *[]DatasetLogItem) error {
 		}
 	}
 
-	items := logbook.ConvertLogsToItems(logs, ref)
+	items := logbook.ConvertLogsToVersionInfos(logs, ref)
 	log.Debugf("found %d items: %v", len(items), items)
 	if len(items) == 0 {
 		return repo.ErrNoHistory

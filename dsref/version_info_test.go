@@ -40,6 +40,7 @@ func TestConvertToVersionInfo(t *testing.T) {
 			Timestamp: time.Date(2000, 1, 1, 1, 1, 1, 1, time.UTC),
 			Title:     "d",
 			Message:   "e",
+			RunID:     "run-id",
 		},
 		Meta: &dataset.Meta{
 			Title: "f",
@@ -54,11 +55,13 @@ func TestConvertToVersionInfo(t *testing.T) {
 	}
 
 	expect := VersionInfo{
-		Username:   "a",
-		ProfileID:  "a's profile ID",
-		Name:       "b",
-		Path:       "c",
-		CommitTime: time.Date(2000, 1, 1, 1, 1, 1, 1, time.UTC),
+		Username:      "a",
+		ProfileID:     "a's profile ID",
+		Name:          "b",
+		Path:          "c",
+		CommitTime:    time.Date(2000, 1, 1, 1, 1, 1, 1, time.UTC),
+		CommitTitle:   "d",
+		CommitMessage: "e",
 
 		MetaTitle: "f",
 		ThemeList: "g",
@@ -67,6 +70,8 @@ func TestConvertToVersionInfo(t *testing.T) {
 		BodySize:   1,
 		NumErrors:  2,
 		BodyRows:   3,
+
+		RunID: "run-id",
 	}
 
 	got := ConvertDatasetToVersionInfo(ds)

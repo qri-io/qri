@@ -36,18 +36,16 @@ func TestDatasetLog(t *testing.T) {
 		t.Errorf("log length mismatch. expected: %d, got: %d", 1, len(log))
 	}
 
-	expect := []DatasetLogItem{
+	expect := []dsref.VersionInfo{
 		{
-			VersionInfo: dsref.VersionInfo{
-				Username:  "peer",
-				Name:      "cities",
-				ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-				// TODO (b5) - use constant time to make timestamp & path comparable
-				MetaTitle:  "this is the new title",
-				BodyFormat: "csv",
-				BodySize:   155,
-				BodyRows:   5,
-			},
+			Username:  "peer",
+			Name:      "cities",
+			ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+			// TODO (b5) - use constant time to make timestamp & path comparable
+			MetaTitle:     "this is the new title",
+			BodyFormat:    "csv",
+			BodySize:      155,
+			BodyRows:      5,
 			CommitTitle:   "initial commit",
 			CommitMessage: "created dataset",
 		},
@@ -114,14 +112,12 @@ func TestDatasetLogForeign(t *testing.T) {
 	}
 
 	// Foreign log so not counting on the commit message
-	expect := []DatasetLogItem{
+	expect := []dsref.VersionInfo{
 		{
-			VersionInfo: dsref.VersionInfo{
-				Username:  "them",
-				Name:      "foreign",
-				ProfileID: "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
-				Foreign:   true,
-			},
+			Username:    "them",
+			Name:        "foreign",
+			ProfileID:   "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
+			Foreign:     true,
 			CommitTitle: "their commit",
 		},
 	}
@@ -230,25 +226,21 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	if err := constructDatasetLogFromHistory(ctx, mr, ref); err != nil {
 		t.Errorf("building dataset history: %s", err)
 	}
-	expect := []DatasetLogItem{
+	expect := []dsref.VersionInfo{
 		{
-			VersionInfo: dsref.VersionInfo{
-				Username:  "peer",
-				BodySize:  0x9b,
-				ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-				Name:      "cities",
-			},
+			Username:      "peer",
+			BodySize:      0x9b,
+			ProfileID:     "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+			Name:          "cities",
 			CommitTitle:   "initial commit",
 			CommitMessage: "created dataset",
 		},
 		{
-			VersionInfo: dsref.VersionInfo{
-				Username:  "peer",
-				BodySize:  0x9b,
-				ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-				Name:      "cities",
-				Path:      "/map/QmaTfAQNUKqtPe2EUcCELJNprRLJWswsVPHHNhiKgZoTMR",
-			},
+			Username:      "peer",
+			BodySize:      0x9b,
+			ProfileID:     "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+			Name:          "cities",
+			Path:          "/map/QmaTfAQNUKqtPe2EUcCELJNprRLJWswsVPHHNhiKgZoTMR",
 			CommitTitle:   "initial commit",
 			CommitMessage: "created dataset",
 		},

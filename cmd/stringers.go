@@ -233,7 +233,7 @@ func (s logEntryStringer) String() string {
 	)
 }
 
-type dslogItemStringer DatasetLogItem
+type dslogItemStringer dsref.VersionInfo
 
 func (s dslogItemStringer) String() string {
 	yellow := color.New(color.FgYellow).SprintFunc()

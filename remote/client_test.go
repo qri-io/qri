@@ -111,13 +111,15 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 	expect := map[string][]dsref.VersionInfo{
 		"recent": {
 			{
-				Username:   "A",
-				Name:       "world_bank_population",
-				Path:       "/ipfs/QmXEbqJUq4d1siXAiL4tXqfm1jYrQkziqx6LyoiKqqhnwh",
-				MetaTitle:  "World Bank Population",
-				BodySize:   5,
-				BodyRows:   1,
-				BodyFormat: "json",
+				Username:      "A",
+				Name:          "world_bank_population",
+				Path:          "/ipfs/QmXEbqJUq4d1siXAiL4tXqfm1jYrQkziqx6LyoiKqqhnwh",
+				MetaTitle:     "World Bank Population",
+				BodySize:      5,
+				BodyRows:      1,
+				BodyFormat:    "json",
+				CommitTitle:   "initial commit",
+				CommitMessage: "created dataset",
 			},
 		},
 	}

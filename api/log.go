@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -35,9 +35,6 @@ func (h *LogHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DatasetLogItem aliases the type from logbook
-type DatasetLogItem = logbook.DatasetLogItem
-
 func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	args, err := DatasetRefFromPath(r.URL.Path[len("/history"):])
 	if err != nil {
@@ -64,7 +61,7 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 		remoteName = "local"
 	}
 
-	res := []DatasetLogItem{}
+	res := []dsref.VersionInfo{}
 	params := &lib.LogParams{
 		Ref:        args.String(),
 		Source:     remoteName,

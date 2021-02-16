@@ -8,12 +8,8 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 )
-
-// DatasetLogItem aliases the type from logbook
-type DatasetLogItem = logbook.DatasetLogItem
 
 // TimeoutDuration is the duration allowed for a datasetLog lookup before it times out
 const TimeoutDuration = 100 * time.Millisecond
@@ -22,7 +18,7 @@ const TimeoutDuration = 100 * time.Millisecond
 var ErrDatasetLogTimeout = fmt.Errorf("datasetLog: timeout")
 
 // DatasetLog fetches the change version history of a dataset
-func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset int, loadDatasets bool) ([]DatasetLogItem, error) {
+func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset int, loadDatasets bool) ([]dsref.VersionInfo, error) {
 	if book := r.Logbook(); book != nil {
 		if items, err := book.Items(ctx, ref, offset, limit); err == nil {
 			// logs are ok with history not existing. This keeps FSI interaction behaviour consistent
@@ -61,18 +57,12 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset i
 	if err != nil {
 		return nil, err
 	}
-	items := make([]DatasetLogItem, len(datasets))
+	items := make([]dsref.VersionInfo, len(datasets))
 	for i, ds := range datasets {
 		ds.Name = ref.Name
 		ds.Peername = ref.Username
 		ds.ProfileID = ref.ProfileID
-		items[i] = logbook.DatasetLogItem{
-			VersionInfo: dsref.ConvertDatasetToVersionInfo(ds),
-		}
-		if ds.Commit != nil {
-			items[i].CommitTitle = ds.Commit.Title
-			items[i].CommitMessage = ds.Commit.Message
-		}
+		items[i] = dsref.ConvertDatasetToVersionInfo(ds)
 	}
 
 	// add a history entry b/c we didn't have one, but repo didn't error
