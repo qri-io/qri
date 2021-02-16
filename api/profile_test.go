@@ -45,6 +45,7 @@ func TestProfileHandler(t *testing.T) {
 		{"GET", "/",
 			map[string]string{},
 			map[string]string{},
+			nil,
 		},
 	}
 	runMimeMultipartHandlerTestCases(t, "mime read", proh.ProfileHandler, mimeCases)

@@ -90,8 +90,7 @@ func TestDatasetHandlers(t *testing.T) {
 
 	removeCases := []handlerTestCase{
 		{"GET", "/", nil, nil},
-		{"POST", "/remove/peer/cities", nil, nil},
-		{"POST", "/remove/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", nil, nil},
+		{"POST", "/remove/peer/cities", nil, &map[string]string{"peername": "peer", "name": "cities"}},
 	}
 	runHandlerTestCases(t, "remove", h.RemoveHandler, removeCases, true)
 
@@ -99,6 +98,7 @@ func TestDatasetHandlers(t *testing.T) {
 		{"POST", "/remove/peer/cities",
 			map[string]string{},
 			map[string]string{},
+			&map[string]string{"peername": "peer", "name": "cities"},
 		},
 	}
 	runMimeMultipartHandlerTestCases(t, "remove mime/multipart", h.RemoveHandler, removeMimeCases)
@@ -115,6 +115,7 @@ func TestDatasetHandlers(t *testing.T) {
 				"name":    "cities",
 				"private": "true",
 			},
+			nil,
 		},
 		{"POST", "/save",
 			map[string]string{
@@ -125,6 +126,7 @@ func TestDatasetHandlers(t *testing.T) {
 				"peername": "peer",
 				"name":     "cities",
 			},
+			nil,
 		},
 		{"POST", "/save",
 			map[string]string{
@@ -136,6 +138,7 @@ func TestDatasetHandlers(t *testing.T) {
 				"peername": "peer",
 				"name":     "cities_2",
 			},
+			nil,
 		},
 	}
 	runMimeMultipartHandlerTestCases(t, "save mime/multipart", h.SaveHandler, newMimeCases)
