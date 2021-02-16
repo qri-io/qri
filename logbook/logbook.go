@@ -1132,6 +1132,7 @@ func runItemFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
 }
 
 func addCommitDetailsToRunItem(li dsref.VersionInfo, op oplog.Op) dsref.VersionInfo {
+	li.CommitTime = time.Unix(0, op.Timestamp)
 	li.CommitTitle = op.Note
 	li.BodySize = int(op.Size)
 	li.Path = op.Ref
