@@ -100,6 +100,7 @@ func runHandlerTestCases(t *testing.T, name string, h http.HandlerFunc, cases []
 		if c.muxVars != nil {
 			req = mux.SetURLVars(req, *c.muxVars)
 		}
+		setRefStringFromMuxVars(req)
 		if jsonHeader {
 			req.Header.Set("Content-Type", "application/json")
 		}
