@@ -19,6 +19,9 @@ import (
 //   dscache/def.fbs       dscache
 //   dscache/fill_info.go  func fillInfoForDatasets
 //   repo/ref/convert.go   func ConvertToVersionInfo
+// If you are considering making major changes to VersionInfo, read this
+// synopsis first:
+//   https://github.com/qri-io/qri/pull/1641#issuecomment-778521313
 type VersionInfo struct {
 	//
 	// Key as a stable identifier
@@ -79,19 +82,23 @@ type VersionInfo struct {
 	// FSIPath is this dataset's link to the local filesystem if one exists
 	FSIPath string `json:"fsiPath,omitempty"`
 	//
-	// Run Fields come from applying a script during version creation
+	// Run Fields
 	//
-	// RunID from either Commit.RunID, or the ID of a failed run when no
-	// Path value (version is present)
+	// RunID is derived from from either the Commit.RunID, field or the runID of a
+	// failed run. In the latter case the Path value will be empty
 	RunID string `json:"runID,omitempty"`
-	// RunStatus is a string version of the run.Status enumeration. This value will
-	// always be one of:
+	// RunStatus is a string version of the run.Status enumeration. This value
+	// will always be one of:
 	//    ""|"waiting"|"running"|"succeeded"|"failed"|"unchanged"|"skipped"
-	// it's a type a string to follow the "plain old data" pattern
+	// RunStatus is not stored on a dataset version, and instead must come from
+	// either run state or a cache of run state
+	// it's of type string to follow the "plain old data" pattern
 	RunStatus string `json:"runStatus,omitempty"`
 	// RunDuration is how long the run took/has currently taken in nanoseconds
-	// default value of 0 means no duration data is available
-	RunDuration int `json:"runDuration,omitempty"`
+	// default value of 0 means no duration data is available.
+	// RunDuration is not stored on a dataset version, and instead must come from
+	// either run state or a cache of run state
+	RunDuration int64 `json:"runDuration,omitempty"`
 }
 
 // NewVersionInfoFromRef creates a sparse-populated VersionInfo from a dsref.Ref
