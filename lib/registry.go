@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"path/filepath"
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/registry"
 )
@@ -58,6 +61,19 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 
 	ctx := context.Background()
 
+	// Check if the repository has any saved datasets. If so, calling prove is
+	// not allowed, because doing so would essentially throw away the old profile,
+	// making those references unreachable. In the future, this can be changed
+	// such that the old identity is given a different username, and is merged
+	// into the client's collection.
+	numRefs, err := m.inst.repo.RefCount()
+	if err != nil {
+		return err
+	}
+	if numRefs > 0 {
+		return fmt.Errorf("cannot prove with a non-empty repository")
+	}
+
 	// For signing the outgoing message
 	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
 	privKey := m.inst.repo.PrivateKey(ctx)
@@ -89,10 +105,40 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 	cfg := m.configFromProfile(p)
 	if profileID, ok := res["profileID"]; ok {
 		cfg.Profile.ID = profileID
+		if pid := profile.IDB58DecodeOrEmpty(profileID); pid != "" {
+			// Assign to profile struct as well
+			pro.ID = pid
+		}
 	} else {
 		return fmt.Errorf("prove: server response invalid, did not have profileID")
 	}
-	// TODO(dustmop): Also get logbook
+
+	// If an existing user of this profileID pushed something, get the previous logbook data
+	// and write it to our repository. This enables push and pull to continue to work
+	if logbookBin, ok := res["logbookInit"]; ok && len(logbookBin) > 0 {
+		logbookBytes, err := base64.StdEncoding.DecodeString(logbookBin)
+		if err != nil {
+			return err
+		}
+		lg := &oplog.Log{}
+		if err := lg.UnmarshalFlatbufferBytes(logbookBytes); err != nil {
+			return err
+		}
+		err = m.inst.repo.Logbook().ReplaceAll(ctx, lg)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Otherwise, nothing was ever pushed. Create new logbook data using the
+		// profileID we got back.
+		logbookPath := filepath.Join(m.inst.repoPath, "logbook.qfb")
+		logbook, err := logbook.NewJournalOverwriteWithProfileID(privKey, p.Username, m.inst.bus,
+			m.inst.qfs, logbookPath, cfg.Profile.ID)
+		if err != nil {
+			return err
+		}
+		m.inst.logbook = logbook
+	}
 
 	// Save the modified config
 	return m.inst.ChangeConfig(cfg)

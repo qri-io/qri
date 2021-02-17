@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	apiutil "github.com/qri-io/qri/api/util"
+	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/registry"
 )
 
@@ -116,5 +117,17 @@ func NewProfileHandler(profiles registry.Profiles) http.HandlerFunc {
 		}
 
 		apiutil.WriteResponse(w, p)
+	}
+}
+
+// NewProveKeyHandler creates a handler that implements provekey
+func NewProveKeyHandler(profiles registry.Profiles) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// TODO(dustmop): Lookup account referred to by the request,
+		// and retrieve appropriate data.
+		info := testPeers.GetTestPeerInfo(3)
+		res := map[string]string{}
+		res["profileID"] = info.EncodedPeerID
+		apiutil.WriteResponse(w, res)
 	}
 }

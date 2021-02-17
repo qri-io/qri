@@ -91,6 +91,9 @@ type Logstore interface {
 	// get all generations of a log, using the given log as an outparam
 	// Descendants MUST only mutate Logs field of the passed-in log pointer
 	Descendants(ctx context.Context, l *Log) error
+
+	// ReplaceAll replaces the contents of the entire log
+	ReplaceAll(ctx context.Context, l *Log) error
 }
 
 // SparseAncestorsAllDescendantsLogstore is a an extension interface to
@@ -332,6 +335,13 @@ func (j *Journal) Descendants(ctx context.Context, l *Log) error {
 	}
 
 	l.Logs = got.Logs
+	return nil
+}
+
+// ReplaceAll replaces the entirety of the logs
+func (j *Journal) ReplaceAll(ctx context.Context, l *Log) error {
+	j.logs = []*Log{l}
+	j.id = l.Ops[0].Hash()
 	return nil
 }
 
