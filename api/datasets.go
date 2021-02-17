@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/api/util"
