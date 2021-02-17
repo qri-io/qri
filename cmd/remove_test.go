@@ -122,7 +122,7 @@ func TestRemoveRun(t *testing.T) {
 		opt := &RemoveOptions{
 			IOStreams:      run.Streams,
 			Refs:           NewListOfRefSelects(c.args),
-			Revision:       dsref.Rev{Field: "ds", Gen: c.revision},
+			Revision:       &dsref.Rev{Field: "ds", Gen: c.revision},
 			DatasetMethods: dsm,
 		}
 

@@ -73,7 +73,7 @@ const (
 	// AESave is an endpoint for saving a dataset
 	AESave = APIEndpoint("/save")
 	// AERemove exposes the dataset remove mechanics
-	AERemove = APIEndpoint("/remove/{path:.*}")
+	AERemove = APIEndpoint("/remove")
 	// AEGet is an endpoint for fetch individual dataset components
 	AEGet = APIEndpoint("/get")
 	// AERename is an endpoint for renaming datasets

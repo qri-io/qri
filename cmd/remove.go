@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/qri-io/ioes"
@@ -84,7 +85,7 @@ type RemoveOptions struct {
 
 	Remote        string
 	RevisionsText string
-	Revision      dsref.Rev
+	Revision      *dsref.Rev
 	All           bool
 	KeepFiles     bool
 	Force         bool
@@ -124,7 +125,7 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 		if revisions[0] == nil {
 			return fmt.Errorf("invalid nil revision")
 		}
-		o.Revision = *revisions[0]
+		o.Revision = revisions[0]
 	}
 	return err
 }
@@ -152,8 +153,9 @@ func (o *RemoveOptions) Run() (err error) {
 		Force:     o.Force,
 	}
 
-	res := lib.RemoveResponse{}
-	if err = o.DatasetMethods.Remove(&params, &res); err != nil {
+	ctx := context.TODO()
+	res, err := o.DatasetMethods.Remove(ctx, &params)
+	if err != nil {
 		if err == repo.ErrNotFound {
 			return errors.New(err, fmt.Sprintf("could not find dataset '%s'", o.Refs.Ref()))
 		}

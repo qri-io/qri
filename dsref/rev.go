@@ -56,8 +56,8 @@ func ParseRev(rev string) (*Rev, error) {
 }
 
 // NewAllRevisions returns a Rev struct that represents all revisions.
-func NewAllRevisions() Rev {
-	return Rev{Field: "ds", Gen: AllGenerations}
+func NewAllRevisions() *Rev {
+	return &Rev{Field: "ds", Gen: AllGenerations}
 }
 
 var fieldMap = map[string]string{

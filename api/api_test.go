@@ -233,8 +233,8 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"GET", "/list", 403},
 		{"POST", "/save", 403},
 		{"PUT", "/save", 403},
-		{"POST", "/remove/", 403},
-		{"DELETE", "/remove/", 403},
+		{"POST", "/remove", 403},
+		{"DELETE", "/remove", 403},
 		{"POST", "/rename", 403},
 		{"PUT", "/rename", 403},
 		{"POST", "/diff", 403},
@@ -284,6 +284,7 @@ type handlerMimeMultipartTestCase struct {
 	endpoint  string
 	filePaths map[string]string
 	params    map[string]string
+	muxVars   *map[string]string
 }
 
 func runMimeMultipartHandlerTestCases(t *testing.T, name string, h http.HandlerFunc, cases []handlerMimeMultipartTestCase) {
@@ -318,6 +319,10 @@ func runMimeMultipartHandlerTestCases(t *testing.T, name string, h http.HandlerF
 
 		req := httptest.NewRequest(c.method, c.endpoint, body)
 		req.Header.Add("Content-Type", writer.FormDataContentType())
+		if c.muxVars != nil {
+			req = mux.SetURLVars(req, *c.muxVars)
+		}
+		setRefStringFromMuxVars(req)
 
 		w := httptest.NewRecorder()
 

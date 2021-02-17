@@ -1,8 +1,9 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -75,8 +76,9 @@ func (o *RenameOptions) Run() error {
 		Current: o.From,
 		Next:    o.To,
 	}
-	res := dsref.VersionInfo{}
-	if err := o.DatasetMethods.Rename(p, &res); err != nil {
+	ctx := context.TODO()
+	res, err := o.DatasetMethods.Rename(ctx, p)
+	if err != nil {
 		return err
 	}
 

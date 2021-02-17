@@ -746,8 +746,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_%d", i), func(t *testing.T) {
-			got := &dsref.VersionInfo{}
-			err := m.Rename(c.p, got)
+			_, err := m.Rename(ctx, c.p)
 
 			if err == nil {
 				t.Fatalf("test didn't error")
@@ -769,8 +768,8 @@ func TestDatasetRequestsRename(t *testing.T) {
 		Next:    "peer/new_movies",
 	}
 
-	res := &dsref.VersionInfo{}
-	if err := m.Rename(p, res); err != nil {
+	res, err := m.Rename(ctx, p)
+	if err != nil {
 		t.Errorf("unexpected error renaming: %s", err)
 	}
 
@@ -818,8 +817,8 @@ func TestRenameNoHistory(t *testing.T) {
 		Current: "me/remove_no_history",
 		Next:    "me/remove_second_name",
 	}
-	res := new(dsref.VersionInfo)
-	if err := NewDatasetMethods(tr.Instance).Rename(renameP, res); err != nil {
+	_, err := NewDatasetMethods(tr.Instance).Rename(ctx, renameP)
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -846,7 +845,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	dsm := NewDatasetMethods(inst)
-	allRevs := dsref.Rev{Field: "ds", Gen: -1}
+	allRevs := &dsref.Rev{Field: "ds", Gen: -1}
 
 	// we need some fsi stuff to fully test remove
 	fsim := NewFSIMethods(inst)
@@ -899,15 +898,14 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}{
 		{"repo: empty dataset reference", RemoveParams{Ref: "", Revision: allRevs}},
 		{"repo: not found", RemoveParams{Ref: "abc/ABC", Revision: allRevs}},
-		{"can only remove whole dataset versions, not individual components", RemoveParams{Ref: "abc/ABC", Revision: dsref.Rev{Field: "st", Gen: -1}}},
-		{"invalid number of revisions to delete: 0", RemoveParams{Ref: "peer/movies", Revision: dsref.Rev{Field: "ds", Gen: 0}}},
+		{"can only remove whole dataset versions, not individual components", RemoveParams{Ref: "abc/ABC", Revision: &dsref.Rev{Field: "st", Gen: -1}}},
+		{"invalid number of revisions to delete: 0", RemoveParams{Ref: "peer/movies", Revision: &dsref.Rev{Field: "ds", Gen: 0}}},
 		{"dataset is not linked to filesystem, cannot use keep-files", RemoveParams{Ref: "peer/movies", Revision: allRevs, KeepFiles: true}},
 	}
 
 	for i, c := range badCases {
 		t.Run(fmt.Sprintf("bad_case_%s", c.err), func(t *testing.T) {
-			res := RemoveResponse{}
-			err := dsm.Remove(&c.params, &res)
+			_, err := dsm.Remove(ctx, &c.params)
 
 			if err == nil {
 				t.Errorf("case %d: expected error. got nil", i)
@@ -928,15 +926,14 @@ func TestDatasetRequestsRemove(t *testing.T) {
 			RemoveResponse{NumDeleted: -1},
 		},
 		{"all generations, specifying more revs than log length",
-			RemoveParams{Ref: "peer/counter", Revision: dsref.Rev{Field: "ds", Gen: 20}},
+			RemoveParams{Ref: "peer/counter", Revision: &dsref.Rev{Field: "ds", Gen: 20}},
 			RemoveResponse{NumDeleted: -1},
 		},
 	}
 
 	for _, c := range goodCases {
 		t.Run(fmt.Sprintf("good_case_%s", c.description), func(t *testing.T) {
-			res := RemoveResponse{}
-			err := dsm.Remove(&c.params, &res)
+			res, err := dsm.Remove(ctx, &c.params)
 
 			if err != nil {
 				t.Errorf("unexpected error: %s", err)

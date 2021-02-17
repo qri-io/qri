@@ -944,59 +944,62 @@ type RenameParams struct {
 }
 
 // Rename changes a user's given name for a dataset
-func (m *DatasetMethods) Rename(p *RenameParams, res *dsref.VersionInfo) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Rename", p, res))
+func (m *DatasetMethods) Rename(ctx context.Context, p *RenameParams) (*dsref.VersionInfo, error) {
+	if m.inst.http != nil {
+		res := &dsref.VersionInfo{}
+		err := m.inst.http.Call(ctx, AERename, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
 	if p.Current == "" {
-		return fmt.Errorf("current name is required to rename a dataset")
+		return nil, fmt.Errorf("current name is required to rename a dataset")
 	}
 
 	ref, err := dsref.ParseHumanFriendly(p.Current)
 	// Allow bad upper-case characters in the left-hand side name, because it's needed to let users
 	// fix badly named datasets.
 	if err != nil && err != dsref.ErrBadCaseName {
-		return fmt.Errorf("original name: %w", err)
+		return nil, fmt.Errorf("original name: %w", err)
 	}
 	if _, err := m.inst.ResolveReference(ctx, &ref, "local"); err != nil {
-		return err
+		return nil, err
 	}
 
 	next, err := dsref.ParseHumanFriendly(p.Next)
 	if errors.Is(err, dsref.ErrNotHumanFriendly) {
-		return fmt.Errorf("destination name: %s", err)
+		return nil, fmt.Errorf("destination name: %s", err)
 	} else if err != nil {
-		return fmt.Errorf("destination name: %s", dsref.ErrDescribeValidName)
+		return nil, fmt.Errorf("destination name: %s", dsref.ErrDescribeValidName)
 	}
 	if ref.Username != next.Username && next.Username != "me" {
-		return fmt.Errorf("cannot change username or profileID of a dataset")
+		return nil, fmt.Errorf("cannot change username or profileID of a dataset")
 	}
 
 	// Update the reference stored in the repo
 	vi, err := base.RenameDatasetRef(ctx, m.inst.repo, ref, next.Name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If the dataset is linked to a working directory, update the ref
 	if vi.FSIPath != "" {
 		if _, err = m.inst.fsi.ModifyLinkReference(vi.FSIPath, vi.SimpleRef()); err != nil {
-			return err
+			return nil, err
 		}
 	}
-
-	*res = *vi
-	return nil
+	return vi, nil
 }
 
 // RemoveParams defines parameters for remove command
 type RemoveParams struct {
 	Ref       string
-	Revision  dsref.Rev
+	Revision  *dsref.Rev
 	KeepFiles bool
 	Force     bool
+	Remote    string
 }
 
 // RemoveResponse gives the results of a remove
@@ -1007,28 +1010,65 @@ type RemoveResponse struct {
 	Unlinked   bool
 }
 
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *RemoveParams) UnmarshalFromRequest(r *http.Request) error {
+	if p == nil {
+		p = &RemoveParams{}
+	}
+
+	if p.Ref == "" {
+		p.Ref = r.FormValue("refstr")
+	}
+	if p.Remote == "" {
+		p.Remote = r.FormValue("remote")
+	}
+	if p.KeepFiles == false {
+		p.KeepFiles = r.FormValue("keep-files") == "true"
+	}
+	if p.Force == false {
+		p.Force = r.FormValue("force") == "true"
+	}
+
+	if r.FormValue("all") == "true" {
+		p.Revision = dsref.NewAllRevisions()
+	}
+
+	return nil
+}
+
+// SetNonZeroDefaults assigns default values
+func (p *RemoveParams) SetNonZeroDefaults() {
+	if p.Revision == nil {
+		p.Revision = &dsref.Rev{Field: "ds", Gen: -1}
+	}
+}
+
 // ErrCantRemoveDirectoryDirty is returned when a directory is dirty so the files cant' be removed
 var ErrCantRemoveDirectoryDirty = fmt.Errorf("cannot remove files while working directory is dirty")
 
 // Remove a dataset entirely or remove a certain number of revisions
-func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Remove", p, res))
+func (m *DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveResponse, error) {
+	res := &RemoveResponse{}
+	if m.inst.http != nil {
+		err := m.inst.http.Call(ctx, AERemove, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
 	log.Debugf("Remove dataset ref %q, revisions %v", p.Ref, p.Revision)
 
 	if p.Revision.Gen == 0 {
-		return fmt.Errorf("invalid number of revisions to delete: 0")
+		return nil, fmt.Errorf("invalid number of revisions to delete: 0")
 	}
 	if p.Revision.Field != "ds" {
-		return fmt.Errorf("can only remove whole dataset versions, not individual components")
+		return nil, fmt.Errorf("can only remove whole dataset versions, not individual components")
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if canonErr := repo.CanonicalizeDatasetRef(ctx, m.inst.repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
@@ -1038,10 +1078,10 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 			if didRemove != "" {
 				log.Debugf("Remove cleaned up data found in %s", didRemove)
 				res.Message = didRemove
-				return nil
+				return res, nil
 			}
 		}
-		return canonErr
+		return nil, canonErr
 	}
 	res.Ref = ref.String()
 
@@ -1054,7 +1094,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 			if wdErr != nil {
 				if wdErr == fsi.ErrWorkingDirectoryDirty {
 					log.Debugf("Remove, IsWorkingDirectoryDirty")
-					return ErrCantRemoveDirectoryDirty
+					return nil, ErrCantRemoveDirectoryDirty
 				}
 				if strings.Contains(wdErr.Error(), "not a linked directory") {
 					// If the working directory has been removed (or renamed), could not get the
@@ -1064,13 +1104,13 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 					wdErr = nil
 				} else {
 					log.Debugf("Remove, IsWorkingDirectoryClean error: %s", err)
-					return wdErr
+					return nil, wdErr
 				}
 			}
 		}
 	} else if p.KeepFiles {
 		// If dataset is not linked in a working directory, --keep-files can't be used.
-		return fmt.Errorf("dataset is not linked to filesystem, cannot use keep-files")
+		return nil, fmt.Errorf("dataset is not linked to filesystem, cannot use keep-files")
 	}
 
 	// Get the revisions that will be deleted.
@@ -1123,7 +1163,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 					err = nil
 				} else {
 					log.Debugf("Remove, os.Remove failed, error: %s", err)
-					return err
+					return nil, err
 				}
 			}
 		}
@@ -1132,7 +1172,7 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 		info, err := base.RemoveNVersionsFromStore(ctx, m.inst.repo, reporef.ConvertToDsref(ref), p.Revision.Gen)
 		if err != nil {
 			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
-			return err
+			return nil, err
 		}
 		res.NumDeleted = p.Revision.Gen
 
@@ -1141,13 +1181,13 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 			ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), info.Path)
 			if err != nil {
 				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
-				return err
+				return nil, err
 			}
 			ds.Name = info.Name
 			ds.Peername = info.Username
 			if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 				log.Debugf("Remove, base.OpenDataset failed, error: %s", err)
-				return err
+				return nil, err
 			}
 
 			// TODO(dlong): Add a method to FSI called ProjectOntoDirectory, use it here
@@ -1164,7 +1204,8 @@ func (m *DatasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 		}
 	}
 	log.Debugf("Remove finished")
-	return nil
+
+	return res, nil
 }
 
 // PullParams encapsulates parameters to the add command

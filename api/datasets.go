@@ -430,13 +430,18 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	ref := lib.HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/remove/"))
+	params := lib.RemoveParams{}
+	err := UnmarshalParams(r, &params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
 
-	if remote := r.FormValue("remote"); remote != "" {
+	if params.Remote != "" {
 		res := &dsref.Ref{}
 		err := h.remote.Remove(&lib.PushParams{
-			Ref:        ref,
-			RemoteName: remote,
+			Ref:        params.Ref,
+			RemoteName: params.Remote,
 		}, res)
 		if err != nil {
 			log.Error("deleting dataset from remote: %s", err.Error())
@@ -447,18 +452,8 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	p := lib.RemoveParams{
-		Ref:       ref,
-		Revision:  dsref.Rev{Field: "ds", Gen: -1},
-		KeepFiles: r.FormValue("keep-files") == "true",
-		Force:     r.FormValue("force") == "true",
-	}
-	if r.FormValue("all") == "true" {
-		p.Revision = dsref.NewAllRevisions()
-	}
-
-	res := lib.RemoveResponse{}
-	if err := h.Remove(&p, &res); err != nil {
+	res, err := h.Remove(r.Context(), &params)
+	if err != nil {
 		log.Infof("error deleting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -468,22 +463,15 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
-	p := &lib.RenameParams{}
-	if r.Header.Get("Content-Type") == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-	} else {
-		p.Current = r.URL.Query().Get("current")
-		p.Next = r.URL.Query().Get("new")
-		if p.Next == "" {
-			p.Next = r.URL.Query().Get("next")
-		}
+	params := &lib.RenameParams{}
+	err := UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
 	}
 
-	res := &dsref.VersionInfo{}
-	if err := h.Rename(p, res); err != nil {
+	res, err := h.Rename(r.Context(), params)
+	if err != nil {
 		log.Infof("error renaming dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
