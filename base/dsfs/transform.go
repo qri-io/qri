@@ -35,9 +35,6 @@ func loadTransform(ctx context.Context, fs qfs.Filesystem, path string) (q *data
 	return dataset.UnmarshalTransform(data)
 }
 
-// ErrNoTransform is the error for asking a dataset without a tranform component for viz info
-var ErrNoTransform = fmt.Errorf("this dataset has no transform component")
-
 // LoadTransformScript loads transform script data from a dataset path if the given dataset has a transform script specified
 // the returned qfs.File will be the value of dataset.Transform.ScriptPath
 // TODO - this is broken, assumes file is JSON. fix & test or depricate

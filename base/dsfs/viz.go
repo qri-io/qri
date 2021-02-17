@@ -35,9 +35,6 @@ func loadViz(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.V
 	return dataset.UnmarshalViz(data)
 }
 
-// ErrNoViz is the error for asking a dataset without a viz component for viz info
-var ErrNoViz = fmt.Errorf("this dataset has no viz component")
-
 func vizFilesAddFunc(fs qfs.Filesystem, sw SaveSwitches) addWriteFileFunc {
 	return func(ds *dataset.Dataset, wfs *writeFiles) error {
 		if ds.Viz == nil {

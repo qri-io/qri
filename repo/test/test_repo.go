@@ -260,7 +260,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 			return ref, err
 		}
 	}
-	if err = r.Logbook().WriteVersionSave(ctx, initID, ds); err != nil && err != logbook.ErrNoLogbook {
+	if err = r.Logbook().WriteVersionSave(ctx, initID, ds, nil); err != nil && err != logbook.ErrNoLogbook {
 		return
 	}
 

@@ -9,10 +9,6 @@ import (
 	"github.com/qri-io/qfs"
 )
 
-// ErrStrictMode indicates a dataset failed validation when it is required to
-// pass (Structure.Strict == true)
-var ErrStrictMode = fmt.Errorf("dataset body did not validate against schema in strict-mode")
-
 // DerefStructure derferences a dataset's structure element if required
 // should be a no-op if ds.Structure is nil or isn't a reference
 func DerefStructure(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {

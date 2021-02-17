@@ -21,29 +21,34 @@ func NewSaveCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Use:     "save [DATASET]",
 		Aliases: []string{"commit"},
 		Short:   "save changes to a dataset",
-		Long: `Save is how you change a dataset, updating one or more of data, metadata, and structure. 
-You can also update your data via url. Every time you run save, an entry is added to 
-your dataset’s log (which you can see by running ` + "`qri log <dataset_reference>`" + `).
+		Long: `
+Save is how you change a dataset, updating one or more dataset components. Every
+time you run save, an entry is added to your dataset’s log (which you can see by
+running `[1:] + "`qri log <dataset_reference>`" + `).
 
-If the dataset you're changing has defined a transform, running ` + "`qri save`" + `
-will re execute the transform. To only re-run the transform, run save with no args.
+Dataset changes can be automated with a transform component adn the --apply flag
+For more on transforms see https://qri.io/docs/transforms/overview
+If the dataset you're changing has a transform, running ` + "`qri save --apply`" +
+			`
+will re-execute it to produce a new version
 
 Every time you save, you can provide a message about what you changed and why. 
 If you don’t provide a message Qri will automatically generate one for you.
-
-When you make an update and save a dataset that you originally added from a different
-peer, the dataset gets renamed from ` + "`peers_name/dataset_name`" + ` to ` + "`my_name/dataset_name`" + `.
-
 The ` + "`--message`" + `" and ` + "`--title`" + ` flags allow you to add a 
-commit message and title to the save.`,
+commit message and title to the save.
+
+When you make an update and save a dataset that you originally added from a 
+different peer, the dataset gets renamed from ` + "`peers_name/dataset_name`" +
+			` to
+` + "`my_name/dataset_name`" + `.`,
 		Example: `  # Save updated data to dataset annual_pop:
   $ qri save --body /path/to/data.csv me/annual_pop
 
   # Save updated dataset (no data) to annual_pop:
   $ qri save --file /path/to/dataset.yaml me/annual_pop
   
-  # Re-execute a dataset that has a transform:
-  $ qri save me/tf_dataset`,
+  # Re-execute the latest transform from history:
+  $ qri save --apply me/tf_dataset`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},

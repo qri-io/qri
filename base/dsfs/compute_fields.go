@@ -329,7 +329,7 @@ func (cff *computeFieldsFile) flushBatch(ctx context.Context, buf *dsio.EntryBuf
 
 	if e := buf.Close(); e != nil {
 		log.Debugf("closing batch buffer: %s", e)
-		return 0, fmt.Errorf("error closing buffer: %s", e.Error())
+		return 0, fmt.Errorf("error closing buffer: %w", e)
 	}
 
 	if len(buf.Bytes()) == 0 {
@@ -339,7 +339,7 @@ func (cff *computeFieldsFile) flushBatch(ctx context.Context, buf *dsio.EntryBuf
 
 	var doc interface{}
 	if err := json.Unmarshal(buf.Bytes(), &doc); err != nil {
-		return 0, fmt.Errorf("error parsing JSON bytes: %s", err.Error())
+		return 0, fmt.Errorf("error parsing JSON bytes: %w", err)
 	}
 	validationState := jsch.Validate(ctx, doc)
 

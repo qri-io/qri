@@ -165,7 +165,7 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 		Force: true,
 	})
 	if err != nil {
-		t.Errorf("expected empty save with flag to not error. got: %s", err.Error())
+		t.Errorf("expected empty save with force flag to not error. got: %q", err.Error())
 	}
 }
 

@@ -94,7 +94,7 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event 
 		return nil
 	}, runID)
 
-	if err := Apply(ctx, target, noHistoryLoader, runID, bus, false, streams, scriptOut, nil); err != nil {
+	if err := NewService(ctx).Apply(ctx, target, noHistoryLoader, runID, bus, false, streams, scriptOut, nil); err != nil {
 		t.Fatal(err)
 	}
 

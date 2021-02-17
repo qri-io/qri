@@ -8,9 +8,9 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/transform/run"
 )
 
 // SaveSwitches is an alias for the switches that control how saves happen
@@ -20,7 +20,16 @@ type SaveSwitches = dsfs.SaveSwitches
 var ErrNameTaken = fmt.Errorf("name already in use")
 
 // SaveDataset saves a version of the dataset for the given initID at the current path
-func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, initID, prevPath string, changes *dataset.Dataset, sw SaveSwitches) (ds *dataset.Dataset, err error) {
+func SaveDataset(
+	ctx context.Context,
+	r repo.Repo,
+	writeDest qfs.Filesystem,
+	initID string,
+	prevPath string,
+	changes *dataset.Dataset,
+	runState *run.State,
+	sw SaveSwitches,
+) (ds *dataset.Dataset, err error) {
 	log.Debugf("SaveDataset initID=%q prevPath=%q", initID, prevPath)
 	var pro *profile.Profile
 	if pro, err = r.Profile(ctx); err != nil {
@@ -53,11 +62,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ini
 			return nil, err
 		}
 
-		// TODO(dustmop): Stop removing the transform once we move to apply, and untangle the
-		// save command from applying a transform.
-		// remove the Transform & commit
-		// transform & commit must be created from scratch with each new version
-		mutable.Transform = nil
+		// remove the commit. commit must be created from scratch with each new version
 		mutable.Commit = nil
 	}
 
@@ -109,9 +114,8 @@ func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ini
 	}
 
 	// Write the save to logbook
-	err = r.Logbook().WriteVersionSave(ctx, initID, ds)
-	if err != nil && err != logbook.ErrNoLogbook {
-		return ds, err
+	if err = r.Logbook().WriteVersionSave(ctx, initID, ds, runState); err != nil {
+		return nil, err
 	}
 	return ds, nil
 }

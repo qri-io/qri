@@ -94,20 +94,22 @@ func (m *TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyRes
 	// allocate an ID for the transform, for now just log the events it produces
 	runID := transform.NewRunID()
 	m.inst.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
-		log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
-		if e.Type == event.ETTransformPrint {
-			if msg, ok := e.Payload.(event.TransformMessage); ok {
-				if p.ScriptOutput != nil {
-					io.WriteString(p.ScriptOutput, msg.Msg)
-					io.WriteString(p.ScriptOutput, "\n")
+		go func() {
+			log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
+			if e.Type == event.ETTransformPrint {
+				if msg, ok := e.Payload.(event.TransformMessage); ok {
+					if p.ScriptOutput != nil {
+						io.WriteString(p.ScriptOutput, msg.Msg)
+						io.WriteString(p.ScriptOutput, "\n")
+					}
 				}
 			}
-		}
+		}()
 		return nil
 	}, runID)
 
 	scriptOut := p.ScriptOutput
-	err = transform.Apply(ctx, ds, loader, runID, m.inst.bus, p.Wait, str, scriptOut, p.Secrets)
+	err = m.inst.transform.Apply(ctx, ds, loader, runID, m.inst.bus, p.Wait, str, scriptOut, p.Secrets)
 	if err != nil {
 		return nil, err
 	}

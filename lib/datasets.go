@@ -36,6 +36,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/transform"
+	"github.com/qri-io/qri/transform/run"
 )
 
 // DatasetMethods encapsulates business logic for working with Datasets on Qri
@@ -736,7 +737,7 @@ func (p *SaveParams) SetNonZeroDefaults() {
 
 // Save adds a history entry, updating a dataset
 func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Dataset, error) {
-	log.Debugf("DatasetMethods.Save p=%v", p)
+	log.Debugw("DatasetMethods.Save", "params", p)
 	res := &dataset.Dataset{}
 
 	if m.inst.http != nil {
@@ -835,7 +836,9 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 		}
 	}
 
-	if !p.Force && p.Drop == "" &&
+	if !p.Force &&
+		!p.Apply &&
+		p.Drop == "" &&
 		ds.BodyPath == "" &&
 		ds.Body == nil &&
 		ds.BodyBytes == nil &&
@@ -852,15 +855,33 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 		return nil, err
 	}
 
+	// runState holds the results of transform application. will be non-nil if a
+	// transform is applied while saving
+	var runState *run.State
+
 	// If applying a transform, execute its script before saving
 	if p.Apply {
 		if ds.Transform == nil {
-			return nil, fmt.Errorf("cannot apply while saving without a transform")
+			// if no transform component exists, load the latest transform component
+			// from history
+			if isNew {
+				return nil, fmt.Errorf("cannot apply while saving without a transform")
+			}
+
+			prevTransformDataset, err := base.LoadRevs(ctx, m.inst.qfs, ref, []*dsref.Rev{{Field: "tf", Gen: 1}})
+			if err != nil {
+				return nil, fmt.Errorf("loading transform component from history: %w", err)
+			}
+			ds.Transform = prevTransformDataset.Transform
 		}
+
 		str := m.inst.node.LocalStreams
 		scriptOut := p.ScriptOutput
 		secrets := p.Secrets
-
+		// allocate an ID for the transform, subscribe to print output & build up
+		// runState
+		runID := transform.NewRunID()
+		runState = run.NewState(runID)
 		// create a loader so transforms can call `load_dataset`
 		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverForMode
 		// on the passed in mode string instead of just using the default resolver
@@ -868,9 +889,8 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 		// string and control how transform functions
 		loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
 
-		// allocate an ID for the transform, for now just log the events it produces
-		runID := transform.NewRunID()
 		m.inst.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
+			runState.AddTransformEvent(e)
 			if e.Type == event.ETTransformPrint {
 				if msg, ok := e.Payload.(event.TransformMessage); ok {
 					if p.ScriptOutput != nil {
@@ -884,10 +904,19 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 
 		// apply the transform
 		shouldWait := true
-		err := transform.Apply(ctx, ds, loader, runID, m.inst.bus, shouldWait, str, scriptOut, secrets)
+		err := m.inst.transform.Apply(ctx, ds, loader, runID, m.inst.bus, shouldWait, str, scriptOut, secrets)
 		if err != nil {
+			log.Errorw("transform run error", "err", err.Error())
+			runState.Message = err.Error()
+			if err := m.inst.logbook.WriteTransformRun(ctx, ref.InitID, runState); err != nil {
+				log.Debugw("writing errored transform run to logbook:", "err", err.Error())
+				return nil, err
+			}
+
 			return nil, err
 		}
+
+		ds.Commit.RunID = runID
 	}
 
 	if fsiPath != "" && p.Drop != "" {
@@ -909,8 +938,19 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 		NewName:             p.NewName,
 		Drop:                p.Drop,
 	}
-	savedDs, err := base.SaveDataset(ctx, m.inst.repo, writeDest, ref.InitID, ref.Path, ds, switches)
+	savedDs, err := base.SaveDataset(ctx, m.inst.repo, writeDest, ref.InitID, ref.Path, ds, runState, switches)
 	if err != nil {
+		// datasets that are unchanged & have a runState record a record of no-changes
+		// to logbook
+		if errors.Is(err, dsfs.ErrNoChanges) && runState != nil {
+			runState.Status = run.RSUnchanged
+			runState.Message = err.Error()
+			if err := m.inst.logbook.WriteTransformRun(ctx, ref.InitID, runState); err != nil {
+				log.Debugw("writing unchanged transform run to logbook:", "err", err.Error())
+				return nil, err
+			}
+		}
+
 		log.Debugf("create ds error: %s\n", err.Error())
 		return nil, err
 	}

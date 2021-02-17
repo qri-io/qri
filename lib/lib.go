@@ -39,6 +39,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/stats"
+	"github.com/qri-io/qri/transform"
 	"github.com/qri-io/qri/watchfs"
 )
 
@@ -369,14 +370,15 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		repoPath: repoPath,
 		cfg:      cfg,
 
-		qfs:      o.qfs,
-		repo:     o.repo,
-		node:     o.node,
-		streams:  o.Streams,
-		registry: o.regclient,
-		logbook:  o.logbook,
-		profiles: o.profiles,
-		bus:      event.NewBus(ctx),
+		qfs:       o.qfs,
+		repo:      o.repo,
+		node:      o.node,
+		streams:   o.Streams,
+		registry:  o.regclient,
+		logbook:   o.logbook,
+		profiles:  o.profiles,
+		bus:       event.NewBus(ctx),
+		transform: transform.NewService(ctx),
 	}
 	qri = inst
 
@@ -661,10 +663,11 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		cancel: cancel,
 		doneCh: make(chan struct{}),
 
-		cfg:     cfg,
-		node:    node,
-		dscache: dc,
-		logbook: r.Logbook(),
+		cfg:       cfg,
+		node:      node,
+		dscache:   dc,
+		logbook:   r.Logbook(),
+		transform: transform.NewService(ctx),
 	}
 
 	inst.stats = stats.New(nil)
@@ -709,6 +712,7 @@ type Instance struct {
 	remoteClient    remote.Client
 	registry        *regclient.Client
 	stats           *stats.Service
+	transform       *transform.Service
 	logbook         *logbook.Book
 	dscache         *dscache.Dscache
 	bus             event.Bus

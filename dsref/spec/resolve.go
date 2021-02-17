@@ -220,7 +220,7 @@ func GenerateExampleOplog(ctx context.Context, journal *logbook.Book, dsname, he
 		},
 		Path:         headPath,
 		PreviousPath: "",
-	})
+	}, nil)
 	if err != nil {
 		return "", nil, err
 	}

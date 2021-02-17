@@ -84,7 +84,7 @@ func Example() {
 
 	// create a log record of the version of a dataset. In practice this'll be
 	// part of the overall save routine that created the above ds variable
-	if err := book.WriteVersionSave(ctx, initID, ds); err != nil {
+	if err := book.WriteVersionSave(ctx, initID, ds, nil); err != nil {
 		panic(err)
 	}
 
@@ -104,7 +104,7 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if err := book.WriteVersionSave(ctx, initID, ds2); err != nil {
+	if err := book.WriteVersionSave(ctx, initID, ds2, nil); err != nil {
 		panic(err)
 	}
 
@@ -147,7 +147,7 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if err := book.WriteVersionSave(ctx, initID, ds3); err != nil {
+	if err := book.WriteVersionSave(ctx, initID, ds3, nil); err != nil {
 		panic(err)
 	}
 
@@ -238,7 +238,7 @@ func TestNilCallable(t *testing.T) {
 	if err = book.WriteVersionDelete(ctx, initID, 0); err != logbook.ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if err = book.WriteVersionSave(ctx, initID, nil); err != logbook.ErrNoLogbook {
+	if err = book.WriteVersionSave(ctx, initID, nil, nil); err != logbook.ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
 	if _, err = book.ResolveRef(ctx, nil); err != dsref.ErrRefNotFound {
@@ -426,7 +426,7 @@ func TestWritePermissions(t *testing.T) {
 		},
 		Path: "HashOfVersion1",
 	}
-	if err := tr.Book.WriteVersionSave(ctx, initID, ds); !errors.Is(err, logbook.ErrAccessDenied) {
+	if err := tr.Book.WriteVersionSave(ctx, initID, ds, nil); !errors.Is(err, logbook.ErrAccessDenied) {
 		t.Errorf("WriteVersionSave to an oplog the book author doesn't own must return a wrap of logbook.ErrAccessDenied")
 	}
 	if err := tr.Book.WriteVersionAmend(ctx, initID, ds); !errors.Is(err, logbook.ErrAccessDenied) {
@@ -468,7 +468,7 @@ func TestPushModel(t *testing.T) {
 			Title:     "initial commit",
 		},
 		Path: "HashOfVersion1",
-	})
+	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -639,7 +639,7 @@ func TestDatasetLogNaming(t *testing.T) {
 			Title:     "initial commit",
 		},
 		Path: "HashOfVersion1",
-	})
+	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1052,7 +1052,7 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) string {
 		PreviousPath: "",
 	}
 
-	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds, nil); err != nil {
 		panic(err)
 	}
 
@@ -1064,7 +1064,7 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) string {
 	ds.Path = "QmHashOfVersion2"
 	ds.PreviousPath = "QmHashOfVersion1"
 
-	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1104,7 +1104,7 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T, initID string) {
 		PreviousPath: "QmHashOfVersion3",
 	}
 
-	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds, nil); err != nil {
 		panic(err)
 	}
 
@@ -1119,7 +1119,7 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T, initID string) {
 		PreviousPath: "QmHashOfVersion4",
 	}
 
-	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds, nil); err != nil {
 		panic(err)
 	}
 }
@@ -1156,7 +1156,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 		PreviousPath: "",
 	}
 
-	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds, nil); err != nil {
 		panic(err)
 	}
 
@@ -1165,7 +1165,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 	ds.Path = "QmHashOfVersion2"
 	ds.PreviousPath = "QmHashOfVersion1"
 
-	if err := book.WriteVersionSave(tr.Ctx, initID, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, initID, ds, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1296,7 +1296,7 @@ func GenerateExampleOplog(ctx context.Context, t *testing.T, journal *logbook.Bo
 		},
 		Path:         headPath,
 		PreviousPath: "",
-	})
+	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
