@@ -79,7 +79,7 @@ func TestDatasetMethodsDiff(t *testing.T) {
 	}
 
 	// execute
-	for i, c := range good {
+	for _, c := range good {
 		t.Run(c.description, func(t *testing.T) {
 			p := &DiffParams{
 				LeftSide:  c.Left,
@@ -92,9 +92,9 @@ func TestDatasetMethodsDiff(t *testing.T) {
 				p.RightSide = ""
 			}
 			res := &DiffResponse{}
-			err := req.Diff(p, res)
+			res, err := req.Diff(tr.Ctx, p)
 			if err != nil {
-				t.Errorf("%d: \"%s\" error: %s", i, c.description, err.Error())
+				t.Fatalf("diff error: %q", err.Error())
 				return
 			}
 
@@ -103,7 +103,7 @@ func TestDatasetMethodsDiff(t *testing.T) {
 			}
 
 			if len(res.Diff) != c.DeltaLen {
-				t.Errorf("%d: \"%s\" delta length mismatch. want: %d got: %d", i, c.description, c.DeltaLen, len(res.Diff))
+				t.Errorf("delta length mismatch. want: %d got: %d", c.DeltaLen, len(res.Diff))
 			}
 		})
 	}

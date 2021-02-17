@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/api/util"
@@ -198,9 +197,7 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	params := lib.GetParams{}
-
-	err := UnmarshalParams(r, &params)
-	if err != nil {
+	if err := UnmarshalParams(r, &params); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
@@ -293,24 +290,15 @@ func (h *DatasetHandlers) replyWithGetResponse(w http.ResponseWriter, r *http.Re
 }
 
 func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
-	req := &lib.DiffParams{}
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding body into params: %s", err.Error()))
-			return
-		}
-	default:
-		req = &lib.DiffParams{
-			LeftSide:  r.FormValue("left_path"),
-			RightSide: r.FormValue("right_path"),
-			Selector:  r.FormValue("selector"),
-		}
+	params := &lib.DiffParams{}
+	if err := UnmarshalParams(r, params); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
 	}
 
 	res := &lib.DiffResponse{}
-	if err := h.Diff(req, res); err != nil {
-		fmt.Println(err)
+	res, err := h.Diff(r.Context(), params)
+	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error generating diff: %s", err.Error()))
 		return
 	}

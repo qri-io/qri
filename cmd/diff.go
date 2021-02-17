@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"path/filepath"
 	"strings"
@@ -137,8 +138,9 @@ func (o *DiffOptions) Run() (err error) {
 		p.RightSide = o.Refs.RefList()[1]
 	}
 
-	res := &lib.DiffResponse{}
-	if err = o.DatasetMethods.Diff(p, res); err != nil {
+	ctx := context.TODO()
+	res, err := o.DatasetMethods.Diff(ctx, p)
+	if err != nil {
 		return err
 	}
 
