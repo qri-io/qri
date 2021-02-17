@@ -105,6 +105,10 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 	cfg := m.configFromProfile(p)
 	if profileID, ok := res["profileID"]; ok {
 		cfg.Profile.ID = profileID
+		if pid := profile.IDB58DecodeOrEmpty(profileID); pid != "" {
+			// Assign to profile struct as well
+			pro.ID = pid
+		}
 	} else {
 		return fmt.Errorf("prove: server response invalid, did not have profileID")
 	}

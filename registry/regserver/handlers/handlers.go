@@ -57,6 +57,7 @@ func NewRoutes(reg registry.Registry, opts ...func(o *RouteOptions)) *http.Serve
 	if ps := reg.Profiles; ps != nil {
 		mux.HandleFunc("/registry/profile", logReq(NewProfileHandler(ps)))
 		mux.HandleFunc("/registry/profiles", pro.ProtectMethods("POST")(logReq(NewProfilesHandler(ps))))
+		mux.HandleFunc("/registry/provekey", NewProveKeyHandler(ps))
 	}
 
 	if s := reg.Search; s != nil {
