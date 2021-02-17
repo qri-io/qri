@@ -203,7 +203,7 @@ func NewServerRoutes(s Server) *mux.Router {
 
 	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle(lib.AEPush.String(), s.Middleware(remClientH.PushHandler))
-	m.Handle(lib.AEPull.String(), s.Middleware(dsh.PullHandler))
+	handleRefRoute(m, lib.AEPull, s.Middleware(dsh.PullHandler))
 	m.Handle(lib.AEFeeds.String(), s.Middleware(remClientH.FeedsHandler))
 	m.Handle(lib.AEPreview.String(), s.Middleware(remClientH.DatasetPreviewHandler))
 

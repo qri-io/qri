@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -71,6 +71,8 @@ func (o *PullOptions) Run(args []string) error {
 		return fmt.Errorf("link flag can only be used with a single reference")
 	}
 
+	ctx := context.TODO()
+
 	for _, arg := range args {
 		p := &lib.PullParams{
 			Ref:      arg,
@@ -79,8 +81,8 @@ func (o *PullOptions) Run(args []string) error {
 			Remote:   o.Remote,
 		}
 
-		res := &dataset.Dataset{}
-		if err := o.DatasetMethods.Pull(p, res); err != nil {
+		res, err := o.DatasetMethods.Pull(ctx, p)
+		if err != nil {
 			return err
 		}
 

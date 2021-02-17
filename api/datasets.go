@@ -377,14 +377,13 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
-	p := &lib.PullParams{
-		Ref:     lib.HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/pull/")),
-		LinkDir: r.FormValue("dir"),
-		Remote:  r.FormValue("remote"),
+	params := &lib.PullParams{}
+	if err := UnmarshalParams(r, params); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
 	}
 
-	res := &dataset.Dataset{}
-	err := h.Pull(p, res)
+	res, err := h.Pull(r.Context(), params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
