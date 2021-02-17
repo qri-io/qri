@@ -18,7 +18,7 @@ func TestApplyTransform(t *testing.T) {
 		BodyPath: "testdata/cities_2/body.csv",
 	})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Apply a transformation

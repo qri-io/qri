@@ -524,7 +524,7 @@ func saveDataset(ctx context.Context, r repo.Repo, peername string, ds *dataset.
 	if err != nil {
 		panic(err)
 	}
-	res, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), initID, headRef, ds, base.SaveSwitches{})
+	res, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), initID, headRef, ds, nil, base.SaveSwitches{})
 	if err != nil {
 		panic(err)
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/transform/run"
 )
 
 // SaveSwitches is an alias for the switches that control how saves happen
@@ -19,7 +20,16 @@ type SaveSwitches = dsfs.SaveSwitches
 var ErrNameTaken = fmt.Errorf("name already in use")
 
 // SaveDataset saves a version of the dataset for the given initID at the current path
-func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, initID, prevPath string, changes *dataset.Dataset, sw SaveSwitches) (ds *dataset.Dataset, err error) {
+func SaveDataset(
+	ctx context.Context,
+	r repo.Repo,
+	writeDest qfs.Filesystem,
+	initID string,
+	prevPath string,
+	changes *dataset.Dataset,
+	runState *run.State,
+	sw SaveSwitches,
+) (ds *dataset.Dataset, err error) {
 	log.Debugf("SaveDataset initID=%q prevPath=%q", initID, prevPath)
 	var pro *profile.Profile
 	if pro, err = r.Profile(ctx); err != nil {
@@ -103,6 +113,10 @@ func SaveDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ini
 		return nil, err
 	}
 
+	// Write the save to logbook
+	if err = r.Logbook().WriteVersionSave(ctx, initID, ds, runState); err != nil {
+		return nil, err
+	}
 	return ds, nil
 }
 

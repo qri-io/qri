@@ -737,7 +737,7 @@ func (p *SaveParams) SetNonZeroDefaults() {
 
 // Save adds a history entry, updating a dataset
 func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Dataset, error) {
-	log.Debugf("DatasetMethods.Save p=%v", p)
+	log.Debugw("DatasetMethods.Save", "params", p)
 	res := &dataset.Dataset{}
 
 	if m.inst.http != nil {
@@ -938,7 +938,7 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 		NewName:             p.NewName,
 		Drop:                p.Drop,
 	}
-	savedDs, err := base.SaveDataset(ctx, m.inst.repo, writeDest, ref.InitID, ref.Path, ds, switches)
+	savedDs, err := base.SaveDataset(ctx, m.inst.repo, writeDest, ref.InitID, ref.Path, ds, runState, switches)
 	if err != nil {
 		// datasets that are unchanged & have a runState record a record of no-changes
 		// to logbook
@@ -952,11 +952,6 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 		}
 
 		log.Debugf("create ds error: %s\n", err.Error())
-		return nil, err
-	}
-
-	// Write the save to logbook
-	if err = m.inst.logbook.WriteVersionSave(ctx, ref.InitID, savedDs, runState); err != nil {
 		return nil, err
 	}
 

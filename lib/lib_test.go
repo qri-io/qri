@@ -222,7 +222,7 @@ func saveDataset(ctx context.Context, r repo.Repo, ds *dataset.Dataset, sw base.
 	if err != nil {
 		return dsref.Ref{}, err
 	}
-	res, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ref.InitID, ref.Path, ds, sw)
+	res, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ref.InitID, ref.Path, ds, nil, sw)
 	if err != nil {
 		return dsref.Ref{}, err
 	}

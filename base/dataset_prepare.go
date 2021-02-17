@@ -98,7 +98,7 @@ func PrepareSaveRef(
 		}
 
 		// we have a valid previous reference & an initID, return!
-		log.Debugf("PrepareSaveRef found previous initID=%q", ref.InitID)
+		log.Debugw("PrepareSaveRef found previous initID", "initID", ref.InitID, "path", ref.Path)
 		return ref, false, nil
 	}
 

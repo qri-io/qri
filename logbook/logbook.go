@@ -513,7 +513,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *datas
 		return ErrNoLogbook
 	}
 
-	log.Debugf("WriteVersionSave: %s", initID)
+	log.Debugw("WriteVersionSave", "initID", initID)
 	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
 		return err
@@ -610,9 +610,12 @@ func (book *Book) appendTransformRun(blog *BranchLog, rs *run.State) int {
 		Ref:   rs.ID,
 		Name:  fmt.Sprintf("%d", rs.Number),
 
-		Timestamp: rs.StartTime.UnixNano(),
-		Size:      int64(rs.Duration),
-		Note:      string(rs.Status),
+		Size: int64(rs.Duration),
+		Note: string(rs.Status),
+	}
+
+	if rs.StartTime != nil {
+		op.Timestamp = rs.StartTime.UnixNano()
 	}
 
 	blog.Append(op)
@@ -871,10 +874,12 @@ func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 
 	var branchLog *BranchLog
 	if ref.Path == "" {
+		log.Debugw("finding branch log", "initID", initID)
 		branchLog, err = book.branchLog(ctx, initID)
 		if err != nil {
 			return "", err
 		}
+		log.Debugw("found branch log", "initID", initID, "size", branchLog.Size(), "latestSavePath", book.latestSavePath(branchLog.l))
 		ref.Path = book.latestSavePath(branchLog.l)
 	}
 

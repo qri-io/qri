@@ -663,10 +663,11 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		cancel: cancel,
 		doneCh: make(chan struct{}),
 
-		cfg:     cfg,
-		node:    node,
-		dscache: dc,
-		logbook: r.Logbook(),
+		cfg:       cfg,
+		node:      node,
+		dscache:   dc,
+		logbook:   r.Logbook(),
+		transform: transform.NewService(ctx),
 	}
 
 	inst.stats = stats.New(nil)
