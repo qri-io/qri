@@ -69,7 +69,9 @@ const (
 	// feature in qri, but logbook supports them
 	DefaultBranchName = "main"
 	// runIDRelPrefix is a string prefix for op.Relations when recording commit ops
-	// that have a non-empty Commit.RunID field
+	// that have a non-empty Commit.RunID field. A commit operation that has a
+	// related runID will have op.Relations = [...,"runID:run-uuid-string",...],
+	// This prefix disambiguates from other types of identifiers
 	runIDRelPrefix = "runID:"
 )
 
@@ -1101,15 +1103,6 @@ func commitOpRunID(op oplog.Op) string {
 	return ""
 }
 
-// func versionInfoFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
-// 	return dsref.VersionInfo{
-// 		Username:    ref.Username,
-// 		ProfileID:   ref.ProfileID,
-// 		Name:        ref.Name,
-// 		Path:        op.Ref,
-// 		CommitTime:  time.Unix(0, op.Timestamp),
-// 		BodySize:    int(op.Size),
-
 func versionInfoFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
 	return dsref.VersionInfo{
 		Username:    ref.Username,
@@ -1131,7 +1124,9 @@ func runItemFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
 		RunID:       op.Ref,
 		RunStatus:   op.Note,
 		RunDuration: int64(op.Size),
-		// TODO(B5): read run number, defaulting to -1 in the event of an error
+		// TODO(B5): When using qrimatic, I'd like to store the run number as a
+		// name string here, but we currently don't have a way to plumb a run number
+		// down from the qrimatic scheduler
 		// RunNumber: strconv.ParseInt(op.Name),
 	}
 }
@@ -1199,12 +1194,6 @@ func branchToVersionInfos(blog *BranchLog, ref dsref.Ref, offset, limit int, col
 			// runs are only ever "init" op type
 			refs = append(refs, runItemFromOp(ref, op))
 		case PushModel:
-			// TODO(b5): added this to get remote.TestDatasetPullPushDeleteFeedsPreviewHTTP
-			// to not segfault. I don't think this is the right answer. Understand that
-			// test, bring the failure into a test in logbook, then implement the right fix
-			if len(refs) == 0 {
-				continue
-			}
 			switch op.Type {
 			case oplog.OpTypeInit:
 				for i := 1; i <= int(op.Size); i++ {
