@@ -54,8 +54,7 @@ func (m *Module) ListDatasets(thread *starlark.Thread, _ *starlark.Builtin, args
 		return starlark.None, fmt.Errorf("no qri repo available to list datasets")
 	}
 
-	// TODO (b5) - remove hardcoded limit
-	refs, err := m.repo.References(0, 100000)
+	refs, err := m.repo.References(0, -1)
 	if err != nil {
 		return starlark.None, fmt.Errorf("error getting dataset list: %s", err.Error())
 	}

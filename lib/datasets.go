@@ -139,7 +139,7 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 		}
 		// TODO(dlong): Filtered by p.Published flag
 	} else if ref.Peername == "" || pro.Peername == ref.Peername {
-		refs, err = base.ListDatasets(ctx, m.inst.repo, p.Term, p.Limit, p.Offset, p.RPC, p.Public, p.ShowNumVersions)
+		refs, err = base.ListDatasets(ctx, m.inst.repo, p.Term, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
 		if errors.Is(err, ErrListWarning) {
 			listWarning = err
 			err = nil

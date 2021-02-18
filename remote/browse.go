@@ -60,7 +60,7 @@ func (rf RepoFeeds) Feed(ctx context.Context, userID, name string, offset, limit
 		return nil, fmt.Errorf("unknown feed name '%s'", name)
 	}
 
-	refs, err := base.ListDatasets(ctx, rf.Repo, "", limit, offset, false, true, false)
+	refs, err := base.ListDatasets(ctx, rf.Repo, "", offset, limit, false, true, false)
 	if err != nil {
 		return nil, err
 	}
