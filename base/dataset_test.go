@@ -16,7 +16,7 @@ func TestListDatasets(t *testing.T) {
 	ref := addCitiesDataset(t, r)
 
 	// Limit to one
-	res, err := ListDatasets(ctx, r, "", 1, 0, false, false, false)
+	res, err := ListDatasets(ctx, r, "", 0, 1, false, false, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -25,7 +25,7 @@ func TestListDatasets(t *testing.T) {
 	}
 
 	// Limit to published datasets
-	res, err = ListDatasets(ctx, r, "", 1, 0, false, true, false)
+	res, err = ListDatasets(ctx, r, "", 0, 1, false, true, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -39,7 +39,7 @@ func TestListDatasets(t *testing.T) {
 	}
 
 	// Limit to published datasets, after publishing cities
-	res, err = ListDatasets(ctx, r, "", 1, 0, false, true, false)
+	res, err = ListDatasets(ctx, r, "", 0, 1, false, true, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -49,21 +49,29 @@ func TestListDatasets(t *testing.T) {
 	}
 
 	// Limit to datasets with "city" in their name
-	res, err = ListDatasets(ctx, r, "city", 1, 0, false, false, false)
+	res, err = ListDatasets(ctx, r, "city", 0, 1, false, false, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	if len(res) != 0 {
-		t.Error("expected no datasets with \"city\" in their name")
+		t.Error(`expected no datasets with "city" in their name`)
 	}
 
 	// Limit to datasets with "cit" in their name
-	res, err = ListDatasets(ctx, r, "cit", 1, 0, false, false, false)
+	res, err = ListDatasets(ctx, r, "cit", 0, 1, false, false, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	if len(res) != 1 {
-		t.Error("expected one dataset with \"cit\" in their name")
+		t.Error(`expected one dataset with \"cit\" in their name`)
+	}
+
+	res, err = ListDatasets(ctx, r, "", 0, -1, false, false, false)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(res) != 1 {
+		t.Errorf("expected -1 limit to return all datasets. got %d", len(res))
 	}
 }
 

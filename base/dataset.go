@@ -157,11 +157,14 @@ func CloseDataset(ds *dataset.Dataset) (err error) {
 }
 
 // ListDatasets lists datasets from a repo
-func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset int, RPC, publishedOnly, showVersions bool) (res []reporef.DatasetRef, err error) {
+func ListDatasets(ctx context.Context, r repo.Repo, term string, offset, limit int, RPC, publishedOnly, showVersions bool) (res []reporef.DatasetRef, err error) {
 	fs := r.Filesystem()
 	num, err := r.RefCount()
 	if err != nil {
 		return nil, err
+	}
+	if limit < 0 {
+		limit = num
 	}
 	res, err = r.References(0, num)
 	if err != nil {
