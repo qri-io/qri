@@ -17,7 +17,7 @@ func TestRefAlias(t *testing.T) {
 	for _, c := range cases {
 		got := c.in.Alias()
 		if c.expect != got {
-			t.Errorf("result mismatch. input:%#v \nwant: '%s'\ngot: '%s'", c.in, c.expect, got)
+			t.Errorf("result mismatch. input:%#v \nwant: %q\ngot: %q", c.in, c.expect, got)
 		}
 	}
 }
@@ -35,7 +35,7 @@ func TestRefHuman(t *testing.T) {
 	for _, c := range cases {
 		got := c.in.Human()
 		if c.expect != got {
-			t.Errorf("result mismatch. input:%#v \nwant: '%s'\ngot: '%s'", c.in, c.expect, got)
+			t.Errorf("result mismatch. input:%#v \nwant: %q\ngot: %q", c.in, c.expect, got)
 		}
 	}
 }
@@ -49,12 +49,33 @@ func TestRefString(t *testing.T) {
 		{Ref{Username: "a", Name: "b"}, "a/b"},
 		{Ref{Username: "a", Name: "b"}, "a/b"},
 		{Ref{Username: "a", Name: "b", Path: "/foo"}, "a/b@/foo"},
+		{Ref{Username: "a", Name: "b", InitID: "initid", Path: "/foo"}, "a/b@initid/foo"},
 	}
 
 	for _, c := range cases {
 		got := c.in.String()
 		if c.expect != got {
-			t.Errorf("result mismatch. input:%#v \nwant: '%s'\ngot: '%s'", c.in, c.expect, got)
+			t.Errorf("result mismatch. input:%#v \nwant: %q\ngot: %q", c.in, c.expect, got)
+		}
+	}
+}
+
+func TestRefLegacyProfileIDString(t *testing.T) {
+	cases := []struct {
+		in     Ref
+		expect string
+	}{
+		{Ref{}, ""},
+		{Ref{Username: "a", Name: "b"}, "a/b"},
+		{Ref{Username: "a", Name: "b"}, "a/b"},
+		{Ref{Username: "a", Name: "b", Path: "/foo"}, "a/b@/foo"},
+		{Ref{Username: "a", Name: "b", ProfileID: "ProfileID", Path: "/foo"}, "a/b@ProfileID/foo"},
+	}
+
+	for _, c := range cases {
+		got := c.in.LegacyProfileIDString()
+		if c.expect != got {
+			t.Errorf("result mismatch. input:%#v \nwant: %q\ngot: %q", c.in, c.expect, got)
 		}
 	}
 }

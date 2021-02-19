@@ -11,12 +11,13 @@ func TestParseFull(t *testing.T) {
 		expect      Ref
 	}{
 		{"human friendly", "abc/my_dataset", Ref{Username: "abc", Name: "my_dataset"}},
-		{"full reference", "abc/my_dataset@QmFirst/ipfs/QmSecond", Ref{Username: "abc", Name: "my_dataset", ProfileID: "QmFirst", Path: "/ipfs/QmSecond"}},
-		{"right hand side", "@QmFirst/ipfs/QmSecond", Ref{ProfileID: "QmFirst", Path: "/ipfs/QmSecond"}},
+		{"full reference", "abc/my_dataset@base32identifier/ipfs/QmSecond", Ref{Username: "abc", Name: "my_dataset", InitID: "base32identifier", Path: "/ipfs/QmSecond"}},
+		{"right hand side", "@base32identifier/ipfs/QmSecond", Ref{InitID: "base32identifier", Path: "/ipfs/QmSecond"}},
 		{"just path", "@/ipfs/QmSecond", Ref{Path: "/ipfs/QmSecond"}},
 		{"long name", "peer/some_name@/mem/QmXATayrFgsS3tpCi2ykfpNJ8uiCWT74dttnvJvVo1J7Rn", Ref{Username: "peer", Name: "some_name", Path: "/mem/QmXATayrFgsS3tpCi2ykfpNJ8uiCWT74dttnvJvVo1J7Rn"}},
 		{"name-has-dash", "abc/my-dataset", Ref{Username: "abc", Name: "my-dataset"}},
 		{"dash-in-username", "some-user/my_dataset", Ref{Username: "some-user", Name: "my_dataset"}},
+		{"legacy profileID", "@QmFirst/ipfs/QmSecond", Ref{ProfileID: "QmFirst", Path: "/ipfs/QmSecond"}},
 	}
 	for i, c := range goodCases {
 		ref, err := Parse(c.text)
@@ -25,7 +26,7 @@ func TestParseFull(t *testing.T) {
 			continue
 		}
 		if !ref.Equals(c.expect) {
-			t.Errorf("case %d %q mismatch: expect %s, got %s", i, c.description, c.expect, ref)
+			t.Errorf("case %d %q mismatch: expect %q, got %q", i, c.description, c.expect, ref)
 		}
 	}
 

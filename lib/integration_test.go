@@ -429,7 +429,7 @@ func PushToRegistry(t *testing.T, inst *Instance, refstr string) dsref.Ref {
 	}, &res)
 
 	if err != nil {
-		log.Fatalf("publishing dataset: %s", err)
+		t.Fatalf("publishing dataset: %s", err)
 	}
 
 	return res
