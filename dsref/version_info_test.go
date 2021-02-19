@@ -32,6 +32,7 @@ func TestNewVersionInfoFromRef(t *testing.T) {
 
 func TestConvertToVersionInfo(t *testing.T) {
 	ds := &dataset.Dataset{
+		ID:        "id",
 		Peername:  "a",
 		ProfileID: "a's profile ID",
 		Name:      "b",
@@ -55,6 +56,7 @@ func TestConvertToVersionInfo(t *testing.T) {
 	}
 
 	expect := VersionInfo{
+		InitID:        "id",
 		Username:      "a",
 		ProfileID:     "a's profile ID",
 		Name:          "b",

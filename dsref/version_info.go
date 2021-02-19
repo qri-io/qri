@@ -141,6 +141,7 @@ func (v *VersionInfo) Alias() string {
 // VersionInfo without needing a dataset
 func ConvertDatasetToVersionInfo(ds *dataset.Dataset) VersionInfo {
 	vi := VersionInfo{
+		InitID:    ds.ID,
 		Username:  ds.Peername,
 		ProfileID: ds.ProfileID,
 		Name:      ds.Name,

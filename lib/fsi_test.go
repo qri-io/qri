@@ -224,7 +224,7 @@ func TestDscacheCheckout(t *testing.T) {
      fsiPath       = /tmp/cities_ds
 `, map[string]string{
 		"profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-		"headRef":   "/mem/QmQqnpYhA7UfcyCLkupkd35VLY8AL9XSQEtY5QhhLvV5jj",
+		"headRef":   "/mem/QmRgT3UeZcepvsYt881eCje7XJ3JQFVDKe99J8U4hC4BCt",
 	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
@@ -282,7 +282,7 @@ func TestDscacheInit(t *testing.T) {
      fsiPath       = /tmp/json_body
 `, map[string]string{
 		"profileID":     "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-		"citiesHeadRef": "/mem/QmQqnpYhA7UfcyCLkupkd35VLY8AL9XSQEtY5QhhLvV5jj",
+		"citiesHeadRef": "/mem/QmRgT3UeZcepvsYt881eCje7XJ3JQFVDKe99J8U4hC4BCt",
 	})
 
 	if diff := cmp.Diff(expect, actual); diff != "" {

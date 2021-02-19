@@ -818,6 +818,7 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 		}
 	}()
 
+	ds.ID = ref.InitID
 	ds.Name = ref.Name
 	ds.Peername = ref.Username
 

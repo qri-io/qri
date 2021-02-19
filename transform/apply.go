@@ -71,7 +71,7 @@ func (svc *Service) Apply(
 	if svc == nil {
 		return fmt.Errorf("transform service does not exist")
 	}
-	log.Debugw("applying transform", "runID", runID, "wait", wait)
+	log.Debugw("applying transform", "runID", runID, "targetID", target.ID, "wait", wait)
 
 	var (
 		head *dataset.Dataset
