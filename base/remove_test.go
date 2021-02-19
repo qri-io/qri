@@ -165,12 +165,11 @@ func TestVerifyRefsRemove(t *testing.T) {
 	// we get the proper response:
 	s = verifyRefsRemoved(ctx, r.Filesystem(), refs, 2)
 	sExpected := dstest.Template(t, `
-ref "peer/cities@{{ .ProfileID }}{{ .Path1 }}" should NOT exist in the store, but does
-ref "peer/cities@{{ .ProfileID }}{{ .Path2 }}" should NOT exist in the store, but does`,
+ref "peer/cities@{{ .Path1 }}" should NOT exist in the store, but does
+ref "peer/cities@{{ .Path2 }}" should NOT exist in the store, but does`,
 		map[string]string{
-			"ProfileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-			"Path1":     "/mem/Qmdki7aFGzimPynhNigPF1GnRnWp9k4ryop91D7JkxZ3pW",
-			"Path2":     "/mem/QmdAcSMzPBhZw8ebxfDqBaHZYLFS2X5J5QoAaKGHdiKiwE",
+			"Path1": "/mem/Qmdki7aFGzimPynhNigPF1GnRnWp9k4ryop91D7JkxZ3pW",
+			"Path2": "/mem/QmdAcSMzPBhZw8ebxfDqBaHZYLFS2X5J5QoAaKGHdiKiwE",
 		},
 	)
 	if diff := cmp.Diff(sExpected, s); diff != "" {

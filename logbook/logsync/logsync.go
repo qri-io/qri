@@ -123,7 +123,7 @@ func (lsync *Logsync) NewPull(ref dsref.Ref, remoteAddr string) (*Pull, error) {
 	if lsync == nil {
 		return nil, ErrNoLogsync
 	}
-	log.Debugf("NewPull ref=%q remoteAddr=%q", ref, remoteAddr)
+	log.Debugw("NewPull", "ref", ref, "remoteAddr", remoteAddr)
 
 	rem, err := lsync.remoteClient(context.TODO(), remoteAddr)
 	if err != nil {
@@ -387,7 +387,7 @@ type Pull struct {
 
 // Do executes the pull
 func (p *Pull) Do(ctx context.Context) (*oplog.Log, error) {
-	log.Debugf("pull.Do ref=%q", p.ref)
+	log.Debugw("pull.Do", "ref", p.ref)
 	sender, r, err := p.remote.get(ctx, p.book.Author(), p.ref)
 	if err != nil {
 		return nil, err

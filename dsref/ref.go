@@ -7,6 +7,9 @@ type Ref struct {
 	// Username of dataset owner
 	Username string `json:"username,omitempty"`
 	// ProfileID of dataset owner
+	// deprecated - avoid using this field, we're working towards removing it
+	// generally profile IDs should come from request scopes, or be fetched from
+	// stores of identity info (profile.Store)
 	ProfileID string `json:"profileID,omitempty"`
 	// Unique name reference for this dataset
 	Name string `json:"name,omitempty"`
@@ -32,7 +35,24 @@ func (r Ref) Human() string {
 // String implements the Stringer interface for Ref
 func (r Ref) String() (s string) {
 	s = r.Alias()
-	if r.ProfileID != "" || r.Path != "" {
+	if r.InitID != "" || r.Path != "" {
+		s += "@"
+	}
+	if r.InitID != "" {
+		s += r.InitID
+	}
+	if r.Path != "" {
+		s += r.Path
+	}
+	return s
+}
+
+// LegacyProfileIDString serializes a ref in the form
+//   Username/Name@ProfileID/Path
+// Deprecated - don't add callers, use String or raw ref fields instead
+func (r Ref) LegacyProfileIDString() (s string) {
+	s = r.Alias()
+	if r.InitID != "" || r.Path != "" {
 		s += "@"
 	}
 	if r.ProfileID != "" {

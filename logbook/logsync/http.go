@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/dsref"
@@ -31,8 +32,19 @@ func (c *httpClient) addr() string {
 }
 
 func (c *httpClient) put(ctx context.Context, author profile.Author, ref dsref.Ref, r io.Reader) error {
-	log.Debug("httpClient.put")
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s?ref=%s", c.URL, ref), r)
+	log.Debugw("httpClient.put", "ref", ref)
+	u, err := url.Parse(c.URL)
+	if err != nil {
+		return fmt.Errorf("invalid logsync client url: %w", err)
+	}
+	q := u.Query()
+	// TODO(B5): we need the old serialization format here b/c logsync checks the
+	// profileID matches the author. Migrate to a new system for validating who-can-push-what
+	// using keystore & UCANs, then switch this to standard reference string serialization
+	q.Set("ref", ref.LegacyProfileIDString())
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequest("PUT", u.String(), r)
 	if err != nil {
 		return err
 	}
@@ -57,8 +69,20 @@ func (c *httpClient) put(ctx context.Context, author profile.Author, ref dsref.R
 }
 
 func (c *httpClient) get(ctx context.Context, author profile.Author, ref dsref.Ref) (profile.Author, io.Reader, error) {
-	log.Debugf("httpClient.get ref=%q", ref)
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s?ref=%s", c.URL, ref), nil)
+	log.Debugw("httpClient.get", "ref", ref)
+	u, err := url.Parse(c.URL)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid logsync client url: %w", err)
+	}
+	q := u.Query()
+	// TODO(b5): remove initID for backwards compatiblity. get doesn't rely on the
+	// ProfileID field, but the other end of the wire may error if we send an InitID
+	// field
+	ref.InitID = ""
+	q.Set("ref", ref.String())
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, nil, err
 	}

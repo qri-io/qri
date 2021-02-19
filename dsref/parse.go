@@ -8,7 +8,7 @@ import (
 
 // These functions parse a string to create a dsref. We refer to a "human-friendly reference"
 // as one with only a username and dataset name, such as "my_user/my_dataset". A "full reference"
-// can also contain a "concrete reference", which includes an optional profileID plus a network
+// can also contain a "concrete reference", which includes an optional datasetID plus a network
 // and a "commit hash".
 //
 // Parse will parse a human-friendly reference, or only a concrete reference, or a full reference.
@@ -19,13 +19,13 @@ import (
 //
 //  <dsref> = <humanFriendlyPortion> [ <concreteRef> ] | <concreteRef>
 //  <humanFriendlyPortion> = <validName> '/' <validName>
-//  <concretePath> = '@' [ <profileID> ] '/' <network> '/' <commitHash>
+//  <concreteRef> = '@' [ <datasetID> ] '/' <network> '/' <commitHash>
 //
 // Some examples of valid references:
 //     me/dataset
 //     username/dataset
 //     @/ipfs/QmSome1Commit2Hash3
-//     @QmProfile4ID5/ipfs/QmSome1Commit2Hash3
+//     @datasetIdenfitier/ipfs/QmSome1Commit2Hash3
 //     username/dataset@QmProfile4ID5/ipfs/QmSome1Commit2Hash3
 // An invalid reference:
 //     /ipfs/QmSome1Commit2Hash3
@@ -34,13 +34,15 @@ const (
 	alphaNumeric       = `[a-zA-Z][\w-]*`
 	alphaNumericDsname = `[a-zA-Z][\w-]{0,143}`
 	b58Id              = `Qm[0-9a-zA-Z]{0,44}`
+	b32LogbookID       = `[a-z2-7]{0,52}`
 )
 
 var (
 	validName      = regexp.MustCompile(`^` + alphaNumeric)
 	dsNameCheck    = regexp.MustCompile(`^` + alphaNumericDsname + `$`)
-	concretePath   = regexp.MustCompile(`^@(` + b58Id + `)?\/(` + alphaNumeric + `)\/(` + b58Id + `)`)
+	concreteRef    = regexp.MustCompile(`^@(` + b32LogbookID + `|` + b58Id + `)?\/(` + alphaNumeric + `)\/(` + b58Id + `)`)
 	b58StrictCheck = regexp.MustCompile(`^Qm[1-9A-HJ-NP-Za-km-z]*$`)
+	b32LowerCheck  = regexp.MustCompile(`^[a-z2-7]*$`)
 
 	// ErrEmptyRef is an error for when a reference is empty
 	ErrEmptyRef = fmt.Errorf("empty reference")
@@ -94,10 +96,11 @@ func parse(text string, peerRef bool) (Ref, error) {
 		return r, err
 	}
 
-	remain, partial, err = parseConcretePath(text)
+	remain, partial, err = parseConcreteRef(text)
 	if err == nil {
 		text = remain
 		r.ProfileID = partial.ProfileID
+		r.InitID = partial.InitID
 		r.Path = partial.Path
 	} else if err != ErrParseError {
 		return r, err
@@ -249,23 +252,31 @@ func parseHumanFriendlyPortion(text string) (string, Ref, error) {
 }
 
 // parse the back of the dataset reference, the concrete path
-func parseConcretePath(text string) (string, Ref, error) {
+func parseConcreteRef(text string) (string, Ref, error) {
 	var r Ref
-	matches := concretePath.FindStringSubmatch(text)
+	matches := concreteRef.FindStringSubmatch(text)
 	if matches == nil {
 		return text, r, ErrParseError
 	}
 	if len(matches) != 4 {
 		return text, r, NewParseError("unexpected number of regex matches %d", len(matches))
 	}
+	// TODO(b5): this is incorrect. We should be allowing any 2-to-4-character alphanumeric
+	// network identifier
 	if matches[2] != "mem" && matches[2] != "ipfs" {
 		return text, r, NewParseError("invalid network")
 	}
 	matchedLen := len(matches[0])
-	if matches[1] != "" && b58StrictCheck.FindString(matches[1]) == "" {
-		return text, r, NewParseError("profileID contains invalid base58 characters")
+	if matches[1] != "" {
+		if b58StrictCheck.FindString(matches[1]) != "" {
+			r.ProfileID = matches[1]
+		} else {
+			if b32LowerCheck.FindString(matches[1]) == "" {
+				return text, r, NewParseError("datasetID contains invalid base32 characters")
+			}
+			r.InitID = matches[1]
+		}
 	}
-	r.ProfileID = matches[1]
 	if matches[3] != "" && b58StrictCheck.FindString(matches[3]) == "" {
 		return text, r, NewParseError("path contains invalid base58 characters")
 	}

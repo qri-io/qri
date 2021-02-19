@@ -124,7 +124,57 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 			t.Errorf("provided path result mismatch. (-want +got):\n%s", diff)
 		}
 
-		// TODO(b5) - need to add a test that confirms ResolveRef CANNOT return
+		// resolveMe = dsref.Ref{
+		// 	Username: username,
+		// 	Name:     dsname,
+		// 	InitID:   initID,
+		// }
+
+		// expectRef = dsref.Ref{
+		// 	Username:  username,
+		// 	Name:      dsname,
+		// 	ProfileID: pubKeyID,
+		// 	Path:      headPath,
+		// 	InitID:    initID,
+		// }
+
+		// _, err = r.ResolveRef(ctx, &resolveMe)
+		// if err != nil {
+		// 	t.Error(err)
+		// }
+		// if resolveMe.InitID != expectRef.InitID {
+		// 	t.Errorf("providing an InitID result mismatch. want: %q\ngot:  %q", expectRef.InitID, resolveMe.InitID)
+		// }
+		// if diff := cmp.Diff(expectRef, resolveMe); diff != "" {
+		// 	t.Errorf("provided InitID result mismatch. (-want +got):\n%s", diff)
+		// }
+
+		// // TODO(b5): not yet enforced by this test yet, but providing just an initID
+		// // MUST populate the alias (human side) of a reference.
+		// resolveMe = dsref.Ref{
+		// 	InitID: initID,
+		// }
+
+		// expectRef = dsref.Ref{
+		// 	Username:  username,
+		// 	Name:      dsname,
+		// 	ProfileID: pubKeyID,
+		// 	Path:      headPath,
+		// 	InitID:    initID,
+		// }
+
+		// _, err = r.ResolveRef(ctx, &resolveMe)
+		// if err != nil {
+		// 	t.Error(err)
+		// }
+		// if resolveMe.InitID != expectRef.InitID {
+		// 	t.Errorf("providing InitID-only result mismatch. want: %q\ngot:  %q", expectRef.InitID, resolveMe.InitID)
+		// }
+		// if diff := cmp.Diff(expectRef, resolveMe); diff != "" {
+		// 	t.Errorf("provided InitID-only result mismatch. (-want +got):\n%s", diff)
+		// }
+
+		// TODO(b5): need to add a test that confirms ResolveRef CANNOT return
 		// paths outside of logbook HEAD. Subsystems that store references to
 		// mutable paths (eg: FSI links) cannot be set as reference resolution
 	})
