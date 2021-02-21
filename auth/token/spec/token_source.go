@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/qri-io/qri/access"
+	"github.com/qri-io/qri/auth/token"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/profile"
 )
 
 // AssertTokenSourceSpec ensures a TokenSource implementation behaves as
 // expected
-func AssertTokenSourceSpec(t *testing.T, newTokenSource func(ctx context.Context) access.TokenSource) {
+func AssertTokenSourceSpec(t *testing.T, newTokenSource func(ctx context.Context) token.Source) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -32,11 +32,11 @@ func AssertTokenSourceSpec(t *testing.T, newTokenSource func(ctx context.Context
 		UseJSONNumber:        true,
 		SkipClaimsValidation: false,
 	}
-	if _, _, err := p.ParseUnverified(raw, &access.TokenClaims{}); err != nil {
-		t.Errorf("created token must parse with acces.TokenClaims. got: %q", err)
+	if _, _, err := p.ParseUnverified(raw, &token.Claims{}); err != nil {
+		t.Errorf("created token must parse with token.Claims. got: %q", err)
 	}
 
-	if _, err := access.ParseToken(raw, source); err != nil {
+	if _, err := token.Parse(raw, source); err != nil {
 		t.Errorf("source must create tokens that parse with it's own verification keys. error: %q", err)
 	}
 }

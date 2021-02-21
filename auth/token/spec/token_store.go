@@ -7,23 +7,23 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/qri/access"
+	"github.com/qri-io/qri/auth/token"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/profile"
 )
 
-// AssertTokenStoreSpec ensures an access.TokenStore implementation behaves as
+// AssertTokenStoreSpec ensures an token.TokenStore implementation behaves as
 // expected
-func AssertTokenStoreSpec(t *testing.T, newTokenStore func(context.Context) access.TokenStore) {
-	prevTs := access.Timestamp
-	access.Timestamp = func() time.Time { return time.Time{} }
-	defer func() { access.Timestamp = prevTs }()
+func AssertTokenStoreSpec(t *testing.T, newTokenStore func(context.Context) token.Store) {
+	prevTs := token.Timestamp
+	token.Timestamp = func() time.Time { return time.Time{} }
+	defer func() { token.Timestamp = prevTs }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	pk := cfgtest.GetTestPeerInfo(0).PrivKey
-	tokens, err := access.NewPrivKeyTokenSource(pk)
+	tokens, err := token.NewPrivKeySource(pk)
 	if err != nil {
 		t.Fatalf("creating local tokens: %q", err)
 	}
@@ -38,12 +38,12 @@ func AssertTokenStoreSpec(t *testing.T, newTokenStore func(context.Context) acce
 	}
 
 	_, err = store.RawToken(ctx, "this doesn't exist")
-	if !errors.Is(err, access.ErrTokenNotFound) {
-		t.Errorf("expected store.RawToken(nonexistent key) to return a wrap of access.ErrTokenNotFound. got: %q", err)
+	if !errors.Is(err, token.ErrTokenNotFound) {
+		t.Errorf("expected store.RawToken(nonexistent key) to return a wrap of token.ErrTokenNotFound. got: %q", err)
 	}
 	err = store.DeleteToken(ctx, "this also doesn't exist")
-	if !errors.Is(err, access.ErrTokenNotFound) {
-		t.Errorf("expected store.D key to return a wrap of access.ErrTokenNotFound. got: %q", err)
+	if !errors.Is(err, token.ErrTokenNotFound) {
+		t.Errorf("expected store.D key to return a wrap of token.ErrTokenNotFound. got: %q", err)
 	}
 	if err := store.PutToken(ctx, "_bad_key", "not.a.key"); err == nil {
 		t.Errorf("putting an invalid json web token should error. got nil")
@@ -92,7 +92,7 @@ func AssertTokenStoreSpec(t *testing.T, newTokenStore func(context.Context) acce
 		t.Errorf("result length mismatch listing keys after adding second key. expected 2, got: %d", len(results))
 	}
 
-	expect := []access.RawToken{
+	expect := []token.RawToken{
 		{
 			Key: "_root",
 			Raw: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJRbVdZZ0Q0OXI5SG51WEVwcFFFcTFhN1NVVXJ5amE0UU5zOUU2WENIMlBheUNEIiwidXNlcm5hbWUiOiJsb2NhbF91c2VyIn0.hu1B92X8cLBRNtNNiwm_qn4T-s8WlDlsa0swNgeyUPJ921LfojmHobkuW4oRvNEjkq_OP2gkaZ_F0YyUgAM8K-pVg30L-jNG9cqA1EUx4cQ90ZSbMxvXzRmBevBa3Wq-RHErnGw-K7EvtZfuPrp60LuDBKkGCuAwfKV8D9O-6U4lrragFgfw3zWRdovnb28fO2W6sqP8azGDcY8klpysjx7W4V-qVynJ981_ex_G1wPbk1dov59MDlY6yoxt1rucyF5-f4oo9jv6k194Tigw3Uv6JR889kK5x87ruiApghfQIBosAd-hm79Xz0RmLahykoZZTbVASW6NcIPvqvZ5TA",
@@ -124,7 +124,7 @@ func AssertTokenStoreSpec(t *testing.T, newTokenStore func(context.Context) acce
 	}
 
 	_, err = store.RawToken(ctx, secondKey)
-	if !errors.Is(err, access.ErrTokenNotFound) {
-		t.Errorf("store.RawToken() for a just-deleted key must return a wrap of access.ErrTokenNotFound. got: %q", err)
+	if !errors.Is(err, token.ErrTokenNotFound) {
+		t.Errorf("store.RawToken() for a just-deleted key must return a wrap of token.ErrTokenNotFound. got: %q", err)
 	}
 }
