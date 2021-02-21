@@ -127,10 +127,7 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 		})
 	}
 
-	pro, err := node.Repo.Profile(ctx)
-	if err != nil {
-		log.Debug("cannot get profile from repo, need username for access control on the remote to function")
-	}
+	pro := node.Repo.Profiles().Owner()
 
 	cli := &client{
 		pk:      node.Repo.PrivateKey(ctx),

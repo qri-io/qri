@@ -84,10 +84,7 @@ func TestWatchAllFSIPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pro, err := r.Profile(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	pro := r.Profiles().Owner()
 
 	ref, err := r.GetRef(reporef.DatasetRef{
 		Peername: pro.Peername,

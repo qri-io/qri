@@ -158,11 +158,6 @@ func (r *MemRepo) RefCache() Refstore {
 	return r.refCache
 }
 
-// Profile returns the peer profile for this repository
-func (r *MemRepo) Profile(ctx context.Context) (*profile.Profile, error) {
-	return r.profiles.Active(ctx), nil
-}
-
 // Profiles gives this repo's Peer interface implementation
 func (r *MemRepo) Profiles() profile.Store {
 	return r.profiles

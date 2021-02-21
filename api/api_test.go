@@ -81,8 +81,7 @@ func testConfigAndSetter() (cfg *config.Config, setCfg func(*config.Config) erro
 
 func newTestInstanceWithProfileFromNode(ctx context.Context, node *p2p.QriNode) *lib.Instance {
 	cfg := config.DefaultConfigForTesting()
-	pro, _ := node.Repo.Profile(ctx)
-	cfg.Profile, _ = pro.Encode()
+	cfg.Profile, _ = node.Repo.Profiles().Owner().Encode()
 	return lib.NewInstanceFromConfigAndNode(ctx, cfg, node)
 }
 

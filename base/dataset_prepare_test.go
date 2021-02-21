@@ -23,11 +23,7 @@ func TestPrepareSaveRef(t *testing.T) {
 	r := newTestRepo(t)
 	ctx := context.Background()
 
-	pro, err := r.Profile(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	pro := r.Profiles().Owner()
 	book := r.Logbook()
 
 	book.WriteDatasetInit(ctx, "cities")
@@ -97,13 +93,9 @@ func TestPrepareSaveRef(t *testing.T) {
 
 func TestInferValues(t *testing.T) {
 	r := newTestRepo(t)
-	ctx := context.Background()
-	pro, err := r.Profile(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	pro := r.Profiles().Owner()
 	ds := &dataset.Dataset{}
-	if err = InferValues(pro, ds); err != nil {
+	if err := InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
 	expectAuthorID := `QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt`
@@ -168,11 +160,7 @@ func TestInferStructureSchema(t *testing.T) {
 
 func TestInferValuesDontOverwriteSchema(t *testing.T) {
 	r := newTestRepo(t)
-	ctx := context.Background()
-	pro, err := r.Profile(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	pro := r.Profiles().Owner()
 
 	ds := &dataset.Dataset{
 		Name: "animals",
@@ -193,7 +181,7 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
-	if err = InferValues(pro, ds); err != nil {
+	if err := InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
 
@@ -213,13 +201,6 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 }
 
 func TestMaybeAddDefaultViz(t *testing.T) {
-	r := newTestRepo(t)
-	ctx := context.Background()
-	_, err := r.Profile(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	ds := &dataset.Dataset{
 		Name: "animals",
 		Structure: &dataset.Structure{

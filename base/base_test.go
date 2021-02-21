@@ -96,11 +96,8 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) dsref.Ref {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	pro, err := r.Profile(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
 
+	pro := r.Profiles().Owner()
 	ref, err := repo.GetVersionInfoShim(r, dsref.Ref{Username: pro.Peername, Name: tc.Name})
 	if err != nil {
 		t.Fatal(err)

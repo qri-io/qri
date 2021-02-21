@@ -148,11 +148,6 @@ func (r *Repo) SetFilesystem(fs *muxfs.Mux) {
 	r.fsys = fs
 }
 
-// Profile gives this repo's peer profile
-func (r *Repo) Profile(ctx context.Context) (*profile.Profile, error) {
-	return r.profiles.Active(ctx), nil
-}
-
 // Logbook stores operation logs for coordinating state across peers
 func (r *Repo) Logbook() *logbook.Book {
 	return r.logbook

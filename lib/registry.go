@@ -79,10 +79,7 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 	privKey := m.inst.repo.PrivateKey(ctx)
 
 	// Get public key to send to server
-	pro, err := m.inst.repo.Profile(ctx)
-	if err != nil {
-		return err
-	}
+	pro := m.inst.repo.Profiles().Owner()
 	pubkeybytes, err := pro.PubKey.Bytes()
 	if err != nil {
 		return err

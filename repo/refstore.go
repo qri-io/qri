@@ -163,10 +163,7 @@ func CanonicalizeProfile(ctx context.Context, r Repo, ref *reporef.DatasetRef) e
 		return nil
 	}
 
-	p, err := r.Profile(ctx)
-	if err != nil {
-		return err
-	}
+	p := r.Profiles().Owner()
 
 	// If this is a dataset ref that a peer of the user owns.
 	if ref.Peername == "me" || ref.Peername == p.Peername || ref.ProfileID == p.ID {

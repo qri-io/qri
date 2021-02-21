@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/transform/run"
 )
@@ -31,10 +30,7 @@ func SaveDataset(
 	sw SaveSwitches,
 ) (ds *dataset.Dataset, err error) {
 	log.Debugf("SaveDataset initID=%q prevPath=%q", initID, prevPath)
-	var pro *profile.Profile
-	if pro, err = r.Profile(ctx); err != nil {
-		return nil, err
-	}
+	pro := r.Profiles().Owner()
 	if initID == "" {
 		return nil, fmt.Errorf("SaveDataset requires an initID")
 	}
@@ -124,16 +120,11 @@ func SaveDataset(
 func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ds, dsPrev *dataset.Dataset, sw SaveSwitches) (res *dataset.Dataset, err error) {
 	log.Debugf("CreateDataset ds=%#v dsPrev=%#v", ds, dsPrev)
 	var (
-		pro     *profile.Profile
+		pro     = r.Profiles().Owner()
 		path    string
 		resBody qfs.File
 	)
 
-	pro, err = r.Profile(ctx)
-	if err != nil {
-		log.Debugf("getting repo profile: %s", err)
-		return
-	}
 	// TODO(dustmop): Remove the dependence on the ds having an assigned Name. It is only
 	// needed for updating the refstore. Either pass in the reference needed to update the refstore,
 	// or move the refstore update out of this function.
