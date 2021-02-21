@@ -122,7 +122,7 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher, localReso
 		DisconnectedF: node.disconnected,
 	}
 
-	node.qis = NewQriProfileService(node.Repo, node.pub)
+	node.qis = NewQriProfileService(node.Repo.Profiles(), node.pub)
 	return node, nil
 }
 
@@ -209,12 +209,7 @@ func (n *QriNode) GoOnline(c context.Context) (err error) {
 		return err
 	}
 
-	p, err := n.Repo.Owner()
-	if err != nil {
-		log.Errorf("error getting repo profile: %s\n", err.Error())
-		cancel()
-		return err
-	}
+	p := n.Repo.Profiles().Owner()
 	p.PeerIDs = []peer.ID{n.host.ID()}
 
 	// update profile with our p2p addresses

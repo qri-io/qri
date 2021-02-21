@@ -52,7 +52,9 @@ func (m *PeerMethods) List(p *PeerListParams, res *[]*config.ProfilePod) (err er
 		p.Limit = DefaultPageSize
 	}
 
-	*res, err = p2p.ListPeers(m.inst.node, p.Limit, p.Offset, !p.Cached)
+	// requesting user is hardcoded as node owner
+	u := m.inst.repo.Profiles().Owner()
+	*res, err = p2p.ListPeers(m.inst.node, u.ID, p.Offset, p.Limit, !p.Cached)
 	return err
 }
 

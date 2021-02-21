@@ -88,12 +88,6 @@ func (m *ProfileMethods) getProfile(ctx context.Context, r repo.Repo, idStr, pee
 		}
 	}
 
-	// TODO - own profile should just be inside the profile store
-	profile, err := r.Owner()
-	if err == nil && profile.ID.String() == id.String() {
-		return profile, nil
-	}
-
 	return r.Profiles().GetProfile(id)
 }
 

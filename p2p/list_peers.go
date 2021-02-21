@@ -4,16 +4,14 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/profile"
 )
 
 // ListPeers lists Peers on the qri network
-func ListPeers(node *QriNode, limit, offset int, onlineOnly bool) ([]*config.ProfilePod, error) {
+// userID is the profile identifier of the user making the request
+func ListPeers(node *QriNode, userID profile.ID, offset, limit int, onlineOnly bool) ([]*config.ProfilePod, error) {
 
 	r := node.Repo
-	user, err := r.Owner()
-	if err != nil {
-		return nil, err
-	}
 
 	peers := make([]*config.ProfilePod, 0, limit)
 	connected := node.ConnectedQriProfiles()
@@ -42,7 +40,7 @@ func ListPeers(node *QriNode, limit, offset int, onlineOnly bool) ([]*config.Pro
 		if len(peers) >= limit {
 			break
 		}
-		if pro == nil || pro.ID == user.ID {
+		if pro == nil || pro.ID == userID {
 			continue
 		}
 

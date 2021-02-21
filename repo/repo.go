@@ -84,8 +84,6 @@ type Repo interface {
 	// A repository must maintain profile information about the active profile of this dataset.
 	// The value returned by Profile() should represent the peer.
 	Profile(ctx context.Context) (*profile.Profile, error)
-	// A repository maintains the profile information of the owner
-	Owner() (*profile.Profile, error)
 	// PrivateKey hands over this repo's private key
 	PrivateKey(ctx context.Context) crypto.PrivKey
 	// A repository must maintain profile information about encountered peers.

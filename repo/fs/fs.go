@@ -153,11 +153,6 @@ func (r *Repo) Profile(ctx context.Context) (*profile.Profile, error) {
 	return r.profiles.Active(ctx), nil
 }
 
-// Owner returns the owner profile for this repository
-func (r *Repo) Owner() (*profile.Profile, error) {
-	return r.profiles.Owner(), nil
-}
-
 // Logbook stores operation logs for coordinating state across peers
 func (r *Repo) Logbook() *logbook.Book {
 	return r.logbook
