@@ -1484,11 +1484,8 @@ func (m *DatasetMethods) Manifest(refstr *string, mfst *dag.Manifest) error {
 	}
 	ctx := context.TODO()
 
-	ref, err := repo.ParseDatasetRef(*refstr)
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, *refstr, "local")
 	if err != nil {
-		return err
-	}
-	if err = repo.CanonicalizeDatasetRef(ctx, m.inst.repo, &ref); err != nil {
 		return err
 	}
 
@@ -1529,11 +1526,8 @@ func (m *DatasetMethods) DAGInfo(s *DAGInfoParams, i *dag.Info) error {
 	}
 	ctx := context.TODO()
 
-	ref, err := repo.ParseDatasetRef(s.RefStr)
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, s.RefStr, "local")
 	if err != nil {
-		return err
-	}
-	if err = repo.CanonicalizeDatasetRef(ctx, m.inst.repo, &ref); err != nil {
 		return err
 	}
 
