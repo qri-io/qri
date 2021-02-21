@@ -11,11 +11,11 @@ import (
 	"sync"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/access"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/remote"
+	"github.com/qri-io/qri/remote/access"
 	"github.com/qri-io/qri/repo/gen"
 	"github.com/spf13/cobra"
 )

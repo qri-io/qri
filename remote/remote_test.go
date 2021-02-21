@@ -13,7 +13,6 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/access"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
@@ -24,6 +23,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/profile"
+	"github.com/qri-io/qri/remote/access"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
