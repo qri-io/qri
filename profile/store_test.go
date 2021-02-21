@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
-	"github.com/qri-io/qri/key"
 )
 
 func TestPutProfileWithAddresses(t *testing.T) {

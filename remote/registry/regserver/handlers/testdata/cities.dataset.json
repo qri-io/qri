@@ -1,0 +1,59 @@
+{
+  "handle" : "b5",
+  "name" : "cities",
+  "path" : "/map/QmYXMg6gqMAT8seUFhgAagknFvfs71auFWbnSfVcg1NTd8",
+  "publickey" : "CAASpgIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC/7Q7fILQ8hc9g07a4HAiDKE4FahzL2eO8OlB1K99Ad4L1zc2dCg+gDVuGwdbOC29IngMA7O3UXijycckOSChgFyW3PafXoBF8Zg9MRBDIBo0lXRhW4TrVytm4Etzp4pQMyTeRYyWR8e2hGXeHArXM1R/A/SjzZUbjJYHhgvEE4OZy7WpcYcW6K3qqBGOU5GDMPuCcJWac2NgXzw6JeNsZuTimfVCJHupqG/dLPMnBOypR22dO7yJIaQ3d0PFLxiDG84X9YupF914RzJlopfdcuipI+6gFAgBw3vi6gbECEzcohjKf/4nqBOEvCDD6SXfl5F/MxoHurbGBYB2CJp+FAgMBAAE=",
+  "commit": {
+    "message": "",
+    "qri": "cm:0",
+    "signature": "RZU/18bxxacveMoNvGxINIS9MxvNwtc4OiSCRjCGnospztHNhJfJP0PflrzKG1tqLGi+c4w94BJRmLR/I5YaVqqwm86vGkYhwDRuBEViuT4GlKCzVEFUk63fJsT9YmcUWlabqEnUW2l0O6p+RatfmumlKOleONMYy1woa5PbIzRGoITo4u9piYiV6RVRJ9bURjEU7cr8iVXcwO+YEw6qMCUBKUAok+yttjt+iYm0JLD9hPoQO14Vu4jWMFxByoLvVIEquEqnlgyuQGvelFfuApUI5goTftOcASANuTsnrOe6gq0HJxNN27kAYQujS3swspi7qVrL9X8v341YKu77fQ==",
+    "timestamp": "2001-01-01T01:01:01.000000001Z",
+    "title": "initial commit"
+  },
+  "dataPath": "/map/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
+  "meta": {
+    "qri": "md:0",
+    "title": "example city data"
+  },
+  "qri": "ds:0",
+  "structure": {
+    "checksum": "QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
+    "entries": 5,
+    "errCount": 1,
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "length": 155,
+    "qri": "st:0",
+    "schema": {
+      "items": {
+        "items": [
+          {
+            "title": "city",
+            "type": "string"
+          },
+          {
+            "title": "pop",
+            "type": "integer"
+          },
+          {
+            "title": "avg_age",
+            "type": "number"
+          },
+          {
+            "title": "in_usa",
+            "type": "boolean"
+          }
+        ],
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "visconfig": {
+    "format": "example format",
+    "qri": "vc:0",
+    "visualizations": "example visualization"
+  }
+}
