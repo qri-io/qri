@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	golog "github.com/ipfs/go-log"
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
@@ -156,11 +155,6 @@ func (r *Repo) Logbook() *logbook.Book {
 // Dscache returns a dscache
 func (r *Repo) Dscache() *dscache.Dscache {
 	return r.dscache
-}
-
-// PrivateKey returns this repo's private key
-func (r *Repo) PrivateKey(ctx context.Context) crypto.PrivKey {
-	return r.profiles.Active(ctx).PrivKey
 }
 
 // Profiles returns this repo's Peers implementation

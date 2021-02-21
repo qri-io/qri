@@ -38,9 +38,9 @@ func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err 
 		return checkRPCError(m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok))
 	}
 
-	ctx := context.TODO()
 	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
-	pro, err := m.inst.registry.CreateProfile(p, m.inst.repo.PrivateKey(ctx))
+	ownerPk := m.inst.repo.Profiles().Owner().PrivKey
+	pro, err := m.inst.registry.CreateProfile(p, ownerPk)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 
 	// For signing the outgoing message
 	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
-	privKey := m.inst.repo.PrivateKey(ctx)
+	privKey := m.inst.repo.Profiles().Owner().PrivKey
 
 	// Get public key to send to server
 	pro := m.inst.repo.Profiles().Owner()

@@ -141,7 +141,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 		return
 	}
 
-	if path, err = dsfs.CreateDataset(ctx, r.Filesystem(), writeDest, r.Bus(), ds, dsPrev, r.PrivateKey(ctx), sw); err != nil {
+	if path, err = dsfs.CreateDataset(ctx, r.Filesystem(), writeDest, r.Bus(), ds, dsPrev, pro.PrivKey, sw); err != nil {
 		log.Debugf("dsfs.CreateDataset: %s", err)
 		return nil, err
 	}

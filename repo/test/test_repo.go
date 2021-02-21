@@ -214,7 +214,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 
 	sw := dsfs.SaveSwitches{Pin: true, ShouldRender: true}
 	fs := r.Filesystem()
-	if path, err = dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), r.Bus(), ds, nil, r.PrivateKey(ctx), sw); err != nil {
+	if path, err = dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), r.Bus(), ds, nil, pro.PrivKey, sw); err != nil {
 		return
 	}
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {

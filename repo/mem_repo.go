@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
-
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/auth/key"
@@ -146,11 +144,6 @@ func (r *MemRepo) SetLogbook(book *logbook.Book) {
 // SetFilesystem implements QFSSetter, currently used during lib contstruction
 func (r *MemRepo) SetFilesystem(fs *muxfs.Mux) {
 	r.filesystem = fs
-}
-
-// PrivateKey returns this repo's private key
-func (r *MemRepo) PrivateKey(ctx context.Context) crypto.PrivKey {
-	return r.profiles.Active(ctx).PrivKey
 }
 
 // RefCache gives access to the ephemeral Refstore
