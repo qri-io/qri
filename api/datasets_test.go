@@ -145,6 +145,8 @@ func TestDatasetHandlers(t *testing.T) {
 }
 
 func newMockDataServer(t *testing.T) *httptest.Server {
+	t.Helper()
+
 	mockData := []byte(`Parent Identifier,Student Identifier
 1001,1002
 1010,1020

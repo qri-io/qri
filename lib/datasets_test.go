@@ -896,8 +896,8 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		err    string
 		params RemoveParams
 	}{
-		{"repo: empty dataset reference", RemoveParams{Ref: "", Revision: allRevs}},
-		{"repo: not found", RemoveParams{Ref: "abc/ABC", Revision: allRevs}},
+		{`"" is not a valid dataset reference: empty reference`, RemoveParams{Ref: "", Revision: allRevs}},
+		{"reference not found", RemoveParams{Ref: "abc/ABC", Revision: allRevs}},
 		{"can only remove whole dataset versions, not individual components", RemoveParams{Ref: "abc/ABC", Revision: &dsref.Rev{Field: "st", Gen: -1}}},
 		{"invalid number of revisions to delete: 0", RemoveParams{Ref: "peer/movies", Revision: &dsref.Rev{Field: "ds", Gen: 0}}},
 		{"dataset is not linked to filesystem, cannot use keep-files", RemoveParams{Ref: "peer/movies", Revision: allRevs, KeepFiles: true}},

@@ -33,6 +33,7 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/fsi/linkfile"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/transform"
@@ -1100,31 +1101,36 @@ func (m *DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveRe
 		return nil, fmt.Errorf("can only remove whole dataset versions, not individual components")
 	}
 
-	ref, err := repo.ParseDatasetRef(p.Ref)
+	ref, _, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
 	if err != nil {
-		return nil, err
-	}
-
-	if canonErr := repo.CanonicalizeDatasetRef(ctx, m.inst.repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
-		log.Debugf("Remove, repo.CanonicalizeDatasetRef failed, error: %s", canonErr)
-		if p.Force {
-			didRemove, _ := base.RemoveEntireDataset(ctx, m.inst.repo, reporef.ConvertToDsref(ref), []dsref.VersionInfo{})
+		log.Debugw("Remove, repo.ParseAndResolveRefWithWorkingDir failed", "err", err)
+		// TODO(b5): this "logbook.ErrNotFound" is needed to get cmd.TestRemoveEvenIfLogbookGone
+		// to pass. Relying on dataset resolution returning an error defined in logbook is incorrect
+		// This should really be checking for some sort of "can't fully resolve" error
+		// defined in dsref instead
+		if p.Force || errors.Is(err, logbook.ErrNotFound) {
+			didRemove, _ := base.RemoveEntireDataset(ctx, m.inst.repo, ref, []dsref.VersionInfo{})
 			if didRemove != "" {
-				log.Debugf("Remove cleaned up data found in %s", didRemove)
+				log.Debugw("Remove cleaned up data found", "didRemove", didRemove)
 				res.Message = didRemove
 				return res, nil
 			}
 		}
-		return nil, canonErr
+		return nil, err
 	}
-	res.Ref = ref.String()
 
-	if ref.FSIPath != "" {
+	res.Ref = ref.String()
+	var fsiPath string
+	if fsi.IsFSIPath(ref.Path) {
+		fsiPath = fsi.FilesystemPathToLocal(ref.Path)
+	}
+
+	if fsiPath != "" {
 		// Dataset is linked in a working directory.
 		if !(p.KeepFiles || p.Force) {
 			// Make sure that status is clean, otherwise, refuse to remove any revisions.
 			// Setting either --keep-files or --force will skip this check.
-			wdErr := m.inst.fsi.IsWorkingDirectoryClean(ctx, ref.FSIPath)
+			wdErr := m.inst.fsi.IsWorkingDirectoryClean(ctx, fsiPath)
 			if wdErr != nil {
 				if wdErr == fsi.ErrWorkingDirectoryDirty {
 					log.Debugf("Remove, IsWorkingDirectoryDirty")
@@ -1134,7 +1140,7 @@ func (m *DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveRe
 					// If the working directory has been removed (or renamed), could not get the
 					// status. However, don't let this stop the remove operation, since the files
 					// are already gone, and therefore won't be removed.
-					log.Debugf("Remove, couldn't get status for %s, maybe removed or renamed", ref.FSIPath)
+					log.Debugf("Remove, couldn't get status for %s, maybe removed or renamed", fsiPath)
 					wdErr = nil
 				} else {
 					log.Debugf("Remove, IsWorkingDirectoryClean error: %s", err)
@@ -1148,7 +1154,7 @@ func (m *DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveRe
 	}
 
 	// Get the revisions that will be deleted.
-	history, err := base.DatasetLog(ctx, m.inst.repo, reporef.ConvertToDsref(ref), p.Revision.Gen+1, 0, false)
+	history, err := base.DatasetLog(ctx, m.inst.repo, ref, p.Revision.Gen+1, 0, false)
 	if err == nil && p.Revision.Gen >= len(history) {
 		// If the number of revisions to delete is greater than or equal to the amount in history,
 		// treat this operation as deleting everything.
@@ -1166,34 +1172,33 @@ func (m *DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveRe
 
 	if p.Revision.Gen == dsref.AllGenerations {
 		// removing all revisions of a dataset must unlink it
-		if ref.FSIPath != "" {
-			dr := reporef.ConvertToDsref(ref)
-			if err := m.inst.fsi.Unlink(ctx, ref.FSIPath, dr); err == nil {
+		if fsiPath != "" {
+			if err := m.inst.fsi.Unlink(ctx, fsiPath, ref); err == nil {
 				res.Unlinked = true
 			} else {
 				log.Errorf("during Remove, dataset did not unlink: %s", err)
 			}
 		}
 
-		didRemove, _ := base.RemoveEntireDataset(ctx, m.inst.repo, reporef.ConvertToDsref(ref), history)
+		didRemove, _ := base.RemoveEntireDataset(ctx, m.inst.repo, ref, history)
 		res.NumDeleted = dsref.AllGenerations
 		res.Message = didRemove
 
-		if ref.FSIPath != "" && !p.KeepFiles {
+		if fsiPath != "" && !p.KeepFiles {
 			// Remove all files
-			fsi.DeleteComponentFiles(ref.FSIPath)
+			fsi.DeleteComponentFiles(fsiPath)
 			var err error
 			if p.Force {
-				err = m.inst.fsi.RemoveAll(ref.FSIPath)
+				err = m.inst.fsi.RemoveAll(fsiPath)
 			} else {
-				err = m.inst.fsi.Remove(ref.FSIPath)
+				err = m.inst.fsi.Remove(fsiPath)
 			}
 			if err != nil {
 				if strings.Contains(err.Error(), "no such file or directory") {
 					// If the working directory has already been removed (or renamed), it is
 					// not an error that this remove operation fails, since we were trying to
 					// remove them anyway.
-					log.Debugf("Remove, couldn't remove %s, maybe already removed or renamed", ref.FSIPath)
+					log.Debugf("Remove, couldn't remove %s, maybe already removed or renamed", fsiPath)
 					err = nil
 				} else {
 					log.Debugf("Remove, os.Remove failed, error: %s", err)
@@ -1202,8 +1207,19 @@ func (m *DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveRe
 			}
 		}
 	} else if len(history) > 0 {
+		if fsiPath != "" {
+			// if we're operating on an fsi-linked directory, we need to re-resolve to
+			// get the path on qfs. This could be avoided if we refactored ParseAndResolveRefWithWorkingDir
+			// to return an extra fsiPath value
+			qfsRef := ref.Copy()
+			qfsRef.Path = ""
+			if _, err := m.inst.ResolveReference(ctx, &qfsRef, "local"); err != nil {
+				return nil, err
+			}
+			ref = qfsRef
+		}
 		// Delete the specific number of revisions.
-		info, err := base.RemoveNVersionsFromStore(ctx, m.inst.repo, reporef.ConvertToDsref(ref), p.Revision.Gen)
+		info, err := base.RemoveNVersionsFromStore(ctx, m.inst.repo, ref, p.Revision.Gen)
 		if err != nil {
 			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
 			return nil, err

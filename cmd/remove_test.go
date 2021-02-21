@@ -105,11 +105,11 @@ func TestRemoveRun(t *testing.T) {
 		err      string
 		msg      string
 	}{
-		{[]string{}, -1, "", "repo: empty dataset reference", ""},
-		{[]string{"me/bad_dataset"}, -1, "", "repo: not found", "could not find dataset 'me/bad_dataset'"},
-		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@/mem/QmQPS7Nf6dG8zosyAA8zYd64gaLBTAzYsVhMkaMCgCXJST'\n", "", ""},
-		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@/mem/QmPWCzaxFoxAu5wS8qXkL6tSA7aR2Lpcwykfz1TbhhpuDp'\n", "", ""},
-		{[]string{"me/movies"}, -1, "", "repo: not found", "could not find dataset 'me/movies'"},
+		{[]string{}, -1, "", `"" is not a valid dataset reference: empty reference`, ""},
+		{[]string{"me/bad_dataset"}, -1, "", "reference not found", "could not find dataset 'me/bad_dataset'"},
+		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@7ptazaa3bwxvgmyfwq4pugzuvcdpqddhihir3f6gvdmfvdifzs3q/mem/QmQPS7Nf6dG8zosyAA8zYd64gaLBTAzYsVhMkaMCgCXJST'\n", "", ""},
+		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@h5vhalefmhkuky5kqqbm22scxtm2bj2b7w2z63hlwiywi6hkbkoa/mem/QmPWCzaxFoxAu5wS8qXkL6tSA7aR2Lpcwykfz1TbhhpuDp'\n", "", ""},
+		{[]string{"me/movies"}, -1, "", "reference not found", "could not find dataset 'me/movies'"},
 	}
 
 	for i, c := range cases {
@@ -128,7 +128,7 @@ func TestRemoveRun(t *testing.T) {
 
 		err = opt.Run()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
+			t.Errorf("case %d, mismatched error. Expected: %q, Got: %q", i, c.err, err)
 			run.IOReset()
 			continue
 		}
