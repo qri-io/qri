@@ -72,7 +72,7 @@ func PutVersionInfoShim(ctx context.Context, r Repo, vi *dsref.VersionInfo) erro
 // while still safely interacting with the repo.Refstore API
 func DeleteVersionInfoShim(ctx context.Context, r Repo, ref dsref.Ref) (*dsref.VersionInfo, error) {
 	rref := reporef.RefFromDsref(ref)
-	if err := CanonicalizeDatasetRef(ctx, r, &rref); err != nil && err != ErrNoHistory {
+	if err := canonicalizeDatasetRef(ctx, r, &rref); err != nil && err != ErrNoHistory {
 		return nil, err
 	}
 	if err := r.DeleteRef(rref); err != nil {
@@ -105,16 +105,11 @@ func ListDatasetsShim(r Repo, offset, limit int) ([]dsref.VersionInfo, error) {
 	return vis, nil
 }
 
-// TODO(dlong): In the near future, switch to a new utility that resolves references to specific
-// versions by using logbook. A ref should resolve to a pair of (init-id, head-ref), where the
-// init-id is the stable unchanging identifier for a dataset (derived from logbook) and head-ref
-// is the current head version. Use that everywhere in the code, instead of CanonicalizeDatasetRef.
-
-// CanonicalizeDatasetRef uses the user's repo to turn any local aliases into full dataset
+// canonicalizeDatasetRef uses the user's repo to turn any local aliases into full dataset
 // references using known canonical peernames and paths. If the provided reference is not
 // in the local repo, still do the work of handling aliases, but return a repo.ErrNotFound
 // error, which callers can respond to by possibly contacting remote repos.
-func CanonicalizeDatasetRef(ctx context.Context, r Repo, ref *reporef.DatasetRef) error {
+func canonicalizeDatasetRef(ctx context.Context, r Repo, ref *reporef.DatasetRef) error {
 	if ref.IsEmpty() {
 		return ErrEmptyRef
 	}

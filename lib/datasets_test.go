@@ -797,7 +797,7 @@ func TestRenameNoHistory(t *testing.T) {
 	workDir := tr.CreateAndChdirToWorkDir("remove_no_history")
 	initP := &InitDatasetParams{
 		TargetDir: workDir,
-		Name:      "remove_no_history",
+		Name:      "rename_no_history",
 		Format:    "csv",
 	}
 	var refstr string
@@ -807,15 +807,15 @@ func TestRenameNoHistory(t *testing.T) {
 
 	// 	// Read .qri-ref file, it contains the reference this directory is linked to
 	actual := tr.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
-	expect := "peer/remove_no_history"
+	expect := "peer/rename_no_history"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("qri list (-want +got):\n%s", diff)
 	}
 
 	// Rename before any commits have happened
 	renameP := &RenameParams{
-		Current: "me/remove_no_history",
-		Next:    "me/remove_second_name",
+		Current: "me/rename_no_history",
+		Next:    "me/rename_second_name",
 	}
 	_, err := NewDatasetMethods(tr.Instance).Rename(ctx, renameP)
 	if err != nil {
@@ -824,7 +824,7 @@ func TestRenameNoHistory(t *testing.T) {
 
 	// Read .qri-ref file, it contains the new reference name
 	actual = tr.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
-	expect = "peer/remove_second_name"
+	expect = "peer/rename_second_name"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("qri list (-want +got):\n%s", diff)
 	}

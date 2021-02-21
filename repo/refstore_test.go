@@ -388,7 +388,7 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 		}
 		got := &ref
 
-		err = CanonicalizeDatasetRef(ctx, memRepo, got)
+		err = canonicalizeDatasetRef(ctx, memRepo, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
@@ -445,7 +445,7 @@ func TestCanonicalizeDatasetRefFSI(t *testing.T) {
 		}
 		got := &ref
 
-		err = CanonicalizeDatasetRef(ctx, memRepo, got)
+		err = canonicalizeDatasetRef(ctx, memRepo, got)
 		if err != nil {
 			t.Errorf("case %d got error: %s", i, err)
 			continue
