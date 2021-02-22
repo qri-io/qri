@@ -11,8 +11,6 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/registry"
-	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // ProfileMethods encapsulates business logic for this node's
@@ -46,7 +44,7 @@ func (m *ProfileMethods) GetProfile(ctx context.Context, in *bool, res *config.P
 	if res.ID == "" && res.Peername == "" {
 		pro = r.Profiles().Owner()
 	} else {
-		pro, err = m.getProfile(ctx, r, res.ID, res.Peername)
+		pro, err = getProfile(ctx, r.Profiles(), res.ID, res.Peername)
 	}
 
 	if err != nil {
@@ -69,26 +67,22 @@ func (m *ProfileMethods) GetProfile(ctx context.Context, in *bool, res *config.P
 	return nil
 }
 
-func (m *ProfileMethods) getProfile(ctx context.Context, r repo.Repo, idStr, peername string) (pro *profile.Profile, err error) {
-	var id profile.ID
+func getProfile(ctx context.Context, pros profile.Store, idStr, peername string) (pro *profile.Profile, err error) {
 	if idStr == "" {
-		ref := &reporef.DatasetRef{
-			Peername: peername,
+		// TODO(b5): we're handling the "me" keyword here, should be handled as part of
+		// request scope construction
+		if peername == "me" {
+			return pros.Owner(), nil
 		}
-		if err = repo.CanonicalizeProfile(ctx, r, ref); err != nil {
-			log.Error("error canonicalizing profile", err.Error())
-			return nil, err
-		}
-		id = ref.ProfileID
-	} else {
-		id, err = profile.IDB58Decode(idStr)
-		if err != nil {
-			log.Error("err decoding multihash", err.Error())
-			return nil, err
-		}
+		return profile.ResolveUsername(pros, peername)
 	}
 
-	return r.Profiles().GetProfile(id)
+	id, err := profile.IDB58Decode(idStr)
+	if err != nil {
+		log.Debugw("decoding profile ID", "err", err)
+		return nil, err
+	}
+	return pros.GetProfile(id)
 }
 
 // SaveProfile stores changes to this peer's editable profile
@@ -161,7 +155,7 @@ func (m *ProfileMethods) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err 
 
 	r := m.inst.repo
 
-	pro, e := m.getProfile(ctx, r, req.ID, req.Peername)
+	pro, e := getProfile(ctx, r.Profiles(), req.ID, req.Peername)
 	if e != nil {
 		return e
 	}
@@ -258,7 +252,7 @@ func (m *ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err e
 	ctx := context.TODO()
 
 	r := m.inst.repo
-	pro, e := m.getProfile(ctx, r, req.ID, req.Peername)
+	pro, e := getProfile(ctx, r.Profiles(), req.ID, req.Peername)
 	if e != nil {
 		return e
 	}

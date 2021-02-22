@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -8,7 +9,9 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/libp2p/go-libp2p-core/peer"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
@@ -116,5 +119,76 @@ func TestProfilesWithKeys(t *testing.T) {
 
 	if tPro.PubKey != pi0.PubKey {
 		t.Fatalf("keys don't match")
+	}
+}
+
+func TestMemStoreGetOwner(t *testing.T) {
+	pi0 := cfgtest.GetTestPeerInfo(0)
+	id := ID(pi0.PeerID)
+	owner := &Profile{ID: id, PrivKey: pi0.PrivKey, Peername: "owner"}
+	ks, err := key.NewMemStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s, err := NewMemStore(owner, ks)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pro, err := s.GetProfile(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if pro.PrivKey == nil {
+		t.Error("getting owner profile must return profile with private key populated")
+	}
+
+	if diff := cmp.Diff(owner, pro, cmpopts.IgnoreUnexported(Profile{}, crypto.RsaPrivateKey{}, crypto.ECDSAPrivateKey{})); diff != "" {
+		t.Errorf("get owner mismatch. (-want +got):\n%s", diff)
+	}
+}
+
+func TestResolveUsername(t *testing.T) {
+	pi0 := cfgtest.GetTestPeerInfo(0)
+	pi1 := cfgtest.GetTestPeerInfo(1)
+	pi2 := cfgtest.GetTestPeerInfo(2)
+
+	ks, err := key.NewMemStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	owner := &Profile{ID: ID(pi0.PeerID), PrivKey: pi0.PrivKey, Peername: "owner"}
+	s, err := NewMemStore(owner, ks)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ResolveUsername(s, "unknown"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("expected unknown username to return ErrNotFound or wrap of ErrNotFound. got: %#v", err)
+	}
+
+	pro, err := ResolveUsername(s, "owner")
+	if err != nil {
+		t.Error(err)
+	}
+	if diff := cmp.Diff(owner, pro, cmpopts.IgnoreUnexported(Profile{}, crypto.RsaPrivateKey{}, crypto.ECDSAPrivateKey{})); diff != "" {
+		t.Errorf("get owner mismatch. (-want +got):\n%s", diff)
+	}
+
+	marjorieA := &Profile{ID: ID(pi1.PeerID), PrivKey: pi1.PrivKey, Peername: "marjorie", Email: "marjorie_a@aol.com"}
+	marjorieB := &Profile{ID: ID(pi2.PeerID), PrivKey: pi2.PrivKey, Peername: "marjorie", Email: "marjorie_b@aol.com"}
+
+	if err := s.PutProfile(marjorieA); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.PutProfile(marjorieB); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ResolveUsername(s, "marjorie"); !errors.Is(err, ErrAmbiguousUsername) {
+		t.Errorf("expected duplicated username to return ErrAmbiguousUsername or wrap of that error. got: %#v", err)
 	}
 }

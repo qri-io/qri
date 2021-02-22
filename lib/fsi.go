@@ -15,7 +15,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // FSIMethods encapsulates filesystem integrations methods
@@ -240,32 +239,32 @@ func (m *FSIMethods) Write(p *FSIWriteParams, res *[]StatusItem) (err error) {
 	}
 	ctx := context.TODO()
 
-	ref, err := dsref.ParseHumanFriendly(p.Ref)
-	if err != nil {
-		return err
-	}
 	if p.Ds == nil {
 		return fmt.Errorf("dataset is required")
 	}
 
-	datasetRef := reporef.RefFromDsref(ref)
-	err = repo.CanonicalizeDatasetRef(ctx, m.inst.node.Repo, &datasetRef)
-	if err != nil && err != repo.ErrNoHistory {
-		return err
-	}
-
-	// Directory to write components to can be determined from FSIPath of ref.
-	if datasetRef.FSIPath == "" {
-		return fsi.ErrNoLink
-	}
-
-	// Write components of the dataset to the working directory
-	err = fsi.WriteComponents(p.Ds, datasetRef.FSIPath, m.inst.node.Repo.Filesystem())
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Ref, "local")
 	if err != nil {
 		return err
 	}
 
-	*res, err = m.inst.fsi.Status(ctx, datasetRef.FSIPath)
+	vi, err := repo.GetVersionInfoShim(m.inst.node.Repo, ref)
+	if err != nil && err != repo.ErrNoHistory {
+		return err
+	}
+
+	// Directory to write components to can be determined from FSIPath of versionInfo
+	if vi.FSIPath == "" {
+		return fsi.ErrNoLink
+	}
+
+	// Write components of the dataset to the working directory
+	err = fsi.WriteComponents(p.Ds, vi.FSIPath, m.inst.node.Repo.Filesystem())
+	if err != nil {
+		return err
+	}
+
+	*res, err = m.inst.fsi.Status(ctx, vi.FSIPath)
 	return err
 }
 

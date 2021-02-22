@@ -31,6 +31,7 @@ func SaveDataset(
 ) (ds *dataset.Dataset, err error) {
 	log.Debugf("SaveDataset initID=%q prevPath=%q", initID, prevPath)
 	pro := r.Profiles().Owner()
+	log.Debugw("owner", "peername", pro.Peername, "privKeyIsNil", pro.PrivKey == nil, "privKey", pro.PrivKey)
 	if initID == "" {
 		return nil, fmt.Errorf("SaveDataset requires an initID")
 	}

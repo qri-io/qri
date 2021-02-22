@@ -34,7 +34,6 @@ func NewAPITestRunner(t *testing.T) *APITestRunner {
 		Ctx:       ctx,
 	}
 	run.Node, run.NodeTeardown = newTestNode(t)
-
 	run.Inst = newTestInstanceWithProfileFromNode(ctx, run.Node)
 
 	tmpDir, err := ioutil.TempDir("", "api_test")

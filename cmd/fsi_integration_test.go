@@ -1715,7 +1715,7 @@ func TestUnlinkLinkFileButNoFSIPath(t *testing.T) {
 	run.MustExec(t, "qri save")
 
 	// Remove the FSIPath in the refstore
-	run.ClearFSIPath(t, "me/unlink_me")
+	run.ClearFSIPath(t, "test_peer_file_but_no_fsi_path/unlink_me")
 
 	// Unlink the dataset
 	output := run.MustExecCombinedOutErr(t, "qri workdir unlink me/unlink_me")
@@ -1754,7 +1754,7 @@ func TestUnlinkLinkFileWithNoFSIPathUsingImplicit(t *testing.T) {
 	run.MustExec(t, "qri save")
 
 	// Remove the FSIPath in the refstore
-	run.ClearFSIPath(t, "me/unlink_me")
+	run.ClearFSIPath(t, "test_peer_fsi_unlink_file_no_fsi_path_implicit/unlink_me")
 
 	// Unlink the dataset
 	output := run.MustExecCombinedOutErr(t, "qri workdir unlink")

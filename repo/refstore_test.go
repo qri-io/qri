@@ -388,7 +388,7 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 		}
 		got := &ref
 
-		err = CanonicalizeDatasetRef(ctx, memRepo, got)
+		err = canonicalizeDatasetRef(ctx, memRepo, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
@@ -445,7 +445,7 @@ func TestCanonicalizeDatasetRefFSI(t *testing.T) {
 		}
 		got := &ref
 
-		err = CanonicalizeDatasetRef(ctx, memRepo, got)
+		err = canonicalizeDatasetRef(ctx, memRepo, got)
 		if err != nil {
 			t.Errorf("case %d got error: %s", i, err)
 			continue
@@ -526,7 +526,6 @@ func TestCanonicalizeProfile(t *testing.T) {
 		{"", badProfileIDGoodName, lucille, ""},
 		{"/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", renamePeerName, ball, ""},
 		{"", reporef.DatasetRef{}, reporef.DatasetRef{}, ""},
-		// TODO - test CanonicalizeProfile works with canonicalizing peer's datasetRefs as well
 	}
 
 	for i, c := range cases {
@@ -545,7 +544,7 @@ func TestCanonicalizeProfile(t *testing.T) {
 		}
 		got := &ref
 
-		err = CanonicalizeProfile(ctx, repo, got)
+		err = canonicalizeProfile(ctx, repo, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue

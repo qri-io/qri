@@ -27,7 +27,6 @@ import (
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
-	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 	tfrun "github.com/qri-io/qri/transform/run"
 	"github.com/qri-io/qri/transform/startf"
@@ -421,12 +420,15 @@ func (run *TestRunner) LookupVersionInfo(t *testing.T, refStr string) *dsref.Ver
 }
 
 // ClearFSIPath clears the FSIPath for a reference in the refstore
+// Note: ClearFSIPAth doesn't do reference resoultion, cannot use "me" in
+// dataset names
 func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
+	t.Helper()
 	dr, err := dsref.Parse(refStr)
 	if err != nil {
 		t.Fatal(err)
 	}
-	datasetRef := reporef.RefFromDsref(dr)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	r, err := run.RepoRoot.Repo(ctx)
@@ -434,12 +436,14 @@ func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
 		t.Fatal(err)
 	}
 
-	err = repo.CanonicalizeDatasetRef(ctx, r, &datasetRef)
+	vi, err := repo.GetVersionInfoShim(r, dr)
 	if err != nil {
 		t.Fatal(err)
 	}
-	datasetRef.FSIPath = ""
-	r.PutRef(datasetRef)
+	vi.FSIPath = ""
+	if err := repo.PutVersionInfoShim(ctx, r, vi); err != nil {
+		t.Fatal(err)
+	}
 
 	shutdown := func() <-chan error {
 		finished := make(chan error)

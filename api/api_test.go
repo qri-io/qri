@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/test"
@@ -46,6 +47,13 @@ func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 	prevTs := dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
+	logbookTsSec := 0
+	prevLogbookTs := logbook.NewTimestamp
+	logbook.NewTimestamp = func() int64 {
+		logbookTsSec++
+		return time.Date(2001, 01, 01, 01, 01, logbookTsSec, 01, time.UTC).Unix()
+	}
+
 	if r, err = test.NewTestRepo(); err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -54,6 +62,7 @@ func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 		golog.SetLogLevel("qriapi", "info")
 		// lib.SaveConfig = prevSaveConfig
 		dsfs.Timestamp = prevTs
+		logbook.NewTimestamp = prevLogbookTs
 	}
 
 	return
