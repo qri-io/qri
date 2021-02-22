@@ -23,7 +23,6 @@ type Options struct {
 	Profiles   profile.Store
 	Filesystem *muxfs.Mux
 	Logbook    *logbook.Book
-	Dscache    *dscache.Dscache
 	Bus        event.Bus
 }
 
@@ -63,13 +62,8 @@ func New(ctx context.Context, path string, cfg *config.Config, opts ...func(o *O
 				return nil, err
 			}
 		}
-		if o.Dscache == nil {
-			if o.Dscache, err = newDscache(ctx, o.Filesystem, o.Bus, o.Logbook, pro.Peername, path); err != nil {
-				return nil, err
-			}
-		}
 
-		return fsrepo.NewRepo(path, o.Filesystem, o.Logbook, o.Dscache, o.Profiles, o.Bus)
+		return fsrepo.NewRepo(path, o.Filesystem, o.Logbook, o.Profiles, o.Bus)
 	case "mem":
 		return repo.NewMemRepo(ctx, o.Profiles, o.Filesystem, o.Bus)
 	default:

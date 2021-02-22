@@ -70,7 +70,12 @@ func NewTempRegistry(ctx context.Context, peername, tmpDirPrefix string, g gen.C
 	p2pCfg := config.DefaultP2P()
 	p2pCfg.PeerID = registryPeerID
 
-	localResolver := dsref.SequentialResolver(r.Dscache(), r)
+	dsc, err := tempRepo.Dscache(ctx, r.Bus(), r.Filesystem())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	localResolver := dsref.SequentialResolver(dsc, r)
 	node, err := p2p.NewQriNode(r, p2pCfg, r.Bus(), localResolver)
 	if err != nil {
 		return nil, nil, err

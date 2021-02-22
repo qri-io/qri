@@ -9,7 +9,6 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
-	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -73,8 +72,6 @@ type Repo interface {
 	// All Repos must keep a Refstore, defining a store of known datasets
 	// NOTE(dlong): Refstore is going away soon, everything is going to move to Dscache
 	Refstore
-	// Dscache is a cache of datasets that have been built according to logbook
-	Dscache() *dscache.Dscache
 
 	// Repos have a logbook for recording & storing operation logs
 	Logbook() *logbook.Book

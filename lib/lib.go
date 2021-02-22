@@ -466,7 +466,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			o.Filesystem = inst.qfs
 			o.Profiles = inst.profiles
 			o.Logbook = inst.logbook
-			o.Dscache = inst.dscache
 		}); err != nil {
 			log.Error("intializing repo:", err.Error())
 			return nil, fmt.Errorf("newRepo: %w", err)

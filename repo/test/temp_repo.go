@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/buildrepo"
@@ -116,6 +117,12 @@ func (r *TempRepo) Repo(ctx context.Context) (repo.Repo, error) {
 	return buildrepo.New(ctx, r.QriPath, r.cfg, func(o *buildrepo.Options) {
 		o.Bus = event.NewBus(ctx)
 	})
+}
+
+// Dscache constructs a dscache service
+func (r *TempRepo) Dscache(ctx context.Context, bus event.Bus, fs qfs.Filesystem) (*dscache.Dscache, error) {
+	dscachePath := filepath.Join(r.QriPath, "dscache.qfb")
+	return dscache.NewDscache(ctx, fs, bus, r.cfg.Profile.Peername, dscachePath), nil
 }
 
 // Delete removes the test repo on disk.

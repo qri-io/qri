@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/auth/key"
-	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -23,7 +22,6 @@ type MemRepo struct {
 	filesystem *muxfs.Mux
 	refCache   *MemRefstore
 	logbook    *logbook.Book
-	dscache    *dscache.Dscache
 
 	profiles profile.Store
 
@@ -60,17 +58,12 @@ func NewMemRepo(ctx context.Context, pros profile.Store, fs *muxfs.Mux, bus even
 		return nil, err
 	}
 
-	// NOTE: This dscache won't get change notifications from FSI, because it's not constructed
-	// with the hook for FSI.
-	cache := dscache.NewDscache(ctx, fs, bus, p.Peername, "")
-
 	mr := &MemRepo{
 		bus:         bus,
 		filesystem:  fs,
 		MemRefstore: &MemRefstore{},
 		refCache:    &MemRefstore{},
 		logbook:     book,
-		dscache:     cache,
 		profiles:    pros,
 
 		doneCh: make(chan struct{}),
@@ -122,11 +115,6 @@ func (r *MemRepo) Filesystem() *muxfs.Mux {
 // Logbook accesses the mem repo logbook
 func (r *MemRepo) Logbook() *logbook.Book {
 	return r.logbook
-}
-
-// Dscache returns a dscache
-func (r *MemRepo) Dscache() *dscache.Dscache {
-	return r.dscache
 }
 
 // RemoveLogbook drops a MemRepo's logbook pointer. MemRepo gets used in tests

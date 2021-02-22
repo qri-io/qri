@@ -9,7 +9,6 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qfs/muxfs"
-	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -29,7 +28,6 @@ type Repo struct {
 	bus     event.Bus
 	fsys    *muxfs.Mux
 	logbook *logbook.Book
-	dscache *dscache.Dscache
 
 	profiles profile.Store
 
@@ -41,7 +39,7 @@ type Repo struct {
 var _ repo.Repo = (*Repo)(nil)
 
 // NewRepo creates a new file-based repository
-func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Dscache, pro profile.Store, bus event.Bus) (repo.Repo, error) {
+func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, pro profile.Store, bus event.Bus) (repo.Repo, error) {
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		log.Error(err)
 		return nil, err
@@ -53,7 +51,6 @@ func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Ds
 		fsys:     fsys,
 		basepath: bp,
 		logbook:  book,
-		dscache:  cache,
 
 		Refstore: Refstore{basepath: bp, file: FileRefs},
 		profiles: pro,
@@ -93,12 +90,6 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	if r == nil {
 		return "", dsref.ErrRefNotFound
 	}
-
-	// TODO (b5) - not totally sure why, but memRepo doesn't seem to be wiring up
-	// dscache correctly in in tests
-	// if r.dscache != nil {
-	// 	return r.dscache.ResolveRef(ctx, ref)
-	// }
 
 	if r.logbook == nil {
 		return "", fmt.Errorf("cannot resolve local references without logbook")
@@ -150,11 +141,6 @@ func (r *Repo) SetFilesystem(fs *muxfs.Mux) {
 // Logbook stores operation logs for coordinating state across peers
 func (r *Repo) Logbook() *logbook.Book {
 	return r.logbook
-}
-
-// Dscache returns a dscache
-func (r *Repo) Dscache() *dscache.Dscache {
-	return r.dscache
 }
 
 // Profiles returns this repo's Peers implementation

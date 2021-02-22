@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
@@ -31,7 +32,7 @@ type TestablePeerNode interface {
 }
 
 // NodeMakerFunc is a function that constructs a Node from a Repo and options.
-type NodeMakerFunc func(repo.Repo, *config.P2P, event.Publisher) (TestablePeerNode, error)
+type NodeMakerFunc func(repo.Repo, dsref.Resolver, *config.P2P, event.Publisher) (TestablePeerNode, error)
 
 // TestNodeFactory can be used to safetly construct nodes for tests
 type TestNodeFactory struct {
@@ -57,7 +58,7 @@ func (f *TestNodeFactory) New(r repo.Repo) (TestablePeerNode, error) {
 	p2pconf := config.DefaultP2P()
 	p2pconf.PeerID = info.EncodedPeerID
 	p2pconf.PrivKey = info.EncodedPrivKey
-	return f.maker(r, p2pconf, f.pub)
+	return f.maker(r, r, p2pconf, f.pub)
 }
 
 // NewWithConf creates a new Node for testing using a configuration
@@ -66,7 +67,7 @@ func (f *TestNodeFactory) NewWithConf(r repo.Repo, p2pconf *config.P2P) (Testabl
 	f.count++
 	p2pconf.PeerID = info.EncodedPeerID
 	p2pconf.PrivKey = info.EncodedPrivKey
-	return f.maker(r, p2pconf, f.pub)
+	return f.maker(r, r, p2pconf, f.pub)
 }
 
 // NextInfo gets the PeerInfo for the next test Node to be constructed

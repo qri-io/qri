@@ -90,8 +90,7 @@ var _ p2ptest.TestablePeerNode = (*QriNode)(nil)
 var _ p2ptest.NodeMakerFunc = NewTestableQriNode
 
 // NewTestableQriNode creates a new node, as a TestablePeerNode, usable by testing utilities.
-func NewTestableQriNode(r repo.Repo, p2pconf *config.P2P, pub event.Publisher) (p2ptest.TestablePeerNode, error) {
-	localResolver := dsref.SequentialResolver(r.Dscache(), r)
+func NewTestableQriNode(r repo.Repo, localResolver dsref.Resolver, p2pconf *config.P2P, pub event.Publisher) (p2ptest.TestablePeerNode, error) {
 	return NewQriNode(r, p2pconf, pub, localResolver)
 }
 
