@@ -154,7 +154,7 @@ func newMockDataServer(t *testing.T) *httptest.Server {
 	mockDataServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write(mockData)
 	}))
-	l, err := net.Listen("tcp", ":55555")
+	l, err := net.Listen("tcp", ":55556")
 	if err != nil {
 		t.Fatal(err.Error())
 	}

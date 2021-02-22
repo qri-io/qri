@@ -28,6 +28,7 @@ require (
 	github.com/libp2p/go-libp2p-circuit v0.3.1
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
 	github.com/libp2p/go-libp2p-core v0.6.1
+	github.com/libp2p/go-libp2p-crypto v0.1.0
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
 	github.com/libp2p/go-libp2p-swarm v0.2.8
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect

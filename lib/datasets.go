@@ -71,8 +71,6 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 		return res, nil
 	}
 
-	pro := m.inst.repo.Profiles().Owner()
-
 	// ensure valid limit value
 	if p.Limit <= 0 {
 		p.Limit = 25
@@ -82,15 +80,10 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 		p.Offset = 0
 	}
 
-	// TODO (b5) - this logic around weather we're listing locally or
-	// a remote peer needs cleanup
-	ref := &reporef.DatasetRef{
-		Peername:  p.Peername,
-		ProfileID: p.ProfileID,
-	}
-	err := repo.CanonicalizeProfile(ctx, m.inst.repo, ref)
+	reqProfile := m.inst.repo.Profiles().Owner()
+	listProfile, err := getProfile(ctx, m.inst.Repo().Profiles(), reqProfile.ID.String(), p.Peername)
 	if err != nil {
-		return nil, fmt.Errorf("error canonicalizing peer: %w", err)
+		return nil, err
 	}
 
 	// If the list operation leads to a warning, store it in this var
@@ -137,7 +130,7 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 			refs = refs[:p.Limit]
 		}
 		// TODO(dlong): Filtered by p.Published flag
-	} else if ref.Peername == "" || pro.Peername == ref.Peername {
+	} else if listProfile.Peername == "" || reqProfile.Peername == listProfile.Peername {
 		refs, err = base.ListDatasets(ctx, m.inst.repo, p.Term, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
 		if errors.Is(err, ErrListWarning) {
 			listWarning = err
@@ -736,7 +729,7 @@ func (p *SaveParams) SetNonZeroDefaults() {
 
 // Save adds a history entry, updating a dataset
 func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Dataset, error) {
-	log.Debugw("DatasetMethods.Save", "params", p)
+	log.Debugw("DatasetMethods.Save", "ref", p.Ref, "apply", p.Apply)
 	res := &dataset.Dataset{}
 
 	if m.inst.http != nil {
@@ -792,11 +785,13 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 
 	resolver, err := m.inst.resolverForMode("local")
 	if err != nil {
+		log.Debugw("save construct resolver", "mode", "local", "err", err)
 		return nil, err
 	}
 
 	ref, isNew, err := base.PrepareSaveRef(ctx, pro, m.inst.logbook, resolver, p.Ref, ds.BodyPath, p.NewName)
 	if err != nil {
+		log.Debugw("save PrepareSaveRef", "refParam", p.Ref, "wantNewName", p.NewName, "err", err)
 		return nil, err
 	}
 
@@ -846,7 +841,7 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 	}
 
 	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
-		log.Debugf("open ds error: %s", err.Error())
+		log.Debugw("save OpenDataset", "err", err.Error())
 		return nil, err
 	}
 
@@ -946,30 +941,28 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 			}
 		}
 
-		log.Debugf("create ds error: %s\n", err.Error())
+		log.Debugw("save base.SaveDataset", "err", err)
 		return nil, err
 	}
 
 	success = true
+	*res = *savedDs
 
 	// TODO (b5) - this should be integrated into base.SaveDataset
 	if fsiPath != "" {
 		vi := dsref.ConvertDatasetToVersionInfo(savedDs)
 		vi.FSIPath = fsiPath
 		if err = repo.PutVersionInfoShim(ctx, m.inst.repo, &vi); err != nil {
+			log.Debugw("save PutVersionInfoShim", "fsiPath", fsiPath, "err", err)
 			return nil, err
 		}
-	}
-
-	*res = *savedDs
-
-	if fsiPath != "" {
 		// Need to pass filesystem here so that we can read the README component and write it
 		// properly back to disk.
 		if writeErr := fsi.WriteComponents(savedDs, fsiPath, m.inst.repo.Filesystem()); err != nil {
 			log.Error(writeErr)
 		}
 	}
+
 	return res, nil
 }
 

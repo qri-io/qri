@@ -194,7 +194,7 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, offset, limit i
 	hasUnlistableRefs := false
 
 	for _, ref := range res {
-		if err := repo.CanonicalizeProfile(ctx, r, &ref); err != nil {
+		if pros, err := r.Profiles().ProfilesForUsername(ref.Peername); err != nil || len(pros) > 1 {
 			// This occurs when two profileIDs map to the same username, which can happen
 			// when a user creates a new profile using an old username. We should ignore
 			// references that can't be resolved this way, since other references in

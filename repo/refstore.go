@@ -60,7 +60,7 @@ func PutVersionInfoShim(ctx context.Context, r Repo, vi *dsref.VersionInfo) erro
 	// attempt to look up peerIDs when not set
 	if vi.ProfileID == "" && vi.Username != "" {
 		rref := &reporef.DatasetRef{Peername: vi.Username}
-		if err := CanonicalizeProfile(ctx, r, rref); err == nil {
+		if err := canonicalizeProfile(ctx, r, rref); err == nil {
 			vi.ProfileID = rref.ProfileID.String()
 		}
 	}
@@ -114,7 +114,7 @@ func canonicalizeDatasetRef(ctx context.Context, r Repo, ref *reporef.DatasetRef
 		return ErrEmptyRef
 	}
 
-	if err := CanonicalizeProfile(ctx, r, ref); err != nil {
+	if err := canonicalizeProfile(ctx, r, ref); err != nil {
 		return err
 	}
 
@@ -151,9 +151,9 @@ func canonicalizeDatasetRef(ctx context.Context, r Repo, ref *reporef.DatasetRef
 	return nil
 }
 
-// CanonicalizeProfile populates dataset reporef.DatasetRef ProfileID and Peername properties,
+// canonicalizeProfile populates dataset reporef.DatasetRef ProfileID and Peername properties,
 // changing aliases to known names, and adding ProfileID from a peerstore
-func CanonicalizeProfile(ctx context.Context, r Repo, ref *reporef.DatasetRef) error {
+func canonicalizeProfile(ctx context.Context, r Repo, ref *reporef.DatasetRef) error {
 	if ref.Peername == "" && ref.ProfileID == "" {
 		return nil
 	}

@@ -7,17 +7,25 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
+	qerr "github.com/qri-io/qri/errors"
 	"github.com/theckman/go-flock"
 )
 
-// ErrNotFound is the not found err for the profile package
-var ErrNotFound = fmt.Errorf("profile: not found")
+var (
+	// ErrNotFound is the not found err for the profile package
+	ErrNotFound = fmt.Errorf("profile: not found")
+	// ErrAmbiguousUsername occurs when more than one username is the same in a
+	// context that requires exactly one user. More information is needed to
+	// disambiguate which username is correct
+	ErrAmbiguousUsername = fmt.Errorf("ambiguous username")
+)
 
 // Store is a store of profile information. Stores are owned by a single profile
 // that must have an associated private key
@@ -36,6 +44,9 @@ type Store interface {
 	// remove a profile from the store
 	DeleteProfile(id ID) error
 
+	// get all profiles who's .Peername field matches a given username. It's
+	// possible to have multiple profiles with the same username
+	ProfilesForUsername(username string) ([]*Profile, error)
 	// list all profiles in the store, keyed by ID
 	// Deprecated - don't add new callers to this. We should replace this with
 	// a better batch accessor
@@ -80,6 +91,40 @@ func NewStore(cfg *config.Config) (Store, error) {
 	}
 }
 
+// ResolveUsername finds a single profile for a given username from a store of
+// usernames. Errors if the store contains more than one user with the given
+// username
+func ResolveUsername(s Store, username string) (*Profile, error) {
+	pros, err := s.ProfilesForUsername(username)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pros) > 1 {
+		return nil, newAmbiguousUsernamesError(pros)
+	} else if len(pros) == 0 {
+		return nil, ErrNotFound
+	}
+
+	return pros[0], nil
+}
+
+// NewAmbiguousUsernamesError creates a qri error that describes how to choose
+// the right user
+// TODO(b5): this message doesn't describe a fix... because we don't have a good
+// one yet. We need to modify dsref parsing to deal with username disambiguation
+func newAmbiguousUsernamesError(pros []*Profile) error {
+	msg := ""
+	if len(pros) > 0 {
+		descriptions := make([]string, len(pros), len(pros))
+		for i, p := range pros {
+			descriptions[i] = fmt.Sprintf("%s\t%s", p.ID, p.Email)
+		}
+		msg = fmt.Sprintf("multiple profiles exist for the username %q.\nprofileID\temail\n%s", pros[0].Peername, strings.Join(descriptions, "\n"))
+	}
+	return qerr.New(ErrAmbiguousUsername, msg)
+}
+
 // MemStore is an in-memory implementation of the profile Store interface
 type MemStore struct {
 	sync.Mutex
@@ -94,6 +139,10 @@ func NewMemStore(owner *Profile, ks key.Store) (Store, error) {
 		return nil, err
 	}
 
+	if err := ks.AddPrivKey(owner.GetKeyID(), owner.PrivKey); err != nil {
+		return nil, err
+	}
+
 	return &MemStore{
 		owner: owner,
 		store: map[ID]*Profile{
@@ -105,6 +154,7 @@ func NewMemStore(owner *Profile, ks key.Store) (Store, error) {
 
 // Owner accesses the current owner user profile
 func (m *MemStore) Owner() *Profile {
+	// TODO(b5): this should return a copy
 	return m.owner
 }
 
@@ -218,6 +268,21 @@ func (m *MemStore) GetProfile(id ID) (*Profile, error) {
 	return pro, nil
 }
 
+// ProfilesForUsername fetches all profile that match a username (Peername)
+func (m *MemStore) ProfilesForUsername(username string) ([]*Profile, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	var res []*Profile
+	for _, pro := range m.store {
+		if pro.Peername == username {
+			res = append(res, pro)
+		}
+	}
+
+	return res, nil
+}
+
 // DeleteProfile removes a peer from this store
 func (m *MemStore) DeleteProfile(id ID) error {
 	m.Lock()
@@ -243,6 +308,10 @@ func NewLocalStore(filename string, owner *Profile, ks key.Store) (Store, error)
 		return nil, err
 	}
 
+	if err := ks.AddPrivKey(owner.GetKeyID(), owner.PrivKey); err != nil {
+		return nil, err
+	}
+
 	return &LocalStore{
 		owner:    owner,
 		keyStore: ks,
@@ -257,6 +326,7 @@ func lockPath(filename string) string {
 
 // Owner accesses the current owner user profile
 func (r *LocalStore) Owner() *Profile {
+	// TODO(b5): this should return a copy
 	return r.owner
 }
 
@@ -401,6 +471,34 @@ func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
 	}
 
 	return nil, qfs.ErrNotFound
+}
+
+// ProfilesForUsername fetches all profile that match a username (Peername)
+func (r *LocalStore) ProfilesForUsername(username string) ([]*Profile, error) {
+	r.Lock()
+	defer r.Unlock()
+
+	ps, err := r.profiles()
+	if err != nil {
+		return nil, err
+	}
+
+	var res []*Profile
+	for id, p := range ps {
+		if p.Peername == username {
+			pro := &Profile{}
+			if err := pro.Decode(p); err != nil {
+				log.Debugw("decoding LocalStore profile", "id", id, "err", err)
+				continue
+			}
+			pro.KeyID = pro.GetKeyID()
+			pro.PubKey = r.keyStore.PubKey(pro.GetKeyID())
+			pro.PrivKey = r.keyStore.PrivKey(pro.GetKeyID())
+			res = append(res, pro)
+		}
+	}
+
+	return res, nil
 }
 
 // PeerProfile gives the profile that corresponds with a given peer.ID

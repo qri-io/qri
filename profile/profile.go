@@ -172,6 +172,13 @@ func (p Profile) Encode() (*config.ProfilePod, error) {
 		PeerIDs:      pids,
 		NetworkAddrs: addrs,
 	}
+	if p.PrivKey != nil {
+		pkB, err := p.PrivKey.Bytes()
+		if err != nil {
+			return nil, err
+		}
+		pp.PrivKey = base64.StdEncoding.EncodeToString(pkB)
+	}
 	return pp, nil
 }
 

@@ -132,7 +132,7 @@ func TestRemoveOneRevisionFromWorkingDirectory(t *testing.T) {
 	ref1 := parsePathFromRef(parseRefFromSave(output))
 	dsPath1 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath1 {
-		t.Fatal("ref from first save should match what is in qri repo")
+		t.Fatalf("ref from first save should match what is in qri repo.\nwant: %q\ngot:  %q", ref1, dsPath1)
 	}
 
 	// Modify meta.json and body.csv.

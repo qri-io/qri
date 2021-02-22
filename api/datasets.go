@@ -401,6 +401,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.SaveParams{}
 	err := UnmarshalParams(r, params)
 	if err != nil {
+		log.Debugw("unmarshal dataset save error", "err", err)
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
@@ -410,6 +411,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.Save(r.Context(), params)
 	if err != nil {
+		log.Debugw("save dataset error", "err", err)
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
