@@ -14,7 +14,6 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/profile"
-	"github.com/qri-io/qri/repo"
 )
 
 const (
@@ -41,7 +40,6 @@ var (
 // whenever a node connects to a new peer
 type QriProfileService struct {
 	host host.Host
-	repo repo.Repo
 	pub  event.Publisher
 	// profiles is a store that has access to all the profiles we have
 	// ever seen on this node
@@ -55,11 +53,10 @@ type QriProfileService struct {
 }
 
 // NewQriProfileService creates an profile exchange service
-func NewQriProfileService(r repo.Repo, p event.Publisher) *QriProfileService {
+func NewQriProfileService(profiles profile.Store, p event.Publisher) *QriProfileService {
 	q := &QriProfileService{
-		repo:     r,
 		pub:      p,
-		profiles: r.Profiles(),
+		profiles: profiles,
 		peersMu:  &sync.Mutex{},
 		peers:    map[peer.ID]chan struct{}{},
 	}
@@ -133,11 +130,6 @@ func (q *QriProfileService) Start(h host.Host) {
 // it sends it's node's profile on the given stream
 // whenever a request comes in
 func (q *QriProfileService) ProfileHandler(s network.Stream) {
-	var (
-		err error
-		pro *profile.Profile
-	)
-
 	p := s.Conn().RemotePeer()
 
 	defer func() {
@@ -148,14 +140,8 @@ func (q *QriProfileService) ProfileHandler(s network.Stream) {
 
 	log.Debugf("%s received a profile request from %s %s", ProfileProtocolID, p, s.Conn().RemoteMultiaddr())
 
-	pro, err = q.repo.Owner()
-	if err != nil {
-		log.Debugf("%s error getting this node's profile: %s", ProfileProtocolID, err)
-		return
-	}
-
-	err = sendProfile(s, pro)
-	if err != nil {
+	pro := q.profiles.Owner()
+	if err := sendProfile(s, pro); err != nil {
 		log.Debugf("%s error sending profile to %s: %s", ProfileProtocolID, p, err)
 		return
 	}
@@ -221,9 +207,10 @@ func (q *QriProfileService) profileRequest(ctx context.Context, pid peer.ID, sig
 	defer func() {
 		close(signal)
 		if err == nil {
-			pro, err := q.repo.Profiles().PeerProfile(pid)
+			pro, err := q.profiles.PeerProfile(pid)
 			if err != nil {
 				log.Debugf("error getting profile from profile store: %s", err)
+				return
 			}
 			go func() {
 				if err := q.pub.Publish(ctx, event.ETP2PQriPeerConnected, pro); err != nil {
@@ -240,7 +227,6 @@ func (q *QriProfileService) profileRequest(ctx context.Context, pid peer.ID, sig
 	}
 
 	q.receiveAndStoreProfile(ctx, s)
-
 	return
 }
 
@@ -262,7 +248,9 @@ func (q *QriProfileService) receiveAndStoreProfile(ctx context.Context, s networ
 
 	log.Debugf("%s received profile message from %q %s", s.Protocol(), s.Conn().RemotePeer(), s.Conn().RemoteMultiaddr())
 
-	q.repo.Profiles().PutProfile(pro)
+	if err := q.profiles.PutProfile(pro); err != nil {
+		log.Debugw("putting received profile in store", "err", err)
+	}
 	return
 }
 

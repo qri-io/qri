@@ -127,13 +127,10 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 		})
 	}
 
-	pro, err := node.Repo.Profile(ctx)
-	if err != nil {
-		log.Debug("cannot get profile from repo, need username for access control on the remote to function")
-	}
+	pro := node.Repo.Profiles().Owner()
 
 	cli := &client{
-		pk:      node.Repo.PrivateKey(ctx),
+		pk:      node.Repo.Profiles().Owner().PrivKey,
 		profile: pro,
 		ds:      ds,
 		logsync: ls,
@@ -732,7 +729,7 @@ func addressType(remoteAddr string) string {
 }
 
 func (c *client) signHTTPRequest(ctx context.Context, req *http.Request) error {
-	pk := c.node.Repo.PrivateKey(ctx)
+	pk := c.node.Repo.Profiles().Owner().PrivKey
 	now := fmt.Sprintf("%d", nowFunc().In(time.UTC).Unix())
 
 	// TODO (b5) - we shouldn't be calculating profile IDs here

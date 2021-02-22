@@ -15,11 +15,7 @@ import (
 // InLocalNamespace checks if a dataset ref is local, assumes the reference is
 // already resolved
 func InLocalNamespace(ctx context.Context, r repo.Repo, ref dsref.Ref) bool {
-	p, err := r.Profile(ctx)
-	if err != nil {
-		return false
-	}
-
+	p := r.Profiles().Owner()
 	return p.ID.String() == ref.ProfileID
 }
 

@@ -189,7 +189,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	var (
 		ctx = context.Background()
 		ds  = tc.Input
-		pro *profile.Profile
+		pro = r.Profiles().Owner()
 		// NOTE - struct fields need to be instantiated to make assign set to
 		// new pointer values
 		userSet = &dataset.Dataset{
@@ -201,12 +201,8 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 		}
 		path    string
 		resBody qfs.File
+		dsName  = ds.Name
 	)
-	pro, err = r.Profile(ctx)
-	if err != nil {
-		return
-	}
-	dsName := ds.Name
 
 	userSet.Assign(ds)
 
@@ -218,7 +214,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 
 	sw := dsfs.SaveSwitches{Pin: true, ShouldRender: true}
 	fs := r.Filesystem()
-	if path, err = dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), r.Bus(), ds, nil, r.PrivateKey(ctx), sw); err != nil {
+	if path, err = dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), r.Bus(), ds, nil, pro.PrivKey, sw); err != nil {
 		return
 	}
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {

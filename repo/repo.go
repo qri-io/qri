@@ -4,11 +4,9 @@
 package repo
 
 import (
-	"context"
 	"fmt"
 
 	golog "github.com/ipfs/go-log"
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
@@ -81,13 +79,6 @@ type Repo interface {
 	// Repos have a logbook for recording & storing operation logs
 	Logbook() *logbook.Book
 
-	// A repository must maintain profile information about the active profile of this dataset.
-	// The value returned by Profile() should represent the peer.
-	Profile(ctx context.Context) (*profile.Profile, error)
-	// A repository maintains the profile information of the owner
-	Owner() (*profile.Profile, error)
-	// PrivateKey hands over this repo's private key
-	PrivateKey(ctx context.Context) crypto.PrivKey
 	// A repository must maintain profile information about encountered peers.
 	// Decsisions regarding retentaion of peers is left to the the implementation
 	Profiles() profile.Store

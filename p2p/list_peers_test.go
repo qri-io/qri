@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	p2ptest "github.com/qri-io/qri/p2p/test"
+	"github.com/qri-io/qri/profile"
 )
 
 func TestListPeers(t *testing.T) {
@@ -19,7 +20,8 @@ func TestListPeers(t *testing.T) {
 		t.Fatalf("error connecting peers: %s", err.Error())
 	}
 
-	peers, err := ListPeers(testPeers[0].(*QriNode), 3, 2, false)
+	userID := profile.IDFromPeerID(testPeers[0].SimpleAddrInfo().ID)
+	peers, err := ListPeers(testPeers[0].(*QriNode), userID, 2, 3, false)
 	if err != nil {
 		t.Error(err.Error())
 	}

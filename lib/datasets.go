@@ -70,6 +70,8 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 		return res, nil
 	}
 
+	pro := m.inst.repo.Profiles().Owner()
+
 	// ensure valid limit value
 	if p.Limit <= 0 {
 		p.Limit = 25
@@ -85,13 +87,9 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 		Peername:  p.Peername,
 		ProfileID: p.ProfileID,
 	}
-	if err := repo.CanonicalizeProfile(ctx, m.inst.repo, ref); err != nil {
-		return nil, fmt.Errorf("error canonicalizing peer: %w", err)
-	}
-
-	pro, err := m.inst.repo.Profile(ctx)
+	err := repo.CanonicalizeProfile(ctx, m.inst.repo, ref)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error canonicalizing peer: %w", err)
 	}
 
 	// If the list operation leads to a warning, store it in this var
@@ -750,7 +748,8 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 	}
 
 	var (
-		writeDest = m.inst.qfs.DefaultWriteFS() // filesystem dataset will be written to
+		writeDest = m.inst.qfs.DefaultWriteFS()    // filesystem dataset will be written to
+		pro       = m.inst.repo.Profiles().Owner() // user making the request. hard-coded to repo owner
 	)
 
 	if p.Private {
@@ -791,11 +790,6 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 	}
 
 	resolver, err := m.inst.resolverForMode("local")
-	if err != nil {
-		return nil, err
-	}
-
-	pro, err := m.inst.repo.Profile(ctx)
 	if err != nil {
 		return nil, err
 	}

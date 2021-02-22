@@ -78,10 +78,7 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) re
 		t.Fatal(err)
 	}
 
-	pro, err := r.Owner()
-	if err != nil {
-		t.Fatal(err)
-	}
+	pro := r.Profiles().Owner()
 
 	return reporef.DatasetRef{
 		Peername:  pro.Peername,

@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	golog "github.com/ipfs/go-log"
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
@@ -148,16 +147,6 @@ func (r *Repo) SetFilesystem(fs *muxfs.Mux) {
 	r.fsys = fs
 }
 
-// Profile gives this repo's peer profile
-func (r *Repo) Profile(ctx context.Context) (*profile.Profile, error) {
-	return r.profiles.Active(ctx), nil
-}
-
-// Owner returns the owner profile for this repository
-func (r *Repo) Owner() (*profile.Profile, error) {
-	return r.profiles.Owner(), nil
-}
-
 // Logbook stores operation logs for coordinating state across peers
 func (r *Repo) Logbook() *logbook.Book {
 	return r.logbook
@@ -166,11 +155,6 @@ func (r *Repo) Logbook() *logbook.Book {
 // Dscache returns a dscache
 func (r *Repo) Dscache() *dscache.Dscache {
 	return r.dscache
-}
-
-// PrivateKey returns this repo's private key
-func (r *Repo) PrivateKey(ctx context.Context) crypto.PrivKey {
-	return r.profiles.Active(ctx).PrivKey
 }
 
 // Profiles returns this repo's Peers implementation

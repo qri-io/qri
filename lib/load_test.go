@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"context"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -12,7 +11,6 @@ import (
 )
 
 func TestLoadDataset(t *testing.T) {
-	ctx := context.Background()
 	tr := newTestRunner(t)
 	defer tr.Delete()
 
@@ -30,7 +28,7 @@ func TestLoadDataset(t *testing.T) {
 			event.NilBus,
 			ds,
 			nil,
-			tr.Instance.repo.PrivateKey(ctx),
+			tr.Instance.repo.Profiles().Owner().PrivKey,
 			dsfs.SaveSwitches{},
 		)
 	})

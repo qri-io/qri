@@ -642,13 +642,7 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 	ctx, cancel := context.WithCancel(ctx)
 
 	r := node.Repo
-	// TODO(aqru): should be owner?
-	pro, err := r.Profile(ctx)
-	if err != nil {
-		cancel()
-		panic(err)
-	}
-
+	pro := r.Profiles().Owner()
 	fsint := fsi.NewFSI(r, bus)
 	dc := dscache.NewDscache(ctx, r.Filesystem(), bus, pro.Peername, "")
 
@@ -679,6 +673,7 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		inst.qfs = r.Filesystem()
 	}
 
+	var err error
 	inst.remoteClient, err = remote.NewClient(ctx, node, inst.bus)
 	if err != nil {
 		cancel()

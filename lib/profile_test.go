@@ -222,11 +222,7 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 
 	m := NewProfileMethods(inst)
 
-	pro, err := node.Repo.Profile(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	pro := node.Repo.Profiles().Owner()
 	pro.Peername = "keyboard_cat"
 	pp, err := pro.Encode()
 	if err != nil {

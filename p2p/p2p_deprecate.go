@@ -82,14 +82,11 @@ func (n *QriNode) handleProfile(ws *WrappedStream, msg Message) (hangup bool) {
 }
 
 func (n *QriNode) profileBytes() ([]byte, error) {
-	p, err := n.Repo.Owner()
-	if err != nil {
-		log.Debugf("error getting repo profile: %s\n", err.Error())
-		return nil, err
-	}
+	p := n.Repo.Profiles().Owner()
+
 	pod, err := p.Encode()
 	if err != nil {
-		log.Debugf("error encoding repo profile: %s\n", err.Error())
+		log.Debugf("error encoding profile.Owner profile: %s\n", err.Error())
 		return nil, err
 	}
 

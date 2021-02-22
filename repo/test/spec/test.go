@@ -6,7 +6,6 @@
 package spec
 
 import (
-	"context"
 	"testing"
 
 	"github.com/qri-io/qri/repo"
@@ -23,7 +22,6 @@ type repoTestFunc func(t *testing.T, rm RepoMakerFunc)
 // RunRepoTests tests that this repo conforms to expected behaviors
 func RunRepoTests(t *testing.T, rmf RepoMakerFunc) {
 	tests := map[string]repoTestFunc{
-		"testProfile":             testProfile,
 		"testRefstoreInvalidRefs": testRefstoreInvalidRefs,
 		"testRefstoreRefs":        testRefstoreRefs,
 		"testRefstore":            testRefstoreMain,
@@ -35,24 +33,4 @@ func RunRepoTests(t *testing.T, rmf RepoMakerFunc) {
 			test(t, rmf)
 		})
 	}
-}
-
-func testProfile(t *testing.T, rmf RepoMakerFunc) {
-	r, cleanup := rmf(t)
-	defer cleanup()
-	ctx := context.Background()
-
-	p, err := r.Profile(ctx)
-	if err != nil {
-		t.Errorf("%s", string(p.ID))
-		t.Errorf("Unexpected Profile error: %s", err.Error())
-		return
-	}
-
-	err = r.Profiles().SetOwner(p)
-	if err != nil {
-		t.Errorf("Unexpected SetProfile error: %s", err.Error())
-		return
-	}
-
 }

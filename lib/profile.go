@@ -44,7 +44,7 @@ func (m *ProfileMethods) GetProfile(ctx context.Context, in *bool, res *config.P
 
 	// TODO - this is a carry-over from when GetProfile only supported getting
 	if res.ID == "" && res.Peername == "" {
-		pro, err = r.Profile(ctx)
+		pro = r.Profiles().Owner()
 	} else {
 		pro, err = m.getProfile(ctx, r, res.ID, res.Peername)
 	}
@@ -86,12 +86,6 @@ func (m *ProfileMethods) getProfile(ctx context.Context, r repo.Repo, idStr, pee
 			log.Error("err decoding multihash", err.Error())
 			return nil, err
 		}
-	}
-
-	// TODO - own profile should just be inside the profile store
-	profile, err := r.Owner()
-	if err == nil && profile.ID.String() == id.String() {
-		return profile, nil
 	}
 
 	return r.Profiles().GetProfile(id)
@@ -235,27 +229,25 @@ func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) 
 	cfg.Set("profile.photo", path)
 	// TODO - resize photo for thumb
 	cfg.Set("profile.thumb", path)
-
-	pro, err := profile.NewProfile(cfg.Profile)
-	if err != nil {
+	if err := m.inst.ChangeConfig(cfg); err != nil {
 		return err
 	}
+
+	pro := r.Profiles().Owner()
+	pro.Photo = path
+	pro.Thumb = path
+
 	if err := r.Profiles().SetOwner(pro); err != nil {
 		return err
 	}
 
-	newPro, err := r.Profile(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting newly set profile: %s", err)
-	}
-	pp, err := newPro.Encode()
+	pp, err := pro.Encode()
 	if err != nil {
 		return fmt.Errorf("error encoding new profile: %s", err)
 	}
 
 	*res = *pp
-
-	return m.inst.ChangeConfig(cfg)
+	return nil
 }
 
 // PosterPhoto fetches the byte slice of a given user's poster photo
@@ -319,32 +311,27 @@ func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) e
 	path, err := r.Filesystem().DefaultWriteFS().Put(ctx, qfs.NewMemfileBytes("plz_just_encode", data))
 	if err != nil {
 		log.Debug(err.Error())
-
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
 	res.Poster = path
 	cfg := m.inst.cfg.Copy()
 	cfg.Set("profile.poster", path)
-
-	pro, err := profile.NewProfile(cfg.Profile)
-	if err != nil {
+	if err := m.inst.ChangeConfig(cfg); err != nil {
 		return err
 	}
+
+	pro := r.Profiles().Owner()
+	pro.Poster = path
 	if err := r.Profiles().SetOwner(pro); err != nil {
 		return err
 	}
 
-	newPro, err := r.Profile(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting newly set profile: %s", err)
-	}
-	pp, err := newPro.Encode()
+	pp, err := pro.Encode()
 	if err != nil {
 		return fmt.Errorf("error encoding new profile: %s", err)
 	}
 
 	*res = *pp
-
-	return m.inst.ChangeConfig(cfg)
+	return nil
 }

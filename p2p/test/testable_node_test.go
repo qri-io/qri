@@ -57,18 +57,13 @@ func (n *TestableNode) TestStreamHandler(s net.Stream) {
 // GoOnline assumes the TestNode is not online, it will set
 // the StreamHandler and updates our profile with the underlying peerIDs
 func (n *TestableNode) GoOnline(_ context.Context) error {
-	// use a separate context
-	ctx := context.Background()
 	// add multistream handler for qri protocol to the host
 	// for more info on multistreams check github.com/multformats/go-multistream
 	// Setting the StreamHandler with the TestQriProtocol will let other peers
 	// know that we can speak the TestQriProtocol
 	n.Host().SetStreamHandler(TestQriProtocolID, n.TestStreamHandler)
 
-	p, err := n.Repo.Profile(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting repo profile: %s", err.Error())
-	}
+	p := n.Repo.Profiles().Owner()
 	p.PeerIDs = []peer.ID{n.host.ID()}
 
 	// update profile with our p2p addresses
