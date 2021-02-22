@@ -11,8 +11,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/key"
 )
 
 var log = logger.Logger("profile")

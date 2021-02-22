@@ -8,12 +8,12 @@ import (
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/key"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/profile"

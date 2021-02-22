@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/watchfs"
+	"github.com/qri-io/qri/fsi/watchfs"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )

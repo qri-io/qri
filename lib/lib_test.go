@@ -18,7 +18,6 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
-	"github.com/qri-io/qri/access"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
@@ -28,6 +27,7 @@ import (
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/remote"
+	"github.com/qri-io/qri/remote/access"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
 )

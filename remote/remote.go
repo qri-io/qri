@@ -15,7 +15,6 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
-	"github.com/qri-io/qri/access"
 	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
@@ -25,6 +24,7 @@ import (
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
+	"github.com/qri-io/qri/remote/access"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )

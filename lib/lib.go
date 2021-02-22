@@ -31,6 +31,7 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/fsi/hiddenfile"
+	"github.com/qri-io/qri/fsi/watchfs"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
@@ -40,7 +41,6 @@ import (
 	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/stats"
 	"github.com/qri-io/qri/transform"
-	"github.com/qri-io/qri/watchfs"
 )
 
 var (

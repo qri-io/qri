@@ -11,8 +11,8 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/key"
 	"github.com/theckman/go-flock"
 )
 

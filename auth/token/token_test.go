@@ -1,4 +1,4 @@
-package access_test
+package token_test
 
 import (
 	"context"
@@ -6,19 +6,19 @@ import (
 	"time"
 
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/access"
-	access_spec "github.com/qri-io/qri/access/spec"
+	"github.com/qri-io/qri/auth/token"
+	token_spec "github.com/qri-io/qri/auth/token/spec"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/profile"
 )
 
 func TestPrivKeyTokens(t *testing.T) {
-	prevTs := access.Timestamp
-	access.Timestamp = func() time.Time { return time.Time{} }
-	defer func() { access.Timestamp = prevTs }()
+	prevTs := token.Timestamp
+	token.Timestamp = func() time.Time { return time.Time{} }
+	defer func() { token.Timestamp = prevTs }()
 
 	peerInfo := cfgtest.GetTestPeerInfo(0)
-	tokens, err := access.NewPrivKeyTokenSource(peerInfo.PrivKey)
+	tokens, err := token.NewPrivKeySource(peerInfo.PrivKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,8 +44,8 @@ func TestPrivKeyTokens(t *testing.T) {
 		t.Errorf("token mismatch. expected: %q.\ngot: %q", expect, tokenWithExpiryString)
 	}
 
-	access_spec.AssertTokenSourceSpec(t, func(ctx context.Context) access.TokenSource {
-		source, err := access.NewPrivKeyTokenSource(peerInfo.PrivKey)
+	token_spec.AssertTokenSourceSpec(t, func(ctx context.Context) token.Source {
+		source, err := token.NewPrivKeySource(peerInfo.PrivKey)
 		if err != nil {
 			panic(err)
 		}
@@ -56,8 +56,8 @@ func TestPrivKeyTokens(t *testing.T) {
 func TestTokenStore(t *testing.T) {
 	fs := qfs.NewMemFS()
 
-	access_spec.AssertTokenStoreSpec(t, func(ctx context.Context) access.TokenStore {
-		ts, err := access.NewTokenStore("tokens.json", fs)
+	token_spec.AssertTokenStoreSpec(t, func(ctx context.Context) token.Store {
+		ts, err := token.NewStore("tokens.json", fs)
 		if err != nil {
 			panic(err)
 		}

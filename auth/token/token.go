@@ -1,4 +1,4 @@
-package access
+package token
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/profile"
@@ -33,42 +33,42 @@ var (
 // Token abstracts a json web token
 type Token = jwt.Token
 
-// TokenClaims is a JWT Claims object
-type TokenClaims struct {
+// Claims is a JWT Claims object
+type Claims struct {
 	*jwt.StandardClaims
 	Username string `json:"username"`
 }
 
-// ParseToken will parse, validate and return a token
-func ParseToken(tokenString string, tokens TokenSource) (*Token, error) {
+// Parse will parse, validate and return a token
+func Parse(tokenString string, tokens Source) (*Token, error) {
 	return jwt.Parse(tokenString, tokens.VerificationKey)
 }
 
-// TokenSource creates tokens, and provides a verification key for all tokens
+// Source creates tokens, and provides a verification key for all tokens
 // it creates
 //
-// implementations of TokenSource must conform to the assertion test defined
+// implementations of Source must conform to the assertion test defined
 // in the spec subpackage
-type TokenSource interface {
+type Source interface {
 	CreateToken(pro *profile.Profile, ttl time.Duration) (string, error)
 	CreateTokenWithClaims(claims jwt.MapClaims, ttl time.Duration) (string, error)
 	// VerifyKey returns the verification key for a given token
 	VerificationKey(t *Token) (interface{}, error)
 }
 
-type pkTokenSource struct {
+type pkSource struct {
 	pk            crypto.PrivKey
 	signingMethod jwt.SigningMethod
 	verifyKey     *rsa.PublicKey
 	signKey       *rsa.PrivateKey
 }
 
-// assert pkTokenSource implements TokenSource at compile time
-var _ TokenSource = (*pkTokenSource)(nil)
+// assert pkSource implements Source at compile time
+var _ Source = (*pkSource)(nil)
 
-// NewPrivKeyTokenSource creates an authentication interface backed by a single
+// NewPrivKeySource creates an authentication interface backed by a single
 // private key. Intended for a node running as remote, or providing a public API
-func NewPrivKeyTokenSource(privKey crypto.PrivKey) (TokenSource, error) {
+func NewPrivKeySource(privKey crypto.PrivKey) (Source, error) {
 	methodStr := ""
 	keyType := privKey.Type().String()
 	switch keyType {
@@ -103,7 +103,7 @@ func NewPrivKeyTokenSource(privKey crypto.PrivKey) (TokenSource, error) {
 		return nil, fmt.Errorf("public key is not an RSA key. got type: %T", verifyKeyiface)
 	}
 
-	return &pkTokenSource{
+	return &pkSource{
 		pk:            privKey,
 		signingMethod: signingMethod,
 		verifyKey:     verifyKey,
@@ -112,7 +112,7 @@ func NewPrivKeyTokenSource(privKey crypto.PrivKey) (TokenSource, error) {
 }
 
 // CreateToken returns a new JWT token
-func (a *pkTokenSource) CreateToken(pro *profile.Profile, ttl time.Duration) (string, error) {
+func (a *pkSource) CreateToken(pro *profile.Profile, ttl time.Duration) (string, error) {
 	// create a signer for rsa 256
 	t := jwt.New(a.signingMethod)
 
@@ -122,7 +122,7 @@ func (a *pkTokenSource) CreateToken(pro *profile.Profile, ttl time.Duration) (st
 	}
 
 	// set our claims
-	t.Claims = &TokenClaims{
+	t.Claims = &Claims{
 		StandardClaims: &jwt.StandardClaims{
 			Subject: pro.ID.String(),
 			// set the expire time
@@ -137,7 +137,7 @@ func (a *pkTokenSource) CreateToken(pro *profile.Profile, ttl time.Duration) (st
 }
 
 // CreateToken returns a new JWT token from provided claims
-func (a *pkTokenSource) CreateTokenWithClaims(claims jwt.MapClaims, ttl time.Duration) (string, error) {
+func (a *pkSource) CreateTokenWithClaims(claims jwt.MapClaims, ttl time.Duration) (string, error) {
 	// create a signer for rsa 256
 	t := jwt.New(a.signingMethod)
 
@@ -154,21 +154,21 @@ func (a *pkTokenSource) CreateTokenWithClaims(claims jwt.MapClaims, ttl time.Dur
 
 // VerifyKey returns the verification key
 // its packaged as an interface for easy extensibility in the future
-func (a *pkTokenSource) VerificationKey(t *Token) (interface{}, error) {
+func (a *pkSource) VerificationKey(t *Token) (interface{}, error) {
 	if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
 		return nil, fmt.Errorf("Unexpected signing method: %v", t.Header["alg"])
 	}
 	return a.verifyKey, nil
 }
 
-// TokenStore is a store intended for clients, who need to persist secret jwts
+// Store is a store intended for clients, who need to persist secret jwts
 // given to them by other remotes for API access. It deals in raw,
 // string-formatted json web tokens, which are more useful when working with
 // APIs, but validates the tokens are well-formed when placed in the store
 //
-// implementations of TokenStore must conform to the assertion test defined
+// implementations of Store must conform to the assertion test defined
 // in the spec subpackage
-type TokenStore interface {
+type Store interface {
 	PutToken(ctx context.Context, key, rawToken string) error
 	RawToken(ctx context.Context, key string) (rawToken string, err error)
 	DeleteToken(ctx context.Context, key string) (err error)
@@ -188,7 +188,7 @@ func (rts RawTokens) Len() int           { return len(rts) }
 func (rts RawTokens) Less(a, b int) bool { return rts[a].Key < rts[b].Key }
 func (rts RawTokens) Swap(i, j int)      { rts[i], rts[j] = rts[j], rts[i] }
 
-type qfsTokenStore struct {
+type qfsStore struct {
 	path string
 	fs   qfs.Filesystem
 
@@ -196,10 +196,10 @@ type qfsTokenStore struct {
 	toks   map[string]string
 }
 
-var _ TokenStore = (*qfsTokenStore)(nil)
+var _ Store = (*qfsStore)(nil)
 
-// NewTokenStore creates a token store with a qfs.Filesystem
-func NewTokenStore(filepath string, fs qfs.Filesystem) (TokenStore, error) {
+// NewStore creates a token store with a qfs.Filesystem
+func NewStore(filepath string, fs qfs.Filesystem) (Store, error) {
 	toks := map[string]string{}
 	if f, err := fs.Get(context.Background(), filepath); err == nil {
 		rawToks := []RawToken{}
@@ -211,26 +211,25 @@ func NewTokenStore(filepath string, fs qfs.Filesystem) (TokenStore, error) {
 		}
 	} else {
 		if err.Error() == "path not found" {
-			log.Errorf("path not found")
 			// TODO(arqu): handle Not Found
 		} else {
 			return nil, fmt.Errorf("error creating token store: %w", err)
 		}
 	}
 
-	return &qfsTokenStore{
+	return &qfsStore{
 		path: filepath,
 		fs:   fs,
 		toks: toks,
 	}, nil
 }
 
-func (st *qfsTokenStore) PutToken(ctx context.Context, key string, raw string) error {
+func (st *qfsStore) PutToken(ctx context.Context, key string, raw string) error {
 	p := &jwt.Parser{
 		UseJSONNumber:        true,
 		SkipClaimsValidation: false,
 	}
-	if _, _, err := p.ParseUnverified(raw, &TokenClaims{}); err != nil {
+	if _, _, err := p.ParseUnverified(raw, &Claims{}); err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidToken, err)
 	}
 
@@ -241,7 +240,7 @@ func (st *qfsTokenStore) PutToken(ctx context.Context, key string, raw string) e
 	return st.save(ctx)
 }
 
-func (st *qfsTokenStore) RawToken(ctx context.Context, key string) (rawToken string, err error) {
+func (st *qfsStore) RawToken(ctx context.Context, key string) (rawToken string, err error) {
 	t, ok := st.toks[key]
 	if !ok {
 		return "", ErrTokenNotFound
@@ -249,7 +248,7 @@ func (st *qfsTokenStore) RawToken(ctx context.Context, key string) (rawToken str
 	return t, nil
 }
 
-func (st *qfsTokenStore) DeleteToken(ctx context.Context, key string) (err error) {
+func (st *qfsStore) DeleteToken(ctx context.Context, key string) (err error) {
 	st.toksLk.Lock()
 	defer st.toksLk.Unlock()
 
@@ -260,7 +259,7 @@ func (st *qfsTokenStore) DeleteToken(ctx context.Context, key string) (err error
 	return st.save(ctx)
 }
 
-func (st *qfsTokenStore) ListTokens(ctx context.Context, offset, limit int) ([]RawToken, error) {
+func (st *qfsStore) ListTokens(ctx context.Context, offset, limit int) ([]RawToken, error) {
 	results := make([]RawToken, 0, limit+1)
 
 	toks := st.toRawTokens()
@@ -278,7 +277,7 @@ func (st *qfsTokenStore) ListTokens(ctx context.Context, offset, limit int) ([]R
 	return results, nil
 }
 
-func (st *qfsTokenStore) toRawTokens() RawTokens {
+func (st *qfsStore) toRawTokens() RawTokens {
 	toks := make(RawTokens, len(st.toks))
 	i := 0
 	for key, t := range st.toks {
@@ -292,7 +291,7 @@ func (st *qfsTokenStore) toRawTokens() RawTokens {
 	return toks
 }
 
-func (st *qfsTokenStore) save(ctx context.Context) error {
+func (st *qfsStore) save(ctx context.Context) error {
 	data, err := json.MarshalIndent(st.toRawTokens(), "", "  ")
 	if err != nil {
 		return err
