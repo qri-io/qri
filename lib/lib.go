@@ -54,10 +54,7 @@ var (
 
 // Methods is a related set of library functions
 type Methods interface {
-	// CoreRequestsName confirms participation in the CoreRequests interface while
-	// also giving a human readable string for logging purposes
-	// TODO (b5): rename this interface to "MethodsName", or remove entirely
-	CoreRequestsName() string
+	dispatchTree() dispatchNode
 }
 
 // InstanceOptions provides details to NewInstance.

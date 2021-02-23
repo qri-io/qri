@@ -29,6 +29,10 @@ func NewRegistryClientMethods(inst *Instance) *RegistryClientMethods {
 // CoreRequestsName implements the Requests interface
 func (RegistryClientMethods) CoreRequestsName() string { return "registry" }
 
+func (m RegistryClientMethods) dispatchTree() dispatchNode {
+	return newContainerNode("remote")
+}
+
 // RegistryProfile is a user profile as stored on a registry
 type RegistryProfile = registry.Profile
 

@@ -21,8 +21,16 @@ type PeerMethods struct {
 	inst *Instance
 }
 
-// CoreRequestsName implements the Requets interface
-func (m PeerMethods) CoreRequestsName() string { return "peers" }
+func (m PeerMethods) dispatchTree() dispatchNode {
+	return newContainerNode("peer",
+		newContainerNode(AEPeer.String(),
+			newMethodNode("GET", m.Info),
+		),
+		newContainerNode(AEPeers.String(),
+			newMethodNode("GET", m.List),
+		),
+	)
+}
 
 // NewPeerMethods creates a p2p Methods pointer
 func NewPeerMethods(inst *Instance) *PeerMethods {
@@ -40,12 +48,9 @@ type PeerListParams struct {
 }
 
 // List lists Peers on the qri network
-func (m *PeerMethods) List(p *PeerListParams, res *[]*config.ProfilePod) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("PeerMethods.List", p, res))
-	}
+func (m *PeerMethods) List(ctx context.Context, p *PeerListParams) (res []*config.ProfilePod, c Cursor, err error) {
 	if m.inst.node == nil || !m.inst.node.Online {
-		return fmt.Errorf("error: not connected, run `qri connect` in another window")
+		return nil, nil, fmt.Errorf("error: not connected, run `qri connect` in another window")
 	}
 
 	if p.Limit <= 0 {
@@ -54,8 +59,8 @@ func (m *PeerMethods) List(p *PeerListParams, res *[]*config.ProfilePod) (err er
 
 	// requesting user is hardcoded as node owner
 	u := m.inst.repo.Profiles().Owner()
-	*res, err = p2p.ListPeers(m.inst.node, u.ID, p.Offset, p.Limit, !p.Cached)
-	return err
+	res, err = p2p.ListPeers(m.inst.node, u.ID, p.Offset, p.Limit, !p.Cached)
+	return res, newCursor(p), err
 }
 
 // ConnectedIPFSPeers lists PeerID's we're currently connected to. If running
@@ -147,49 +152,27 @@ func (p PeerConnectionParamsPod) Decode() (cp p2p.PeerConnectionParams, err erro
 }
 
 // ConnectToPeer attempts to create a connection with a peer for a given peer.ID
-func (m *PeerMethods) ConnectToPeer(p *PeerConnectionParamsPod, res *config.ProfilePod) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("PeerMethods.ConnectToPeer", p, res))
-	}
-	ctx := context.TODO()
-
+func (m *PeerMethods) ConnectToPeer(ctx context.Context, p *PeerConnectionParamsPod) (*config.ProfilePod, error) {
 	pcp, err := p.Decode()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	prof, err := m.inst.node.ConnectToPeer(ctx, pcp)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	pro, err := prof.Encode()
-	if err != nil {
-		return err
-	}
-
-	*res = *pro
-	return nil
+	return prof.Encode()
 }
 
 // DisconnectFromPeer explicitly closes a peer connection
-func (m *PeerMethods) DisconnectFromPeer(p *PeerConnectionParamsPod, res *bool) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("PeerMethods.DisconnectFromPeer", p, res))
-	}
-	ctx := context.TODO()
-
+func (m *PeerMethods) DisconnectFromPeer(ctx context.Context, p *PeerConnectionParamsPod) error {
 	pcp, err := p.Decode()
 	if err != nil {
 		return err
 	}
-
-	if err := m.inst.node.DisconnectFromPeer(ctx, pcp); err != nil {
-		return err
-	}
-
-	*res = true
-	return nil
+	return m.inst.node.DisconnectFromPeer(ctx, pcp)
 }
 
 // PeerInfoParams defines parameters for the Info method
@@ -201,18 +184,14 @@ type PeerInfoParams struct {
 }
 
 // Info shows peer profile details
-func (m *PeerMethods) Info(p *PeerInfoParams, res *config.ProfilePod) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("PeerMethods.Info", p, res))
-	}
-
+func (m *PeerMethods) Info(ctx context.Context, p *PeerInfoParams) (*config.ProfilePod, error) {
 	// TODO: Move most / all of this to p2p package, perhaps.
 	r := m.inst.repo
 
 	profiles, err := r.Profiles().List()
 	if err != nil {
-		log.Debug(err.Error())
-		return err
+		log.Debugw("listing profiles", "err", err.Error())
+		return nil, err
 	}
 
 	for _, pro := range profiles {
@@ -225,26 +204,25 @@ func (m *PeerMethods) Info(p *PeerInfoParams, res *config.ProfilePod) error {
 
 			prof, err := pro.Encode()
 			if err != nil {
-				return err
+				return nil, err
 			}
-			*res = *prof
 
 			connected := m.inst.node.ConnectedQriProfiles()
 
 			// If the requested profileID is in the list of connected peers, set Online flag.
 			if _, ok := connected[pro.ID]; ok {
-				res.Online = true
+				prof.Online = true
 			}
 			// If the requested profileID is myself and I'm Online, set Online flag.
 			if peer.ID(pro.ID) == m.inst.node.ID && m.inst.node.Online {
-				res.Online = true
+				prof.Online = true
 			}
-			return nil
+			return prof, nil
 
 		}
 	}
 
-	return repo.ErrNotFound
+	return nil, repo.ErrNotFound
 }
 
 // PeerRefsParams defines params for the GetReferences method

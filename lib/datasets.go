@@ -58,6 +58,10 @@ func NewDatasetMethods(inst *Instance) *DatasetMethods {
 	}
 }
 
+func (m *DatasetMethods) dispatchTree() dispatchNode {
+	return newContainerNode("ds")
+}
+
 // List gets the reflist for either the local repo or a peer
 func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
 	if m.inst.http != nil {

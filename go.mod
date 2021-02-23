@@ -13,6 +13,7 @@ require (
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.12.1-0.20200706154056-969d0f7a6317
 	github.com/google/go-cmp v0.5.3
+	github.com/google/martian v2.1.0+incompatible
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/schema v1.2.0

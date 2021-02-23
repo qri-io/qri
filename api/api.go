@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/qri/api/util"
 	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/version"
@@ -122,7 +123,7 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 
 // helper function
 func readOnlyResponse(w http.ResponseWriter, endpoint string) {
-	apiutil.WriteErrResponse(w, http.StatusForbidden, fmt.Errorf("qri server is in read-only mode, access to '%s' endpoint is forbidden", endpoint))
+	apiutil.WriteErrResponse(w, http.StatusForbidden, fmt.Errorf("qri server is in read-only mode, access to %q endpoint is forbidden", endpoint))
 }
 
 // HomeHandler responds with a health check on the empty path, 404 for
@@ -159,6 +160,7 @@ func handleRefRoute(m *mux.Router, ae lib.APIEndpoint, f http.HandlerFunc) {
 // NewServerRoutes returns a Muxer that has all API routes
 func NewServerRoutes(s Server) *mux.Router {
 	cfg := s.Config()
+	disp := lib.NewDispatch(s.Instance)
 
 	m := s.Mux
 	if m == nil {
@@ -169,17 +171,15 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEHealth.String(), s.NoLogMiddleware(HealthCheckHandler))
 	m.Handle(lib.AEIPFS.String(), s.Middleware(s.HandleIPFSPath))
 
-	proh := NewProfileHandlers(s.Instance, cfg.API.ReadOnly)
-	m.Handle(lib.AEMe.String(), s.Middleware(proh.ProfileHandler))
-	m.Handle(lib.AEProfile.String(), s.Middleware(proh.ProfileHandler))
-	m.Handle(lib.AEProfilePhoto.String(), s.Middleware(proh.ProfilePhotoHandler))
-	m.Handle(lib.AEProfilePoster.String(), s.Middleware(proh.PosterHandler))
+	m.Handle(lib.AEMe.String(), s.Middleware(NewReqHandler(disp, "profile", lib.AEMe)))
+	m.Handle(lib.AEProfile.String(), s.Middleware(NewReqHandler(disp, "profile", lib.AEProfile)))
+	m.Handle(lib.AEProfilePhoto.String(), s.Middleware(NewReqHandler(disp, "profile", lib.AEProfilePhoto)))
+	m.Handle(lib.AEProfilePoster.String(), s.Middleware(NewReqHandler(disp, "profile", lib.AEProfilePoster)))
 
-	ph := NewPeerHandlers(s.Instance, cfg.API.ReadOnly)
-	m.Handle(lib.AEPeers.String(), s.Middleware(ph.PeersHandler))
-	m.Handle(lib.AEPeer.String(), s.Middleware(ph.PeerHandler))
-	m.Handle(lib.AEConnect.String(), s.Middleware(ph.ConnectToPeerHandler))
-	m.Handle(lib.AEConnections.String(), s.Middleware(ph.ConnectionsHandler))
+	m.Handle(lib.AEPeers.String(), s.Middleware(NewReqHandler(disp, "peer", lib.AEPeers)))
+	m.Handle(lib.AEPeer.String(), s.Middleware(NewReqHandler(disp, "peer", lib.AEPeer)))
+	m.Handle(lib.AEConnect.String(), s.Middleware(NewReqHandler(disp, "peer", lib.AEConnect)))
+	m.Handle(lib.AEConnections.String(), s.Middleware(NewReqHandler(disp, "peer", lib.AEConnections)))
 
 	if cfg.Remote != nil && cfg.Remote.Enabled {
 		log.Info("running in `remote` mode")
@@ -302,4 +302,34 @@ func UnmarshalParams(r *http.Request, p interface{}) error {
 		return err
 	}
 	return decoder.Decode(p, r.Form)
+}
+
+func NewReqHandler(dispatch *lib.Dispatch, methodSet string, ae lib.APIEndpoint) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		methodPath := []string{methodSet, ae.String(), r.Method}
+		p, err := dispatch.NewMethodInputParams(methodPath...)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if err := UnmarshalParams(r, p); err != nil {
+			log.Debugw("unmarshal dataset save error", "err", err)
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		res, cursor, err := dispatch.Call(r.Context(), p, methodPath...)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		if cursor != nil {
+			util.WritePageResponse(w, res, r, util.PageFromRequest(r))
+			return
+		}
+
+		util.WriteResponse(w, res)
+	}
 }

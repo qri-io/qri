@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,24 +32,44 @@ func NewProfileMethods(inst *Instance) *ProfileMethods {
 	return &ProfileMethods{inst: inst}
 }
 
-// GetProfile get's this node's peer profile
-func (m *ProfileMethods) GetProfile(ctx context.Context, in *bool, res *config.ProfilePod) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ProfileMethods.GetProfile", in, res))
-	}
+func (m *ProfileMethods) dispatchTree() dispatchNode {
+	return newContainerNode("profile",
+		newContainerNode(AEMe.String(),
+			newMethodNode("GET", m.GetProfile),
+		),
+		newContainerNode(AEProfile.String(),
+			newMethodNode("GET", m.GetProfile),
+			newMethodNode("POST", m.SaveProfile),
+		),
+		newContainerNode(AEProfilePhoto.String(),
+			newMethodNode("GET", m.ProfilePhoto),
+			newMethodNode("POST", m.SetProfilePhoto),
+		),
+		newContainerNode(AEProfilePoster.String(),
+			newMethodNode("GET", m.PosterPhoto),
+			newMethodNode("POST", m.SetPosterPhoto),
+		),
+	)
+}
 
+type ProfileParams struct {
+	ProfileID string `json:"profileID"`
+	Username  string `json:"username"`
+}
+
+// GetProfile get's this node's peer profile
+func (m *ProfileMethods) GetProfile(ctx context.Context, p *ProfileParams) (res *config.ProfilePod, err error) {
 	var pro *profile.Profile
 	r := m.inst.repo
 
-	// TODO - this is a carry-over from when GetProfile only supported getting
-	if res.ID == "" && res.Peername == "" {
+	if p.ProfileID == "" && p.Username == "" {
 		pro = r.Profiles().Owner()
 	} else {
-		pro, err = getProfile(ctx, r.Profiles(), res.ID, res.Peername)
+		pro, err = getProfile(ctx, r.Profiles(), p.ProfileID, p.Username)
 	}
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	cfg := m.inst.cfg
@@ -56,15 +77,7 @@ func (m *ProfileMethods) GetProfile(ctx context.Context, in *bool, res *config.P
 	if cfg != nil && cfg.P2P != nil {
 		pro.Online = cfg.P2P.Enabled
 	}
-
-	enc, err := pro.Encode()
-	if err != nil {
-		log.Debug(err.Error())
-		return err
-	}
-
-	*res = *enc
-	return nil
+	return pro.Encode()
 }
 
 func getProfile(ctx context.Context, pros profile.Store, idStr, peername string) (pro *profile.Profile, err error) {
@@ -175,56 +188,70 @@ func (m *ProfileMethods) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err 
 
 // FileParams defines parameters for Files as arguments to lib methods
 type FileParams struct {
-	// Url      string    // url to download data from. either Url or Data is required
 	Filename string    // filename of data file. extension is used for filetype detection
 	Data     io.Reader // reader of structured data. either Url or Data is required
 }
 
-// SetProfilePhoto changes this peer's profile image
-func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ProfileMethods.SetProfilePhoto", p, res))
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *FileParams) UnmarshalFromRequest(r *http.Request) error {
+	res := FileParams{}
+	if r.Header.Get("Content-Type") == jsonMimeType {
+		if err := json.NewDecoder(r.Body).Decode(&res); err != nil {
+			return err
+		}
+		*p = res
 	}
-	ctx := context.TODO()
 
+	infile, header, err := r.FormFile("file")
+	if err != nil && err != http.ErrMissingFile {
+		return err
+	}
+
+	*p = FileParams{
+		Filename: header.Filename,
+		Data:     infile,
+	}
+	return nil
+}
+
+// SetProfilePhoto changes this peer's profile image
+func (m *ProfileMethods) SetProfilePhoto(ctx context.Context, p *FileParams) (*config.ProfilePod, error) {
 	r := m.inst.repo
 
 	if p.Data == nil {
-		return fmt.Errorf("file is required")
+		return nil, fmt.Errorf("file is required")
 	}
 
 	// TODO - make the reader be a sizefile to avoid this double-read
 	data, err := ioutil.ReadAll(p.Data)
 	if err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("error reading file data: %s", err.Error())
+		return nil, fmt.Errorf("error reading file data: %s", err.Error())
 	}
 	if len(data) > 250000 {
-		return fmt.Errorf("file size too large. max size is 250kb")
+		return nil, fmt.Errorf("file size too large. max size is 250kb")
 	} else if len(data) == 0 {
-		return fmt.Errorf("data file is empty")
+		return nil, fmt.Errorf("data file is empty")
 	}
 
 	mimetype := http.DetectContentType(data)
 	if mimetype != "image/jpeg" {
-		return fmt.Errorf("invalid file format. only .jpg images allowed")
+		return nil, fmt.Errorf("invalid file format. only .jpg images allowed")
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
 	path, err := r.Filesystem().DefaultWriteFS().Put(ctx, qfs.NewMemfileBytes("plz_just_encode", data))
 	if err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("error saving photo: %s", err.Error())
+		return nil, fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
-	res.Photo = path
-	res.Thumb = path
 	cfg := m.inst.cfg.Copy()
 	cfg.Set("profile.photo", path)
 	// TODO - resize photo for thumb
 	cfg.Set("profile.thumb", path)
 	if err := m.inst.ChangeConfig(cfg); err != nil {
-		return err
+		return nil, err
 	}
 
 	pro := r.Profiles().Owner()
@@ -232,53 +259,35 @@ func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) 
 	pro.Thumb = path
 
 	if err := r.Profiles().SetOwner(pro); err != nil {
-		return err
+		return nil, err
 	}
 
-	pp, err := pro.Encode()
-	if err != nil {
-		return fmt.Errorf("error encoding new profile: %s", err)
-	}
-
-	*res = *pp
-	return nil
+	return pro.Encode()
 }
 
 // PosterPhoto fetches the byte slice of a given user's poster photo
-func (m *ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ProfileMethods.PostPhoto", req, res))
-	}
-	ctx := context.TODO()
-
+func (m *ProfileMethods) PosterPhoto(ctx context.Context, req *config.ProfilePod) (res []byte, err error) {
 	r := m.inst.repo
 	pro, e := getProfile(ctx, r.Profiles(), req.ID, req.Peername)
 	if e != nil {
-		return e
+		return nil, e
 	}
 
 	if pro.Poster == "" || pro.Poster == "/" {
-		return nil
+		return nil, nil
 	}
 
 	f, e := r.Filesystem().Get(ctx, pro.Poster)
 	if e != nil {
-		return e
+		return nil, e
 	}
-
-	*res, err = ioutil.ReadAll(f)
-	return
+	return ioutil.ReadAll(f)
 }
 
 // SetPosterPhoto changes this peer's poster image
-func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ProfileMethods.SetPosterPhoto", p, res))
-	}
-	ctx := context.TODO()
-
+func (m *ProfileMethods) SetPosterPhoto(ctx context.Context, p *FileParams) (*config.ProfilePod, error) {
 	if p.Data == nil {
-		return fmt.Errorf("file is required")
+		return nil, fmt.Errorf("file is required")
 	}
 
 	r := m.inst.repo
@@ -287,45 +296,38 @@ func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) e
 	data, err := ioutil.ReadAll(p.Data)
 	if err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("error reading file data: %s", err.Error())
+		return nil, fmt.Errorf("error reading file data: %s", err.Error())
 	}
 
 	if len(data) > 2000000 {
-		return fmt.Errorf("file size too large. max size is 2Mb")
+		return nil, fmt.Errorf("file size too large. max size is 2Mb")
 	} else if len(data) == 0 {
-		return fmt.Errorf("file is empty")
+		return nil, fmt.Errorf("file is empty")
 	}
 
 	mimetype := http.DetectContentType(data)
 	if mimetype != "image/jpeg" {
-		return fmt.Errorf("invalid file format. only .jpg images allowed")
+		return nil, fmt.Errorf("invalid file format. only .jpg images allowed")
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
 	path, err := r.Filesystem().DefaultWriteFS().Put(ctx, qfs.NewMemfileBytes("plz_just_encode", data))
 	if err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("error saving photo: %s", err.Error())
+		return nil, fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
-	res.Poster = path
 	cfg := m.inst.cfg.Copy()
 	cfg.Set("profile.poster", path)
 	if err := m.inst.ChangeConfig(cfg); err != nil {
-		return err
+		return nil, err
 	}
 
 	pro := r.Profiles().Owner()
 	pro.Poster = path
 	if err := r.Profiles().SetOwner(pro); err != nil {
-		return err
+		return nil, err
 	}
 
-	pp, err := pro.Encode()
-	if err != nil {
-		return fmt.Errorf("error encoding new profile: %s", err)
-	}
-
-	*res = *pp
-	return nil
+	return pro.Encode()
 }

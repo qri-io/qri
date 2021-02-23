@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -178,15 +179,18 @@ func (o *PeersOptions) Info() (err error) {
 		return fmt.Errorf("format must be either `yaml` or `json`")
 	}
 
-	var data []byte
+	var (
+		ctx  = context.TODO()
+		data []byte
+	)
 
 	p := &lib.PeerInfoParams{
 		Peername: o.Peername,
 		Verbose:  o.Verbose,
 	}
 
-	res := &config.ProfilePod{}
-	if err = o.PeerMethods.Info(p, res); err != nil {
+	res, err := o.PeerMethods.Info(ctx, p)
+	if err != nil {
 		return err
 	}
 
@@ -207,7 +211,7 @@ func (o *PeersOptions) Info() (err error) {
 
 // List shows a list of peers
 func (o *PeersOptions) List() (err error) {
-
+	ctx := context.TODO()
 	// convert Page and PageSize to Limit and Offset
 	page := apiutil.NewPage(o.Page, o.PageSize)
 
@@ -230,9 +234,8 @@ func (o *PeersOptions) List() (err error) {
 			Offset: page.Offset(),
 			Cached: o.Cached,
 		}
-		if err = o.PeerMethods.List(p, &res); err != nil {
-			return err
-		}
+		res, _, err = o.PeerMethods.List(ctx, p)
+		return err
 	}
 
 	items := make([]fmt.Stringer, len(res))
@@ -252,9 +255,10 @@ func (o *PeersOptions) List() (err error) {
 
 // Connect attempts to connect to a peer
 func (o *PeersOptions) Connect() (err error) {
+	ctx := context.TODO()
 	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
-	res := &config.ProfilePod{}
-	if err = o.PeerMethods.ConnectToPeer(pcpod, res); err != nil {
+	res, err := o.PeerMethods.ConnectToPeer(ctx, pcpod)
+	if err != nil {
 		return err
 	}
 
@@ -266,12 +270,11 @@ func (o *PeersOptions) Connect() (err error) {
 
 // Disconnect attempts to disconnect from a peer
 func (o *PeersOptions) Disconnect() (err error) {
+	ctx := context.TODO()
 	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
-	res := false
-	if err = o.PeerMethods.DisconnectFromPeer(pcpod, &res); err != nil {
+	if err = o.PeerMethods.DisconnectFromPeer(ctx, pcpod); err != nil {
 		return err
 	}
-
 	printSuccess(o.Out, "disconnected")
 	return nil
 }
