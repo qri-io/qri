@@ -588,3 +588,38 @@ func (r *LocalStore) profiles() (map[string]*config.ProfilePod, error) {
 	}
 	return pp, nil
 }
+
+// PutKeysFromProfiles hydrates a keystore from key data in a profile store
+func PutKeysFromProfiles(ps Store, ks key.Store) error {
+	pros, err := ps.List()
+	if err != nil {
+		return err
+	}
+
+	for _, pro := range pros {
+		if pro.PrivKey != nil {
+			id, err := key.IDFromPriv(pro.PrivKey)
+			if err != nil {
+				return err
+			}
+			if err := ks.AddPrivKey(key.ID(id), pro.PrivKey); err != nil {
+				return err
+			}
+			if err := ks.AddPubKey(key.ID(id), pro.PrivKey.GetPublic()); err != nil {
+				return err
+			}
+			continue
+		}
+		if pro.PubKey != nil {
+			id, err := key.IDFromPub(pro.PubKey)
+			if err != nil {
+				return err
+			}
+			if err := ks.AddPubKey(key.ID(id), pro.PrivKey.GetPublic()); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}

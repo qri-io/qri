@@ -2,6 +2,7 @@
 package profile
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/qri/auth/key"
+	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/config"
 )
 
@@ -201,4 +203,25 @@ func (p *Profile) GetKeyID() key.ID {
 		p.KeyID = key.ID(p.ID.String())
 	}
 	return p.KeyID
+}
+
+var ErrNoUser = fmt.Errorf("no user")
+
+func FromCtx(ctx context.Context, store Store) (*Profile, error) {
+	tok := token.FromCtx(ctx)
+	if tok == nil {
+		return nil, ErrNoUser
+	}
+
+	claims, ok := tok.Claims.(*token.Claims)
+	if !ok {
+		return nil, fmt.Errorf("wrong token type for authentication %T", tok.Claims)
+	}
+
+	id, err := IDB58Decode(claims.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	return store.GetProfile(id)
 }

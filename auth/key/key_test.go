@@ -1,4 +1,4 @@
-package profile
+package key
 
 import (
 	"encoding/base64"
@@ -7,12 +7,12 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
-func TestKeyIDFromPriv(t *testing.T) {
+func TestIDFromPriv(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	expect := "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"
-	got, err := KeyIDFromPriv(tr.AlicePrivKey)
+	got, err := IDFromPriv(tr.AlicePrivKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -22,16 +22,16 @@ func TestKeyIDFromPriv(t *testing.T) {
 	}
 }
 
-func TestKeyIDFromPub(t *testing.T) {
+func TestIDFromPub(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
-	if _, err := KeyIDFromPub(nil); err == nil {
+	if _, err := IDFromPub(nil); err == nil {
 		t.Errorf("expected error calculating the ID of nil")
 	}
 
 	expect := "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"
-	got, err := KeyIDFromPub(tr.AlicePrivKey.GetPublic())
+	got, err := IDFromPub(tr.AlicePrivKey.GetPublic())
 	if err != nil {
 		t.Error(err)
 	}

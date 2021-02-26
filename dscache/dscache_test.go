@@ -10,6 +10,7 @@ import (
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qri/auth/key"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
@@ -97,7 +98,7 @@ func TestResolveRef(t *testing.T) {
 
 	dsrefspec.AssertResolverSpec(t, dsc, func(r dsref.Ref, author profile.Author, _ *oplog.Log) error {
 		builder := NewBuilder()
-		pid, err := profile.KeyIDFromPub(author.AuthorPubKey())
+		pid, err := key.IDFromPub(author.AuthorPubKey())
 		builder.AddUser(r.Username, pid)
 		if err != nil {
 			return err

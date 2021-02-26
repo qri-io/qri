@@ -43,6 +43,7 @@ https://github.com/qri-io/qri/issues`,
 	cmd.PersistentFlags().BoolVarP(&opt.LogAll, "log-all", "", false, "log all activity")
 
 	cmd.AddCommand(
+		NewAccessCommand(opt, ioStreams),
 		NewApplyCommand(opt, ioStreams),
 		NewAutocompleteCommand(opt, ioStreams),
 		NewCheckoutCommand(opt, ioStreams),
@@ -229,6 +230,14 @@ func (o *QriOptions) ConnectionNode() (*p2p.QriNode, error) {
 		return nil, fmt.Errorf("repo not available")
 	}
 	return o.inst.Node(), nil
+}
+
+// AccessMethods generates a lib.AccessMethods from internal state
+func (o *QriOptions) AccessMethods() (*lib.AccessMethods, error) {
+	if err := o.Init(); err != nil {
+		return nil, err
+	}
+	return lib.NewAccessMethods(o.inst), nil
 }
 
 // DatasetMethods generates a lib.DatasetMethods from internal state

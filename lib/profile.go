@@ -37,16 +37,15 @@ func (m *ProfileMethods) GetProfile(ctx context.Context, in *bool, res *config.P
 		return checkRPCError(m.inst.rpc.Call("ProfileMethods.GetProfile", in, res))
 	}
 
-	var pro *profile.Profile
-	r := m.inst.repo
+	// r := m.inst.repo
+	// // TODO - this is a carry-over from when GetProfile only supported getting
+	// if res.ID == "" && res.Peername == "" {
+	// 	pro = r.Profiles().Owner()
+	// } else {
+	// 	pro, err = getProfile(ctx, r.Profiles(), res.ID, res.Peername)
+	// }
 
-	// TODO - this is a carry-over from when GetProfile only supported getting
-	if res.ID == "" && res.Peername == "" {
-		pro = r.Profiles().Owner()
-	} else {
-		pro, err = getProfile(ctx, r.Profiles(), res.ID, res.Peername)
-	}
-
+	pro, err := profile.FromCtx(ctx, m.inst.profiles)
 	if err != nil {
 		return err
 	}

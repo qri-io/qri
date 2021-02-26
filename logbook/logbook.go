@@ -19,6 +19,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -145,7 +146,7 @@ func NewJournal(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesy
 
 	if err := book.load(ctx); err != nil {
 		if err == ErrNotFound {
-			keyID, err := profile.KeyIDFromPriv(book.pk)
+			keyID, err := key.IDFromPriv(book.pk)
 			if err != nil {
 				return nil, err
 			}

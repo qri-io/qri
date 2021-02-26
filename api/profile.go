@@ -2,9 +2,8 @@ package api
 
 import (
 	"encoding/json"
-	"net/http"
-
 	"fmt"
+	"net/http"
 
 	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/config"

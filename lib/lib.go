@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qfs/qipfs"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
@@ -473,6 +474,18 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	if inst.keystore == nil {
+		inst.keystore, err = key.NewStore(cfg)
+		if err != nil {
+			log.Debugw("initializing keystore", "err", err)
+			return nil, err
+		}
+
+		if err := profile.PutKeysFromProfiles(inst.profiles, inst.keystore); err != nil {
+			return nil, err
+		}
+	}
+
 	// Try to make the repo a hidden directory, but it's okay if we can't. Ignore the error.
 	_ = hiddenfile.SetFileHidden(inst.repoPath)
 	inst.fsi = fsi.NewFSI(inst.repo, inst.bus)
@@ -713,6 +726,7 @@ type Instance struct {
 	bus             event.Bus
 	watcher         *watchfs.FilesysWatcher
 	profiles        profile.Store
+	keystore        key.Store
 	remoteOptsFuncs []remote.OptionsFunc
 
 	rpc  *rpc.Client
@@ -853,6 +867,10 @@ func (inst *Instance) RepoPath() string {
 		return ""
 	}
 	return inst.repoPath
+}
+
+func (inst *Instance) Keystore() key.Store {
+	return inst.keystore
 }
 
 // Dscache returns the dscache that the instance has

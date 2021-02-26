@@ -240,6 +240,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	}
 
 	m.Use(refStringMiddleware)
+	m.Use(newAuthTokenMiddleware(s.Instance.Keystore()))
 
 	return m
 }

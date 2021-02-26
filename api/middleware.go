@@ -3,10 +3,13 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/auth/key"
+	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/dsref"
 )
 
@@ -55,6 +58,41 @@ func (s *Server) addCORSHeaders(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			return
 		}
+	}
+}
+
+const (
+	bearerPrefix        = "Bearer "
+	authorizationHeader = "authorization"
+)
+
+func newAuthTokenMiddleware(ks key.Store) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			reqToken := r.Header.Get(authorizationHeader)
+			if reqToken == "" && r.FormValue(authorizationHeader) != "" {
+				reqToken = r.FormValue(authorizationHeader)
+			}
+			if reqToken == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			if !strings.HasPrefix(reqToken, bearerPrefix) {
+				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad token"))
+				return
+			}
+			tokenStr := strings.TrimPrefix(reqToken, bearerPrefix)
+			t, err := token.Parse(tokenStr, ks)
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+
+			ctx := token.AddToContext(r.Context(), *t)
+			r = r.WithContext(ctx)
+			next.ServeHTTP(w, r)
+		})
 	}
 }
 

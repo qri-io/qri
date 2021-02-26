@@ -14,7 +14,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/profile"
+	"github.com/qri-io/qri/auth/key"
 )
 
 var (
@@ -36,12 +36,38 @@ type Token = jwt.Token
 // Claims is a JWT Claims object
 type Claims struct {
 	*jwt.StandardClaims
-	Username string `json:"username"`
+	Username  string `json:"username"`
+	ProfileID string `json:"profileID"`
 }
 
 // Parse will parse, validate and return a token
-func Parse(tokenString string, tokens Source) (*Token, error) {
-	return jwt.Parse(tokenString, tokens.VerificationKey)
+func Parse(tokenString string, keystore key.Store) (*Token, error) {
+	claims := &Claims{}
+	return jwt.ParseWithClaims(tokenString, claims, func(t *Token) (interface{}, error) {
+		// id, err := peer.IDB58Decode(claims.Issuer)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		pubKey := keystore.PubKey(key.ID(claims.Issuer))
+		if pubKey == nil {
+			return nil, fmt.Errorf("cannot verify key")
+		}
+		rawPubBytes, err := pubKey.Raw()
+		if err != nil {
+			return nil, err
+		}
+
+		verifyKeyiface, err := x509.ParsePKIXPublicKey(rawPubBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		verifyKey, ok := verifyKeyiface.(*rsa.PublicKey)
+		if !ok {
+			return nil, fmt.Errorf("public key is not an RSA key. got type: %T", verifyKeyiface)
+		}
+		return verifyKey, nil
+	})
 }
 
 // Source creates tokens, and provides a verification key for all tokens
@@ -50,7 +76,7 @@ func Parse(tokenString string, tokens Source) (*Token, error) {
 // implementations of Source must conform to the assertion test defined
 // in the spec subpackage
 type Source interface {
-	CreateToken(pro *profile.Profile, ttl time.Duration) (string, error)
+	CreateToken(profileID, username string, ttl time.Duration) (string, error)
 	CreateTokenWithClaims(claims jwt.MapClaims, ttl time.Duration) (string, error)
 	// VerifyKey returns the verification key for a given token
 	VerificationKey(t *Token) (interface{}, error)
@@ -74,6 +100,8 @@ func NewPrivKeySource(privKey crypto.PrivKey) (Source, error) {
 	switch keyType {
 	case "RSA":
 		methodStr = "RS256"
+	// case "Ed25519", "ECDSA":
+	// 	methodStr = "EdDSA"
 	default:
 		return nil, fmt.Errorf("unsupported key type for token creation: %q", keyType)
 	}
@@ -112,7 +140,7 @@ func NewPrivKeySource(privKey crypto.PrivKey) (Source, error) {
 }
 
 // CreateToken returns a new JWT token
-func (a *pkSource) CreateToken(pro *profile.Profile, ttl time.Duration) (string, error) {
+func (a *pkSource) CreateToken(profileID, username string, ttl time.Duration) (string, error) {
 	// create a signer for rsa 256
 	t := jwt.New(a.signingMethod)
 
@@ -121,18 +149,25 @@ func (a *pkSource) CreateToken(pro *profile.Profile, ttl time.Duration) (string,
 		exp = Timestamp().Add(ttl).In(time.UTC).Unix()
 	}
 
+	issKeyID, err := key.IDFromPriv(a.pk)
+	if err != nil {
+		return "", err
+	}
+
 	// set our claims
 	t.Claims = &Claims{
 		StandardClaims: &jwt.StandardClaims{
-			Subject: pro.ID.String(),
+			Issuer:  issKeyID,
+			Subject: profileID,
 			// set the expire time
 			// see http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-20#section-4.1.4
 			ExpiresAt: exp,
 		},
-		Username: pro.Peername,
+		Username:  username,
+		ProfileID: profileID,
 	}
 
-	// Creat token string
+	// Create token string
 	return t.SignedString(a.signKey)
 }
 
