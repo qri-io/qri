@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
@@ -15,7 +16,6 @@ import (
 	"github.com/qri-io/qri/registry/regserver/handlers"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/gen"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -51,7 +51,7 @@ func NewMemRegistry(rem *remote.Remote) registry.Registry {
 // TODO(b5) - the tempRepo.Repo call in this func *requires* the passed-in
 // context be cancelled at some point. drop the cleanup function return in
 // favour of listening for ctx.Done and running the cleanup routine internally
-func NewTempRegistry(ctx context.Context, peername, tmpDirPrefix string, g gen.CryptoGenerator) (*registry.Registry, func(), error) {
+func NewTempRegistry(ctx context.Context, peername, tmpDirPrefix string, g key.CryptoGenerator) (*registry.Registry, func(), error) {
 	tempRepo, err := repotest.NewTempRepo(peername, tmpDirPrefix, g)
 	if err != nil {
 		return nil, nil, err

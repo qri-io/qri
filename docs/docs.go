@@ -1,4 +1,5 @@
-// Docs is a tool for generating markdown documentation of the qri command line interface (CLI)
+// Docs is a tool for generating markdown documentation of the qri command line
+// interface (CLI)
 package main
 
 import (
@@ -11,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/auth/key"
 	qri "github.com/qri-io/qri/cmd"
-	"github.com/qri-io/qri/repo/gen"
 	"github.com/spf13/cobra/doc"
 )
 
@@ -32,7 +33,7 @@ func main() {
 	ctx := context.Background()
 
 	// generate markdown filenames
-	root, _ := qri.NewQriCommand(ctx, qri.StandardRepoPath(), gen.NewCryptoSource(), ioes.NewStdIOStreams())
+	root, _ := qri.NewQriCommand(ctx, qri.StandardRepoPath(), key.NewCryptoSource(), ioes.NewStdIOStreams())
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0755)

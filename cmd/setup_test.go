@@ -11,8 +11,8 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/auth/key"
 	test_peers "github.com/qri-io/qri/config/test"
-	"github.com/qri-io/qri/repo/gen"
 	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/spf13/cobra"
 )
@@ -276,7 +276,7 @@ func TestSetupRealCrypto(t *testing.T) {
 	// be noticably slower than the other tests, and will also act non-deterministically.
 	// Do not use this function in other tests, it is only used here to explicitly
 	// verify that it works in this one case.
-	cmd, shutdown := newCommand(ctx, qriHome, gen.NewCryptoSource())
+	cmd, shutdown := newCommand(ctx, qriHome, key.NewCryptoSource())
 
 	cmdText := "qri setup"
 	if err := executeCommand(cmd, cmdText); err != nil {
@@ -345,11 +345,11 @@ func readConfigFile(t *testing.T, path string) map[string]interface{} {
 	return configData
 }
 
-func newCommand(ctx context.Context, path string, generator gen.CryptoGenerator) (*cobra.Command, func() <-chan error) {
+func newCommand(ctx context.Context, path string, generator key.CryptoGenerator) (*cobra.Command, func() <-chan error) {
 	return newCommandWithStdin(ctx, path, "", generator)
 }
 
-func newCommandWithStdin(ctx context.Context, path, stdinText string, generator gen.CryptoGenerator) (*cobra.Command, func() <-chan error) {
+func newCommandWithStdin(ctx context.Context, path, stdinText string, generator key.CryptoGenerator) (*cobra.Command, func() <-chan error) {
 	streams, in, _, _ := ioes.NewTestIOStreams()
 	if stdinText != "" {
 		in.WriteString(stdinText)

@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo/gen"
 	"github.com/spf13/cobra"
 )
 
@@ -66,7 +66,7 @@ including all your datasets, and de-registers your username from the registry.`,
 type SetupOptions struct {
 	ioes.IOStreams
 	repoPath  string
-	Generator gen.CryptoGenerator
+	Generator key.CryptoGenerator
 
 	Anonymous      bool
 	Overwrite      bool
@@ -197,7 +197,7 @@ func mapEnvVars(vars map[string]*string) {
 	}
 }
 
-func setupRepoIfEmpty(repoPath, configPath string, g gen.CryptoGenerator) error {
+func setupRepoIfEmpty(repoPath, configPath string, g key.CryptoGenerator) error {
 	if repoPath != "" {
 		if _, err := os.Stat(filepath.Join(repoPath, "config")); os.IsNotExist(err) {
 			if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {

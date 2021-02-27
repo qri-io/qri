@@ -11,17 +11,17 @@ import (
 	"sync"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/remote/access"
-	"github.com/qri-io/qri/repo/gen"
 	"github.com/spf13/cobra"
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(ctx context.Context, repoPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan error) {
+func NewQriCommand(ctx context.Context, repoPath string, generator key.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan error) {
 	opt := NewQriOptions(ctx, repoPath, generator, ioStreams)
 
 	cmd := &cobra.Command{
@@ -97,7 +97,7 @@ type QriOptions struct {
 	// path to the qri data directory
 	repoPath string
 	// generator is source of generating cryptographic info
-	generator gen.CryptoGenerator
+	generator key.CryptoGenerator
 	// automatically run migrations if necessary
 	Migrate bool
 	// NoPrompt Disables all promt messages
@@ -113,7 +113,7 @@ type QriOptions struct {
 }
 
 // NewQriOptions creates an options object
-func NewQriOptions(ctx context.Context, repoPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
+func NewQriOptions(ctx context.Context, repoPath string, generator key.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
 	return &QriOptions{
 		IOStreams: ioStreams,
 		ctx:       ctx,
@@ -211,7 +211,7 @@ func (o *QriOptions) Config() (*config.Config, error) {
 }
 
 // CryptoGenerator returns a resource for generating cryptographic info
-func (o *QriOptions) CryptoGenerator() gen.CryptoGenerator {
+func (o *QriOptions) CryptoGenerator() key.CryptoGenerator {
 	return o.generator
 }
 

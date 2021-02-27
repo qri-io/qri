@@ -5,12 +5,12 @@ import (
 	"net/rpc"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/gen"
 	"github.com/qri-io/qri/repo/test"
 	repotest "github.com/qri-io/qri/repo/test"
 )
@@ -21,7 +21,7 @@ type TestFactory struct {
 	// path to qri data directory
 	repoPath string
 	// generator is a source of cryptographic info
-	generator gen.CryptoGenerator
+	generator key.CryptoGenerator
 
 	inst *lib.Instance
 	// Configuration object
@@ -112,7 +112,7 @@ func (t TestFactory) RepoPath() string {
 }
 
 // CryptoGenerator
-func (t TestFactory) CryptoGenerator() gen.CryptoGenerator {
+func (t TestFactory) CryptoGenerator() key.CryptoGenerator {
 	return t.generator
 }
 

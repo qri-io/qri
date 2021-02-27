@@ -6,12 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/qri-io/qri/auth/key"
 	cfgtest "github.com/qri-io/qri/config/test"
-	"github.com/qri-io/qri/repo/gen"
 )
 
 // NewTestCrypto returns a mocked cryptographic generator for tests
-func NewTestCrypto() gen.CryptoGenerator {
+func NewTestCrypto() key.CryptoGenerator {
 	return &testCryptoGenerator{}
 }
 

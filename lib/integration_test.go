@@ -9,13 +9,13 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/remote"
-	"github.com/qri-io/qri/repo/gen"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -211,7 +211,7 @@ def transform(ds, ctx):
 type NetworkIntegrationTestRunner struct {
 	Ctx        context.Context
 	prefix     string
-	TestCrypto gen.CryptoGenerator
+	TestCrypto key.CryptoGenerator
 
 	nasimRepo, hinshunRepo, adnanRepo *repotest.TempRepo
 	Nasim, Hinshun, Adnan             *Instance

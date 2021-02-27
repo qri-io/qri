@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo/gen"
 )
 
 // Factory is an interface for providing required structures to cobra commands
@@ -20,7 +20,7 @@ type Factory interface {
 
 	// path to qri data directory
 	RepoPath() string
-	CryptoGenerator() gen.CryptoGenerator
+	CryptoGenerator() key.CryptoGenerator
 
 	Init() error
 	RPC() *rpc.Client

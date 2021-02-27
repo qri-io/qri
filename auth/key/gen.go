@@ -1,7 +1,4 @@
-// Package gen contains routines that perform expensive cryptographic
-// operations. These should only be used when absolutely needed by
-// top-level commands, and not in, for example, in test code.
-package gen
+package key
 
 import (
 	"crypto/rand"
@@ -13,13 +10,21 @@ import (
 	"github.com/qri-io/qfs/qipfs"
 )
 
-// CryptoGenerator is an interface for generating cryptographic info like private keys and peerIDs
+// CryptoGenerator is an interface for generating cryptographic info like
+// private keys and peerIDs
+// TODO(b5): I've moved this here because the key package should be the source
+// of all cryptographic data, but this needs work. I'd like to see it reduced
+// to just a `GeneratePrivateKey` function
 type CryptoGenerator interface {
-	// GeneratePrivateKeyAndPeerID returns a base64 encoded private key, and a peerID
+	// GeneratePrivateKeyAndPeerID returns a base64 encoded private key, and a
+	// peerID
 	GeneratePrivateKeyAndPeerID() (string, string)
 	// GenerateNickname uses a peerID to return a human-friendly nickname
+	// TODO(b5): This should be moved up into the profile pacakge
 	GenerateNickname(peerID string) string
 	// GenerateEmptyIpfsRepo creates an empty IPFS repo at a given path
+	// TODO(b5): This shouldn't be part of the CryptoGenerator interface, should
+	// be moved to github.com/qri-io/qfs/qipfs
 	GenerateEmptyIpfsRepo(repoPath, cfgPath string) error
 }
 
