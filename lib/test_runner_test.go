@@ -222,34 +222,35 @@ func (tr *testRunner) DiffWithParams(p *DiffParams) (string, error) {
 }
 
 func (tr *testRunner) Init(refstr, format string) error {
-	ctx := context.Background()
+	ctx := tr.Ctx
 	ref, err := dsref.Parse(refstr)
 	if err != nil {
 		return err
 	}
-	m := NewFSIMethods(tr.Instance)
-	out := ""
+	m := tr.Instance.Filesys()
 	p := InitDatasetParams{
 		Name:      ref.Name,
 		TargetDir: tr.WorkDir,
 		Format:    format,
 	}
-	return m.InitDataset(ctx, &p, &out)
+	_, err = m.Init(ctx, &p)
+	return err
 }
 
 func (tr *testRunner) InitWithParams(p *InitDatasetParams) error {
-	ctx := context.Background()
-	m := NewFSIMethods(tr.Instance)
-	out := ""
-	return m.InitDataset(ctx, p, &out)
+	ctx := tr.Ctx
+	m := tr.Instance.Filesys()
+	_, err := m.Init(ctx, p)
+	return err
 }
 
 func (tr *testRunner) Checkout(refstr, dir string) error {
-	m := NewFSIMethods(tr.Instance)
-	out := ""
-	p := CheckoutParams{
-		Ref: refstr,
-		Dir: dir,
+	ctx := tr.Ctx
+	m := tr.Instance.Filesys()
+	p := LinkParams{
+		Refstr: refstr,
+		Dir:    dir,
 	}
-	return m.Checkout(&p, &out)
+	_, err := m.Checkout(ctx, &p)
+	return err
 }

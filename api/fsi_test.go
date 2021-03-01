@@ -271,7 +271,11 @@ func TestFSIWrite(t *testing.T) {
 		t.Errorf("expected body %s, got %s", expectBody, actualBody)
 	}
 
-	status, strRes := JSONAPICallWithBody("POST", "/me/write_test", &dataset.Dataset{Meta: &dataset.Meta{Title: "oh hai there"}}, fsiHandler.WriteHandler(""))
+	p := lib.FSIWriteParams{
+		Refstr: "peer/write_test",
+		Ds:     &dataset.Dataset{Meta: &dataset.Meta{Title: "oh hai there"}},
+	}
+	status, strRes := JSONAPICallWithBody("POST", "/fsi/write/me/write_test", p, fsiHandler.WriteHandler("/fsi/write/"))
 
 	if status != http.StatusOK {
 		t.Errorf("status code mismatch. expected: %d, got: %d", http.StatusOK, status)

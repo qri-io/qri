@@ -1129,7 +1129,7 @@ func (m *DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveRe
 					log.Debugf("Remove, IsWorkingDirectoryDirty")
 					return nil, ErrCantRemoveDirectoryDirty
 				}
-				if strings.Contains(wdErr.Error(), "not a linked directory") {
+				if errors.Is(wdErr, fsi.ErrNoLink) || strings.Contains(wdErr.Error(), "not a linked directory") {
 					// If the working directory has been removed (or renamed), could not get the
 					// status. However, don't let this stop the remove operation, since the files
 					// are already gone, and therefore won't be removed.
@@ -1303,13 +1303,12 @@ func (m *DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Data
 	*res = *ds
 
 	if p.LinkDir != "" {
-		checkoutp := &CheckoutParams{
-			Ref: ref.Human(),
-			Dir: p.LinkDir,
+		checkoutp := &LinkParams{
+			Refstr: ref.Human(),
+			Dir:    p.LinkDir,
 		}
-		m := NewFSIMethods(m.inst)
-		checkoutRes := ""
-		if err = m.Checkout(checkoutp, &checkoutRes); err != nil {
+		fsiMethods := m.inst.Filesys()
+		if _, err = fsiMethods.Checkout(ctx, checkoutp); err != nil {
 			return nil, err
 		}
 	}

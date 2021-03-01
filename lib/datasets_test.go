@@ -588,13 +588,12 @@ func TestDatasetRequestsGetFSIPath(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	dsDir := filepath.Join(tempDir, "movies")
-	fsim := NewFSIMethods(inst)
-	p := &CheckoutParams{
-		Dir: dsDir,
-		Ref: "peer/movies",
+	fsim := inst.Filesys()
+	p := &LinkParams{
+		Dir:    dsDir,
+		Refstr: "peer/movies",
 	}
-	out := ""
-	if err := fsim.Checkout(p, &out); err != nil {
+	if _, err := fsim.Checkout(ctx, p); err != nil {
 		t.Fatalf("error checking out dataset: %s", err)
 	}
 
@@ -800,12 +799,16 @@ func TestRenameNoHistory(t *testing.T) {
 		Name:      "rename_no_history",
 		Format:    "csv",
 	}
-	var refstr string
-	if err := NewFSIMethods(tr.Instance).InitDataset(ctx, initP, &refstr); err != nil {
+	refstr, err := tr.Instance.Filesys().Init(ctx, initP)
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	// 	// Read .qri-ref file, it contains the reference this directory is linked to
+	if refstr != "peer/rename_no_history" {
+		t.Errorf("init returned bad refstring %q", refstr)
+	}
+
+	// Read .qri-ref file, it contains the reference this directory is linked to
 	actual := tr.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
 	expect := "peer/rename_no_history"
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -817,7 +820,7 @@ func TestRenameNoHistory(t *testing.T) {
 		Current: "me/rename_no_history",
 		Next:    "me/rename_second_name",
 	}
-	_, err := NewDatasetMethods(tr.Instance).Rename(ctx, renameP)
+	_, err = NewDatasetMethods(tr.Instance).Rename(ctx, renameP)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -848,7 +851,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	allRevs := &dsref.Rev{Field: "ds", Gen: -1}
 
 	// we need some fsi stuff to fully test remove
-	fsim := NewFSIMethods(inst)
+	fsim := inst.Filesys()
 	// create datasets working directory
 	datasetsDir, err := ioutil.TempDir("", "QriTestDatasetRequestsRemove")
 	if err != nil {
@@ -862,18 +865,16 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		TargetDir: filepath.Join(datasetsDir, "no_history"),
 		Format:    "csv",
 	}
-	var noHistoryName string
-	if err := fsim.InitDataset(ctx, initp, &noHistoryName); err != nil {
+	if _, err := fsim.Init(ctx, initp); err != nil {
 		t.Fatal(err)
 	}
 
 	// link cities dataset with a checkout
-	checkoutp := &CheckoutParams{
-		Dir: filepath.Join(datasetsDir, "cities"),
-		Ref: "me/cities",
+	checkoutp := &LinkParams{
+		Dir:    filepath.Join(datasetsDir, "cities"),
+		Refstr: "me/cities",
 	}
-	var out string
-	if err := fsim.Checkout(checkoutp, &out); err != nil {
+	if _, err := fsim.Checkout(ctx, checkoutp); err != nil {
 		t.Fatal(err)
 	}
 
@@ -884,11 +885,11 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 
 	// link craigslist with a checkout
-	checkoutp = &CheckoutParams{
-		Dir: filepath.Join(datasetsDir, "craigslist"),
-		Ref: "me/craigslist",
+	checkoutp = &LinkParams{
+		Dir:    filepath.Join(datasetsDir, "craigslist"),
+		Refstr: "me/craigslist",
 	}
-	if err := fsim.Checkout(checkoutp, &out); err != nil {
+	if _, err := fsim.Checkout(ctx, checkoutp); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1141,8 +1142,8 @@ func TestDatasetRequestsValidateFSI(t *testing.T) {
 		TargetDir: filepath.Join(workDir, "validate_test"),
 		Format:    "csv",
 	}
-	var refstr string
-	if err := NewFSIMethods(tr.Instance).InitDataset(ctx, initP, &refstr); err != nil {
+	refstr, err := tr.Instance.Filesys().Init(ctx, initP)
+	if err != nil {
 		t.Fatal(err)
 	}
 

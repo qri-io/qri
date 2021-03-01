@@ -35,7 +35,6 @@ type Factory interface {
 	ProfileMethods() (*lib.ProfileMethods, error)
 	SearchMethods() (*lib.SearchMethods, error)
 	SQLMethods() (*lib.SQLMethods, error)
-	FSIMethods() (*lib.FSIMethods, error)
 	RenderMethods() (*lib.RenderMethods, error)
 	TransformMethods() (*lib.TransformMethods, error)
 }

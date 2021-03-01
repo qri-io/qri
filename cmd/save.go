@@ -112,7 +112,6 @@ type SaveOptions struct {
 	UseDscache     bool
 
 	DatasetMethods *lib.DatasetMethods
-	FSIMethods     *lib.FSIMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run

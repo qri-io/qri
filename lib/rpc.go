@@ -41,7 +41,6 @@ func Receivers(inst *Instance) []Methods {
 		NewSearchMethods(inst),
 		NewSQLMethods(inst),
 		NewRenderMethods(inst),
-		NewFSIMethods(inst),
 	}
 }
 

@@ -65,8 +65,7 @@ func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, e
 	fs := fsi.repo.Filesystem()
 	ref, ok := GetLinkedFilesysRef(dir)
 	if !ok {
-		err = fmt.Errorf("not a linked directory")
-		return nil, err
+		return nil, ErrNoLink
 	}
 
 	var stored *dataset.Dataset
