@@ -8,8 +8,8 @@ import (
 	"time"
 
 	ma "github.com/multiformats/go-multiaddr"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/config"
-	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/profile"
@@ -20,8 +20,8 @@ func TestNewNode(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	info := cfgtest.GetTestPeerInfo(0)
-	r, err := test.NewTestRepoFromProfileID(profile.IDFromPeerID(info.PeerID), 0, -1)
+	keyData := testkeys.GetKeyData(0)
+	r, err := test.NewTestRepoFromProfileID(profile.IDFromPeerID(keyData.PeerID), 0, -1)
 	if err != nil {
 		t.Errorf("error creating test repo: %s", err.Error())
 		return

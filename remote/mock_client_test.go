@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qfs"
-	cfgtest "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -15,12 +15,12 @@ func TestMockClient(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
-	pi := cfgtest.GetTestPeerInfo(5)
+	kd := testkeys.GetKeyData(5)
 	fs, err := qfs.NewMemFilesystem(context.Background(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	book, err := logbook.NewJournal(pi.PrivKey, "example_uesr", event.NilBus, fs, "logbook.qfb")
+	book, err := logbook.NewJournal(kd.PrivKey, "example_uesr", event.NilBus, fs, "logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}

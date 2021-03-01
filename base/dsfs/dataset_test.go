@@ -20,8 +20,8 @@ import (
 	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/base/toqtype"
-	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 )
 
@@ -47,8 +47,7 @@ func TestLoadDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.csv", body))
 
 	// These tests are using hard-coded ids that require this exact peer's private key.
-	info := testPeers.GetTestPeerInfo(10)
-	pk := info.PrivKey
+	pk := testkeys.GetKeyData(10).PrivKey
 
 	apath, err := WriteDataset(ctx, &sync.Mutex{}, fs, event.NilBus, ds, pk, SaveSwitches{})
 	if err != nil {
@@ -127,8 +126,7 @@ func TestCreateDataset(t *testing.T) {
 	Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
 	// These tests are using hard-coded ids that require this exact peer's private key.
-	info := testPeers.GetTestPeerInfo(10)
-	privKey := info.PrivKey
+	privKey := testkeys.GetKeyData(10).PrivKey
 
 	bad := []struct {
 		casePath   string
@@ -302,7 +300,7 @@ func TestCreateDataset(t *testing.T) {
 func TestDatasetSaveCustomTimestamp(t *testing.T) {
 	ctx := context.Background()
 	fs := qfs.NewMemFS()
-	privKey := testPeers.GetTestPeerInfo(10).PrivKey
+	privKey := testkeys.GetKeyData(10).PrivKey
 
 	// use a custom timestamp in local zone. should be converted to UTC for saving
 	ts := time.Date(2100, 1, 2, 3, 4, 5, 6, time.Local)
@@ -332,7 +330,7 @@ func TestDatasetSaveEvents(t *testing.T) {
 	defer cancel()
 
 	fs := qfs.NewMemFS()
-	privKey := testPeers.GetTestPeerInfo(10).PrivKey
+	privKey := testkeys.GetKeyData(10).PrivKey
 	bus := event.NewBus(ctx)
 
 	fired := map[event.Type]int{}
@@ -382,8 +380,7 @@ func TestCreateDatasetBodyTooLarge(t *testing.T) {
 	defer func() { BodySizeSmallEnoughToDiff = prevBodySizeLimit }()
 	BodySizeSmallEnoughToDiff = 100
 
-	info := testPeers.GetTestPeerInfo(10)
-	privKey := info.PrivKey
+	privKey := testkeys.GetKeyData(10).PrivKey
 
 	// Need a previous commit, otherwise we just get the "created dataset" message
 	prevDs := dataset.Dataset{
@@ -433,8 +430,7 @@ func TestWriteDataset(t *testing.T) {
 	Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
 	// These tests are using hard-coded ids that require this exact peer's private key.
-	info := testPeers.GetTestPeerInfo(10)
-	pk := info.PrivKey
+	pk := testkeys.GetKeyData(10).PrivKey
 
 	if _, err := WriteDataset(ctx, &sync.Mutex{}, fs, event.NilBus, &dataset.Dataset{}, pk, SaveSwitches{Pin: true}); err == nil || err.Error() != "cannot save empty dataset" {
 		t.Errorf("didn't reject empty dataset: %s", err)
@@ -1033,8 +1029,7 @@ func BenchmarkCreateDatasetCSV(b *testing.B) {
 		Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
 		// These tests are using hard-coded ids that require this exact peer's private key.
-		info := testPeers.GetTestPeerInfo(10)
-		privKey := info.PrivKey
+		privKey := testkeys.GetKeyData(10).PrivKey
 
 		b.Run(fmt.Sprintf("sample size %v", sampleSize), func(b *testing.B) {
 			b.ResetTimer()

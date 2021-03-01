@@ -21,7 +21,7 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qfs/muxfs"
 	qipfs "github.com/qri-io/qfs/qipfs"
-	cfgtest "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/event"
 	profile "github.com/qri-io/qri/profile"
 	qrirepo "github.com/qri-io/qri/repo"
@@ -92,8 +92,8 @@ func MakeIPFSSwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsN
 		var ident config.Identity
 		if fullIdentity {
 
-			pi := cfgtest.GetTestPeerInfo(i)
-			sk, pk := pi.PrivKey, pi.PubKey
+			kd := testkeys.GetKeyData(i)
+			sk, pk := kd.PrivKey, kd.PrivKey.GetPublic()
 
 			id, err := peer.IDFromPublicKey(pk)
 			if err != nil {

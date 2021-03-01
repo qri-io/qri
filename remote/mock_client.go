@@ -6,8 +6,8 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/base/dsfs"
-	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -22,7 +22,7 @@ var ErrNotImplemented = fmt.Errorf("not implemented")
 
 // OtherPeer represents another peer which the MockClient connects to
 type OtherPeer struct {
-	info     *cfgtest.PeerInfo
+	keyData  *testkeys.KeyData
 	repoRoot *repotest.TempRepo
 	book     *logbook.Book
 	resolver map[string]string
@@ -149,7 +149,7 @@ func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) err
 	if initID, exists := other.resolver[ref.Human()]; exists {
 		if dsPath, ok := other.dscache[initID]; ok {
 			ref.InitID = initID
-			ref.ProfileID = other.info.EncodedPeerID
+			ref.ProfileID = other.keyData.EncodedPeerID
 			ref.Path = dsPath
 			return nil
 		}
@@ -187,7 +187,7 @@ func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) err
 
 	// Store with dsfs
 	sw := dsfs.SaveSwitches{}
-	path, err := dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), event.NilBus, &ds, nil, other.info.PrivKey, sw)
+	path, err := dsfs.CreateDataset(ctx, fs, fs.DefaultWriteFS(), event.NilBus, &ds, nil, other.keyData.PrivKey, sw)
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) err
 	// Save the IPFS path with our fake refstore
 	other.resolver[ref.Human()] = ref.InitID
 	other.dscache[ref.InitID] = path
-	ref.ProfileID = other.info.EncodedPeerID
+	ref.ProfileID = other.keyData.EncodedPeerID
 	ref.Path = path
 
 	// Add a save operation to logbook
@@ -212,7 +212,7 @@ func (c *MockClient) otherPeer(username string) *OtherPeer {
 	if !ok {
 		// Get test peer info, skipping 0th peer because many tests already use that one
 		i := len(c.otherPeers) + 1
-		info := cfgtest.GetTestPeerInfo(i)
+		kd := testkeys.GetKeyData(i)
 		// Construct a tempRepo to hold IPFS data (not used, see HACK note above).
 		tempRepo, err := repotest.NewTempRepoFixedProfileID(username, "")
 		if err != nil {
@@ -223,7 +223,7 @@ func (c *MockClient) otherPeer(username string) *OtherPeer {
 		if err != nil {
 			panic(err)
 		}
-		book, err := logbook.NewJournal(info.PrivKey, username, event.NilBus, fs, "logbook.qfb")
+		book, err := logbook.NewJournal(kd.PrivKey, username, event.NilBus, fs, "logbook.qfb")
 		if err != nil {
 			panic(err)
 		}
@@ -231,7 +231,7 @@ func (c *MockClient) otherPeer(username string) *OtherPeer {
 		other = &OtherPeer{
 			resolver: map[string]string{},
 			dscache:  map[string]string{},
-			info:     info,
+			keyData:  kd,
 			repoRoot: &tempRepo,
 			book:     book,
 		}

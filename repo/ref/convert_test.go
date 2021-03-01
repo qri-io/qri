@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/profile"
 )
@@ -50,11 +50,11 @@ func TestRefFromDsrefCantDecode(t *testing.T) {
 }
 
 func TestRefFromDsrefCorrectProfileID(t *testing.T) {
-	info := testPeers.GetTestPeerInfo(0)
+	kd := testkeys.GetKeyData(0)
 
 	d := dsref.Ref{
 		Username:  "someone",
-		ProfileID: info.EncodedPeerID,
+		ProfileID: kd.EncodedPeerID,
 		Name:      "example",
 		Path:      "/mem/QmExaMpLe3",
 	}
@@ -62,7 +62,7 @@ func TestRefFromDsrefCorrectProfileID(t *testing.T) {
 	ref := RefFromDsref(d)
 	expectRef := DatasetRef{
 		Peername:  "someone",
-		ProfileID: profile.IDFromPeerID(info.PeerID),
+		ProfileID: profile.IDFromPeerID(kd.PeerID),
 		Name:      "example",
 		Path:      "/mem/QmExaMpLe3",
 	}

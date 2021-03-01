@@ -16,7 +16,6 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
-	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -416,8 +415,8 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 		t.Fatal(err)
 	}
 
-	tr.NodeA = qriNode(ctx, t, tr, "A", nodes[0], cfgtest.GetTestPeerInfo(0))
-	tr.NodeB = qriNode(ctx, t, tr, "B", nodes[1], cfgtest.GetTestPeerInfo(1))
+	tr.NodeA = qriNode(ctx, t, tr, "A", nodes[0])
+	tr.NodeB = qriNode(ctx, t, tr, "B", nodes[1])
 
 	cleanup = func() {
 		dsfs.Timestamp = prevTs
@@ -454,7 +453,7 @@ func (tr *testRunner) NodeBClient(t *testing.T) Client {
 	return cli
 }
 
-func qriNode(ctx context.Context, t *testing.T, tr *testRunner, peername string, node *core.IpfsNode, pi *cfgtest.PeerInfo) *p2p.QriNode {
+func qriNode(ctx context.Context, t *testing.T, tr *testRunner, peername string, node *core.IpfsNode) *p2p.QriNode {
 	repo, err := p2ptest.MakeRepoFromIPFSNode(tr.Ctx, node, peername, event.NewBus(ctx))
 	if err != nil {
 		t.Fatal(err)

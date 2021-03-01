@@ -12,7 +12,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -242,7 +242,7 @@ func ConsistentResolvers(t *testing.T, ref dsref.Ref, resolvers ...dsref.Resolve
 
 // ForeignLogbook creates a logbook to use as an external source of oplog data
 func ForeignLogbook(t *testing.T, username string) *logbook.Book {
-	pk := testPeers.GetTestPeerInfo(9).PrivKey
+	pk := testkeys.GetKeyData(9).PrivKey
 	ms := qfs.NewMemFS()
 	journal, err := logbook.NewJournal(pk, username, event.NilBus, ms, "/mem/logbook.qfb")
 	if err != nil {

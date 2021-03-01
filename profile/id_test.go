@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 )
 
 func TestIDJSON(t *testing.T) {
@@ -20,9 +20,9 @@ func TestIDJSON(t *testing.T) {
 }
 
 func TestPeerID(t *testing.T) {
-	peerInfo := testPeers.GetTestPeerInfo(0)
+	kd := testkeys.GetKeyData(0)
 
-	idStr := peerInfo.EncodedPeerID
+	idStr := kd.EncodedPeerID
 	if idStr != "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B" {
 		t.Errorf("unexpected value for encoded peerID")
 	}
@@ -39,12 +39,12 @@ func TestPeerID(t *testing.T) {
 		t.Errorf("unexpected value for encoded peerID, got %s", wellformedProfileID0)
 	}
 
-	wellformedProfileID1 := IDFromPeerID(peerInfo.PeerID)
+	wellformedProfileID1 := IDFromPeerID(kd.PeerID)
 	if wellformedProfileID1.String() != idStr {
 		t.Errorf("unexpected value for encoded peerID, got %s", wellformedProfileID1)
 	}
 
-	wellformedProfileID2 := IDRawByteString(string(peerInfo.PeerID))
+	wellformedProfileID2 := IDRawByteString(string(kd.PeerID))
 	if wellformedProfileID2.String() != idStr {
 		t.Errorf("unexpected value for encoded peerID, got %s", wellformedProfileID2)
 	}

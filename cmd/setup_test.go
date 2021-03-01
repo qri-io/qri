@@ -12,7 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/auth/key"
-	test_peers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/spf13/cobra"
 )
@@ -57,7 +57,7 @@ func TestSetupGimmeDoggo(t *testing.T) {
 // Test that setup with no input will use the suggested username
 func TestSetupWithNoInput(t *testing.T) {
 	ctx := context.Background()
-	info := test_peers.GetTestPeerInfo(0)
+	keyData := testkeys.GetKeyData(0)
 
 	qriHome := createTmpQriHome(t)
 	cmd, shutdown := newCommand(ctx, qriHome, repotest.NewTestCrypto())
@@ -77,12 +77,12 @@ func TestSetupWithNoInput(t *testing.T) {
 	}
 
 	profileID := configData["Profile"].(map[string]interface{})["id"]
-	if profileID != info.EncodedPeerID {
-		t.Errorf("setup didn't create correct profileID, expect: %s, got: %s", info.EncodedPeerID, profileID)
+	if profileID != keyData.EncodedPeerID {
+		t.Errorf("setup didn't create correct profileID, expect: %s, got: %s", keyData.EncodedPeerID, profileID)
 	}
 
 	privkey := configData["Profile"].(map[string]interface{})["privkey"]
-	if privkey != info.EncodedPrivKey {
+	if privkey != keyData.EncodedPrivKey {
 		t.Errorf("setup didn't create correct private key")
 	}
 }
@@ -90,7 +90,7 @@ func TestSetupWithNoInput(t *testing.T) {
 // Test that setup with a response on stdin will use that username from stdin
 func TestSetupUsernameOnStdin(t *testing.T) {
 	ctx := context.Background()
-	info := test_peers.GetTestPeerInfo(0)
+	keyData := testkeys.GetKeyData(0)
 
 	qriHome := createTmpQriHome(t)
 	stdinText := "qri_test_name"
@@ -111,12 +111,12 @@ func TestSetupUsernameOnStdin(t *testing.T) {
 	}
 
 	profileID := configData["Profile"].(map[string]interface{})["id"]
-	if profileID != info.EncodedPeerID {
-		t.Errorf("setup didn't create correct profileID, expect: %s, got: %s", info.EncodedPeerID, profileID)
+	if profileID != keyData.EncodedPeerID {
+		t.Errorf("setup didn't create correct profileID, expect: %s, got: %s", keyData.EncodedPeerID, profileID)
 	}
 
 	privkey := configData["Profile"].(map[string]interface{})["privkey"]
-	if privkey != info.EncodedPrivKey {
+	if privkey != keyData.EncodedPrivKey {
 		t.Errorf("setup didn't create correct private key")
 	}
 }
@@ -124,7 +124,7 @@ func TestSetupUsernameOnStdin(t *testing.T) {
 // Test that setup doesn't prompt if given anonymous flag
 func TestSetupAnonymousIgnoresStdin(t *testing.T) {
 	ctx := context.Background()
-	info := test_peers.GetTestPeerInfo(0)
+	keyData := testkeys.GetKeyData(0)
 
 	qriHome := createTmpQriHome(t)
 	stdinText := "qri_test_name"
@@ -145,12 +145,12 @@ func TestSetupAnonymousIgnoresStdin(t *testing.T) {
 	}
 
 	profileID := configData["Profile"].(map[string]interface{})["id"]
-	if profileID != info.EncodedPeerID {
-		t.Errorf("setup didn't create correct profileID, expect: %s, got: %s", info.EncodedPeerID, profileID)
+	if profileID != keyData.EncodedPeerID {
+		t.Errorf("setup didn't create correct profileID, expect: %s, got: %s", keyData.EncodedPeerID, profileID)
 	}
 
 	privkey := configData["Profile"].(map[string]interface{})["privkey"]
-	if privkey != info.EncodedPrivKey {
+	if privkey != keyData.EncodedPrivKey {
 		t.Errorf("setup didn't create correct private key")
 	}
 }
@@ -158,7 +158,7 @@ func TestSetupAnonymousIgnoresStdin(t *testing.T) {
 // Test that setup with the --username flag will use that value
 func TestSetupUsernameFlag(t *testing.T) {
 	ctx := context.Background()
-	info := test_peers.GetTestPeerInfo(0)
+	keyData := testkeys.GetKeyData(0)
 
 	qriHome := createTmpQriHome(t)
 	cmd, shutdown := newCommand(ctx, qriHome, repotest.NewTestCrypto())
@@ -178,12 +178,12 @@ func TestSetupUsernameFlag(t *testing.T) {
 	}
 
 	profileID := configData["Profile"].(map[string]interface{})["id"]
-	if profileID != info.EncodedPeerID {
-		t.Errorf("setup didn't create correct profileID, expect: %s, got: %s", info.EncodedPeerID, profileID)
+	if profileID != keyData.EncodedPeerID {
+		t.Errorf("setup didn't create correct profileID, expect: %s, got: %s", keyData.EncodedPeerID, profileID)
 	}
 
 	privkey := configData["Profile"].(map[string]interface{})["privkey"]
-	if privkey != info.EncodedPrivKey {
+	if privkey != keyData.EncodedPrivKey {
 		t.Errorf("setup didn't create correct private key")
 	}
 }
@@ -234,7 +234,7 @@ func TestSetupInvalidUsernameFlag(t *testing.T) {
 // Test that setup with the QRI_SETUP_CONFIG_DATA envvar will use that username
 func TestSetupConfigData(t *testing.T) {
 	ctx := context.Background()
-	info := test_peers.GetTestPeerInfo(0)
+	keyData := testkeys.GetKeyData(0)
 
 	qriHome := createTmpQriHome(t)
 	cmd, shutdown := newCommand(ctx, qriHome, repotest.NewTestCrypto())
@@ -257,12 +257,12 @@ func TestSetupConfigData(t *testing.T) {
 	}
 
 	profileID := configData["Profile"].(map[string]interface{})["id"]
-	if profileID != info.EncodedPeerID {
-		t.Errorf("setup didn't create correct profileID, expect: %s, got: %s", info.EncodedPeerID, profileID)
+	if profileID != keyData.EncodedPeerID {
+		t.Errorf("setup didn't create correct profileID, expect: %s, got: %s", keyData.EncodedPeerID, profileID)
 	}
 
 	privkey := configData["Profile"].(map[string]interface{})["privkey"]
-	if privkey != info.EncodedPrivKey {
+	if privkey != keyData.EncodedPrivKey {
 		t.Errorf("setup didn't create correct private key")
 	}
 }
@@ -287,8 +287,8 @@ func TestSetupRealCrypto(t *testing.T) {
 	configData := readConfigFile(t, qriHome)
 
 	username := configData["Profile"].(map[string]interface{})["peername"].(string)
-	// NOTE: Shortest name I've ever seen is `snow_puli`
-	if len(username) < 9 {
+	// NOTE: Shortest name I've ever seen is `peru_pug`
+	if len(username) < 8 {
 		t.Errorf("setup used real crypto, username seems wrong, got %s", username)
 	}
 

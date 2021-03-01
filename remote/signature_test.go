@@ -3,14 +3,14 @@ package remote
 import (
 	"testing"
 
-	"github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/profile"
 )
 
 func TestVerifySigParams(t *testing.T) {
-	peerInfo0 := test.GetTestPeerInfo(0)
-	pid, err := calcProfileID(peerInfo0.PrivKey)
+	kd0 := testkeys.GetKeyData(0)
+	pid, err := calcProfileID(kd0.PrivKey)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -26,12 +26,12 @@ func TestVerifySigParams(t *testing.T) {
 		Name:      "baz",
 		ProfileID: profileID.String(),
 	}
-	sigParams, err := sigParams(peerInfo0.PrivKey, "bar", ref)
+	sigParams, err := sigParams(kd0.PrivKey, "bar", ref)
 	if err != nil {
 		panic(err)
 	}
 
-	verified, err := VerifySigParams(peerInfo0.PubKey, sigParams)
+	verified, err := VerifySigParams(kd0.PrivKey.GetPublic(), sigParams)
 	if err != nil {
 		t.Errorf("case 'should verify', expected no error, got '%s'", err)
 	}
@@ -39,8 +39,8 @@ func TestVerifySigParams(t *testing.T) {
 		t.Errorf("case 'should verify', expected verification to be true, but was false")
 	}
 
-	peerInfo1 := test.GetTestPeerInfo(1)
-	verified, err = VerifySigParams(peerInfo1.PubKey, sigParams)
+	kd1 := testkeys.GetKeyData(1)
+	verified, err = VerifySigParams(kd1.PrivKey.GetPublic(), sigParams)
 	if err == nil {
 		t.Errorf("case 'should not verify', expected error 'crypto/rsa: verification error', got no error")
 	}

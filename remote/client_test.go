@@ -9,8 +9,8 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/config"
-	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
@@ -139,11 +139,11 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 	ctx := context.Background()
 	fs := qfs.NewMemFS()
-	pi := cfgtest.GetTestPeerInfo(0)
+	kd := testkeys.GetKeyData(0)
 	pro := &profile.Profile{
 		Peername: "remote_test_peer",
-		ID:       profile.IDFromPeerID(pi.PeerID),
-		PrivKey:  pi.PrivKey,
+		ID:       profile.IDFromPeerID(kd.PeerID),
+		PrivKey:  kd.PrivKey,
 	}
 	mr, err := repo.NewMemRepoWithProfile(ctx, pro, newTestFS(ctx, fs), event.NilBus)
 	if err != nil {

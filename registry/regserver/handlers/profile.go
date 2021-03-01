@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	apiutil "github.com/qri-io/qri/api/util"
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/registry"
 )
 
@@ -125,9 +125,9 @@ func NewProveKeyHandler(profiles registry.Profiles) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// TODO(dustmop): Lookup account referred to by the request,
 		// and retrieve appropriate data.
-		info := testPeers.GetTestPeerInfo(3)
+		kd := testkeys.GetKeyData(3)
 		res := map[string]string{}
-		res["profileID"] = info.EncodedPeerID
+		res["profileID"] = kd.EncodedPeerID
 		apiutil.WriteResponse(w, res)
 	}
 }

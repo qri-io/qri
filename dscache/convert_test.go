@@ -10,7 +10,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/auth/key"
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/profile"
@@ -19,20 +19,20 @@ import (
 
 // Test the buildDscacheFlatbuffer function, which converts plain-old-data structures into dscache
 func TestBuildDscacheFlatbuffer(t *testing.T) {
-	pid0 := profile.IDFromPeerID(testPeers.GetTestPeerInfo(0).PeerID)
-	pid1 := profile.IDFromPeerID(testPeers.GetTestPeerInfo(1).PeerID)
-	pid2 := profile.IDFromPeerID(testPeers.GetTestPeerInfo(2).PeerID)
+	pid0 := profile.IDFromPeerID(testkeys.GetKeyData(0).PeerID)
+	pid1 := profile.IDFromPeerID(testkeys.GetKeyData(1).PeerID)
+	pid2 := profile.IDFromPeerID(testkeys.GetKeyData(2).PeerID)
 
 	userList := []userProfilePair{
-		userProfilePair{
+		{
 			Username:  "test_zero",
 			ProfileID: pid0.String(),
 		},
-		userProfilePair{
+		{
 			Username:  "test_one",
 			ProfileID: pid1.String(),
 		},
-		userProfilePair{
+		{
 			Username:  "test_two",
 			ProfileID: pid2.String(),
 		},
@@ -156,20 +156,20 @@ func TestConvertLogbookAndRefsBasic(t *testing.T) {
 
 	ctx := context.Background()
 
-	peerInfo := testPeers.GetTestPeerInfo(0)
-	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
+	keyData := testkeys.GetKeyData(0)
+	book := makeFakeLogbook(ctx, t, "test_user", keyData.PrivKey)
 
 	dsrefs := []reporef.DatasetRef{
 		reporef.DatasetRef{
 			Peername:  "test_user",
-			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(keyData.PeerID),
 			Name:      "first_new_name",
 			Path:      "QmHashOfVersion2",
 			FSIPath:   "/path/to/first_workspace",
 		},
 		reporef.DatasetRef{
 			Peername:  "test_user",
-			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(keyData.PeerID),
 			Name:      "second_name",
 			Path:      "QmHashOfVersion6",
 			FSIPath:   "/path/to/second_workspace",
@@ -217,14 +217,14 @@ func TestConvertLogbookAndRefsMissingDsref(t *testing.T) {
 
 	ctx := context.Background()
 
-	peerInfo := testPeers.GetTestPeerInfo(0)
-	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
+	keyData := testkeys.GetKeyData(0)
+	book := makeFakeLogbook(ctx, t, "test_user", keyData.PrivKey)
 
 	// This is missing the second dsref
 	dsrefs := []reporef.DatasetRef{
-		reporef.DatasetRef{
+		{
 			Peername:  "test_user",
-			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(keyData.PeerID),
 			Name:      "first_new_name",
 			Path:      "QmHashOfVersion2",
 			FSIPath:   "/path/to/first_workspace",
@@ -237,7 +237,7 @@ func TestConvertLogbookAndRefsMissingDsref(t *testing.T) {
 	}
 
 	expect := []*entryInfo{
-		&entryInfo{
+		{
 			VersionInfo: dsref.VersionInfo{
 				InitID:    "htkkr2g4st3atjmxhkar3kjpv6x3xgls7sdkh4rm424v45tqpt6q",
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
@@ -248,7 +248,7 @@ func TestConvertLogbookAndRefsMissingDsref(t *testing.T) {
 			TopIndex:    2,
 			CursorIndex: 2,
 		},
-		&entryInfo{
+		{
 			VersionInfo: dsref.VersionInfo{
 				InitID:    "7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq",
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
@@ -275,28 +275,28 @@ func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
 
 	ctx := context.Background()
 
-	peerInfo := testPeers.GetTestPeerInfo(0)
-	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
+	keyData := testkeys.GetKeyData(0)
+	book := makeFakeLogbook(ctx, t, "test_user", keyData.PrivKey)
 
 	// Dsrefs has a third reference that is not in logbook.
 	dsrefs := []reporef.DatasetRef{
-		reporef.DatasetRef{
+		{
 			Peername:  "test_user",
-			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(keyData.PeerID),
 			Name:      "first_new_name",
 			Path:      "QmHashOfVersion2",
 			FSIPath:   "/path/to/first_workspace",
 		},
-		reporef.DatasetRef{
+		{
 			Peername:  "test_user",
-			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(keyData.PeerID),
 			Name:      "second_name",
 			Path:      "QmHashOfVersion6",
 			FSIPath:   "/path/to/second_workspace",
 		},
-		reporef.DatasetRef{
+		{
 			Peername:  "test_user",
-			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(keyData.PeerID),
 			Name:      "third_name",
 			Path:      "QmHashOfVersion100",
 			FSIPath:   "/path/to/third_workspace",
@@ -309,7 +309,7 @@ func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
 	}
 
 	expect := []*entryInfo{
-		&entryInfo{
+		{
 			VersionInfo: dsref.VersionInfo{
 				InitID:    "htkkr2g4st3atjmxhkar3kjpv6x3xgls7sdkh4rm424v45tqpt6q",
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
@@ -320,7 +320,7 @@ func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
 			TopIndex:    2,
 			CursorIndex: 2,
 		},
-		&entryInfo{
+		{
 			VersionInfo: dsref.VersionInfo{
 				InitID:    "7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq",
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
@@ -331,7 +331,7 @@ func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
 			TopIndex:    3,
 			CursorIndex: 3,
 		},
-		&entryInfo{
+		{
 			VersionInfo: dsref.VersionInfo{
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 				Name:      "third_name",
@@ -352,26 +352,26 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 
 	ctx := context.Background()
 
-	peerInfo := testPeers.GetTestPeerInfo(0)
-	book := makeFakeLogbookWithNoHistoryAndDelete(ctx, t, "test_user", peerInfo.PrivKey)
+	keyData := testkeys.GetKeyData(0)
+	book := makeFakeLogbookWithNoHistoryAndDelete(ctx, t, "test_user", keyData.PrivKey)
 
 	// Dsrefs: first_ds is not checked out, second_ds was deleted, third_ds has no history
 	dsrefs := []reporef.DatasetRef{
-		reporef.DatasetRef{
+		{
 			Peername:  "test_user",
-			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(keyData.PeerID),
 			Name:      "first_ds",
 			Path:      "QmHashOfVersion1001",
 		},
-		reporef.DatasetRef{
+		{
 			Peername:  "test_user",
-			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(keyData.PeerID),
 			Name:      "third_ds",
 			FSIPath:   "/path/to/third_workspace",
 		},
-		reporef.DatasetRef{
+		{
 			Peername:  "test_user",
-			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(keyData.PeerID),
 			Name:      "fourth_ds",
 			Path:      "QmHashOfVersion1005",
 			FSIPath:   "/path/to/fourth_workspace",
@@ -384,7 +384,7 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 	}
 
 	expect := []*entryInfo{
-		&entryInfo{
+		{
 			VersionInfo: dsref.VersionInfo{
 				InitID:    "3cf4zxzyxug7c2xmheltmnn3smnr3urpcifeyke4or7zunetu4ia",
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
@@ -394,7 +394,7 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 			TopIndex:    1,
 			CursorIndex: 1,
 		},
-		&entryInfo{
+		{
 			VersionInfo: dsref.VersionInfo{
 				InitID:    "n6bxzf53b3g4gugtn7svgpz2xmmbxp5ls6witdilt7oh5dtdnxwa",
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
@@ -402,7 +402,7 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 				FSIPath:   "/path/to/third_workspace",
 			},
 		},
-		&entryInfo{
+		{
 			VersionInfo: dsref.VersionInfo{
 				InitID:    "52iu62kxcgix5w7a5vwclf26gmxojnx67dnsddamkxokx7lxisnq",
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
@@ -426,8 +426,8 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefAlphabetized(t *testing.T) {
 
 	ctx := context.Background()
 
-	peerInfo := testPeers.GetTestPeerInfo(0)
-	book := makeFakeLogbookNonAlphabetical(ctx, t, "test_user", peerInfo.PrivKey)
+	keyData := testkeys.GetKeyData(0)
+	book := makeFakeLogbookNonAlphabetical(ctx, t, "test_user", keyData.PrivKey)
 
 	// Add stub defs, so that fillInfoForDatasets succeeds
 	store := qfs.NewMemFS()
@@ -437,9 +437,9 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefAlphabetized(t *testing.T) {
 
 	// Add association between profileID and username
 	pro := &profile.Profile{
-		ID:       profile.IDFromPeerID(peerInfo.PeerID),
+		ID:       profile.IDFromPeerID(keyData.PeerID),
 		Peername: "test_user",
-		PrivKey:  peerInfo.PrivKey,
+		PrivKey:  keyData.PrivKey,
 	}
 	keyStore, err := key.NewMemStore()
 	if err != nil {
@@ -486,8 +486,8 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 
 	ctx := context.Background()
 
-	peerInfo := testPeers.GetTestPeerInfo(0)
-	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
+	keyData := testkeys.GetKeyData(0)
+	book := makeFakeLogbook(ctx, t, "test_user", keyData.PrivKey)
 	store := qfs.NewMemFS()
 
 	// Add test datasets, which fillInfoForDatasets will use to populate dscache
@@ -514,9 +514,9 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 
 	// Add association between profileID and username
 	pro := &profile.Profile{
-		ID:       profile.IDFromPeerID(peerInfo.PeerID),
+		ID:       profile.IDFromPeerID(keyData.PeerID),
 		Peername: "test_user",
-		PrivKey:  peerInfo.PrivKey,
+		PrivKey:  keyData.PrivKey,
 	}
 	keyStore, err := key.NewMemStore()
 	if err != nil {

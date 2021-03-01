@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/dgrijalva/jwt-go"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/auth/token"
-	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/profile"
 )
 
@@ -19,7 +19,7 @@ func AssertTokenSourceSpec(t *testing.T, newTokenSource func(ctx context.Context
 	source := newTokenSource(ctx)
 
 	p1 := &profile.Profile{
-		ID:       profile.IDB58DecodeOrEmpty(cfgtest.GetTestPeerInfo(1).EncodedPeerID),
+		ID:       profile.IDB58DecodeOrEmpty(testkeys.GetKeyData(1).EncodedPeerID),
 		Peername: "username",
 	}
 

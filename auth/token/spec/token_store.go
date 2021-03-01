@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/auth/token"
-	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/profile"
 )
 
@@ -22,7 +22,7 @@ func AssertTokenStoreSpec(t *testing.T, newTokenStore func(context.Context) toke
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	pk := cfgtest.GetTestPeerInfo(0).PrivKey
+	pk := testkeys.GetKeyData(0).PrivKey
 	tokens, err := token.NewPrivKeySource(pk)
 	if err != nil {
 		t.Fatalf("creating local tokens: %q", err)
@@ -50,7 +50,7 @@ func AssertTokenStoreSpec(t *testing.T, newTokenStore func(context.Context) toke
 	}
 
 	p1 := &profile.Profile{
-		ID:       profile.IDB58DecodeOrEmpty(cfgtest.GetTestPeerInfo(1).EncodedPeerID),
+		ID:       profile.IDB58DecodeOrEmpty(testkeys.GetKeyData(1).EncodedPeerID),
 		Peername: "local_user",
 	}
 	t1Raw, err := tokens.CreateToken(p1, 0)
@@ -71,7 +71,7 @@ func AssertTokenStoreSpec(t *testing.T, newTokenStore func(context.Context) toke
 	}
 
 	p2 := &profile.Profile{
-		ID:       profile.IDB58DecodeOrEmpty(cfgtest.GetTestPeerInfo(2).EncodedPeerID),
+		ID:       profile.IDB58DecodeOrEmpty(testkeys.GetKeyData(2).EncodedPeerID),
 		Peername: "user_2",
 	}
 	t2Raw, err := tokens.CreateToken(p2, time.Millisecond*10)
