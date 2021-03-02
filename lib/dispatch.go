@@ -197,6 +197,12 @@ func methodEndpoint(method string) APIEndpoint {
 	if method == "fsi.write" {
 		return "/fsi/write/"
 	}
+	if method == "fsi.createlink" {
+		return "/fsi/createlink/"
+	}
+	if method == "fsi.unlink" {
+		return "/fsi/unlink/"
+	}
 	pos := strings.Index(method, ".")
 	prefix := method[:pos]
 	_ = prefix
