@@ -52,7 +52,7 @@ func (o *WhatChangedOptions) Complete(f Factory, args []string) (err error) {
 func (o *WhatChangedOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
-	ctx := context.Background()
+	ctx := context.TODO()
 	inst := o.Instance
 
 	params := lib.LinkParams{Refstr: o.Refs.Ref()}

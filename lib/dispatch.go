@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Dispatch is system for handling calls to lib. Currently only implemented for FSI methods.
+// Dispatch is a system for handling calls to lib. Should only be called by top-level lib methods.
 //
 // When programs are using qri as a library (such as the `cmd` package), calls to `lib` will
 // arrive at dispatch, before being routed to the actual implementation routine. This solves
@@ -22,13 +22,6 @@ import (
 // as the input and output parameters for those methods, and associates a string name for each
 // method. Dispatch works by looking up that method name, constructing the necessary input,
 // then invoking the actual implementation.
-
-// RegMethodSet represents a set of registered methods
-type RegMethodSet struct {
-	reg map[string]callable
-}
-
-// Dispatch looks up the method, and invokes it with the given input
 func (inst *Instance) Dispatch(ctx context.Context, method string, param interface{}) (res interface{}, err error) {
 	if inst == nil {
 		return nil, fmt.Errorf("instance is nil, cannot dispatch")
@@ -60,12 +53,12 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 		// TODO(dustmop): Add user authentication, profile, identity, etc
 		// TODO(dustmop): Also determine if the method is read-only vs read-write,
 		// and only execute a single read-write method at a time
-		// Eventually, the data that lives in Scope should be immutable for its lifetime,
+		// Eventually, the data that lives in scope should be immutable for its lifetime,
 		// or use copy-on-write semantics, so that one method running at the same time as
 		// another cannot modify the out-of-scope data of the other. This will mostly
 		// involve making copies of the right things
-		scope := Scope{
-			ctx:  ctx,
+		scope := scope{
+			ctx: ctx,
 			inst: inst,
 		}
 
@@ -110,8 +103,13 @@ func (inst *Instance) NewInputParam(method string) interface{} {
 	return nil
 }
 
+// regMethodSet represents a set of registered methods
+type regMethodSet struct {
+	reg map[string]callable
+}
+
 // lookup finds the callable structure with the given method name
-func (r *RegMethodSet) lookup(method string) (*callable, bool) {
+func (r *regMethodSet) lookup(method string) (*callable, bool) {
 	if c, ok := r.reg[method]; ok {
 		return &c, true
 	}
@@ -129,7 +127,7 @@ type callable struct {
 func (inst *Instance) RegisterMethods() {
 	reg := make(map[string]callable)
 	inst.registerOne("fsi", &FSIImpl{}, reg)
-	inst.regMethods = &RegMethodSet{reg: reg}
+	inst.regMethods = &regMethodSet{reg: reg}
 }
 
 func (inst *Instance) registerOne(ourName string, impl interface{}, reg map[string]callable) {
@@ -139,7 +137,7 @@ func (inst *Instance) registerOne(ourName string, impl interface{}, reg map[stri
 	for k := 0; k < num; k++ {
 		m := implType.Method(k)
 		lowerName := strings.ToLower(m.Name)
-		funcName := ourName + "." + lowerName
+		funcName := fmt.Sprintf("%s.%s", ourName, lowerName)
 
 		// Validate the parameters to the method
 		// should have 3 input parameters: (receiver, scope, input struct)
@@ -147,43 +145,36 @@ func (inst *Instance) registerOne(ourName string, impl interface{}, reg map[stri
 		// TODO(dustmop): allow variadic returns: error only, cursor for pagination
 		f := m.Type
 		if f.NumIn() != 3 {
-			log.Errorf("%s: bad number of inputs: %d", funcName, f.NumIn())
-			continue
+			log.Fatalf("%s: bad number of inputs: %d", funcName, f.NumIn())
 		}
 		if f.NumOut() != 2 {
-			log.Errorf("%s: bad number of outputs: %d", funcName, f.NumOut())
-			continue
+			log.Fatalf("%s: bad number of outputs: %d", funcName, f.NumOut())
 		}
 		// First input must be the receiver
 		inType := f.In(0)
 		if inType != implType {
-			log.Errorf("%s: first input param should be impl, got %v", funcName, inType)
-			continue
+			log.Fatalf("%s: first input param should be impl, got %v", funcName, inType)
 		}
 		// Second input must be a scope
 		inType = f.In(1)
-		if inType.Name() != "Scope" {
-			log.Errorf("%s: second input param should be scope, got %v", funcName, inType)
-			continue
+		if inType.Name() != "scope" {
+			log.Fatalf("%s: second input param should be scope, got %v", funcName, inType)
 		}
 		// Third input is a pointer to the input struct
 		inType = f.In(2)
 		if inType.Kind() != reflect.Ptr {
-			log.Errorf("%s: third input param must be a struct pointer, got %v", funcName, inType)
-			continue
+			log.Fatalf("%s: third input param must be a struct pointer, got %v", funcName, inType)
 		}
 		inType = inType.Elem()
 		if inType.Kind() != reflect.Struct {
-			log.Errorf("%s: third input param must be a struct pointer, got %v", funcName, inType)
-			continue
+			log.Fatalf("%s: third input param must be a struct pointer, got %v", funcName, inType)
 		}
 		// First output is anything
 		outType := f.Out(0)
 		// Second output must be an error
 		outErrType := f.Out(1)
 		if outErrType.Name() != "error" {
-			log.Errorf("%s: second output param should be error, got %v", funcName, inType)
-			continue
+			log.Fatalf("%s: second output param should be error, got %v", funcName, outErrType)
 		}
 
 		// Save the method to the registration table
@@ -193,12 +184,16 @@ func (inst *Instance) registerOne(ourName string, impl interface{}, reg map[stri
 			InType:  inType,
 			OutType: outType,
 		}
-		log.Infof("%d: registered %s(*%s) %v", k, funcName, inType, outType)
+		log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
 	}
 }
 
 // methodEndpoint returns a method name and returns the API endpoint for it
 func methodEndpoint(method string) APIEndpoint {
+	// TODO(dustmop): This is here temporarily. /fsi/write/ works differently than
+	// other methods; their http API endpoints are only their method name, for
+	// exmaple /status/. This should be replaced with an explicit mapping from
+	// method names to endpoints.
 	if method == "fsi.write" {
 		return "/fsi/write/"
 	}

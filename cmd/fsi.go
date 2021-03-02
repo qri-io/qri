@@ -45,7 +45,8 @@ func NewFSICommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			return o.Unlink()
+			ctx := context.TODO()
+			return o.Unlink(ctx)
 		},
 	}
 
@@ -87,7 +88,7 @@ func (o *FSIOptions) Link() (err error) {
 		return err
 	}
 
-	ctx := context.Background()
+	ctx := context.TODO()
 	inst := o.Instance
 
 	p := &lib.LinkParams{
@@ -104,8 +105,7 @@ func (o *FSIOptions) Link() (err error) {
 }
 
 // Unlink executes the fsi unlink command
-func (o *FSIOptions) Unlink() error {
-	ctx := context.Background()
+func (o *FSIOptions) Unlink(ctx context.Context) error {
 	inst := o.Instance
 
 	for _, ref := range o.Refs.RefList() {

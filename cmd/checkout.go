@@ -71,7 +71,7 @@ func (o *CheckoutOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the `checkout` command
 func (o *CheckoutOptions) Run() (err error) {
-	ctx := context.Background()
+	ctx := context.TODO()
 	inst := o.Instance
 
 	if !o.Refs.IsExplicit() {

@@ -86,7 +86,7 @@ const ColumnPositionForMtime = 40
 func (o *StatusOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
-	ctx := context.Background()
+	ctx := context.TODO()
 	inst := o.Instance
 
 	params := lib.LinkParams{Dir: o.Refs.Dir()}

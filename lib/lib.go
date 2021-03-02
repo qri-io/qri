@@ -701,7 +701,7 @@ type Instance struct {
 	repoPath string
 	cfg      *config.Config
 
-	regMethods *RegMethodSet
+	regMethods *regMethodSet
 
 	streams         ioes.IOStreams
 	repo            repo.Repo

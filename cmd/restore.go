@@ -124,7 +124,7 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 func (o *RestoreOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
-	ctx := context.Background()
+	ctx := context.TODO()
 	inst := o.Instance
 
 	ref := o.Refs.Ref()

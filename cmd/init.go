@@ -88,7 +88,7 @@ func (o *InitOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the `init` command
 func (o *InitOptions) Run() (err error) {
-	ctx := context.Background()
+	ctx := context.TODO()
 	inst := o.Instance
 
 	// An empty dir means the current dir

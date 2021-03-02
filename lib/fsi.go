@@ -175,7 +175,7 @@ func (m *FSIMethods) EnsureRef(ctx context.Context, p *LinkParams) (*dsref.Versi
 type FSIImpl struct{}
 
 // CreateLink creates a connection between a working drirectory and a dataset history
-func (*FSIImpl) CreateLink(scope Scope, p *LinkParams) (*dsref.VersionInfo, error) {
+func (*FSIImpl) CreateLink(scope scope, p *LinkParams) (*dsref.VersionInfo, error) {
 	ctx := scope.Context()
 
 	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
@@ -189,7 +189,7 @@ func (*FSIImpl) CreateLink(scope Scope, p *LinkParams) (*dsref.VersionInfo, erro
 // Unlink removes the connection between a working directory and a dataset. If given only a
 // directory, will remove the link file from that directory. If given only a reference,
 // will remove the fsi path from that reference, and remove the link file from that fsi path
-func (*FSIImpl) Unlink(scope Scope, p *LinkParams) (string, error) {
+func (*FSIImpl) Unlink(scope scope, p *LinkParams) (string, error) {
 	ctx := scope.Context()
 
 	if p.Dir != "" && p.Refstr != "" {
@@ -225,7 +225,7 @@ func (*FSIImpl) Unlink(scope Scope, p *LinkParams) (string, error) {
 
 // Status checks for any modifications or errors in a linked directory against its previous
 // version in the repo. Must only be called if FSI is enabled for this dataset.
-func (*FSIImpl) Status(scope Scope, p *LinkParams) ([]StatusItem, error) {
+func (*FSIImpl) Status(scope scope, p *LinkParams) ([]StatusItem, error) {
 	ctx := scope.Context()
 
 	if p.Dir == "" && p.Refstr == "" {
@@ -252,7 +252,7 @@ func (*FSIImpl) Status(scope Scope, p *LinkParams) ([]StatusItem, error) {
 
 // WhatChanged gets changes that happened at a particular version in the history of the given
 // dataset reference.
-func (*FSIImpl) WhatChanged(scope Scope, p *LinkParams) ([]StatusItem, error) {
+func (*FSIImpl) WhatChanged(scope scope, p *LinkParams) ([]StatusItem, error) {
 	ctx := scope.Context()
 
 	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
@@ -265,7 +265,7 @@ func (*FSIImpl) WhatChanged(scope Scope, p *LinkParams) ([]StatusItem, error) {
 
 // Checkout method writes a dataset to a directory as individual files.
 // TODO(dustmop): Returned string is not used, remove it once dispatch is compatible
-func (*FSIImpl) Checkout(scope Scope, p *LinkParams) (string, error) {
+func (*FSIImpl) Checkout(scope scope, p *LinkParams) (string, error) {
 	ctx := scope.Context()
 
 	// Require a non-empty, absolute path for the checkout
@@ -330,7 +330,7 @@ func (*FSIImpl) Checkout(scope Scope, p *LinkParams) (string, error) {
 }
 
 // Write mutates a linked dataset on the filesystem
-func (*FSIImpl) Write(scope Scope, p *FSIWriteParams) ([]StatusItem, error) {
+func (*FSIImpl) Write(scope scope, p *FSIWriteParams) ([]StatusItem, error) {
 	ctx := scope.Context()
 
 	if p.Ds == nil {
@@ -363,7 +363,7 @@ func (*FSIImpl) Write(scope Scope, p *FSIWriteParams) ([]StatusItem, error) {
 
 // Restore method restores a component or all of the component files of a dataset from the repo
 // TODO(dustmop): Returned string is not used, remove it once dispatch is compatible
-func (*FSIImpl) Restore(scope Scope, p *RestoreParams) (string, error) {
+func (*FSIImpl) Restore(scope scope, p *RestoreParams) (string, error) {
 	ctx := scope.Context()
 
 	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
@@ -428,7 +428,7 @@ func (*FSIImpl) Restore(scope Scope, p *RestoreParams) (string, error) {
 }
 
 // Init creates a new dataset in a working directory
-func (*FSIImpl) Init(scope Scope, p *InitDatasetParams) (string, error) {
+func (*FSIImpl) Init(scope scope, p *InitDatasetParams) (string, error) {
 	ctx := scope.Context()
 
 	if p.UseDscache {
@@ -440,14 +440,14 @@ func (*FSIImpl) Init(scope Scope, p *InitDatasetParams) (string, error) {
 }
 
 // CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not
-func (*FSIImpl) CanInitDatasetWorkDir(scope Scope, p *InitDatasetParams) (bool, error) {
+func (*FSIImpl) CanInitDatasetWorkDir(scope scope, p *InitDatasetParams) (bool, error) {
 	// TODO(dustmop): Change dispatch so that implementations can only return 1 value
 	// if that value is an error
 	return true, scope.FSISubsystem().CanInitDatasetWorkDir(p.TargetDir, p.BodyPath)
 }
 
 // EnsureRef will modify the directory path in the repo for the given reference
-func (*FSIImpl) EnsureRef(scope Scope, p *LinkParams) (*dsref.VersionInfo, error) {
+func (*FSIImpl) EnsureRef(scope scope, p *LinkParams) (*dsref.VersionInfo, error) {
 	ctx := scope.Context()
 
 	ref, err := dsref.Parse(p.Refstr)
