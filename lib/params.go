@@ -44,8 +44,8 @@ type ListParams struct {
 	// UseDscache controls whether to build a dscache to use to list the references
 	UseDscache bool
 
-	// Proxy identifies whether a call has been proxied from another instance
-	Proxy bool
+	// Raw indicates whether to return a raw string representation of a dataset list
+	Raw bool
 }
 
 // SetNonZeroDefaults sets OrderBy to "created" if it's value is the empty string
@@ -58,6 +58,14 @@ func (p *ListParams) SetNonZeroDefaults() {
 // UnmarshalFromRequest implements a custom deserialization-from-HTTP request
 func (p *ListParams) UnmarshalFromRequest(r *http.Request) error {
 	lp := ListParamsFromRequest(r)
+	if p == nil {
+		p = &ListParams{}
+	}
+	if !p.Raw {
+		lp.Raw = r.FormValue("raw") == "true"
+	} else {
+		lp.Raw = p.Raw
+	}
 	*p = lp
 	return nil
 }

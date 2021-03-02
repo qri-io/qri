@@ -36,8 +36,8 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	}
 
 	p := &ListParams{}
-	refs := ""
-	if err := NewDatasetMethods(tr.RegistryInst).ListRawRefs(p, &refs); err != nil {
+	refs, err := NewDatasetMethods(tr.RegistryInst).ListRawRefs(tr.Ctx, p)
+	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log(refs)
@@ -69,7 +69,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
 	dsm := NewDatasetMethods(hinshun)
-	_, err := dsm.Pull(tr.Ctx, &PullParams{LogsOnly: true, Ref: ref.String()})
+	_, err = dsm.Pull(tr.Ctx, &PullParams{LogsOnly: true, Ref: ref.String()})
 	if err != nil {
 		t.Errorf("cloning logs: %s", err)
 	}

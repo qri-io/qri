@@ -1248,8 +1248,8 @@ func TestListRawRefs(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
-	var text string
-	if err := m.ListRawRefs(&ListParams{}, &text); err != nil {
+	text, err := m.ListRawRefs(ctx, &ListParams{})
+	if err != nil {
 		t.Fatal(err)
 	}
 

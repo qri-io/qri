@@ -95,13 +95,14 @@ func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 func (o *ListOptions) Run() (err error) {
 	// convert Page and PageSize to Limit and Offset
 	page := apiutil.NewPage(o.Page, o.PageSize)
+	ctx := context.TODO()
 
 	if o.Raw {
-		var text string
 		p := &lib.ListParams{
 			UseDscache: o.UseDscache,
 		}
-		if err = o.DatasetMethods.ListRawRefs(p, &text); err != nil {
+		text, err := o.DatasetMethods.ListRawRefs(ctx, p)
+		if err != nil {
 			return err
 		}
 		printSuccess(o.Out, text)
@@ -118,7 +119,6 @@ func (o *ListOptions) Run() (err error) {
 		EnsureFSIExists: true,
 		UseDscache:      o.UseDscache,
 	}
-	ctx := context.TODO()
 	infos, err := o.DatasetMethods.List(ctx, p)
 	if err != nil {
 		if errors.Is(err, lib.ErrListWarning) {
