@@ -6,12 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
-	cfgtest "github.com/qri-io/qri/config/test"
-	"github.com/qri-io/qri/repo/gen"
+	"github.com/qri-io/qri/auth/key"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 )
 
 // NewTestCrypto returns a mocked cryptographic generator for tests
-func NewTestCrypto() gen.CryptoGenerator {
+func NewTestCrypto() key.CryptoGenerator {
 	return &testCryptoGenerator{}
 }
 
@@ -20,9 +20,9 @@ type testCryptoGenerator struct {
 }
 
 func (g *testCryptoGenerator) GeneratePrivateKeyAndPeerID() (string, string) {
-	info := cfgtest.GetTestPeerInfo(g.count)
+	kd := testkeys.GetKeyData(g.count)
 	g.count++
-	return info.EncodedPrivKey, info.EncodedPeerID
+	return kd.EncodedPrivKey, kd.EncodedPeerID
 }
 
 func (g *testCryptoGenerator) GenerateNickname(peerID string) string {

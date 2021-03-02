@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -16,7 +16,7 @@ func TestHistoryHandlers(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	inst := lib.NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := lib.NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 
 	p := &lib.SaveParams{
 		Ref: "me/cities",

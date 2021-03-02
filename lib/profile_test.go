@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
@@ -37,7 +38,7 @@ func TestProfileRequestsGet(t *testing.T) {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -62,7 +63,7 @@ func TestProfileRequestsSave(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 
 	cases := []struct {
 		p   *config.ProfilePod
@@ -102,7 +103,7 @@ func TestSaveProfile(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 
 	// Mock data for the global Config's Profile, used to create new profile.
 	// TODO: Remove the randomly built Profile that config.DefaultProfile creates.
@@ -209,7 +210,7 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 
 	reg := regmock.NewMemRegistry(nil)
 	node := newTestQriNode(t)
@@ -254,7 +255,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 
 	cases := []struct {
 		infile  string
@@ -310,7 +311,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 
 	cases := []struct {
 		infile  string

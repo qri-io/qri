@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/auth/key"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
@@ -33,7 +33,7 @@ func TestRepo(t *testing.T) {
 			t.Fatalf("error removing files: %q", err)
 		}
 
-		pro, err := profile.NewProfile(config.DefaultProfileForTesting())
+		pro, err := profile.NewProfile(testcfg.DefaultProfileForTesting())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -93,7 +93,7 @@ func TestResolveRef(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	pro, err := profile.NewProfile(config.DefaultProfileForTesting())
+	pro, err := profile.NewProfile(testcfg.DefaultProfileForTesting())
 	if err != nil {
 		t.Fatal(err)
 	}

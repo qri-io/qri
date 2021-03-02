@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/qri-io/qfs"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/auth/token"
 	token_spec "github.com/qri-io/qri/auth/token/spec"
-	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/profile"
 )
 
@@ -17,14 +17,14 @@ func TestPrivKeyTokens(t *testing.T) {
 	token.Timestamp = func() time.Time { return time.Time{} }
 	defer func() { token.Timestamp = prevTs }()
 
-	peerInfo := cfgtest.GetTestPeerInfo(0)
-	tokens, err := token.NewPrivKeySource(peerInfo.PrivKey)
+	kd := testkeys.GetKeyData(0)
+	tokens, err := token.NewPrivKeySource(kd.PrivKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	pro := &profile.Profile{
-		ID:       profile.IDB58MustDecode(peerInfo.EncodedPeerID),
+		ID:       profile.IDB58MustDecode(kd.EncodedPeerID),
 		Peername: "doug",
 	}
 
@@ -45,7 +45,7 @@ func TestPrivKeyTokens(t *testing.T) {
 	}
 
 	token_spec.AssertTokenSourceSpec(t, func(ctx context.Context) token.Source {
-		source, err := token.NewPrivKeySource(peerInfo.PrivKey)
+		source, err := token.NewPrivKeySource(kd.PrivKey)
 		if err != nil {
 			panic(err)
 		}

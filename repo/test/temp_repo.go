@@ -12,12 +12,13 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/qipfs"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/buildrepo"
-	"github.com/qri-io/qri/repo/gen"
 )
 
 // TempRepo manages a temporary repository for testing purposes, adding extra
@@ -26,7 +27,7 @@ type TempRepo struct {
 	RootPath   string
 	IPFSPath   string
 	QriPath    string
-	TestCrypto gen.CryptoGenerator
+	TestCrypto key.CryptoGenerator
 
 	cfg                 *config.Config
 	UseMockRemoteClient bool
@@ -56,11 +57,11 @@ func NewTempRepoUsingPeerInfo(peerInfoNum int, peername, prefix string) (r TempR
 // NewTempRepo constructs the test repo and initializes everything as cheaply
 // as possible. This function is non-deterministic. Each successive call to
 // TempRepo will use different PKI credentials
-func NewTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, err error) {
+func NewTempRepo(peername, prefix string, g key.CryptoGenerator) (r TempRepo, err error) {
 	return newTempRepo(peername, prefix, g)
 }
 
-func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, err error) {
+func newTempRepo(peername, prefix string, g key.CryptoGenerator) (r TempRepo, err error) {
 	RootPath, err := ioutil.TempDir("", prefix)
 	if err != nil {
 		return r, err
@@ -85,7 +86,7 @@ func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, er
 	}
 
 	// Create empty config.yaml into the test repo.
-	cfg := config.DefaultConfigForTesting().Copy()
+	cfg := testcfg.DefaultConfigForTesting().Copy()
 	cfg.Profile.Peername = peername
 	cfg.Profile.PrivKey, cfg.Profile.ID = g.GeneratePrivateKeyAndPeerID()
 	cfg.SetPath(filepath.Join(QriPath, "config.yaml"))

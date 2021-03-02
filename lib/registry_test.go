@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/registry/regserver"
 	repotest "github.com/qri-io/qri/repo/test"
@@ -28,12 +28,12 @@ func TestProveProfileKey(t *testing.T) {
 	tr.Instance.registry = regClient
 
 	// Get an example peer, and add it to the local profile store
-	info := testPeers.GetTestPeerInfo(2)
+	keyData := testkeys.GetKeyData(2)
 	pro := &profile.Profile{
 		Peername: "test_peer",
-		PubKey:   info.PubKey,
-		PrivKey:  info.PrivKey,
-		ID:       profile.IDFromPeerID(info.PeerID),
+		PubKey:   keyData.PrivKey.GetPublic(),
+		PrivKey:  keyData.PrivKey,
+		ID:       profile.IDFromPeerID(keyData.PeerID),
 	}
 	repo := tr.Instance.Repo()
 	pstore := repo.Profiles()
@@ -56,7 +56,7 @@ func TestProveProfileKey(t *testing.T) {
 	}
 
 	// Peer 3 is used by the mock regserver, it is now used by this peer
-	expectProfileID := profile.IDFromPeerID(testPeers.GetTestPeerInfo(3).PeerID)
+	expectProfileID := profile.IDFromPeerID(testkeys.GetKeyData(3).PeerID)
 	if pro.ID != expectProfileID {
 		t.Errorf("bad profileID for peer after prove. expect: %s, got: %s", expectProfileID, pro.ID)
 	}

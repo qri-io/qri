@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -69,12 +69,12 @@ func TestRenderMethodsRender(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	node, err := p2p.NewQriNode(tr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(tr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	rm := NewRenderMethods(inst)
 
 	for i, c := range cases {
@@ -121,11 +121,11 @@ func newRenderTestRunner(t *testing.T, testName string) *renderTestRunner {
 		panic(err)
 	}
 
-	r.Node, err = p2p.NewQriNode(r.Repo, config.DefaultP2PForTesting(), event.NilBus, nil)
+	r.Node, err = p2p.NewQriNode(r.Repo, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		panic(err)
 	}
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), r.Node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), r.Node)
 	r.DatasetReqs = NewDatasetMethods(inst)
 	r.RenderMethods = NewRenderMethods(inst)
 

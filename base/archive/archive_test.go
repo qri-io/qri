@@ -10,8 +10,8 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/base/dsfs"
-	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 )
 
@@ -109,7 +109,7 @@ func TestGenerateFilename(t *testing.T) {
 func testFS() (qfs.Filesystem, map[string]string, error) {
 	ctx := context.Background()
 	dataf := qfs.NewMemfileBytes("/body.csv", []byte("movie\nup\nthe incredibles"))
-	pk := testPeers.GetTestPeerInfo(0).PrivKey
+	pk := testkeys.GetKeyData(0).PrivKey
 
 	// Map strings to ds.keys for convenience
 	ns := map[string]string{
@@ -177,7 +177,7 @@ func testFSWithVizAndTransform() (qfs.Filesystem, map[string]string, error) {
 	// Store the files
 	st := qfs.NewMemFS()
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.csv", []byte("movie\nup\nthe incredibles")))
-	privKey := testPeers.GetTestPeerInfo(10).PrivKey
+	privKey := testkeys.GetKeyData(10).PrivKey
 
 	var dsLk sync.Mutex
 	dskey, err := dsfs.WriteDataset(ctx, &dsLk, st, event.NilBus, ds, privKey, dsfs.SaveSwitches{Pin: true})

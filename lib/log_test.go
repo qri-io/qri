@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
@@ -25,7 +25,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		return
 	}
 
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -66,7 +66,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 6, Limit: 3}}, nil, "repo: no history"},
 	}
 
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewLogMethods(inst)
 	for _, c := range cases {
 		got := []dsref.VersionInfo{}
@@ -103,13 +103,13 @@ func TestHistoryRequestsLogEntries(t *testing.T) {
 		return
 	}
 
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	firstRef := refs[0].String()
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewLogMethods(inst)
 
 	if err = m.Logbook(&RefListParams{}, nil); err == nil {

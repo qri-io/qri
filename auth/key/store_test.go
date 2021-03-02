@@ -1,34 +1,36 @@
-package key
+package key_test
 
 import (
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	cfgtest "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/auth/key"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 )
 
 func TestLocalStore(t *testing.T) {
-	path := filepath.Join(os.TempDir(), "keys")
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		t.Errorf("error creating tmp directory: %s", err.Error())
+	path, err := ioutil.TempDir("", "keys")
+	if err != nil {
+		t.Fatalf("error creating tmp directory: %s", err.Error())
 	}
+	t.Logf("store: %s", path)
+	// defer os.RemoveAll(path)
 
-	ks, err := NewLocalStore(filepath.Join(path, "keystore_test.json"))
+	ks, err := key.NewLocalStore(filepath.Join(path, "keystore_test.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pi0 := cfgtest.GetTestPeerInfo(0)
-	k0 := ID("key_id_0")
-	err = ks.AddPubKey(k0, pi0.PubKey)
+	kd0 := testkeys.GetKeyData(0)
+	k0AltID := key.ID("key_id_0")
+	err = ks.AddPubKey(k0AltID, kd0.PrivKey.GetPublic())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = ks.AddPrivKey(k0, pi0.PrivKey)
+	err = ks.AddPrivKey(k0AltID, kd0.PrivKey)
 	if err != nil {
 		t.Fatal(err)
 	}

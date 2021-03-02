@@ -1,80 +1,89 @@
-package key
+package key_test
 
 import (
 	"testing"
 
-	cfgtest "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/auth/key"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 )
 
 func TestPublicKey(t *testing.T) {
-	kb := newKeyBook()
-	pi0 := cfgtest.GetTestPeerInfo(0)
-	k0 := ID("key_id_0")
-
-	err := kb.AddPubKey(k0, pi0.PubKey)
+	kb, err := key.NewMemStore()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pi1 := cfgtest.GetTestPeerInfo(1)
-	k1 := ID("key_id_1")
-	err = kb.AddPubKey(k1, pi1.PubKey)
+	ki0 := testkeys.GetKeyData(0)
+	k0 := ki0.PrivKey.GetPublic()
+	k0AltID := key.ID("key_id_0")
+
+	if err = kb.AddPubKey(k0AltID, k0); err != nil {
+		t.Fatal(err)
+	}
+
+	ki1 := testkeys.GetKeyData(1)
+	k1 := ki1.PrivKey.GetPublic()
+	k1AltID := key.ID("key_id_1")
+	err = kb.AddPubKey(k1AltID, k1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tPub := kb.PubKey(k0)
-	if tPub != pi0.PubKey {
+	tPub := kb.PubKey(k0AltID)
+	if tPub != k0 {
 		t.Fatalf("returned key does not match")
 	}
 
-	tPub = kb.PubKey(k1)
-	if tPub != pi1.PubKey {
+	tPub = kb.PubKey(k1AltID)
+	if tPub != k1 {
 		t.Fatalf("returned key does not match")
 	}
 }
 
 func TestPrivateKey(t *testing.T) {
-	kb := newKeyBook()
-	pi0 := cfgtest.GetTestPeerInfo(0)
-	k0 := ID("key_id_0")
-
-	err := kb.AddPrivKey(k0, pi0.PrivKey)
+	kb, err := key.NewMemStore()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pi1 := cfgtest.GetTestPeerInfo(1)
-	k1 := ID("key_id_1")
-	err = kb.AddPrivKey(k1, pi1.PrivKey)
+	kd0 := testkeys.GetKeyData(0)
+	k0AltID := key.ID("key_id_0")
+
+	if err := kb.AddPrivKey(k0AltID, kd0.PrivKey); err != nil {
+		t.Fatal(err)
+	}
+
+	kd1 := testkeys.GetKeyData(1)
+	k1AltID := key.ID("key_id_1")
+	err = kb.AddPrivKey(k1AltID, kd1.PrivKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tPriv := kb.PrivKey(k0)
-	if tPriv != pi0.PrivKey {
+	tPriv := kb.PrivKey(k0AltID)
+	if tPriv != kd0.PrivKey {
 		t.Fatalf("returned key does not match")
 	}
 
-	tPriv = kb.PrivKey(k1)
-	if tPriv != pi1.PrivKey {
+	tPriv = kb.PrivKey(k1AltID)
+	if tPriv != kd1.PrivKey {
 		t.Fatalf("returned key does not match")
 	}
 }
 
 func TestIDsWithKeys(t *testing.T) {
-	kb := newKeyBook()
-	pi0 := cfgtest.GetTestPeerInfo(0)
-	k0 := ID("key_id_0")
-
-	err := kb.AddPrivKey(k0, pi0.PrivKey)
+	kb, err := key.NewMemStore()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pi1 := cfgtest.GetTestPeerInfo(1)
-	k1 := ID("key_id_1")
-	err = kb.AddPubKey(k1, pi1.PubKey)
+	kd0 := testkeys.GetKeyData(0)
+	if err = kb.AddPrivKey(kd0.KeyID, kd0.PrivKey); err != nil {
+		t.Fatal(err)
+	}
+
+	kd1 := testkeys.GetKeyData(1)
+	err = kb.AddPubKey(kd1.KeyID, kd1.PrivKey.GetPublic())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +96,7 @@ func TestIDsWithKeys(t *testing.T) {
 
 	// the output of kb.IDsWithKeys is in a non-deterministic order
 	// so we have to account for all permutations
-	if !(pids[0] == k0 && pids[1] == k1) && !(pids[0] == k1 && pids[1] == k0) {
+	if !(pids[0] == kd0.KeyID && pids[1] == kd1.KeyID) && !(pids[0] == kd1.KeyID && pids[1] == kd0.KeyID) {
 		t.Fatalf("invalid ids returned")
 	}
 }

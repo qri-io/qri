@@ -27,7 +27,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
@@ -44,7 +44,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -77,7 +77,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 		os.RemoveAll(citiesMetaTwoPath)
 	}()
 
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
 	privateErrMsg := "option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates"
@@ -152,7 +152,7 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 
 	node := newTestQriNode(t)
 	ref := addCitiesDataset(t, node)
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
 	_, err := m.Save(ctx, &SaveParams{Ref: ref.Alias()})
@@ -177,11 +177,11 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
 	// TODO (b5): import.zip has a ref.txt file that specifies test_user/test_repo as the dataset name,
@@ -300,12 +300,12 @@ func TestDatasetRequestsList(t *testing.T) {
 		t.Fatalf("error getting namespace: %s", err)
 	}
 
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 
 	for _, ref := range refs {
 		dr := reporef.ConvertToVersionInfo(&ref)
@@ -412,7 +412,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 		go func(node *p2p.QriNode) {
 			defer wg.Done()
 
-			inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+			inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 			m := NewDatasetMethods(inst)
 			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
 			res, err := m.List(ctx, p)
@@ -442,11 +442,11 @@ func TestDatasetRequestsGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 
 	ref, err := mr.GetRef(reporef.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
@@ -578,11 +578,11 @@ func TestDatasetRequestsGetFSIPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 
 	tempDir, err := ioutil.TempDir("", "get_fsi_test")
 	defer os.RemoveAll(tempDir)
@@ -701,7 +701,7 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			name := datasets[index]
 			ref := reporef.DatasetRef{Peername: profile.Peername, Name: name}
 
-			inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+			inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 			m := NewDatasetMethods(inst)
 			// TODO (b5) - we're using "JSON" here b/c the "craigslist" test dataset
 			// is tripping up the YAML serializer
@@ -728,7 +728,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -742,7 +742,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		{&RenameParams{Current: "peer/cities", Next: "peer/sitemap"}, `dataset "peer/sitemap" already exists`},
 	}
 
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_%d", i), func(t *testing.T) {
@@ -838,12 +838,12 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	dsm := NewDatasetMethods(inst)
 	allRevs := &dsref.Rev{Field: "ds", Gen: -1}
 
@@ -964,12 +964,12 @@ func TestDatasetRequestsPull(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_case_%d", i), func(t *testing.T) {
@@ -1040,7 +1040,7 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 				}
 
 				// Build requests for peer1 to peer2.
-				inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), p0)
+				inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), p0)
 				dsm := NewDatasetMethods(inst)
 
 				_, err := dsm.Pull(ctx, p)
@@ -1108,12 +1108,12 @@ Pirates of the Caribbean: At World's End ,foo
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 	for i, c := range cases {
 		res := &ValidateResponse{}
@@ -1163,12 +1163,12 @@ func TestDatasetRequestsStats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
 	badCases := []struct {
@@ -1241,11 +1241,11 @@ func TestListRawRefs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 
 	var text string

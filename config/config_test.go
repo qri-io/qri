@@ -1,4 +1,4 @@
-package config
+package config_test
 
 import (
 	"fmt"
@@ -10,17 +10,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func TestReadFromFile(t *testing.T) {
-	_, err := ReadFromFile("testdata/default.yaml")
+	_, err := config.ReadFromFile("testdata/default.yaml")
 	if err != nil {
 		t.Errorf("error reading config: %s", err.Error())
 		return
 	}
 
-	_, err = ReadFromFile("foobar")
+	_, err = config.ReadFromFile("foobar")
 	if err == nil {
 		t.Error("expected read from bad path to error")
 		return
@@ -30,7 +32,7 @@ func TestReadFromFile(t *testing.T) {
 func TestWriteToFile(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "config.yaml")
 	t.Log(path)
-	cfg := DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	if err := cfg.WriteToFile(path); err != nil {
 		t.Errorf("error writing config: %s", err.Error())
 		return
@@ -45,9 +47,9 @@ func TestWriteToFile(t *testing.T) {
 func TestWriteToFileWithExtraData(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "config.yaml")
 	t.Log(path)
-	cfg := Config{
-		Revision: CurrentConfigRevision,
-		Profile: &ProfilePod{
+	cfg := config.Config{
+		Revision: config.CurrentConfigRevision,
+		Profile: &config.ProfilePod{
 			ID:       "QmU27VdAEUL5NGM6oB56htTxvHLfcGZgsgxrJTdVr2k4zs",
 			Peername: "test_peername",
 			Created:  time.Unix(1234567890, 0).In(time.UTC),
@@ -81,7 +83,7 @@ func TestWriteToFileWithExtraData(t *testing.T) {
 }
 
 func TestConfigSummaryString(t *testing.T) {
-	summary := DefaultConfigForTesting().SummaryString()
+	summary := testcfg.DefaultConfigForTesting().SummaryString()
 	t.Log(summary)
 	if !strings.Contains(summary, "API") {
 		t.Errorf("expected summary to list API port")
@@ -89,7 +91,7 @@ func TestConfigSummaryString(t *testing.T) {
 }
 
 func TestConfigGet(t *testing.T) {
-	cfg := DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	cases := []struct {
 		path   string
 		expect interface{}
@@ -131,7 +133,7 @@ func TestConfigSet(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		cfg := DefaultConfigForTesting()
+		cfg := testcfg.DefaultConfigForTesting()
 
 		err := cfg.Set(c.path, c.value)
 		if err != nil {
@@ -157,8 +159,8 @@ func TestConfigSet(t *testing.T) {
 }
 
 func TestImmutablePaths(t *testing.T) {
-	dc := DefaultConfigForTesting()
-	for path := range ImmutablePaths() {
+	dc := testcfg.DefaultConfigForTesting()
+	for path := range config.ImmutablePaths() {
 		if _, err := dc.Get(path); err != nil {
 			t.Errorf("path %s default configuration error: %s", path, err.Error())
 		}
@@ -166,32 +168,32 @@ func TestImmutablePaths(t *testing.T) {
 }
 
 func TestConfigValidate(t *testing.T) {
-	if err := DefaultConfigForTesting().Validate(); err != nil {
+	if err := testcfg.DefaultConfigForTesting().Validate(); err != nil {
 		t.Errorf("error validating config: %s", err)
 	}
 
 	//  cases that should fail:
-	p := DefaultConfigForTesting()
+	p := testcfg.DefaultConfigForTesting()
 
 	// Profile:
 	p.Profile = nil
 	if err := p.Validate(); err == nil {
 		t.Error("When given no Profile, config.Validate did not catch the error.")
 	}
-	p.Profile = DefaultProfileForTesting()
+	p.Profile = testcfg.DefaultProfileForTesting()
 	p.Profile.Type = "badType"
 	if err := p.Validate(); err == nil {
 		t.Error("When given bad input in Profile, config.Validate did not catch the error.")
 	}
 	// Repo:
-	r := DefaultConfigForTesting()
+	r := testcfg.DefaultConfigForTesting()
 	r.Repo.Type = "badType"
 	if err := r.Validate(); err == nil {
 		t.Error("When given bad input in Repo, config.Validate did not catch the error.")
 	}
 
 	// Logging:
-	l := DefaultConfigForTesting()
+	l := testcfg.DefaultConfigForTesting()
 	l.Logging.Levels["qriapi"] = "badType"
 	if err := l.Validate(); err == nil {
 		t.Error("When given bad input in Logging, config.Validate did not catch the error.")
@@ -200,9 +202,9 @@ func TestConfigValidate(t *testing.T) {
 
 func TestConfigCopy(t *testing.T) {
 	cases := []struct {
-		config *Config
+		config *config.Config
 	}{
-		{DefaultConfigForTesting()},
+		{testcfg.DefaultConfigForTesting()},
 	}
 	for i, c := range cases {
 		cpy := c.config.Copy()

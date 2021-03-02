@@ -14,8 +14,8 @@ import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/dag"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/config"
-	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
@@ -52,26 +52,26 @@ func NewTestNodeFactoryWithBus(maker NodeMakerFunc) *TestNodeFactory {
 
 // New creates a new Node for testing
 func (f *TestNodeFactory) New(r repo.Repo) (TestablePeerNode, error) {
-	info := cfgtest.GetTestPeerInfo(f.count)
+	kd := testkeys.GetKeyData(f.count)
 	f.count++
 	p2pconf := config.DefaultP2P()
-	p2pconf.PeerID = info.EncodedPeerID
-	p2pconf.PrivKey = info.EncodedPrivKey
+	p2pconf.PeerID = kd.EncodedPeerID
+	p2pconf.PrivKey = kd.EncodedPrivKey
 	return f.maker(r, p2pconf, f.pub)
 }
 
 // NewWithConf creates a new Node for testing using a configuration
 func (f *TestNodeFactory) NewWithConf(r repo.Repo, p2pconf *config.P2P) (TestablePeerNode, error) {
-	info := cfgtest.GetTestPeerInfo(f.count)
+	kd := testkeys.GetKeyData(f.count)
 	f.count++
-	p2pconf.PeerID = info.EncodedPeerID
-	p2pconf.PrivKey = info.EncodedPrivKey
+	p2pconf.PeerID = kd.EncodedPeerID
+	p2pconf.PrivKey = kd.EncodedPrivKey
 	return f.maker(r, p2pconf, f.pub)
 }
 
-// NextInfo gets the PeerInfo for the next test Node to be constructed
-func (f *TestNodeFactory) NextInfo() *cfgtest.PeerInfo {
-	return cfgtest.GetTestPeerInfo(f.count)
+// NextKeyData gets the KeyData for the next test Node to be constructed
+func (f *TestNodeFactory) NextKeyData() *testkeys.KeyData {
+	return testkeys.GetKeyData(f.count)
 }
 
 // NewTestNetwork constructs nodes to test p2p functionality.
@@ -79,7 +79,7 @@ func (f *TestNodeFactory) NextInfo() *cfgtest.PeerInfo {
 func NewTestNetwork(ctx context.Context, f *TestNodeFactory, num int) ([]TestablePeerNode, error) {
 	nodes := make([]TestablePeerNode, num)
 	for i := 0; i < num; i++ {
-		info := f.NextInfo()
+		info := f.NextKeyData()
 		r, err := test.NewTestRepoFromProfileID(profile.IDFromPeerID(info.PeerID), i, i)
 		if err != nil {
 			return nil, fmt.Errorf("error creating test repo: %s", err.Error())
@@ -101,8 +101,8 @@ func NewNodeWithBus(ctx context.Context, f *TestNodeFactory, bus event.Publisher
 	defer func() {
 		f.pub = prevBus
 	}()
-	info := f.NextInfo()
-	r, err := test.NewTestRepoFromProfileID(profile.IDFromPeerID(info.PeerID), 0, 0)
+	kd := f.NextKeyData()
+	r, err := test.NewTestRepoFromProfileID(profile.IDFromPeerID(kd.PeerID), 0, 0)
 	if err != nil {
 		return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 	}
@@ -145,7 +145,7 @@ func NewTestDirNetwork(ctx context.Context, f *TestNodeFactory) ([]TestablePeerN
 
 // NewAvailableTestNode constructs a test node that is hooked up and ready to Connect
 func NewAvailableTestNode(ctx context.Context, r repo.Repo, f *TestNodeFactory) (TestablePeerNode, error) {
-	info := f.NextInfo()
+	info := f.NextKeyData()
 	addr, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
 	p2pconf := config.DefaultP2P()
 	p2pconf.Addrs = []ma.Multiaddr{addr}
@@ -157,7 +157,7 @@ func NewAvailableTestNode(ctx context.Context, r repo.Repo, f *TestNodeFactory) 
 	if err := node.GoOnline(ctx); err != nil {
 		return nil, fmt.Errorf("errror connecting: %s", err.Error())
 	}
-	node.Host().Peerstore().AddPubKey(info.PeerID, info.PubKey)
+	node.Host().Peerstore().AddPubKey(info.PeerID, info.PrivKey.GetPublic())
 	node.Host().Peerstore().AddPrivKey(info.PeerID, info.PrivKey)
 	return node, err
 }

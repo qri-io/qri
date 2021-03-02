@@ -9,7 +9,7 @@ import (
 
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/event"
 )
 
@@ -33,8 +33,7 @@ func TestLoadTransformScript(t *testing.T) {
 	ctx := context.Background()
 	fs := qfs.NewMemFS()
 
-	info := testPeers.GetTestPeerInfo(10)
-	privKey := info.PrivKey
+	privKey := testkeys.GetKeyData(10).PrivKey
 
 	_, err := LoadTransformScript(ctx, fs, "")
 	if err == nil {

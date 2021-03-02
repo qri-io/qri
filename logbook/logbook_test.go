@@ -15,7 +15,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
@@ -732,14 +732,14 @@ func TestMergeWithDivergentLogbookAuthorID(t *testing.T) {
 	ctx := context.Background()
 
 	ref := dsref.MustParse("test_user/first_ds")
-	firstInfo := testPeers.GetTestPeerInfo(0)
-	firstBook := makeLogbookOneCommit(ctx, t, ref, "first commit", "QmHashOfVersion1", firstInfo.PrivKey)
+	firstKeyData := testkeys.GetKeyData(0)
+	firstBook := makeLogbookOneCommit(ctx, t, ref, "first commit", "QmHashOfVersion1", firstKeyData.PrivKey)
 
 	ref = dsref.MustParse("test_user/second_ds")
 	// NOTE: Purposefully use the same crypto key pairs. This will lead to the same
 	// profileID, but different logbook userCreateIDs.
-	secondInfo := testPeers.GetTestPeerInfo(0)
-	secondBook := makeLogbookOneCommit(ctx, t, ref, "second commit", "QmHashOfVersion2", secondInfo.PrivKey)
+	secondKeyData := testkeys.GetKeyData(0)
+	secondBook := makeLogbookOneCommit(ctx, t, ref, "second commit", "QmHashOfVersion2", secondKeyData.PrivKey)
 
 	// Get the log for the newly pushed dataset by initID.
 	secondInitID, err := secondBook.RefToInitID(dsref.MustParse("test_user/second_ds"))
@@ -1175,11 +1175,11 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 }
 
 func testPrivKey(t *testing.T) crypto.PrivKey {
-	return testPeers.GetTestPeerInfo(10).PrivKey
+	return testkeys.GetKeyData(10).PrivKey
 }
 
 func testPrivKey2(t *testing.T) crypto.PrivKey {
-	return testPeers.GetTestPeerInfo(9).PrivKey
+	return testkeys.GetKeyData(9).PrivKey
 }
 
 // ForeignLogbook creates a logbook to use as an external source of oplog data

@@ -9,7 +9,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/event"
 )
 
@@ -152,8 +152,7 @@ func makeFilestore() (map[string]string, qfs.Filesystem, error) {
 	fs := qfs.NewMemFS()
 
 	// These tests are using hard-coded ids that require this exact peer's private key.
-	info := testPeers.GetTestPeerInfo(10)
-	pk := info.PrivKey
+	pk := testkeys.GetKeyData(10).PrivKey
 
 	datasets := map[string]string{
 		"movies": "",

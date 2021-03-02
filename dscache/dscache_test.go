@@ -10,7 +10,7 @@ import (
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
@@ -55,12 +55,12 @@ func TestDscacheAssignSaveAndLoad(t *testing.T) {
 		return
 	}
 
-	peerInfo := testPeers.GetTestPeerInfo(0)
+	keyData := testkeys.GetKeyData(0)
 	peername := "test_user"
 
 	// Construct a dscache, will not save without a filename
 	builder := NewBuilder()
-	builder.AddUser(peername, profile.IDFromPeerID(peerInfo.PeerID).String())
+	builder.AddUser(peername, profile.IDFromPeerID(keyData.PeerID).String())
 	builder.AddDsVersionInfo(dsref.VersionInfo{InitID: "abcd1"})
 	builder.AddDsVersionInfo(dsref.VersionInfo{InitID: "efgh2"})
 	constructed := builder.Build()
@@ -122,7 +122,7 @@ func TestCacheRefConsistency(t *testing.T) {
 
 	localUsername := "local_user"
 	localDsName := "local_dataset"
-	book, err := logbook.NewJournal(testPeers.GetTestPeerInfo(0).PrivKey, localUsername, event.NilBus, fsys, "/mem/logbook.qfb")
+	book, err := logbook.NewJournal(testkeys.GetKeyData(0).PrivKey, localUsername, event.NilBus, fsys, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}

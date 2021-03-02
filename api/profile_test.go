@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/beme/abide"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -82,7 +82,7 @@ func TestProfilePhotoHandler(t *testing.T) {
 		},
 	}
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	// newTestNode uses a different profile. assign here so instance config.Profile
 	// node config.Profile match
 	cfg.Profile, _ = node.Repo.Profiles().Owner().Encode()
@@ -140,7 +140,7 @@ func TestProfilePosterHandler(t *testing.T) {
 		},
 	}
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	// newTestNode uses a different profile. assign here so instance config.Profile
 	// node config.Profile match
 	cfg.Profile, _ = node.Repo.Profiles().Owner().Encode()

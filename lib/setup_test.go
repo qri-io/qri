@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	regmock "github.com/qri-io/qri/registry/regserver"
 	repotest "github.com/qri-io/qri/repo/test"
 )
@@ -15,11 +15,11 @@ func TestSetupTeardown(t *testing.T) {
 	_, registryServer := regmock.NewMockServerRegistry(reg)
 
 	path := filepath.Join(os.TempDir(), "test_lib_setup_teardown")
-	cfg1 := config.DefaultConfigForTesting()
+	cfg1 := testcfg.DefaultConfigForTesting()
 	cfg1.Repo.Type = "mem"
 	params := SetupParams{
 		RepoPath:            path,
-		Config:              config.DefaultConfigForTesting(),
+		Config:              testcfg.DefaultConfigForTesting(),
 		Generator:           repotest.NewTestCrypto(),
 		SetupIPFS:           true,
 		SetupIPFSConfigData: ipfsCfg,

@@ -1,15 +1,17 @@
-package config
+package config_test
 
 import (
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 )
 
 func TestProfileValidate(t *testing.T) {
-	err := DefaultProfileForTesting().Validate()
+	err := testcfg.DefaultProfileForTesting().Validate()
 	if err != nil {
 		t.Errorf("error validating default profile: %s", err)
 	}
@@ -17,11 +19,11 @@ func TestProfileValidate(t *testing.T) {
 
 func TestProfileCopy(t *testing.T) {
 	cases := []struct {
-		profile *ProfilePod
+		profile *config.ProfilePod
 	}{
-		{&ProfilePod{Type: "peer"}},
-		{&ProfilePod{Name: "user", Color: "blue"}},
-		{&ProfilePod{Type: "peer", Name: "user", Color: "blue"}},
+		{&config.ProfilePod{Type: "peer"}},
+		{&config.ProfilePod{Name: "user", Color: "blue"}},
+		{&config.ProfilePod{Type: "peer", Name: "user", Color: "blue"}},
 	}
 	for i, c := range cases {
 		cpy := c.profile.Copy()
@@ -35,7 +37,7 @@ func TestProfileCopy(t *testing.T) {
 func TestProfileCopyPeerIDs(t *testing.T) {
 	// build off DefaultProfile so we can test that the profile Copy
 	// actually copies over correctly (ie, deeply)
-	p := DefaultProfileForTesting()
+	p := testcfg.DefaultProfileForTesting()
 	p.PeerIDs = []string{"1", "2", "3"}
 
 	cpy := p.Copy()
@@ -49,14 +51,14 @@ func TestProfileCopyPeerIDs(t *testing.T) {
 }
 
 func TestProfileSetField(t *testing.T) {
-	p := ProfilePod{
+	p := config.ProfilePod{
 		Created: time.Now(),
 		Updated: time.Now(),
 		Type:    "peer",
 	}
 	p.SetField("email", "user@example.com")
 
-	expect := ProfilePod{
+	expect := config.ProfilePod{
 		Created: p.Created,
 		Updated: p.Updated,
 		Type:    "peer",
@@ -67,7 +69,7 @@ func TestProfileSetField(t *testing.T) {
 	}
 
 	p.SetField("name", "user")
-	expect = ProfilePod{
+	expect = config.ProfilePod{
 		Created: p.Created,
 		Updated: p.Updated,
 		Type:    "peer",
@@ -79,7 +81,7 @@ func TestProfileSetField(t *testing.T) {
 	}
 
 	p.SetField("email", "me@example.com")
-	expect = ProfilePod{
+	expect = config.ProfilePod{
 		Created: p.Created,
 		Updated: p.Updated,
 		Type:    "peer",
@@ -92,7 +94,7 @@ func TestProfileSetField(t *testing.T) {
 }
 
 func TestBadPeername(t *testing.T) {
-	pro := ProfilePod{
+	pro := config.ProfilePod{
 		Type:     "peer",
 		Peername: "bad=name",
 	}

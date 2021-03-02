@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
@@ -21,7 +22,7 @@ func TestPeerMethodsListNoConnection(t *testing.T) {
 	defer done()
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	req := NewPeerMethods(inst)
 	p := PeerListParams{}
 	got := []*config.ProfilePod{}
@@ -50,7 +51,7 @@ func TestPeerMethodsList(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []*config.ProfilePod{}
@@ -76,7 +77,7 @@ func TestConnectedQriProfiles(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []*config.ProfilePod{}
@@ -105,7 +106,7 @@ func TestConnectedIPFSPeers(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []string{}
@@ -135,7 +136,7 @@ func TestInfo(t *testing.T) {
 	}
 
 	node := newTestQriNode(t)
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := config.ProfilePod{}
@@ -169,7 +170,7 @@ func TestGetReferences(t *testing.T) {
 		t.Errorf("error creating qri node: %s", err)
 		return
 	}
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []reporef.DatasetRef{}

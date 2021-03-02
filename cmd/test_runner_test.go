@@ -18,6 +18,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -26,7 +27,6 @@ import (
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/gen"
 	repotest "github.com/qri-io/qri/repo/test"
 	tfrun "github.com/qri-io/qri/transform/run"
 	"github.com/qri-io/qri/transform/startf"
@@ -52,7 +52,7 @@ type TestRunner struct {
 	CmdR          *cobra.Command
 	Teardown      func()
 	CmdDoneCh     chan struct{}
-	TestCrypto    gen.CryptoGenerator
+	TestCrypto    key.CryptoGenerator
 
 	Registry *registry.Registry
 }

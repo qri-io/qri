@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/qfs/localfs"
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -77,15 +77,15 @@ func TestDatasetLogForeign(t *testing.T) {
 
 	// Construct a logbook for another user
 	theirRefStr := "them/foreign"
-	otherPeerInfo := testPeers.GetTestPeerInfo(1)
-	foreignBuilder := logbook.NewLogbookTempBuilder(t, otherPeerInfo.PrivKey, "them", fs, theirBookPath)
+	themKeyData := testkeys.GetKeyData(1)
+	foreignBuilder := logbook.NewLogbookTempBuilder(t, themKeyData.PrivKey, "them", fs, theirBookPath)
 	ref, err := dsref.Parse(theirRefStr)
 	if err != nil {
 		t.Fatal(err)
 	}
 	initID := foreignBuilder.DatasetInit(ctx, t, ref.Name)
 	// NOTE: Need to assign ProfileID because nothing is resolving the username
-	ref.ProfileID = otherPeerInfo.EncodedPeerID
+	ref.ProfileID = themKeyData.EncodedPeerID
 	ref.Path = "/mem/QmExample"
 	foreignBuilder.Commit(ctx, t, initID, "their commit", ref.Path)
 	foreignBook := foreignBuilder.Logbook()
@@ -95,8 +95,8 @@ func TestDatasetLogForeign(t *testing.T) {
 	}
 
 	// Construct our own logbook, and merge in the foreign oplog
-	peerInfo := testPeers.GetTestPeerInfo(0)
-	builder := logbook.NewLogbookTempBuilder(t, peerInfo.PrivKey, "peer", fs, myBookPath)
+	ourKey := testkeys.GetKeyData(0).PrivKey
+	builder := logbook.NewLogbookTempBuilder(t, ourKey, "us", fs, myBookPath)
 	builder.AddForeign(ctx, t, foreignLog)
 
 	// Inject that log into our mem repo
@@ -133,10 +133,11 @@ func TestDatasetLogForeignTimeout(t *testing.T) {
 
 	// Test peer
 	username := "test_peer_dataset_log_foreign_timeout"
-	otherPeerInfo := testPeers.GetTestPeerInfo(1)
+	themKeyData := testkeys.GetKeyData(1)
 	ref := dsref.Ref{
-		Username:  username,
-		ProfileID: otherPeerInfo.PeerID.String(),
+		Username: username,
+		// TODO(b5): this peerID should be constructed from key.ID
+		ProfileID: themKeyData.PeerID.String(),
 		Name:      "foreign_ds",
 		Path:      "/mem/notLocalPath",
 	}

@@ -13,7 +13,7 @@ import (
 	cmpopts "github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	testrepo "github.com/qri-io/qri/repo/test"
@@ -27,12 +27,12 @@ func TestFSIMethodsWrite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 
 	// we need some fsi stuff to fully test remove
 	methods := NewFSIMethods(inst)

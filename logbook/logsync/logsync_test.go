@@ -13,7 +13,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	testPeers "github.com/qri-io/qri/config/test"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -313,7 +313,7 @@ func TestWrongProfileID(t *testing.T) {
 	}
 
 	// Modify the profileID of this reference, which should cause it to fail to push
-	worldBankRef.ProfileID = testPeers.GetTestPeerInfo(1).EncodedPeerID
+	worldBankRef.ProfileID = testkeys.GetKeyData(1).EncodedPeerID
 
 	lsA := New(tr.A)
 
@@ -365,7 +365,7 @@ func TestNilCallable(t *testing.T) {
 }
 
 func makeJohnathonLogbook() *logbook.Book {
-	var aPk = testPeers.GetTestPeerInfo(10).EncodedPrivKey
+	var aPk = testkeys.GetKeyData(10).EncodedPrivKey
 
 	pk, err := decodePk(aPk)
 	if err != nil {
@@ -380,7 +380,7 @@ func makeJohnathonLogbook() *logbook.Book {
 }
 
 func makeBasitLogbook() *logbook.Book {
-	var bPk = testPeers.GetTestPeerInfo(9).EncodedPrivKey
+	var bPk = testkeys.GetKeyData(9).EncodedPrivKey
 
 	pk, err := decodePk(bPk)
 	if err != nil {
@@ -421,8 +421,8 @@ func (tr *testRunner) DefaultLogsyncs() (a, b *Logsync) {
 }
 
 func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
-	var aPk = testPeers.GetTestPeerInfo(10).EncodedPrivKey
-	var bPk = testPeers.GetTestPeerInfo(9).EncodedPrivKey
+	var aPk = testkeys.GetKeyData(10).EncodedPrivKey
+	var bPk = testkeys.GetKeyData(9).EncodedPrivKey
 
 	var err error
 	tr = &testRunner{

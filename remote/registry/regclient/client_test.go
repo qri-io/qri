@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/config"
-	testPeers "github.com/qri-io/qri/config/test"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/remote"
@@ -38,7 +39,7 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 	}
 
 	localResolver := dsref.SequentialResolver(r.Dscache(), r)
-	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), r.Bus(), localResolver)
+	node, err := p2p.NewQriNode(r, testcfg.DefaultP2PForTesting(), r.Bus(), localResolver)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +61,7 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 	ts := httptest.NewServer(handlers.NewRoutes(reg))
 
 	// build client
-	pk1 := testPeers.GetTestPeerInfo(10).PrivKey
+	pk1 := testkeys.GetKeyData(10).PrivKey
 
 	c := NewClient(&Config{
 		Location: ts.URL,

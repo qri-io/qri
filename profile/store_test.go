@@ -13,8 +13,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/qri/auth/key"
+	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/config"
-	cfgtest "github.com/qri-io/qri/config/test"
 )
 
 func TestPutProfileWithAddresses(t *testing.T) {
@@ -38,14 +38,14 @@ func TestPutProfileWithAddresses(t *testing.T) {
 		t.Errorf("error creating tmp directory: %s", err.Error())
 	}
 
-	pi0 := cfgtest.GetTestPeerInfo(0)
+	kd0 := testkeys.GetKeyData(0)
 
 	ks, err := key.NewMemStore()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: pi0.PrivKey, Peername: "user"}, ks)
+	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: kd0.PrivKey, Peername: "user"}, ks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestPutProfileWithAddresses(t *testing.T) {
 }
 
 func TestProfilesWithKeys(t *testing.T) {
-	pi0 := cfgtest.GetTestPeerInfo(0)
+	kd0 := testkeys.GetKeyData(0)
 
 	ks, err := key.NewMemStore()
 	if err != nil {
@@ -84,13 +84,13 @@ func TestProfilesWithKeys(t *testing.T) {
 		t.Errorf("error creating tmp directory: %s", err.Error())
 	}
 
-	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: pi0.PrivKey, Peername: "user"}, ks)
+	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: kd0.PrivKey, Peername: "user"}, ks)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	pp := &config.ProfilePod{
-		ID:       pi0.PeerID.String(),
+		ID:       kd0.PeerID.String(),
 		Peername: "p0",
 		Created:  time.Unix(1234567890, 0).In(time.UTC),
 		Updated:  time.Unix(1234567890, 0).In(time.UTC),
@@ -100,8 +100,8 @@ func TestProfilesWithKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pro.PrivKey = pi0.PrivKey
-	pro.PubKey = pi0.PubKey
+	pro.PrivKey = kd0.PrivKey
+	pro.PubKey = kd0.PrivKey.GetPublic()
 
 	err = ps.PutProfile(pro)
 	if err != nil {
@@ -113,19 +113,19 @@ func TestProfilesWithKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if tPro.PrivKey != pi0.PrivKey {
-		t.Fatalf("keys don't match")
+	if !tPro.PrivKey.Equals(kd0.PrivKey) {
+		t.Fatalf("private keys don't match\ngot:  %#v\nwant: %#v", tPro.PrivKey, kd0.PrivKey.GetPublic())
 	}
 
-	if tPro.PubKey != pi0.PubKey {
-		t.Fatalf("keys don't match")
+	if !tPro.PubKey.Equals(kd0.PrivKey.GetPublic()) {
+		t.Fatalf("public keys don't match.\ngot:  %#v\nwant: %#v", tPro.PubKey, kd0.PrivKey.GetPublic())
 	}
 }
 
 func TestMemStoreGetOwner(t *testing.T) {
-	pi0 := cfgtest.GetTestPeerInfo(0)
-	id := ID(pi0.PeerID)
-	owner := &Profile{ID: id, PrivKey: pi0.PrivKey, Peername: "owner"}
+	kd0 := testkeys.GetKeyData(0)
+	id := ID(kd0.PeerID)
+	owner := &Profile{ID: id, PrivKey: kd0.PrivKey, Peername: "owner"}
 	ks, err := key.NewMemStore()
 	if err != nil {
 		t.Fatal(err)
@@ -151,16 +151,16 @@ func TestMemStoreGetOwner(t *testing.T) {
 }
 
 func TestResolveUsername(t *testing.T) {
-	pi0 := cfgtest.GetTestPeerInfo(0)
-	pi1 := cfgtest.GetTestPeerInfo(1)
-	pi2 := cfgtest.GetTestPeerInfo(2)
+	kd0 := testkeys.GetKeyData(0)
+	kd1 := testkeys.GetKeyData(1)
+	kd2 := testkeys.GetKeyData(2)
 
 	ks, err := key.NewMemStore()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	owner := &Profile{ID: ID(pi0.PeerID), PrivKey: pi0.PrivKey, Peername: "owner"}
+	owner := &Profile{ID: ID(kd0.PeerID), PrivKey: kd0.PrivKey, Peername: "owner"}
 	s, err := NewMemStore(owner, ks)
 	if err != nil {
 		t.Fatal(err)
@@ -178,8 +178,8 @@ func TestResolveUsername(t *testing.T) {
 		t.Errorf("get owner mismatch. (-want +got):\n%s", diff)
 	}
 
-	marjorieA := &Profile{ID: ID(pi1.PeerID), PrivKey: pi1.PrivKey, Peername: "marjorie", Email: "marjorie_a@aol.com"}
-	marjorieB := &Profile{ID: ID(pi2.PeerID), PrivKey: pi2.PrivKey, Peername: "marjorie", Email: "marjorie_b@aol.com"}
+	marjorieA := &Profile{ID: ID(kd1.PeerID), PrivKey: kd1.PrivKey, Peername: "marjorie", Email: "marjorie_a@aol.com"}
+	marjorieB := &Profile{ID: ID(kd2.PeerID), PrivKey: kd2.PrivKey, Peername: "marjorie", Email: "marjorie_b@aol.com"}
 
 	if err := s.PutProfile(marjorieA); err != nil {
 		t.Fatal(err)

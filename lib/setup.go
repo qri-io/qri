@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/qri-io/qfs/qipfs"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/repo/gen"
 )
 
 // QriRepoExists returns nil if a qri repo is defined at the given path
@@ -38,7 +38,7 @@ type SetupParams struct {
 	SetupIPFS           bool
 	SetupIPFSConfigData []byte
 	// setup requires a crypto source
-	Generator gen.CryptoGenerator
+	Generator key.CryptoGenerator
 }
 
 // Setup provisions a new qri instance, it intentionally doesn't conform to the
@@ -140,7 +140,7 @@ func setup(repoPath string, cfg *config.Config, register bool) error {
 }
 
 // initIPFS initializes an IPFS repo
-func initIPFS(path string, cfgData []byte, g gen.CryptoGenerator) error {
+func initIPFS(path string, cfgData []byte, g key.CryptoGenerator) error {
 	tmpIPFSConfigPath := ""
 	if cfgData != nil {
 		// TODO - remove this temp file & instead adjust ipfs.InitRepo to accept an io.Reader
