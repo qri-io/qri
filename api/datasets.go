@@ -167,6 +167,8 @@ func extensionToMimeType(ext string) string {
 		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 	case ".zip":
 		return "application/zip"
+	case ".txt":
+		return "text/plain"
 	default:
 		return ""
 	}
@@ -179,7 +181,15 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.List(r.Context(), params)
+	resRaw := ""
+	res := []dsref.VersionInfo{}
+	var err error
+	if params.Raw {
+		resRaw, err = h.ListRawRefs(r.Context(), params)
+	} else {
+		res, err = h.List(r.Context(), params)
+	}
+
 	if err != nil {
 		if errors.Is(err, lib.ErrListWarning) {
 			log.Error(err)
@@ -190,6 +200,13 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	if params.Raw {
+		w.Header().Set("Content-Type", extensionToMimeType(".txt"))
+		w.Write([]byte(resRaw))
+		return
+	}
+
 	if err := util.WritePageResponse(w, res, r, params.Page()); err != nil {
 		log.Infof("error list datasests response: %s", err.Error())
 	}

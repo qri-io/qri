@@ -126,7 +126,11 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 		if res.StatusCode < 200 && res.StatusCode > 299 {
 			return fmt.Errorf("HTTPClient req error: %d - %q", res.StatusCode, body)
 		}
-		result = body
+		if buf, ok := result.(*bytes.Buffer); ok {
+			buf.Write(body)
+		} else {
+			return fmt.Errorf("HTTPClient raw interface is not a byte buffer")
+		}
 		return nil
 	}
 

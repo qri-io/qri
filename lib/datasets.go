@@ -62,7 +62,6 @@ func NewDatasetMethods(inst *Instance) *DatasetMethods {
 func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
 	if m.inst.http != nil {
 		res := []dsref.VersionInfo{}
-		p.Proxy = true
 		p.RPC = true
 		err := m.inst.http.Call(ctx, AEList, p, &res)
 		if err != nil {
@@ -178,24 +177,29 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 }
 
 // ListRawRefs gets the list of raw references as string
-func (m *DatasetMethods) ListRawRefs(p *ListParams, text *string) error {
+func (m *DatasetMethods) ListRawRefs(ctx context.Context, p *ListParams) (string, error) {
 	var err error
-	// TODO(arqu): implement api
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.ListRawRefs", p, text))
+	text := ""
+	if m.inst.http != nil {
+		var bres bytes.Buffer
+		p.Raw = true
+		err := m.inst.http.CallRaw(ctx, AEList, p, &bres)
+		if err != nil {
+			return "", err
+		}
+		text = bres.String()
+		return text, nil
 	}
-	ctx := context.TODO()
 	if p.UseDscache {
 		c := m.inst.dscache
 		if c == nil || c.IsEmpty() {
-			return fmt.Errorf("repo: dscache not found")
+			return "", fmt.Errorf("repo: dscache not found")
 		}
-		*text = c.VerboseString(true)
-		return nil
+		text = c.VerboseString(true)
+		return text, nil
 	}
-
-	*text, err = base.RawDatasetRefs(ctx, m.inst.repo)
-	return err
+	text, err = base.RawDatasetRefs(ctx, m.inst.repo)
+	return text, err
 }
 
 // GetParams defines parameters for looking up the head or body of a dataset
@@ -379,12 +383,12 @@ func (m *DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, err
 			return res, nil
 		}
 
-		bres := []byte{}
+		var bres bytes.Buffer
 		err := m.inst.http.CallRaw(ctx, AEGet, params, &bres)
 		if err != nil {
 			return nil, err
 		}
-		res.Bytes = bres
+		res.Bytes = bres.Bytes()
 		return res, nil
 	}
 
