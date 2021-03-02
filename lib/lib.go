@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qfs/qipfs"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
@@ -443,8 +444,16 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}()
 	}
 
+	if inst.keystore == nil {
+		inst.keystore, err = key.NewStore(cfg)
+		if err != nil {
+			log.Debugw("initializing keystore", "err", err)
+			return nil, err
+		}
+	}
+
 	if inst.profiles == nil {
-		if inst.profiles, err = profile.NewStore(cfg); err != nil {
+		if inst.profiles, err = profile.NewStore(cfg, inst.keystore); err != nil {
 			return nil, fmt.Errorf("initializing profile service: %w", err)
 		}
 	}
@@ -469,6 +478,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			o.Profiles = inst.profiles
 			o.Logbook = inst.logbook
 			o.Dscache = inst.dscache
+			o.Keystore = inst.keystore
 		}); err != nil {
 			log.Error("intializing repo:", err.Error())
 			return nil, fmt.Errorf("newRepo: %w", err)
@@ -703,21 +713,24 @@ type Instance struct {
 
 	regMethods *regMethodSet
 
-	streams         ioes.IOStreams
-	repo            repo.Repo
-	node            *p2p.QriNode
-	qfs             *muxfs.Mux
-	fsi             *fsi.FSI
-	remote          *remote.Remote
-	remoteClient    remote.Client
-	registry        *regclient.Client
-	stats           *stats.Service
-	transform       *transform.Service
-	logbook         *logbook.Book
-	dscache         *dscache.Dscache
-	bus             event.Bus
-	watcher         *watchfs.FilesysWatcher
-	profiles        profile.Store
+	streams      ioes.IOStreams
+	repo         repo.Repo
+	node         *p2p.QriNode
+	qfs          *muxfs.Mux
+	fsi          *fsi.FSI
+	remote       *remote.Remote
+	remoteClient remote.Client
+	registry     *regclient.Client
+	stats        *stats.Service
+	transform    *transform.Service
+	logbook      *logbook.Book
+	dscache      *dscache.Dscache
+	bus          event.Bus
+	watcher      *watchfs.FilesysWatcher
+
+	profiles profile.Store
+	keystore key.Store
+
 	remoteOptsFuncs []remote.OptionsFunc
 
 	rpc  *rpc.Client
