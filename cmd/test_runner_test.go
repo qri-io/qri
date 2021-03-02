@@ -238,7 +238,7 @@ func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinT
 		return err
 	}
 
-	return timedShutdown(fmt.Sprintf("ExecCommandCombinedOutErr: %q\n", cmdText), shutdown)
+	return timedShutdown(fmt.Sprintf("ExecCommandWithStdin: %q\n", cmdText), shutdown)
 }
 
 // ExecCommandCombinedOutErr executes the command with a combined stdout and stderr stream
@@ -247,6 +247,10 @@ func (run *TestRunner) ExecCommandCombinedOutErr(cmdText string) error {
 	var shutdown func() <-chan error
 	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(ctx)
 	if err := executeCommand(run.CmdR, cmdText); err != nil {
+		shutDownErr := <-shutdown()
+		if shutDownErr != nil {
+			log.Errorf("error shutting down %q: %q", cmdText, shutDownErr)
+		}
 		cancel()
 		return err
 	}

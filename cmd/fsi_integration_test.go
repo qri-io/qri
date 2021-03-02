@@ -1729,16 +1729,15 @@ func TestUnlinkLinkFileButNoFSIPath(t *testing.T) {
 		t.Errorf("expected .qri-ref link file to still exist")
 	}
 
-	// TODO(dustmop): ipfs repo error: "this repo is currently being accessed by another process"
 	// Figure out why this is failing and restore this check
-	// // Verify that reference in refstore does not have FSIPath
-	// vinfo := run.LookupVersionInfo(t, "me/unlink_me")
-	// if vinfo == nil {
-	// 	t.Fatal("not found: me/unlink_me")
-	// }
-	// if vinfo.FSIPath != "" {
-	// 	t.Errorf("expected FSIPath to be empty")
-	// }
+	// Verify that reference in refstore does not have FSIPath
+	vinfo := run.LookupVersionInfo(t, "me/unlink_me")
+	if vinfo == nil {
+		t.Fatal("not found: me/unlink_me")
+	}
+	if vinfo.FSIPath != "" {
+		t.Errorf("expected FSIPath to be empty")
+	}
 }
 
 // Test that if the FSIPath is somehow removed (can happen if the folder is duplicated), then
@@ -1808,16 +1807,14 @@ func TestUnlinkDirectoryButRefNotFound(t *testing.T) {
 		t.Errorf("expected .qri-ref link file to still exist")
 	}
 
-	// TODO(dustmop): ipfs repo error: "this repo is currently being accessed by another process"
-	// Figure out why this is failing and restore this check
-	// // Verify that reference in refstore still has FSIPath
-	// vinfo := run.LookupVersionInfo(t, "me/unlink_me")
-	// if vinfo == nil {
-	// 	t.Fatal("not found: me/unlink_me")
-	// }
-	// if vinfo.FSIPath == "" {
-	// 	t.Errorf("expected FSIPath to still be set")
-	// }
+	// Verify that reference in refstore still has FSIPath
+	vinfo := run.LookupVersionInfo(t, "me/unlink_me")
+	if vinfo == nil {
+		t.Fatal("not found: me/unlink_me")
+	}
+	if vinfo.FSIPath == "" {
+		t.Errorf("expected FSIPath to still be set")
+	}
 }
 
 // Test that saving with readme changes work correctly
