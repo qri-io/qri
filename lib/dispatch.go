@@ -126,6 +126,8 @@ type callable struct {
 // RegisterMethods iterates the methods provided by the lib API, and makes them visible to dispatch
 func (inst *Instance) RegisterMethods() {
 	reg := make(map[string]callable)
+	// TODO(dustmop): Change registerOne to take both the MethodSet and the Impl, validate
+	// that their signatures agree.
 	inst.registerOne("fsi", &FSIImpl{}, reg)
 	inst.regMethods = &regMethodSet{reg: reg}
 }
@@ -186,6 +188,16 @@ func (inst *Instance) registerOne(ourName string, impl interface{}, reg map[stri
 		}
 		log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
 	}
+}
+
+// MethodSet represents a set of methods to be registered
+type MethodSet interface {
+	Name() string
+}
+
+func dispatchMethodName(m MethodSet, funcName string) string {
+	lowerName := strings.ToLower(funcName)
+	return fmt.Sprintf("%s.%s", m.Name(), lowerName)
 }
 
 // methodEndpoint returns a method name and returns the API endpoint for it

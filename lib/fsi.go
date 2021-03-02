@@ -60,7 +60,7 @@ type StatusItem = fsi.StatusItem
 
 // CreateLink creates a connection between a working drirectory and a dataset history
 func (m *FSIMethods) CreateLink(ctx context.Context, p *LinkParams) (*dsref.VersionInfo, error) {
-	got, err := m.inst.Dispatch(ctx, m.Name()+".createlink", p)
+	got, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "createlink"), p)
 	if res, ok := got.(*dsref.VersionInfo); ok {
 		return res, err
 	}
@@ -71,7 +71,7 @@ func (m *FSIMethods) CreateLink(ctx context.Context, p *LinkParams) (*dsref.Vers
 // directory, will remove the link file from that directory. If given only a reference,
 // will remove the fsi path from that reference, and remove the link file from that fsi path
 func (m *FSIMethods) Unlink(ctx context.Context, p *LinkParams) (string, error) {
-	got, err := m.inst.Dispatch(ctx, m.Name()+".unlink", p)
+	got, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "unlink"), p)
 	if res, ok := got.(string); ok {
 		return res, err
 	}
@@ -86,7 +86,7 @@ func (m *FSIMethods) Status(ctx context.Context, p *LinkParams) ([]StatusItem, e
 	if err != nil {
 		return nil, err
 	}
-	got, err := m.inst.Dispatch(ctx, m.Name()+".status", p)
+	got, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "status"), p)
 	if res, ok := got.([]StatusItem); ok {
 		return res, err
 	}
@@ -96,7 +96,7 @@ func (m *FSIMethods) Status(ctx context.Context, p *LinkParams) ([]StatusItem, e
 // WhatChanged gets changes that happened at a particular version in the history of the given
 // dataset reference.
 func (m *FSIMethods) WhatChanged(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
-	got, err := m.inst.Dispatch(ctx, m.Name()+".whatchanged", p)
+	got, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "whatchanged"), p)
 	if res, ok := got.([]StatusItem); ok {
 		return res, err
 	}
@@ -105,7 +105,7 @@ func (m *FSIMethods) WhatChanged(ctx context.Context, p *LinkParams) ([]StatusIt
 
 // Checkout method writes a dataset to a directory as individual files.
 func (m *FSIMethods) Checkout(ctx context.Context, p *LinkParams) (string, error) {
-	got, err := m.inst.Dispatch(ctx, m.Name()+".checkout", p)
+	got, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "checkout"), p)
 	if res, ok := got.(string); ok {
 		return res, err
 	}
@@ -114,7 +114,7 @@ func (m *FSIMethods) Checkout(ctx context.Context, p *LinkParams) (string, error
 
 // Write mutates a linked dataset on the filesystem
 func (m *FSIMethods) Write(ctx context.Context, p *FSIWriteParams) ([]StatusItem, error) {
-	got, err := m.inst.Dispatch(ctx, m.Name()+".write", p)
+	got, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "write"), p)
 	if res, ok := got.([]StatusItem); ok {
 		return res, err
 	}
@@ -123,7 +123,7 @@ func (m *FSIMethods) Write(ctx context.Context, p *FSIWriteParams) ([]StatusItem
 
 // Restore method restores a component or all of the component files of a dataset from the repo
 func (m *FSIMethods) Restore(ctx context.Context, p *RestoreParams) (string, error) {
-	got, err := m.inst.Dispatch(ctx, m.Name()+".restore", p)
+	got, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "restore"), p)
 	if res, ok := got.(string); ok {
 		return res, err
 	}
@@ -141,7 +141,7 @@ func (m *FSIMethods) Init(ctx context.Context, p *InitDatasetParams) (string, er
 	if err != nil {
 		return "", err
 	}
-	got, err := m.inst.Dispatch(ctx, m.Name()+".init", p)
+	got, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "init"), p)
 	if res, ok := got.(string); ok {
 		return res, err
 	}
@@ -153,13 +153,13 @@ func (m *FSIMethods) CanInitDatasetWorkDir(ctx context.Context, p *InitDatasetPa
 	// TODO(dustmop): This method is cheating a bit; its type signature does not match the
 	// implementation. Instead, dispatch should allow methods to only return 1 value, if that
 	// value is an error
-	_, err := m.inst.Dispatch(ctx, m.Name()+".caninitdatasetworkdir", p)
+	_, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "caninitdatasetworkdir"), p)
 	return err
 }
 
 // EnsureRef will modify the directory path in the repo for the given reference
 func (m *FSIMethods) EnsureRef(ctx context.Context, p *LinkParams) (*dsref.VersionInfo, error) {
-	got, err := m.inst.Dispatch(ctx, m.Name()+".ensureref", p)
+	got, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "ensureref"), p)
 	if res, ok := got.(*dsref.VersionInfo); ok {
 		return res, err
 	}
