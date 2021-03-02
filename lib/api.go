@@ -86,6 +86,12 @@ const (
 	AEChanges = APIEndpoint("/changes")
 	// AEUnpack unpacks a zip file and sends it back
 	AEUnpack = APIEndpoint("/unpack/{path:.*}")
+	// AEManifest generates a manifest for a dataset path
+	AEManifest = APIEndpoint("/manifest")
+	// AEManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
+	AEManifestMissing = APIEndpoint("/manifest/missing")
+	// AEDAGInfo generates a dag.Info for a dataset path
+	AEDAGInfo = APIEndpoint("/dag/info")
 
 	// remote client endpoints
 

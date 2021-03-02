@@ -201,6 +201,9 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEDiff.String(), s.Middleware(dsh.DiffHandler))
 	m.Handle(lib.AEChanges.String(), s.Middleware(dsh.ChangesHandler))
 	m.Handle(lib.AEUnpack.String(), s.Middleware(dsh.UnpackHandler))
+	m.Handle(lib.AEManifest.String(), s.Middleware(dsh.ManifestHandler))
+	m.Handle(lib.AEManifestMissing.String(), s.Middleware(dsh.ManifestMissingHandler))
+	m.Handle(lib.AEDAGInfo.String(), s.Middleware(dsh.DAGInfoHandler))
 
 	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle(lib.AEPush.String(), s.Middleware(remClientH.PushHandler))

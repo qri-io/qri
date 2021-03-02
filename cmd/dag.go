@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -117,9 +118,10 @@ func (o *DAGOptions) Complete(f Factory, args []string, parseLabel bool) (err er
 
 // Get executes the manifest get command
 func (o *DAGOptions) Get() (err error) {
+	ctx := context.TODO()
 	mf := &dag.Manifest{}
 	for _, refstr := range o.Refs {
-		if err = o.DatasetMethods.Manifest(&refstr, mf); err != nil {
+		if mf, err = o.DatasetMethods.Manifest(ctx, &lib.ManifestParams{Refstr: refstr}); err != nil {
 			return err
 		}
 
@@ -150,6 +152,7 @@ func (o *DAGOptions) Get() (err error) {
 
 // Missing executes the manifest missing command
 func (o *DAGOptions) Missing() error {
+	ctx := context.TODO()
 	in := &dag.Manifest{}
 	data, err := ioutil.ReadFile(o.File)
 	if err != nil {
@@ -174,8 +177,8 @@ func (o *DAGOptions) Missing() error {
 		return err
 	}
 
-	mf := &dag.Manifest{}
-	if err = o.DatasetMethods.ManifestMissing(in, mf); err != nil {
+	mf, err := o.DatasetMethods.ManifestMissing(ctx, &lib.ManifestMissingParams{Manifest: in})
+	if err != nil {
 		return err
 	}
 
@@ -205,6 +208,7 @@ func (o *DAGOptions) Missing() error {
 
 // Info executes the dag info command
 func (o *DAGOptions) Info() (err error) {
+	ctx := context.TODO()
 	info := &dag.Info{}
 	if len(o.Refs) == 0 {
 		return fmt.Errorf("dataset reference required")
@@ -212,7 +216,8 @@ func (o *DAGOptions) Info() (err error) {
 
 	for _, refstr := range o.Refs {
 		s := &lib.DAGInfoParams{RefStr: refstr, Label: o.Label}
-		if err = o.DatasetMethods.DAGInfo(s, info); err != nil {
+		info, err = o.DatasetMethods.DAGInfo(ctx, s)
+		if err != nil {
 			return err
 		}
 
