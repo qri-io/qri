@@ -12,6 +12,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/auth/key"
 	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -37,7 +38,7 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 		journal          = ForeignLogbook(t, username)
 	)
 
-	pubKeyID, err := profile.KeyIDFromPub(journal.AuthorPubKey())
+	pubKeyID, err := key.IDFromPubKey(journal.AuthorPubKey())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	apiutil "github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
@@ -497,7 +498,7 @@ func (r *Remote) logHook(name string, h Hook) logsync.Hook {
 	return func(ctx context.Context, author profile.Author, ref dsref.Ref, l *oplog.Log) error {
 		if h != nil {
 			log.Debugf("remote.logHook name=%q ref=%q", name, ref)
-			kid, err := profile.KeyIDFromPub(author.AuthorPubKey())
+			kid, err := key.IDFromPubKey(author.AuthorPubKey())
 			if err != nil {
 				return err
 			}
@@ -523,7 +524,7 @@ func (r *Remote) logHook(name string, h Hook) logsync.Hook {
 func (r *Remote) logPreCheckHook(name string, action string, h Hook) logsync.Hook {
 	return func(ctx context.Context, author profile.Author, ref dsref.Ref, l *oplog.Log) error {
 		log.Debugf("remote.logPreCheckHook hook=%q ref=%q", name, ref)
-		kid, err := profile.KeyIDFromPub(author.AuthorPubKey())
+		kid, err := key.IDFromPubKey(author.AuthorPubKey())
 		if err != nil {
 			return err
 		}
