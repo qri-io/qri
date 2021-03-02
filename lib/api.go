@@ -78,6 +78,8 @@ const (
 	AEGet = APIEndpoint("/get")
 	// AERename is an endpoint for renaming datasets
 	AERename = APIEndpoint("/rename")
+	// AEValidate is an endpoint for validating datasets
+	AEValidate = APIEndpoint("/validate")
 	// AEDiff is an endpoint for generating dataset diffs
 	AEDiff = APIEndpoint("/diff")
 	// AEChanges is an endpoint for generating dataset change reports

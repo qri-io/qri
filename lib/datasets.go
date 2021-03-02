@@ -352,7 +352,7 @@ type DataResponse struct {
 
 // Get retrieves datasets and components for a given reference. p.Refstr is parsed to create
 // a reference, which is used to load the dataset. It will be loaded from the local repo
-// or from the filesystem if it has a linked working direoctry.
+// or from the filesystem if it has a linked working directory.
 // Using p.Selector will control what components are returned in res.Bytes. The default,
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
@@ -1329,6 +1329,15 @@ type ValidateParams struct {
 	StructureFilename string
 }
 
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *ValidateParams) UnmarshalFromRequest(r *http.Request) error {
+	if p.Ref == "" {
+		p.Ref = r.FormValue("refstr")
+	}
+
+	return nil
+}
+
 // ValidateResponse is the result of running validate against a dataset
 type ValidateResponse struct {
 	// Structure used to perform validation
@@ -1338,18 +1347,22 @@ type ValidateResponse struct {
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
-func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Validate", p, res))
+func (m *DatasetMethods) Validate(ctx context.Context, p *ValidateParams) (*ValidateResponse, error) {
+	res := &ValidateResponse{}
+	if m.inst.http != nil {
+		err := m.inst.http.Call(ctx, AEValidate, p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
 	// Schema can come from either schema.json or structure.json, or the dataset itself.
 	// schemaFlagType determines which of these three contains the schema.
 	schemaFlagType := ""
 	schemaFilename := ""
 	if p.SchemaFilename != "" && p.StructureFilename != "" {
-		return qrierr.New(ErrBadArgs, "cannot provide both --schema and --structure flags")
+		return nil, qrierr.New(ErrBadArgs, "cannot provide both --schema and --structure flags")
 	} else if p.SchemaFilename != "" {
 		schemaFlagType = "schema"
 		schemaFilename = p.SchemaFilename
@@ -1359,7 +1372,7 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 	}
 
 	if p.Ref == "" && (p.BodyFilename == "" || schemaFlagType == "") {
-		return qrierr.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
+		return nil, qrierr.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
 	}
 
 	fsiPath := ""
@@ -1372,7 +1385,7 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 		// TODO (ramfox): we need consts in `dsref` for "local", "network", "p2p"
 		ref, _, err = m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if fsi.IsFSIPath(ref.Path) {
@@ -1388,15 +1401,15 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 	if p.Ref != "" {
 		if fsiPath != "" {
 			if ds, err = fsi.ReadDir(fsiPath); err != nil {
-				return fmt.Errorf("loading linked dataset: %w", err)
+				return nil, fmt.Errorf("loading linked dataset: %w", err)
 			}
 		} else {
 			if ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), ref.Path); err != nil {
-				return fmt.Errorf("loading dataset: %w", err)
+				return nil, fmt.Errorf("loading dataset: %w", err)
 			}
 		}
 		if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -1407,11 +1420,11 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 		// Body is set to the provided filename if given
 		fs, err := localfs.NewFS(nil)
 		if err != nil {
-			return fmt.Errorf("error creating new local filesystem: %w", err)
+			return nil, fmt.Errorf("error creating new local filesystem: %w", err)
 		}
 		body, err = fs.Get(context.Background(), p.BodyFilename)
 		if err != nil {
-			return fmt.Errorf("error opening body file %q: %w", p.BodyFilename, err)
+			return nil, fmt.Errorf("error opening body file %q: %w", p.BodyFilename, err)
 		}
 	}
 
@@ -1422,18 +1435,18 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 		if ds.Structure == nil || ds.Structure.Schema == nil {
 			if err := base.InferStructure(ds); err != nil {
 				log.Debug("lib.Validate: InferStructure error: %w", err)
-				return err
+				return nil, err
 			}
 		}
 	} else {
 		data, err := ioutil.ReadFile(schemaFilename)
 		if err != nil {
-			return fmt.Errorf("error opening %s file: %s", schemaFlagType, schemaFilename)
+			return nil, fmt.Errorf("error opening %s file: %s", schemaFlagType, schemaFilename)
 		}
 		var fileContent map[string]interface{}
 		err = json.Unmarshal(data, &fileContent)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if schemaFlagType == "schema" {
 			// If dataset ref was provided, get format from the structure. Otherwise, assume the
@@ -1456,7 +1469,7 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 			st = &dataset.Structure{}
 			err = fill.Struct(fileContent, st)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			// TODO(dlong): What happens if body file extension does not match st.Format?
 		}
@@ -1464,14 +1477,14 @@ func (m *DatasetMethods) Validate(p *ValidateParams, res *ValidateResponse) erro
 
 	valerrs, err := base.Validate(ctx, m.inst.repo, body, st)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	*res = ValidateResponse{
 		Structure: st,
 		Errors:    valerrs,
 	}
-	return nil
+	return res, nil
 }
 
 // Manifest generates a manifest for a dataset path

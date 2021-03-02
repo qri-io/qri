@@ -130,6 +130,16 @@ func (h *DatasetHandlers) PullHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ValidateHandler is the endpoint for validating datasets
+func (h *DatasetHandlers) ValidateHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet, http.MethodPost:
+		h.validateHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 // RenameHandler is the endpoint for renaming datasets
 func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -474,6 +484,24 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		log.Infof("error deleting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
+}
+
+func (h DatasetHandlers) validateHandler(w http.ResponseWriter, r *http.Request) {
+	params := &lib.ValidateParams{}
+	err := UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	res, err := h.Validate(r.Context(), params)
+	if err != nil {
+		log.Infof("error validating dataset: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
