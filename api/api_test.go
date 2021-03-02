@@ -21,6 +21,7 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/logbook"
@@ -73,7 +74,7 @@ func newTestNode(t *testing.T) (node *p2p.QriNode, teardown func()) {
 
 	var r repo.Repo
 	r, teardown = newTestRepo(t)
-	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting(), event.NilBus, nil)
+	node, err := p2p.NewQriNode(r, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -81,7 +82,7 @@ func newTestNode(t *testing.T) (node *p2p.QriNode, teardown func()) {
 }
 
 func testConfigAndSetter() (cfg *config.Config, setCfg func(*config.Config) error) {
-	cfg = config.DefaultConfigForTesting()
+	cfg = testcfg.DefaultConfigForTesting()
 	cfg.Profile = test.ProfileConfig()
 
 	setCfg = func(*config.Config) error { return nil }
@@ -89,7 +90,7 @@ func testConfigAndSetter() (cfg *config.Config, setCfg func(*config.Config) erro
 }
 
 func newTestInstanceWithProfileFromNode(ctx context.Context, node *p2p.QriNode) *lib.Instance {
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	cfg.Profile, _ = node.Repo.Profiles().Owner().Encode()
 	return lib.NewInstanceFromConfigAndNode(ctx, cfg, node)
 }
@@ -205,7 +206,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 
 	// Cannot use TestRunner because we need to set cfg.API.ReadOnly.
 	// TODO(dlong): Add a testRunner call trace that does this correctly.
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	cfg.API.ReadOnly = true
 	defer func() {
 		cfg.API.ReadOnly = false

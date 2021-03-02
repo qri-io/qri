@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -460,7 +461,7 @@ func qriNode(ctx context.Context, t *testing.T, tr *testRunner, peername string,
 	}
 
 	localResolver := dsref.SequentialResolver(repo.Dscache(), repo)
-	qriNode, err := p2p.NewQriNode(repo, config.DefaultP2PForTesting(), repo.Bus(), localResolver)
+	qriNode, err := p2p.NewQriNode(repo, testcfg.DefaultP2PForTesting(), repo.Bus(), localResolver)
 	if err != nil {
 		t.Fatal(err)
 	}

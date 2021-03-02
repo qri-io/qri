@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/buildrepo"
@@ -85,7 +86,7 @@ func newTempRepo(peername, prefix string, g key.CryptoGenerator) (r TempRepo, er
 	}
 
 	// Create empty config.yaml into the test repo.
-	cfg := config.DefaultConfigForTesting().Copy()
+	cfg := testcfg.DefaultConfigForTesting().Copy()
 	cfg.Profile.Peername = peername
 	cfg.Profile.PrivKey, cfg.Profile.ID = g.GeneratePrivateKeyAndPeerID()
 	cfg.SetPath(filepath.Join(QriPath, "config.yaml"))

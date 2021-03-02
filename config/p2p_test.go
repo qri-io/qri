@@ -1,13 +1,16 @@
-package config
+package config_test
 
 import (
 	"reflect"
 	"testing"
+
+	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 )
 
 func TestP2PDecodePrivateKey(t *testing.T) {
 	missingErr := "missing private key"
-	p := &P2P{}
+	p := &config.P2P{}
 	_, err := p.DecodePrivateKey()
 	if err == nil {
 		t.Errorf("expected empty private key to err")
@@ -16,7 +19,7 @@ func TestP2PDecodePrivateKey(t *testing.T) {
 	}
 
 	invalidErr := "decoding private key: illegal base64 data at input byte 4"
-	p = &P2P{PrivKey: "invalid"}
+	p = &config.P2P{PrivKey: "invalid"}
 	_, err = p.DecodePrivateKey()
 	if err == nil {
 		t.Errorf("expected empty private key to err")
@@ -24,7 +27,7 @@ func TestP2PDecodePrivateKey(t *testing.T) {
 		t.Errorf("error mismatch. expected: %s, got: %s", invalidErr, err.Error())
 	}
 
-	p = DefaultP2PForTesting()
+	p = testcfg.DefaultP2PForTesting()
 	_, err = p.DecodePrivateKey()
 	if err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
@@ -32,7 +35,7 @@ func TestP2PDecodePrivateKey(t *testing.T) {
 }
 
 func TestP2PValidate(t *testing.T) {
-	err := DefaultP2PForTesting().Validate()
+	err := testcfg.DefaultP2PForTesting().Validate()
 	if err != nil {
 		t.Errorf("error validating default p2p: %s", err)
 	}
@@ -40,9 +43,9 @@ func TestP2PValidate(t *testing.T) {
 
 func TestP2PCopy(t *testing.T) {
 	cases := []struct {
-		p2p *P2P
+		p2p *config.P2P
 	}{
-		{DefaultP2PForTesting()},
+		{testcfg.DefaultP2PForTesting()},
 	}
 	for i, c := range cases {
 		cpy := c.p2p.Copy()

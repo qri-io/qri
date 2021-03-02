@@ -13,7 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/lib"
@@ -52,7 +52,7 @@ func TestHTTPClient(t *testing.T) {
 
 	// Cannot use TestRunner because we need to set cfg.API.ReadOnly.
 	// TODO(dlong): Add a testRunner call trace that does this correctly.
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 
 	node, err := p2p.NewQriNode(r, cfg.P2P, event.NilBus, nil)
 	if err != nil {

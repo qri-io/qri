@@ -7,7 +7,9 @@ import (
 
 var log = logger.Logger("key")
 
-// ID is the key identifier
+// ID is a key identifier
+// note that while this implementation is an alias for a peer.ID, this is not
+// strictly a peerID.
 type ID = peer.ID
 
 // DecodeID parses an ID string

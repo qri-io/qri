@@ -20,6 +20,7 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
@@ -70,7 +71,7 @@ func TestNewInstance(t *testing.T) {
 	}
 	defer tr.Delete()
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	cfg.Filesystems = []qfs.Config{
 		{Type: "mem"},
 		{Type: "local"},
@@ -136,7 +137,7 @@ func TestNewDefaultInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	cfg.Filesystems = []qfs.Config{
 		{Type: "ipfs", Config: map[string]interface{}{"path": ipfsPath}},
 		{Type: "local"},
@@ -182,7 +183,7 @@ func TestReceivers(t *testing.T) {
 	}
 
 	node := n.(*p2p.QriNode)
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	inst := &Instance{node: node, cfg: cfg}
 
 	reqs := Receivers(inst)
@@ -244,7 +245,7 @@ func TestInstanceEventSubscription(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	cfg.Repo.Type = "mem"
 	// remove default ipfs fs, not needed for this test
 	cfg.Filesystems = []qfs.Config{{Type: "mem"}}
@@ -296,7 +297,7 @@ func TestNewInstanceWithAccessControlPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	cfg.Filesystems = []qfs.Config{
 		{Type: "ipfs", Config: map[string]interface{}{"path": ipfsPath}},
 		{Type: "local"},

@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	testkeys "github.com/qri-io/qri/auth/key/test"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
@@ -150,7 +150,7 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 		t.Fatal(err.Error())
 	}
 	localResolver := dsref.SequentialResolver(mr.Dscache(), mr)
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting(), event.NilBus, localResolver)
+	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, localResolver)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

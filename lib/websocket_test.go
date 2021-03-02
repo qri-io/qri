@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -16,7 +16,7 @@ func TestWebsocket(t *testing.T) {
 	}
 	defer tr.Delete()
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := testcfg.DefaultConfigForTesting()
 	cfg.Filesystems = []qfs.Config{
 		{Type: "mem"},
 		{Type: "local"},

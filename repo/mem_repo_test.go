@@ -6,7 +6,7 @@ import (
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
@@ -23,7 +23,7 @@ func TestMemRepoResolveRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pro, err := profile.NewProfile(config.DefaultProfileForTesting())
+	pro, err := profile.NewProfile(testcfg.DefaultProfileForTesting())
 	if err != nil {
 		t.Fatal(err)
 	}

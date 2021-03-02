@@ -9,7 +9,7 @@ import (
 
 	ma "github.com/multiformats/go-multiaddr"
 	testkeys "github.com/qri-io/qri/auth/key/test"
-	"github.com/qri-io/qri/config"
+	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/profile"
@@ -40,7 +40,7 @@ func TestNewNode(t *testing.T) {
 		return nil
 	}, event.ETP2PGoneOnline)
 
-	p2pconf := config.DefaultP2PForTesting()
+	p2pconf := testcfg.DefaultP2PForTesting()
 	n, err := NewQriNode(r, p2pconf, bus, nil)
 	if err != nil {
 		t.Errorf("error creating qri node: %s", err.Error())
