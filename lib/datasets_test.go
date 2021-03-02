@@ -1095,13 +1095,14 @@ Pirates of the Caribbean: At World's End ,foo
 		p         ValidateParams
 		numErrors int
 		err       string
+		isNil     bool
 	}{
-		{ValidateParams{Ref: ""}, 0, "bad arguments provided"},
-		{ValidateParams{Ref: "me"}, 0, "\"me\" is not a valid dataset reference: need username separated by '/' from dataset name"},
-		{ValidateParams{Ref: "me/movies"}, 4, ""},
-		{ValidateParams{Ref: "me/movies", BodyFilename: bodyFilename}, 1, ""},
-		{ValidateParams{Ref: "me/movies", SchemaFilename: schemaFilename}, 5, ""},
-		{ValidateParams{SchemaFilename: schemaFilename, BodyFilename: bodyFilename}, 1, ""},
+		{ValidateParams{Ref: ""}, 0, "bad arguments provided", true},
+		{ValidateParams{Ref: "me"}, 0, "\"me\" is not a valid dataset reference: need username separated by '/' from dataset name", true},
+		{ValidateParams{Ref: "me/movies"}, 4, "", false},
+		{ValidateParams{Ref: "me/movies", BodyFilename: bodyFilename}, 1, "", false},
+		{ValidateParams{Ref: "me/movies", SchemaFilename: schemaFilename}, 5, "", false},
+		{ValidateParams{SchemaFilename: schemaFilename, BodyFilename: bodyFilename}, 1, "", false},
 	}
 
 	mr, err := testrepo.NewTestRepo()
@@ -1116,14 +1117,18 @@ Pirates of the Caribbean: At World's End ,foo
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfigForTesting(), node)
 	m := NewDatasetMethods(inst)
 	for i, c := range cases {
-		res := &ValidateResponse{}
-		err := m.Validate(&c.p, res)
+		res, err := m.Validate(ctx, &c.p)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err.Error())
 			continue
 		}
 
-		if len(res.Errors) != c.numErrors {
+		if res == nil && !c.isNil {
+			t.Errorf("case %d error result was nil: expected result to not be nil", i)
+			continue
+		}
+
+		if res != nil && len(res.Errors) != c.numErrors {
 			t.Errorf("case %d error count mismatch. expected: %d, got: %d", i, c.numErrors, len(res.Errors))
 			continue
 		}
@@ -1149,8 +1154,8 @@ func TestDatasetRequestsValidateFSI(t *testing.T) {
 	m := NewDatasetMethods(tr.Instance)
 
 	vp := &ValidateParams{Ref: refstr}
-	vr := &ValidateResponse{}
-	if err := m.Validate(vp, vr); err != nil {
+	_, err := m.Validate(ctx, vp)
+	if err != nil {
 		t.Fatal(err)
 	}
 }

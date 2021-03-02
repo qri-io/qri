@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -136,8 +137,9 @@ func (o *ValidateOptions) Run() (err error) {
 		StructureFilename: o.StructureFilepath,
 	}
 
-	res := &lib.ValidateResponse{}
-	if err = o.DatasetMethods.Validate(p, res); err != nil {
+	ctx := context.TODO()
+	res, err := o.DatasetMethods.Validate(ctx, p)
+	if err != nil {
 		return err
 	}
 
