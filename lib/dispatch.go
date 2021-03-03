@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+// dispatcher isolates the dispatch method
+type dispatcher interface {
+	Dispatch(ctx context.Context, method string, param interface{}) (res interface{}, err error)
+}
+
 // Dispatch is a system for handling calls to lib. Should only be called by top-level lib methods.
 //
 // When programs are using qri as a library (such as the `cmd` package), calls to `lib` will
