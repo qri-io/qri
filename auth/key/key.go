@@ -6,7 +6,6 @@ import (
 	logger "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	"github.com/multiformats/go-multihash"
 )
 
 var log = logger.Logger("key")
@@ -38,15 +37,9 @@ func IDFromPubKey(pubKey crypto.PubKey) (string, error) {
 		return "", fmt.Errorf("identity: public key is required")
 	}
 
-	pubkeybytes, err := pubKey.Bytes()
+	id, err := peer.IDFromPublicKey(pubKey)
 	if err != nil {
-		return "", fmt.Errorf("getting pubkey bytes: %s", err.Error())
+		return "", err
 	}
-
-	mh, err := multihash.Sum(pubkeybytes, multihash.SHA2_256, 32)
-	if err != nil {
-		return "", fmt.Errorf("summing pubkey: %s", err.Error())
-	}
-
-	return mh.B58String(), nil
+	return id.Pretty(), err
 }

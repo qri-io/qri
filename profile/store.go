@@ -137,6 +137,9 @@ func NewMemStore(owner *Profile, ks key.Store) (Store, error) {
 	if err := ks.AddPrivKey(owner.GetKeyID(), owner.PrivKey); err != nil {
 		return nil, err
 	}
+	if err := ks.AddPubKey(owner.GetKeyID(), owner.PrivKey.GetPublic()); err != nil {
+		return nil, err
+	}
 
 	return &MemStore{
 		owner: owner,

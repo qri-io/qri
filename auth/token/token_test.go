@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/auth/key"
 	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/auth/token"
 	token_spec "github.com/qri-io/qri/auth/token/spec"
@@ -63,4 +64,27 @@ func TestTokenStore(t *testing.T) {
 		}
 		return ts
 	})
+}
+
+func TestNewPrivKeyAuthToken(t *testing.T) {
+	// create a token from a private key
+	kd := testkeys.GetKeyData(0)
+	str, err := token.NewPrivKeyAuthToken(kd.PrivKey, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// prove we can parse a token with a store that only has a public key
+	ks, err := key.NewMemStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ks.AddPubKey(kd.KeyID, kd.PrivKey.GetPublic()); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = token.ParseAuthToken(str, ks)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

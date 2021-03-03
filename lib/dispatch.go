@@ -134,6 +134,7 @@ func (inst *Instance) RegisterMethods() {
 	// TODO(dustmop): Change registerOne to take both the MethodSet and the Impl, validate
 	// that their signatures agree.
 	inst.registerOne("fsi", &FSIImpl{}, reg)
+	inst.registerOne("access", accessImpl{}, reg)
 	inst.regMethods = &regMethodSet{reg: reg}
 }
 

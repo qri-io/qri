@@ -355,3 +355,34 @@ func TestNewInstanceWithAccessControlPolicy(t *testing.T) {
 		t.Errorf("expected no policy enforce error, got: %s", err)
 	}
 }
+
+// NewMemTestInstance creates an in-memory instance
+// TODO(b5): currently "NewInstance" hard-requires a repo-path, even if we can
+// provide a configuration that specifies entirely in-memory stores. We should
+// make it possible to create fully in-memory Instances using NewInstance,
+// but for now I'm working around it with a temp directory & cleanup function
+func NewMemTestInstance(ctx context.Context, t *testing.T) (inst *Instance, cleanup func()) {
+	t.Helper()
+	tmpPath, err := ioutil.TempDir("", "qri_test_mem_instance")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := testcfg.DefaultConfigForTesting()
+	cfg.Filesystems = []qfs.Config{
+		{Type: "mem"},
+		{Type: "local"},
+	}
+	cfg.Repo.Type = "mem"
+	if err := cfg.WriteToFile(filepath.Join(tmpPath, "config.yaml")); err != nil {
+		t.Fatal(err)
+	}
+
+	// TODO(b5): I'd like to be able to do this:
+	// if inst, err = NewInstance(ctx, "", OptConfig(cfg)); err != nil {
+	if inst, err = NewInstance(ctx, tmpPath); err != nil {
+		t.Fatal(err)
+	}
+
+	return inst, func() { os.RemoveAll(tmpPath) }
+}
