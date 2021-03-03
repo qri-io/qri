@@ -321,15 +321,6 @@ func (o *QriOptions) ConfigMethods() (m *lib.ConfigMethods, err error) {
 	return lib.NewConfigMethods(o.inst), nil
 }
 
-// FSIMethods generates a lib.FSIMethods from internal state
-func (o *QriOptions) FSIMethods() (m *lib.FSIMethods, err error) {
-	if err = o.Init(); err != nil {
-		return
-	}
-
-	return lib.NewFSIMethods(o.inst), nil
-}
-
 // Shutdown closes the instance
 func (o *QriOptions) Shutdown() <-chan error {
 	if o.inst == nil {

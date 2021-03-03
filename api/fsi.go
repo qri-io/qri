@@ -1,23 +1,17 @@
 package api
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
+	"strings"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/api/util"
-	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/profile"
-	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // FSIHandlers connects HTTP requests to the FSI subsystem
 type FSIHandlers struct {
-	lib.FSIMethods
+	inst     *lib.Instance
 	dsm      *lib.DatasetMethods
 	ReadOnly bool
 }
@@ -25,9 +19,9 @@ type FSIHandlers struct {
 // NewFSIHandlers creates handlers that talk to qri's filesystem integration
 func NewFSIHandlers(inst *lib.Instance, readOnly bool) FSIHandlers {
 	return FSIHandlers{
-		FSIMethods: *lib.NewFSIMethods(inst),
-		dsm:        lib.NewDatasetMethods(inst),
-		ReadOnly:   readOnly,
+		inst:     inst,
+		dsm:      lib.NewDatasetMethods(inst),
+		ReadOnly: readOnly,
 	}
 }
 
@@ -42,7 +36,7 @@ func (h *FSIHandlers) StatusHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		switch r.Method {
-		case http.MethodGet:
+		case http.MethodGet, http.MethodPost:
 			handleStatus(w, r)
 		default:
 			util.NotFoundHandler(w, r)
@@ -52,20 +46,26 @@ func (h *FSIHandlers) StatusHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ref, err := lib.DsRefFromPath(r.URL.Path[len(routePrefix):])
+		method := "fsi.status"
+		p := h.inst.NewInputParam(method)
+
+		// TODO(dustmop): Add this to UnmarshalParams for methods that can
+		// receive a refstr in the URL, or annotate the param struct with
+		// a tag and marshal the url to that field
+		err := addDsRefFromURL(r, routePrefix)
 		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 
-		res := []lib.StatusItem{}
-		alias := ref.Alias()
-		err = h.StatusForAlias(&alias, &res)
-		if err == fsi.ErrNoLink {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("no working directory: %s", alias))
+		if err := UnmarshalParams(r, p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
-		} else if err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
+		}
+
+		res, err := h.inst.Dispatch(r.Context(), method, p)
+		if err != nil {
+			util.RespondWithError(w, err)
 			return
 		}
 		util.WriteResponse(w, res)
@@ -94,24 +94,21 @@ func (h *FSIHandlers) WhatChangedHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) whatChangedHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ref, err := lib.DsRefFromPath(r.URL.Path[len(routePrefix):])
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
+		method := "fsi.whatchanged"
+		p := h.inst.NewInputParam(method)
+
+		if err := UnmarshalParams(r, p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 
-		res := []lib.StatusItem{}
-		refStr := ref.String()
-		err = h.WhatChanged(&refStr, &res)
+		res, err := h.inst.Dispatch(r.Context(), method, p)
 		if err != nil {
-			if err == repo.ErrNoHistory {
-				util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
-				return
-			}
-			util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
+			util.RespondWithError(w, err)
 			return
 		}
 		util.WriteResponse(w, res)
+		return
 	}
 }
 
@@ -136,51 +133,59 @@ func (h *FSIHandlers) InitHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		p := &lib.InitDatasetParams{
-			TargetDir: r.FormValue("targetdir"),
-			Name:      r.FormValue("name"),
-			Format:    r.FormValue("format"),
-			BodyPath:  r.FormValue("bodypath"),
-		}
+		method := "fsi.init"
+		p := h.inst.NewInputParam(method)
 
-		var name string
-		if err := h.InitDataset(r.Context(), p, &name); err != nil {
+		if err := UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 
-		// Get code taken
-		// taken from ./root.go
-		gp := lib.GetParams{
-			Refstr: name,
-		}
-
-		res, err := h.dsm.Get(r.Context(), &gp)
+		res, err := h.inst.Dispatch(r.Context(), method, p)
 		if err != nil {
-			if err == repo.ErrNotFound {
-				util.NotFoundHandler(w, r)
-				return
-			}
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			util.RespondWithError(w, err)
 			return
 		}
-		if res.Dataset == nil || res.Dataset.IsEmpty() {
-			util.WriteErrResponse(w, http.StatusNotFound, errors.New("cannot find peer dataset"))
+		util.WriteResponse(w, res)
+		return
+	}
+}
+
+// CanInitDatasetWorkDirHandler returns whether a directory can be initialized
+func (h *FSIHandlers) CanInitDatasetWorkDirHandler(routePrefix string) http.HandlerFunc {
+	handleCanInit := h.canInitDatasetWorkDirHandler(routePrefix)
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		if h.ReadOnly {
+			readOnlyResponse(w, "/caninitdatasetworkdir")
 			return
 		}
 
-		// TODO (b5) - why is this necessary?
-		ref := reporef.DatasetRef{
-			Peername:  res.Dataset.Peername,
-			ProfileID: profile.IDB58DecodeOrEmpty(res.Dataset.ProfileID),
-			Name:      res.Dataset.Name,
-			Path:      res.Dataset.Path,
-			FSIPath:   res.FSIPath,
-			Published: res.Published,
-			Dataset:   res.Dataset,
+		switch r.Method {
+		case http.MethodPost:
+			handleCanInit(w, r)
+		default:
+			util.NotFoundHandler(w, r)
+		}
+	}
+}
+
+func (h *FSIHandlers) canInitDatasetWorkDirHandler(routePrefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		method := "fsi.caninitdatasetworkdir"
+		p := h.inst.NewInputParam(method)
+
+		if err := UnmarshalParams(r, p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
 		}
 
-		util.WriteResponse(w, ref)
+		res, err := h.inst.Dispatch(r.Context(), method, p)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
+		util.WriteResponse(w, res)
 		return
 	}
 }
@@ -205,30 +210,124 @@ func (h *FSIHandlers) WriteHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) writeHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ref, err := lib.DsRefFromPath(r.URL.Path[len(routePrefix):])
+		method := "fsi.write"
+		p := h.inst.NewInputParam(method)
+
+		// TODO(dustmop): Add this to UnmarshalParams for methods that can
+		// receive a refstr in the URL, or annotate the param struct with
+		// a tag and marshal the url to that field
+		err := addDsRefFromURL(r, routePrefix)
 		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
-			return
-		}
-
-		ds := &dataset.Dataset{}
-		if err := json.NewDecoder(r.Body).Decode(ds); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 
-		p := &lib.FSIWriteParams{
-			Ref: ref.Alias(),
-			Ds:  ds,
-		}
-
-		out := []lib.StatusItem{}
-		if err := h.Write(p, &out); err != nil {
+		if err := UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 
-		util.WriteResponse(w, out)
+		res, err := h.inst.Dispatch(r.Context(), method, p)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
+		util.WriteResponse(w, res)
+		return
+	}
+}
+
+// CreateLinkHandler creates an fsi link
+func (h *FSIHandlers) CreateLinkHandler(routePrefix string) http.HandlerFunc {
+	handler := h.createLinkHandler(routePrefix)
+	return func(w http.ResponseWriter, r *http.Request) {
+		if h.ReadOnly {
+			readOnlyResponse(w, routePrefix)
+			return
+		}
+
+		switch r.Method {
+		case http.MethodPost:
+			handler(w, r)
+		default:
+			util.NotFoundHandler(w, r)
+		}
+	}
+}
+
+func (h *FSIHandlers) createLinkHandler(routePrefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		method := "fsi.createlink"
+		p := h.inst.NewInputParam(method)
+
+		// TODO(dustmop): Add this to UnmarshalParams for methods that can
+		// receive a refstr in the URL, or annotate the param struct with
+		// a tag and marshal the url to that field
+		err := addDsRefFromURL(r, routePrefix)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if err := UnmarshalParams(r, p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		res, err := h.inst.Dispatch(r.Context(), method, p)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
+		util.WriteResponse(w, res)
+		return
+	}
+}
+
+// UnlinkHandler unlinks a working directory
+func (h *FSIHandlers) UnlinkHandler(routePrefix string) http.HandlerFunc {
+	handler := h.unlinkHandler(routePrefix)
+	return func(w http.ResponseWriter, r *http.Request) {
+		if h.ReadOnly {
+			readOnlyResponse(w, routePrefix)
+			return
+		}
+
+		switch r.Method {
+		case http.MethodPost:
+			handler(w, r)
+		default:
+			util.NotFoundHandler(w, r)
+		}
+	}
+}
+
+func (h *FSIHandlers) unlinkHandler(routePrefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		method := "fsi.unlink"
+		p := h.inst.NewInputParam(method)
+
+		// TODO(dustmop): Add this to UnmarshalParams for methods that can
+		// receive a refstr in the URL, or annotate the param struct with
+		// a tag and marshal the url to that field
+		err := addDsRefFromURL(r, routePrefix)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if err := UnmarshalParams(r, p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		res, err := h.inst.Dispatch(r.Context(), method, p)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
+		util.WriteResponse(w, res)
+		return
 	}
 }
 
@@ -252,24 +351,30 @@ func (h *FSIHandlers) CheckoutHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) checkoutHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ref, err := lib.DsRefFromPath(r.URL.Path[len(routePrefix):])
+		method := "fsi.checkout"
+		p := h.inst.NewInputParam(method)
+
+		// TODO(dustmop): Add this to UnmarshalParams for methods that can
+		// receive a refstr in the URL, or annotate the param struct with
+		// a tag and marshal the url to that field
+		err := addDsRefFromURL(r, routePrefix)
 		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 
-		p := &lib.CheckoutParams{
-			Dir: r.FormValue("dir"),
-			Ref: ref.String(),
-		}
-
-		var res string
-		if err := h.Checkout(p, &res); err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		if err := UnmarshalParams(r, p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 
+		res, err := h.inst.Dispatch(r.Context(), method, p)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
 		util.WriteResponse(w, res)
+		return
 	}
 }
 
@@ -293,27 +398,53 @@ func (h *FSIHandlers) RestoreHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) restoreHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ref, err := lib.DsRefFromPath(r.URL.Path[len(routePrefix):])
+		method := "fsi.restore"
+		p := h.inst.NewInputParam(method)
+
+		// TODO(dustmop): Add this to UnmarshalParams for methods that can
+		// receive a refstr in the URL, or annotate the param struct with
+		// a tag and marshal the url to that field
+		err := addDsRefFromURL(r, routePrefix)
 		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 
-		// Add the path for the version to restore
-		ref.Path = r.FormValue("path")
-
-		p := &lib.RestoreParams{
-			Dir:       r.FormValue("dir"),
-			Ref:       ref.String(),
-			Component: r.FormValue("component"),
-		}
-
-		var res string
-		if err := h.Restore(p, &res); err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		if err := UnmarshalParams(r, p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 
+		res, err := h.inst.Dispatch(r.Context(), method, p)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
 		util.WriteResponse(w, res)
+		return
 	}
+}
+
+// If the route has a dataset reference in the url, parse that ref, and
+// add it to the request object using the field "refstr".
+func addDsRefFromURL(r *http.Request, routePrefix string) error {
+	// routePrefix looks like "/route/{path:.*}" and we only want "/route/"
+	pos := strings.LastIndex(routePrefix, "/")
+	if pos > 1 {
+		routePrefix = routePrefix[:pos+1]
+	}
+
+	// Parse the ref, then reencode it and attach back on the url
+	url := r.URL.Path[len(routePrefix):]
+	ref, err := lib.DsRefFromPath(url)
+	if err != nil {
+		if err == dsref.ErrEmptyRef {
+			return nil
+		}
+		return err
+	}
+	q := r.URL.Query()
+	q.Add("refstr", ref.String())
+	r.URL.RawQuery = q.Encode()
+	return nil
 }

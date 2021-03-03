@@ -399,6 +399,8 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		log.Debugf("--log-all set: turning on logging for all activity")
 	}
 
+	inst.RegisterMethods()
+
 	// check if we're operating over RPC
 	if cfg.RPC.Enabled {
 		addr, err := ma.NewMultiaddr(cfg.RPC.Address)
@@ -663,6 +665,7 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		logbook:   r.Logbook(),
 		transform: transform.NewService(ctx),
 	}
+	inst.RegisterMethods()
 
 	inst.stats = stats.New(nil)
 
@@ -697,6 +700,8 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 type Instance struct {
 	repoPath string
 	cfg      *config.Config
+
+	regMethods *regMethodSet
 
 	streams         ioes.IOStreams
 	repo            repo.Repo

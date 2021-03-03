@@ -211,11 +211,11 @@ func DefaultSelectedRefList(f Factory) ([]string, error) {
 // This is useful if a user has a working directory, and then manually deletes the .qri-ref (which
 // will unlink the dataset), or renames / moves the directory and then runs a command in that
 // directory (which will update the repository with the new working directory's path).
-func EnsureFSIAgrees(f *lib.FSIMethods) *FSIRefLinkEnsurer {
-	if f == nil {
+func EnsureFSIAgrees(inst *lib.Instance) *FSIRefLinkEnsurer {
+	if inst == nil {
 		return nil
 	}
-	return &FSIRefLinkEnsurer{FSIMethods: f}
+	return &FSIRefLinkEnsurer{FSIMethods: inst.Filesys()}
 }
 
 // FSIRefLinkEnsurer is a simple wrapper for ensuring the linkfile agrees with the repository. We
@@ -233,10 +233,8 @@ func (e *FSIRefLinkEnsurer) EnsureRef(refs *RefSelect) error {
 	if e == nil {
 		return nil
 	}
-	p := lib.EnsureParams{Dir: refs.Dir(), Ref: refs.Ref()}
-	info := dsref.VersionInfo{}
+	p := lib.LinkParams{Dir: refs.Dir(), Refstr: refs.Ref()}
 	ctx := context.TODO()
-	// Lib call matches the gorpc method signature, but `out` is not used
-	err := e.FSIMethods.EnsureRef(ctx, &p, &info)
+	_, err := e.FSIMethods.EnsureRef(ctx, &p)
 	return err
 }

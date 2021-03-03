@@ -212,9 +212,12 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEStatus.String(), s.Middleware(fsih.StatusHandler(lib.AEStatus.NoTrailingSlash())))
 	m.Handle(lib.AEWhatChanged.String(), s.Middleware(fsih.WhatChangedHandler(lib.AEWhatChanged.NoTrailingSlash())))
 	m.Handle(lib.AEInit.String(), s.Middleware(fsih.InitHandler(lib.AEInit.NoTrailingSlash())))
+	m.Handle(lib.AECanInitDatasetWorkDir.String(), s.Middleware(fsih.CanInitDatasetWorkDirHandler(lib.AECanInitDatasetWorkDir.NoTrailingSlash())))
 	m.Handle(lib.AECheckout.String(), s.Middleware(fsih.CheckoutHandler(lib.AECheckout.NoTrailingSlash())))
 	m.Handle(lib.AERestore.String(), s.Middleware(fsih.RestoreHandler(lib.AERestore.NoTrailingSlash())))
 	m.Handle(lib.AEFSIWrite.String(), s.Middleware(fsih.WriteHandler(lib.AEFSIWrite.NoTrailingSlash())))
+	m.Handle(lib.AEFSICreateLink.String(), s.Middleware(fsih.CreateLinkHandler(lib.AEFSICreateLink.NoTrailingSlash())))
+	m.Handle(lib.AEFSIUnlink.String(), s.Middleware(fsih.UnlinkHandler(lib.AEFSIUnlink.NoTrailingSlash())))
 
 	renderh := NewRenderHandlers(s.Instance)
 	m.Handle(lib.AERender.String(), s.Middleware(renderh.RenderHandler))

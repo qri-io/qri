@@ -1,10 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -45,7 +45,8 @@ func NewFSICommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			return o.Unlink()
+			ctx := context.TODO()
+			return o.Unlink(ctx)
 		},
 	}
 
@@ -57,25 +58,23 @@ func NewFSICommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 type FSIOptions struct {
 	ioes.IOStreams
 
-	Refs       *RefSelect
-	Path       string
-	FSIMethods *lib.FSIMethods
+	Instance *lib.Instance
+
+	Refs *RefSelect
+	Path string
 }
 
 // Complete adds any missing configuration that can only be added just before
 // calling Run
 func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
-	o.FSIMethods, err = f.FSIMethods()
-	if err != nil {
-		return err
-	}
+	o.Instance = f.Instance()
 
 	if len(args) > 1 {
 		o.Path = args[1]
 		args = args[:1]
 	}
 
-	if o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.FSIMethods)); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.Instance)); err != nil {
 		return err
 	}
 
@@ -89,12 +88,15 @@ func (o *FSIOptions) Link() (err error) {
 		return err
 	}
 
+	ctx := context.TODO()
+	inst := o.Instance
+
 	p := &lib.LinkParams{
-		Dir: o.Path,
-		Ref: o.Refs.Ref(),
+		Dir:    o.Path,
+		Refstr: o.Refs.Ref(),
 	}
-	res := &dsref.VersionInfo{}
-	if err := o.FSIMethods.CreateLink(p, res); err != nil {
+	res, err := inst.Filesys().CreateLink(ctx, p)
+	if err != nil {
 		return err
 	}
 
@@ -103,18 +105,18 @@ func (o *FSIOptions) Link() (err error) {
 }
 
 // Unlink executes the fsi unlink command
-func (o *FSIOptions) Unlink() error {
-	var res string
+func (o *FSIOptions) Unlink(ctx context.Context) error {
+	inst := o.Instance
 
 	for _, ref := range o.Refs.RefList() {
 		printRefSelect(o.ErrOut, o.Refs)
 
 		p := &lib.LinkParams{
-			Ref: ref,
+			Refstr: ref,
 		}
-		if err := o.FSIMethods.Unlink(p, &res); err != nil {
-			printErr(o.ErrOut, err)
-			return nil
+		res, err := inst.Filesys().Unlink(ctx, p)
+		if err != nil {
+			return err
 		}
 
 		printSuccess(o.Out, "unlinked: %s", res)

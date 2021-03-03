@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -57,6 +58,8 @@ already existing body file using the 'body' flag.`,
 type InitOptions struct {
 	ioes.IOStreams
 
+	Instance *lib.Instance
+
 	// Name of the dataset that will be created
 	Name string
 	// Format of the body
@@ -69,7 +72,6 @@ type InitOptions struct {
 	UseDscache bool
 
 	DatasetMethods *lib.DatasetMethods
-	FSIMethods     *lib.FSIMethods
 }
 
 // Complete completes a dataset reference
@@ -77,7 +79,7 @@ func (o *InitOptions) Complete(f Factory, args []string) (err error) {
 	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
 		return err
 	}
-	o.FSIMethods, err = f.FSIMethods()
+	o.Instance = f.Instance()
 	if len(args) > 0 {
 		o.TargetDir = args[0]
 	}
@@ -86,12 +88,20 @@ func (o *InitOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the `init` command
 func (o *InitOptions) Run() (err error) {
+	ctx := context.TODO()
+	inst := o.Instance
+
+	// An empty dir means the current dir
+	if o.TargetDir == "" {
+		o.TargetDir, _ = os.Getwd()
+	}
+
 	// First, check if the directory can be init'd, before prompting for any input
 	canInitParams := lib.InitDatasetParams{
 		TargetDir: o.TargetDir,
 		BodyPath:  o.BodyPath,
 	}
-	if err = o.FSIMethods.CanInitDatasetWorkDir(&canInitParams, nil); err != nil {
+	if err = inst.Filesys().CanInitDatasetWorkDir(ctx, &canInitParams); err != nil {
 		return err
 	}
 
@@ -127,9 +137,8 @@ func (o *InitOptions) Run() (err error) {
 		UseDscache: o.UseDscache,
 	}
 
-	ctx := context.TODO()
-	var refstr string
-	if err = o.FSIMethods.InitDataset(ctx, p, &refstr); err != nil {
+	refstr, err := inst.Filesys().Init(ctx, p)
+	if err != nil {
 		return err
 	}
 

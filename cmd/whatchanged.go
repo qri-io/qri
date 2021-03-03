@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/qri-io/ioes"
@@ -35,16 +36,15 @@ except only available for dataset versions in history.`,
 type WhatChangedOptions struct {
 	ioes.IOStreams
 
-	Refs       *RefSelect
-	FSIMethods *lib.FSIMethods
+	Instance *lib.Instance
+
+	Refs *RefSelect
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *WhatChangedOptions) Complete(f Factory, args []string) (err error) {
-	if o.FSIMethods, err = f.FSIMethods(); err != nil {
-		return err
-	}
-	o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.FSIMethods))
+	o.Instance = f.Instance()
+	o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.Instance))
 	return nil
 }
 
@@ -52,9 +52,12 @@ func (o *WhatChangedOptions) Complete(f Factory, args []string) (err error) {
 func (o *WhatChangedOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
-	res := []lib.StatusItem{}
-	ref := o.Refs.Ref()
-	if err := o.FSIMethods.WhatChanged(&ref, &res); err != nil {
+	ctx := context.TODO()
+	inst := o.Instance
+
+	params := lib.LinkParams{Refstr: o.Refs.Ref()}
+	res, err := inst.Filesys().WhatChanged(ctx, &params)
+	if err != nil {
 		printErr(o.ErrOut, err)
 		return nil
 	}

@@ -141,7 +141,7 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 	err = json.Unmarshal(body, &resData)
 	if err != nil {
 		log.Debugf("HTTPClient unmarshal err: %s", err.Error())
-		return err
+		return fmt.Errorf("HTTPClient unmarshal err: %s", err)
 	}
 	return c.checkError(resData.Meta)
 }

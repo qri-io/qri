@@ -35,7 +35,7 @@ func TestFSIMethodsWrite(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 
 	// we need some fsi stuff to fully test remove
-	methods := NewFSIMethods(inst)
+	methods := inst.Filesys()
 	// create datasets working directory
 	datasetsDir, err := ioutil.TempDir("", "QriTestDatasetRequestsRemove")
 	if err != nil {
@@ -49,27 +49,26 @@ func TestFSIMethodsWrite(t *testing.T) {
 		TargetDir: filepath.Join(datasetsDir, "no_history"),
 		Format:    "csv",
 	}
-	var noHistoryName string
-	if err := methods.InitDataset(ctx, initp, &noHistoryName); err != nil {
+	noHistoryName, err := methods.Init(ctx, initp)
+	if err != nil {
 		t.Fatal(err)
 	}
 
 	// link cities dataset with a checkout
-	checkoutp := &CheckoutParams{
-		Dir: filepath.Join(datasetsDir, "cities"),
-		Ref: "me/cities",
+	checkoutp := &LinkParams{
+		Dir:    filepath.Join(datasetsDir, "cities"),
+		Refstr: "me/cities",
 	}
-	var out string
-	if err := methods.Checkout(checkoutp, &out); err != nil {
+	if _, err := methods.Checkout(ctx, checkoutp); err != nil {
 		t.Fatal(err)
 	}
 
 	// link craigslist with a checkout
-	checkoutp = &CheckoutParams{
-		Dir: filepath.Join(datasetsDir, "craigslist"),
-		Ref: "me/craigslist",
+	checkoutp = &LinkParams{
+		Dir:    filepath.Join(datasetsDir, "craigslist"),
+		Refstr: "me/craigslist",
 	}
-	if err := methods.Checkout(checkoutp, &out); err != nil {
+	if _, err := methods.Checkout(ctx, checkoutp); err != nil {
 		t.Fatal(err)
 	}
 
@@ -77,19 +76,17 @@ func TestFSIMethodsWrite(t *testing.T) {
 		err    string
 		params FSIWriteParams
 	}{
-		{"dataset is required", FSIWriteParams{Ref: "abc/movies"}},
-		{`"" is not a valid dataset reference: empty reference`, FSIWriteParams{Ref: "", Ds: &dataset.Dataset{}}},
-		{`"abc/ABC" is not a valid dataset reference: dataset name may not contain any upper-case letters`, FSIWriteParams{Ref: "abc/ABC", Ds: &dataset.Dataset{}}},
-		{`"👋" is not a valid dataset reference: unexpected character at position 0: 'ð'`, FSIWriteParams{Ref: "👋", Ds: &dataset.Dataset{}}},
-		{"reference not found", FSIWriteParams{Ref: "abc/movies", Ds: &dataset.Dataset{}}},
-		{"dataset is not linked to the filesystem", FSIWriteParams{Ref: "peer/movies", Ds: &dataset.Dataset{}}},
+		{"dataset is required", FSIWriteParams{Refstr: "abc/movies"}},
+		{`"" is not a valid dataset reference: empty reference`, FSIWriteParams{Refstr: "", Ds: &dataset.Dataset{}}},
+		{`"abc/ABC" is not a valid dataset reference: dataset name may not contain any upper-case letters`, FSIWriteParams{Refstr: "abc/ABC", Ds: &dataset.Dataset{}}},
+		{`"👋" is not a valid dataset reference: unexpected character at position 0: 'ð'`, FSIWriteParams{Refstr: "👋", Ds: &dataset.Dataset{}}},
+		{"reference not found", FSIWriteParams{Refstr: "abc/movies", Ds: &dataset.Dataset{}}},
+		{"dataset is not linked to the filesystem", FSIWriteParams{Refstr: "peer/movies", Ds: &dataset.Dataset{}}},
 	}
 
 	for _, c := range badCases {
 		t.Run(fmt.Sprintf("bad_case_%s", c.err), func(t *testing.T) {
-			res := []StatusItem{}
-			err := methods.Write(&c.params, &res)
-
+			_, err := methods.Write(ctx, &c.params)
 			if err == nil {
 				t.Errorf("expected error. got nil")
 				return
@@ -105,7 +102,7 @@ func TestFSIMethodsWrite(t *testing.T) {
 		res         []StatusItem
 	}{
 		{"update cities structure",
-			FSIWriteParams{Ref: "me/cities", Ds: &dataset.Dataset{Structure: &dataset.Structure{Format: "json"}}},
+			FSIWriteParams{Refstr: "me/cities", Ds: &dataset.Dataset{Structure: &dataset.Structure{Format: "json"}}},
 			[]StatusItem{
 				{Component: "meta", Type: "unmodified"},
 				{Component: "structure", Type: "modified"},
@@ -118,7 +115,7 @@ func TestFSIMethodsWrite(t *testing.T) {
 		// 	[]StatusItem{},
 		// },
 		{"set title for no history dataset",
-			FSIWriteParams{Ref: noHistoryName, Ds: &dataset.Dataset{Meta: &dataset.Meta{Title: "Changed Title"}}},
+			FSIWriteParams{Refstr: noHistoryName, Ds: &dataset.Dataset{Meta: &dataset.Meta{Title: "Changed Title"}}},
 			[]StatusItem{
 				{Component: "meta", Type: "add"},
 				{Component: "structure", Type: "add"},
@@ -129,8 +126,7 @@ func TestFSIMethodsWrite(t *testing.T) {
 
 	for _, c := range goodCases {
 		t.Run(fmt.Sprintf("good_case_%s", c.description), func(t *testing.T) {
-			res := []StatusItem{}
-			err := methods.Write(&c.params, &res)
+			res, err := methods.Write(ctx, &c.params)
 
 			if err != nil {
 				t.Errorf("unexpected error: %s", err)
@@ -306,11 +302,12 @@ func TestInitWithCurrentDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Don't pass the working directory path, `init` will use the current directory
+	// Don't pass the full working directory path, "." will use the current directory
 	err := run.InitWithParams(
 		&InitDatasetParams{
-			Name:   "new_ds",
-			Format: "csv",
+			Name:      "new_ds",
+			Format:    "csv",
+			TargetDir: ".",
 		},
 	)
 	if err != nil {

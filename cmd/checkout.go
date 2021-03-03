@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -40,21 +41,21 @@ func NewCheckoutCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 type CheckoutOptions struct {
 	ioes.IOStreams
 
+	Instance *lib.Instance
+
 	Refs *RefSelect
-
-	FSIMethods *lib.FSIMethods
-
-	Dir string
+	Dir  string
 }
 
 // Complete configures the checkout command
 func (o *CheckoutOptions) Complete(f Factory, args []string) (err error) {
-	o.FSIMethods, err = f.FSIMethods()
+	o.Instance = f.Instance()
+
 	if err != nil {
 		return err
 	}
 
-	o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.FSIMethods))
+	o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.Instance))
 	if err != nil {
 		return err
 	}
@@ -70,6 +71,9 @@ func (o *CheckoutOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the `checkout` command
 func (o *CheckoutOptions) Run() (err error) {
+	ctx := context.TODO()
+	inst := o.Instance
+
 	if !o.Refs.IsExplicit() {
 		return fmt.Errorf("checkout requires an explicitly provided dataset ref")
 	}
@@ -91,8 +95,7 @@ func (o *CheckoutOptions) Run() (err error) {
 		return err
 	}
 
-	var res string
-	err = o.FSIMethods.Checkout(&lib.CheckoutParams{Dir: o.Dir, Ref: ref}, &res)
+	_, err = inst.Filesys().Checkout(ctx, &lib.LinkParams{Dir: o.Dir, Refstr: ref})
 	if err != nil {
 		return err
 	}

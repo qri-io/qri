@@ -106,12 +106,18 @@ const (
 	AEWhatChanged = APIEndpoint("/whatchanged/{path:.*}")
 	// AEInit invokes a dataset initialization on the filesystem
 	AEInit = APIEndpoint("/init/{path:.*}")
+	// AECanInitDatasetWorkDir returns whether a dataset can be initialized
+	AECanInitDatasetWorkDir = APIEndpoint("/caninitdatasetworkdir/{path:.*}")
 	// AECheckout invokes a dataset checkout to the filesystem
 	AECheckout = APIEndpoint("/checkout/{path:.*}")
 	// AERestore invokes a restore
 	AERestore = APIEndpoint("/restore/{path:.*}")
 	// AEFSIWrite writes input data to the filesystem
 	AEFSIWrite = APIEndpoint("/fsi/write/{path:.*}")
+	// AEFSICreateLink creates an fsi link
+	AEFSICreateLink = APIEndpoint("/fsi/createlink/{path:.*}")
+	// AEFSIUnlink removes the fsi link
+	AEFSIUnlink = APIEndpoint("/fsi/unlink/{path:.*}")
 
 	// other endpoints
 

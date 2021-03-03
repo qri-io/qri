@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -54,18 +55,15 @@ a commit alongside a dataset like:
 type StatusOptions struct {
 	ioes.IOStreams
 
+	Instance *lib.Instance
+
 	Refs      *RefSelect
 	ShowMtime bool
-
-	FSIMethods *lib.FSIMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *StatusOptions) Complete(f Factory, args []string) (err error) {
-	o.FSIMethods, err = f.FSIMethods()
-	if err != nil {
-		return err
-	}
+	o.Instance = f.Instance()
 
 	// Cannot pass explicit reference, must be run in a working directory
 	if len(args) > 0 {
@@ -73,7 +71,7 @@ func (o *StatusOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf("can only get status of the current working directory")
 	}
 
-	o.Refs, err = GetCurrentRefSelect(f, args, 0, EnsureFSIAgrees(o.FSIMethods))
+	o.Refs, err = GetCurrentRefSelect(f, args, 0, EnsureFSIAgrees(o.Instance))
 	if err != nil {
 		return err
 	}
@@ -88,16 +86,18 @@ const ColumnPositionForMtime = 40
 func (o *StatusOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
-	res := []lib.StatusItem{}
-	dir := o.Refs.Dir()
-	if err := o.FSIMethods.Status(&dir, &res); err != nil {
-		printErr(o.ErrOut, err)
-		return nil
+	ctx := context.TODO()
+	inst := o.Instance
+
+	params := lib.LinkParams{Dir: o.Refs.Dir()}
+	items, err := inst.Filesys().Status(ctx, &params)
+	if err != nil {
+		return err
 	}
 
 	clean := true
 	valid := true
-	for _, si := range res {
+	for _, si := range items {
 		line := ""
 		switch si.Type {
 		case fsi.STRemoved:

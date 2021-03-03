@@ -8,6 +8,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -33,6 +34,14 @@ func (err *APIError) Error() string {
 func RespondWithError(w http.ResponseWriter, err error) {
 	if errors.Is(err, dsref.ErrRefNotFound) || errors.Is(err, qfs.ErrNotFound) {
 		WriteErrResponse(w, http.StatusNotFound, err)
+		return
+	}
+	if errors.Is(err, repo.ErrNotFound) {
+		WriteErrResponse(w, http.StatusNotFound, err)
+		return
+	}
+	if errors.Is(err, fsi.ErrNoLink) {
+		WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 	if errors.Is(err, repo.ErrNoHistory) {

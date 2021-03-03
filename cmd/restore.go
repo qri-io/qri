@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -58,11 +59,11 @@ not ` + "`structure.json`" + `)`,
 type RestoreOptions struct {
 	ioes.IOStreams
 
+	Instance *lib.Instance
+
 	Refs          *RefSelect
 	Path          string
 	ComponentName string
-
-	FSIMethods *lib.FSIMethods
 }
 
 // Complete configures the restore command
@@ -70,6 +71,8 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 	dsRefList := []string{}
 	o.Path = ""
 	o.ComponentName = ""
+
+	o.Instance = f.Instance()
 
 	// TODO(dlong): Add low-level utilities that parse strings like "peername/ds_name", and
 	// "/ipfs/QmFoo", "meta.description", etc and use those everywhere. Use real regexs so
@@ -111,10 +114,7 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf("unknown argument \"%s\"", arg)
 	}
 
-	if o.FSIMethods, err = f.FSIMethods(); err != nil {
-		return err
-	}
-	if o.Refs, err = GetCurrentRefSelect(f, dsRefList, 1, EnsureFSIAgrees(o.FSIMethods)); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, dsRefList, 1, EnsureFSIAgrees(o.Instance)); err != nil {
 		return err
 	}
 	return nil
@@ -124,17 +124,21 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 func (o *RestoreOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
+	ctx := context.TODO()
+	inst := o.Instance
+
 	ref := o.Refs.Ref()
 	if o.Path != "" {
 		ref += o.Path
 	}
 
-	var res string
-	err = o.FSIMethods.Restore(&lib.RestoreParams{
-		Ref:       ref,
+	params := lib.RestoreParams{
+		Refstr:    ref,
 		Dir:       o.Refs.Dir(),
 		Component: o.ComponentName,
-	}, &res)
+	}
+
+	_, err = inst.Filesys().Restore(ctx, &params)
 	if err != nil {
 		return err
 	}
