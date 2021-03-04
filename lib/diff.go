@@ -26,7 +26,8 @@ type DiffStat = deepdiff.Stats
 // LeftSide set with the UseLeftPrevVersion flag.
 type DiffParams struct {
 	// File paths or reference to datasets
-	LeftSide, RightSide string
+	LeftSide  string `schema:"leftPath" json:"leftPath"`
+	RightSide string `schema:"rightPath" json:"rightPath"`
 	// If not null, the working directory that the diff is using
 	WorkingDir string
 	// Whether to get the previous version of the left parameter
@@ -104,27 +105,32 @@ const (
 )
 
 // Diff computes the diff of two sources
-func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
+func (m *DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse, error) {
 	// absolutize any local paths before a possible trip over RPC to another local process
 	if !dsref.IsRefString(p.LeftSide) {
-		if err = qfs.AbsPath(&p.LeftSide); err != nil {
-			return err
+		if err := qfs.AbsPath(&p.LeftSide); err != nil {
+			return nil, err
 		}
 	}
 	if !dsref.IsRefString(p.RightSide) {
-		if err = qfs.AbsPath(&p.RightSide); err != nil {
-			return err
+		if err := qfs.AbsPath(&p.RightSide); err != nil {
+			return nil, err
 		}
 	}
 
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Diff", p, res))
+	res := &DiffResponse{}
+
+	if m.inst.http != nil {
+		err := m.inst.http.Call(ctx, AEDiff, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
 	diffMode, err := p.diffMode()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if diffMode == FilepathDiffMode {
@@ -132,36 +138,39 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
 		leftComp := component.NewBodyComponent(p.LeftSide)
 		leftData, err := leftComp.StructuredData()
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		rightComp := component.NewBodyComponent(p.RightSide)
 		rightData, err := rightComp.StructuredData()
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		res.Schema, res.SchemaStat, err = schemaDiff(ctx, leftComp, rightComp)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		dd := deepdiff.New()
 		res.Diff, res.Stat, err = dd.StatDiff(ctx, leftData, rightData)
-		return err
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
 
 	// Left side of diff loaded into a component
 	parseResolveLoad, err := m.inst.NewParseResolveLoadFunc(p.Remote)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ds, err := parseResolveLoad(ctx, p.LeftSide)
 	if err != nil {
 		if errors.Is(err, dsref.ErrNoHistory) {
-			return qerr.New(err, fmt.Sprintf("dataset %s has no versions, nothing to diff against", p.LeftSide))
+			return nil, qerr.New(err, fmt.Sprintf("dataset %s has no versions, nothing to diff against", p.LeftSide))
 		}
-		return err
+		return nil, err
 	}
 	// TODO (b5) - setting name & peername to zero values makes tests pass, but
 	// calling ds.DropDerivedValues is overzealous. investigate the right solution
@@ -177,34 +186,34 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
 		// Working directory, read dataset from the current files.
 		rightComp, err = component.ListDirectoryComponents(p.WorkingDir)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		err = component.ExpandListedComponents(rightComp, m.inst.repo.Filesystem())
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// TODO(dlong): Hack! This is what fills the value. StucturedData assumes this has been
 		// called. Should cleanup component's API so that this isn't necessary.
 		_, err = component.ToDataset(rightComp)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	case PrevVersionDiffMode:
 		// The head version was already loaded, use that for the right side of the diff
 		rightComp = leftComp
 		// Load previous dataset version for the new left side
 		if ds.PreviousPath == "" {
-			return fmt.Errorf("dataset has only one version, nothing to diff against")
+			return nil, fmt.Errorf("dataset has only one version, nothing to diff against")
 		}
 		ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), ds.PreviousPath)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		leftComp = component.ConvertDatasetToComponents(ds, m.inst.repo.Filesystem())
 	case DatasetRefDiffMode:
 		ds, err = parseResolveLoad(ctx, p.RightSide)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// TODO (b5) - setting name & peername to zero values makes tests pass, but
 		// calling ds.DropDerivedValues is overzealous. investigate the right solution
@@ -241,7 +250,7 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
 					bodyComp.LoadAndFill(ds)
 					ds.Body, err = bodyComp.StructuredData()
 					if err != nil {
-						return err
+						return nil, err
 					}
 					ds.BodyPath = ""
 				}
@@ -262,7 +271,7 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
 					bodyComp.LoadAndFill(ds)
 					ds.Body, err = bodyComp.StructuredData()
 					if err != nil {
-						return err
+						return nil, err
 					}
 					ds.BodyPath = ""
 				}
@@ -277,21 +286,24 @@ func (m *DatasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	leftComp = leftComp.Base().GetSubcomponent(selector)
 	rightComp = rightComp.Base().GetSubcomponent(selector)
 	if leftComp == nil || rightComp == nil {
-		return fmt.Errorf("component %q not found", selector)
+		return nil, fmt.Errorf("component %q not found", selector)
 	}
 
 	leftData, err := leftComp.StructuredData()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	rightData, err := rightComp.StructuredData()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	dd := deepdiff.New()
 	res.Diff, res.Stat, err = dd.StatDiff(ctx, leftData, rightData)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func schemaDiff(ctx context.Context, left, right *component.BodyComponent) ([]*Delta, *DiffStat, error) {
