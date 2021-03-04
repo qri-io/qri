@@ -83,7 +83,7 @@ func TestDatasetHandlers(t *testing.T) {
 	runHandlerZipPostTestCases(t, "unpack", h.UnpackHandler, unpackCases)
 
 	diffCases := []handlerTestCase{
-		{"GET", "/?left_path=peer/family_relationships&right_path=peer/cities", nil, nil},
+		{"GET", "/?leftPath=peer/family_relationships&rightPath=peer/cities", nil, nil},
 		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "diff", h.DiffHandler, diffCases, false)

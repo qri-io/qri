@@ -195,12 +195,11 @@ func (tr *testRunner) Diff(left, right, selector string) (string, error) {
 		UseLeftPrevVersion: right == "",
 		Selector:           selector,
 	}
-	r := DiffResponse{}
-	err := m.Diff(&p, &r)
+	r, err := m.Diff(tr.Ctx, &p)
 	if err != nil {
 		return "", err
 	}
-	data, err := json.Marshal(r)
+	data, err := json.Marshal(*r)
 	if err != nil {
 		return "", err
 	}
@@ -209,12 +208,11 @@ func (tr *testRunner) Diff(left, right, selector string) (string, error) {
 
 func (tr *testRunner) DiffWithParams(p *DiffParams) (string, error) {
 	m := NewDatasetMethods(tr.Instance)
-	r := DiffResponse{}
-	err := m.Diff(p, &r)
+	r, err := m.Diff(tr.Ctx, p)
 	if err != nil {
 		return "", err
 	}
-	data, err := json.Marshal(r)
+	data, err := json.Marshal(*r)
 	if err != nil {
 		return "", err
 	}

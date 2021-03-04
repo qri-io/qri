@@ -91,8 +91,7 @@ func TestDatasetMethodsDiff(t *testing.T) {
 				p.UseLeftPrevVersion = true
 				p.RightSide = ""
 			}
-			res := &DiffResponse{}
-			err := req.Diff(p, res)
+			res, err := req.Diff(tr.Ctx, p)
 			if err != nil {
 				t.Errorf("%d: \"%s\" error: %s", i, c.description, err.Error())
 				return
