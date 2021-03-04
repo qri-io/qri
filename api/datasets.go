@@ -165,6 +165,36 @@ func (h *DatasetHandlers) UnpackHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// ManifestHandler is the endpoint for generating a manifest for a dataset path
+func (h *DatasetHandlers) ManifestHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		h.manifestHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// ManifestMissingHandler is the endpoint for generating a manifest of blocks that are not present on this repo for a given manifest
+func (h *DatasetHandlers) ManifestMissingHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		h.manifestMissingHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// DAGInfoHandler is the endpoint for generating a dag.Info for a dataset path
+func (h *DatasetHandlers) DAGInfoHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		h.dagInfoHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 func extensionToMimeType(ext string) string {
 	switch ext {
 	case ".csv":
@@ -550,4 +580,58 @@ func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 	util.WriteResponse(w, json.RawMessage(data))
+}
+
+func (h DatasetHandlers) manifestHandler(w http.ResponseWriter, r *http.Request) {
+	params := &lib.ManifestParams{}
+	err := UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	res, err := h.Manifest(r.Context(), params)
+	if err != nil {
+		log.Infof("error generating manifest: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
+}
+
+func (h DatasetHandlers) manifestMissingHandler(w http.ResponseWriter, r *http.Request) {
+	params := &lib.ManifestMissingParams{}
+	err := UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	res, err := h.ManifestMissing(r.Context(), params)
+	if err != nil {
+		log.Infof("error generating manifest: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
+}
+
+func (h DatasetHandlers) dagInfoHandler(w http.ResponseWriter, r *http.Request) {
+	params := &lib.DAGInfoParams{}
+	err := UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	res, err := h.DAGInfo(r.Context(), params)
+	if err != nil {
+		log.Infof("error generating manifest: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
 }

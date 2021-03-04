@@ -1486,41 +1486,55 @@ func (m *DatasetMethods) Validate(ctx context.Context, p *ValidateParams) (*Vali
 	return res, nil
 }
 
+// ManifestParams encapsulates parameters to the manifest command
+type ManifestParams struct {
+	Refstr string
+}
+
 // Manifest generates a manifest for a dataset path
-func (m *DatasetMethods) Manifest(refstr *string, mfst *dag.Manifest) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Manifest", refstr, mfst))
+func (m *DatasetMethods) Manifest(ctx context.Context, p *ManifestParams) (*dag.Manifest, error) {
+	res := &dag.Manifest{}
+	if m.inst.http != nil {
+		err := m.inst.http.Call(ctx, AEManifest, p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
-	ref, _, err := m.inst.ParseAndResolveRef(ctx, *refstr, "local")
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Refstr, "local")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	var mf *dag.Manifest
-	mf, err = m.inst.node.NewManifest(ctx, ref.Path)
+	res, err = m.inst.node.NewManifest(ctx, ref.Path)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	*mfst = *mf
-	return nil
+	return res, nil
+}
+
+// ManifestMissingParams encapsulates parameters to the missing manifest command
+type ManifestMissingParams struct {
+	Manifest *dag.Manifest
 }
 
 // ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
-func (m *DatasetMethods) ManifestMissing(a, b *dag.Manifest) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.Manifest", a, b))
+func (m *DatasetMethods) ManifestMissing(ctx context.Context, p *ManifestMissingParams) (*dag.Manifest, error) {
+	res := &dag.Manifest{}
+	if m.inst.http != nil {
+		err := m.inst.http.Call(ctx, AEManifestMissing, p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
-	var mf *dag.Manifest
-	mf, err := m.inst.node.MissingManifest(ctx, a)
+	res, err := m.inst.node.MissingManifest(ctx, p.Manifest)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	*b = *mf
-	return nil
+	return res, nil
 }
 
 // DAGInfoParams defines parameters for the DAGInfo method
@@ -1529,24 +1543,26 @@ type DAGInfoParams struct {
 }
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
-func (m *DatasetMethods) DAGInfo(s *DAGInfoParams, i *dag.Info) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("DatasetMethods.DAGInfo", s, i))
+func (m *DatasetMethods) DAGInfo(ctx context.Context, p *DAGInfoParams) (*dag.Info, error) {
+	res := &dag.Info{}
+	if m.inst.http != nil {
+		err := m.inst.http.Call(ctx, AEDAGInfo, p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 
-	ref, _, err := m.inst.ParseAndResolveRef(ctx, s.RefStr, "local")
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.RefStr, "local")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	var info *dag.Info
-	info, err = m.inst.node.NewDAGInfo(ctx, ref.Path, s.Label)
+	res, err = m.inst.node.NewDAGInfo(ctx, ref.Path, p.Label)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	*i = *info
-	return err
+	return res, nil
 }
 
 // StatsParams defines the params for a Stats request
