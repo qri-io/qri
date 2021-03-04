@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,6 +14,9 @@ import (
 	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/auth/token"
 )
+
+// ErrUnsupportedRPC is an error for when running a method that is not supported via HTTP RPC
+var ErrUnsupportedRPC = errors.New("Warning: method is not suported over RPC")
 
 const jsonMimeType = "application/json"
 
