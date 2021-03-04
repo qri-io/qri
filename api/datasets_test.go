@@ -88,6 +88,13 @@ func TestDatasetHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "diff", h.DiffHandler, diffCases, false)
 
+	changesCases := []handlerTestCase{
+		// TODO(arqu): disabled because output of changes is not stable thus being a very flakey test
+		// {"GET", "/?leftRef=peer/family_relationships&rightRef=peer/cities", nil, nil},
+		{"DELETE", "/", nil, nil},
+	}
+	runHandlerTestCases(t, "changes", h.ChangesHandler, changesCases, false)
+
 	removeCases := []handlerTestCase{
 		{"GET", "/", nil, nil},
 		{"POST", "/remove/peer/cities", nil, &map[string]string{"peername": "peer", "name": "cities"}},

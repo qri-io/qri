@@ -58,7 +58,7 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 		// another cannot modify the out-of-scope data of the other. This will mostly
 		// involve making copies of the right things
 		scope := scope{
-			ctx: ctx,
+			ctx:  ctx,
 			inst: inst,
 		}
 
