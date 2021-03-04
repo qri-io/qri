@@ -75,7 +75,10 @@ func (accessImpl) CreateAuthToken(scp scope, p *CreateAuthTokenParams) (string, 
 		if grantee, err = scp.Profiles().GetProfile(id); err != nil {
 			return "", err
 		}
-	} else if p.GranteeUsername != "" {
+	} else if p.GranteeUsername == "me" {
+		// TODO(b5): this should be scp.ActiveUser()
+		grantee = scp.Profiles().Owner()
+	} else {
 		if grantee, err = profile.ResolveUsername(scp.Profiles(), p.GranteeUsername); err != nil {
 			return "", err
 		}

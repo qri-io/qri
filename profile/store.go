@@ -210,8 +210,6 @@ func (m *MemStore) PeerProfile(id peer.ID) (*Profile, error) {
 	m.Lock()
 	defer m.Unlock()
 
-	// str := fmt.Sprintf("/ipfs/%s", id.Pretty())
-
 	for _, profile := range m.store {
 		for _, pid := range profile.PeerIDs {
 			if id == pid {
@@ -450,6 +448,10 @@ func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
 	r.Lock()
 	defer r.Unlock()
 
+	if id == r.owner.ID {
+		return r.owner, nil
+	}
+
 	ps, err := r.profiles()
 	if err != nil {
 		return nil, err
@@ -482,6 +484,10 @@ func (r *LocalStore) ProfilesForUsername(username string) ([]*Profile, error) {
 	}
 
 	var res []*Profile
+	if username == r.owner.Peername {
+		res = append(res, r.owner)
+	}
+
 	for id, p := range ps {
 		if p.Peername == username {
 			pro := &Profile{}

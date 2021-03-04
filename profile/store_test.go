@@ -145,7 +145,7 @@ func TestMemStoreGetOwner(t *testing.T) {
 		t.Error("getting owner profile must return profile with private key populated")
 	}
 
-	if diff := cmp.Diff(owner, pro, cmpopts.IgnoreUnexported(Profile{}, crypto.RsaPrivateKey{}, crypto.ECDSAPrivateKey{})); diff != "" {
+	if diff := cmp.Diff(owner, pro, cmpopts.IgnoreUnexported(Profile{}, crypto.RsaPublicKey{}, crypto.RsaPrivateKey{}, crypto.ECDSAPublicKey{}, crypto.ECDSAPrivateKey{})); diff != "" {
 		t.Errorf("get owner mismatch. (-want +got):\n%s", diff)
 	}
 }
