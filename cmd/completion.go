@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
@@ -96,9 +97,10 @@ func (o *ConfigOptions) GetConfig(args []string) (err error) {
 		params.Field = args[0]
 	}
 
-	var data []byte
+	ctx := context.TODO()
 
-	if err = o.ConfigMethods.GetConfigKeys(params, &data); err != nil {
+	data, err := o.ConfigMethods.GetConfigKeys(ctx, params)
+	if err != nil {
 		return err
 	}
 

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -159,9 +161,13 @@ func (o *ConfigOptions) Get(args []string) (err error) {
 		params.Field = args[0]
 	}
 
-	var data []byte
+	ctx := context.TODO()
 
-	if err = o.ConfigMethods.GetConfig(params, &data); err != nil {
+	data, err := o.ConfigMethods.GetConfig(ctx, params)
+	if err != nil {
+		if errors.Is(err, lib.ErrUnsupportedRPC) {
+			return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
+		}
 		return err
 	}
 
@@ -214,8 +220,11 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 			}
 		}
 	}
-	var ok bool
-	if err = o.ConfigMethods.SetConfig(o.inst.Config(), &ok); err != nil {
+	ctx := context.TODO()
+	if _, err := o.ConfigMethods.SetConfig(ctx, o.inst.Config()); err != nil {
+		if errors.Is(err, lib.ErrUnsupportedRPC) {
+			return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
+		}
 		return err
 	}
 	if profileChanged {
