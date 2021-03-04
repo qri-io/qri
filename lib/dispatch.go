@@ -151,59 +151,109 @@ type callable struct {
 // RegisterMethods iterates the methods provided by the lib API, and makes them visible to dispatch
 func (inst *Instance) RegisterMethods() {
 	reg := make(map[string]callable)
-	// TODO(dustmop): Change registerOne to take both the MethodSet and the Impl, validate
-	// that their signatures agree.
-	inst.registerOne("fsi", &FSIImpl{}, reg)
-	inst.registerOne("access", accessImpl{}, reg)
+	inst.registerOne("fsi", inst.Filesys(), fsiImpl{}, reg)
+	inst.registerOne("access", inst.Access(), accessImpl{}, reg)
 	inst.regMethods = &regMethodSet{reg: reg}
 }
 
-func (inst *Instance) registerOne(ourName string, impl interface{}, reg map[string]callable) {
+func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interface{}, reg map[string]callable) {
 	implType := reflect.TypeOf(impl)
+	msetType := reflect.TypeOf(methods)
+	methodMap := inst.buildMethodMap(methods)
 	// Iterate methods on the implementation, register those that have the right signature
 	num := implType.NumMethod()
 	for k := 0; k < num; k++ {
-		m := implType.Method(k)
-		lowerName := strings.ToLower(m.Name)
+		i := implType.Method(k)
+		lowerName := strings.ToLower(i.Name)
 		funcName := fmt.Sprintf("%s.%s", ourName, lowerName)
 
-		// Validate the parameters to the method
+		// Validate the parameters to the implementation
 		// should have 3 input parameters: (receiver, scope, input struct)
 		// should have 2 output parametres: (output value, error)
 		// TODO(dustmop): allow variadic returns: error only, cursor for pagination
-		f := m.Type
+		f := i.Type
 		if f.NumIn() != 3 {
-			log.Fatalf("%s: bad number of inputs: %d", funcName, f.NumIn())
+			panic(fmt.Sprintf("%s: bad number of inputs: %d", funcName, f.NumIn()))
 		}
 		if f.NumOut() != 2 {
-			log.Fatalf("%s: bad number of outputs: %d", funcName, f.NumOut())
+			panic(fmt.Sprintf("%s: bad number of outputs: %d", funcName, f.NumOut()))
 		}
 		// First input must be the receiver
 		inType := f.In(0)
 		if inType != implType {
-			log.Fatalf("%s: first input param should be impl, got %v", funcName, inType)
+			panic(fmt.Sprintf("%s: first input param should be impl, got %v", funcName, inType))
 		}
 		// Second input must be a scope
 		inType = f.In(1)
 		if inType.Name() != "scope" {
-			log.Fatalf("%s: second input param should be scope, got %v", funcName, inType)
+			panic(fmt.Sprintf("%s: second input param should be scope, got %v", funcName, inType))
 		}
 		// Third input is a pointer to the input struct
 		inType = f.In(2)
 		if inType.Kind() != reflect.Ptr {
-			log.Fatalf("%s: third input param must be a struct pointer, got %v", funcName, inType)
+			panic(fmt.Sprintf("%s: third input param must be a struct pointer, got %v", funcName, inType))
 		}
 		inType = inType.Elem()
 		if inType.Kind() != reflect.Struct {
-			log.Fatalf("%s: third input param must be a struct pointer, got %v", funcName, inType)
+			panic(fmt.Sprintf("%s: third input param must be a struct pointer, got %v", funcName, inType))
 		}
 		// First output is anything
 		outType := f.Out(0)
 		// Second output must be an error
 		outErrType := f.Out(1)
 		if outErrType.Name() != "error" {
-			log.Fatalf("%s: second output param should be error, got %v", funcName, outErrType)
+			panic(fmt.Sprintf("%s: second output param should be error, got %v", funcName, outErrType))
 		}
+
+		// Validate the parameters to the method that matches the implementation
+		// should have 3 input parameters: (receiver, context.Context, input struct [same as impl])
+		// should have 2 output parametres: (output value [same as impl], error)
+		m, ok := methodMap[i.Name]
+		if !ok {
+			panic(fmt.Sprintf("method %s not found on MethodSet", i.Name))
+		}
+		f = m.Type
+		if f.NumIn() != 3 {
+			panic(fmt.Sprintf("%s: bad number of inputs: %d", funcName, f.NumIn()))
+		}
+		msetNumMethods := f.NumOut()
+		if msetNumMethods < 1 && msetNumMethods > 2 {
+			panic(fmt.Sprintf("%s: bad number of outputs: %d", funcName, f.NumOut()))
+		}
+		// First input must be the receiver
+		mType := f.In(0)
+		if mType.Name() != msetType.Name() {
+			panic(fmt.Sprintf("%s: first input param should be impl, got %v", funcName, mType))
+		}
+		// Second input must be a context
+		mType = f.In(1)
+		if mType.Name() != "Context" {
+			panic(fmt.Sprintf("%s: second input param should be context.Context, got %v", funcName, mType))
+		}
+		// Third input is a pointer to the input struct
+		mType = f.In(2)
+		if mType.Kind() != reflect.Ptr {
+			panic(fmt.Sprintf("%s: third input param must be a pointer, got %v", funcName, mType))
+		}
+		mType = mType.Elem()
+		if mType != inType {
+			panic(fmt.Sprintf("%s: third input param must match impl, expect %v, got %v", funcName, inType, mType))
+		}
+		// First output, if there's more than 1, matches the impl output
+		if msetNumMethods == 2 {
+			mType = f.Out(0)
+			if mType != outType {
+				panic(fmt.Sprintf("%s: first output param must match impl, expect %v, got %v", funcName, outType, mType))
+			}
+		}
+		// Last output must be an error
+		mType = f.Out(msetNumMethods - 1)
+		if mType.Name() != "error" {
+			panic(fmt.Sprintf("%s: last output param should be error, got %v", funcName, mType))
+		}
+
+		// Remove this method from the methodSetMap now that it has been processed
+		delete(methodMap, i.Name)
 
 		// Save the method to the registration table
 		reg[funcName] = callable{
@@ -214,6 +264,23 @@ func (inst *Instance) registerOne(ourName string, impl interface{}, reg map[stri
 		}
 		log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
 	}
+
+	for k := range methodMap {
+		if k != "Name" {
+			panic(fmt.Sprintf("%s: did not find implementation for method %s", msetType, k))
+		}
+	}
+}
+
+func (inst *Instance) buildMethodMap(impl interface{}) map[string]reflect.Method {
+	result := make(map[string]reflect.Method)
+	implType := reflect.TypeOf(impl)
+	num := implType.NumMethod()
+	for k := 0; k < num; k++ {
+		m := implType.Method(k)
+		result[m.Name] = m
+	}
+	return result
 }
 
 // MethodSet represents a set of methods to be registered
