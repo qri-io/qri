@@ -11,6 +11,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	apiutil "github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/auth/token"
 )
 
 const jsonMimeType = "application/json"
@@ -72,7 +73,6 @@ func (c HTTPClient) CallMethod(ctx context.Context, apiEndpoint APIEndpoint, htt
 	// TODO(arqu): work out mimeType configuration/override per API endpoint
 	mimeType := jsonMimeType
 	addr := fmt.Sprintf("%s://%s%s", c.Protocol, c.Address, apiEndpoint)
-	// TODO(arqu): inject context values into headers
 
 	return c.do(ctx, addr, httpMethod, mimeType, params, result, false)
 }
@@ -111,6 +111,10 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 
 	req.Header.Set("Content-Type", mimeType)
 	req.Header.Set("Accept", mimeType)
+
+	if s := token.FromCtx(ctx); s != "" {
+		req.Header.Set("authorization", fmt.Sprintf("Bearer %s", s))
+	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

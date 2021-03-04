@@ -38,8 +38,7 @@ type Token = jwt.Token
 // Claims is a JWT Claims object
 type Claims struct {
 	*jwt.StandardClaims
-	// TODO(b5): this needs to be replaced with a profileID
-	Username string `json:"username"`
+	ProfileID string `json:"profileID"`
 }
 
 // Parse will parse, validate and return a token
@@ -203,7 +202,7 @@ func (a *pkSource) CreateToken(pro *profile.Profile, ttl time.Duration) (string,
 			// see http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-20#section-4.1.4
 			ExpiresAt: exp,
 		},
-		Username: pro.Peername,
+		ProfileID: pro.ID.String(),
 	}
 
 	// Creat token string

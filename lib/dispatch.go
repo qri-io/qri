@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
+
+	"github.com/qri-io/qri/auth/token"
+	"github.com/qri-io/qri/profile"
 )
 
 // dispatcher isolates the dispatch method
@@ -35,6 +39,22 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 	// If the http rpc layer is engaged, use it to dispatch methods
 	// This happens when another process is running `qri connect`
 	if inst.http != nil {
+		if tok := token.FromCtx(ctx); tok == "" {
+			// If no token exists, create one from configured profile private key &
+			// add it to the request context
+			// TODO(b5): we're falling back to the configured user to make requests,
+			// is this the right default?
+			p, err := profile.NewProfile(inst.cfg.Profile)
+			if err != nil {
+				return nil, err
+			}
+			tokstr, err := token.NewPrivKeyAuthToken(p.PrivKey, time.Minute)
+			if err != nil {
+				return nil, err
+			}
+			ctx = token.AddToContext(ctx, tokstr)
+		}
+
 		if c, ok := inst.regMethods.lookup(method); ok {
 			// TODO(dustmop): This is always using the "POST" verb currently. We need some
 			// mechanism of tagging methods as being read-only and "GET"-able. Once that
@@ -62,9 +82,9 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 		// or use copy-on-write semantics, so that one method running at the same time as
 		// another cannot modify the out-of-scope data of the other. This will mostly
 		// involve making copies of the right things
-		scope := scope{
-			ctx:  ctx,
-			inst: inst,
+		scope, err := newScope(ctx, inst)
+		if err != nil {
+			return nil, err
 		}
 
 		// Construct the parameter list for the function call, then call it

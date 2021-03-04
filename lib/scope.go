@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -21,7 +22,44 @@ import (
 type scope struct {
 	ctx  context.Context
 	inst *Instance
+	pro  *profile.Profile
 	// TODO(dustmop): Additional information, such as user identity, their profile, keys
+}
+
+func newScope(ctx context.Context, inst *Instance) (scope, error) {
+	var pro *profile.Profile
+	// TODO(b5): shouldn't need this nil checking
+	if inst != nil && inst.profiles != nil {
+		pro = inst.profiles.Owner()
+		if tokenString := token.FromCtx(ctx); tokenString != "" {
+			tok, err := token.ParseAuthToken(tokenString, inst.keystore)
+			if err != nil {
+				return scope{}, err
+			}
+
+			if claims, ok := tok.Claims.(*token.Claims); ok {
+				// TODO(b5): at this point we have a valid signature of a profileID string
+				// but no proof that this profile is owned by the key that signed the
+				// token. We either need ProfileID == KeyID, or we need a UCAN. we need to
+				// check for those, ideally in a method within the profile package that
+				// abstracts over profile & key agreement
+				pro, err = inst.profiles.GetProfile(profile.IDB58DecodeOrEmpty(claims.ProfileID))
+				if err != nil {
+					return scope{}, err
+				}
+			}
+		}
+	}
+
+	return scope{
+		ctx:  ctx,
+		inst: inst,
+		pro:  pro,
+	}, nil
+}
+
+func (s *scope) ActiveProfile() *profile.Profile {
+	return s.pro
 }
 
 // Context returns the context for this scope. Though this pattern is usually discouraged,
