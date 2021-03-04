@@ -66,6 +66,16 @@ func (p *ListParams) UnmarshalFromRequest(r *http.Request) error {
 	} else {
 		lp.Raw = p.Raw
 	}
+	if p.Peername == "" {
+		lp.Peername = r.FormValue("peername")
+	} else {
+		lp.Peername = p.Peername
+	}
+	if p.Term == "" {
+		lp.Term = r.FormValue("term")
+	} else {
+		lp.Term = p.Term
+	}
 	*p = lp
 	return nil
 }

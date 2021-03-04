@@ -122,10 +122,11 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 		return err
 	}
 
+	if err = c.checkError(res, body, raw); err != nil {
+		return err
+	}
+
 	if raw {
-		if res.StatusCode < 200 && res.StatusCode > 299 {
-			return fmt.Errorf("HTTPClient req error: %d - %q", res.StatusCode, body)
-		}
 		if buf, ok := result.(*bytes.Buffer); ok {
 			buf.Write(body)
 		} else {
@@ -140,18 +141,39 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 	}
 	err = json.Unmarshal(body, &resData)
 	if err != nil {
-		log.Debugf("HTTPClient unmarshal err: %s", err.Error())
-		return fmt.Errorf("HTTPClient unmarshal err: %s", err)
+		log.Debugf("HTTPClient response err: %s", err.Error())
+		return fmt.Errorf("HTTPClient response err: %s", err)
 	}
-	return c.checkError(resData.Meta)
+	return nil
 }
 
-func (c HTTPClient) checkError(meta *apiutil.Meta) error {
-	if meta == nil {
-		return fmt.Errorf("HTTPClient req error: invalid meta response")
+func (c HTTPClient) checkError(res *http.Response, body []byte, raw bool) error {
+	metaResponse := struct {
+		Meta *apiutil.Meta
+	}{
+		Meta: &apiutil.Meta{},
 	}
-	if meta.Code != 200 {
-		return fmt.Errorf("HTTPClient req error: %d - %q", meta.Code, meta.Error)
+	parseErr := json.Unmarshal(body, &metaResponse)
+	if parseErr != nil {
+		if !raw {
+			log.Debugf("HTTPClient response error: %d - %q", res.StatusCode, body)
+			return fmt.Errorf("failed parsing response: %q", string(body))
+		}
+	}
+
+	if metaResponse.Meta == nil {
+		if !raw {
+			log.Debugf("HTTPClient response error: %d - %q", res.StatusCode, body)
+			return fmt.Errorf("invalid meta response")
+		}
+	} else if metaResponse.Meta.Code < 200 || metaResponse.Meta.Code > 299 {
+		log.Debugf("HTTPClient response meta error: %d - %q", metaResponse.Meta.Code, metaResponse.Meta.Error)
+		return fmt.Errorf(metaResponse.Meta.Error)
+	}
+
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		log.Debugf("HTTPClient response error: %d - %q", res.StatusCode, body)
+		return fmt.Errorf(string(body))
 	}
 	return nil
 }
