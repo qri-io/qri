@@ -47,7 +47,7 @@ func TestPutProfileWithAddresses(t *testing.T) {
 	}
 
 	owner := &Profile{
-		ID:       ID(kd0.PeerID),
+		ID:       IDFromPeerID(kd0.PeerID),
 		Peername: "user",
 		PrivKey:  kd0.PrivKey,
 	}
@@ -101,7 +101,7 @@ func TestProfilesWithKeys(t *testing.T) {
 	}
 
 	owner := &Profile{
-		ID:       ID(kd0.PeerID),
+		ID:       IDFromPeerID(kd0.PeerID),
 		Peername: "user",
 		PrivKey:  kd0.PrivKey,
 	}
@@ -145,7 +145,7 @@ func TestProfilesWithKeys(t *testing.T) {
 
 func TestMemStoreGetOwner(t *testing.T) {
 	kd0 := testkeys.GetKeyData(0)
-	id := ID(kd0.PeerID)
+	id := IDFromPeerID(kd0.PeerID)
 	owner := &Profile{ID: id, PrivKey: kd0.PrivKey, Peername: "owner"}
 	ks, err := key.NewMemStore()
 	if err != nil {
@@ -181,7 +181,7 @@ func TestResolveUsername(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	owner := &Profile{ID: ID(kd0.PeerID), PrivKey: kd0.PrivKey, Peername: "owner"}
+	owner := &Profile{ID: IDFromPeerID(kd0.PeerID), PrivKey: kd0.PrivKey, Peername: "owner"}
 	s, err := NewMemStore(owner, ks)
 	if err != nil {
 		t.Fatal(err)
@@ -199,8 +199,8 @@ func TestResolveUsername(t *testing.T) {
 		t.Errorf("get owner mismatch. (-want +got):\n%s", diff)
 	}
 
-	marjorieA := &Profile{ID: ID(kd1.PeerID), PrivKey: kd1.PrivKey, Peername: "marjorie", Email: "marjorie_a@aol.com"}
-	marjorieB := &Profile{ID: ID(kd2.PeerID), PrivKey: kd2.PrivKey, Peername: "marjorie", Email: "marjorie_b@aol.com"}
+	marjorieA := &Profile{ID: IDFromPeerID(kd1.PeerID), PrivKey: kd1.PrivKey, Peername: "marjorie", Email: "marjorie_a@aol.com"}
+	marjorieB := &Profile{ID: IDFromPeerID(kd2.PeerID), PrivKey: kd2.PrivKey, Peername: "marjorie", Email: "marjorie_b@aol.com"}
 
 	if err := s.PutProfile(marjorieA); err != nil {
 		t.Fatal(err)

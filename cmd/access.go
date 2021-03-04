@@ -8,7 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewAccessCommand creates a new `qri apply` cobra command for applying transformations
+// NewAccessCommand creates a new `qri access` cobra command for managing
+// permissions
 func NewAccessCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &AccessOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{

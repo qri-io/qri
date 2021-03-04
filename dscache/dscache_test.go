@@ -98,8 +98,8 @@ func TestResolveRef(t *testing.T) {
 
 	dsrefspec.AssertResolverSpec(t, dsc, func(r dsref.Ref, author profile.Author, _ *oplog.Log) error {
 		builder := NewBuilder()
-		pid, err := key.IDFromPubKey(author.AuthorPubKey())
-		builder.AddUser(r.Username, pid)
+		kid, err := key.IDFromPubKey(author.AuthorPubKey())
+		builder.AddUser(r.Username, kid)
 		if err != nil {
 			return err
 		}
@@ -107,7 +107,7 @@ func TestResolveRef(t *testing.T) {
 			Username:  r.Username,
 			InitID:    r.InitID,
 			Path:      r.Path,
-			ProfileID: pid,
+			ProfileID: kid,
 			Name:      r.Name,
 		})
 		cache := builder.Build()

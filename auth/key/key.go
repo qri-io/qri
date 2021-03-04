@@ -29,12 +29,12 @@ func IDFromPrivKey(pk crypto.PrivKey) (string, error) {
 	return IDFromPubKey(pk.GetPublic())
 }
 
-// IDFromPubKey returns the base58btc-encoded multihash string of a public key
-// hash. hashes are 32-byte sha2-256 sums of public key bytes
-// KeyID is a unique identifier for a keypair
+// IDFromPubKey returns an ID string is a that is unique identifier for a
+// keypair. For RSA keys this is the base58btc-encoded multihash string of
+// the public key. hashes are 32-byte sha2-256 sums of public key bytes
 func IDFromPubKey(pubKey crypto.PubKey) (string, error) {
 	if pubKey == nil {
-		return "", fmt.Errorf("identity: public key is required")
+		return "", fmt.Errorf("public key is required")
 	}
 
 	id, err := peer.IDFromPublicKey(pubKey)

@@ -39,8 +39,8 @@ type ApplyParams struct {
 	ScriptOutput io.Writer `json:"-"`
 }
 
-// Valid returns an error if ApplyParams fields are in an invalid state
-func (p *ApplyParams) Valid() error {
+// Validate returns an error if ApplyParams fields are in an invalid state
+func (p *ApplyParams) Validate() error {
 	if p.Refstr == "" && p.Transform == nil {
 		return fmt.Errorf("one or both of Reference, Transform are required")
 	}
@@ -55,7 +55,7 @@ type ApplyResult struct {
 
 // Apply runs a transform script
 func (m *TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
-	err := p.Valid()
+	err := p.Validate()
 	if err != nil {
 		return nil, err
 	}

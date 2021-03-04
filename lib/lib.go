@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/auth/key"
+	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
@@ -919,6 +920,36 @@ func (inst *Instance) Bus() event.Bus {
 		return nil
 	}
 	return inst.bus
+}
+
+// activeProfile tries to extract the current user from values embedded in the
+// passed-in context, falling back to the repo owner as a default active profile
+func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, err error) {
+	if inst == nil {
+		return nil, fmt.Errorf("no instance")
+	}
+
+	if tokenString := token.FromCtx(ctx); tokenString != "" {
+		tok, err := token.ParseAuthToken(tokenString, inst.keystore)
+		if err != nil {
+			return nil, err
+		}
+
+		if claims, ok := tok.Claims.(*token.Claims); ok {
+			// TODO(b5): at this point we have a valid signature of a profileID string
+			// but no proof that this profile is owned by the key that signed the
+			// token. We either need ProfileID == KeyID, or we need a UCAN. we need to
+			// check for those, ideally in a method within the profile package that
+			// abstracts over profile & key agreement
+			return inst.profiles.GetProfile(profile.IDB58DecodeOrEmpty(claims.ProfileID))
+		}
+	}
+
+	if inst.profiles != nil {
+		return inst.profiles.Owner(), nil
+	}
+
+	return pro, err
 }
 
 // checkRPCError validates RPC errors and in case of EOF returns a

@@ -86,7 +86,6 @@ func NewPrivKeyAuthToken(pk crypto.PrivKey, ttl time.Duration) (string, error) {
 		},
 	}
 
-	// Creat token string
 	return t.SignedString(signKey)
 }
 
