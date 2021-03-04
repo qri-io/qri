@@ -308,12 +308,15 @@ func NewLocalStore(filename string, owner *Profile, ks key.Store) (Store, error)
 		return nil, err
 	}
 
-	return &LocalStore{
+	s := &LocalStore{
 		owner:    owner,
 		keyStore: ks,
 		filename: filename,
 		flock:    flock.NewFlock(lockPath(filename)),
-	}, nil
+	}
+
+	err := s.PutProfile(owner)
+	return s, err
 }
 
 func lockPath(filename string) string {
@@ -448,10 +451,6 @@ func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
 	r.Lock()
 	defer r.Unlock()
 
-	if id == r.owner.ID {
-		return r.owner, nil
-	}
-
 	ps, err := r.profiles()
 	if err != nil {
 		return nil, err
@@ -484,9 +483,6 @@ func (r *LocalStore) ProfilesForUsername(username string) ([]*Profile, error) {
 	}
 
 	var res []*Profile
-	if username == r.owner.Peername {
-		res = append(res, r.owner)
-	}
 
 	for id, p := range ps {
 		if p.Peername == username {

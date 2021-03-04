@@ -107,8 +107,8 @@ func (mkb *memoryKeyBook) AddPrivKey(k ID, sk ic.PrivKey) error {
 func (mkb *memoryKeyBook) MarshalJSON() ([]byte, error) {
 	mkb.RLock()
 	res := map[string]interface{}{}
-	pubKeys := map[ID]string{}
-	privKeys := map[ID]string{}
+	pubKeys := map[string]string{}
+	privKeys := map[string]string{}
 	for k, v := range mkb.pks {
 		byteKey, err := ic.MarshalPublicKey(v)
 		if err != nil {
@@ -116,7 +116,7 @@ func (mkb *memoryKeyBook) MarshalJSON() ([]byte, error) {
 			log.Debugf("keybook: failed to marshal key: %q", err.Error())
 			continue
 		}
-		pubKeys[k] = ic.ConfigEncodeKey(byteKey)
+		pubKeys[k.Pretty()] = ic.ConfigEncodeKey(byteKey)
 	}
 	for k, v := range mkb.sks {
 		byteKey, err := ic.MarshalPrivateKey(v)
@@ -125,7 +125,7 @@ func (mkb *memoryKeyBook) MarshalJSON() ([]byte, error) {
 			log.Debugf("keybook: failed to marshal key: %q", err.Error())
 			continue
 		}
-		privKeys[k] = ic.ConfigEncodeKey(byteKey)
+		privKeys[k.Pretty()] = ic.ConfigEncodeKey(byteKey)
 	}
 
 	res["public_keys"] = pubKeys
@@ -152,7 +152,11 @@ func (mkb *memoryKeyBook) UnmarshalJSON(data []byte) error {
 			if err != nil {
 				return err
 			}
-			err = mkb.AddPubKey(ID(k), key)
+			id, err := DecodeID(k)
+			if err != nil {
+				return err
+			}
+			err = mkb.AddPubKey(id, key)
 			if err != nil {
 				return err
 			}
@@ -168,7 +172,11 @@ func (mkb *memoryKeyBook) UnmarshalJSON(data []byte) error {
 			if err != nil {
 				return err
 			}
-			err = mkb.AddPrivKey(ID(k), key)
+			id, err := DecodeID(k)
+			if err != nil {
+				return err
+			}
+			err = mkb.AddPrivKey(id, key)
 			if err != nil {
 				return err
 			}

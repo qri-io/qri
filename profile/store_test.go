@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -45,7 +46,12 @@ func TestPutProfileWithAddresses(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: kd0.PrivKey, Peername: "user"}, ks)
+	owner := &Profile{
+		ID:       ID(kd0.PeerID),
+		Peername: "user",
+		PrivKey:  kd0.PrivKey,
+	}
+	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), owner, ks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,18 +61,28 @@ func TestPutProfileWithAddresses(t *testing.T) {
 		t.Errorf("error putting profile: %s", err.Error())
 	}
 
-	golden := "testdata/simple.json"
-	path = filepath.Join(path, "profiles.json")
-	f1, err := ioutil.ReadFile(golden)
+	goldenFilepath := "testdata/simple.json"
+	gf, err := ioutil.ReadFile(goldenFilepath)
 	if err != nil {
 		t.Errorf("error reading golden file: %s", err.Error())
 	}
-	f2, err := ioutil.ReadFile(path)
+	golden := map[string]interface{}{}
+	if err := json.Unmarshal(gf, &golden); err != nil {
+		t.Fatal(err)
+	}
+
+	path = filepath.Join(path, "profiles.json")
+	f, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Errorf("error reading written file: %s", err.Error())
 	}
+	got := map[string]interface{}{}
+	if err := json.Unmarshal(f, &got); err != nil {
+		t.Fatal(err)
+	}
 
-	if diff := cmp.Diff(f1, f2); diff != "" {
+	t.Log(string(f))
+	if diff := cmp.Diff(golden, got); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -84,7 +100,12 @@ func TestProfilesWithKeys(t *testing.T) {
 		t.Errorf("error creating tmp directory: %s", err.Error())
 	}
 
-	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: kd0.PrivKey, Peername: "user"}, ks)
+	owner := &Profile{
+		ID:       ID(kd0.PeerID),
+		Peername: "user",
+		PrivKey:  kd0.PrivKey,
+	}
+	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), owner, ks)
 	if err != nil {
 		t.Fatal(err)
 	}

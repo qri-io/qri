@@ -100,9 +100,6 @@ func ParseAuthToken(tokenString string, keystore key.Store) (*Token, error) {
 		}
 		pubKey := keystore.PubKey(pid)
 		if pubKey == nil {
-			for _, pid := range keystore.IDsWithKeys() {
-				fmt.Printf("key %s has a pid\n", pid)
-			}
 			return nil, fmt.Errorf("cannot verify key. missing public key for id %s", claims.Issuer)
 		}
 		rawPubBytes, err := pubKey.Raw()

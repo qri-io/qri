@@ -13,6 +13,10 @@ import (
 	"github.com/theckman/go-flock"
 )
 
+// ErrKeyAndIDMismatch occurs when a key identifier doesn't match it's public
+// key
+var ErrKeyAndIDMismatch = fmt.Errorf("public key does not match identifier")
+
 // Store is an abstraction over a KeyBook
 // In the future we may expand this interface to store symmetric encryption keys
 type Store interface {
@@ -101,6 +105,9 @@ func (s *localStore) AddPubKey(keyID ID, pubKey crypto.PubKey) error {
 	if err != nil {
 		return err
 	}
+	if !keyID.MatchesPublicKey(pubKey) {
+		return fmt.Errorf("%w id: %q", ErrKeyAndIDMismatch, keyID.Pretty())
+	}
 	err = kb.AddPubKey(keyID, pubKey)
 	if err != nil {
 		return err
@@ -113,6 +120,10 @@ func (s *localStore) AddPubKey(keyID ID, pubKey crypto.PubKey) error {
 func (s *localStore) AddPrivKey(keyID ID, privKey crypto.PrivKey) error {
 	s.Lock()
 	defer s.Unlock()
+
+	if !keyID.MatchesPrivateKey(privKey) {
+		return fmt.Errorf("%w id: %q", ErrKeyAndIDMismatch, keyID.Pretty())
+	}
 
 	kb, err := s.keys()
 	if err != nil {
