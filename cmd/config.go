@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -159,9 +160,10 @@ func (o *ConfigOptions) Get(args []string) (err error) {
 		params.Field = args[0]
 	}
 
-	var data []byte
+	ctx := context.TODO()
 
-	if err = o.ConfigMethods.GetConfig(params, &data); err != nil {
+	data, err := o.ConfigMethods.GetConfig(ctx, params)
+	if err != nil {
 		return err
 	}
 

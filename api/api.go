@@ -219,6 +219,10 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEFSICreateLink.String(), s.Middleware(fsih.CreateLinkHandler(lib.AEFSICreateLink.NoTrailingSlash())))
 	m.Handle(lib.AEFSIUnlink.String(), s.Middleware(fsih.UnlinkHandler(lib.AEFSIUnlink.NoTrailingSlash())))
 
+	cfgh := NewConfigHandlers(s.Instance)
+	m.Handle(lib.AEConfig.String(), s.Middleware(cfgh.ConfigHandler))
+	m.Handle(lib.AEConfigKeys.String(), s.Middleware(cfgh.ConfigKeysHandler))
+
 	renderh := NewRenderHandlers(s.Instance)
 	m.Handle(lib.AERender.String(), s.Middleware(renderh.RenderHandler))
 	m.Handle(lib.AERenderAlt.String(), s.Middleware(renderh.RenderHandler))

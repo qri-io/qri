@@ -32,8 +32,8 @@ func TestGetConfig(t *testing.T) {
 	m := NewConfigMethods(inst)
 
 	p := &GetConfigParams{Field: "profile.id", Format: "json"}
-	res := []byte{}
-	if err := m.GetConfig(p, &res); err != nil {
+	res, err := m.GetConfig(ctx, p)
+	if err != nil {
 		t.Error(err.Error())
 	}
 	if !bytes.Equal(res, []byte(`"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"`)) {
@@ -101,8 +101,8 @@ func TestSetConfig(t *testing.T) {
 		t.Error(err.Error())
 	}
 	p := &GetConfigParams{Field: "profile.twitter", Format: "json"}
-	res := []byte{}
-	if err := m.GetConfig(p, &res); err != nil {
+	res, err := m.GetConfig(ctx, p)
+	if err != nil {
 		t.Error(err.Error())
 	}
 	if !bytes.Equal(res, []byte(`"@qri_io"`)) {

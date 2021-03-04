@@ -2,6 +2,7 @@ package lib
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -34,14 +35,20 @@ type GetConfigParams struct {
 
 // GetConfig returns the Config, or one of the specified fields of the Config,
 // as a slice of bytes the bytes can be formatted as json, concise json, or yaml
-func (m *ConfigMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ConfigMethods.GetConfig", p, res))
+func (m *ConfigMethods) GetConfig(ctx context.Context, p *GetConfigParams) ([]byte, error) {
+	if m.inst.http != nil {
+		var bres bytes.Buffer
+		err := m.inst.http.CallRaw(ctx, AEConfig, p, &bres)
+		if err != nil {
+			return nil, err
+		}
+		return bres.Bytes(), nil
 	}
 
 	var (
 		cfg    = m.inst.cfg
 		encode interface{}
+		err    error
 	)
 
 	if !p.WithPrivateKey {
@@ -55,37 +62,45 @@ func (m *ConfigMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
 	if p.Field != "" {
 		encode, err = cfg.Get(p.Field)
 		if err != nil {
-			return fmt.Errorf("error getting %s from config: %s", p.Field, err)
+			return nil, fmt.Errorf("error getting %s from config: %s", p.Field, err)
 		}
 	}
+
+	var res []byte
 
 	switch p.Format {
 	case "json":
 		if p.Concise {
-			*res, err = json.Marshal(encode)
+			res, err = json.Marshal(encode)
 		} else {
-			*res, err = json.MarshalIndent(encode, "", " ")
+			res, err = json.MarshalIndent(encode, "", " ")
 		}
 	case "yaml":
-		*res, err = yaml.Marshal(encode)
+		res, err = yaml.Marshal(encode)
 	}
 	if err != nil {
-		return fmt.Errorf("error getting config: %s", err)
+		return nil, fmt.Errorf("error getting config: %s", err)
 	}
 
-	return nil
+	return res, nil
 }
 
 // GetConfigKeys returns the Config key fields, or sub keys of the specified
 // fields of the Config, as a slice of bytes to be used for auto completion
-func (m *ConfigMethods) GetConfigKeys(p *GetConfigParams, res *[]byte) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ConfigMethods.GetConfigKeys", p, res))
+func (m *ConfigMethods) GetConfigKeys(ctx context.Context, p *GetConfigParams) ([]byte, error) {
+	if m.inst.http != nil {
+		var bres bytes.Buffer
+		err := m.inst.http.CallRaw(ctx, AEConfigKeys, p, &bres)
+		if err != nil {
+			return nil, err
+		}
+		return bres.Bytes(), nil
 	}
 
 	var (
 		cfg    = m.inst.cfg
 		encode interface{}
+		err    error
 	)
 
 	cfg = cfg.WithoutPrivateValues()
@@ -110,15 +125,14 @@ func (m *ConfigMethods) GetConfigKeys(p *GetConfigParams, res *[]byte) (err erro
 				parentKey = strings.Join(fieldArgs[:len(fieldArgs)-1], ".")
 				newEncode, fieldErr := cfg.Get(parentKey)
 				if fieldErr != nil {
-					return fmt.Errorf("error getting %s from config: %s", p.Field, err)
+					return nil, fmt.Errorf("error getting %s from config: %s", p.Field, err)
 				}
 				encode = newEncode
 			}
 		}
 	}
 
-	*res, err = parseKeys(encode, keyPrefix, parentKey)
-	return err
+	return parseKeys(encode, keyPrefix, parentKey)
 }
 
 func parseKeys(cfg interface{}, prefix, parentKey string) ([]byte, error) {

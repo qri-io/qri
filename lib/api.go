@@ -121,6 +121,12 @@ const (
 
 	// other endpoints
 
+	// AEConfig returns the Config, or one of the specified
+	// fields of the Config
+	AEConfig = APIEndpoint("/config")
+	// AEConfigKeys returns the Config key fields, or sub keys
+	// of the specified fields of the Config
+	AEConfigKeys = APIEndpoint("/config/keys")
 	// AEHistory returns dataset logs
 	AEHistory = APIEndpoint("/history/{path:.*}")
 	// AERender renders the current dataset ref
