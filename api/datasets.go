@@ -375,22 +375,16 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) changesHandler(w http.ResponseWriter, r *http.Request) {
-	req := &lib.ChangeReportParams{}
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding body into params: %s", err.Error()))
-			return
-		}
-	default:
-		req = &lib.ChangeReportParams{
-			LeftRefstr:  r.FormValue("left_path"),
-			RightRefstr: r.FormValue("right_path"),
-		}
+	params := &lib.ChangeReportParams{}
+
+	err := UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
 	}
 
-	res := &lib.ChangeReport{}
-	if err := h.ChangeReport(req, res); err != nil {
+	res, err := h.ChangeReport(r.Context(), params)
+	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error generating change report: %s", err.Error()))
 		return
 	}
