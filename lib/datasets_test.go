@@ -1155,8 +1155,7 @@ func TestDatasetRequestsValidateFSI(t *testing.T) {
 	m := NewDatasetMethods(tr.Instance)
 
 	vp := &ValidateParams{Ref: refstr}
-	_, err := m.Validate(ctx, vp)
-	if err != nil {
+	if _, err := m.Validate(ctx, vp); err != nil {
 		t.Fatal(err)
 	}
 }
