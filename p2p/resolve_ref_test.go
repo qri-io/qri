@@ -126,7 +126,7 @@ func TestResolveRef(t *testing.T) {
 
 	dsrefspec.AssertResolverSpec(t, p2pRefResolver, func(r dsref.Ref, author profile.Author, _ *oplog.Log) error {
 		builder := dscache.NewBuilder()
-		pid, err := key.IDFromPub(author.AuthorPubKey())
+		pid, err := key.IDFromPubKey(author.AuthorPubKey())
 		builder.AddUser(r.Username, pid)
 		if err != nil {
 			return err

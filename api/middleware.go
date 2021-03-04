@@ -3,12 +3,10 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/qri-io/qri/api/util"
-	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/dsref"
 )
 
@@ -97,34 +95,4 @@ func stripServerSideQueryParams(r *http.Request) {
 	q := r.URL.Query()
 	q.Del("refstr")
 	r.URL.RawQuery = q.Encode()
-}
-
-const (
-	bearerPrefix        = "Bearer "
-	authorizationHeader = "authorization"
-)
-
-// OAuthTokenMiddleware parses any "authorization" header containing a Bearer
-// token & adds it to the request context
-func OAuthTokenMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqToken := r.Header.Get(authorizationHeader)
-		if reqToken == "" && r.FormValue(authorizationHeader) != "" {
-			reqToken = r.FormValue(authorizationHeader)
-		}
-		if reqToken == "" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		if !strings.HasPrefix(reqToken, bearerPrefix) {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad token"))
-			return
-		}
-		tokenStr := strings.TrimPrefix(reqToken, bearerPrefix)
-		ctx := token.AddToContext(r.Context(), tokenStr)
-
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
-	})
 }

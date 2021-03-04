@@ -112,8 +112,9 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 	req.Header.Set("Content-Type", mimeType)
 	req.Header.Set("Accept", mimeType)
 
-	if s := token.FromCtx(ctx); s != "" {
-		req.Header.Set("authorization", fmt.Sprintf("Bearer %s", s))
+	req, added := token.AddContextTokenToRequest(ctx, req)
+	if !added {
+		log.Debugw("No token was set on an http client request. Unauthenticated requests may fail", "httpMethod", httpMethod, "addr", addr)
 	}
 
 	res, err := http.DefaultClient.Do(req)
