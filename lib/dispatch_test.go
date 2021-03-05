@@ -97,7 +97,6 @@ func expectToPanic(t *testing.T, regFunc func(), expectMessage string) {
 }
 
 // Test data: methodSet and implementation
-
 type animalMethods struct {
 	d dispatcher
 }
@@ -127,7 +126,6 @@ func (m *animalMethods) Dog(ctx context.Context, p *animalParams) (string, error
 }
 
 // Good implementation
-
 type animalImpl struct{}
 
 func (animalImpl) Cat(scp scope, p *animalParams) (string, error) {
@@ -139,7 +137,6 @@ func (animalImpl) Dog(scp scope, p *animalParams) (string, error) {
 }
 
 // Bad implementation #1 (cat doesn't return enough values)
-
 type badAnimalOneImpl struct{}
 
 func (badAnimalOneImpl) Cat(scp scope, p *animalParams) {
@@ -151,7 +148,6 @@ func (badAnimalOneImpl) Dog(scp scope, p *animalParams) (string, error) {
 }
 
 // Bad implementation #2 (dog method name doesn't match)
-
 type badAnimalTwoImpl struct{}
 
 func (badAnimalTwoImpl) Cat(scp scope, p *animalParams) (string, error) {
@@ -163,7 +159,6 @@ func (badAnimalTwoImpl) Doggie(scp scope, p *animalParams) (string, error) {
 }
 
 // Bad implementation #3 (cat doesn't accept a scope)
-
 type badAnimalThreeImpl struct{}
 
 func (badAnimalThreeImpl) Cat(ctx context.Context, p *animalParams) (string, error) {
@@ -175,7 +170,6 @@ func (badAnimalThreeImpl) Dog(scp scope, p *animalParams) (string, error) {
 }
 
 // Bad implementation #4 (dog input struct doesn't match)
-
 type badAnimalFourImpl struct{}
 
 func (badAnimalFourImpl) Cat(scp scope, p *animalParams) (string, error) {
@@ -187,7 +181,6 @@ func (badAnimalFourImpl) Dog(scp scope, name string) (string, error) {
 }
 
 // Bad implementation #5 (dog method is missing)
-
 type badAnimalFiveImpl struct{}
 
 func (badAnimalFiveImpl) Cat(scp scope, p *animalParams) (string, error) {
@@ -195,7 +188,6 @@ func (badAnimalFiveImpl) Cat(scp scope, p *animalParams) (string, error) {
 }
 
 // MethodSet with variadic return values
-
 type fruitMethods struct {
 	d dispatcher
 }
@@ -222,7 +214,6 @@ func (m *fruitMethods) Banana(ctx context.Context, p *fruitParams) (string, Curs
 }
 
 // Implementation for fruit
-
 type fruitImpl struct{}
 
 func (fruitImpl) Apple(scp scope, p *fruitParams) error {

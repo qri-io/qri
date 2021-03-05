@@ -16,6 +16,21 @@ type dispatcher interface {
 	Dispatch(ctx context.Context, method string, param interface{}) (interface{}, Cursor, error)
 }
 
+// Cursor is used to paginate results for methods that support it
+type Cursor interface{}
+
+// MethodSet represents a set of methods to be registered
+// Each registered method should have 2 input parameters and 1-3 output values
+//   Input: (context.Context, input struct)
+//   Output, 1: (error)
+//           2: (output, error)
+//           3: (output, Cursor, error)
+// The implementation should have the same input and output as the method, except
+// with the context.Context replaced by a scope.
+type MethodSet interface {
+	Name() string
+}
+
 // Dispatch is a system for handling calls to lib. Should only be called by top-level lib methods.
 //
 // When programs are using qri as a library (such as the `cmd` package), calls to `lib` will
@@ -30,7 +45,8 @@ type dispatcher interface {
 // At construction time, the Instance registers all methods that dispatch can access, as well
 // as the input and output parameters for those methods, and associates a string name for each
 // method. Dispatch works by looking up that method name, constructing the necessary input,
-// then invoking the actual implementation.
+// then invoking the actual implementation. Dispatch returns the custom value from the
+// implementation, then a non-nil Cursor if the method supports pagination, then an error or nil.
 func (inst *Instance) Dispatch(ctx context.Context, method string, param interface{}) (res interface{}, cur Cursor, err error) {
 	if inst == nil {
 		return nil, nil, fmt.Errorf("instance is nil, cannot dispatch")
@@ -315,14 +331,6 @@ func (inst *Instance) buildMethodMap(impl interface{}) map[string]reflect.Method
 		result[m.Name] = m
 	}
 	return result
-}
-
-// Cursor is used to paginate results for methods that support it
-type Cursor interface{}
-
-// MethodSet represents a set of methods to be registered
-type MethodSet interface {
-	Name() string
 }
 
 func dispatchMethodName(m MethodSet, funcName string) string {
