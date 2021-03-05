@@ -148,8 +148,7 @@ func TestReferencePulling(t *testing.T) {
 		Query:        "SELECT * FROM nasim/world_bank_population a LIMIT 1",
 		OutputFormat: "json",
 	}
-	results := make([]byte, 0)
-	if err := sqlm.Exec(p, &results); err != nil {
+	if _, err := sqlm.Exec(tr.Ctx, p); err != nil {
 		t.Fatal(err)
 	}
 
@@ -160,8 +159,7 @@ func TestReferencePulling(t *testing.T) {
 		OutputFormat: "json",
 		ResolverMode: "local",
 	}
-	results = make([]byte, 0)
-	if err := sqlm.Exec(p, &results); err != nil {
+	if _, err = sqlm.Exec(tr.Ctx, p); err != nil {
 		t.Fatal(err)
 	}
 

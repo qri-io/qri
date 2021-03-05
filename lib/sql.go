@@ -3,6 +3,7 @@ package lib
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/qri-io/qri/sql"
@@ -30,19 +31,43 @@ type SQLQueryParams struct {
 	ResolverMode string
 }
 
+// SetNonZeroDefaults sets format to "json" if it's value is an empty string
+func (p *SQLQueryParams) SetNonZeroDefaults() {
+	if p.OutputFormat == "" {
+		p.OutputFormat = "json"
+	}
+}
+
 // Exec runs an SQL query
-func (m *SQLMethods) Exec(p *SQLQueryParams, results *[]byte) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("SQLMethods.Exec", p, results))
+func (m *SQLMethods) Exec(ctx context.Context, p *SQLQueryParams) ([]byte, error) {
+	if m.inst.http != nil {
+		if p.OutputFormat == "json" {
+			res := []map[string]interface{}{}
+			err := m.inst.http.Call(ctx, AESQL, p, &res)
+			if err != nil {
+				return nil, err
+			}
+			bres, err := json.Marshal(res)
+			if err != nil {
+				return nil, err
+			}
+			return bres, nil
+		}
+		var bres bytes.Buffer
+		err := m.inst.http.CallRaw(ctx, AESQL, p, &bres)
+		if err != nil {
+			return nil, err
+		}
+		return bres.Bytes(), nil
 	}
+
 	if p == nil {
-		return fmt.Errorf("error: search params cannot be nil")
+		return nil, fmt.Errorf("error: search params cannot be nil")
 	}
-	ctx := context.TODO()
 
 	resolver, err := m.inst.resolverForMode(p.ResolverMode)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// create a loader sql will use to load & fetch datasets
 	// pass in the configured peername, allowing the "me" alias in reference strings
@@ -51,9 +76,8 @@ func (m *SQLMethods) Exec(p *SQLQueryParams, results *[]byte) error {
 
 	buf := &bytes.Buffer{}
 	if err := svc.Exec(ctx, buf, p.OutputFormat, p.Query); err != nil {
-		return err
+		return nil, err
 	}
 
-	*results = buf.Bytes()
-	return nil
+	return buf.Bytes(), nil
 }

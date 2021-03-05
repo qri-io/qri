@@ -250,7 +250,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AESearch.String(), s.Middleware(sh.SearchHandler))
 
 	sqlh := NewSQLHandlers(s.Instance, cfg.API.ReadOnly)
-	m.Handle(lib.AESQL.String(), s.Middleware(sqlh.QueryHandler("/sql")))
+	m.Handle(lib.AESQL.String(), s.Middleware(sqlh.QueryHandler))
 
 	tfh := NewTransformHandlers(s.Instance)
 	m.Handle(lib.AEApply.String(), s.Middleware(tfh.ApplyHandler(lib.AEApply.NoTrailingSlash())))
