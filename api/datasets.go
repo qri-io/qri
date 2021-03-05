@@ -23,7 +23,12 @@ import (
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
 type DatasetHandlers struct {
+	// TODO (ramfox): start here
+	// should have a dsm for dataset methods
+	// and an inst
+	// future refactors should have handlers rely on inst for node and repo
 	lib.DatasetMethods
+	inst     *lib.Instance
 	remote   *lib.RemoteMethods
 	node     *p2p.QriNode
 	repo     repo.Repo
@@ -34,7 +39,7 @@ type DatasetHandlers struct {
 func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
 	dsm := lib.NewDatasetMethods(inst)
 	rm := lib.NewRemoteMethods(inst)
-	h := DatasetHandlers{*dsm, rm, inst.Node(), inst.Node().Repo, readOnly}
+	h := DatasetHandlers{*dsm, inst, rm, inst.Node(), inst.Node().Repo, readOnly}
 	return &h
 }
 
@@ -96,17 +101,22 @@ func (h *DatasetHandlers) DiffHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ChangesHandler is a dataset single endpoint
-func (h *DatasetHandlers) ChangesHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost, http.MethodGet:
+// ChangesHandler is the endpoint for showing the changes between two datasets
+func (h *DatasetHandlers) ChangesHandler(routePrefix string) http.HandlerFunc {
+	handleChanges := h.changesHandler(routePrefix)
+
+	return func(w http.ResponseWriter, r *http.Request) {
 		if h.ReadOnly {
-			readOnlyResponse(w, "/changereport")
+			readOnlyResponse(w, routePrefix)
 			return
 		}
-		h.changesHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
+
+		switch r.Method {
+		default:
+			util.NotFoundHandler(w, r)
+		case http.MethodGet, http.MethodPost:
+			handleChanges(w, r)
+		}
 	}
 }
 
@@ -366,22 +376,24 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 	util.WritePageResponse(w, res, r, util.Page{})
 }
 
-func (h *DatasetHandlers) changesHandler(w http.ResponseWriter, r *http.Request) {
-	params := &lib.ChangeReportParams{}
+func (h *DatasetHandlers) changesHandler(routePrefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		method := "dataset.changereport"
+		p := h.inst.NewInputParam(method)
 
-	err := lib.UnmarshalParams(r, params)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		if err := lib.UnmarshalParams(r, p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		res, _, err := h.inst.Dispatch(r.Context(), method, p)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
+		util.WriteResponse(w, res)
 		return
 	}
-
-	res, err := h.ChangeReport(r.Context(), params)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error generating change report: %s", err.Error()))
-		return
-	}
-
-	util.WritePageResponse(w, res, r, util.Page{})
 }
 
 func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request) {

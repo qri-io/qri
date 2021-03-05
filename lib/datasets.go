@@ -45,6 +45,16 @@ type DatasetMethods struct {
 	inst *Instance
 }
 
+// Name returns the name of this method group
+func (m *DatasetMethods) Name() string {
+	return "dataset"
+}
+
+// Dataset returns the DatasetMethods that Instance has registered
+func (inst *Instance) Dataset() *DatasetMethods {
+	return &DatasetMethods{inst: inst}
+}
+
 // ErrListWarning is a warning that can occur while listing
 var ErrListWarning = base.ErrUnlistableReferences
 
@@ -1723,3 +1733,6 @@ func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
 
 	return
 }
+
+// DatasetImpl holds the method implementations for DatasetMethods
+type DatasetImpl struct{}

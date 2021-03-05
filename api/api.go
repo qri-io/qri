@@ -209,7 +209,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AERename.String(), s.Middleware(dsh.RenameHandler))
 	handleRefRoute(m, lib.AEValidate, s.Middleware(dsh.ValidateHandler))
 	m.Handle(lib.AEDiff.String(), s.Middleware(dsh.DiffHandler))
-	m.Handle(lib.AEChanges.String(), s.Middleware(dsh.ChangesHandler))
+	m.Handle(lib.AEChanges.String(), s.Middleware(dsh.ChangesHandler(lib.AEChanges.NoTrailingSlash())))
 	m.Handle(lib.AEUnpack.String(), s.Middleware(dsh.UnpackHandler))
 	m.Handle(lib.AEManifest.String(), s.Middleware(dsh.ManifestHandler))
 	m.Handle(lib.AEManifestMissing.String(), s.Middleware(dsh.ManifestMissingHandler))
