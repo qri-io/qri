@@ -95,8 +95,7 @@ func (o *CheckoutOptions) Run() (err error) {
 		return err
 	}
 
-	_, err = inst.Filesys().Checkout(ctx, &lib.LinkParams{Dir: o.Dir, Refstr: ref})
-	if err != nil {
+	if err = inst.Filesys().Checkout(ctx, &lib.LinkParams{Dir: o.Dir, Refstr: ref}); err != nil {
 		return err
 	}
 	printSuccess(o.Out, "created and linked working directory %s for existing dataset", o.Dir)

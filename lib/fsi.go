@@ -60,7 +60,7 @@ type StatusItem = fsi.StatusItem
 
 // CreateLink creates a connection between a working drirectory and a dataset history
 func (m *FSIMethods) CreateLink(ctx context.Context, p *LinkParams) (*dsref.VersionInfo, error) {
-	got, err := m.d.Dispatch(ctx, dispatchMethodName(m, "createlink"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "createlink"), p)
 	if res, ok := got.(*dsref.VersionInfo); ok {
 		return res, err
 	}
@@ -71,7 +71,7 @@ func (m *FSIMethods) CreateLink(ctx context.Context, p *LinkParams) (*dsref.Vers
 // directory, will remove the link file from that directory. If given only a reference,
 // will remove the fsi path from that reference, and remove the link file from that fsi path
 func (m *FSIMethods) Unlink(ctx context.Context, p *LinkParams) (string, error) {
-	got, err := m.d.Dispatch(ctx, dispatchMethodName(m, "unlink"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "unlink"), p)
 	if res, ok := got.(string); ok {
 		return res, err
 	}
@@ -82,11 +82,10 @@ func (m *FSIMethods) Unlink(ctx context.Context, p *LinkParams) (string, error) 
 // version in the repo. Must only be called if FSI is enabled for this dataset.
 func (m *FSIMethods) Status(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
 	// TODO(dustmop): Have Dispatch perform this AbsPath call automatically
-	err := qfs.AbsPath(&p.Dir)
-	if err != nil {
+	if err := qfs.AbsPath(&p.Dir); err != nil {
 		return nil, err
 	}
-	got, err := m.d.Dispatch(ctx, dispatchMethodName(m, "status"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "status"), p)
 	if res, ok := got.([]StatusItem); ok {
 		return res, err
 	}
@@ -96,7 +95,7 @@ func (m *FSIMethods) Status(ctx context.Context, p *LinkParams) ([]StatusItem, e
 // WhatChanged gets changes that happened at a particular version in the history of the given
 // dataset reference.
 func (m *FSIMethods) WhatChanged(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
-	got, err := m.d.Dispatch(ctx, dispatchMethodName(m, "whatchanged"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "whatchanged"), p)
 	if res, ok := got.([]StatusItem); ok {
 		return res, err
 	}
@@ -104,17 +103,14 @@ func (m *FSIMethods) WhatChanged(ctx context.Context, p *LinkParams) ([]StatusIt
 }
 
 // Checkout method writes a dataset to a directory as individual files.
-func (m *FSIMethods) Checkout(ctx context.Context, p *LinkParams) (string, error) {
-	got, err := m.d.Dispatch(ctx, dispatchMethodName(m, "checkout"), p)
-	if res, ok := got.(string); ok {
-		return res, err
-	}
-	return "", dispatchReturnError(got, err)
+func (m *FSIMethods) Checkout(ctx context.Context, p *LinkParams) error {
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "checkout"), p)
+	return err
 }
 
 // Write mutates a linked dataset on the filesystem
 func (m *FSIMethods) Write(ctx context.Context, p *FSIWriteParams) ([]StatusItem, error) {
-	got, err := m.d.Dispatch(ctx, dispatchMethodName(m, "write"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "write"), p)
 	if res, ok := got.([]StatusItem); ok {
 		return res, err
 	}
@@ -122,26 +118,21 @@ func (m *FSIMethods) Write(ctx context.Context, p *FSIWriteParams) ([]StatusItem
 }
 
 // Restore method restores a component or all of the component files of a dataset from the repo
-func (m *FSIMethods) Restore(ctx context.Context, p *RestoreParams) (string, error) {
-	got, err := m.d.Dispatch(ctx, dispatchMethodName(m, "restore"), p)
-	if res, ok := got.(string); ok {
-		return res, err
-	}
-	return "", dispatchReturnError(got, err)
+func (m *FSIMethods) Restore(ctx context.Context, p *RestoreParams) error {
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "restore"), p)
+	return err
 }
 
 // Init initializes a new working directory for a linked dataset
 func (m *FSIMethods) Init(ctx context.Context, p *InitDatasetParams) (string, error) {
 	// TODO(dustmop): Have Dispatch perform these AbsPath calls automatically
-	err := qfs.AbsPath(&p.TargetDir)
-	if err != nil {
+	if err := qfs.AbsPath(&p.TargetDir); err != nil {
 		return "", err
 	}
-	err = qfs.AbsPath(&p.BodyPath)
-	if err != nil {
+	if err := qfs.AbsPath(&p.BodyPath); err != nil {
 		return "", err
 	}
-	got, err := m.d.Dispatch(ctx, dispatchMethodName(m, "init"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "init"), p)
 	if res, ok := got.(string); ok {
 		return res, err
 	}
@@ -150,32 +141,27 @@ func (m *FSIMethods) Init(ctx context.Context, p *InitDatasetParams) (string, er
 
 // CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not
 func (m *FSIMethods) CanInitDatasetWorkDir(ctx context.Context, p *InitDatasetParams) error {
-	// TODO(dustmop): This method is cheating a bit; its type signature does not match the
-	// implementation. Instead, dispatch should allow methods to only return 1 value, if that
-	// value is an error
-	_, err := m.d.Dispatch(ctx, dispatchMethodName(m, "caninitdatasetworkdir"), p)
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "caninitdatasetworkdir"), p)
 	return err
 }
 
 // EnsureRef will modify the directory path in the repo for the given reference
 func (m *FSIMethods) EnsureRef(ctx context.Context, p *LinkParams) (*dsref.VersionInfo, error) {
-	got, err := m.d.Dispatch(ctx, dispatchMethodName(m, "ensureref"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "ensureref"), p)
 	if res, ok := got.(*dsref.VersionInfo); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
 }
 
-// Implementations for FSI methods follow.
+// Implementations for FSI methods follow.g
 // TODO(dustmop): Perhaps consider moving these methods to /lib/impl/*.go
-// TODO(dustmop): If it's not too hard, look into writing a custom lint or vet rule
-// that validates methods are using a compatible signature with the implementations
 
-// FSIImpl holds the method implementations for FSI
-type FSIImpl struct{}
+// fsiImpl holds the method implementations for FSI
+type fsiImpl struct{}
 
 // CreateLink creates a connection between a working drirectory and a dataset history
-func (*FSIImpl) CreateLink(scope scope, p *LinkParams) (*dsref.VersionInfo, error) {
+func (fsiImpl) CreateLink(scope scope, p *LinkParams) (*dsref.VersionInfo, error) {
 	ctx := scope.Context()
 
 	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
@@ -189,7 +175,7 @@ func (*FSIImpl) CreateLink(scope scope, p *LinkParams) (*dsref.VersionInfo, erro
 // Unlink removes the connection between a working directory and a dataset. If given only a
 // directory, will remove the link file from that directory. If given only a reference,
 // will remove the fsi path from that reference, and remove the link file from that fsi path
-func (*FSIImpl) Unlink(scope scope, p *LinkParams) (string, error) {
+func (fsiImpl) Unlink(scope scope, p *LinkParams) (string, error) {
 	ctx := scope.Context()
 
 	if p.Dir != "" && p.Refstr != "" {
@@ -225,7 +211,7 @@ func (*FSIImpl) Unlink(scope scope, p *LinkParams) (string, error) {
 
 // Status checks for any modifications or errors in a linked directory against its previous
 // version in the repo. Must only be called if FSI is enabled for this dataset.
-func (*FSIImpl) Status(scope scope, p *LinkParams) ([]StatusItem, error) {
+func (fsiImpl) Status(scope scope, p *LinkParams) ([]StatusItem, error) {
 	ctx := scope.Context()
 
 	if p.Dir == "" && p.Refstr == "" {
@@ -252,7 +238,7 @@ func (*FSIImpl) Status(scope scope, p *LinkParams) ([]StatusItem, error) {
 
 // WhatChanged gets changes that happened at a particular version in the history of the given
 // dataset reference.
-func (*FSIImpl) WhatChanged(scope scope, p *LinkParams) ([]StatusItem, error) {
+func (fsiImpl) WhatChanged(scope scope, p *LinkParams) ([]StatusItem, error) {
 	ctx := scope.Context()
 
 	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
@@ -264,57 +250,56 @@ func (*FSIImpl) WhatChanged(scope scope, p *LinkParams) ([]StatusItem, error) {
 }
 
 // Checkout method writes a dataset to a directory as individual files.
-// TODO(dustmop): Returned string is not used, remove it once dispatch is compatible
-func (*FSIImpl) Checkout(scope scope, p *LinkParams) (string, error) {
+func (fsiImpl) Checkout(scope scope, p *LinkParams) error {
 	ctx := scope.Context()
 
 	// Require a non-empty, absolute path for the checkout
 	if p.Dir == "" || !filepath.IsAbs(p.Dir) {
-		return "", fmt.Errorf("need Dir to be a non-empty, absolute path")
+		return fmt.Errorf("need Dir to be a non-empty, absolute path")
 	}
 
 	log.Debugf("Checkout started, stat'ing %q", p.Dir)
 
 	// If directory exists, error.
 	if _, err := os.Stat(p.Dir); !os.IsNotExist(err) {
-		return "", fmt.Errorf("directory with name \"%s\" already exists", p.Dir)
+		return fmt.Errorf("directory with name \"%s\" already exists", p.Dir)
 	}
 
 	// Handle the ref to checkout
 	ref, source, err := scope.ParseAndResolveRef(ctx, p.Refstr, "")
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if source != "" {
-		return "", fmt.Errorf("auto-adding on checkout is not yet supported, please run `qri add %q` first", ref.Human())
+		return fmt.Errorf("auto-adding on checkout is not yet supported, please run `qri add %q` first", ref.Human())
 	}
 
 	log.Debugf("Checkout for ref %q", ref)
 
 	// Fail early if link already exists
 	if err := scope.FSISubsystem().EnsureRefNotLinked(ref); err != nil {
-		return "", err
+		return err
 	}
 
 	// Load dataset that is being checked out.
 	ds, err := scope.LoadDataset(ctx, ref, "")
 	if err != nil {
 		log.Debugf("Checkout, dsfs.LoadDataset failed, error: %s", err)
-		return "", err
+		return err
 	}
 
 	// Create a directory.
 	if err := os.Mkdir(p.Dir, os.ModePerm); err != nil {
 		log.Debugf("Checkout, Mkdir failed, error: %s", ref)
-		return "", err
+		return err
 	}
 	log.Debugf("Checkout made directory %q", p.Dir)
 
 	// Create the link file, containing the dataset reference.
 	if _, _, err = scope.FSISubsystem().CreateLink(ctx, p.Dir, ref); err != nil {
 		log.Debugf("Checkout, fsi.CreateLink failed, error: %s", ref)
-		return "", err
+		return err
 	}
 	log.Debugf("Checkout created link for %q <-> %q", p.Dir, p.Refstr)
 
@@ -326,11 +311,11 @@ func (*FSIImpl) Checkout(scope scope, p *LinkParams) (string, error) {
 	log.Debugf("Checkout wrote components, successfully checked out dataset")
 
 	log.Debugf("Checkout successfully checked out dataset")
-	return "", nil
+	return nil
 }
 
 // Write mutates a linked dataset on the filesystem
-func (*FSIImpl) Write(scope scope, p *FSIWriteParams) ([]StatusItem, error) {
+func (fsiImpl) Write(scope scope, p *FSIWriteParams) ([]StatusItem, error) {
 	ctx := scope.Context()
 
 	if p.Ds == nil {
@@ -362,13 +347,12 @@ func (*FSIImpl) Write(scope scope, p *FSIWriteParams) ([]StatusItem, error) {
 }
 
 // Restore method restores a component or all of the component files of a dataset from the repo
-// TODO(dustmop): Returned string is not used, remove it once dispatch is compatible
-func (*FSIImpl) Restore(scope scope, p *RestoreParams) (string, error) {
+func (fsiImpl) Restore(scope scope, p *RestoreParams) error {
 	ctx := scope.Context()
 
 	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if p.Path != "" {
@@ -378,13 +362,13 @@ func (*FSIImpl) Restore(scope scope, p *RestoreParams) (string, error) {
 	if p.Dir == "" {
 		fsiRef := ref.Copy()
 		if err = scope.FSISubsystem().ResolvedPath(&fsiRef); err != nil {
-			return "", err
+			return err
 		}
 		p.Dir = fsi.FilesystemPathToLocal(fsiRef.Path)
 	}
 
 	if p.Dir == "" {
-		return "", fmt.Errorf("no FSIPath or Dir given")
+		return fmt.Errorf("no FSIPath or Dir given")
 	}
 
 	ds := &dataset.Dataset{}
@@ -393,10 +377,10 @@ func (*FSIImpl) Restore(scope scope, p *RestoreParams) (string, error) {
 		// Read the previous version of the dataset from the repo
 		ds, err = dsfs.LoadDataset(ctx, scope.Filesystem(), ref.Path)
 		if err != nil {
-			return "", fmt.Errorf("loading dataset: %s", err)
+			return fmt.Errorf("loading dataset: %s", err)
 		}
 		if err = base.OpenDataset(ctx, scope.Filesystem(), ds); err != nil {
-			return "", err
+			return err
 		}
 	}
 
@@ -408,11 +392,11 @@ func (*FSIImpl) Restore(scope scope, p *RestoreParams) (string, error) {
 	// Build component container from FSI directory.
 	diskContainer, err := component.ListDirectoryComponents(p.Dir)
 	if err != nil {
-		return "", err
+		return err
 	}
 	err = component.ExpandListedComponents(diskContainer, scope.Filesystem())
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	for _, compName := range component.AllSubcomponentNames() {
@@ -424,11 +408,11 @@ func (*FSIImpl) Restore(scope scope, p *RestoreParams) (string, error) {
 			}
 		}
 	}
-	return "", nil
+	return nil
 }
 
 // Init creates a new dataset in a working directory
-func (*FSIImpl) Init(scope scope, p *InitDatasetParams) (string, error) {
+func (fsiImpl) Init(scope scope, p *InitDatasetParams) (string, error) {
 	ctx := scope.Context()
 
 	if p.UseDscache {
@@ -440,14 +424,12 @@ func (*FSIImpl) Init(scope scope, p *InitDatasetParams) (string, error) {
 }
 
 // CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not
-func (*FSIImpl) CanInitDatasetWorkDir(scope scope, p *InitDatasetParams) (bool, error) {
-	// TODO(dustmop): Change dispatch so that implementations can only return 1 value
-	// if that value is an error
-	return true, scope.FSISubsystem().CanInitDatasetWorkDir(p.TargetDir, p.BodyPath)
+func (fsiImpl) CanInitDatasetWorkDir(scope scope, p *InitDatasetParams) error {
+	return scope.FSISubsystem().CanInitDatasetWorkDir(p.TargetDir, p.BodyPath)
 }
 
 // EnsureRef will modify the directory path in the repo for the given reference
-func (*FSIImpl) EnsureRef(scope scope, p *LinkParams) (*dsref.VersionInfo, error) {
+func (fsiImpl) EnsureRef(scope scope, p *LinkParams) (*dsref.VersionInfo, error) {
 	ctx := scope.Context()
 
 	ref, err := dsref.Parse(p.Refstr)

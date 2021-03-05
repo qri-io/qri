@@ -63,7 +63,7 @@ func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		res, err := h.inst.Dispatch(r.Context(), method, p)
+		res, _, err := h.inst.Dispatch(r.Context(), method, p)
 		if err != nil {
 			util.RespondWithError(w, err)
 			return
@@ -102,7 +102,7 @@ func (h *FSIHandlers) whatChangedHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		res, err := h.inst.Dispatch(r.Context(), method, p)
+		res, _, err := h.inst.Dispatch(r.Context(), method, p)
 		if err != nil {
 			util.RespondWithError(w, err)
 			return
@@ -141,7 +141,7 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		res, err := h.inst.Dispatch(r.Context(), method, p)
+		res, _, err := h.inst.Dispatch(r.Context(), method, p)
 		if err != nil {
 			util.RespondWithError(w, err)
 			return
@@ -180,7 +180,7 @@ func (h *FSIHandlers) canInitDatasetWorkDirHandler(routePrefix string) http.Hand
 			return
 		}
 
-		res, err := h.inst.Dispatch(r.Context(), method, p)
+		res, _, err := h.inst.Dispatch(r.Context(), method, p)
 		if err != nil {
 			util.RespondWithError(w, err)
 			return
@@ -227,7 +227,7 @@ func (h *FSIHandlers) writeHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		res, err := h.inst.Dispatch(r.Context(), method, p)
+		res, _, err := h.inst.Dispatch(r.Context(), method, p)
 		if err != nil {
 			util.RespondWithError(w, err)
 			return
@@ -274,7 +274,7 @@ func (h *FSIHandlers) createLinkHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		res, err := h.inst.Dispatch(r.Context(), method, p)
+		res, _, err := h.inst.Dispatch(r.Context(), method, p)
 		if err != nil {
 			util.RespondWithError(w, err)
 			return
@@ -321,7 +321,7 @@ func (h *FSIHandlers) unlinkHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		res, err := h.inst.Dispatch(r.Context(), method, p)
+		res, _, err := h.inst.Dispatch(r.Context(), method, p)
 		if err != nil {
 			util.RespondWithError(w, err)
 			return
@@ -368,7 +368,7 @@ func (h *FSIHandlers) checkoutHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		res, err := h.inst.Dispatch(r.Context(), method, p)
+		res, _, err := h.inst.Dispatch(r.Context(), method, p)
 		if err != nil {
 			util.RespondWithError(w, err)
 			return
@@ -415,7 +415,7 @@ func (h *FSIHandlers) restoreHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		res, err := h.inst.Dispatch(r.Context(), method, p)
+		res, _, err := h.inst.Dispatch(r.Context(), method, p)
 		if err != nil {
 			util.RespondWithError(w, err)
 			return

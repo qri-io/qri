@@ -51,7 +51,7 @@ func (p *CreateAuthTokenParams) Validate() error {
 // private key for the grantee.
 // Callers can provide either GranteeUsername OR GranteeProfileID
 func (m AccessMethods) CreateAuthToken(ctx context.Context, p *CreateAuthTokenParams) (string, error) {
-	res, err := m.d.Dispatch(ctx, dispatchMethodName(m, "createauthtoken"), p)
+	res, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "createauthtoken"), p)
 	if s, ok := res.(string); ok {
 		return s, err
 	}

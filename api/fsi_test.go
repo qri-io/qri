@@ -266,7 +266,7 @@ func TestFSIWrite(t *testing.T) {
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
-	expectBody := `{"data":"","meta":{"code":200}}`
+	expectBody := `{"meta":{"code":200}}`
 	if expectBody != actualBody {
 		t.Errorf("expected body %s, got %s", expectBody, actualBody)
 	}
@@ -377,7 +377,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
-	expectBody := `{"data":"","meta":{"code":200}}`
+	expectBody := `{"meta":{"code":200}}`
 	if expectBody != actualBody {
 		t.Errorf("expected body %s, got %s", expectBody, actualBody)
 	}
@@ -429,7 +429,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
-	expectBody = `{"data":"","meta":{"code":200}}`
+	expectBody = `{"meta":{"code":200}}`
 	if expectBody != actualBody {
 		t.Errorf("expected body %s, got %s", expectBody, actualBody)
 	}
@@ -458,7 +458,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
-	expectBody = `{"data":"","meta":{"code":200}}`
+	expectBody = `{"meta":{"code":200}}`
 	if expectBody != actualBody {
 		t.Errorf("expected body %s, got %s", expectBody, actualBody)
 	}

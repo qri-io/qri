@@ -1311,8 +1311,7 @@ func (m *DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Data
 			Refstr: ref.Human(),
 			Dir:    p.LinkDir,
 		}
-		fsiMethods := m.inst.Filesys()
-		if _, err = fsiMethods.Checkout(ctx, checkoutp); err != nil {
+		if err = m.inst.Filesys().Checkout(ctx, checkoutp); err != nil {
 			return nil, err
 		}
 	}

@@ -249,6 +249,5 @@ func (tr *testRunner) Checkout(refstr, dir string) error {
 		Refstr: refstr,
 		Dir:    dir,
 	}
-	_, err := m.Checkout(ctx, &p)
-	return err
+	return m.Checkout(ctx, &p)
 }
