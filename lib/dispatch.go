@@ -13,7 +13,7 @@ import (
 
 // dispatcher isolates the dispatch method
 type dispatcher interface {
-	Dispatch(ctx context.Context, method string, param interface{}) (res interface{}, err error)
+	Dispatch(ctx context.Context, method string, param interface{}) (interface{}, Cursor, error)
 }
 
 // Dispatch is a system for handling calls to lib. Should only be called by top-level lib methods.
@@ -31,9 +31,9 @@ type dispatcher interface {
 // as the input and output parameters for those methods, and associates a string name for each
 // method. Dispatch works by looking up that method name, constructing the necessary input,
 // then invoking the actual implementation.
-func (inst *Instance) Dispatch(ctx context.Context, method string, param interface{}) (res interface{}, err error) {
+func (inst *Instance) Dispatch(ctx context.Context, method string, param interface{}) (res interface{}, cur Cursor, err error) {
 	if inst == nil {
-		return nil, fmt.Errorf("instance is nil, cannot dispatch")
+		return nil, nil, fmt.Errorf("instance is nil, cannot dispatch")
 	}
 
 	// If the http rpc layer is engaged, use it to dispatch methods
@@ -46,11 +46,11 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 			// is this the right default?
 			p, err := profile.NewProfile(inst.cfg.Profile)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			tokstr, err := token.NewPrivKeyAuthToken(p.PrivKey, time.Minute)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			ctx = token.AddToContext(ctx, tokstr)
 		}
@@ -63,13 +63,14 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 			res = out.Interface()
 			err = inst.http.Call(ctx, methodEndpoint(method), param, res)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
+			cur = nil
 			out = reflect.ValueOf(res)
 			out = out.Elem()
-			return out.Interface(), nil
+			return out.Interface(), cur, nil
 		}
-		return nil, fmt.Errorf("method %q not found", method)
+		return nil, nil, fmt.Errorf("method %q not found", method)
 	}
 
 	// Look up the method for the given signifier
@@ -84,7 +85,7 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 		// involve making copies of the right things
 		scope, err := newScope(ctx, inst)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		// Construct the parameter list for the function call, then call it
@@ -97,25 +98,34 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 		// TODO(dustmop): If the method wrote to our internal data structures, like
 		// refstore, logbook, etc, serialize and commit those changes here
 
-		// Validate the return values. This shouldn't fail as long as all method
-		// implementations are declared correctly
-		if len(outVals) != 2 {
-			return nil, fmt.Errorf("wrong number of return args: %d", len(outVals))
+		// Validate the return values.
+		if len(outVals) < 1 || len(outVals) > 3 {
+			return nil, nil, fmt.Errorf("wrong number of return values: %d", len(outVals))
 		}
-
 		// Extract the concrete typed values from the method return
 		var out interface{}
-		out = outVals[0].Interface()
-		errVal := outVals[1].Interface()
+		var cur Cursor
+		// There are either 1, 2, or 3 output values:
+		//   1: func() (err)
+		//   2: func() (out, err)
+		//   3: func() (out, cur, err)
+		if len(outVals) == 2 || len(outVals) == 3 {
+			out = outVals[0].Interface()
+		}
+		if len(outVals) == 3 {
+			cur = outVals[1].Interface()
+		}
+		// Error always comes last
+		errVal := outVals[len(outVals)-1].Interface()
 		if errVal == nil {
-			return out, nil
+			return out, cur, nil
 		}
 		if err, ok := errVal.(error); ok {
-			return out, err
+			return out, cur, err
 		}
-		return nil, fmt.Errorf("second return value should be an error, got: %v", errVal)
+		return nil, nil, fmt.Errorf("last return value should be an error, got: %v", errVal)
 	}
-	return nil, fmt.Errorf("method %q not found", method)
+	return nil, nil, fmt.Errorf("method %q not found", method)
 }
 
 // NewInputParam takes a method name that has been registered, and constructs
@@ -142,10 +152,11 @@ func (r *regMethodSet) lookup(method string) (*callable, bool) {
 }
 
 type callable struct {
-	Impl    interface{}
-	Func    reflect.Value
-	InType  reflect.Type
-	OutType reflect.Type
+	Impl      interface{}
+	Func      reflect.Value
+	InType    reflect.Type
+	OutType   reflect.Type
+	RetCursor bool
 }
 
 // RegisterMethods iterates the methods provided by the lib API, and makes them visible to dispatch
@@ -169,14 +180,10 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 
 		// Validate the parameters to the implementation
 		// should have 3 input parameters: (receiver, scope, input struct)
-		// should have 2 output parametres: (output value, error)
-		// TODO(dustmop): allow variadic returns: error only, cursor for pagination
+		// should have 1-3 output parametres: ([output value]?, [cursor]?, error)
 		f := i.Type
 		if f.NumIn() != 3 {
 			panic(fmt.Sprintf("%s: bad number of inputs: %d", funcName, f.NumIn()))
-		}
-		if f.NumOut() != 2 {
-			panic(fmt.Sprintf("%s: bad number of outputs: %d", funcName, f.NumOut()))
 		}
 		// First input must be the receiver
 		inType := f.In(0)
@@ -197,17 +204,35 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 		if inType.Kind() != reflect.Struct {
 			panic(fmt.Sprintf("%s: third input param must be a struct pointer, got %v", funcName, inType))
 		}
-		// First output is anything
-		outType := f.Out(0)
-		// Second output must be an error
-		outErrType := f.Out(1)
+		// Validate the output values of the implementation
+		numOuts := f.NumOut()
+		if numOuts < 1 || numOuts > 3 {
+			panic(fmt.Sprintf("%s: bad number of outputs: %d", funcName, numOuts))
+		}
+		// Validate output values
+		var outType reflect.Type
+		returnsCursor := false
+		if numOuts == 2 || numOuts == 3 {
+			// First output is anything
+			outType = f.Out(0)
+		}
+		if numOuts == 3 {
+			// Second output must be a cursor
+			outCursorType := f.Out(1)
+			if outCursorType.Name() != "Cursor" {
+				panic(fmt.Sprintf("%s: second output val must be a cursor, got %v", funcName, outCursorType))
+			}
+			returnsCursor = true
+		}
+		// Last output must be an error
+		outErrType := f.Out(numOuts - 1)
 		if outErrType.Name() != "error" {
-			panic(fmt.Sprintf("%s: second output param should be error, got %v", funcName, outErrType))
+			panic(fmt.Sprintf("%s: last output val should be error, got %v", funcName, outErrType))
 		}
 
 		// Validate the parameters to the method that matches the implementation
-		// should have 3 input parameters: (receiver, context.Context, input struct [same as impl])
-		// should have 2 output parametres: (output value [same as impl], error)
+		// should have 3 input parameters: (receiver, context.Context, input struct: same as impl])
+		// should have 1-3 output parametres: ([output value: same as impl], [cursor], error)
 		m, ok := methodMap[i.Name]
 		if !ok {
 			panic(fmt.Sprintf("method %s not found on MethodSet", i.Name))
@@ -215,10 +240,6 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 		f = m.Type
 		if f.NumIn() != 3 {
 			panic(fmt.Sprintf("%s: bad number of inputs: %d", funcName, f.NumIn()))
-		}
-		msetNumMethods := f.NumOut()
-		if msetNumMethods < 1 && msetNumMethods > 2 {
-			panic(fmt.Sprintf("%s: bad number of outputs: %d", funcName, f.NumOut()))
 		}
 		// First input must be the receiver
 		mType := f.In(0)
@@ -239,17 +260,29 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 		if mType != inType {
 			panic(fmt.Sprintf("%s: third input param must match impl, expect %v, got %v", funcName, inType, mType))
 		}
+		// Validate the output values of the implementation
+		msetNumOuts := f.NumOut()
+		if msetNumOuts < 1 || msetNumOuts > 3 {
+			panic(fmt.Sprintf("%s: bad number of outputs: %d", funcName, f.NumOut()))
+		}
 		// First output, if there's more than 1, matches the impl output
-		if msetNumMethods == 2 {
+		if msetNumOuts == 2 || msetNumOuts == 3 {
 			mType = f.Out(0)
 			if mType != outType {
-				panic(fmt.Sprintf("%s: first output param must match impl, expect %v, got %v", funcName, outType, mType))
+				panic(fmt.Sprintf("%s: first output val must match impl, expect %v, got %v", funcName, outType, mType))
+			}
+		}
+		// Second output, if there are three, must be a cursor
+		if msetNumOuts == 3 {
+			mType = f.Out(1)
+			if mType.Name() != "Cursor" {
+				panic(fmt.Sprintf("%s: second output val must match a cursor, got %v", funcName, mType))
 			}
 		}
 		// Last output must be an error
-		mType = f.Out(msetNumMethods - 1)
+		mType = f.Out(msetNumOuts - 1)
 		if mType.Name() != "error" {
-			panic(fmt.Sprintf("%s: last output param should be error, got %v", funcName, mType))
+			panic(fmt.Sprintf("%s: last output val should be error, got %v", funcName, mType))
 		}
 
 		// Remove this method from the methodSetMap now that it has been processed
@@ -257,10 +290,11 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 
 		// Save the method to the registration table
 		reg[funcName] = callable{
-			Impl:    impl,
-			Func:    m.Func,
-			InType:  inType,
-			OutType: outType,
+			Impl:      impl,
+			Func:      i.Func,
+			InType:    inType,
+			OutType:   outType,
+			RetCursor: returnsCursor,
 		}
 		log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
 	}
@@ -282,6 +316,9 @@ func (inst *Instance) buildMethodMap(impl interface{}) map[string]reflect.Method
 	}
 	return result
 }
+
+// Cursor is used to paginate results for methods that support it
+type Cursor interface{}
 
 // MethodSet represents a set of methods to be registered
 type MethodSet interface {

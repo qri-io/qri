@@ -59,7 +59,7 @@ func TestFSIMethodsWrite(t *testing.T) {
 		Dir:    filepath.Join(datasetsDir, "cities"),
 		Refstr: "me/cities",
 	}
-	if _, err := methods.Checkout(ctx, checkoutp); err != nil {
+	if err := methods.Checkout(ctx, checkoutp); err != nil {
 		t.Fatal(err)
 	}
 
@@ -68,7 +68,7 @@ func TestFSIMethodsWrite(t *testing.T) {
 		Dir:    filepath.Join(datasetsDir, "craigslist"),
 		Refstr: "me/craigslist",
 	}
-	if _, err := methods.Checkout(ctx, checkoutp); err != nil {
+	if err := methods.Checkout(ctx, checkoutp); err != nil {
 		t.Fatal(err)
 	}
 

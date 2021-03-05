@@ -593,7 +593,7 @@ func TestDatasetRequestsGetFSIPath(t *testing.T) {
 		Dir:    dsDir,
 		Refstr: "peer/movies",
 	}
-	if _, err := fsim.Checkout(ctx, p); err != nil {
+	if err := fsim.Checkout(ctx, p); err != nil {
 		t.Fatalf("error checking out dataset: %s", err)
 	}
 
@@ -874,7 +874,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		Dir:    filepath.Join(datasetsDir, "cities"),
 		Refstr: "me/cities",
 	}
-	if _, err := fsim.Checkout(ctx, checkoutp); err != nil {
+	if err := fsim.Checkout(ctx, checkoutp); err != nil {
 		t.Fatal(err)
 	}
 
@@ -889,7 +889,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		Dir:    filepath.Join(datasetsDir, "craigslist"),
 		Refstr: "me/craigslist",
 	}
-	if _, err := fsim.Checkout(ctx, checkoutp); err != nil {
+	if err := fsim.Checkout(ctx, checkoutp); err != nil {
 		t.Fatal(err)
 	}
 

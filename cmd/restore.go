@@ -138,8 +138,7 @@ func (o *RestoreOptions) Run() (err error) {
 		Component: o.ComponentName,
 	}
 
-	_, err = inst.Filesys().Restore(ctx, &params)
-	if err != nil {
+	if err = inst.Filesys().Restore(ctx, &params); err != nil {
 		return err
 	}
 	if o.ComponentName != "" && o.Path == "" {
