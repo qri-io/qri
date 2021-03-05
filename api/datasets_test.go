@@ -45,18 +45,18 @@ func TestDatasetHandlers(t *testing.T) {
 	runHandlerTestCases(t, "init", h.SaveHandler, saveCases, true)
 
 	getCases := []handlerTestCase{
-		{"GET", "/get/peer/family_relationships", nil, &map[string]string{"peername": "peer", "name": "family_relationships"}},
-		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", nil, &map[string]string{"peername": "peer", "name": "family_relationships", "fs": "mem", "hash": "Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg"}},
+		{"GET", "/get/peer/family_relationships", nil, map[string]string{"peername": "peer", "name": "family_relationships"}},
+		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", nil, map[string]string{"peername": "peer", "name": "family_relationships", "fs": "mem", "hash": "Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg"}},
 		// TODO(arqu): this no longer works with the gorrila.Mux router and URL param extraction
 		// {"GET", "/get/at/map/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", nil},
 		// test that when fsi=true parameter doesn't affect the api response
-		{"GET", "/get/peer/family_relationships?fsi=true", nil, &map[string]string{"peername": "peer", "name": "family_relationships"}},
+		{"GET", "/get/peer/family_relationships?fsi=true", nil, map[string]string{"peername": "peer", "name": "family_relationships"}},
 		{"DELETE", "/", nil, nil},
 	}
 	runHandlerTestCases(t, "get", h.GetHandler, getCases, true)
 
 	bodyCases := []handlerTestCase{
-		{"GET", "/get/peer/family_relationships/body", nil, &map[string]string{"peername": "peer", "name": "family_relationships", "selector": "body"}},
+		{"GET", "/get/peer/family_relationships/body", nil, map[string]string{"peername": "peer", "name": "family_relationships", "selector": "body"}},
 		// TODO(arqu): broken, expecing object and not array response
 		// {"GET", "/get/peer/family_relationships?component=body&download=true", nil},
 		{"DELETE", "/", nil, nil},
@@ -64,8 +64,8 @@ func TestDatasetHandlers(t *testing.T) {
 	runHandlerTestCases(t, "body", h.GetHandler, bodyCases, true)
 
 	statsCases := []handlerTestCase{
-		{"GET", "/get/peer/craigslist/stats", nil, &map[string]string{"peername": "peer", "name": "craigslist", "selector": "stats"}},
-		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg/stats", nil, &map[string]string{"peername": "peer", "name": "family_relationships", "fs": "mem", "hash": "Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", "selector": "stats"}},
+		{"GET", "/get/peer/craigslist/stats", nil, map[string]string{"peername": "peer", "name": "craigslist", "selector": "stats"}},
+		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg/stats", nil, map[string]string{"peername": "peer", "name": "family_relationships", "fs": "mem", "hash": "Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", "selector": "stats"}},
 	}
 	runHandlerTestCases(t, "stats", h.GetHandler, statsCases, false)
 
@@ -97,7 +97,7 @@ func TestDatasetHandlers(t *testing.T) {
 
 	removeCases := []handlerTestCase{
 		{"GET", "/", nil, nil},
-		{"POST", "/remove/peer/cities", nil, &map[string]string{"peername": "peer", "name": "cities"}},
+		{"POST", "/remove/peer/cities", nil, map[string]string{"peername": "peer", "name": "cities"}},
 	}
 	runHandlerTestCases(t, "remove", h.RemoveHandler, removeCases, true)
 

@@ -202,6 +202,7 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p := inst.NewInputParam(libMethod)
 		if p == nil {
+			log.Debugw("http request: input params returned nil", "libMethod", libMethod)
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("no params for method %s", libMethod))
 			return
 		}
@@ -214,6 +215,7 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 
 		res, cursor, err := inst.Dispatch(r.Context(), libMethod, p)
 		if err != nil {
+			log.Debugw("http request: dispatch", "err", err)
 			apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}

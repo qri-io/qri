@@ -25,45 +25,6 @@ func NewFSIHandlers(inst *lib.Instance, readOnly bool) FSIHandlers {
 	}
 }
 
-// WhatChangedHandler is the endpoint for showing what changed for a specific commit
-func (h *FSIHandlers) WhatChangedHandler(routePrefix string) http.HandlerFunc {
-	handleStatus := h.whatChangedHandler(routePrefix)
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		if h.ReadOnly {
-			readOnlyResponse(w, routePrefix)
-			return
-		}
-
-		switch r.Method {
-		default:
-			util.NotFoundHandler(w, r)
-		case http.MethodGet:
-			handleStatus(w, r)
-		}
-	}
-}
-
-func (h *FSIHandlers) whatChangedHandler(routePrefix string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		method := "fsi.whatchanged"
-		p := h.inst.NewInputParam(method)
-
-		if err := lib.UnmarshalParams(r, p); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		res, _, err := h.inst.Dispatch(r.Context(), method, p)
-		if err != nil {
-			util.RespondWithError(w, err)
-			return
-		}
-		util.WriteResponse(w, res)
-		return
-	}
-}
-
 // InitHandler creates a new FSI-linked dataset
 func (h *FSIHandlers) InitHandler(routePrefix string) http.HandlerFunc {
 	handleInit := h.initHandler(routePrefix)
