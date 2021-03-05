@@ -187,7 +187,7 @@ func TestReceivers(t *testing.T) {
 	inst := &Instance{node: node, cfg: cfg}
 
 	reqs := Receivers(inst)
-	expect := 4
+	expect := 3
 	if len(reqs) != expect {
 		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", expect, len(reqs))
 		return

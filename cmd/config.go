@@ -194,6 +194,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 
 	profile := o.inst.Config().Profile
 	profileChanged := false
+	ctx := context.TODO()
 
 	for i := 0; i < len(args)-1; i = i + 2 {
 		path := strings.ToLower(args[i])
@@ -204,7 +205,10 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		}
 
 		if photoPaths[path] {
-			if err = setPhotoPath(o.ProfileMethods, path, args[i+1]); err != nil {
+			if err = setPhotoPath(ctx, o.ProfileMethods, path, args[i+1]); err != nil {
+				if errors.Is(err, lib.ErrUnsupportedRPC) {
+					return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
+				}
 				return err
 			}
 		} else if strings.HasPrefix(path, profilePrefix) {
@@ -220,7 +224,6 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 			}
 		}
 	}
-	ctx := context.TODO()
 	if _, err := o.ConfigMethods.SetConfig(ctx, o.inst.Config()); err != nil {
 		if errors.Is(err, lib.ErrUnsupportedRPC) {
 			return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
@@ -228,8 +231,10 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		return err
 	}
 	if profileChanged {
-		var res config.ProfilePod
-		if err = o.ProfileMethods.SaveProfile(profile, &res); err != nil {
+		if _, err = o.ProfileMethods.SaveProfile(ctx, profile); err != nil {
+			if errors.Is(err, lib.ErrUnsupportedRPC) {
+				return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
+			}
 			return err
 		}
 	}
@@ -238,7 +243,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 	return nil
 }
 
-func setPhotoPath(m *lib.ProfileMethods, proppath, filepath string) error {
+func setPhotoPath(ctx context.Context, m *lib.ProfileMethods, proppath, filepath string) error {
 	f, err := loadFileIfPath(filepath)
 	if err != nil {
 		return err
@@ -248,15 +253,14 @@ func setPhotoPath(m *lib.ProfileMethods, proppath, filepath string) error {
 		Filename: f.Name(),
 		Data:     f,
 	}
-	res := &config.ProfilePod{}
 
 	switch proppath {
 	case "profile.photo", "profile.thumb":
-		if err := m.SetProfilePhoto(p, res); err != nil {
+		if _, err := m.SetProfilePhoto(ctx, p); err != nil {
 			return err
 		}
 	case "profile.poster":
-		if err := m.SetPosterPhoto(p, res); err != nil {
+		if _, err := m.SetPosterPhoto(ctx, p); err != nil {
 			return err
 		}
 	default:

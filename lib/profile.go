@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -32,9 +33,16 @@ func NewProfileMethods(inst *Instance) *ProfileMethods {
 }
 
 // GetProfile get's this node's peer profile
-func (m *ProfileMethods) GetProfile(ctx context.Context, in *bool, res *config.ProfilePod) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ProfileMethods.GetProfile", in, res))
+func (m *ProfileMethods) GetProfile(ctx context.Context, in *bool) (*config.ProfilePod, error) {
+	res := &config.ProfilePod{}
+	var err error
+
+	if m.inst.http != nil {
+		err = m.inst.http.CallMethod(ctx, AEProfile, http.MethodGet, nil, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
 
 	var pro *profile.Profile
@@ -48,7 +56,7 @@ func (m *ProfileMethods) GetProfile(ctx context.Context, in *bool, res *config.P
 	}
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	cfg := m.inst.cfg
@@ -60,11 +68,10 @@ func (m *ProfileMethods) GetProfile(ctx context.Context, in *bool, res *config.P
 	enc, err := pro.Encode()
 	if err != nil {
 		log.Debug(err.Error())
-		return err
+		return nil, err
 	}
 
-	*res = *enc
-	return nil
+	return enc, nil
 }
 
 func getProfile(ctx context.Context, pros profile.Store, idStr, peername string) (pro *profile.Profile, err error) {
@@ -86,13 +93,15 @@ func getProfile(ctx context.Context, pros profile.Store, idStr, peername string)
 }
 
 // SaveProfile stores changes to this peer's editable profile
-func (m *ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePod) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ProfileMethods.SaveProfile", p, res))
+func (m *ProfileMethods) SaveProfile(ctx context.Context, p *config.ProfilePod) (*config.ProfilePod, error) {
+	if m.inst.http != nil {
+		return nil, ErrUnsupportedRPC
 	}
 	if p == nil {
-		return fmt.Errorf("profile required for update")
+		return nil, fmt.Errorf("profile required for update")
 	}
+
+	res := &config.ProfilePod{}
 
 	cfg := m.inst.cfg
 	r := m.inst.repo
@@ -101,11 +110,11 @@ func (m *ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePo
 		if reg := m.inst.registry; reg != nil {
 			current, err := profile.NewProfile(cfg.Profile)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			if _, err := reg.PutProfile(&registry.Profile{Username: p.Peername}, current.PrivKey); err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -128,10 +137,10 @@ func (m *ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePo
 
 	pro, err := profile.NewProfile(cfg.Profile)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := r.Profiles().SetOwner(pro); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Copy the global config, except without the private key.
@@ -143,34 +152,40 @@ func (m *ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePo
 		res.Online = cfg.P2P.Enabled
 	}
 
-	return m.inst.ChangeConfig(cfg)
+	if err := m.inst.ChangeConfig(cfg); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // ProfilePhoto fetches the byte slice of a given user's profile photo
-func (m *ProfileMethods) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ProfileMethods.ProfilePhoto", req, res))
+func (m *ProfileMethods) ProfilePhoto(ctx context.Context, req *config.ProfilePod) ([]byte, error) {
+	if m.inst.http != nil {
+		var bres bytes.Buffer
+		err := m.inst.http.CallRaw(ctx, AEProfilePhoto, req, bres)
+		if err != nil {
+			return nil, err
+		}
+		return bres.Bytes(), nil
 	}
-	ctx := context.TODO()
 
 	r := m.inst.repo
 
 	pro, e := getProfile(ctx, r.Profiles(), req.ID, req.Peername)
 	if e != nil {
-		return e
+		return nil, e
 	}
 
 	if pro.Photo == "" || pro.Photo == "/" {
-		return nil
+		return []byte{}, nil
 	}
 
 	f, e := r.Filesystem().Get(ctx, pro.Photo)
 	if e != nil {
-		return e
+		return nil, e
 	}
 
-	*res, err = ioutil.ReadAll(f)
-	return
+	return ioutil.ReadAll(f)
 }
 
 // FileParams defines parameters for Files as arguments to lib methods
@@ -181,40 +196,41 @@ type FileParams struct {
 }
 
 // SetProfilePhoto changes this peer's profile image
-func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ProfileMethods.SetProfilePhoto", p, res))
+func (m *ProfileMethods) SetProfilePhoto(ctx context.Context, p *FileParams) (*config.ProfilePod, error) {
+	if m.inst.http != nil {
+		return nil, ErrUnsupportedRPC
 	}
-	ctx := context.TODO()
+
+	res := &config.ProfilePod{}
 
 	r := m.inst.repo
 
 	if p.Data == nil {
-		return fmt.Errorf("file is required")
+		return nil, fmt.Errorf("file is required")
 	}
 
 	// TODO - make the reader be a sizefile to avoid this double-read
 	data, err := ioutil.ReadAll(p.Data)
 	if err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("error reading file data: %s", err.Error())
+		return nil, fmt.Errorf("error reading file data: %s", err.Error())
 	}
 	if len(data) > 250000 {
-		return fmt.Errorf("file size too large. max size is 250kb")
+		return nil, fmt.Errorf("file size too large. max size is 250kb")
 	} else if len(data) == 0 {
-		return fmt.Errorf("data file is empty")
+		return nil, fmt.Errorf("data file is empty")
 	}
 
 	mimetype := http.DetectContentType(data)
 	if mimetype != "image/jpeg" {
-		return fmt.Errorf("invalid file format. only .jpg images allowed")
+		return nil, fmt.Errorf("invalid file format. only .jpg images allowed")
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
 	path, err := r.Filesystem().DefaultWriteFS().Put(ctx, qfs.NewMemfileBytes("plz_just_encode", data))
 	if err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("error saving photo: %s", err.Error())
+		return nil, fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
 	res.Photo = path
@@ -224,7 +240,7 @@ func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) 
 	// TODO - resize photo for thumb
 	cfg.Set("profile.thumb", path)
 	if err := m.inst.ChangeConfig(cfg); err != nil {
-		return err
+		return nil, err
 	}
 
 	pro := r.Profiles().Owner()
@@ -232,53 +248,56 @@ func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) 
 	pro.Thumb = path
 
 	if err := r.Profiles().SetOwner(pro); err != nil {
-		return err
+		return nil, err
 	}
 
 	pp, err := pro.Encode()
 	if err != nil {
-		return fmt.Errorf("error encoding new profile: %s", err)
+		return nil, fmt.Errorf("error encoding new profile: %s", err)
 	}
 
-	*res = *pp
-	return nil
+	return pp, nil
 }
 
 // PosterPhoto fetches the byte slice of a given user's poster photo
-func (m *ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ProfileMethods.PostPhoto", req, res))
+func (m *ProfileMethods) PosterPhoto(ctx context.Context, req *config.ProfilePod) ([]byte, error) {
+	if m.inst.http != nil {
+		var bres bytes.Buffer
+		err := m.inst.http.CallRaw(ctx, AEProfilePoster, req, bres)
+		if err != nil {
+			return nil, err
+		}
+		return bres.Bytes(), nil
 	}
-	ctx := context.TODO()
 
 	r := m.inst.repo
 	pro, e := getProfile(ctx, r.Profiles(), req.ID, req.Peername)
 	if e != nil {
-		return e
+		return nil, e
 	}
 
 	if pro.Poster == "" || pro.Poster == "/" {
-		return nil
+		return []byte{}, nil
 	}
 
 	f, e := r.Filesystem().Get(ctx, pro.Poster)
 	if e != nil {
-		return e
+		return nil, e
 	}
 
-	*res, err = ioutil.ReadAll(f)
-	return
+	return ioutil.ReadAll(f)
 }
 
 // SetPosterPhoto changes this peer's poster image
-func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("ProfileMethods.SetPosterPhoto", p, res))
+func (m *ProfileMethods) SetPosterPhoto(ctx context.Context, p *FileParams) (*config.ProfilePod, error) {
+	if m.inst.http != nil {
+		return nil, ErrUnsupportedRPC
 	}
-	ctx := context.TODO()
+
+	res := &config.ProfilePod{}
 
 	if p.Data == nil {
-		return fmt.Errorf("file is required")
+		return nil, fmt.Errorf("file is required")
 	}
 
 	r := m.inst.repo
@@ -287,45 +306,44 @@ func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) e
 	data, err := ioutil.ReadAll(p.Data)
 	if err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("error reading file data: %s", err.Error())
+		return nil, fmt.Errorf("error reading file data: %s", err.Error())
 	}
 
 	if len(data) > 2000000 {
-		return fmt.Errorf("file size too large. max size is 2Mb")
+		return nil, fmt.Errorf("file size too large. max size is 2Mb")
 	} else if len(data) == 0 {
-		return fmt.Errorf("file is empty")
+		return nil, fmt.Errorf("file is empty")
 	}
 
 	mimetype := http.DetectContentType(data)
 	if mimetype != "image/jpeg" {
-		return fmt.Errorf("invalid file format. only .jpg images allowed")
+		return nil, fmt.Errorf("invalid file format. only .jpg images allowed")
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
 	path, err := r.Filesystem().DefaultWriteFS().Put(ctx, qfs.NewMemfileBytes("plz_just_encode", data))
 	if err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("error saving photo: %s", err.Error())
+		return nil, fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
 	res.Poster = path
 	cfg := m.inst.cfg.Copy()
 	cfg.Set("profile.poster", path)
 	if err := m.inst.ChangeConfig(cfg); err != nil {
-		return err
+		return nil, err
 	}
 
 	pro := r.Profiles().Owner()
 	pro.Poster = path
 	if err := r.Profiles().SetOwner(pro); err != nil {
-		return err
+		return nil, err
 	}
 
 	pp, err := pro.Encode()
 	if err != nil {
-		return fmt.Errorf("error encoding new profile: %s", err)
+		return nil, fmt.Errorf("error encoding new profile: %s", err)
 	}
 
-	*res = *pp
-	return nil
+	return pp, nil
 }

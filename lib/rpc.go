@@ -34,7 +34,6 @@ func Receivers(inst *Instance) []Methods {
 		NewRegistryClientMethods(inst),
 		NewRemoteMethods(inst),
 		NewPeerMethods(inst),
-		NewProfileMethods(inst),
 	}
 }
 
