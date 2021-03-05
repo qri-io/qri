@@ -53,13 +53,15 @@ func TestFSIHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "init", h.InitHandler(""), initCases, true)
 
+	whatChangedHandler := func(w http.ResponseWriter, r *http.Request) {
+		lib.NewHTTPRequestHandler(inst, "fsi.whatchanged").ServeHTTP(w, r)
+	}
 	whatChangedCases := []handlerTestCase{
 		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
 		// temp directory names
-		{"GET", "/me/movies", nil, nil},
-		{"DELETE", "/", nil, nil},
+		{"GET", "/me/movies", nil, map[string]string{"peername": "me", "name": "movies"}},
 	}
-	runHandlerTestCases(t, "whatchanged", h.WhatChangedHandler(""), whatChangedCases, true)
+	runHandlerTestCases(t, "whatchanged", whatChangedHandler, whatChangedCases, true)
 
 	checkoutCases := []handlerTestCase{
 		{"POST", "/me/movies", nil, nil},

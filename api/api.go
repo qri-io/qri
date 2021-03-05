@@ -223,7 +223,7 @@ func NewServerRoutes(s Server) *mux.Router {
 
 	fsih := NewFSIHandlers(s.Instance, cfg.API.ReadOnly)
 	handleRefRouteMethods(m, lib.AEStatus, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.status")), http.MethodGet, http.MethodPost)
-	m.Handle(lib.AEWhatChanged.String(), s.Middleware(fsih.WhatChangedHandler(lib.AEWhatChanged.NoTrailingSlash())))
+	handleRefRouteMethods(m, lib.AEWhatChanged, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.whatchanged")), http.MethodGet, http.MethodPost)
 	m.Handle(lib.AEInit.String(), s.Middleware(fsih.InitHandler(lib.AEInit.NoTrailingSlash())))
 	m.Handle(lib.AECanInitDatasetWorkDir.String(), s.Middleware(fsih.CanInitDatasetWorkDirHandler(lib.AECanInitDatasetWorkDir.NoTrailingSlash())))
 	m.Handle(lib.AECheckout.String(), s.Middleware(fsih.CheckoutHandler(lib.AECheckout.NoTrailingSlash())))

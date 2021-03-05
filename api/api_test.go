@@ -98,7 +98,7 @@ func newTestInstanceWithProfileFromNode(ctx context.Context, node *p2p.QriNode) 
 type handlerTestCase struct {
 	method, endpoint string
 	body             []byte
-	muxVars          *map[string]string
+	muxVars          map[string]string
 }
 
 // runHandlerTestCases executes a slice of handlerTestCase against a handler
@@ -107,7 +107,7 @@ func runHandlerTestCases(t *testing.T, name string, h http.HandlerFunc, cases []
 		name := fmt.Sprintf("%s %s case %d: %s %s", t.Name(), name, i, c.method, c.endpoint)
 		req := httptest.NewRequest(c.method, c.endpoint, bytes.NewBuffer(c.body))
 		if c.muxVars != nil {
-			req = mux.SetURLVars(req, *c.muxVars)
+			req = mux.SetURLVars(req, c.muxVars)
 		}
 		setRefStringFromMuxVars(req)
 		if jsonHeader {
