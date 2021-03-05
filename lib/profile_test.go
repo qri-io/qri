@@ -2,13 +2,12 @@ package lib
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/config"
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
@@ -17,7 +16,6 @@ import (
 	"github.com/qri-io/qri/registry"
 	regmock "github.com/qri-io/qri/registry/regserver"
 	testrepo "github.com/qri-io/qri/repo/test"
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func TestProfileRequestsGet(t *testing.T) {
@@ -49,8 +47,7 @@ func TestProfileRequestsGet(t *testing.T) {
 	m := NewProfileMethods(inst)
 
 	for i, c := range cases {
-		got := &config.ProfilePod{}
-		err := m.GetProfile(ctx, &c.in, got)
+		_, err := m.GetProfile(ctx, &c.in)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -89,8 +86,7 @@ func TestProfileRequestsSave(t *testing.T) {
 	m := NewProfileMethods(inst)
 
 	for i, c := range cases {
-		got := &config.ProfilePod{}
-		err := m.SaveProfile(c.p, got)
+		_, err := m.SaveProfile(ctx, c.p)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -137,8 +133,7 @@ func TestSaveProfile(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 	m := NewProfileMethods(inst)
 
-	got := config.ProfilePod{}
-	err = m.SaveProfile(&pro, &got)
+	got, err := m.SaveProfile(ctx, &pro)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -152,12 +147,8 @@ func TestSaveProfile(t *testing.T) {
 	cfg.Profile.Online = cfg.P2P.Enabled
 
 	// Verify that the saved config matches the returned config (after private key is copied).
-	if !reflect.DeepEqual(*cfg.Profile, got) {
-		dmp := diffmatchpatch.New()
-		saved, _ := json.Marshal(*cfg.Profile)
-		g, _ := json.Marshal(got)
-		diffs := dmp.DiffMain(string(saved), string(g), false)
-		log.Errorf("Saved Profile does not match returned Profile: %s", dmp.DiffPrettyText(diffs))
+	if diff := cmp.Diff(cfg.Profile, got); diff != "" {
+		t.Errorf("saved profile mismatch (-want +got):\n%s", diff)
 	}
 
 	// Validate that the returned Profile has all the proper individual fields.
@@ -230,8 +221,8 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res := &config.ProfilePod{}
-	if err := m.SaveProfile(pp, res); err != nil {
+	_, err = m.SaveProfile(ctx, pp)
+	if err != nil {
 		t.Error(err)
 	}
 
@@ -293,15 +284,23 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 			p.Data = r
 		}
 
-		res := &config.ProfilePod{}
-		err := m.SetProfilePhoto(p, res)
+		res, err := m.SetProfilePhoto(ctx, p)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err.Error())
+			t.Errorf("case %d error mismatch. expected: %q, got: %q", i, c.err, err.Error())
+			continue
+		}
+
+		if res == nil && c.respath != "" {
+			t.Errorf("case %d profile hash mismatch. expected: %q, got nil", i, c.respath)
+			continue
+		}
+
+		if res == nil {
 			continue
 		}
 
 		if c.respath != res.Photo {
-			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath, res.Photo)
+			t.Errorf("case %d profile hash mismatch. expected: %q, got: %q", i, c.respath, res.Photo)
 			continue
 		}
 	}
@@ -349,10 +348,18 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 			p.Data = r
 		}
 
-		res := &config.ProfilePod{}
-		err := m.SetProfilePhoto(p, res)
+		res, err := m.SetProfilePhoto(ctx, p)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err.Error())
+			continue
+		}
+
+		if res == nil && c.respath != "" {
+			t.Errorf("case %d profile hash mismatch. expected: %q, got nil", i, c.respath)
+			continue
+		}
+
+		if res == nil {
 			continue
 		}
 

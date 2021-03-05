@@ -26,8 +26,6 @@ func TestProfileHandler(t *testing.T) {
 
 	cases := []handlerTestCase{
 		{"GET", "/", nil, nil},
-		{"POST", "/", mustFile(t, "testdata/profileRequest.json"), nil},
-		{"POST", "/", []byte(``), nil},
 		{"DELETE", "/", nil, nil},
 	}
 
@@ -63,23 +61,7 @@ func TestProfilePhotoHandler(t *testing.T) {
 		filepaths              map[string]string
 		params                 map[string]string
 	}{
-		{"POST", "POST", "/",
-			map[string]string{
-				"file": "testdata/rico_400x400.jpg",
-			},
-			nil,
-		},
-		{"GET", "GET", "/", nil,
-			map[string]string{
-				"peername": "peer",
-			},
-		},
-		{"POST bad file format", "POST", "/",
-			map[string]string{
-				"file": "testdata/cities/data.csv",
-			},
-			nil,
-		},
+		{"GET", "GET", "/?peername=peer", nil, map[string]string{}},
 	}
 
 	cfg := testcfg.DefaultConfigForTesting()
@@ -120,23 +102,11 @@ func TestProfilePosterHandler(t *testing.T) {
 		filepaths              map[string]string
 		params                 map[string]string
 	}{
-		{"POST", "POST", "/",
-			map[string]string{
-				"file": "testdata/rico_poster_1500x500.jpg",
-			},
-			nil,
-		},
-		{"GET", "GET", "/", nil,
+		{"GET", "GET", "/?peername=peer&id=QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", nil,
 			map[string]string{
 				"peername": "peer",
 				"id":       "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
 			},
-		},
-		{"POST bad file format", "POST", "/",
-			map[string]string{
-				"file": "testdata/cities/data.csv",
-			},
-			nil,
 		},
 	}
 
