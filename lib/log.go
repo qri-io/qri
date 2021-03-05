@@ -1,9 +1,12 @@
 package lib
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"net/http"
 
+	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -37,12 +40,57 @@ type LogParams struct {
 	Source string
 }
 
-// Log returns the history of changes for a given dataset
-func (m *LogMethods) Log(params *LogParams, res *[]dsref.VersionInfo) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("LogMethods.Log", params, res))
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *LogParams) UnmarshalFromRequest(r *http.Request) error {
+	if p == nil {
+		p = &LogParams{}
 	}
-	ctx := context.TODO()
+
+	lp := &ListParams{}
+	if err := lp.UnmarshalFromRequest(r); err != nil {
+		return err
+	}
+
+	p.ListParams = *lp
+
+	params := *p
+	if params.Ref == "" {
+		params.Ref = r.FormValue("refstr")
+	}
+
+	ref, err := dsref.Parse(params.Ref)
+	if err != nil {
+		return err
+	}
+	lp.Peername = ref.Username
+
+	local := r.FormValue("local") == "true"
+	remoteName := r.FormValue("remote")
+	params.Pull = r.FormValue("pull") == "true" || params.Pull
+
+	if params.Source == "" {
+		if local && (remoteName != "" || params.Pull) {
+			return fmt.Errorf("cannot use the 'local' param with either the 'remote' or 'pull' params")
+		} else if local {
+			remoteName = "local"
+		}
+		params.Source = remoteName
+	}
+
+	*p = params
+	return nil
+}
+
+// Log returns the history of changes for a given dataset
+func (m *LogMethods) Log(ctx context.Context, params *LogParams) ([]dsref.VersionInfo, error) {
+	res := []dsref.VersionInfo{}
+	if m.inst.http != nil {
+		err := m.inst.http.Call(ctx, AEHistory, params, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	}
 
 	// ensure valid limit value
 	if params.Limit <= 0 {
@@ -58,24 +106,23 @@ func (m *LogMethods) Log(params *LogParams, res *[]dsref.VersionInfo) error {
 		case "":
 			params.Source = "network"
 		case "local":
-			return fmt.Errorf("cannot pull with only local source")
+			return nil, fmt.Errorf("cannot pull with only local source")
 		}
 	}
 
 	ref, source, err := m.inst.ParseAndResolveRef(ctx, params.Ref, params.Source)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if source == "" {
 		// local resolution
-		*res, err = base.DatasetLog(ctx, m.inst.repo, ref, params.Limit, params.Offset, true)
-		return err
+		return base.DatasetLog(ctx, m.inst.repo, ref, params.Limit, params.Offset, true)
 	}
 
 	logs, err := m.inst.remoteClient.FetchLogs(ctx, ref, source)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// TODO (b5) - FetchLogs currently returns oplogs arranged in user > dataset > branch
@@ -92,7 +139,7 @@ func (m *LogMethods) Log(params *LogParams, res *[]dsref.VersionInfo) error {
 	items := logbook.ConvertLogsToVersionInfos(logs, ref)
 	log.Debugf("found %d items: %v", len(items), items)
 	if len(items) == 0 {
-		return repo.ErrNoHistory
+		return nil, repo.ErrNoHistory
 	}
 
 	for i, item := range items {
@@ -111,8 +158,7 @@ func (m *LogMethods) Log(params *LogParams, res *[]dsref.VersionInfo) error {
 		}
 	}
 
-	*res = items
-	return nil
+	return items, nil
 }
 
 // RefListParams encapsulates parameters for requests to a single reference
@@ -124,24 +170,59 @@ type RefListParams struct {
 	Offset, Limit int
 }
 
-// LogEntry is a record in a log of operations on a dataset
-type LogEntry = logbook.LogEntry
-
-// Logbook lists log entries for actions taken on a given dataset
-func (m *LogMethods) Logbook(p *RefListParams, res *[]LogEntry) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("LogMethods.Logbook", p, res))
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *RefListParams) UnmarshalFromRequest(r *http.Request) error {
+	if p == nil {
+		p = &RefListParams{}
 	}
-	ctx := context.TODO()
 
-	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Ref, "local")
+	params := *p
+	if params.Ref == "" {
+		params.Ref = r.FormValue("refstr")
+	}
+
+	_, err := dsref.Parse(params.Ref)
 	if err != nil {
 		return err
 	}
 
+	if i := util.ReqParamInt(r, "offset", 0); i != 0 {
+		params.Offset = i
+	}
+	if i := util.ReqParamInt(r, "limit", 0); i != 0 {
+		params.Limit = i
+	}
+
+	*p = params
+	return nil
+}
+
+// LogEntry is a record in a log of operations on a dataset
+type LogEntry = logbook.LogEntry
+
+// Logbook lists log entries for actions taken on a given dataset
+func (m *LogMethods) Logbook(ctx context.Context, p *RefListParams) ([]LogEntry, error) {
+	res := []LogEntry{}
+	var err error
+	if m.inst.http != nil {
+		err = m.inst.http.Call(ctx, AELogbook, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	}
+
+	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Ref, "local")
+	if err != nil {
+		return nil, err
+	}
+
 	book := m.inst.node.Repo.Logbook()
-	*res, err = book.LogEntries(ctx, ref, p.Offset, p.Limit)
-	return err
+	res, err = book.LogEntries(ctx, ref, p.Offset, p.Limit)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // PlainLogsParams enapsulates parameters for the PlainLogs methods
@@ -153,21 +234,35 @@ type PlainLogsParams struct {
 type PlainLogs = []logbook.PlainLog
 
 // PlainLogs encodes the full logbook as human-oriented json
-func (m *LogMethods) PlainLogs(p *PlainLogsParams, res *PlainLogs) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("LogMethods.PlainLogs", p, res))
+func (m *LogMethods) PlainLogs(ctx context.Context, p *PlainLogsParams) (*PlainLogs, error) {
+	res := &PlainLogs{}
+	var err error
+	if m.inst.http != nil {
+		err = m.inst.http.Call(ctx, AELogs, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
-	ctx := context.TODO()
 	*res, err = m.inst.repo.Logbook().PlainLogs(ctx)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // LogbookSummary returns a string overview of the logbook
-func (m *LogMethods) LogbookSummary(p *struct{}, res *string) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("LogMethods.Diagnostic", p, res))
+func (m *LogMethods) LogbookSummary(ctx context.Context, p *struct{}) (*string, error) {
+	res := ""
+	if m.inst.http != nil {
+		var bres bytes.Buffer
+		err := m.inst.http.CallRaw(ctx, AELogbookSummary, p, &bres)
+		if err != nil {
+			return nil, err
+		}
+		res = bres.String()
+		return &res, nil
 	}
-	ctx := context.TODO()
-	*res = m.inst.repo.Logbook().SummaryString(ctx)
-	return nil
+	res = m.inst.repo.Logbook().SummaryString(ctx)
+	return &res, nil
 }

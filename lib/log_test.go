@@ -53,9 +53,9 @@ func TestHistoryRequestsLog(t *testing.T) {
 		err         string
 	}{
 		{"log list - empty",
-			&LogParams{}, []dsref.VersionInfo{}, `"" is not a valid dataset reference: empty reference`},
+			&LogParams{}, nil, `"" is not a valid dataset reference: empty reference`},
 		{"log list - bad path",
-			&LogParams{Ref: "/badpath"}, []dsref.VersionInfo{}, `"/badpath" is not a valid dataset reference: unexpected character at position 0: '/'`},
+			&LogParams{Ref: "/badpath"}, nil, `"/badpath" is not a valid dataset reference: unexpected character at position 0: '/'`},
 		{"log list - default",
 			&LogParams{Ref: firstRef}, items, ""},
 		{"log list - offset 0 limit 3",
@@ -69,8 +69,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewLogMethods(inst)
 	for _, c := range cases {
-		got := []dsref.VersionInfo{}
-		err := m.Log(c.p, &got)
+		got, err := m.Log(ctx, c.p)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)
@@ -112,12 +111,12 @@ func TestHistoryRequestsLogEntries(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewLogMethods(inst)
 
-	if err = m.Logbook(&RefListParams{}, nil); err == nil {
+	if _, err = m.Logbook(ctx, &RefListParams{}); err == nil {
 		t.Errorf("expected empty reference param to error")
 	}
 
-	res := []LogEntry{}
-	if err = m.Logbook(&RefListParams{Ref: firstRef, Limit: 30}, &res); err != nil {
+	res, err := m.Logbook(ctx, &RefListParams{Ref: firstRef, Limit: 30})
+	if err != nil {
 		t.Fatal(err)
 	}
 

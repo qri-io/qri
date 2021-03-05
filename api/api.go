@@ -228,7 +228,10 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AERenderAlt.String(), s.Middleware(renderh.RenderHandler))
 
 	lh := NewLogHandlers(s.Instance)
-	m.Handle(lib.AEHistory.String(), s.Middleware(lh.LogHandler))
+	handleRefRoute(m, lib.AEHistory, s.Middleware(lh.LogHandler))
+	handleRefRoute(m, lib.AELogbook, s.Middleware(lh.LogbookHandler))
+	m.Handle(lib.AELogs.String(), s.Middleware(lh.PlainLogsHandler))
+	m.Handle(lib.AELogbookSummary.String(), s.Middleware(lh.LogbookSummaryHandler))
 
 	rch := NewRegistryClientHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle(lib.AERegistryNew.String(), s.Middleware(rch.CreateProfileHandler))

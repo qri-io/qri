@@ -1,11 +1,9 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/qri-io/qri/api/util"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
@@ -28,47 +26,53 @@ func NewLogHandlers(inst *lib.Instance) *LogHandlers {
 // LogHandler is the endpoint for dataset logs
 func (h *LogHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodGet:
+	case http.MethodGet, http.MethodPost:
 		h.logHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
 }
 
+// LogbookHandler is the endpoint for a dataset logbook
+func (h *LogHandlers) LogbookHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet, http.MethodPost:
+		h.logbookHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// PlainLogsHandler is the endpoint for getting the full logbook in human readable form
+func (h *LogHandlers) PlainLogsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet, http.MethodPost:
+		h.plainLogsHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// LogbookSummaryHandler is the endpoint for a string overview of the logbook
+func (h *LogHandlers) LogbookSummaryHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet, http.MethodPost:
+		h.logbookSummaryHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := lib.DsRefFromPath(r.URL.Path[len("/history"):])
+	params := &lib.LogParams{}
+	err := UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	if args.Name == "" && args.Path == "" {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("name of dataset or path needed"))
-		return
-	}
-
-	lp := lib.ListParamsFromRequest(r)
-	lp.Peername = args.Username
-
-	local := r.FormValue("local") == "true"
-	remoteName := r.FormValue("remote")
-	pull := r.FormValue("pull") == "true"
-
-	if local && (remoteName != "" || pull) {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("cannot use the 'local' param with either the 'remote' or 'pull' params"))
-		return
-	} else if local {
-		remoteName = "local"
-	}
-
-	res := []dsref.VersionInfo{}
-	params := &lib.LogParams{
-		Ref:        args.String(),
-		Source:     remoteName,
-		Pull:       pull,
-		ListParams: lp,
-	}
-	if err := h.lm.Log(params, &res); err != nil {
+	res, err := h.lm.Log(r.Context(), params)
+	if err != nil {
 		if err == repo.ErrNoHistory {
 			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
 			return
@@ -77,9 +81,8 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
-		if local && err == repo.ErrNotFound {
-			// TODO (b5): This should be 403 not 500
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		if params.Source == "local" && err == repo.ErrNotFound {
+			util.WriteErrResponse(w, http.StatusForbidden, err)
 			return
 		}
 	}
@@ -87,5 +90,55 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	if err := util.WritePageResponse(w, res, r, params.Page()); err != nil {
 		log.Infof("error list dataset history response: %s", err.Error())
 	}
-	return
+}
+
+func (h *LogHandlers) logbookHandler(w http.ResponseWriter, r *http.Request) {
+	params := &lib.RefListParams{}
+	err := UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	res, err := h.lm.Logbook(r.Context(), params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WritePageResponse(w, res, r, util.Page{})
+}
+
+func (h *LogHandlers) plainLogsHandler(w http.ResponseWriter, r *http.Request) {
+	params := &lib.PlainLogsParams{}
+	err := UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	res, err := h.lm.PlainLogs(r.Context(), params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WritePageResponse(w, res, r, util.Page{})
+}
+
+func (h *LogHandlers) logbookSummaryHandler(w http.ResponseWriter, r *http.Request) {
+	params := &struct{}{}
+	err := UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	res, err := h.lm.LogbookSummary(r.Context(), params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WritePageResponse(w, res, r, util.Page{})
 }
