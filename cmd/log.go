@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -106,7 +107,7 @@ func (o *LogOptions) Run() error {
 	// convert Page and PageSize to Limit and Offset
 	page := apiutil.NewPage(o.Page, o.PageSize)
 
-	res := []dsref.VersionInfo{}
+	ctx := context.TODO()
 	p := &lib.LogParams{
 		Ref:    o.Refs.Ref(),
 		Pull:   o.Pull,
@@ -117,7 +118,8 @@ func (o *LogOptions) Run() error {
 		},
 	}
 
-	if err := o.LogMethods.Log(p, &res); err != nil {
+	res, err := o.LogMethods.Log(ctx, p)
+	if err != nil {
 		return err
 	}
 
@@ -216,8 +218,9 @@ func (o *LogbookOptions) Logbook() error {
 		Offset: page.Offset(),
 	}
 
-	res := []lib.LogEntry{}
-	if err := o.LogMethods.Logbook(p, &res); err != nil {
+	ctx := context.TODO()
+	res, err := o.LogMethods.Logbook(ctx, p)
+	if err != nil {
 		if err == repo.ErrEmptyRef {
 			return errors.New(err, "please provide a dataset reference")
 		}
@@ -238,8 +241,9 @@ func (o *LogbookOptions) Logbook() error {
 
 // RawLogs executes the rawlogs variant of the logbook command
 func (o *LogbookOptions) RawLogs() error {
-	res := lib.PlainLogs{}
-	if err := o.LogMethods.PlainLogs(&lib.PlainLogsParams{}, &res); err != nil {
+	ctx := context.TODO()
+	res, err := o.LogMethods.PlainLogs(ctx, &lib.PlainLogsParams{})
+	if err != nil {
 		return err
 	}
 
@@ -254,11 +258,12 @@ func (o *LogbookOptions) RawLogs() error {
 
 // LogbookSummary prints a logbook overview
 func (o *LogbookOptions) LogbookSummary() error {
-	var res string
-	if err := o.LogMethods.LogbookSummary(&struct{}{}, &res); err != nil {
+	ctx := context.TODO()
+	res, err := o.LogMethods.LogbookSummary(ctx, &struct{}{})
+	if err != nil {
 		return err
 	}
 
-	printToPager(o.Out, bytes.NewBufferString(res))
+	printToPager(o.Out, bytes.NewBufferString(*res))
 	return nil
 }

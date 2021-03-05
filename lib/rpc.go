@@ -33,7 +33,6 @@ func Receivers(inst *Instance) []Methods {
 	return []Methods{
 		NewRegistryClientMethods(inst),
 		NewRemoteMethods(inst),
-		NewLogMethods(inst),
 		NewPeerMethods(inst),
 		NewProfileMethods(inst),
 		NewConfigMethods(inst),

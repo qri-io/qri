@@ -201,7 +201,7 @@ func TestNoHistory(t *testing.T) {
 }`
 
 	// History with no history
-	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds", logHandler.LogHandler, nil)
+	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds", logHandler.LogHandler, &map[string]string{"peername": "peer", "name": "test_ds"})
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
@@ -210,7 +210,7 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// History with no history, still returns ErrNoHistory since this route ignores fsi param
-	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds?fsi=true", logHandler.LogHandler, nil)
+	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds?fsi=true", logHandler.LogHandler, &map[string]string{"peername": "peer", "name": "test_ds"})
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
