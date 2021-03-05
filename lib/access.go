@@ -19,6 +19,13 @@ func (m AccessMethods) Name() string {
 	return "access"
 }
 
+// Mapping is FIXME
+func (m AccessMethods) Mapping() map[string][]string {
+	return map[string][]string{
+		"createauthtoken": {"/auth/createauthtoken", "GET"},
+	}
+}
+
 // Access returns the authentication that Instance has registered
 func (inst *Instance) Access() AccessMethods {
 	return AccessMethods{d: inst}

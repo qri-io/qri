@@ -71,6 +71,8 @@ func TestRegisterVariadicReturn(t *testing.T) {
 	}
 }
 
+// TODO(dustmop): Add tests for Mapping()
+
 func expectToPanic(t *testing.T, regFunc func(), expectMessage string) {
 	t.Helper()
 

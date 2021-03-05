@@ -29,6 +29,7 @@ type Cursor interface{}
 // with the context.Context replaced by a scope.
 type MethodSet interface {
 	Name() string
+	Mapping() map[string][]string
 }
 
 // Dispatch is a system for handling calls to lib. Should only be called by top-level lib methods.
@@ -75,6 +76,7 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 			// TODO(dustmop): This is always using the "POST" verb currently. We need some
 			// mechanism of tagging methods as being read-only and "GET"-able. Once that
 			// exists, use it here to lookup the verb that should be used to invoke the rpc.
+			// TODO(dustmop): Use the Mapping() here to get HTTP verb
 			out := reflect.New(c.OutType)
 			res = out.Interface()
 			err = inst.http.Call(ctx, methodEndpoint(method), param, res)
@@ -173,6 +175,8 @@ type callable struct {
 	InType    reflect.Type
 	OutType   reflect.Type
 	RetCursor bool
+	Endpoint  string
+	Verb      string
 }
 
 // RegisterMethods iterates the methods provided by the lib API, and makes them visible to dispatch
@@ -187,6 +191,10 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 	implType := reflect.TypeOf(impl)
 	msetType := reflect.TypeOf(methods)
 	methodMap := inst.buildMethodMap(methods)
+	// Validate that the methodSet has the correct name
+	if methods.Name() != ourName {
+		panic(fmt.Sprintf("registration wrong name, expect: %q, got: %q", ourName, methods.Name()))
+	}
 	// Iterate methods on the implementation, register those that have the right signature
 	num := implType.NumMethod()
 	for k := 0; k < num; k++ {
@@ -304,6 +312,24 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 		// Remove this method from the methodSetMap now that it has been processed
 		delete(methodMap, i.Name)
 
+		// Additional attributes for the method are found in the Mapping
+		mmap := methods.Mapping()
+		methodAttrs, ok := mmap[lowerName]
+		if !ok {
+			panic(fmt.Sprintf("%s: not found in Mapping()", funcName))
+		}
+		if len(methodAttrs) != 2 {
+			panic(fmt.Sprintf("%s: incorrect number of attributes: %d", len(methodAttrs)))
+		}
+		endpointURL := methodAttrs[0]
+		if !strings.HasPrefix(endpointURL, "/") {
+			panic(fmt.Sprintf("%s: endpoint URL must start with /, got %q", endpointURL))
+		}
+		httpVerb := methodAttrs[1]
+		if httpVerb != "GET" && httpVerb != "POST" {
+			panic(fmt.Sprintf("%s: unknown http verb, got %q", httpVerb))
+		}
+
 		// Save the method to the registration table
 		reg[funcName] = callable{
 			Impl:      impl,
@@ -311,6 +337,8 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 			InType:    inType,
 			OutType:   outType,
 			RetCursor: returnsCursor,
+			Endpoint:  endpointURL,
+			Verb:      httpVerb,
 		}
 		log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
 	}
@@ -344,6 +372,7 @@ func methodEndpoint(method string) APIEndpoint {
 	// other methods; their http API endpoints are only their method name, for
 	// exmaple /status/. This should be replaced with an explicit mapping from
 	// method names to endpoints.
+	// TODO(dustmop): Use the Mapping() here to get endpoint
 	if method == "fsi.write" {
 		return "/fsi/write/"
 	}
