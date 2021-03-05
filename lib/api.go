@@ -107,7 +107,7 @@ const (
 	// fsi endpoints
 
 	// AEStatus returns the filesystem dataset status
-	AEStatus = APIEndpoint("/status/{path:.*}")
+	AEStatus = APIEndpoint("/status")
 	// AEWhatChanged returns what changed for a specific commit
 	AEWhatChanged = APIEndpoint("/whatchanged/{path:.*}")
 	// AEInit invokes a dataset initialization on the filesystem

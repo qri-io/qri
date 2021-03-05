@@ -65,7 +65,7 @@ func (h *LogHandlers) LogbookSummaryHandler(w http.ResponseWriter, r *http.Reque
 
 func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.LogParams{}
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -94,7 +94,7 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *LogHandlers) logbookHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.RefListParams{}
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -111,7 +111,7 @@ func (h *LogHandlers) logbookHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *LogHandlers) plainLogsHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.PlainLogsParams{}
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -128,7 +128,7 @@ func (h *LogHandlers) plainLogsHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *LogHandlers) logbookSummaryHandler(w http.ResponseWriter, r *http.Request) {
 	params := &struct{}{}
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return

@@ -200,11 +200,11 @@ func (c HTTPClient) checkError(res *http.Response, body []byte, raw bool) error 
 
 // NewHTTPRequestHandler creates a JSON-API endpoint for a registered dispatch
 // method
-func NewHTTPRequestHandler(inst *Instance, method string, ae APIEndpoint) http.HandlerFunc {
+func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		p := inst.NewInputParam(method)
+		p := inst.NewInputParam(libMethod)
 		if p == nil {
-			apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("no params for method %s", method))
+			apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("no params for method %s", libMethod))
 			return
 		}
 
@@ -214,7 +214,7 @@ func NewHTTPRequestHandler(inst *Instance, method string, ae APIEndpoint) http.H
 			return
 		}
 
-		res, cursor, err := inst.Dispatch(r.Context(), method, p)
+		res, cursor, err := inst.Dispatch(r.Context(), libMethod, p)
 		if err != nil {
 			apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return

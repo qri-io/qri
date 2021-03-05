@@ -3,6 +3,7 @@ package lib
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -36,6 +37,13 @@ func (inst *Instance) Filesys() *FSIMethods {
 type LinkParams struct {
 	Dir    string
 	Refstr string
+}
+
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *LinkParams) UnmarshalFromRequest(r *http.Request) error {
+	p.Refstr = r.FormValue("refstr")
+	p.Dir = r.FormValue("dir")
+	return nil
 }
 
 // FSIWriteParams encapsultes arguments for writing to an FSI-linked directory

@@ -53,14 +53,6 @@ func TestFSIHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "init", h.InitHandler(""), initCases, true)
 
-	statusCases := []handlerTestCase{
-		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
-		// temp directory names
-		{"GET", "/me/movies", nil, nil},
-		{"DELETE", "/", nil, nil},
-	}
-	runHandlerTestCases(t, "status", h.StatusHandler(""), statusCases, true)
-
 	whatChangedCases := []handlerTestCase{
 		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
 		// temp directory names
@@ -165,14 +157,17 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("expected body %v, got %v\ndiff:%v", expectBody, actualBody, diff)
 	}
 
-	fsiHandler := NewFSIHandlers(run.Inst, false)
+	statusHandler := func(w http.ResponseWriter, r *http.Request) {
+		lib.NewHTTPRequestHandler(run.Inst, "fsi.status").ServeHTTP(w, r)
+	}
 
 	// Expected response for status of the dataset
 	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/structure.json","component":"structure","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
 	expectBody = fmt.Sprintf(templateBody, metaMtime, structureMtime, bodyMtime)
 
 	// Status at version with no history
-	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds", fsiHandler.StatusHandler("/status"), nil)
+	mvars := map[string]string{"peername": "peer", "name": "test_ds"}
+	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds", statusHandler, &mvars)
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -182,7 +177,7 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Status with no history, but FSI working directory has contents
-	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds?fsi=true", fsiHandler.StatusHandler("/status"), nil)
+	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds?fsi=true", statusHandler, &mvars)
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -405,8 +400,13 @@ func TestCheckoutAndRestore(t *testing.T) {
 	st, _ = os.Stat(filepath.Join(workDir, "body.csv"))
 	bodyMtime := st.ModTime().Format(time.RFC3339)
 
+	statusHandler := func(w http.ResponseWriter, r *http.Request) {
+		lib.NewHTTPRequestHandler(inst, "fsi.status").ServeHTTP(w, r)
+	}
+
 	// Status should show that meta is modified
-	actualStatusCode, actualBody = APICall("/status/peer/fsi_checkout_restore?fsi=true", fsiHandler.StatusHandler("/status"), nil)
+	mvars := map[string]string{"peername": "peer", "name": "fsi_checkout_restore"}
+	actualStatusCode, actualBody = APICall("/status/peer/fsi_checkout_restore?fsi=true", statusHandler, &mvars)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}

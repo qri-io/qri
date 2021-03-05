@@ -25,54 +25,6 @@ func NewFSIHandlers(inst *lib.Instance, readOnly bool) FSIHandlers {
 	}
 }
 
-// StatusHandler is the endpoint for getting the status of a linked dataset
-func (h *FSIHandlers) StatusHandler(routePrefix string) http.HandlerFunc {
-	handleStatus := h.statusHandler(routePrefix)
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		if h.ReadOnly {
-			readOnlyResponse(w, routePrefix)
-			return
-		}
-
-		switch r.Method {
-		case http.MethodGet, http.MethodPost:
-			handleStatus(w, r)
-		default:
-			util.NotFoundHandler(w, r)
-		}
-	}
-}
-
-func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		method := "fsi.status"
-		p := h.inst.NewInputParam(method)
-
-		// TODO(dustmop): Add this to UnmarshalParams for methods that can
-		// receive a refstr in the URL, or annotate the param struct with
-		// a tag and marshal the url to that field
-		err := addDsRefFromURL(r, routePrefix)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		if err := lib.UnmarshalParams(r, p); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		res, _, err := h.inst.Dispatch(r.Context(), method, p)
-		if err != nil {
-			util.RespondWithError(w, err)
-			return
-		}
-		util.WriteResponse(w, res)
-		return
-	}
-}
-
 // WhatChangedHandler is the endpoint for showing what changed for a specific commit
 func (h *FSIHandlers) WhatChangedHandler(routePrefix string) http.HandlerFunc {
 	handleStatus := h.whatChangedHandler(routePrefix)

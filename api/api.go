@@ -152,6 +152,18 @@ func handleRefRoute(m *mux.Router, ae lib.APIEndpoint, f http.HandlerFunc) {
 	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/at/{fs}/{hash}/{selector}"), f)
 }
 
+// TODO(b5): this is a band-aid that lets us punt on teaching lib about how to
+// switch on HTTP verbs. I think we should use tricks like this that leverage
+// the gorilla/mux package until we get a better sense of how our API uses
+// HTTP verbs
+func handleRefRouteMethods(m *mux.Router, ae lib.APIEndpoint, f http.HandlerFunc, methods ...string) {
+	m.Handle(ae.String(), f).Methods(methods...)
+	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}"), f).Methods(methods...)
+	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/{selector}"), f).Methods(methods...)
+	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/at/{fs}/{hash}"), f).Methods(methods...)
+	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/at/{fs}/{hash}/{selector}"), f).Methods(methods...)
+}
+
 // NewServerRoutes returns a Muxer that has all API routes
 func NewServerRoutes(s Server) *mux.Router {
 	cfg := s.Config()
@@ -160,6 +172,8 @@ func NewServerRoutes(s Server) *mux.Router {
 	if m == nil {
 		m = mux.NewRouter()
 	}
+	m.Use(refStringMiddleware)
+	m.Use(token.OAuthTokenMiddleware)
 
 	m.Handle(lib.AEHome.String(), s.NoLogMiddleware(s.HomeHandler))
 	m.Handle(lib.AEHealth.String(), s.NoLogMiddleware(HealthCheckHandler))
@@ -208,7 +222,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEPreview.String(), s.Middleware(remClientH.DatasetPreviewHandler))
 
 	fsih := NewFSIHandlers(s.Instance, cfg.API.ReadOnly)
-	m.Handle(lib.AEStatus.String(), s.Middleware(fsih.StatusHandler(lib.AEStatus.NoTrailingSlash())))
+	handleRefRouteMethods(m, lib.AEStatus, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.status")), http.MethodGet, http.MethodPost)
 	m.Handle(lib.AEWhatChanged.String(), s.Middleware(fsih.WhatChangedHandler(lib.AEWhatChanged.NoTrailingSlash())))
 	m.Handle(lib.AEInit.String(), s.Middleware(fsih.InitHandler(lib.AEInit.NoTrailingSlash())))
 	m.Handle(lib.AECanInitDatasetWorkDir.String(), s.Middleware(fsih.CanInitDatasetWorkDirHandler(lib.AECanInitDatasetWorkDir.NoTrailingSlash())))
@@ -244,9 +258,6 @@ func NewServerRoutes(s Server) *mux.Router {
 	if !cfg.API.DisableWebui {
 		m.Handle(lib.AEWebUI.String(), s.Middleware(WebuiHandler))
 	}
-
-	m.Use(refStringMiddleware)
-	m.Use(token.OAuthTokenMiddleware)
 
 	return m
 }
