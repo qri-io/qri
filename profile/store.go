@@ -61,7 +61,7 @@ type Store interface {
 }
 
 // NewStore creates a profile store from configuration
-func NewStore(cfg *config.Config) (Store, error) {
+func NewStore(cfg *config.Config, keyStore key.Store) (Store, error) {
 	pro, err := NewProfile(cfg.Profile)
 	if err != nil {
 		return nil, err
@@ -70,11 +70,6 @@ func NewStore(cfg *config.Config) (Store, error) {
 	// Don't create a localstore with the empty path, this will use the current directory
 	if cfg.Repo.Type == "fs" && cfg.Path() == "" {
 		return nil, fmt.Errorf("new Profile.FilesystemStore requires non-empty path")
-	}
-
-	keyStore, err := key.NewStore(cfg)
-	if err != nil {
-		return nil, err
 	}
 
 	if cfg.Repo == nil {
@@ -140,6 +135,9 @@ func NewMemStore(owner *Profile, ks key.Store) (Store, error) {
 	}
 
 	if err := ks.AddPrivKey(owner.GetKeyID(), owner.PrivKey); err != nil {
+		return nil, err
+	}
+	if err := ks.AddPubKey(owner.GetKeyID(), owner.PrivKey.GetPublic()); err != nil {
 		return nil, err
 	}
 
@@ -211,8 +209,6 @@ func (m *MemStore) PeernameID(peername string) (ID, error) {
 func (m *MemStore) PeerProfile(id peer.ID) (*Profile, error) {
 	m.Lock()
 	defer m.Unlock()
-
-	// str := fmt.Sprintf("/ipfs/%s", id.Pretty())
 
 	for _, profile := range m.store {
 		for _, pid := range profile.PeerIDs {
@@ -312,12 +308,15 @@ func NewLocalStore(filename string, owner *Profile, ks key.Store) (Store, error)
 		return nil, err
 	}
 
-	return &LocalStore{
+	s := &LocalStore{
 		owner:    owner,
 		keyStore: ks,
 		filename: filename,
 		flock:    flock.NewFlock(lockPath(filename)),
-	}, nil
+	}
+
+	err := s.PutProfile(owner)
+	return s, err
 }
 
 func lockPath(filename string) string {
@@ -484,6 +483,7 @@ func (r *LocalStore) ProfilesForUsername(username string) ([]*Profile, error) {
 	}
 
 	var res []*Profile
+
 	for id, p := range ps {
 		if p.Peername == username {
 			pro := &Profile{}

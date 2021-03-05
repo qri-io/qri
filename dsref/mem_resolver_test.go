@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -19,14 +20,14 @@ func TestMemResolver(t *testing.T) {
 	}
 
 	dsrefspec.AssertResolverSpec(t, m, func(ref dsref.Ref, author profile.Author, log *oplog.Log) error {
-		pid, err := profile.KeyIDFromPub(author.AuthorPubKey())
+		kid, err := key.IDFromPubKey(author.AuthorPubKey())
 		if err != nil {
 			return err
 		}
 
 		m.Put(dsref.VersionInfo{
 			InitID:    ref.InitID,
-			ProfileID: pid,
+			ProfileID: kid,
 			Username:  ref.Username,
 			Name:      ref.Name,
 			Path:      ref.Path,

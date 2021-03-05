@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
@@ -125,8 +126,8 @@ func TestResolveRef(t *testing.T) {
 
 	dsrefspec.AssertResolverSpec(t, p2pRefResolver, func(r dsref.Ref, author profile.Author, _ *oplog.Log) error {
 		builder := dscache.NewBuilder()
-		pid, err := profile.KeyIDFromPub(author.AuthorPubKey())
-		builder.AddUser(r.Username, pid)
+		kid, err := key.IDFromPubKey(author.AuthorPubKey())
+		builder.AddUser(r.Username, kid)
 		if err != nil {
 			return err
 		}
@@ -134,7 +135,7 @@ func TestResolveRef(t *testing.T) {
 			Username:  r.Username,
 			InitID:    r.InitID,
 			Path:      r.Path,
-			ProfileID: pid,
+			ProfileID: kid,
 			Name:      r.Name,
 		})
 		cache := builder.Build()

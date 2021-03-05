@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/schema"
 	golog "github.com/ipfs/go-log"
 	apiutil "github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/version"
 )
@@ -247,6 +248,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	}
 
 	m.Use(refStringMiddleware)
+	m.Use(token.OAuthTokenMiddleware)
 
 	return m
 }

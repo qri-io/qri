@@ -13,7 +13,9 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/profile"
 )
 
@@ -36,12 +38,85 @@ type Token = jwt.Token
 // Claims is a JWT Claims object
 type Claims struct {
 	*jwt.StandardClaims
-	Username string `json:"username"`
+	ProfileID string `json:"profileID"`
 }
 
 // Parse will parse, validate and return a token
 func Parse(tokenString string, tokens Source) (*Token, error) {
 	return jwt.Parse(tokenString, tokens.VerificationKey)
+}
+
+// NewPrivKeyAuthToken creates a JWT token string suitable for making requests
+// authenticated as the given private key
+func NewPrivKeyAuthToken(pk crypto.PrivKey, ttl time.Duration) (string, error) {
+	signingMethod, err := jwtSigningMethod(pk)
+	if err != nil {
+		return "", err
+	}
+
+	t := jwt.New(signingMethod)
+
+	id, err := key.IDFromPrivKey(pk)
+	if err != nil {
+		return "", err
+	}
+
+	rawPrivBytes, err := pk.Raw()
+	if err != nil {
+		return "", err
+	}
+	signKey, err := x509.ParsePKCS1PrivateKey(rawPrivBytes)
+	if err != nil {
+		return "", err
+	}
+
+	var exp int64
+	if ttl != time.Duration(0) {
+		exp = Timestamp().Add(ttl).In(time.UTC).Unix()
+	}
+
+	// set our claims
+	t.Claims = &Claims{
+		StandardClaims: &jwt.StandardClaims{
+			Issuer:  id,
+			Subject: id,
+			// set the expire time
+			// see http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-20#section-4.1.4
+			ExpiresAt: exp,
+		},
+	}
+
+	return t.SignedString(signKey)
+}
+
+// ParseAuthToken will parse, validate and return a token
+func ParseAuthToken(tokenString string, keystore key.Store) (*Token, error) {
+	claims := &Claims{}
+	return jwt.ParseWithClaims(tokenString, claims, func(t *Token) (interface{}, error) {
+		pid, err := peer.Decode(claims.Issuer)
+		if err != nil {
+			return nil, err
+		}
+		pubKey := keystore.PubKey(pid)
+		if pubKey == nil {
+			return nil, fmt.Errorf("cannot verify key. missing public key for id %s", claims.Issuer)
+		}
+		rawPubBytes, err := pubKey.Raw()
+		if err != nil {
+			return nil, err
+		}
+
+		verifyKeyiface, err := x509.ParsePKIXPublicKey(rawPubBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		verifyKey, ok := verifyKeyiface.(*rsa.PublicKey)
+		if !ok {
+			return nil, fmt.Errorf("public key is not an RSA key. got type: %T", verifyKeyiface)
+		}
+		return verifyKey, nil
+	})
 }
 
 // Source creates tokens, and provides a verification key for all tokens
@@ -69,16 +144,10 @@ var _ Source = (*pkSource)(nil)
 // NewPrivKeySource creates an authentication interface backed by a single
 // private key. Intended for a node running as remote, or providing a public API
 func NewPrivKeySource(privKey crypto.PrivKey) (Source, error) {
-	methodStr := ""
-	keyType := privKey.Type().String()
-	switch keyType {
-	case "RSA":
-		methodStr = "RS256"
-	default:
-		return nil, fmt.Errorf("unsupported key type for token creation: %q", keyType)
+	signingMethod, err := jwtSigningMethod(privKey)
+	if err != nil {
+		return nil, err
 	}
-
-	signingMethod := jwt.GetSigningMethod(methodStr)
 
 	rawPrivBytes, err := privKey.Raw()
 	if err != nil {
@@ -129,7 +198,7 @@ func (a *pkSource) CreateToken(pro *profile.Profile, ttl time.Duration) (string,
 			// see http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-20#section-4.1.4
 			ExpiresAt: exp,
 		},
-		Username: pro.Peername,
+		ProfileID: pro.ID.String(),
 	}
 
 	// Creat token string
@@ -303,4 +372,14 @@ func (st *qfsStore) save(ctx context.Context) error {
 	}
 	st.path = path
 	return nil
+}
+
+func jwtSigningMethod(pk crypto.PrivKey) (jwt.SigningMethod, error) {
+	keyType := pk.Type().String()
+	switch keyType {
+	case "RSA":
+		return jwt.GetSigningMethod("RS256"), nil
+	default:
+		return nil, fmt.Errorf("unsupported key type for token creation: %q", keyType)
+	}
 }

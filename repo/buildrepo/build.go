@@ -9,6 +9,7 @@ import (
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/event"
@@ -21,6 +22,7 @@ import (
 // Options provides additional fields to new
 type Options struct {
 	Profiles   profile.Store
+	Keystore   key.Store
 	Filesystem *muxfs.Mux
 	Logbook    *logbook.Book
 	Dscache    *dscache.Dscache
@@ -40,8 +42,13 @@ func New(ctx context.Context, path string, cfg *config.Config, opts ...func(o *O
 	}
 
 	var err error
+	if o.Keystore == nil {
+		if o.Keystore, err = key.NewStore(cfg); err != nil {
+			return nil, err
+		}
+	}
 	if o.Profiles == nil {
-		if o.Profiles, err = profile.NewStore(cfg); err != nil {
+		if o.Profiles, err = profile.NewStore(cfg, o.Keystore); err != nil {
 			return nil, err
 		}
 	}

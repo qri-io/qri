@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -45,7 +46,12 @@ func TestPutProfileWithAddresses(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: kd0.PrivKey, Peername: "user"}, ks)
+	owner := &Profile{
+		ID:       IDFromPeerID(kd0.PeerID),
+		Peername: "user",
+		PrivKey:  kd0.PrivKey,
+	}
+	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), owner, ks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,18 +61,28 @@ func TestPutProfileWithAddresses(t *testing.T) {
 		t.Errorf("error putting profile: %s", err.Error())
 	}
 
-	golden := "testdata/simple.json"
-	path = filepath.Join(path, "profiles.json")
-	f1, err := ioutil.ReadFile(golden)
+	goldenFilepath := "testdata/simple.json"
+	gf, err := ioutil.ReadFile(goldenFilepath)
 	if err != nil {
 		t.Errorf("error reading golden file: %s", err.Error())
 	}
-	f2, err := ioutil.ReadFile(path)
+	golden := map[string]interface{}{}
+	if err := json.Unmarshal(gf, &golden); err != nil {
+		t.Fatal(err)
+	}
+
+	path = filepath.Join(path, "profiles.json")
+	f, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Errorf("error reading written file: %s", err.Error())
 	}
+	got := map[string]interface{}{}
+	if err := json.Unmarshal(f, &got); err != nil {
+		t.Fatal(err)
+	}
 
-	if diff := cmp.Diff(f1, f2); diff != "" {
+	t.Log(string(f))
+	if diff := cmp.Diff(golden, got); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -84,7 +100,12 @@ func TestProfilesWithKeys(t *testing.T) {
 		t.Errorf("error creating tmp directory: %s", err.Error())
 	}
 
-	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), &Profile{PrivKey: kd0.PrivKey, Peername: "user"}, ks)
+	owner := &Profile{
+		ID:       IDFromPeerID(kd0.PeerID),
+		Peername: "user",
+		PrivKey:  kd0.PrivKey,
+	}
+	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), owner, ks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +145,7 @@ func TestProfilesWithKeys(t *testing.T) {
 
 func TestMemStoreGetOwner(t *testing.T) {
 	kd0 := testkeys.GetKeyData(0)
-	id := ID(kd0.PeerID)
+	id := IDFromPeerID(kd0.PeerID)
 	owner := &Profile{ID: id, PrivKey: kd0.PrivKey, Peername: "owner"}
 	ks, err := key.NewMemStore()
 	if err != nil {
@@ -145,7 +166,7 @@ func TestMemStoreGetOwner(t *testing.T) {
 		t.Error("getting owner profile must return profile with private key populated")
 	}
 
-	if diff := cmp.Diff(owner, pro, cmpopts.IgnoreUnexported(Profile{}, crypto.RsaPrivateKey{}, crypto.ECDSAPrivateKey{})); diff != "" {
+	if diff := cmp.Diff(owner, pro, cmpopts.IgnoreUnexported(Profile{}, crypto.RsaPublicKey{}, crypto.RsaPrivateKey{}, crypto.ECDSAPublicKey{}, crypto.ECDSAPrivateKey{})); diff != "" {
 		t.Errorf("get owner mismatch. (-want +got):\n%s", diff)
 	}
 }
@@ -160,7 +181,7 @@ func TestResolveUsername(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	owner := &Profile{ID: ID(kd0.PeerID), PrivKey: kd0.PrivKey, Peername: "owner"}
+	owner := &Profile{ID: IDFromPeerID(kd0.PeerID), PrivKey: kd0.PrivKey, Peername: "owner"}
 	s, err := NewMemStore(owner, ks)
 	if err != nil {
 		t.Fatal(err)
@@ -178,8 +199,8 @@ func TestResolveUsername(t *testing.T) {
 		t.Errorf("get owner mismatch. (-want +got):\n%s", diff)
 	}
 
-	marjorieA := &Profile{ID: ID(kd1.PeerID), PrivKey: kd1.PrivKey, Peername: "marjorie", Email: "marjorie_a@aol.com"}
-	marjorieB := &Profile{ID: ID(kd2.PeerID), PrivKey: kd2.PrivKey, Peername: "marjorie", Email: "marjorie_b@aol.com"}
+	marjorieA := &Profile{ID: IDFromPeerID(kd1.PeerID), PrivKey: kd1.PrivKey, Peername: "marjorie", Email: "marjorie_a@aol.com"}
+	marjorieB := &Profile{ID: IDFromPeerID(kd2.PeerID), PrivKey: kd2.PrivKey, Peername: "marjorie", Email: "marjorie_b@aol.com"}
 
 	if err := s.PutProfile(marjorieA); err != nil {
 		t.Fatal(err)

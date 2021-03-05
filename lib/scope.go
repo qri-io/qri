@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -20,7 +21,25 @@ import (
 type scope struct {
 	ctx  context.Context
 	inst *Instance
+	pro  *profile.Profile
 	// TODO(dustmop): Additional information, such as user identity, their profile, keys
+}
+
+func newScope(ctx context.Context, inst *Instance) (scope, error) {
+	pro, err := inst.activeProfile(ctx)
+	if err != nil {
+		return scope{}, err
+	}
+
+	return scope{
+		ctx:  ctx,
+		inst: inst,
+		pro:  pro,
+	}, nil
+}
+
+func (s *scope) ActiveProfile() *profile.Profile {
+	return s.pro
 }
 
 // Context returns the context for this scope. Though this pattern is usually discouraged,
@@ -51,6 +70,11 @@ func (s *scope) Filesystem() *muxfs.Mux {
 // Dscache returns the dscache
 func (s *scope) Dscache() *dscache.Dscache {
 	return s.inst.Dscache()
+}
+
+// Profiles accesses the profile store
+func (s *scope) Profiles() profile.Store {
+	return s.inst.profiles
 }
 
 // ParseAndResolveRef parses a reference and resolves it

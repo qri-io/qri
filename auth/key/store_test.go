@@ -1,11 +1,13 @@
 package key_test
 
 import (
+	"errors"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qri/auth/key"
 	testkeys "github.com/qri-io/qri/auth/key/test"
 )
@@ -24,15 +26,25 @@ func TestLocalStore(t *testing.T) {
 	}
 
 	kd0 := testkeys.GetKeyData(0)
-	k0AltID := key.ID("key_id_0")
-	err = ks.AddPubKey(k0AltID, kd0.PrivKey.GetPublic())
-	if err != nil {
+
+	if err = ks.AddPubKey(peer.ID("this_must_fail"), kd0.PrivKey.GetPublic()); err == nil {
+		t.Error("expected adding public key with mismatching ID to fail. got nil")
+	} else if !errors.Is(err, key.ErrKeyAndIDMismatch) {
+		t.Errorf("mismatched ID error must wrap exported pacakge error, got: %s", err)
+	}
+
+	if err = ks.AddPubKey(kd0.PeerID, kd0.PrivKey.GetPublic()); err != nil {
 		t.Fatal(err)
 	}
 
-	err = ks.AddPrivKey(k0AltID, kd0.PrivKey)
-	if err != nil {
+	if err = ks.AddPrivKey(kd0.PeerID, kd0.PrivKey); err != nil {
 		t.Fatal(err)
+	}
+
+	if err = ks.AddPrivKey(peer.ID("this_must_fail"), kd0.PrivKey); err == nil {
+		t.Error("expected adding private key with mismatching ID to fail. got nil")
+	} else if !errors.Is(err, key.ErrKeyAndIDMismatch) {
+		t.Errorf("mismatched ID error must wrap exported pacakge error, got: %s", err)
 	}
 
 	golden := "testdata/keystore.json"

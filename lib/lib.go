@@ -22,6 +22,8 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qfs/qipfs"
+	"github.com/qri-io/qri/auth/key"
+	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
@@ -360,7 +362,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// If configuration does not have a path assigned, but the repo has a path and
 	// is stored on the filesystem, add that path to the configuration.
 	if cfg.Repo.Type == "fs" && cfg.Path() == "" {
-		cfg.SetPath(filepath.Join(repoPath, "config.yal"))
+		cfg.SetPath(filepath.Join(repoPath, "config.yaml"))
 	}
 
 	inst := &Instance{
@@ -443,8 +445,16 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}()
 	}
 
+	if inst.keystore == nil {
+		inst.keystore, err = key.NewStore(cfg)
+		if err != nil {
+			log.Debugw("initializing keystore", "err", err)
+			return nil, err
+		}
+	}
+
 	if inst.profiles == nil {
-		if inst.profiles, err = profile.NewStore(cfg); err != nil {
+		if inst.profiles, err = profile.NewStore(cfg, inst.keystore); err != nil {
 			return nil, fmt.Errorf("initializing profile service: %w", err)
 		}
 	}
@@ -469,6 +479,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			o.Profiles = inst.profiles
 			o.Logbook = inst.logbook
 			o.Dscache = inst.dscache
+			o.Keystore = inst.keystore
 		}); err != nil {
 			log.Error("intializing repo:", err.Error())
 			return nil, fmt.Errorf("newRepo: %w", err)
@@ -703,21 +714,24 @@ type Instance struct {
 
 	regMethods *regMethodSet
 
-	streams         ioes.IOStreams
-	repo            repo.Repo
-	node            *p2p.QriNode
-	qfs             *muxfs.Mux
-	fsi             *fsi.FSI
-	remote          *remote.Remote
-	remoteClient    remote.Client
-	registry        *regclient.Client
-	stats           *stats.Service
-	transform       *transform.Service
-	logbook         *logbook.Book
-	dscache         *dscache.Dscache
-	bus             event.Bus
-	watcher         *watchfs.FilesysWatcher
-	profiles        profile.Store
+	streams      ioes.IOStreams
+	repo         repo.Repo
+	node         *p2p.QriNode
+	qfs          *muxfs.Mux
+	fsi          *fsi.FSI
+	remote       *remote.Remote
+	remoteClient remote.Client
+	registry     *regclient.Client
+	stats        *stats.Service
+	transform    *transform.Service
+	logbook      *logbook.Book
+	dscache      *dscache.Dscache
+	bus          event.Bus
+	watcher      *watchfs.FilesysWatcher
+
+	profiles profile.Store
+	keystore key.Store
+
 	remoteOptsFuncs []remote.OptionsFunc
 
 	rpc  *rpc.Client
@@ -906,6 +920,36 @@ func (inst *Instance) Bus() event.Bus {
 		return nil
 	}
 	return inst.bus
+}
+
+// activeProfile tries to extract the current user from values embedded in the
+// passed-in context, falling back to the repo owner as a default active profile
+func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, err error) {
+	if inst == nil {
+		return nil, fmt.Errorf("no instance")
+	}
+
+	if tokenString := token.FromCtx(ctx); tokenString != "" {
+		tok, err := token.ParseAuthToken(tokenString, inst.keystore)
+		if err != nil {
+			return nil, err
+		}
+
+		if claims, ok := tok.Claims.(*token.Claims); ok {
+			// TODO(b5): at this point we have a valid signature of a profileID string
+			// but no proof that this profile is owned by the key that signed the
+			// token. We either need ProfileID == KeyID, or we need a UCAN. we need to
+			// check for those, ideally in a method within the profile package that
+			// abstracts over profile & key agreement
+			return inst.profiles.GetProfile(profile.IDB58DecodeOrEmpty(claims.ProfileID))
+		}
+	}
+
+	if inst.profiles != nil {
+		return inst.profiles.Owner(), nil
+	}
+
+	return pro, err
 }
 
 // checkRPCError validates RPC errors and in case of EOF returns a
