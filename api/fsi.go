@@ -58,7 +58,7 @@ func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		if err := UnmarshalParams(r, p); err != nil {
+		if err := lib.UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -97,7 +97,7 @@ func (h *FSIHandlers) whatChangedHandler(routePrefix string) http.HandlerFunc {
 		method := "fsi.whatchanged"
 		p := h.inst.NewInputParam(method)
 
-		if err := UnmarshalParams(r, p); err != nil {
+		if err := lib.UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -136,7 +136,7 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 		method := "fsi.init"
 		p := h.inst.NewInputParam(method)
 
-		if err := UnmarshalParams(r, p); err != nil {
+		if err := lib.UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -175,7 +175,7 @@ func (h *FSIHandlers) canInitDatasetWorkDirHandler(routePrefix string) http.Hand
 		method := "fsi.caninitdatasetworkdir"
 		p := h.inst.NewInputParam(method)
 
-		if err := UnmarshalParams(r, p); err != nil {
+		if err := lib.UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -213,7 +213,7 @@ func (h *FSIHandlers) writeHandler(routePrefix string) http.HandlerFunc {
 		method := "fsi.write"
 		p := h.inst.NewInputParam(method)
 
-		// TODO(dustmop): Add this to UnmarshalParams for methods that can
+		// TODO(dustmop): Add this to lib.UnmarshalParams for methods that can
 		// receive a refstr in the URL, or annotate the param struct with
 		// a tag and marshal the url to that field
 		err := addDsRefFromURL(r, routePrefix)
@@ -222,7 +222,7 @@ func (h *FSIHandlers) writeHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		if err := UnmarshalParams(r, p); err != nil {
+		if err := lib.UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -260,7 +260,7 @@ func (h *FSIHandlers) createLinkHandler(routePrefix string) http.HandlerFunc {
 		method := "fsi.createlink"
 		p := h.inst.NewInputParam(method)
 
-		// TODO(dustmop): Add this to UnmarshalParams for methods that can
+		// TODO(dustmop): Add this to lib.UnmarshalParams for methods that can
 		// receive a refstr in the URL, or annotate the param struct with
 		// a tag and marshal the url to that field
 		err := addDsRefFromURL(r, routePrefix)
@@ -269,7 +269,7 @@ func (h *FSIHandlers) createLinkHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		if err := UnmarshalParams(r, p); err != nil {
+		if err := lib.UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -307,7 +307,7 @@ func (h *FSIHandlers) unlinkHandler(routePrefix string) http.HandlerFunc {
 		method := "fsi.unlink"
 		p := h.inst.NewInputParam(method)
 
-		// TODO(dustmop): Add this to UnmarshalParams for methods that can
+		// TODO(dustmop): Add this to lib.UnmarshalParams for methods that can
 		// receive a refstr in the URL, or annotate the param struct with
 		// a tag and marshal the url to that field
 		err := addDsRefFromURL(r, routePrefix)
@@ -316,7 +316,7 @@ func (h *FSIHandlers) unlinkHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		if err := UnmarshalParams(r, p); err != nil {
+		if err := lib.UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -354,7 +354,7 @@ func (h *FSIHandlers) checkoutHandler(routePrefix string) http.HandlerFunc {
 		method := "fsi.checkout"
 		p := h.inst.NewInputParam(method)
 
-		// TODO(dustmop): Add this to UnmarshalParams for methods that can
+		// TODO(dustmop): Add this to lib.UnmarshalParams for methods that can
 		// receive a refstr in the URL, or annotate the param struct with
 		// a tag and marshal the url to that field
 		err := addDsRefFromURL(r, routePrefix)
@@ -363,7 +363,7 @@ func (h *FSIHandlers) checkoutHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		if err := UnmarshalParams(r, p); err != nil {
+		if err := lib.UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -401,7 +401,7 @@ func (h *FSIHandlers) restoreHandler(routePrefix string) http.HandlerFunc {
 		method := "fsi.restore"
 		p := h.inst.NewInputParam(method)
 
-		// TODO(dustmop): Add this to UnmarshalParams for methods that can
+		// TODO(dustmop): Add this to lib.UnmarshalParams for methods that can
 		// receive a refstr in the URL, or annotate the param struct with
 		// a tag and marshal the url to that field
 		err := addDsRefFromURL(r, routePrefix)
@@ -410,7 +410,7 @@ func (h *FSIHandlers) restoreHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		if err := UnmarshalParams(r, p); err != nil {
+		if err := lib.UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}

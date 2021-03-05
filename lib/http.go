@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/gorilla/schema"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	apiutil "github.com/qri-io/qri/api/util"
@@ -19,6 +21,15 @@ import (
 var ErrUnsupportedRPC = errors.New("Warning: method is not suported over RPC")
 
 const jsonMimeType = "application/json"
+
+// decoder maps HTTP requests to input structs
+var decoder = schema.NewDecoder()
+
+func init() {
+	// TODO(arqu): once APIs have a strict mapping to Params this line
+	// should be removed and should error out on unknown keys
+	decoder.IgnoreUnknownKeys(true)
+}
 
 // HTTPClient implements the qri http client
 type HTTPClient struct {
@@ -185,4 +196,93 @@ func (c HTTPClient) checkError(res *http.Response, body []byte, raw bool) error 
 		return fmt.Errorf(string(body))
 	}
 	return nil
+}
+
+// NewHTTPRequestHandler creates a JSON-API endpoint for a registered dispatch
+// method
+func NewHTTPRequestHandler(inst *Instance, method string, ae APIEndpoint) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		p := inst.NewInputParam(method)
+		if p == nil {
+			apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("no params for method %s", method))
+			return
+		}
+
+		if err := UnmarshalParams(r, p); err != nil {
+			log.Debugw("unmarshal request params", "err", err)
+			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		res, cursor, err := inst.Dispatch(r.Context(), method, p)
+		if err != nil {
+			apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		if cursor != nil {
+			apiutil.WritePageResponse(w, res, r, apiutil.PageFromRequest(r))
+			return
+		}
+
+		apiutil.WriteResponse(w, res)
+	}
+}
+
+// UnmarshalParams deserialzes a lib req params stuct pointer from an HTTP
+// request
+//
+// Deprecated: This is only exported for one-off handlers in the API package
+// can make use of it. Prefer refactoring to use NewHTTPRequestHandler instead.
+// once all callers in the api package are removed, unexport this function.
+func UnmarshalParams(r *http.Request, p interface{}) error {
+	defer func() {
+		if defSetter, ok := p.(NZDefaultSetter); ok {
+			defSetter.SetNonZeroDefaults()
+		}
+	}()
+
+	if r.Method == http.MethodPost || r.Method == http.MethodPut {
+		if r.Header.Get("Content-Type") == jsonMimeType {
+			body, err := snoop(&r.Body)
+			if err != nil && err != io.EOF {
+				return err
+			}
+			// this avoids resolving on empty body requests
+			// and tries to handle it almost like a GET
+			if err != io.EOF {
+				if err := json.NewDecoder(body).Decode(p); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	if ru, ok := p.(RequestUnmarshaller); ok {
+		return ru.UnmarshalFromRequest(r)
+	}
+
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+	return decoder.Decode(p, r.Form)
+}
+
+// snoop reads from an io.ReadCloser and restores it so it can be read again
+func snoop(body *io.ReadCloser) (io.ReadCloser, error) {
+	if body != nil && *body != nil {
+		result, err := ioutil.ReadAll(*body)
+		(*body).Close()
+
+		if err != nil {
+			return nil, err
+		}
+		if len(result) == 0 {
+			return nil, io.EOF
+		}
+
+		*body = ioutil.NopCloser(bytes.NewReader(result))
+		return ioutil.NopCloser(bytes.NewReader(result)), nil
+	}
+	return nil, io.EOF
 }

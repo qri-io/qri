@@ -2,17 +2,13 @@
 package api
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/schema"
 	golog "github.com/ipfs/go-log"
 	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/auth/token"
@@ -31,7 +27,6 @@ const (
 	DefaultTemplateHash = "/ipfs/QmeqeRTf2Cvkqdx4xUdWi1nJB2TgCyxmemsL3H4f1eTBaw"
 	// TemplateUpdateAddress is the URI for the template update
 	TemplateUpdateAddress = "/ipns/defaulttmpl.qri.io"
-	jsonContentType       = "application/json"
 )
 
 func init() {
@@ -254,64 +249,4 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Use(token.OAuthTokenMiddleware)
 
 	return m
-}
-
-// snoop reads from an io.ReadCloser and restores it so it can be read again
-func snoop(body *io.ReadCloser) (io.ReadCloser, error) {
-	if body != nil && *body != nil {
-		result, err := ioutil.ReadAll(*body)
-		(*body).Close()
-
-		if err != nil {
-			return nil, err
-		}
-		if len(result) == 0 {
-			return nil, io.EOF
-		}
-
-		*body = ioutil.NopCloser(bytes.NewReader(result))
-		return ioutil.NopCloser(bytes.NewReader(result)), nil
-	}
-	return nil, io.EOF
-}
-
-var decoder = schema.NewDecoder()
-
-// UnmarshalParams deserialzes a lib req params stuct pointer from an HTTP
-// request
-func UnmarshalParams(r *http.Request, p interface{}) error {
-	// TODO(arqu): once APIs have a strict mapping to Params this line
-	// should be removed and should error out on unknown keys
-	decoder.IgnoreUnknownKeys(true)
-	defer func() {
-		if defSetter, ok := p.(lib.NZDefaultSetter); ok {
-			defSetter.SetNonZeroDefaults()
-		}
-	}()
-
-	if r.Method == http.MethodPost || r.Method == http.MethodPut {
-
-		if r.Header.Get("Content-Type") == jsonContentType {
-			body, err := snoop(&r.Body)
-			if err != nil && err != io.EOF {
-				return err
-			}
-			// this avoids resolving on empty body requests
-			// and tries to handle it almost like a GET
-			if err != io.EOF {
-				if err := json.NewDecoder(body).Decode(p); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	if ru, ok := p.(lib.RequestUnmarshaller); ok {
-		return ru.UnmarshalFromRequest(r)
-	}
-
-	if err := r.ParseForm(); err != nil {
-		return err
-	}
-	return decoder.Decode(p, r.Form)
 }
