@@ -25,45 +25,6 @@ func NewFSIHandlers(inst *lib.Instance, readOnly bool) FSIHandlers {
 	}
 }
 
-// InitHandler creates a new FSI-linked dataset
-func (h *FSIHandlers) InitHandler(routePrefix string) http.HandlerFunc {
-	handleInit := h.initHandler(routePrefix)
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		if h.ReadOnly {
-			readOnlyResponse(w, "/init")
-			return
-		}
-
-		switch r.Method {
-		case http.MethodPost:
-			handleInit(w, r)
-		default:
-			util.NotFoundHandler(w, r)
-		}
-	}
-}
-
-func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		method := "fsi.init"
-		p := h.inst.NewInputParam(method)
-
-		if err := lib.UnmarshalParams(r, p); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		res, _, err := h.inst.Dispatch(r.Context(), method, p)
-		if err != nil {
-			util.RespondWithError(w, err)
-			return
-		}
-		util.WriteResponse(w, res)
-		return
-	}
-}
-
 // CanInitDatasetWorkDirHandler returns whether a directory can be initialized
 func (h *FSIHandlers) CanInitDatasetWorkDirHandler(routePrefix string) http.HandlerFunc {
 	handleCanInit := h.canInitDatasetWorkDirHandler(routePrefix)

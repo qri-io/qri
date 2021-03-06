@@ -251,7 +251,6 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"POST", "/registry/profile/new", 403},
 		{"POST", "/registry/profile/prove", 403},
 		{"GET", "/checkout/", 403},
-		{"GET", "/init/", 403},
 
 		// active endpoints:
 		{"GET", "/health", 200},
