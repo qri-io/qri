@@ -18,11 +18,11 @@ import (
 
 // InitParams encapsulates parameters for fsi.InitDataset
 type InitParams struct {
-	TargetDir  string
-	Name       string
-	Format     string
-	BodyPath   string
-	UseDscache bool
+	TargetDir  string `json:"targetDir"`
+	Name       string `json:"name"`
+	Format     string `json:"format"`
+	BodyPath   string `json:"bodyPath"`
+	UseDscache bool   `json:"useDscache"`
 }
 
 func concatFunc(f1, f2 func()) func() {

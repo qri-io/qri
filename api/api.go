@@ -172,6 +172,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	if m == nil {
 		m = mux.NewRouter()
 	}
+	m.Use(muxVarsToQueryParamMiddleware)
 	m.Use(refStringMiddleware)
 	m.Use(token.OAuthTokenMiddleware)
 
@@ -224,7 +225,8 @@ func NewServerRoutes(s Server) *mux.Router {
 	fsih := NewFSIHandlers(s.Instance, cfg.API.ReadOnly)
 	handleRefRouteMethods(m, lib.AEStatus, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.status")), http.MethodGet, http.MethodPost)
 	handleRefRouteMethods(m, lib.AEWhatChanged, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.whatchanged")), http.MethodGet, http.MethodPost)
-	m.Handle(lib.AEInit.String(), s.Middleware(fsih.InitHandler(lib.AEInit.NoTrailingSlash())))
+	m.Handle(lib.AEInit.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.init"))).Methods(http.MethodPost)
+	m.Handle(fmt.Sprintf("%s/{peername}/{name}", lib.AEInit), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.init"))).Methods(http.MethodPost)
 	m.Handle(lib.AECanInitDatasetWorkDir.String(), s.Middleware(fsih.CanInitDatasetWorkDirHandler(lib.AECanInitDatasetWorkDir.NoTrailingSlash())))
 	m.Handle(lib.AECheckout.String(), s.Middleware(fsih.CheckoutHandler(lib.AECheckout.NoTrailingSlash())))
 	m.Handle(lib.AERestore.String(), s.Middleware(fsih.RestoreHandler(lib.AERestore.NoTrailingSlash())))

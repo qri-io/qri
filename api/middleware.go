@@ -58,6 +58,24 @@ func (s *Server) addCORSHeaders(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// muxVarsToQueryParamMiddleware moves all mux variables to query parameter
+// values, failing with an error if a name collision with user-provided query
+// params occurs
+func muxVarsToQueryParamMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		for varName, val := range mux.Vars(r) {
+			if q.Get(varName) != "" {
+				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("unrecognized query param: %s", varName))
+				return
+			}
+			q.Add(varName, val)
+		}
+		r.URL.RawQuery = q.Encode()
+		next.ServeHTTP(w, r)
+	})
+}
+
 // refStringMiddleware converts gorilla mux params to a "refstr" query parmeter
 // and adds it to an http request
 func refStringMiddleware(next http.Handler) http.Handler {
