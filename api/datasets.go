@@ -216,7 +216,7 @@ func extensionToMimeType(ext string) string {
 
 func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.ListParams{}
-	if err := UnmarshalParams(r, params); err != nil {
+	if err := lib.UnmarshalParams(r, params); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
@@ -255,7 +255,7 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	params := lib.GetParams{}
 
-	err := UnmarshalParams(r, &params)
+	err := lib.UnmarshalParams(r, &params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -350,7 +350,7 @@ func (h *DatasetHandlers) replyWithGetResponse(w http.ResponseWriter, r *http.Re
 
 func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.DiffParams{}
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -369,7 +369,7 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 func (h *DatasetHandlers) changesHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.ChangeReportParams{}
 
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -420,7 +420,7 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 
 func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.PullParams{}
-	if err := UnmarshalParams(r, params); err != nil {
+	if err := lib.UnmarshalParams(r, params); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
@@ -442,7 +442,7 @@ func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.SaveParams{}
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		log.Debugw("unmarshal dataset save error", "err", err)
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
@@ -475,7 +475,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
 	params := lib.RemoveParams{}
-	err := UnmarshalParams(r, &params)
+	err := lib.UnmarshalParams(r, &params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -508,7 +508,7 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 
 func (h DatasetHandlers) validateHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.ValidateParams{}
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -526,7 +526,7 @@ func (h DatasetHandlers) validateHandler(w http.ResponseWriter, r *http.Request)
 
 func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.RenameParams{}
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -570,7 +570,7 @@ func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, p
 
 func (h DatasetHandlers) manifestHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.ManifestParams{}
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -588,7 +588,7 @@ func (h DatasetHandlers) manifestHandler(w http.ResponseWriter, r *http.Request)
 
 func (h DatasetHandlers) manifestMissingHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.ManifestMissingParams{}
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -606,7 +606,7 @@ func (h DatasetHandlers) manifestMissingHandler(w http.ResponseWriter, r *http.R
 
 func (h DatasetHandlers) dagInfoHandler(w http.ResponseWriter, r *http.Request) {
 	params := &lib.DAGInfoParams{}
-	err := UnmarshalParams(r, params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return

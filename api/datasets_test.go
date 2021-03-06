@@ -302,7 +302,7 @@ func TestParseGetParams(t *testing.T) {
 			}
 			setRefStringFromMuxVars(r)
 			args := &lib.GetParams{}
-			err := UnmarshalParams(r, args)
+			err := lib.UnmarshalParams(r, args)
 			if err != nil {
 				t.Error(err)
 				return
@@ -340,7 +340,7 @@ func TestParseGetParams(t *testing.T) {
 			}
 			setRefStringFromMuxVars(r)
 			args := &lib.GetParams{}
-			err := UnmarshalParams(r, args)
+			err := lib.UnmarshalParams(r, args)
 			if err == nil {
 				t.Errorf("case %d: expected error, but did not get one", i)
 				return
@@ -359,7 +359,7 @@ func TestParseGetParamsAcceptHeader(t *testing.T) {
 	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
 	setRefStringFromMuxVars(r)
 	args := &lib.GetParams{}
-	err := UnmarshalParams(r, args)
+	err := lib.UnmarshalParams(r, args)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +380,7 @@ func TestParseGetParamsAcceptHeader(t *testing.T) {
 	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
 	setRefStringFromMuxVars(r)
 	args = &lib.GetParams{}
-	err = UnmarshalParams(r, args)
+	err = lib.UnmarshalParams(r, args)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -394,7 +394,7 @@ func TestParseGetParamsAcceptHeader(t *testing.T) {
 	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
 	setRefStringFromMuxVars(r)
 	args = &lib.GetParams{}
-	err = UnmarshalParams(r, args)
+	err = lib.UnmarshalParams(r, args)
 	if err == nil {
 		t.Error("expected to get an error, but did not get one")
 	}
