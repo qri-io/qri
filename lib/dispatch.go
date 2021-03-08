@@ -180,7 +180,7 @@ func (inst *Instance) RegisterMethods() {
 	reg := make(map[string]callable)
 	inst.registerOne("fsi", inst.Filesys(), fsiImpl{}, reg)
 	inst.registerOne("access", inst.Access(), accessImpl{}, reg)
-	inst.registerOne("dataset", inst.Dataset(), DatasetImpl{}, reg)
+	inst.registerOne("dataset", inst.Dataset(), datasetImpl{}, reg)
 	inst.regMethods = &regMethodSet{reg: reg}
 }
 

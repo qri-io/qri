@@ -58,9 +58,6 @@ func (inst *Instance) Dataset() *DatasetMethods {
 // ErrListWarning is a warning that can occur while listing
 var ErrListWarning = base.ErrUnlistableReferences
 
-// CoreRequestsName implements the Requets interface
-func (DatasetMethods) CoreRequestsName() string { return "datasets" }
-
 // NewDatasetMethods creates a DatasetMethods pointer from a qri instance
 func NewDatasetMethods(inst *Instance) *DatasetMethods {
 	return &DatasetMethods{
@@ -1734,5 +1731,66 @@ func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
 	return
 }
 
-// DatasetImpl holds the method implementations for DatasetMethods
-type DatasetImpl struct{}
+// datasetImpl holds the method implementations for DatasetMethods
+type datasetImpl struct{}
+
+// List gets the reflist for either the local repo or a peer
+func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+// ListRawRefs gets the list of raw references as string
+func (datasetImpl) ListRawRefs(scope scope, p *ListParams) (string, error) {
+	return "", fmt.Errorf("not yet implemented")
+}
+
+// Get retrieves datasets and components for a given reference.t
+func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+// Save adds a history entry, updating a dataset
+func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+// Rename changes a user's given name for a dataset
+func (datasetImpl) Rename(scope scope, p *RenameParams) (*dsref.VersionInfo, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+// Remove a dataset entirely or remove a certain number of revisions
+func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+// Pull downloads and stores an existing dataset to a peer's repository via
+// a network connection
+func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+// Validate gives a dataset of errors and issues for a given dataset
+func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+// Manifest generates a manifest for a dataset path
+func (datasetImpl) Manifest(scope scope, p *ManifestParams) (*dag.Manifest, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+// ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifes
+func (datasetImpl) ManifestMissing(scope scope, p *ManifestMissingParams) (*dag.Manifest, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+// DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
+func (datasetImpl) DAGInfo(scope scope, p *DAGInfoParams) (*dag.Info, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+// Stats generates stats for a dataset
+func (datasetImpl) Stats(scope scope, p *StatsParams) (*dataset.Stats, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}

@@ -93,7 +93,7 @@ func TestDatasetHandlers(t *testing.T) {
 		// {"GET", "/?leftRef=peer/family_relationships&rightRef=peer/cities", nil, nil},
 		{"DELETE", "/", nil, nil},
 	}
-	runHandlerTestCases(t, "changes", h.ChangesHandler, changesCases, false)
+	runHandlerTestCases(t, "changes", h.ChangesHandler(""), changesCases, false)
 
 	removeCases := []handlerTestCase{
 		{"GET", "/", nil, nil},

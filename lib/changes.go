@@ -26,7 +26,7 @@ func (m *DatasetMethods) ChangeReport(ctx context.Context, p *ChangeReportParams
 }
 
 // ChangeReport generates report of changes between two datasets
-func (*DatasetImpl) ChangeReport(scope scope, p *ChangeReportParams) (*ChangeReport, error) {
+func (datasetImpl) ChangeReport(scope scope, p *ChangeReportParams) (*ChangeReport, error) {
 	ctx := scope.Context()
 	reportSource := ""
 

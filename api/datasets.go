@@ -23,10 +23,6 @@ import (
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
 type DatasetHandlers struct {
-	// TODO (ramfox): start here
-	// should have a dsm for dataset methods
-	// and an inst
-	// future refactors should have handlers rely on inst for node and repo
 	lib.DatasetMethods
 	inst     *lib.Instance
 	remote   *lib.RemoteMethods
