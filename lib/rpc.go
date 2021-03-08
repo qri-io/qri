@@ -36,7 +36,6 @@ func Receivers(inst *Instance) []Methods {
 		NewPeerMethods(inst),
 		NewProfileMethods(inst),
 		NewSearchMethods(inst),
-		NewSQLMethods(inst),
 		NewRenderMethods(inst),
 	}
 }

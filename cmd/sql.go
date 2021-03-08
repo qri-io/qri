@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -95,8 +96,9 @@ func (o *SQLOptions) Run() (err error) {
 		ResolverMode: mode,
 	}
 
-	res := []byte{}
-	if err := o.SQLMethods.Exec(p, &res); err != nil {
+	ctx := context.TODO()
+	res, err := o.SQLMethods.Exec(ctx, p)
+	if err != nil {
 		o.StopSpinner()
 		return err
 	}

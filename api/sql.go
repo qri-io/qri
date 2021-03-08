@@ -23,58 +23,46 @@ func NewSQLHandlers(inst *lib.Instance, readOnly bool) SQLHandlers {
 }
 
 // QueryHandler runs an SQL query over HTTP
-func (h *SQLHandlers) QueryHandler(routePrefix string) http.HandlerFunc {
-	handleQuery := h.queryHandler(routePrefix)
+func (h *SQLHandlers) QueryHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO (b5) - SQL queries are a "read only" thing, but feels like they
+	// should have separate configuration to enable when the API is in readonly
+	// mode
+	if h.ReadOnly {
+		readOnlyResponse(w, "/sql")
+		return
+	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		// TODO (b5) - SQL queries are a "read only" thing, but feels like they
-		// should have separate configuration to enable when the API is in readonly
-		// mode
-		if h.ReadOnly {
-			readOnlyResponse(w, routePrefix)
-			return
-		}
-
-		switch r.Method {
-		case http.MethodGet, http.MethodPost:
-			handleQuery(w, r)
-		default:
-			util.NotFoundHandler(w, r)
-		}
+	switch r.Method {
+	case http.MethodGet, http.MethodPost:
+		h.queryHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
 	}
 }
 
-func (h *SQLHandlers) queryHandler(routePrefix string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		p := &lib.SQLQueryParams{
-			OutputFormat: "json",
-		}
+func (h *SQLHandlers) queryHandler(w http.ResponseWriter, r *http.Request) {
+	params := &lib.SQLQueryParams{}
 
-		switch r.Header.Get("Content-Type") {
-		case "application/json":
-			if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-				util.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
-			}
-		default:
-			p.Query = r.FormValue("query")
-			if format := r.FormValue("output_format"); format != "" {
-				p.OutputFormat = format
-			}
-		}
+	err := lib.UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
 
-		var res []byte
-		if err := h.Exec(p, &res); err != nil {
-			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
-			return
-		}
+	res, err := h.Exec(r.Context(), params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
+		return
+	}
 
-		if p.OutputFormat == "json" {
-			util.WriteResponse(w, json.RawMessage(res))
-			return
+	if params.OutputFormat == "json" {
+		util.WriteResponse(w, json.RawMessage(res))
+	} else {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(res)
+		if err != nil {
+			log.Debugf("failed writing results of SQL query")
 		}
-
-		// TODO (b5) - set Content-Type header based on output format
-		w.Write(res)
 	}
 }

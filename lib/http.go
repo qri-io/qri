@@ -174,21 +174,19 @@ func (c HTTPClient) checkError(res *http.Response, body []byte, raw bool) error 
 		Meta: &apiutil.Meta{},
 	}
 	parseErr := json.Unmarshal(body, &metaResponse)
-	if parseErr != nil {
-		if !raw {
+
+	if !raw {
+		if parseErr != nil {
 			log.Debugf("HTTPClient response error: %d - %q", res.StatusCode, body)
 			return fmt.Errorf("failed parsing response: %q", string(body))
 		}
-	}
-
-	if metaResponse.Meta == nil {
-		if !raw {
+		if metaResponse.Meta == nil {
 			log.Debugf("HTTPClient response error: %d - %q", res.StatusCode, body)
 			return fmt.Errorf("invalid meta response")
+		} else if metaResponse.Meta.Code < 200 || metaResponse.Meta.Code > 299 {
+			log.Debugf("HTTPClient response meta error: %d - %q", metaResponse.Meta.Code, metaResponse.Meta.Error)
+			return fmt.Errorf(metaResponse.Meta.Error)
 		}
-	} else if metaResponse.Meta.Code < 200 || metaResponse.Meta.Code > 299 {
-		log.Debugf("HTTPClient response meta error: %d - %q", metaResponse.Meta.Code, metaResponse.Meta.Error)
-		return fmt.Errorf(metaResponse.Meta.Error)
 	}
 
 	if res.StatusCode < 200 || res.StatusCode > 299 {
