@@ -352,3 +352,8 @@ func isFilePath(text string) bool {
 	}
 	return !dsref.IsRefString(text)
 }
+
+// Diff computes the diff of two source
+func (datasetImpl) Diff(scope scope, p *DiffParams) (*DiffResponse, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}

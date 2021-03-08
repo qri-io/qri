@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/stats"
 )
 
 // scope represents the lifetime of a method call, abstractly connected to the caller of
@@ -77,6 +78,16 @@ func (s *scope) Profiles() profile.Store {
 	return s.inst.profiles
 }
 
+// Loader returns the instance
+func (s *scope) Loader() *Instance {
+	return s.inst
+}
+
+// Stats returns the stats service
+func (s *scope) Stats() *stats.Service {
+	return s.inst.stats
+}
+
 // ParseAndResolveRef parses a reference and resolves it
 func (s *scope) ParseAndResolveRef(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
 	return s.inst.ParseAndResolveRef(ctx, refStr, source)
@@ -93,7 +104,7 @@ func (s *scope) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (
 }
 
 // Loader returns the default dataset ref loader
-func (s *scope) Loader() dsref.ParseResolveLoad {
+func (s *scope) ParseResolveFunc() dsref.ParseResolveLoad {
 	return NewParseResolveLoadFunc("", s.inst.defaultResolver(), s.inst)
 }
 

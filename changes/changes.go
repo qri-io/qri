@@ -386,14 +386,18 @@ func (svc *service) columnStatsDelta(left, right interface{}, lCol, rCol *tabula
 // Report computes the change report of two sources
 // This takes some assumptions - we work only with tabular data, with header rows and functional structure.json
 func (svc *service) Report(ctx context.Context, leftRef, rightRef dsref.Ref, loadSource string) (*ChangeReportResponse, error) {
-	leftDs, err := svc.loader.LoadDataset(ctx, leftRef, loadSource)
+	rightDs, err := svc.loader.LoadDataset(ctx, rightRef, loadSource)
 	if err != nil {
 		return nil, err
 	}
-	if rightRef.Path == "" {
-		rightRef.Path = leftDs.PreviousPath
+	if leftRef.Path == "" {
+		if rightDs.PreviousPath == "" {
+			return nil, fmt.Errorf("dataset has only one version")
+		}
+		leftRef.Path = rightDs.PreviousPath
 	}
-	rightDs, err := svc.loader.LoadDataset(ctx, rightRef, loadSource)
+
+	leftDs, err := svc.loader.LoadDataset(ctx, leftRef, loadSource)
 	if err != nil {
 		return nil, err
 	}

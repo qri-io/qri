@@ -66,7 +66,7 @@ type InitDatasetParams = fsi.InitParams
 // StatusItem is an alias for an fsi.StatusItem
 type StatusItem = fsi.StatusItem
 
-// CreateLink creates a connection between a working drirectory and a dataset history
+// CreateLink creates a connection between a working directory and a dataset history
 func (m *FSIMethods) CreateLink(ctx context.Context, p *LinkParams) (*dsref.VersionInfo, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "createlink"), p)
 	if res, ok := got.(*dsref.VersionInfo); ok {
@@ -168,7 +168,7 @@ func (m *FSIMethods) EnsureRef(ctx context.Context, p *LinkParams) (*dsref.Versi
 // fsiImpl holds the method implementations for FSI
 type fsiImpl struct{}
 
-// CreateLink creates a connection between a working drirectory and a dataset history
+// CreateLink creates a connection between a working directory and a dataset history
 func (fsiImpl) CreateLink(scope scope, p *LinkParams) (*dsref.VersionInfo, error) {
 	ctx := scope.Context()
 
