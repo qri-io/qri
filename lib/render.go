@@ -1,11 +1,14 @@
 package lib
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/dsref"
 )
 
 // RenderMethods encapsulates business logic for executing templates, using
@@ -37,9 +40,52 @@ type RenderParams struct {
 	// If true,
 	UseFSI bool
 	// Output format. defaults to "html"
-	OutFormat string
+	Format string
 	// remote resolver to use
 	Remote string
+	// Old style viz component rendering
+	Viz bool
+}
+
+// SetNonZeroDefaults assigns default values
+func (p *RenderParams) SetNonZeroDefaults() {
+	if p.Format == "" {
+		p.Format = "html"
+	}
+}
+
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *RenderParams) UnmarshalFromRequest(r *http.Request) error {
+	if p == nil {
+		p = &RenderParams{}
+	}
+
+	params := *p
+	if params.Ref == "" {
+		params.Ref = r.FormValue("refstr")
+	}
+
+	_, err := dsref.Parse(params.Ref)
+	if err != nil && params.Dataset == nil {
+		return err
+	}
+
+	if !params.Viz {
+		params.Viz = r.FormValue("viz") == "true"
+	}
+	if !params.UseFSI {
+		params.UseFSI = r.FormValue("fsi") == "true"
+	}
+
+	if params.Remote == "" {
+		params.Remote = r.FormValue("remote")
+	}
+	if params.Format == "" {
+		params.Format = r.FormValue("format")
+	}
+
+	*p = params
+	return nil
 }
 
 // Validate checks if render parameters are valid
@@ -51,42 +97,53 @@ func (p *RenderParams) Validate() error {
 }
 
 // RenderViz renders a viz component as html
-func (m *RenderMethods) RenderViz(p *RenderParams, res *[]byte) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("RenderMethods.RenderViz", p, res))
+func (m *RenderMethods) RenderViz(ctx context.Context, p *RenderParams) ([]byte, error) {
+	if m.inst.http != nil {
+		var bres bytes.Buffer
+		err := m.inst.http.CallRaw(ctx, AERender, p, &bres)
+		if err != nil {
+			return nil, err
+		}
+		return bres.Bytes(), nil
 	}
-	ctx := context.TODO()
 
-	if err = p.Validate(); err != nil {
-		return err
+	if err := p.Validate(); err != nil {
+		return nil, err
 	}
 
 	ds := p.Dataset
 	if ds == nil {
 		parseResolveLoad, err := m.inst.NewParseResolveLoadFunc(p.Remote)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		ds, err = parseResolveLoad(ctx, p.Ref)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	*res, err = base.Render(ctx, m.inst.repo, ds, p.Template)
-	return err
+	res, err := base.Render(ctx, m.inst.repo, ds, p.Template)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // RenderReadme renders the readme into html for the given dataset
-func (m *RenderMethods) RenderReadme(p *RenderParams, res *string) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("RenderMethods.RenderReadme", p, res))
+func (m *RenderMethods) RenderReadme(ctx context.Context, p *RenderParams) ([]byte, error) {
+	if m.inst.http != nil {
+		var bres bytes.Buffer
+		err := m.inst.http.CallRaw(ctx, AERender, p, &bres)
+		if err != nil {
+			return nil, err
+		}
+		return bres.Bytes(), nil
 	}
-	ctx := context.TODO()
 
-	if err = p.Validate(); err != nil {
-		return err
+	if err := p.Validate(); err != nil {
+		return nil, err
 	}
 
 	var ds *dataset.Dataset
@@ -95,26 +152,29 @@ func (m *RenderMethods) RenderReadme(p *RenderParams, res *string) (err error) {
 	} else {
 		ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		ds, err = m.inst.LoadDataset(ctx, ref, source)
 		if err != nil {
-			return fmt.Errorf("loading dataset: %w", err)
+			return nil, fmt.Errorf("loading dataset: %w", err)
 		}
 	}
 
 	if ds.Readme == nil {
-		return fmt.Errorf("no readme to render")
+		return nil, fmt.Errorf("no readme to render")
 	}
 
-	if err = ds.Readme.OpenScriptFile(ctx, m.inst.repo.Filesystem()); err != nil {
-		return err
+	if err := ds.Readme.OpenScriptFile(ctx, m.inst.repo.Filesystem()); err != nil {
+		return nil, err
 	}
 	if ds.Readme.ScriptFile() == nil {
-		return fmt.Errorf("no readme to render")
+		return nil, fmt.Errorf("no readme to render")
 	}
 
-	*res, err = base.RenderReadme(ctx, ds.Readme.ScriptFile())
-	return err
+	res, err := base.RenderReadme(ctx, ds.Readme.ScriptFile())
+	if err != nil {
+		return nil, err
+	}
+	return []byte(res), nil
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -102,13 +103,14 @@ func (o *RenderOptions) RunVizRender() (err error) {
 	}
 
 	p := &lib.RenderParams{
-		Ref:       o.Refs.Ref(),
-		Template:  template,
-		OutFormat: "html",
+		Ref:      o.Refs.Ref(),
+		Template: template,
+		Format:   "html",
 	}
 
-	res := []byte{}
-	if err := o.RenderMethods.RenderViz(p, &res); err != nil {
+	ctx := context.TODO()
+	res, err := o.RenderMethods.RenderViz(ctx, p)
+	if err != nil {
 		if errors.Is(err, dsref.ErrEmptyRef) {
 			return qerr.New(err, "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info")
 		}
@@ -128,18 +130,19 @@ func (o *RenderOptions) RunReadmeRender() error {
 	printRefSelect(o.ErrOut, o.Refs)
 
 	p := &lib.RenderParams{
-		Ref:       o.Refs.Ref(),
-		UseFSI:    o.Refs.IsLinked(),
-		OutFormat: "html",
+		Ref:    o.Refs.Ref(),
+		UseFSI: o.Refs.IsLinked(),
+		Format: "html",
 	}
 
-	var res string
-	if err := o.RenderMethods.RenderReadme(p, &res); err != nil {
+	ctx := context.TODO()
+	res, err := o.RenderMethods.RenderReadme(ctx, p)
+	if err != nil {
 		return err
 	}
 
 	if o.Output == "" {
-		fmt.Fprint(o.Out, res)
+		fmt.Fprint(o.Out, string(res))
 	} else {
 		ioutil.WriteFile(o.Output, []byte(res), 0777)
 	}

@@ -137,8 +137,6 @@ const (
 	AELogs = APIEndpoint("/logs")
 	// AERender renders the current dataset ref
 	AERender = APIEndpoint("/render")
-	// AERenderAlt renders a given dataset ref
-	AERenderAlt = APIEndpoint("/render/{path:.*}")
 	// AERegistryNew creates a new user on the registry
 	AERegistryNew = APIEndpoint("/registry/profile/new")
 	// AERegistryProve links an the current peer with an existing
