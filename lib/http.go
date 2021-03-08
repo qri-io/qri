@@ -183,10 +183,10 @@ func (c HTTPClient) checkError(res *http.Response, body []byte, raw bool) error 
 		if metaResponse.Meta == nil {
 			log.Debugf("HTTPClient response error: %d - %q", res.StatusCode, body)
 			return fmt.Errorf("invalid meta response")
-		} else if metaResponse.Meta.Code < 200 || metaResponse.Meta.Code > 299 {
-			log.Debugf("HTTPClient response meta error: %d - %q", metaResponse.Meta.Code, metaResponse.Meta.Error)
-			return fmt.Errorf(metaResponse.Meta.Error)
 		}
+	} else if (metaResponse.Meta.Code < 200 || metaResponse.Meta.Code > 299) && metaResponse.Meta.Code != 0 {
+		log.Debugf("HTTPClient response meta error: %d - %q", metaResponse.Meta.Code, metaResponse.Meta.Error)
+		return fmt.Errorf(metaResponse.Meta.Error)
 	}
 
 	if res.StatusCode < 200 || res.StatusCode > 299 {

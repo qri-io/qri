@@ -1,11 +1,9 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 
-	"github.com/qri-io/dataset"
-	apiutil "github.com/qri-io/qri/api/util"
+	util "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -23,39 +21,29 @@ func NewRenderHandlers(inst *lib.Instance) *RenderHandlers {
 
 // RenderHandler renders a given dataset ref
 func (h *RenderHandlers) RenderHandler(w http.ResponseWriter, r *http.Request) {
-	p := &lib.RenderParams{
-		Ref:       lib.HTTPPathToQriPath(r.URL.Path[len("/render"):]),
-		OutFormat: "html",
-	}
-
-	// support rendering a passed-in JSON dataset document
-	if r.Header.Get("Content-Type") == "application/json" {
-		ds := &dataset.Dataset{}
-		if err := json.NewDecoder(r.Body).Decode(ds); err != nil {
-			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-		p.Dataset = ds
+	params := &lib.RenderParams{}
+	err := lib.UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
 	}
 
 	// Old style viz component rendering
-	if r.FormValue("viz") == "true" {
-		data := []byte{}
-		if err := h.RenderViz(p, &data); err != nil {
-			apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+	if params.Viz {
+		data, err := h.RenderViz(r.Context(), params)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
-
 		w.Write(data)
 		return
 	}
 
 	// Readme component rendering
-	p.UseFSI = r.FormValue("fsi") == "true"
-	var text string
-	if err := h.RenderReadme(p, &text); err != nil {
-		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+	data, err := h.RenderReadme(r.Context(), params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	w.Write([]byte(text))
+	w.Write(data)
 }

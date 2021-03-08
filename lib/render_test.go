@@ -78,8 +78,7 @@ func TestRenderMethodsRender(t *testing.T) {
 	rm := NewRenderMethods(inst)
 
 	for i, c := range cases {
-		got := []byte{}
-		err := rm.RenderViz(c.params, &got)
+		got, err := rm.RenderViz(ctx, c.params)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d %s error mismatch. expected: '%s', got: '%s'", i, c.description, c.err, err)
 			return
@@ -155,6 +154,8 @@ func TestRenderMethodsRenderViz(t *testing.T) {
 	runner := newRenderTestRunner(t, "render_viz")
 	defer runner.Delete()
 
+	ctx := context.TODO()
+
 	params := RenderParams{
 		Ref: "foo/bar",
 		Dataset: &dataset.Dataset{
@@ -163,8 +164,7 @@ func TestRenderMethodsRenderViz(t *testing.T) {
 			},
 		},
 	}
-	var data []byte
-	if err := runner.RenderMethods.RenderViz(&params, &data); err == nil {
+	if _, err := runner.RenderMethods.RenderViz(ctx, &params); err == nil {
 		t.Errorf("expected RenderReadme with both ref & dataset to error")
 	}
 
@@ -175,7 +175,7 @@ func TestRenderMethodsRenderViz(t *testing.T) {
 			},
 		},
 	}
-	if err := runner.RenderMethods.RenderViz(&params, &data); err != nil {
+	if _, err := runner.RenderMethods.RenderViz(ctx, &params); err != nil {
 		t.Error(err)
 	}
 }
@@ -184,6 +184,8 @@ func TestRenderMethodsRenderViz(t *testing.T) {
 func TestRenderReadme(t *testing.T) {
 	runner := newRenderTestRunner(t, "render_readme")
 	defer runner.Delete()
+
+	ctx := context.TODO()
 
 	runner.Save(
 		"me/my_dataset",
@@ -195,17 +197,16 @@ func TestRenderReadme(t *testing.T) {
 		"testdata/jobs_by_automation/body.csv")
 
 	params := RenderParams{
-		Ref:       "peer/my_dataset",
-		OutFormat: "html",
+		Ref:    "peer/my_dataset",
+		Format: "html",
 	}
-	var text string
-	err := runner.RenderMethods.RenderReadme(&params, &text)
+	text, err := runner.RenderMethods.RenderReadme(ctx, &params)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	expect := "<h1>hi</h1>\n\n<p>hello</p>\n"
-	if diff := cmp.Diff(expect, text); diff != "" {
+	if diff := cmp.Diff(expect, string(text)); diff != "" {
 		t.Errorf("response mismatch (-want +got):\n%s", diff)
 	}
 
@@ -216,11 +217,12 @@ func TestRenderReadme(t *testing.T) {
 			},
 		},
 	}
-	if err = runner.RenderMethods.RenderReadme(&params, &text); err != nil {
+	text, err = runner.RenderMethods.RenderReadme(ctx, &params)
+	if err != nil {
 		t.Errorf("dynamic dataset render error: %s", err)
 	}
 
-	if diff := cmp.Diff(expect, text); diff != "" {
+	if diff := cmp.Diff(expect, string(text)); diff != "" {
 		t.Errorf("dynamic dataset render response mismatch (-want +got):\n%s", diff)
 	}
 
@@ -232,7 +234,8 @@ func TestRenderReadme(t *testing.T) {
 			},
 		},
 	}
-	if err = runner.RenderMethods.RenderReadme(&params, &text); err == nil {
+	text, err = runner.RenderMethods.RenderReadme(ctx, &params)
+	if err == nil {
 		t.Errorf("expected RenderReadme with both ref & dataset to error")
 	}
 }

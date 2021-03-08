@@ -233,8 +233,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEFSIUnlink.String(), s.Middleware(fsih.UnlinkHandler(lib.AEFSIUnlink.NoTrailingSlash())))
 
 	renderh := NewRenderHandlers(s.Instance)
-	m.Handle(lib.AERender.String(), s.Middleware(renderh.RenderHandler))
-	m.Handle(lib.AERenderAlt.String(), s.Middleware(renderh.RenderHandler))
+	handleRefRoute(m, lib.AERender, s.Middleware(renderh.RenderHandler))
 
 	lh := NewLogHandlers(s.Instance)
 	handleRefRoute(m, lib.AEHistory, s.Middleware(lh.LogHandler))

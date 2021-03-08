@@ -1140,7 +1140,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 <p>hello</p>
 `
-	if diff := cmp.Diff(expectBody, output); diff != "" {
+	if diff := cmp.Diff(expectBody, string(output)); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 }
