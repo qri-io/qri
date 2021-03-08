@@ -15,9 +15,7 @@ import (
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
-	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -26,8 +24,6 @@ type DatasetHandlers struct {
 	lib.DatasetMethods
 	inst     *lib.Instance
 	remote   *lib.RemoteMethods
-	node     *p2p.QriNode
-	repo     repo.Repo
 	ReadOnly bool
 }
 
@@ -35,7 +31,7 @@ type DatasetHandlers struct {
 func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
 	dsm := lib.NewDatasetMethods(inst)
 	rm := lib.NewRemoteMethods(inst)
-	h := DatasetHandlers{*dsm, inst, rm, inst.Node(), inst.Node().Repo, readOnly}
+	h := DatasetHandlers{*dsm, inst, rm, readOnly}
 	return &h
 }
 

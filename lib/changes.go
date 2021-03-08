@@ -44,5 +44,5 @@ func (datasetImpl) ChangeReport(scope scope, p *ChangeReportParams) (*ChangeRepo
 		left = dsref.Ref{Username: right.Username, Name: right.Name}
 	}
 
-	return changes.New(scope.inst, scope.inst.stats).Report(ctx, left, right, reportSource)
+	return changes.New(scope.Loader(), scope.Stats()).Report(ctx, left, right, reportSource)
 }
