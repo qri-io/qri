@@ -105,7 +105,7 @@ func TestDatasetHandlers(t *testing.T) {
 		{"POST", "/remove/peer/cities",
 			map[string]string{},
 			map[string]string{},
-			&map[string]string{"peername": "peer", "name": "cities"},
+			map[string]string{"peername": "peer", "name": "cities"},
 		},
 	}
 	runMimeMultipartHandlerTestCases(t, "remove mime/multipart", h.RemoveHandler, removeMimeCases)
@@ -227,7 +227,7 @@ func TestParseGetParams(t *testing.T) {
 		description string
 		url         string
 		expectArgs  *lib.GetParams
-		muxVars     *map[string]string
+		muxVars     map[string]string
 	}{
 		{
 			"basic get",
@@ -237,7 +237,7 @@ func TestParseGetParams(t *testing.T) {
 				Format: "json",
 				All:    true,
 			},
-			&map[string]string{"peername": "peer", "name": "my_ds"},
+			map[string]string{"peername": "peer", "name": "my_ds"},
 		},
 		{
 			"meta component",
@@ -248,7 +248,7 @@ func TestParseGetParams(t *testing.T) {
 				Selector: "meta",
 				All:      true,
 			},
-			&map[string]string{"peername": "peer", "name": "my_ds", "selector": "meta"},
+			map[string]string{"peername": "peer", "name": "my_ds", "selector": "meta"},
 		},
 		{
 			"body component",
@@ -259,7 +259,7 @@ func TestParseGetParams(t *testing.T) {
 				Selector: "body",
 				All:      true,
 			},
-			&map[string]string{"peername": "peer", "name": "my_ds", "selector": "body"},
+			map[string]string{"peername": "peer", "name": "my_ds", "selector": "body"},
 		},
 		{
 			"body.csv path suffix",
@@ -270,7 +270,7 @@ func TestParseGetParams(t *testing.T) {
 				Selector: "body",
 				All:      true,
 			},
-			&map[string]string{"peername": "peer", "name": "my_ds", "selector": "body.csv"},
+			map[string]string{"peername": "peer", "name": "my_ds", "selector": "body.csv"},
 		},
 		{
 			"download body as csv",
@@ -281,7 +281,7 @@ func TestParseGetParams(t *testing.T) {
 				Selector: "body",
 				All:      true,
 			},
-			&map[string]string{"peername": "peer", "name": "my_ds", "selector": "body"},
+			map[string]string{"peername": "peer", "name": "my_ds", "selector": "body"},
 		},
 		{
 			"zip format",
@@ -291,14 +291,14 @@ func TestParseGetParams(t *testing.T) {
 				Format: "zip",
 				All:    true,
 			},
-			&map[string]string{"peername": "peer", "name": "my_ds"},
+			map[string]string{"peername": "peer", "name": "my_ds"},
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.description, func(t *testing.T) {
 			r, _ := http.NewRequest("GET", c.url, nil)
 			if c.muxVars != nil {
-				r = mux.SetURLVars(r, *c.muxVars)
+				r = mux.SetURLVars(r, c.muxVars)
 			}
 			setRefStringFromMuxVars(r)
 			args := &lib.GetParams{}
@@ -317,26 +317,26 @@ func TestParseGetParams(t *testing.T) {
 		description string
 		url         string
 		expectErr   string
-		muxVars     *map[string]string
+		muxVars     map[string]string
 	}{
 		{
 			"get me",
 			"/get/me/my_ds",
 			`username "me" not allowed`,
-			&map[string]string{"peername": "me", "name": "my_ds"},
+			map[string]string{"peername": "me", "name": "my_ds"},
 		},
 		{
 			"bad parse",
 			"/get/peer/my+ds",
 			`unexpected character at position 7: '+'`,
-			&map[string]string{"peername": "peer", "name": "my+ds"},
+			map[string]string{"peername": "peer", "name": "my+ds"},
 		},
 	}
 	for i, c := range badCases {
 		t.Run(c.description, func(t *testing.T) {
 			r, _ := http.NewRequest("GET", c.url, nil)
 			if c.muxVars != nil {
-				r = mux.SetURLVars(r, *c.muxVars)
+				r = mux.SetURLVars(r, c.muxVars)
 			}
 			setRefStringFromMuxVars(r)
 			args := &lib.GetParams{}
@@ -416,7 +416,7 @@ func TestGetZip(t *testing.T) {
 
 	// Get a zip file binary over the API
 	dsHandler := NewDatasetHandlers(run.Inst, false)
-	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds"})
+	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds"})
 	if gotStatusCode != 200 {
 		t.Fatalf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -455,13 +455,13 @@ func TestDatasetGet(t *testing.T) {
 	}
 	run.SaveDataset(&ds, "testdata/cities/data.csv")
 
-	actualStatusCode, actualBody := APICall("/get/peer/test_ds", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds"})
+	actualStatusCode, actualBody := APICall("/get/peer/test_ds", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds"})
 	assertStatusCode(t, "get dataset", actualStatusCode, 200)
 	got := datasetJSONResponse(t, actualBody)
 	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestDatasetGet.test_ds.json", got)
 
 	// Get csv body using "body.csv" suffix
-	actualStatusCode, actualBody = APICall("/get/peer/test_ds/body.csv", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "selector": "body.csv"})
+	actualStatusCode, actualBody = APICall("/get/peer/test_ds/body.csv", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "selector": "body.csv"})
 	expectBody := "city,pop,avg_age,in_usa\ntoronto,40000000,55.5,false\nnew york,8500000,44.4,true\nchicago,300000,44.4,true\nchatham,35000,65.25,true\nraleigh,250000,50.65,true\n"
 	assertStatusCode(t, "get body.csv using suffix", actualStatusCode, 200)
 	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
@@ -469,27 +469,27 @@ func TestDatasetGet(t *testing.T) {
 	}
 
 	// Can get zip file
-	actualStatusCode, _ = APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds"})
 	assertStatusCode(t, "get zip file", actualStatusCode, 200)
 
 	// Can get a single component
-	actualStatusCode, _ = APICall("/get/peer/test_ds/meta", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "selector": "meta"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds/meta", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "selector": "meta"})
 	assertStatusCode(t, "get meta component", actualStatusCode, 200)
 
 	// Can get at an ipfs version
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "fs": "mem", "hash": "QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "fs": "mem", "hash": "QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr"})
 	assertStatusCode(t, "get at content-addressed version", actualStatusCode, 200)
 
 	// Error 404 if ipfs version doesn't exist
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "fs": "mem", "hash": "QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "fs": "mem", "hash": "QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6"})
 	assertStatusCode(t, "get missing content-addressed version", actualStatusCode, 404)
 
 	// Error 400 due to unknown component
-	actualStatusCode, _ = APICall("/get/peer/test_ds/dunno", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test_ds", "selector": "dunno"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds/dunno", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "selector": "dunno"})
 	assertStatusCode(t, "unknown component", actualStatusCode, 400)
 
 	// Error 400 due to parse error of dsref
-	actualStatusCode, _ = APICall("/get/peer/test+ds", dsHandler.GetHandler, &map[string]string{"peername": "peer", "name": "test+ds"})
+	actualStatusCode, _ = APICall("/get/peer/test+ds", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test+ds"})
 	assertStatusCode(t, "invalid dsref", actualStatusCode, 400)
 }
 
