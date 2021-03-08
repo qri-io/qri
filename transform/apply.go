@@ -8,10 +8,8 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/transform/run"
 	"github.com/qri-io/qri/transform/startf"
 )
 
@@ -38,39 +36,31 @@ const (
 	StatusSkipped = "skipped"
 )
 
-// NewRunID aliases the run identifier creation function to avoid requiring the
-// run package to invoke Apply
-var NewRunID = run.NewID
-
-// Service applies transform scripts to datasets
-type Service struct {
-	bgCtx context.Context
+// Transformer holds long-lived values needed to apply transforms
+type Transformer struct {
+	AppCtx   context.Context
+	LoadFunc dsref.ParseResolveLoad
+	Pub      event.Publisher
 }
 
-// NewService constructs a transform service, it accepts a background context
-// that any async transform application will be bound to. Generally bgCtx should
-// be long running, matched to the length of the qri application process
-func NewService(bgCtx context.Context) *Service {
-	return &Service{
-		bgCtx: bgCtx,
+// NewTransformer returns a new transformer
+func NewTransformer(appCtx context.Context, loadFunc dsref.ParseResolveLoad, pub event.Publisher) *Transformer {
+	return &Transformer{
+		AppCtx:   appCtx,
+		LoadFunc: loadFunc,
+		Pub:      pub,
 	}
 }
 
 // Apply applies the transform script to a target dataset
-func (svc *Service) Apply(
+func (t *Transformer) Apply(
 	ctx context.Context,
 	target *dataset.Dataset,
-	loader dsref.ParseResolveLoad,
 	runID string,
-	pub event.Publisher,
 	wait bool,
-	str ioes.IOStreams,
 	scriptOut io.Writer,
 	secrets map[string]string,
 ) error {
-	if svc == nil {
-		return fmt.Errorf("transform service does not exist")
-	}
 	log.Debugw("applying transform", "runID", runID, "wait", wait)
 
 	var (
@@ -89,7 +79,7 @@ func (svc *Service) Apply(
 	}
 
 	if target.Name != "" {
-		head, err = loader(ctx, fmt.Sprintf("%s/%s", target.Peername, target.Name))
+		head, err = t.LoadFunc(ctx, fmt.Sprintf("%s/%s", target.Peername, target.Name))
 		if errors.Is(err, dsref.ErrRefNotFound) || errors.Is(err, dsref.ErrNoHistory) {
 			// Dataset either does not exist yet, or has no history. Not an error
 			head = &dataset.Dataset{}
@@ -109,7 +99,7 @@ func (svc *Service) Apply(
 		startf.AddMutateFieldCheck(mutateCheck),
 		startf.SetErrWriter(scriptOut),
 		startf.SetSecrets(secrets),
-		startf.AddDatasetLoader(loader),
+		startf.AddDatasetLoader(t.LoadFunc),
 		startf.AddEventsChannel(eventsCh),
 	}
 
@@ -121,7 +111,7 @@ func (svc *Service) Apply(
 		if !wait {
 			// if we're running this script async, bind to the background context
 			// note that we lose any values attached to the given context
-			ctx = svc.bgCtx
+			ctx = t.AppCtx
 			doneCh <- nil
 		}
 
@@ -134,7 +124,7 @@ func (svc *Service) Apply(
 			for {
 				select {
 				case e := <-eventsCh:
-					pub.PublishID(ctx, e.Type, runID, e.Payload)
+					t.Pub.PublishID(ctx, e.Type, runID, e.Payload)
 					if e.Type == event.ETTransformStop {
 						receivedTransformStopEvt = true
 					}

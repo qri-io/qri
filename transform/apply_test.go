@@ -9,9 +9,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/transform/run"
 )
 
 func TestApply(t *testing.T) {
@@ -73,14 +73,13 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	streams := ioes.NewDiscardIOStreams()
 	scriptOut := &bytes.Buffer{}
 	noHistoryLoader := func(ctx context.Context, refStr string) (*dataset.Dataset, error) {
 		return nil, dsref.ErrNoHistory
 	}
 	target := &dataset.Dataset{Transform: tf}
 
-	runID := NewRunID()
+	runID := run.NewID()
 	bus := event.NewBus(ctx)
 	log := []event.Event{}
 	doneCh := make(chan struct{})
@@ -94,7 +93,8 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event 
 		return nil
 	}, runID)
 
-	if err := NewService(ctx).Apply(ctx, target, noHistoryLoader, runID, bus, false, streams, scriptOut, nil); err != nil {
+	transformer := NewTransformer(ctx, noHistoryLoader, bus)
+	if err := transformer.Apply(ctx, target, runID, false, scriptOut, nil); err != nil {
 		t.Fatal(err)
 	}
 

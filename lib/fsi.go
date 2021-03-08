@@ -162,7 +162,7 @@ func (m *FSIMethods) EnsureRef(ctx context.Context, p *LinkParams) (*dsref.Versi
 	return nil, dispatchReturnError(got, err)
 }
 
-// Implementations for FSI methods follow.g
+// Implementations for FSI methods follow
 // TODO(dustmop): Perhaps consider moving these methods to /lib/impl/*.go
 
 // fsiImpl holds the method implementations for FSI

@@ -10,21 +10,22 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/transform"
+	"github.com/qri-io/qri/transform/run"
 )
 
-// TransformMethods encapsulates business logic for transforms
+// TransformMethods groups together methods for transforms
 type TransformMethods struct {
-	inst *Instance
+	d dispatcher
 }
 
-// CoreRequestsName implements the Requests interface
-func (TransformMethods) CoreRequestsName() string { return "apply" }
+// Name returns the name of this method gropu
+func (m *TransformMethods) Name() string {
+	return "transform"
+}
 
-// NewTransformMethods creates a TransformMethods pointer from a qri instance
-func NewTransformMethods(inst *Instance) *TransformMethods {
-	return &TransformMethods{
-		inst: inst,
-	}
+// Transform returns the TransformMethods that Instance has registered
+func (inst *Instance) Transform() *TransformMethods {
+	return &TransformMethods{d: inst}
 }
 
 // ApplyParams are parameters for the apply command
@@ -55,24 +56,26 @@ type ApplyResult struct {
 
 // Apply runs a transform script
 func (m *TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
-	err := p.Validate()
-	if err != nil {
-		return nil, err
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "apply"), p)
+	if res, ok := got.(*ApplyResult); ok {
+		return res, err
 	}
+	return nil, dispatchReturnError(got, err)
+}
 
-	res := &ApplyResult{}
+// Implementations for transform methods follow
 
-	if m.inst.http != nil {
-		err = m.inst.http.Call(ctx, AEApply, p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	}
+// transformImpl holds the method implementations for transforms
+type transformImpl struct{}
 
+// Apply runs a transform script
+func (transformImpl) Apply(scp scope, p *ApplyParams) (*ApplyResult, error) {
+	ctx := scp.Context()
+
+	var err error
 	ref := dsref.Ref{}
 	if p.Refstr != "" {
-		ref, _, err = m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, "")
+		ref, _, err = scp.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, "")
 		if err != nil {
 			return nil, err
 		}
@@ -85,15 +88,12 @@ func (m *TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyRes
 	}
 	if p.Transform != nil {
 		ds.Transform = p.Transform
-		ds.Transform.OpenScriptFile(ctx, m.inst.repo.Filesystem())
+		ds.Transform.OpenScriptFile(ctx, scp.Filesystem())
 	}
 
-	str := m.inst.node.LocalStreams
-	loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
-
 	// allocate an ID for the transform, for now just log the events it produces
-	runID := transform.NewRunID()
-	m.inst.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
+	runID := run.NewID()
+	scp.Bus().SubscribeID(func(ctx context.Context, e event.Event) error {
 		go func() {
 			log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
 			if e.Type == event.ETTransformPrint {
@@ -109,11 +109,15 @@ func (m *TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyRes
 	}, runID)
 
 	scriptOut := p.ScriptOutput
-	err = m.inst.transform.Apply(ctx, ds, loader, runID, m.inst.bus, p.Wait, str, scriptOut, p.Secrets)
+	loader := scp.ParseResolveFunc()
+
+	transformer := transform.NewTransformer(scp.AppContext(), loader, scp.Bus())
+	err = transformer.Apply(ctx, ds, runID, p.Wait, scriptOut, p.Secrets)
 	if err != nil {
 		return nil, err
 	}
 
+	res := &ApplyResult{}
 	if p.Wait {
 		if err = base.InlineJSONBody(ds); err != nil && err != base.ErrNoBodyToInline {
 			return nil, err

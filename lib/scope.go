@@ -51,6 +51,11 @@ func (s *scope) Context() context.Context {
 	return s.ctx
 }
 
+// AppContext returns the context of the top-level application, to enable graceful shutdowns
+func (s *scope) AppContext() context.Context {
+	return s.inst.appCtx
+}
+
 // FSISubsystem returns a reference to the FSI subsystem
 // TODO(dustmop): This subsystem contains global data, we should move that data out and
 // into scope
@@ -109,7 +114,7 @@ func (s *scope) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (
 	return s.inst.LoadDataset(ctx, ref, source)
 }
 
-// Loader returns the default dataset ref loader
+// ParseResolveFunc returns a function that can parse a ref, then resolve and load it
 func (s *scope) ParseResolveFunc() dsref.ParseResolveLoad {
 	return NewParseResolveLoadFunc("", s.inst.defaultResolver(), s.inst)
 }
