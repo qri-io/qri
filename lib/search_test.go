@@ -37,13 +37,13 @@ func TestSearch(t *testing.T) {
 	m := NewSearchMethods(inst)
 
 	p := &SearchParams{"nuun", 0, 100}
-	got := &[]SearchResult{}
-	if err = m.Search(p, got); err != nil {
+	got, err := m.Search(ctx, p)
+	if err != nil {
 		t.Error(err)
 	}
 
-	if 1 != len(*got) {
-		t.Errorf("expected: %d results, got: %d", 1, len(*got))
+	if 1 != len(got) {
+		t.Errorf("expected: %d results, got: %d", 1, len(got))
 	}
 }
 

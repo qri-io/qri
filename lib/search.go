@@ -1,7 +1,9 @@
 package lib
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/registry/regclient"
@@ -29,6 +31,27 @@ type SearchParams struct {
 	Offset      int    `json:"offset,omitempty"`
 }
 
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *SearchParams) UnmarshalFromRequest(r *http.Request) error {
+	if p == nil {
+		p = &SearchParams{}
+	}
+
+	lp := &ListParams{}
+	if err := lp.UnmarshalFromRequest(r); err != nil {
+		return err
+	}
+
+	p.Limit = lp.Limit
+	p.Offset = lp.Offset
+
+	if p.QueryString == "" {
+		p.QueryString = r.FormValue("q")
+	}
+
+	return nil
+}
+
 // SearchResult struct
 type SearchResult struct {
 	Type, ID string
@@ -37,17 +60,22 @@ type SearchResult struct {
 }
 
 // Search queries for items on qri related to given parameters
-func (m *SearchMethods) Search(p *SearchParams, results *[]SearchResult) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("SearchMethods.Search", p, results))
+func (m *SearchMethods) Search(ctx context.Context, p *SearchParams) ([]SearchResult, error) {
+	if m.inst.http != nil {
+		res := []SearchResult{}
+		err := m.inst.http.Call(ctx, AESearch, p, &res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
 	if p == nil {
-		return fmt.Errorf("error: search params cannot be nil")
+		return nil, fmt.Errorf("error: search params cannot be nil")
 	}
 
 	reg := m.inst.registry
 	if reg == nil {
-		return repo.ErrNoRegistry
+		return nil, repo.ErrNoRegistry
 	}
 	params := &regclient.SearchParams{
 		QueryString: p.QueryString,
@@ -57,7 +85,7 @@ func (m *SearchMethods) Search(p *SearchParams, results *[]SearchResult) error {
 
 	regResults, err := reg.Search(params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	searchResults := make([]SearchResult, len(regResults))
@@ -66,6 +94,5 @@ func (m *SearchMethods) Search(p *SearchParams, results *[]SearchResult) error {
 		searchResults[i].ID = result.Path
 		searchResults[i].Value = result
 	}
-	*results = searchResults
-	return nil
+	return searchResults, nil
 }
