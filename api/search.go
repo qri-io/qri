@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/qri-io/qri/api/util"
@@ -22,7 +21,7 @@ func NewSearchHandlers(inst *lib.Instance) *SearchHandlers {
 // SearchHandler is the endpoint for searching qri
 func (h *SearchHandlers) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodGet:
+	case http.MethodGet, http.MethodPost:
 		h.searchHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -30,28 +29,18 @@ func (h *SearchHandlers) SearchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SearchHandlers) searchHandler(w http.ResponseWriter, r *http.Request) {
-
-	listParams := lib.ListParamsFromRequest(r)
-	sp := &lib.SearchParams{
-		QueryString: r.FormValue("q"),
-		Limit:       listParams.Limit,
-		Offset:      listParams.Offset,
-	}
-
-	if r.Header.Get("Content-Type") == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(sp); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-	}
-
-	results := []lib.SearchResult{}
-
-	if err := h.SearchMethods.Search(sp, &results); err != nil {
-		log.Infof("search error: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+	params := &lib.SearchParams{}
+	if err := lib.UnmarshalParams(r, params); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	util.WriteResponse(w, results)
+	res, err := h.SearchMethods.Search(r.Context(), params)
+	if err != nil {
+		log.Infof("search error: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
 }

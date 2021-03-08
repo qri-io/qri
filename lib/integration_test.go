@@ -45,7 +45,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	hinshun := tr.InitHinshun(t)
 
 	// - hinshun searches the registry for nasim's dataset name, gets a result
-	if results := SearchFor(t, hinshun, "bank"); len(results) < 1 {
+	if results := SearchFor(tr.Ctx, t, hinshun, "bank"); len(results) < 1 {
 		t.Logf("expected at least one result in registry search")
 	}
 
@@ -431,9 +431,9 @@ func PushToRegistry(t *testing.T, inst *Instance, refstr string) dsref.Ref {
 	return res
 }
 
-func SearchFor(t *testing.T, inst *Instance, term string) []SearchResult {
-	results := []SearchResult{}
-	if err := NewSearchMethods(inst).Search(&SearchParams{QueryString: term}, &results); err != nil {
+func SearchFor(ctx context.Context, t *testing.T, inst *Instance, term string) []SearchResult {
+	results, err := NewSearchMethods(inst).Search(ctx, &SearchParams{QueryString: term})
+	if err != nil {
 		t.Fatal(err)
 	}
 

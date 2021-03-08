@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -92,9 +93,9 @@ func (o *SearchOptions) Run() (err error) {
 		Offset:      page.Offset(),
 	}
 
-	results := []lib.SearchResult{}
-
-	if err = o.SearchMethods.Search(p, &results); err != nil {
+	ctx := context.TODO()
+	results, err := o.SearchMethods.Search(ctx, p)
+	if err != nil {
 		return err
 	}
 

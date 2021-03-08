@@ -35,7 +35,6 @@ func Receivers(inst *Instance) []Methods {
 		NewRemoteMethods(inst),
 		NewPeerMethods(inst),
 		NewProfileMethods(inst),
-		NewSearchMethods(inst),
 	}
 }
 
