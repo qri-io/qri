@@ -72,11 +72,17 @@ func newTestRunner(t *testing.T) *testRunner {
 		t.Fatal(err.Error())
 	}
 
+	inst := NewInstanceFromConfigAndNodeAndBus(ctx, testcfg.DefaultConfigForTesting(), node, bus)
+	// Assign the repoPath, as some tests inspect it in order to save files in the repository.
+	// Not assigning a path will cause them to use the current directory, and then save
+	// into the sourcetree.
+	inst.repoPath = tmpDir
+
 	return &testRunner{
 		Ctx: ctx,
 		// TODO (b5) - move test profile creation into testRunner constructor
 		Profile:  testPeerProfile,
-		Instance: NewInstanceFromConfigAndNodeAndBus(ctx, testcfg.DefaultConfigForTesting(), node, bus),
+		Instance: inst,
 		TmpDir:   tmpDir,
 		Pwd:      pwd,
 		dsfsTs:   dsfsTsFunc,
