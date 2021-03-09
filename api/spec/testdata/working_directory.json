@@ -1,0 +1,82 @@
+[
+  {
+    "endpoint": "/save/me/test_wd",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "meta": {
+        "title": "test working directory"
+      },
+      "body": [[1,2,3],[4,5,6]]
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/wd/init/me/test_wd",
+    "method": "POST"
+  },
+  {
+    "endpoint": "/wd/status/me/test_wd",
+    "method": "GET",
+    "expect": { 
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/wd/whatchanged/me/test_wd",
+    "method": "GET",
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/wd/restore/me/test_wd",
+    "method": "POST",
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/wd/write/me/test_wd",
+    "method": "POST",
+    "body": {
+      "meta": {
+        "title": "test working directory",
+        "description": "with an added description!"
+      },
+      "body": [[1,2,3],[4,5,6],[7,8,9]]
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/remove/me/test_wd?all=true",
+    "method": "POST",
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  }
+]
