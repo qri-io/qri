@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -92,4 +93,9 @@ func (r *APITestRunner) SaveDataset(ds *dataset.Dataset, bodyFilename string) {
 
 func (r *APITestRunner) NewRenderHandlers() *RenderHandlers {
 	return NewRenderHandlers(r.Inst)
+}
+
+func (r *APITestRunner) MustTestServer(t *testing.T) *httptest.Server {
+	s := New(r.Inst)
+	return httptest.NewServer(NewServerRoutes(s))
 }

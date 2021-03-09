@@ -19,6 +19,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
+	apispec "github.com/qri-io/qri/api/spec"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	testcfg "github.com/qri-io/qri/config/test"
@@ -32,6 +33,20 @@ import (
 
 func init() {
 	abide.SnapshotsDir = "testdata"
+}
+
+func TestApiSpec(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	tr := NewAPITestRunner(t)
+	defer tr.Delete()
+
+	ts := tr.MustTestServer(t)
+	defer ts.Close()
+
+	apispec.AssertHTTPAPISpec(t, ts.URL, "./spec")
 }
 
 func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
