@@ -144,24 +144,54 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{ "meta": { "code": 200, "status": "ok", "version":"` + APIVersion + `" }, "data": [] }`))
 }
 
-func handleRefRoute(m *mux.Router, ae lib.APIEndpoint, f http.HandlerFunc) {
-	m.Handle(ae.String(), f)
-	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}"), f)
-	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/{selector}"), f)
-	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/at/{fs}/{hash}"), f)
-	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/at/{fs}/{hash}/{selector}"), f)
+// refRouteParams carry a config for a ref based route
+type refRouteParams struct {
+	Endpoint lib.APIEndpoint
+	ShortRef bool
+	Selector bool
+	Methods  []string
 }
 
-// TODO(b5): this is a band-aid that lets us punt on teaching lib about how to
-// switch on HTTP verbs. I think we should use tricks like this that leverage
-// the gorilla/mux package until we get a better sense of how our API uses
-// HTTP verbs
-func handleRefRouteMethods(m *mux.Router, ae lib.APIEndpoint, f http.HandlerFunc, methods ...string) {
-	m.Handle(ae.String(), f).Methods(methods...)
-	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}"), f).Methods(methods...)
-	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/{selector}"), f).Methods(methods...)
-	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/at/{fs}/{hash}"), f).Methods(methods...)
-	m.Handle(fmt.Sprintf("%s/%s", ae, "{peername}/{name}/at/{fs}/{hash}/{selector}"), f).Methods(methods...)
+// newrefRouteParams is a shorthand to generate refRouteParams
+func newrefRouteParams(e lib.APIEndpoint, sr bool, sel bool, methods ...string) refRouteParams {
+	return refRouteParams{
+		Endpoint: e,
+		ShortRef: sr,
+		Selector: sel,
+		Methods:  methods,
+	}
+}
+
+func handleRefRoute(m *mux.Router, p refRouteParams, f http.HandlerFunc) {
+	routes := []string{
+		p.Endpoint.String(),
+		fmt.Sprintf("%s/%s", p.Endpoint, "{peername}/{name}"),
+	}
+	if p.Selector {
+		routes = append(routes, fmt.Sprintf("%s/%s", p.Endpoint, "{peername}/{name}/{selector}"))
+	}
+	if !p.ShortRef {
+		routes = append(routes, fmt.Sprintf("%s/%s", p.Endpoint, "{peername}/{name}/at/{fs}/{hash}"))
+		if p.Selector {
+			routes = append(routes, fmt.Sprintf("%s/%s", p.Endpoint, "{peername}/{name}/at/{fs}/{hash}/{selector}"))
+		}
+	}
+
+	if p.Methods == nil {
+		p.Methods = []string{}
+	}
+
+	for _, route := range routes {
+		if len(p.Methods) > 0 {
+			// TODO(b5): this is a band-aid that lets us punt on teaching lib about how to
+			// switch on HTTP verbs. I think we should use tricks like this that leverage
+			// the gorilla/mux package until we get a better sense of how our API uses
+			// HTTP verbs
+			m.Handle(route, f).Methods(p.Methods...)
+		} else {
+			m.Handle(route, f)
+		}
+	}
 }
 
 // NewServerRoutes returns a Muxer that has all API routes
@@ -175,6 +205,8 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Use(muxVarsToQueryParamMiddleware)
 	m.Use(refStringMiddleware)
 	m.Use(token.OAuthTokenMiddleware)
+
+	var routeParams refRouteParams
 
 	m.Handle(lib.AEHome.String(), s.NoLogMiddleware(s.HomeHandler))
 	m.Handle(lib.AEHealth.String(), s.NoLogMiddleware(HealthCheckHandler))
@@ -204,11 +236,15 @@ func NewServerRoutes(s Server) *mux.Router {
 	dsh := NewDatasetHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle(lib.AEList.String(), s.Middleware(dsh.ListHandler))
 	m.Handle(lib.AEPeerList.String(), s.Middleware(dsh.PeerListHandler))
-	handleRefRoute(m, lib.AESave, s.Middleware(dsh.SaveHandler))
-	handleRefRoute(m, lib.AEGet, s.Middleware(dsh.GetHandler))
-	handleRefRoute(m, lib.AERemove, s.Middleware(dsh.RemoveHandler))
+	routeParams = newrefRouteParams(lib.AESave, false, false, http.MethodPost, http.MethodPut)
+	handleRefRoute(m, routeParams, s.Middleware(dsh.SaveHandler))
+	routeParams = newrefRouteParams(lib.AEGet, false, true, http.MethodGet, http.MethodPost)
+	handleRefRoute(m, routeParams, s.Middleware(dsh.GetHandler))
+	routeParams = newrefRouteParams(lib.AERemove, false, false, http.MethodPost, http.MethodDelete)
+	handleRefRoute(m, routeParams, s.Middleware(dsh.RemoveHandler))
 	m.Handle(lib.AERename.String(), s.Middleware(dsh.RenameHandler))
-	handleRefRoute(m, lib.AEValidate, s.Middleware(dsh.ValidateHandler))
+	routeParams = newrefRouteParams(lib.AEValidate, false, false, http.MethodGet, http.MethodPost)
+	handleRefRoute(m, routeParams, s.Middleware(dsh.ValidateHandler))
 	m.Handle(lib.AEDiff.String(), s.Middleware(dsh.DiffHandler))
 	m.Handle(lib.AEChanges.String(), s.Middleware(dsh.ChangesHandler(lib.AEChanges.NoTrailingSlash())))
 	m.Handle(lib.AEUnpack.String(), s.Middleware(dsh.UnpackHandler))
@@ -218,14 +254,17 @@ func NewServerRoutes(s Server) *mux.Router {
 
 	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle(lib.AEPush.String(), s.Middleware(remClientH.PushHandler))
-	handleRefRoute(m, lib.AEPull, s.Middleware(dsh.PullHandler))
+	routeParams = newrefRouteParams(lib.AEPull, false, false, http.MethodPost, http.MethodPut)
+	handleRefRoute(m, routeParams, s.Middleware(dsh.PullHandler))
 	m.Handle(lib.AEFeeds.String(), s.Middleware(remClientH.FeedsHandler))
 	m.Handle(lib.AEPreview.String(), s.Middleware(remClientH.DatasetPreviewHandler))
 
-	handleRefRouteMethods(m, lib.AEStatus, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.status")), http.MethodGet, http.MethodPost)
-	handleRefRouteMethods(m, lib.AEWhatChanged, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.whatchanged")), http.MethodGet, http.MethodPost)
-	m.Handle(lib.AEInit.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.init"))).Methods(http.MethodPost)
-	m.Handle(fmt.Sprintf("%s/{peername}/{name}", lib.AEInit), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.init"))).Methods(http.MethodPost)
+	routeParams = newrefRouteParams(lib.AEStatus, false, false, http.MethodGet, http.MethodPost)
+	handleRefRoute(m, routeParams, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.status")))
+	routeParams = newrefRouteParams(lib.AEWhatChanged, false, false, http.MethodGet, http.MethodPost)
+	handleRefRoute(m, routeParams, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.whatchanged")))
+	routeParams = newrefRouteParams(lib.AEInit, true, false, http.MethodPost)
+	handleRefRoute(m, routeParams, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.init")))
 	m.Handle(lib.AECanInitDatasetWorkDir.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.caninitdatasetworkdir")))
 	m.Handle(lib.AECheckout.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.checkout"))).Methods(http.MethodPost)
 	m.Handle(lib.AERestore.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.restore"))).Methods(http.MethodPost)
@@ -234,11 +273,14 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEFSIUnlink.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.unlink"))).Methods(http.MethodPost)
 
 	renderh := NewRenderHandlers(s.Instance)
-	handleRefRoute(m, lib.AERender, s.Middleware(renderh.RenderHandler))
+	routeParams = newrefRouteParams(lib.AERender, false, false, http.MethodGet, http.MethodPost)
+	handleRefRoute(m, routeParams, s.Middleware(renderh.RenderHandler))
 
 	lh := NewLogHandlers(s.Instance)
-	handleRefRoute(m, lib.AEHistory, s.Middleware(lh.LogHandler))
-	handleRefRoute(m, lib.AELogbook, s.Middleware(lh.LogbookHandler))
+	routeParams = newrefRouteParams(lib.AEHistory, false, false, http.MethodGet, http.MethodPost)
+	handleRefRoute(m, routeParams, s.Middleware(lh.LogHandler))
+	routeParams = newrefRouteParams(lib.AELogbook, false, false, http.MethodGet, http.MethodPost)
+	handleRefRoute(m, routeParams, s.Middleware(lh.LogbookHandler))
 	m.Handle(lib.AELogs.String(), s.Middleware(lh.PlainLogsHandler))
 	m.Handle(lib.AELogbookSummary.String(), s.Middleware(lh.LogbookSummaryHandler))
 
