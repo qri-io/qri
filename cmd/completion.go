@@ -81,10 +81,6 @@ run on each terminal session.`,
 // CompleteConfig adds any missing configuration that can only be added just before calling GetConfig
 func (o *ConfigOptions) CompleteConfig(f Factory) (err error) {
 	o.inst = f.Instance()
-	o.ConfigMethods, err = f.ConfigMethods()
-	if err != nil {
-		return
-	}
 
 	o.ProfileMethods, err = f.ProfileMethods()
 	return
@@ -99,7 +95,7 @@ func (o *ConfigOptions) GetConfig(args []string) (err error) {
 
 	ctx := context.TODO()
 
-	data, err := o.ConfigMethods.GetConfigKeys(ctx, params)
+	data, err := o.inst.ConfigMethods().GetConfigKeys(ctx, params)
 	if err != nil {
 		return err
 	}

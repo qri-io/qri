@@ -134,7 +134,7 @@ func (t TestFactory) RPC() *rpc.Client {
 
 // ConfigMethods generates a lib.ConfigMethods from internal state
 func (t TestFactory) ConfigMethods() (*lib.ConfigMethods, error) {
-	return lib.NewConfigMethods(t.inst), nil
+	return t.inst.ConfigMethods(), nil
 }
 
 // DatasetMethods generates a lib.DatasetMethods from internal state

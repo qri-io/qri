@@ -319,7 +319,7 @@ func (o *QriOptions) ConfigMethods() (m *lib.ConfigMethods, err error) {
 		return
 	}
 
-	return lib.NewConfigMethods(o.inst), nil
+	return o.inst.ConfigMethods(), nil
 }
 
 // Shutdown closes the instance

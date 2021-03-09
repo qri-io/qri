@@ -50,7 +50,7 @@ func (m *DatasetMethods) Name() string {
 	return "dataset"
 }
 
-// Dataset returns the DatasetMethods that Instance has registered
+// Dataset returns the DatasetMethods the instance has registered
 func (inst *Instance) Dataset() *DatasetMethods {
 	return &DatasetMethods{inst: inst}
 }
