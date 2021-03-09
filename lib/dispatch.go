@@ -75,16 +75,22 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 			// TODO(dustmop): This is always using the "POST" verb currently. We need some
 			// mechanism of tagging methods as being read-only and "GET"-able. Once that
 			// exists, use it here to lookup the verb that should be used to invoke the rpc.
-			out := reflect.New(c.OutType)
-			res = out.Interface()
+			if c.OutType != nil {
+				out := reflect.New(c.OutType)
+				res = out.Interface()
+			}
 			err = inst.http.Call(ctx, methodEndpoint(method), param, res)
 			if err != nil {
 				return nil, nil, err
 			}
 			cur = nil
-			out = reflect.ValueOf(res)
-			out = out.Elem()
-			return out.Interface(), cur, nil
+			var inf interface{}
+			if res != nil {
+				out := reflect.ValueOf(res)
+				out = out.Elem()
+				inf = out.Interface()
+			}
+			return inf, cur, nil
 		}
 		return nil, nil, fmt.Errorf("method %q not found", method)
 	}

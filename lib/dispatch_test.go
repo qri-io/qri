@@ -3,7 +3,12 @@ package lib
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+
+	"github.com/qri-io/qri/api/util"
 )
 
 func TestRegisterMethods(t *testing.T) {
@@ -69,6 +74,123 @@ func TestRegisterVariadicReturn(t *testing.T) {
 	if err.Error() != "success" {
 		t.Errorf("banana return mismatch, expect: success error, got: %q", err)
 	}
+}
+
+func TestVariadicReturnsWorkOverHTTP(t *testing.T) {
+	ctx := context.Background()
+
+	// Instance that registers the fruit methods
+	servInst, servCleanup := NewMemTestInstance(ctx, t)
+	defer servCleanup()
+	servFruit := &fruitMethods{d: servInst}
+	reg := make(map[string]callable)
+	servInst.registerOne("fruit", servFruit, fruitImpl{}, reg)
+	servInst.regMethods = &regMethodSet{reg: reg}
+
+	// A local call, no RPC used
+	err := servFruit.Apple(ctx, &fruitParams{})
+	expectErr := "no more apples"
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
+	}
+
+	// Instance that acts as a client of another
+	clientInst, clientCleanup := NewMemTestInstance(ctx, t)
+	defer clientCleanup()
+	clientFruit := &fruitMethods{d: clientInst}
+	reg = make(map[string]callable)
+	clientInst.registerOne("fruit", clientFruit, fruitImpl{}, reg)
+	clientInst.regMethods = &regMethodSet{reg: reg}
+
+	// Run the first instance in "connect" mode, tell the second
+	// instance to use it for RPC calls
+	httpClient, connectCleanup := serverConnectAndListen(t, servInst, 7890)
+	defer connectCleanup()
+	clientInst.http = httpClient
+
+	// Call the method, which will be send over RPC
+	err = clientFruit.Apple(ctx, &fruitParams{})
+	if err == nil {
+		t.Fatal("expected to get error but did not get one")
+	}
+	expectErr = newHTTPResponseError("no more apples")
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
+	}
+
+	// Call another method
+	_, _, err = clientFruit.Banana(ctx, &fruitParams{})
+	if err == nil {
+		t.Fatal("expected to get error but did not get one")
+	}
+	expectErr = newHTTPResponseError("success")
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
+	}
+
+	// Call another method, which won't return an error
+	err = clientFruit.Cherry(ctx, &fruitParams{})
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+
+	// Call the last method
+	val, _, err := clientFruit.Date(ctx, &fruitParams{})
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if val != "January 1st" {
+		t.Errorf("value mismatch, expect: January 1st, got: %s", val)
+	}
+}
+
+func serverConnectAndListen(t *testing.T, servInst *Instance, port int) (*HTTPClient, func()) {
+	address := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)
+	connection, err := NewHTTPClient(address)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		method := ""
+		if r.URL.Path == "/apple/" {
+			method = "fruit.apple"
+		} else if r.URL.Path == "/banana/" {
+			method = "fruit.banana"
+		} else if r.URL.Path == "/cherry/" {
+			method = "fruit.cherry"
+		} else if r.URL.Path == "/date/" {
+			method = "fruit.date"
+		}
+		p := servInst.NewInputParam(method)
+		res, _, err := servInst.Dispatch(r.Context(), method, p)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
+		util.WriteResponse(w, res)
+	}
+	mockAPIServer := httptest.NewUnstartedServer(http.HandlerFunc(handler))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	mockAPIServer.Listener = listener
+	mockAPIServer.Start()
+	apiServerCleanup := func() {
+		mockAPIServer.Close()
+	}
+	return connection, apiServerCleanup
+}
+
+func newHTTPResponseError(msg string) string {
+	tmpl := `{
+  "meta": {
+    "code": 500,
+    "error": "%s"
+  }
+}`
+	return fmt.Sprintf(tmpl, msg)
 }
 
 func expectToPanic(t *testing.T, regFunc func(), expectMessage string) {
@@ -213,6 +335,19 @@ func (m *fruitMethods) Banana(ctx context.Context, p *fruitParams) (string, Curs
 	return "", nil, dispatchReturnError(got, err)
 }
 
+func (m *fruitMethods) Cherry(ctx context.Context, p *fruitParams) error {
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "cherry"), p)
+	return err
+}
+
+func (m *fruitMethods) Date(ctx context.Context, p *fruitParams) (string, Cursor, error) {
+	got, cur, err := m.d.Dispatch(ctx, dispatchMethodName(m, "date"), p)
+	if res, ok := got.(string); ok {
+		return res, cur, err
+	}
+	return "", nil, dispatchReturnError(got, err)
+}
+
 // Implementation for fruit
 type fruitImpl struct{}
 
@@ -223,4 +358,13 @@ func (fruitImpl) Apple(scp scope, p *fruitParams) error {
 func (fruitImpl) Banana(scp scope, p *fruitParams) (string, Cursor, error) {
 	var cur Cursor
 	return "batman", cur, fmt.Errorf("success")
+}
+
+func (fruitImpl) Cherry(scp scope, p *fruitParams) error {
+	return nil
+}
+
+func (fruitImpl) Date(scp scope, p *fruitParams) (string, Cursor, error) {
+	var cur Cursor
+	return "January 1st", cur, nil
 }
