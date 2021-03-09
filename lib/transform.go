@@ -112,8 +112,7 @@ func (transformImpl) Apply(scp scope, p *ApplyParams) (*ApplyResult, error) {
 	loader := scp.ParseResolveFunc()
 
 	transformer := transform.NewTransformer(scp.AppContext(), loader, scp.Bus())
-	err = transformer.Apply(ctx, ds, runID, p.Wait, scriptOut, p.Secrets)
-	if err != nil {
+	if err = transformer.Apply(ctx, ds, runID, p.Wait, scriptOut, p.Secrets); err != nil {
 		return nil, err
 	}
 

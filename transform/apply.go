@@ -36,24 +36,24 @@ const (
 	StatusSkipped = "skipped"
 )
 
-// Transformer holds long-lived values needed to apply transforms
+// Transformer holds dependencies needed for applying a transform
 type Transformer struct {
-	AppCtx   context.Context
-	LoadFunc dsref.ParseResolveLoad
-	Pub      event.Publisher
+	appCtx   context.Context
+	loadFunc dsref.ParseResolveLoad
+	pub      event.Publisher
 }
 
 // NewTransformer returns a new transformer
 func NewTransformer(appCtx context.Context, loadFunc dsref.ParseResolveLoad, pub event.Publisher) *Transformer {
 	return &Transformer{
-		AppCtx:   appCtx,
-		LoadFunc: loadFunc,
-		Pub:      pub,
+		appCtx:   appCtx,
+		loadFunc: loadFunc,
+		pub:      pub,
 	}
 }
 
 // Apply applies the transform script to a target dataset
-func (t *Transformer) Apply(
+func (t Transformer) Apply(
 	ctx context.Context,
 	target *dataset.Dataset,
 	runID string,
@@ -79,7 +79,7 @@ func (t *Transformer) Apply(
 	}
 
 	if target.Name != "" {
-		head, err = t.LoadFunc(ctx, fmt.Sprintf("%s/%s", target.Peername, target.Name))
+		head, err = t.loadFunc(ctx, fmt.Sprintf("%s/%s", target.Peername, target.Name))
 		if errors.Is(err, dsref.ErrRefNotFound) || errors.Is(err, dsref.ErrNoHistory) {
 			// Dataset either does not exist yet, or has no history. Not an error
 			head = &dataset.Dataset{}
@@ -99,7 +99,7 @@ func (t *Transformer) Apply(
 		startf.AddMutateFieldCheck(mutateCheck),
 		startf.SetErrWriter(scriptOut),
 		startf.SetSecrets(secrets),
-		startf.AddDatasetLoader(t.LoadFunc),
+		startf.AddDatasetLoader(t.loadFunc),
 		startf.AddEventsChannel(eventsCh),
 	}
 
@@ -111,7 +111,7 @@ func (t *Transformer) Apply(
 		if !wait {
 			// if we're running this script async, bind to the background context
 			// note that we lose any values attached to the given context
-			ctx = t.AppCtx
+			ctx = t.appCtx
 			doneCh <- nil
 		}
 
@@ -124,7 +124,7 @@ func (t *Transformer) Apply(
 			for {
 				select {
 				case e := <-eventsCh:
-					t.Pub.PublishID(ctx, e.Type, runID, e.Payload)
+					t.pub.PublishID(ctx, e.Type, runID, e.Payload)
 					if e.Type == event.ETTransformStop {
 						receivedTransformStopEvt = true
 					}
