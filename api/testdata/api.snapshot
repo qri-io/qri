@@ -5051,6 +5051,17 @@ Connection: close
 HTTP/1.1 200 OK
 Connection: close
 
+/* snapshot: TestFSIHandlers init case 0: POST / */
+HTTP/1.1 500 Internal Server Error
+Connection: close
+
+{
+  "meta": {
+    "code": 500,
+    "error": "dataset name must start with a lower-case letter, and only contain lower-case letters, numbers, dashes, and underscore. Maximum length is 144 characters"
+  }
+}
+
 /* snapshot: TestFSIHandlers init case 1: GET / */
 HTTP/1.1 404 Not Found
 Connection: close
@@ -5065,6 +5076,18 @@ Connection: close
   "meta": {
     "code": 500,
     "error": "dataset name must start with a lower-case letter, and only contain lower-case letters, numbers, dashes, and underscore. Maximum length is 144 characters"
+  }
+}
+
+/* snapshot: TestFSIHandlers init case 1: POST /me/api_test_init_dataset?targetdir=fsi_tests/init_dir&format=csv */
+HTTP/1.1 200 OK
+Connection: close
+Content-Type: application/json
+
+{
+  "data": "peer/api_test_init_dataset",
+  "meta": {
+    "code": 200
   }
 }
 
@@ -5087,6 +5110,17 @@ Connection: close
   "meta": {
     "code": 500,
     "error": "dataset name must start with a lower-case letter, and only contain lower-case letters, numbers, dashes, and underscore. Maximum length is 144 characters"
+  }
+}
+
+/* snapshot: TestFSIHandlers init case 2: POST /me/api_test_init_dataset?targetdir=fsi_tests/init_dir&format=csv */
+HTTP/1.1 500 Internal Server Error
+Connection: close
+
+{
+  "meta": {
+    "code": 500,
+    "error": "working directory is already linked, .qri-ref exists"
   }
 }
 
@@ -5440,13 +5474,36 @@ Connection: close
 { "meta": { "code": 404, "status": "not found" }, "data": null }
 
 /* snapshot: TestFSIHandlers whatchanged case 0: GET /me/movies */
-HTTP/1.1 500 Internal Server Error
+HTTP/1.1 200 OK
 Connection: close
+Content-Type: application/json
 
 {
+  "data": [
+    {
+      "component": "meta",
+      "message": "",
+      "mtime": "0001-01-01T00:00:00Z",
+      "sourceFile": "meta",
+      "type": "add"
+    },
+    {
+      "component": "structure",
+      "message": "",
+      "mtime": "0001-01-01T00:00:00Z",
+      "sourceFile": "structure",
+      "type": "add"
+    },
+    {
+      "component": "body",
+      "message": "",
+      "mtime": "0001-01-01T00:00:00Z",
+      "sourceFile": "body",
+      "type": "add"
+    }
+  ],
   "meta": {
-    "code": 500,
-    "error": "\"\" is not a valid dataset reference: empty reference"
+    "code": 200
   }
 }
 
