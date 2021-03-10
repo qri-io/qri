@@ -161,7 +161,7 @@ func (o *ConfigOptions) Get(args []string) (err error) {
 
 	ctx := context.TODO()
 
-	data, err := o.inst.ConfigMethods().GetConfig(ctx, params)
+	data, err := o.inst.Config().GetConfig(ctx, params)
 	if err != nil {
 		if errors.Is(err, lib.ErrUnsupportedRPC) {
 			return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
@@ -190,7 +190,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		"profile.thumb":  true,
 	}
 
-	profile := o.inst.Config().Profile
+	profile := o.inst.GetConfig().Profile
 	profileChanged := false
 	ctx := context.TODO()
 
@@ -217,12 +217,12 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 			profileChanged = true
 		} else {
 			// TODO (b5): I think this'll result in configuration not getting set. should investigate
-			if err = o.inst.Config().Set(path, value); err != nil {
+			if err = o.inst.GetConfig().Set(path, value); err != nil {
 				return err
 			}
 		}
 	}
-	if _, err := o.inst.ConfigMethods().SetConfig(ctx, o.inst.Config()); err != nil {
+	if _, err := o.inst.Config().SetConfig(ctx, o.inst.GetConfig()); err != nil {
 		if errors.Is(err, lib.ErrUnsupportedRPC) {
 			return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
 		}

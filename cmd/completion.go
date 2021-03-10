@@ -95,7 +95,7 @@ func (o *ConfigOptions) GetConfig(args []string) (err error) {
 
 	ctx := context.TODO()
 
-	data, err := o.inst.ConfigMethods().GetConfigKeys(ctx, params)
+	data, err := o.inst.Config().GetConfigKeys(ctx, params)
 	if err != nil {
 		return err
 	}

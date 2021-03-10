@@ -153,7 +153,7 @@ func (o *QriOptions) Init() (err error) {
 
 	// Handle color and prompt flags which apply to every command
 	shouldColorOutput := !o.NoColor
-	cfg := o.inst.Config()
+	cfg := o.inst.GetConfig()
 	if cfg != nil && cfg.CLI != nil {
 		shouldColorOutput = cfg.CLI.ColorizeOutput
 	}
@@ -208,7 +208,7 @@ func (o *QriOptions) Config() (*config.Config, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
-	return o.inst.Config(), nil
+	return o.inst.GetConfig(), nil
 }
 
 // CryptoGenerator returns a resource for generating cryptographic info
@@ -311,15 +311,6 @@ func (o *QriOptions) RenderMethods() (*lib.RenderMethods, error) {
 		return nil, err
 	}
 	return lib.NewRenderMethods(o.inst), nil
-}
-
-// ConfigMethods generates a lib.ConfigMethods from internal state
-func (o *QriOptions) ConfigMethods() (m *lib.ConfigMethods, err error) {
-	if err = o.Init(); err != nil {
-		return
-	}
-
-	return o.inst.ConfigMethods(), nil
 }
 
 // Shutdown closes the instance

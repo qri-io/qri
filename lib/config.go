@@ -21,10 +21,8 @@ func (m *ConfigMethods) Name() string {
 	return "config"
 }
 
-// ConfigMethods returns the `ConfigMethods` that the instance has registered
-// TODO (ramfox): as the dispatch refactoring nears completion, we should
-// re-evaluate this name
-func (inst *Instance) ConfigMethods() *ConfigMethods {
+// Config returns the `Config` that the instance has registered
+func (inst *Instance) Config() *ConfigMethods {
 	return &ConfigMethods{inst: inst}
 }
 

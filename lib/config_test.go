@@ -31,7 +31,7 @@ func TestGetConfig(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 
 	p := &GetConfigParams{Field: "profile.id", Format: "json"}
-	res, err := inst.ConfigMethods().GetConfig(ctx, p)
+	res, err := inst.Config().GetConfig(ctx, p)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -64,7 +64,7 @@ func TestSaveConfigToFile(t *testing.T) {
 
 	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
 
-	if _, err := inst.ConfigMethods().SetConfig(ctx, cfg); err != nil {
+	if _, err := inst.Config().SetConfig(ctx, cfg); err != nil {
 		t.Error(err.Error())
 	}
 }
@@ -85,7 +85,7 @@ func TestSetConfig(t *testing.T) {
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
-	m := inst.ConfigMethods()
+	m := inst.Config()
 
 	if _, err := m.SetConfig(ctx, &config.Config{}); err == nil {
 		t.Errorf("expected saving empty config to be invalid")

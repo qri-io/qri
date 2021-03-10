@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -12,7 +13,6 @@ import (
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/stats"
-	"github.com/qri-io/qri/config"
 )
 
 // scope represents the lifetime of a method call, abstractly connected to the caller of
@@ -71,7 +71,7 @@ func (s *scope) Filesystem() *muxfs.Mux {
 
 // Config returns the config
 func (s *scope) Config() *config.Config {
-	return	s.inst.cfg
+	return s.inst.cfg
 }
 
 // Dscache returns the dscache

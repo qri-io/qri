@@ -37,7 +37,7 @@ func (r *RemoteMethods) Feeds(remoteName *string, res *map[string][]dsref.Versio
 	}
 	ctx := context.TODO()
 
-	addr, err := remote.Address(r.inst.Config(), *remoteName)
+	addr, err := remote.Address(r.inst.GetConfig(), *remoteName)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (r *RemoteMethods) Preview(p *PreviewParams, res *dataset.Dataset) error {
 		return err
 	}
 
-	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
+	addr, err := remote.Address(r.inst.GetConfig(), p.RemoteName)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func (r *RemoteMethods) Push(p *PushParams, res *dsref.Ref) error {
 		return err
 	}
 
-	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
+	addr, err := remote.Address(r.inst.GetConfig(), p.RemoteName)
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func (r *RemoteMethods) Remove(p *PushParams, res *dsref.Ref) error {
 		return err
 	}
 
-	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
+	addr, err := remote.Address(r.inst.GetConfig(), p.RemoteName)
 	if err != nil {
 		return err
 	}
