@@ -267,20 +267,21 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
-	params := lib.GetParams{}
+	params := &lib.GetParams{}
 
-	err := lib.UnmarshalParams(r, &params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	result, err := h.Get(r.Context(), &params)
-	if err != nil {
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.get", params)
+	res, ok := got.(*lib.GetResult)
+	if err != nil || !ok {
 		util.RespondWithError(w, err)
 		return
 	}
-	h.replyWithGetResponse(w, r, &params, result)
+	h.replyWithGetResponse(w, r, params, res)
 }
 
 // inlineScriptsToBytes consumes all open script files for dataset components

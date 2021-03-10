@@ -551,10 +551,9 @@ func TestDatasetRequestsGet(t *testing.T) {
 			bodyToPrettyString(moviesBody[:3])},
 	}
 
-	dsm := NewDatasetMethods(inst)
 	for _, c := range cases {
 		t.Run(c.description, func(t *testing.T) {
-			got, err := dsm.Get(ctx, c.params)
+			got, err := inst.Dataset().Get(ctx, c.params)
 			if err != nil {
 				if err.Error() != c.expect {
 					t.Errorf("error mismatch: expected: %s, got: %s", c.expect, err)
@@ -597,11 +596,10 @@ func TestDatasetRequestsGetFSIPath(t *testing.T) {
 		t.Fatalf("error checking out dataset: %s", err)
 	}
 
-	dsm := NewDatasetMethods(inst)
 	getParams := &GetParams{
 		Refstr: "peer/movies",
 	}
-	got, err := dsm.Get(ctx, getParams)
+	got, err := inst.Dataset().Get(ctx, getParams)
 	if err != nil {
 		t.Fatalf("error getting fsi dataset: %s", err)
 	}
@@ -701,10 +699,9 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			ref := reporef.DatasetRef{Peername: profile.Peername, Name: name}
 
 			inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-			m := NewDatasetMethods(inst)
 			// TODO (b5) - we're using "JSON" here b/c the "craigslist" test dataset
 			// is tripping up the YAML serializer
-			got, err := m.Get(ctx, &GetParams{Refstr: fmt.Sprintf("%s/%s", profile.Peername, name), Format: "json"})
+			got, err := inst.Dataset().Get(ctx, &GetParams{Refstr: fmt.Sprintf("%s/%s", profile.Peername, name), Format: "json"})
 			if err != nil {
 				t.Errorf("error getting dataset for %q: %s", ref, err.Error())
 			}

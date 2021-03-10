@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/stats"
@@ -91,7 +92,12 @@ func (s *scope) Profiles() profile.Store {
 
 // Repo returns the repo store
 func (s *scope) Repo() repo.Repo {
-	return s.inst.Repo()
+	return s.inst.repo
+}
+
+// Logbook returns the repo logbook
+func (s *scope) Logbook() *logbook.Book {
+	return s.inst.logbook
 }
 
 // Loader returns the instance

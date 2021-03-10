@@ -239,216 +239,19 @@ type DataResponse struct {
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
 // with the generated stats.
 func (m *DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, error) {
+	// TODO(dustmop): Have Dispatch perform this AbsPath call automatically
 	if err := qfs.AbsPath(&p.Outfile); err != nil {
 		return nil, err
 	}
-	res := &GetResult{}
 
-	if m.inst.http != nil {
-		params := *p
-		if params.Format == "json" {
-			if params.Selector != "" {
-				dr := &DataResponse{}
-				err := m.inst.http.Call(ctx, AEGet, params, &dr)
-				if err != nil {
-					return nil, err
-				}
-				res.Bytes = dr.Data
-				return res, nil
-			}
-
-			err := m.inst.http.Call(ctx, AEGet, params, &res)
-			if err != nil {
-				return nil, err
-			}
-			return res, nil
-		}
-
-		var bres bytes.Buffer
-		err := m.inst.http.CallRaw(ctx, AEGet, params, &bres)
-		if err != nil {
-			return nil, err
-		}
-		res.Bytes = bres.Bytes()
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "get"), p)
+	if res, ok := got.(*GetResult); ok {
+		return res, err
 	}
-
-	var ds *dataset.Dataset
-	ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, p.Remote)
-	if err != nil {
-		return nil, err
-	}
-	ds, err = m.inst.LoadDataset(ctx, ref, source)
-	if err != nil {
-		return nil, err
-	}
-
-	res.Ref = &ref
-	res.Dataset = ds
-
-	if fsi.IsFSIPath(ref.Path) {
-		res.FSIPath = fsi.FilesystemPathToLocal(ref.Path)
-	}
-	// TODO (b5) - Published field is longer set as part of Reference Resolution
-	// getting publication status should be delegated to a new function
-
-	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
-		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
-		return nil, err
-	}
-
-	if p.Format == "zip" {
-		// Only if GenFilename is true, and no output filename is set, generate one from the
-		// dataset name
-		if p.Outfile == "" && p.GenFilename {
-			p.Outfile = fmt.Sprintf("%s.zip", ds.Name)
-		}
-		var outBuf bytes.Buffer
-		var zipFile io.Writer
-		if p.Outfile == "" {
-			// In this case, write to a buffer, which will be assigned to res.Bytes later on
-			zipFile = &outBuf
-		} else {
-			zipFile, err = os.Create(p.Outfile)
-			if err != nil {
-				return nil, err
-			}
-		}
-		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
-		// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
-		// necessary until dscache is in use.
-		initID, err := m.inst.repo.Logbook().RefToInitID(currRef)
-		if err != nil {
-			return nil, err
-		}
-		err = archive.WriteZip(ctx, m.inst.repo.Filesystem(), ds, "json", initID, currRef, zipFile)
-		if err != nil {
-			return nil, err
-		}
-		// Handle output. If outfile is empty, return the raw bytes. Otherwise provide a helpful
-		// message for the user
-		if p.Outfile == "" {
-			res.Bytes = outBuf.Bytes()
-		} else {
-			res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
-		}
-		return res, nil
-	}
-
-	if p.Selector == "body" {
-		// `qri get body` loads the body
-		if !p.All && (p.Limit < 0 || p.Offset < 0) {
-			return nil, fmt.Errorf("invalid limit / offset settings")
-		}
-		df, err := dataset.ParseDataFormatString(p.Format)
-		if err != nil {
-			log.Debugf("Get dataset, ParseDataFormatString %q failed, error: %s", p.Format, err)
-			return nil, err
-		}
-
-		if fsi.IsFSIPath(ref.Path) {
-			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
-			// but no structure, which should infer a schema in order to read the body. Once that
-			// works we can remove the fsi.GetBody call and just use base.ReadBody.
-			res.Bytes, err = fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), df, p.FormatConfig, p.Offset, p.Limit, p.All)
-			if err != nil {
-				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
-				return nil, err
-			}
-			err = m.maybeWriteOutfile(p, res)
-			if err != nil {
-				return nil, err
-			}
-			return res, nil
-		}
-		res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
-		if err != nil {
-			log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
-			return nil, err
-		}
-		err = m.maybeWriteOutfile(p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
-		// Fields that have qfs.File types should be read and returned
-		res.Bytes, err = ioutil.ReadAll(scriptFile)
-		if err != nil {
-			return nil, err
-		}
-		err = m.maybeWriteOutfile(p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	} else if p.Selector == "stats" {
-		statsParams := &StatsParams{
-			Dataset: res.Dataset,
-		}
-		sa, err := m.Stats(ctx, statsParams)
-		if err != nil {
-			return nil, err
-		}
-		res.Bytes, err = json.Marshal(sa.Stats)
-		if err != nil {
-			return nil, err
-		}
-		err = m.maybeWriteOutfile(p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	}
-
-	var value interface{}
-	if p.Selector == "" {
-		// `qri get` without a selector loads only the dataset head
-		value = res.Dataset
-	} else {
-		// `qri get <selector>` loads only the applicable component / field
-		value, err = base.ApplyPath(res.Dataset, p.Selector)
-		if err != nil {
-			return nil, err
-		}
-	}
-	switch p.Format {
-	case "json":
-		// Pretty defaults to true for the dataset head, unless explicitly set in the config.
-		pretty := true
-		if p.FormatConfig != nil {
-			pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
-			if ok {
-				pretty = pvalue
-			}
-		}
-		if pretty {
-			res.Bytes, err = json.MarshalIndent(value, "", " ")
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			res.Bytes, err = json.Marshal(value)
-			if err != nil {
-				return nil, err
-			}
-		}
-	case "yaml", "":
-		res.Bytes, err = yaml.Marshal(value)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("unknown format: \"%s\"", p.Format)
-	}
-	err = m.maybeWriteOutfile(p, res)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
-func (m *DatasetMethods) maybeWriteOutfile(p *GetParams, res *GetResult) error {
+func maybeWriteOutfile(p *GetParams, res *GetResult) error {
 	if p.Outfile != "" {
 		err := ioutil.WriteFile(p.Outfile, res.Bytes, 0644)
 		if err != nil {
@@ -1733,7 +1536,178 @@ func (datasetImpl) ListRawRefs(scope scope, p *ListParams) (string, error) {
 
 // Get retrieves datasets and components for a given reference.t
 func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &GetResult{}
+
+	var ds *dataset.Dataset
+	ref, source, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Refstr, p.Remote)
+	if err != nil {
+		return nil, err
+	}
+	ds, err = scope.Loader().LoadDataset(scope.Context(), ref, source)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Ref = &ref
+	res.Dataset = ds
+
+	if fsi.IsFSIPath(ref.Path) {
+		res.FSIPath = fsi.FilesystemPathToLocal(ref.Path)
+	}
+	// TODO (b5) - Published field is longer set as part of Reference Resolution
+	// getting publication status should be delegated to a new function
+
+	if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
+		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
+		return nil, err
+	}
+
+	if p.Format == "zip" {
+		// Only if GenFilename is true, and no output filename is set, generate one from the
+		// dataset name
+		if p.Outfile == "" && p.GenFilename {
+			p.Outfile = fmt.Sprintf("%s.zip", ds.Name)
+		}
+		var outBuf bytes.Buffer
+		var zipFile io.Writer
+		if p.Outfile == "" {
+			// In this case, write to a buffer, which will be assigned to res.Bytes later on
+			zipFile = &outBuf
+		} else {
+			zipFile, err = os.Create(p.Outfile)
+			if err != nil {
+				return nil, err
+			}
+		}
+		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
+		// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
+		// necessary until dscache is in use.
+		initID, err := scope.Logbook().RefToInitID(currRef)
+		if err != nil {
+			return nil, err
+		}
+		err = archive.WriteZip(scope.Context(), scope.Filesystem(), ds, "json", initID, currRef, zipFile)
+		if err != nil {
+			return nil, err
+		}
+		// Handle output. If outfile is empty, return the raw bytes. Otherwise provide a helpful
+		// message for the user
+		if p.Outfile == "" {
+			res.Bytes = outBuf.Bytes()
+		} else {
+			res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
+		}
+		return res, nil
+	}
+
+	if p.Selector == "body" {
+		// `qri get body` loads the body
+		if !p.All && (p.Limit < 0 || p.Offset < 0) {
+			return nil, fmt.Errorf("invalid limit / offset settings")
+		}
+		df, err := dataset.ParseDataFormatString(p.Format)
+		if err != nil {
+			log.Debugf("Get dataset, ParseDataFormatString %q failed, error: %s", p.Format, err)
+			return nil, err
+		}
+
+		if fsi.IsFSIPath(ref.Path) {
+			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
+			// but no structure, which should infer a schema in order to read the body. Once that
+			// works we can remove the fsi.GetBody call and just use base.ReadBody.
+			res.Bytes, err = fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), df, p.FormatConfig, p.Offset, p.Limit, p.All)
+			if err != nil {
+				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
+				return nil, err
+			}
+			err = maybeWriteOutfile(p, res)
+			if err != nil {
+				return nil, err
+			}
+			return res, nil
+		}
+		res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
+		if err != nil {
+			log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
+			return nil, err
+		}
+		err = maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
+		// Fields that have qfs.File types should be read and returned
+		res.Bytes, err = ioutil.ReadAll(scriptFile)
+		if err != nil {
+			return nil, err
+		}
+		err = maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	} else if p.Selector == "stats" {
+		sa, err := scope.Stats().Stats(scope.Context(), res.Dataset)
+		if err != nil {
+			return nil, err
+		}
+		res.Bytes, err = json.Marshal(sa.Stats)
+		if err != nil {
+			return nil, err
+		}
+		err = maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	}
+
+	var value interface{}
+	if p.Selector == "" {
+		// `qri get` without a selector loads only the dataset head
+		value = res.Dataset
+	} else {
+		// `qri get <selector>` loads only the applicable component / field
+		value, err = base.ApplyPath(res.Dataset, p.Selector)
+		if err != nil {
+			return nil, err
+		}
+	}
+	switch p.Format {
+	case "json":
+		// Pretty defaults to true for the dataset head, unless explicitly set in the config.
+		pretty := true
+		if p.FormatConfig != nil {
+			pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
+			if ok {
+				pretty = pvalue
+			}
+		}
+		if pretty {
+			res.Bytes, err = json.MarshalIndent(value, "", " ")
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			res.Bytes, err = json.Marshal(value)
+			if err != nil {
+				return nil, err
+			}
+		}
+	case "yaml", "":
+		res.Bytes, err = yaml.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unknown format: \"%s\"", p.Format)
+	}
+	err = maybeWriteOutfile(p, res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Save adds a history entry, updating a dataset
