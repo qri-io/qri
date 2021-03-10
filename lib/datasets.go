@@ -76,28 +76,11 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 
 // ListRawRefs gets the list of raw references as string
 func (m *DatasetMethods) ListRawRefs(ctx context.Context, p *ListParams) (string, error) {
-	var err error
-	text := ""
-	if m.inst.http != nil {
-		var bres bytes.Buffer
-		p.Raw = true
-		err := m.inst.http.CallRaw(ctx, AEList, p, &bres)
-		if err != nil {
-			return "", err
-		}
-		text = bres.String()
-		return text, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "listrawrefs"), p)
+	if res, ok := got.(string); ok {
+		return res, err
 	}
-	if p.UseDscache {
-		c := m.inst.dscache
-		if c == nil || c.IsEmpty() {
-			return "", fmt.Errorf("repo: dscache not found")
-		}
-		text = c.VerboseString(true)
-		return text, nil
-	}
-	text, err = base.RawDatasetRefs(ctx, m.inst.repo)
-	return text, err
+	return "", dispatchReturnError(got, err)
 }
 
 // GetParams defines parameters for looking up the head or body of a dataset
@@ -1736,7 +1719,16 @@ func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error)
 
 // ListRawRefs gets the list of raw references as string
 func (datasetImpl) ListRawRefs(scope scope, p *ListParams) (string, error) {
-	return "", fmt.Errorf("not yet implemented")
+	text := ""
+	if p.UseDscache {
+		c := scope.Dscache()
+		if c == nil || c.IsEmpty() {
+			return "", fmt.Errorf("repo: dscache not found")
+		}
+		text = c.VerboseString(true)
+		return text, nil
+	}
+	return base.RawDatasetRefs(scope.Context(), scope.Repo())
 }
 
 // Get retrieves datasets and components for a given reference.t

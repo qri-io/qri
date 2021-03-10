@@ -1251,9 +1251,8 @@ func TestListRawRefs(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewDatasetMethods(inst)
 
-	text, err := m.ListRawRefs(ctx, &ListParams{})
+	text, err := inst.Dataset().ListRawRefs(ctx, &ListParams{})
 	if err != nil {
 		t.Fatal(err)
 	}

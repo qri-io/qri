@@ -227,10 +227,15 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	res := []dsref.VersionInfo{}
 	var err error
 	if params.Raw {
-		resRaw, err = h.ListRawRefs(r.Context(), params)
+		got, _, err := h.inst.Dispatch(r.Context(), "dataset.listrawrefs", params)
+		ok := false
+		resRaw, ok = got.(string)
+		if err != nil || !ok {
+			util.RespondWithError(w, err)
+			return
+		}
 	} else {
-		method := "dataset.list"
-		got, _, err := h.inst.Dispatch(r.Context(), method, params)
+		got, _, err := h.inst.Dispatch(r.Context(), "dataset.list", params)
 		ok := false
 		res, ok = got.([]dsref.VersionInfo)
 		if err != nil || !ok {
