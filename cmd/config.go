@@ -133,13 +133,11 @@ type ConfigOptions struct {
 	Output          string
 
 	inst           *lib.Instance
-	ConfigMethods  *lib.ConfigMethods
 	ProfileMethods *lib.ProfileMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConfigOptions) Complete(f Factory) (err error) {
-	o.ConfigMethods, err = f.ConfigMethods()
 	if err != nil {
 		return
 	}
@@ -163,7 +161,7 @@ func (o *ConfigOptions) Get(args []string) (err error) {
 
 	ctx := context.TODO()
 
-	data, err := o.ConfigMethods.GetConfig(ctx, params)
+	data, err := o.inst.Config().GetConfig(ctx, params)
 	if err != nil {
 		if errors.Is(err, lib.ErrUnsupportedRPC) {
 			return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
@@ -192,7 +190,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		"profile.thumb":  true,
 	}
 
-	profile := o.inst.Config().Profile
+	profile := o.inst.GetConfig().Profile
 	profileChanged := false
 	ctx := context.TODO()
 
@@ -219,12 +217,12 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 			profileChanged = true
 		} else {
 			// TODO (b5): I think this'll result in configuration not getting set. should investigate
-			if err = o.inst.Config().Set(path, value); err != nil {
+			if err = o.inst.GetConfig().Set(path, value); err != nil {
 				return err
 			}
 		}
 	}
-	if _, err := o.ConfigMethods.SetConfig(ctx, o.inst.Config()); err != nil {
+	if _, err := o.inst.Config().SetConfig(ctx, o.inst.GetConfig()); err != nil {
 		if errors.Is(err, lib.ErrUnsupportedRPC) {
 			return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
 		}

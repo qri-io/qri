@@ -16,13 +16,15 @@ type ConfigMethods struct {
 	inst *Instance
 }
 
-// NewConfigMethods creates a configuration handle from an instance
-func NewConfigMethods(inst *Instance) *ConfigMethods {
-	return &ConfigMethods{inst: inst}
+// Name returns the name of this method group
+func (m *ConfigMethods) Name() string {
+	return "config"
 }
 
-// CoreRequestsName specifies this is a configuration handle
-func (m ConfigMethods) CoreRequestsName() string { return "config" }
+// Config returns the `Config` that the instance has registered
+func (inst *Instance) Config() *ConfigMethods {
+	return &ConfigMethods{inst: inst}
+}
 
 // GetConfigParams are the params needed to format/specify the fields in bytes
 // returned from the GetConfig function
@@ -40,8 +42,47 @@ func (m *ConfigMethods) GetConfig(ctx context.Context, p *GetConfigParams) ([]by
 		return nil, ErrUnsupportedRPC
 	}
 
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "getconfig"), p)
+	if res, ok := got.([]byte); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// GetConfigKeys returns the Config key fields, or sub keys of the specified
+// fields of the Config, as a slice of bytes to be used for auto completion
+func (m *ConfigMethods) GetConfigKeys(ctx context.Context, p *GetConfigParams) ([]byte, error) {
+	if m.inst.http != nil {
+		return nil, ErrUnsupportedRPC
+	}
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "getconfigkeys"), p)
+	if res, ok := got.([]byte); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// SetConfig validates, updates and saves the config
+func (m *ConfigMethods) SetConfig(ctx context.Context, update *config.Config) (*bool, error) {
+	if m.inst.http != nil {
+		res := false
+		return &res, ErrUnsupportedRPC
+	}
+
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "setconfig"), update)
+	if res, ok := got.(*bool); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// configImpl holds the method implementations for ConfigMethod
+type configImpl struct{}
+
+// GetConfig returns the Config, or one of the specified fields of the Config
+func (configImpl) GetConfig(scope scope, p *GetConfigParams) ([]byte, error) {
 	var (
-		cfg    = m.inst.cfg
+		cfg    = scope.Config()
 		encode interface{}
 		err    error
 	)
@@ -80,15 +121,10 @@ func (m *ConfigMethods) GetConfig(ctx context.Context, p *GetConfigParams) ([]by
 	return res, nil
 }
 
-// GetConfigKeys returns the Config key fields, or sub keys of the specified
-// fields of the Config, as a slice of bytes to be used for auto completion
-func (m *ConfigMethods) GetConfigKeys(ctx context.Context, p *GetConfigParams) ([]byte, error) {
-	if m.inst.http != nil {
-		return nil, ErrUnsupportedRPC
-	}
-
+// GetConfigKeys returns the Config key fields, or sub keys of the
+func (configImpl) GetConfigKeys(scope scope, p *GetConfigParams) ([]byte, error) {
 	var (
-		cfg    = m.inst.cfg
+		cfg    = scope.Config()
 		encode interface{}
 		err    error
 	)
@@ -155,18 +191,14 @@ func parseKeys(cfg interface{}, prefix, parentKey string) ([]byte, error) {
 	return nil, fmt.Errorf("error getting %s from config", prefix)
 }
 
-// SetConfig validates, updates and saves the config
-func (m *ConfigMethods) SetConfig(ctx context.Context, update *config.Config) (*bool, error) {
+// SetConfig validates, updates, and saves the config
+func (configImpl) SetConfig(scope scope, update *config.Config) (*bool, error) {
 	res := false
-	if m.inst.http != nil {
-		return &res, ErrUnsupportedRPC
-	}
-
 	if err := update.Validate(); err != nil {
 		return &res, fmt.Errorf("validating config: %w", err)
 	}
 
-	if err := m.inst.ChangeConfig(update); err != nil {
+	if err := scope.Loader().ChangeConfig(update); err != nil {
 		return &res, err
 	}
 	res = true

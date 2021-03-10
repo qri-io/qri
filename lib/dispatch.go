@@ -181,6 +181,7 @@ func (inst *Instance) RegisterMethods() {
 	inst.registerOne("fsi", inst.Filesys(), fsiImpl{}, reg)
 	inst.registerOne("access", inst.Access(), accessImpl{}, reg)
 	inst.registerOne("dataset", inst.Dataset(), datasetImpl{}, reg)
+	inst.registerOne("config", inst.Config(), configImpl{}, reg)
 	inst.regMethods = &regMethodSet{reg: reg}
 }
 

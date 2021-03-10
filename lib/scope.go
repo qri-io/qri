@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -66,6 +67,11 @@ func (s *scope) Bus() event.Bus {
 // Filesystem returns a filesystem
 func (s *scope) Filesystem() *muxfs.Mux {
 	return s.inst.qfs
+}
+
+// Config returns the config
+func (s *scope) Config() *config.Config {
+	return s.inst.cfg
 }
 
 // Dscache returns the dscache

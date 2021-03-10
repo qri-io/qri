@@ -51,7 +51,7 @@ func New(inst *lib.Instance) Server {
 // Serve starts the server. It will block while the server is running
 func (s Server) Serve(ctx context.Context) (err error) {
 	node := s.Node()
-	cfg := s.Config()
+	cfg := s.GetConfig()
 
 	ws, err := lib.NewWebsocketHandler(ctx, s.Instance)
 	if err != nil {
@@ -102,7 +102,7 @@ func (s Server) Serve(ctx context.Context) (err error) {
 
 // HandleIPFSPath responds to IPFS Hash requests with raw data
 func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
-	if s.Config().API.ReadOnly {
+	if s.GetConfig().API.ReadOnly {
 		readOnlyResponse(w, "/ipfs/")
 		return
 	}
@@ -196,7 +196,7 @@ func handleRefRoute(m *mux.Router, p refRouteParams, f http.HandlerFunc) {
 
 // NewServerRoutes returns a Muxer that has all API routes
 func NewServerRoutes(s Server) *mux.Router {
-	cfg := s.Config()
+	cfg := s.GetConfig()
 
 	m := s.Mux
 	if m == nil {

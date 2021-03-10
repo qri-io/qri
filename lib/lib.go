@@ -791,8 +791,11 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	return nil
 }
 
-// Config provides methods for manipulating Qri configuration
-func (inst *Instance) Config() *config.Config {
+// GetConfig provides methods for manipulating Qri configuration
+//
+// Deprecated: this method will be removed in a future release.
+// Use inst.Config().GetConfig instead
+func (inst *Instance) GetConfig() *config.Config {
 	if inst == nil {
 		return nil
 	}

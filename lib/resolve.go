@@ -93,7 +93,7 @@ func (inst *Instance) resolverForMode(mode string) (dsref.Resolver, error) {
 	// * peername
 	// * peer multiaddress
 	// add support for peername & multiaddress resolution
-	addr, err := remote.Address(inst.Config(), mode)
+	addr, err := remote.Address(inst.GetConfig(), mode)
 	if err != nil {
 		return nil, err
 	}

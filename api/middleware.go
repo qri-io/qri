@@ -41,13 +41,13 @@ func (s Server) mwFunc(handler http.HandlerFunc, shouldLog bool) http.HandlerFun
 }
 
 func (s *Server) readOnlyCheck(r *http.Request) bool {
-	return !s.Config().API.ReadOnly || r.Method == "GET" || r.Method == "OPTIONS"
+	return !s.GetConfig().API.ReadOnly || r.Method == "GET" || r.Method == "OPTIONS"
 }
 
 // addCORSHeaders adds CORS header info for whitelisted servers
 func (s *Server) addCORSHeaders(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get("Origin")
-	for _, o := range s.Config().API.AllowedOrigins {
+	for _, o := range s.GetConfig().API.AllowedOrigins {
 		if origin == o {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
