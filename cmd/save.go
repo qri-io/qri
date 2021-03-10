@@ -111,7 +111,7 @@ type SaveOptions struct {
 	NewName        bool
 	UseDscache     bool
 
-	DatasetMethods *lib.DatasetMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -120,14 +120,14 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf("--dry-run has been removed, use `qri apply` command instead")
 	}
 
-	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
+	if o.inst, err = f.Instance(); err != nil {
 		return
 	}
 
 	if o.Refs, err = GetCurrentRefSelect(f, args, BadUpperCaseOkayWhenSavingExistingDataset, nil); err != nil {
 		// Not an error to use an empty reference, it will be inferred later on.
 		if err != repo.ErrEmptyRef {
-			return err
+			return
 		}
 	}
 
@@ -143,7 +143,6 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	if err := qfs.AbsPath(&o.BodyPath); err != nil {
 		return fmt.Errorf("body file: %s", err)
 	}
-
 	return nil
 }
 
@@ -205,7 +204,7 @@ continue?`, true) {
 	}
 
 	ctx := context.TODO()
-	res, err := o.DatasetMethods.Save(ctx, p)
+	res, err := o.inst.Dataset().Save(ctx, p)
 	if err != nil {
 		return err
 	}

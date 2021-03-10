@@ -75,7 +75,7 @@ type DiffOptions struct {
 	Format   string
 	Summary  bool
 
-	DatasetMethods *lib.DatasetMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -96,15 +96,12 @@ func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
 		o.Selector = args[0]
 		args = args[1:]
 	}
-	o.DatasetMethods, err = f.DatasetMethods()
-	if err != nil {
-		return err
+	if o.inst, err = f.Instance(); err != nil {
+		return
 	}
 
-	if o.Refs, err = GetCurrentRefSelect(f, args, 2, nil); err != nil {
-		return err
-	}
-	return nil
+	o.Refs, err = GetCurrentRefSelect(f, args, 2, nil)
+	return
 }
 
 // Run executes the diff command
@@ -139,7 +136,7 @@ func (o *DiffOptions) Run() (err error) {
 	}
 
 	ctx := context.TODO()
-	res, err := o.DatasetMethods.Diff(ctx, p)
+	res, err := o.inst.Dataset().Diff(ctx, p)
 	if err != nil {
 		return err
 	}

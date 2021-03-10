@@ -67,8 +67,8 @@ func TestStatsComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.DatasetMethods == nil {
-			t.Errorf("%d. case %s, opt.DatasetMethods not set.", i, c.description)
+		if opt.inst == nil {
+			t.Errorf("%d. case %s, opt.inst not set.", i, c.description)
 			run.IOReset()
 			continue
 		}
@@ -88,7 +88,7 @@ func TestStatsRun(t *testing.T) {
 		t.Fatalf("error creating new test factory: %s", err)
 	}
 
-	dsm, err := f.DatasetMethods()
+	inst, err := f.Instance()
 	if err != nil {
 		t.Fatalf("error creating dataset request: %s", err)
 	}
@@ -105,9 +105,9 @@ func TestStatsRun(t *testing.T) {
 		run.IOReset()
 
 		opt := &StatsOptions{
-			IOStreams:      run.Streams,
-			Refs:           NewExplicitRefSelect(c.ref),
-			DatasetMethods: dsm,
+			IOStreams: run.Streams,
+			Refs:      NewExplicitRefSelect(c.ref),
+			inst:      inst,
 		}
 
 		if err = opt.Run(); err.Error() != c.err {
@@ -132,9 +132,9 @@ func TestStatsRun(t *testing.T) {
 		run.IOReset()
 
 		opt := &StatsOptions{
-			IOStreams:      run.Streams,
-			Refs:           NewExplicitRefSelect(c.ref),
-			DatasetMethods: dsm,
+			IOStreams: run.Streams,
+			Refs:      NewExplicitRefSelect(c.ref),
+			inst:      inst,
 		}
 
 		if err = opt.Run(); err != nil {

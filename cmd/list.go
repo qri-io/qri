@@ -79,7 +79,7 @@ type ListOptions struct {
 	Raw             bool
 	UseDscache      bool
 
-	DatasetMethods *lib.DatasetMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -87,7 +87,7 @@ func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) > 0 {
 		o.Term = args[0]
 	}
-	o.DatasetMethods, err = f.DatasetMethods()
+	o.inst, err = f.Instance()
 	return
 }
 
@@ -101,7 +101,7 @@ func (o *ListOptions) Run() (err error) {
 		p := &lib.ListParams{
 			UseDscache: o.UseDscache,
 		}
-		text, err := o.DatasetMethods.ListRawRefs(ctx, p)
+		text, err := o.inst.Dataset().ListRawRefs(ctx, p)
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ func (o *ListOptions) Run() (err error) {
 		EnsureFSIExists: true,
 		UseDscache:      o.UseDscache,
 	}
-	infos, err := o.DatasetMethods.List(ctx, p)
+	infos, err := o.inst.Dataset().List(ctx, p)
 	if err != nil {
 		if errors.Is(err, lib.ErrListWarning) {
 			printWarning(o.ErrOut, fmt.Sprintf("%s\n", err))

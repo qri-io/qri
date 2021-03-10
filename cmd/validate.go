@@ -99,12 +99,12 @@ type ValidateOptions struct {
 	StructureFilepath string
 	Format            string
 
-	DatasetMethods *lib.DatasetMethods
+	inst *lib.Instance
 }
 
 // Complete adds any configuration that can only be added just before calling Run
 func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
+	if o.inst, err = f.Instance(); err != nil {
 		return
 	}
 
@@ -138,7 +138,7 @@ func (o *ValidateOptions) Run() (err error) {
 	}
 
 	ctx := context.TODO()
-	res, err := o.DatasetMethods.Validate(ctx, p)
+	res, err := o.inst.Dataset().Validate(ctx, p)
 	if err != nil {
 		return err
 	}

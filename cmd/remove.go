@@ -91,22 +91,23 @@ type RemoveOptions struct {
 	KeepFiles     bool
 	Force         bool
 
-	RemoteMethods  *lib.RemoteMethods
-	DatasetMethods *lib.DatasetMethods
+	RemoteMethods *lib.RemoteMethods
+	inst          *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
-		return err
+	if o.inst, err = f.Instance(); err != nil {
+		return
 	}
+
 	if o.RemoteMethods, err = f.RemoteMethods(); err != nil {
-		return err
+		return
 	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
 		// This error will be handled during validation
 		if err != repo.ErrEmptyRef {
-			return err
+			return
 		}
 		err = nil
 	}
@@ -128,7 +129,7 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 		}
 		o.Revision = revisions[0]
 	}
-	return err
+	return
 }
 
 // Validate checks that all user input is valid
@@ -155,7 +156,7 @@ func (o *RemoveOptions) Run() (err error) {
 	}
 
 	ctx := context.TODO()
-	res, err := o.DatasetMethods.Remove(ctx, &params)
+	res, err := o.inst.Dataset().Remove(ctx, &params)
 	if err != nil {
 		// TODO(b5): move this error handling down into lib
 		if errors.Is(err, dsref.ErrRefNotFound) {

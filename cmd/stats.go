@@ -46,19 +46,15 @@ type StatsOptions struct {
 	Refs   *RefSelect
 	Pretty bool
 
-	DatasetMethods *lib.DatasetMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *StatsOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
+	if o.inst, err = f.Instance(); err != nil {
 		return
 	}
-
 	o.Refs, err = GetCurrentRefSelect(f, args, 1, nil)
-	if err != nil {
-		return err
-	}
 	return
 }
 
@@ -75,7 +71,7 @@ func (o *StatsOptions) Run() (err error) {
 	p := &lib.StatsParams{
 		Refstr: o.Refs.Ref(),
 	}
-	sa, err := o.DatasetMethods.Stats(ctx, p)
+	sa, err := o.inst.Dataset().Stats(ctx, p)
 	if err != nil {
 		return err
 	}

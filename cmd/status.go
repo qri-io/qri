@@ -63,7 +63,9 @@ type StatusOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *StatusOptions) Complete(f Factory, args []string) (err error) {
-	o.Instance = f.Instance()
+	if o.Instance, err = f.Instance(); err != nil {
+		return
+	}
 
 	// Cannot pass explicit reference, must be run in a working directory
 	if len(args) > 0 {
@@ -72,11 +74,7 @@ func (o *StatusOptions) Complete(f Factory, args []string) (err error) {
 	}
 
 	o.Refs, err = GetCurrentRefSelect(f, args, 0, EnsureFSIAgrees(o.Instance))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return
 }
 
 // ColumnPositionForMtime is the column position at which to display mod times, if requested

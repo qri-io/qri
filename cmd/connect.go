@@ -67,18 +67,18 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 				Anonymous: true,
 			}
 			if err = so.Complete(f, args); err != nil {
-				return err
+				return
 			}
 			if err = so.DoSetup(f); err != nil {
-				return err
+				return
 			}
 		} else if repoErr != nil {
-			return err
+			return
 		}
 	}
 
 	if err = f.Init(); err != nil {
-		return err
+		return
 	}
 
 	// This fails whenever `qri connect` runs but another instance of `qri connect` is already
@@ -94,7 +94,7 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf("Cannot serve without a node (`qri connect` or Qri Desktop already running?)")
 	}
 
-	o.inst = f.Instance()
+	o.inst, err = f.Instance()
 	return
 }
 

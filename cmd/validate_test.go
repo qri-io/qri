@@ -56,8 +56,8 @@ func TestValidateComplete(t *testing.T) {
 				t.Errorf("case %d, opt.Refs not set correctly. Expected: %q, Got: %q", i, c.expect, opt.Refs.Ref())
 			}
 
-			if opt.DatasetMethods == nil {
-				t.Fatalf("case %d, opt.DatasetMethods not set.", i)
+			if opt.inst == nil {
+				t.Fatalf("case %d, opt.inst not set.", i)
 			}
 		})
 	}
@@ -77,9 +77,9 @@ func TestValidateRun(t *testing.T) {
 		return
 	}
 
-	dsm, err := f.DatasetMethods()
+	inst, err := f.Instance()
 	if err != nil {
-		t.Fatalf("error creating dataset request: %s", err)
+		t.Fatalf("error creating instance: %s", err)
 	}
 
 	bad := []struct {
@@ -113,7 +113,7 @@ func TestValidateRun(t *testing.T) {
 				SchemaFilepath:    c.schemaPath,
 				StructureFilepath: c.structurePath,
 				Format:            c.format,
-				DatasetMethods:    dsm,
+				inst:              inst,
 			}
 
 			err := opt.Run()
@@ -176,7 +176,7 @@ func TestValidateRun(t *testing.T) {
 				SchemaFilepath:    c.schemaPath,
 				StructureFilepath: c.structurePath,
 				Format:            c.format,
-				DatasetMethods:    dsm,
+				inst:              inst,
 			}
 
 			if err := opt.Run(); err != nil {

@@ -67,18 +67,17 @@ type FSIOptions struct {
 // Complete adds any missing configuration that can only be added just before
 // calling Run
 func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
-	o.Instance = f.Instance()
+	if o.Instance, err = f.Instance(); err != nil {
+		return
+	}
 
 	if len(args) > 1 {
 		o.Path = args[1]
 		args = args[:1]
 	}
 
-	if o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.Instance)); err != nil {
-		return err
-	}
-
-	return nil
+	o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.Instance))
+	return
 }
 
 // Link creates a FSI link

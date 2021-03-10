@@ -82,12 +82,12 @@ type GetOptions struct {
 	Offline bool
 	Remote  string
 
-	DatasetMethods *lib.DatasetMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *GetOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
+	if o.inst, err = f.Instance(); err != nil {
 		return
 	}
 
@@ -122,7 +122,7 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 		}
 	}
 
-	return nil
+	return
 }
 
 // Run executes the get command
@@ -170,7 +170,7 @@ func (o *GetOptions) Run() (err error) {
 		Remote:      o.Remote,
 	}
 	ctx := context.TODO()
-	res, err := o.DatasetMethods.Get(ctx, &p)
+	res, err := o.inst.Dataset().Get(ctx, &p)
 	if err != nil {
 		return err
 	}

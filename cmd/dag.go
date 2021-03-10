@@ -100,7 +100,7 @@ type DAGOptions struct {
 	File       string
 	Label      string
 
-	DatasetMethods *lib.DatasetMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -112,7 +112,7 @@ func (o *DAGOptions) Complete(f Factory, args []string, parseLabel bool) (err er
 		}
 	}
 	o.Refs = args
-	o.DatasetMethods, err = f.DatasetMethods()
+	o.inst, err = f.Instance()
 	return
 }
 
@@ -121,7 +121,7 @@ func (o *DAGOptions) Get() (err error) {
 	ctx := context.TODO()
 	mf := &dag.Manifest{}
 	for _, refstr := range o.Refs {
-		if mf, err = o.DatasetMethods.Manifest(ctx, &lib.ManifestParams{Refstr: refstr}); err != nil {
+		if mf, err = o.inst.Dataset().Manifest(ctx, &lib.ManifestParams{Refstr: refstr}); err != nil {
 			return err
 		}
 
@@ -177,7 +177,7 @@ func (o *DAGOptions) Missing() error {
 		return err
 	}
 
-	mf, err := o.DatasetMethods.ManifestMissing(ctx, &lib.ManifestMissingParams{Manifest: in})
+	mf, err := o.inst.Dataset().ManifestMissing(ctx, &lib.ManifestMissingParams{Manifest: in})
 	if err != nil {
 		return err
 	}
@@ -216,7 +216,7 @@ func (o *DAGOptions) Info() (err error) {
 
 	for _, refstr := range o.Refs {
 		s := &lib.DAGInfoParams{RefStr: refstr, Label: o.Label}
-		info, err = o.DatasetMethods.DAGInfo(ctx, s)
+		info, err = o.inst.Dataset().DAGInfo(ctx, s)
 		if err != nil {
 			return err
 		}

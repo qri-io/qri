@@ -80,7 +80,9 @@ run on each terminal session.`,
 
 // CompleteConfig adds any missing configuration that can only be added just before calling GetConfig
 func (o *ConfigOptions) CompleteConfig(f Factory) (err error) {
-	o.inst = f.Instance()
+	if o.inst, err = f.Instance(); err != nil {
+		return
+	}
 
 	o.ProfileMethods, err = f.ProfileMethods()
 	return

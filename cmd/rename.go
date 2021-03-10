@@ -49,7 +49,7 @@ type RenameOptions struct {
 	From string
 	To   string
 
-	DatasetMethods *lib.DatasetMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -58,7 +58,7 @@ func (o *RenameOptions) Complete(f Factory, args []string) (err error) {
 		o.From = args[0]
 		o.To = args[1]
 	}
-	o.DatasetMethods, err = f.DatasetMethods()
+	o.inst, err = f.Instance()
 	return
 }
 
@@ -77,7 +77,7 @@ func (o *RenameOptions) Run() error {
 		Next:    o.To,
 	}
 	ctx := context.TODO()
-	res, err := o.DatasetMethods.Rename(ctx, p)
+	res, err := o.inst.Dataset().Rename(ctx, p)
 	if err != nil {
 		return err
 	}
