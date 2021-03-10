@@ -11,9 +11,11 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/stats"
+	"github.com/qri-io/qri/transform"
 )
 
 // scope represents the lifetime of a method call, abstractly connected to the caller of
@@ -45,6 +47,17 @@ func (s *scope) ActiveProfile() *profile.Profile {
 	return s.pro
 }
 
+// Bus returns the event bus
+func (s *scope) Bus() event.Bus {
+	// TODO(dustmop): Filter only events for this scope.
+	return s.inst.bus
+}
+
+// Config returns the config
+func (s *scope) Config() *config.Config {
+	return s.inst.cfg
+}
+
 // Context returns the context for this scope. Though this pattern is usually discouraged,
 // we're following http.Request's lead, as scope plays the same role. The lifetime of a
 // single scope matches the lifetime of the Context; this ownership is not long-lived
@@ -57,6 +70,11 @@ func (s *scope) AppContext() context.Context {
 	return s.inst.appCtx
 }
 
+// Dscache returns the dscache
+func (s *scope) Dscache() *dscache.Dscache {
+	return s.inst.Dscache()
+}
+
 // FSISubsystem returns a reference to the FSI subsystem
 // TODO(dustmop): This subsystem contains global data, we should move that data out and
 // into scope
@@ -64,40 +82,15 @@ func (s *scope) FSISubsystem() *fsi.FSI {
 	return s.inst.fsi
 }
 
-// Bus returns the event bus
-func (s *scope) Bus() event.Bus {
-	// TODO(dustmop): Filter only events for this scope.
-	return s.inst.bus
-}
-
 // Filesystem returns a filesystem
 func (s *scope) Filesystem() *muxfs.Mux {
 	return s.inst.qfs
 }
 
-// Config returns the config
-func (s *scope) Config() *config.Config {
-	return s.inst.cfg
-}
-
-// Dscache returns the dscache
-func (s *scope) Dscache() *dscache.Dscache {
-	return s.inst.Dscache()
-}
-
-// Profiles accesses the profile store
-func (s *scope) Profiles() profile.Store {
-	return s.inst.profiles
-}
-
-// Repo returns the repo store
-func (s *scope) Repo() repo.Repo {
-	return s.inst.repo
-}
-
-// Logbook returns the repo logbook
-func (s *scope) Logbook() *logbook.Book {
-	return s.inst.logbook
+// GetVersionInfoShim is in the process of being removed. Try not to add new callers.
+func (s *scope) GetVersionInfoShim(ref dsref.Ref) (*dsref.VersionInfo, error) {
+	r := s.inst.Repo()
+	return repo.GetVersionInfoShim(r, ref)
 }
 
 // Loader returns the instance
@@ -105,9 +98,19 @@ func (s *scope) Loader() *Instance {
 	return s.inst
 }
 
-// Stats returns the stats service
-func (s *scope) Stats() *stats.Service {
-	return s.inst.stats
+// LoadDataset loads a dataset
+func (s *scope) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
+	return s.inst.LoadDataset(ctx, ref, source)
+}
+
+// Logbook returns the repo logbook
+func (s *scope) Logbook() *logbook.Book {
+	return s.inst.logbook
+}
+
+// Node returns the p2p.QriNode
+func (s *scope) Node() *p2p.QriNode {
+	return s.inst.node
 }
 
 // ParseAndResolveRef parses a reference and resolves it
@@ -120,18 +123,27 @@ func (s *scope) ParseAndResolveRefWithWorkingDir(ctx context.Context, refstr, so
 	return s.inst.ParseAndResolveRefWithWorkingDir(ctx, refstr, source)
 }
 
-// LoadDataset loads a dataset
-func (s *scope) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
-	return s.inst.LoadDataset(ctx, ref, source)
-}
-
 // ParseResolveFunc returns a function that can parse a ref, then resolve and load it
 func (s *scope) ParseResolveFunc() dsref.ParseResolveLoad {
 	return NewParseResolveLoadFunc("", s.inst.defaultResolver(), s.inst)
 }
 
-// GetVersionInfoShim is in the process of being removed. Try not to add new callers.
-func (s *scope) GetVersionInfoShim(ref dsref.Ref) (*dsref.VersionInfo, error) {
-	r := s.inst.Repo()
-	return repo.GetVersionInfoShim(r, ref)
+// Profiles accesses the profile store
+func (s *scope) Profiles() profile.Store {
+	return s.inst.profiles
+}
+
+// Repo returns the repo store
+func (s *scope) Repo() repo.Repo {
+	return s.inst.repo
+}
+
+// Stats returns the stats service
+func (s *scope) Stats() *stats.Service {
+	return s.inst.stats
+}
+
+// Transform returns the transform service
+func (s *scope) Transform() *transform.Service {
+	return s.inst.transform
 }
