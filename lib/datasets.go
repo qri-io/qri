@@ -67,124 +67,11 @@ func NewDatasetMethods(inst *Instance) *DatasetMethods {
 
 // List gets the reflist for either the local repo or a peer
 func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
-	if m.inst.http != nil {
-		res := []dsref.VersionInfo{}
-		p.RPC = true
-		err := m.inst.http.Call(ctx, AEList, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "list"), p)
+	if res, ok := got.([]dsref.VersionInfo); ok {
+		return res, err
 	}
-
-	// TODO(dustmop): When List is converted to use scope, get the ProfileID from
-	// the scope if the user is authorized to only view their own datasets, as opposed
-	// to the full collection that exists in this node's repository.
-	restrictPid := ""
-
-	// ensure valid limit value
-	if p.Limit <= 0 {
-		p.Limit = 25
-	}
-	// ensure valid offset value
-	if p.Offset < 0 {
-		p.Offset = 0
-	}
-
-	reqProfile := m.inst.repo.Profiles().Owner()
-	listProfile, err := getProfile(ctx, m.inst.Repo().Profiles(), reqProfile.ID.String(), p.Peername)
-	if err != nil {
-		return nil, err
-	}
-
-	// If the list operation leads to a warning, store it in this var
-	var listWarning error
-
-	var infos []dsref.VersionInfo
-	if p.UseDscache {
-		c := m.inst.dscache
-		if c.IsEmpty() {
-			log.Infof("building dscache from repo's logbook, profile, and dsref")
-			built, err := build.DscacheFromRepo(ctx, m.inst.repo)
-			if err != nil {
-				return nil, err
-			}
-			err = c.Assign(built)
-			if err != nil {
-				log.Error(err)
-			}
-		}
-		refs, err := c.ListRefs()
-		if err != nil {
-			return nil, err
-		}
-		// Filter references so that only with a matching name are returned
-		if p.Term != "" {
-			matched := make([]reporef.DatasetRef, len(refs))
-			count := 0
-			for _, ref := range refs {
-				if strings.Contains(ref.AliasString(), p.Term) {
-					matched[count] = ref
-					count++
-				}
-			}
-			refs = matched[:count]
-		}
-		// Filter references by skipping to the correct offset
-		if p.Offset > len(refs) {
-			refs = []reporef.DatasetRef{}
-		} else {
-			refs = refs[p.Offset:]
-		}
-		// Filter references by limiting how many are returned
-		if p.Limit < len(refs) {
-			refs = refs[:p.Limit]
-		}
-		// Convert old style DatasetRef list to VersionInfo list.
-		// TODO(dustmop): Remove this and convert lower-level functions to return []VersionInfo.
-		infos = make([]dsref.VersionInfo, len(refs))
-		for i, r := range refs {
-			infos[i] = reporef.ConvertToVersionInfo(&r)
-		}
-	} else if listProfile.Peername == "" || reqProfile.Peername == listProfile.Peername {
-		infos, err = base.ListDatasets(ctx, m.inst.repo, p.Term, restrictPid, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
-		if errors.Is(err, ErrListWarning) {
-			listWarning = err
-			err = nil
-		}
-	} else {
-		return nil, fmt.Errorf("listing datasets on a peer is not implemented")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if p.EnsureFSIExists {
-		// For each reference with a linked fsi working directory, check that the folder exists
-		// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
-		// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
-		for _, info := range infos {
-			if info.FSIPath != "" && !linkfile.ExistsInDir(info.FSIPath) {
-				info.FSIPath = ""
-				ref := reporef.RefFromVersionInfo(&info)
-				if ref.Path == "" {
-					if err = m.inst.repo.DeleteRef(ref); err != nil {
-						log.Debugf("cannot delete ref for %q, err: %s", ref, err)
-					}
-					continue
-				}
-				if err = m.inst.repo.PutRef(ref); err != nil {
-					log.Debugf("cannot put ref for %q, err: %s", ref, err)
-				}
-			}
-		}
-	}
-
-	if listWarning != nil {
-		return nil, listWarning
-	}
-
-	return infos, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // ListRawRefs gets the list of raw references as string
@@ -1737,7 +1624,114 @@ type datasetImpl struct{}
 
 // List gets the reflist for either the local repo or a peer
 func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	// TODO(dustmop): When List is converted to use scope, get the ProfileID from
+	// the scope if the user is authorized to only view their own datasets, as opposed
+	// to the full collection that exists in this node's repository.
+	restrictPid := ""
+
+	// ensure valid limit value
+	if p.Limit <= 0 {
+		p.Limit = 25
+	}
+	// ensure valid offset value
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+
+	reqProfile := scope.Repo().Profiles().Owner()
+	listProfile, err := getProfile(scope.Context(), scope.Repo().Profiles(), reqProfile.ID.String(), p.Peername)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the list operation leads to a warning, store it in this var
+	var listWarning error
+
+	var infos []dsref.VersionInfo
+	if p.UseDscache {
+		c := scope.Dscache()
+		if c.IsEmpty() {
+			log.Infof("building dscache from repo's logbook, profile, and dsref")
+			built, err := build.DscacheFromRepo(scope.Context(), scope.Repo())
+			if err != nil {
+				return nil, err
+			}
+			err = c.Assign(built)
+			if err != nil {
+				log.Error(err)
+			}
+		}
+		refs, err := c.ListRefs()
+		if err != nil {
+			return nil, err
+		}
+		// Filter references so that only with a matching name are returned
+		if p.Term != "" {
+			matched := make([]reporef.DatasetRef, len(refs))
+			count := 0
+			for _, ref := range refs {
+				if strings.Contains(ref.AliasString(), p.Term) {
+					matched[count] = ref
+					count++
+				}
+			}
+			refs = matched[:count]
+		}
+		// Filter references by skipping to the correct offset
+		if p.Offset > len(refs) {
+			refs = []reporef.DatasetRef{}
+		} else {
+			refs = refs[p.Offset:]
+		}
+		// Filter references by limiting how many are returned
+		if p.Limit < len(refs) {
+			refs = refs[:p.Limit]
+		}
+		// Convert old style DatasetRef list to VersionInfo list.
+		// TODO(dustmop): Remove this and convert lower-level functions to return []VersionInfo.
+		infos = make([]dsref.VersionInfo, len(refs))
+		for i, r := range refs {
+			infos[i] = reporef.ConvertToVersionInfo(&r)
+		}
+	} else if listProfile.Peername == "" || reqProfile.Peername == listProfile.Peername {
+		infos, err = base.ListDatasets(scope.Context(), scope.Repo(), p.Term, restrictPid, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
+		if errors.Is(err, ErrListWarning) {
+			listWarning = err
+			err = nil
+		}
+	} else {
+		return nil, fmt.Errorf("listing datasets on a peer is not implemented")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if p.EnsureFSIExists {
+		// For each reference with a linked fsi working directory, check that the folder exists
+		// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
+		// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
+		for _, info := range infos {
+			if info.FSIPath != "" && !linkfile.ExistsInDir(info.FSIPath) {
+				info.FSIPath = ""
+				ref := reporef.RefFromVersionInfo(&info)
+				if ref.Path == "" {
+					if err = scope.Repo().DeleteRef(ref); err != nil {
+						log.Debugf("cannot delete ref for %q, err: %s", ref, err)
+					}
+					continue
+				}
+				if err = scope.Repo().PutRef(ref); err != nil {
+					log.Debugf("cannot put ref for %q, err: %s", ref, err)
+				}
+			}
+		}
+	}
+
+	if listWarning != nil {
+		return nil, listWarning
+	}
+
+	return infos, nil
 }
 
 // ListRawRefs gets the list of raw references as string

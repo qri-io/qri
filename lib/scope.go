@@ -89,6 +89,11 @@ func (s *scope) Profiles() profile.Store {
 	return s.inst.profiles
 }
 
+// Repo returns the repo store
+func (s *scope) Repo() repo.Repo {
+	return s.inst.Repo()
+}
+
 // Loader returns the instance
 func (s *scope) Loader() *Instance {
 	return s.inst

@@ -229,7 +229,14 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	if params.Raw {
 		resRaw, err = h.ListRawRefs(r.Context(), params)
 	} else {
-		res, err = h.List(r.Context(), params)
+		method := "dataset.list"
+		got, _, err := h.inst.Dispatch(r.Context(), method, params)
+		ok := false
+		res, ok = got.([]dsref.VersionInfo)
+		if err != nil || !ok {
+			util.RespondWithError(w, err)
+			return
+		}
 	}
 
 	if err != nil {
