@@ -153,12 +153,11 @@ func (tr *testRunner) MustSaveFromBody(t *testing.T, dsName, bodyFilename string
 	if !dsref.IsValidName(dsName) {
 		t.Fatalf("invalid dataset name: %q", dsName)
 	}
-	m := NewDatasetMethods(tr.Instance)
 	p := SaveParams{
 		Ref:      fmt.Sprintf("peer/%s", dsName),
 		BodyPath: bodyFilename,
 	}
-	res, err := m.Save(tr.Ctx, &p)
+	res, err := tr.Instance.Dataset().Save(tr.Ctx, &p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,8 +165,7 @@ func (tr *testRunner) MustSaveFromBody(t *testing.T, dsName, bodyFilename string
 }
 
 func (tr *testRunner) SaveWithParams(p *SaveParams) (dsref.Ref, error) {
-	m := NewDatasetMethods(tr.Instance)
-	res, err := m.Save(tr.Ctx, p)
+	res, err := tr.Instance.Dataset().Save(tr.Ctx, p)
 	if err != nil {
 		return dsref.Ref{}, err
 	}

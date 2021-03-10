@@ -417,240 +417,11 @@ func (p *SaveParams) SetNonZeroDefaults() {
 
 // Save adds a history entry, updating a dataset
 func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Dataset, error) {
-	log.Debugw("DatasetMethods.Save", "ref", p.Ref, "apply", p.Apply)
-	res := &dataset.Dataset{}
-
-	if m.inst.http != nil {
-		p.ScriptOutput = nil
-		err := m.inst.http.Call(ctx, AESave, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "save"), p)
+	if res, ok := got.(*dataset.Dataset); ok {
+		return res, err
 	}
-
-	var (
-		writeDest = m.inst.qfs.DefaultWriteFS()    // filesystem dataset will be written to
-		pro       = m.inst.repo.Profiles().Owner() // user making the request. hard-coded to repo owner
-	)
-
-	if p.Private {
-		return nil, fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
-	}
-
-	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
-	if p.UseDscache {
-		c := m.inst.dscache
-		c.CreateNewEnabled = true
-	}
-
-	// start with dataset fields provided by params
-	ds := p.Dataset
-	if ds == nil {
-		ds = &dataset.Dataset{}
-	}
-	ds.Assign(&dataset.Dataset{
-		BodyPath: p.BodyPath,
-		Commit: &dataset.Commit{
-			Title:   p.Title,
-			Message: p.Message,
-		},
-	})
-
-	if len(p.FilePaths) > 0 {
-		// TODO (b5): handle this with a qfs.Filesystem
-		dsf, err := ReadDatasetFiles(p.FilePaths...)
-		if err != nil {
-			return nil, err
-		}
-		dsf.Assign(ds)
-		ds = dsf
-	}
-
-	if p.Ref == "" && ds.Name != "" {
-		p.Ref = fmt.Sprintf("me/%s", ds.Name)
-	}
-
-	resolver, err := m.inst.resolverForMode("local")
-	if err != nil {
-		log.Debugw("save construct resolver", "mode", "local", "err", err)
-		return nil, err
-	}
-
-	ref, isNew, err := base.PrepareSaveRef(ctx, pro, m.inst.logbook, resolver, p.Ref, ds.BodyPath, p.NewName)
-	if err != nil {
-		log.Debugw("save PrepareSaveRef", "refParam", p.Ref, "wantNewName", p.NewName, "err", err)
-		return nil, err
-	}
-
-	success := false
-	defer func() {
-		// if creating a new dataset fails, we need to remove the dataset
-		if isNew && !success {
-			log.Debugf("removing unused log for new dataset %s", ref)
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-			if err := m.inst.logbook.RemoveLog(ctx, ref); err != nil {
-				log.Errorf("couldn't cleanup unused reference: %q", err)
-			}
-			cancel()
-		}
-	}()
-
-	ds.Name = ref.Name
-	ds.Peername = ref.Username
-
-	var fsiPath string
-	if !isNew {
-		// check for FSI linked data
-		fsiRef := ref.Copy()
-		if err := m.inst.fsi.ResolvedPath(&fsiRef); err == nil {
-			fsiPath = fsi.FilesystemPathToLocal(fsiRef.Path)
-			fsiDs, err := fsi.ReadDir(fsiPath)
-			if err != nil {
-				return nil, err
-			}
-			fsiDs.Assign(ds)
-			ds = fsiDs
-		}
-	}
-
-	if !p.Force &&
-		!p.Apply &&
-		p.Drop == "" &&
-		ds.BodyPath == "" &&
-		ds.Body == nil &&
-		ds.BodyBytes == nil &&
-		ds.Structure == nil &&
-		ds.Meta == nil &&
-		ds.Readme == nil &&
-		ds.Viz == nil &&
-		ds.Transform == nil {
-		return nil, fmt.Errorf("no changes to save")
-	}
-
-	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
-		log.Debugw("save OpenDataset", "err", err.Error())
-		return nil, err
-	}
-
-	// runState holds the results of transform application. will be non-nil if a
-	// transform is applied while saving
-	var runState *run.State
-
-	// If applying a transform, execute its script before saving
-	if p.Apply {
-		if ds.Transform == nil {
-			// if no transform component exists, load the latest transform component
-			// from history
-			if isNew {
-				return nil, fmt.Errorf("cannot apply while saving without a transform")
-			}
-
-			prevTransformDataset, err := base.LoadRevs(ctx, m.inst.qfs, ref, []*dsref.Rev{{Field: "tf", Gen: 1}})
-			if err != nil {
-				return nil, fmt.Errorf("loading transform component from history: %w", err)
-			}
-			ds.Transform = prevTransformDataset.Transform
-		}
-
-		scriptOut := p.ScriptOutput
-		secrets := p.Secrets
-		// allocate an ID for the transform, subscribe to print output & build up
-		// runState
-		runID := run.NewID()
-		runState = run.NewState(runID)
-		// create a loader so transforms can call `load_dataset`
-		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverForMode
-		// on the passed in mode string instead of just using the default resolver
-		// cmd can then define "remote" and "offline" flags, that set the ResolverMode
-		// string and control how transform functions
-		loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
-
-		m.inst.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
-			runState.AddTransformEvent(e)
-			if e.Type == event.ETTransformPrint {
-				if msg, ok := e.Payload.(event.TransformMessage); ok {
-					if p.ScriptOutput != nil {
-						io.WriteString(scriptOut, msg.Msg)
-						io.WriteString(scriptOut, "\n")
-					}
-				}
-			}
-			return nil
-		}, runID)
-
-		// apply the transform
-		shouldWait := true
-		transformer := transform.NewTransformer(m.inst.appCtx, loader, m.inst.bus)
-		if err := transformer.Apply(ctx, ds, runID, shouldWait, scriptOut, secrets); err != nil {
-			log.Errorw("transform run error", "err", err.Error())
-			runState.Message = err.Error()
-			if err := m.inst.logbook.WriteTransformRun(ctx, ref.InitID, runState); err != nil {
-				log.Debugw("writing errored transform run to logbook:", "err", err.Error())
-				return nil, err
-			}
-
-			return nil, err
-		}
-
-		ds.Commit.RunID = runID
-	}
-
-	if fsiPath != "" && p.Drop != "" {
-		return nil, qrierr.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
-	}
-
-	fileHint := p.BodyPath
-	if len(p.FilePaths) > 0 {
-		fileHint = p.FilePaths[0]
-	}
-
-	switches := base.SaveSwitches{
-		FileHint:            fileHint,
-		Replace:             p.Replace,
-		Pin:                 true,
-		ConvertFormatToPrev: p.ConvertFormatToPrev,
-		ForceIfNoChanges:    p.Force,
-		ShouldRender:        p.ShouldRender,
-		NewName:             p.NewName,
-		Drop:                p.Drop,
-	}
-	savedDs, err := base.SaveDataset(ctx, m.inst.repo, writeDest, ref.InitID, ref.Path, ds, runState, switches)
-	if err != nil {
-		// datasets that are unchanged & have a runState record a record of no-changes
-		// to logbook
-		if errors.Is(err, dsfs.ErrNoChanges) && runState != nil {
-			runState.Status = run.RSUnchanged
-			runState.Message = err.Error()
-			if err := m.inst.logbook.WriteTransformRun(ctx, ref.InitID, runState); err != nil {
-				log.Debugw("writing unchanged transform run to logbook:", "err", err.Error())
-				return nil, err
-			}
-		}
-
-		log.Debugw("save base.SaveDataset", "err", err)
-		return nil, err
-	}
-
-	success = true
-	*res = *savedDs
-
-	// TODO (b5) - this should be integrated into base.SaveDataset
-	if fsiPath != "" {
-		vi := dsref.ConvertDatasetToVersionInfo(savedDs)
-		vi.FSIPath = fsiPath
-		if err = repo.PutVersionInfoShim(ctx, m.inst.repo, &vi); err != nil {
-			log.Debugw("save PutVersionInfoShim", "fsiPath", fsiPath, "err", err)
-			return nil, err
-		}
-		// Need to pass filesystem here so that we can read the README component and write it
-		// properly back to disk.
-		if writeErr := fsi.WriteComponents(savedDs, fsiPath, m.inst.repo.Filesystem()); err != nil {
-			log.Error(writeErr)
-		}
-	}
-
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // RenameParams defines parameters for Dataset renaming
@@ -1543,7 +1314,7 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	ds, err = scope.Loader().LoadDataset(scope.Context(), ref, source)
+	ds, err = scope.LoadDataset(scope.Context(), ref, source)
 	if err != nil {
 		return nil, err
 	}
@@ -1712,7 +1483,231 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 
 // Save adds a history entry, updating a dataset
 func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	log.Debugw("DatasetMethods.Save", "ref", p.Ref, "apply", p.Apply)
+	res := &dataset.Dataset{}
+
+	var (
+		writeDest = scope.Filesystem().DefaultWriteFS() // filesystem dataset will be written to
+		pro       = scope.Repo().Profiles().Owner()     // user making the request. hard-coded to repo owner
+	)
+
+	if p.Private {
+		return nil, fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
+	}
+
+	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
+	if p.UseDscache {
+		c := scope.Dscache()
+		c.CreateNewEnabled = true
+	}
+
+	// start with dataset fields provided by params
+	ds := p.Dataset
+	if ds == nil {
+		ds = &dataset.Dataset{}
+	}
+	ds.Assign(&dataset.Dataset{
+		BodyPath: p.BodyPath,
+		Commit: &dataset.Commit{
+			Title:   p.Title,
+			Message: p.Message,
+		},
+	})
+
+	if len(p.FilePaths) > 0 {
+		// TODO (b5): handle this with a qfs.Filesystem
+		dsf, err := ReadDatasetFiles(p.FilePaths...)
+		if err != nil {
+			return nil, err
+		}
+		dsf.Assign(ds)
+		ds = dsf
+	}
+
+	if p.Ref == "" && ds.Name != "" {
+		p.Ref = fmt.Sprintf("me/%s", ds.Name)
+	}
+
+	resolver, err := scope.ResolverForMode("local")
+	if err != nil {
+		log.Debugw("save construct resolver", "mode", "local", "err", err)
+		return nil, err
+	}
+
+	ref, isNew, err := base.PrepareSaveRef(scope.Context(), pro, scope.Logbook(), resolver, p.Ref, ds.BodyPath, p.NewName)
+	if err != nil {
+		log.Debugw("save PrepareSaveRef", "refParam", p.Ref, "wantNewName", p.NewName, "err", err)
+		return nil, err
+	}
+
+	success := false
+	defer func() {
+		// if creating a new dataset fails, we need to remove the dataset
+		if isNew && !success {
+			log.Debugf("removing unused log for new dataset %s", ref)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+			if err := scope.Logbook().RemoveLog(ctx, ref); err != nil {
+				log.Errorf("couldn't cleanup unused reference: %q", err)
+			}
+			cancel()
+		}
+	}()
+
+	ds.Name = ref.Name
+	ds.Peername = ref.Username
+
+	var fsiPath string
+	if !isNew {
+		// check for FSI linked data
+		fsiRef := ref.Copy()
+		if err := scope.FSISubsystem().ResolvedPath(&fsiRef); err == nil {
+			fsiPath = fsi.FilesystemPathToLocal(fsiRef.Path)
+			fsiDs, err := fsi.ReadDir(fsiPath)
+			if err != nil {
+				return nil, err
+			}
+			fsiDs.Assign(ds)
+			ds = fsiDs
+		}
+	}
+
+	if !p.Force &&
+		!p.Apply &&
+		p.Drop == "" &&
+		ds.BodyPath == "" &&
+		ds.Body == nil &&
+		ds.BodyBytes == nil &&
+		ds.Structure == nil &&
+		ds.Meta == nil &&
+		ds.Readme == nil &&
+		ds.Viz == nil &&
+		ds.Transform == nil {
+		return nil, fmt.Errorf("no changes to save")
+	}
+
+	if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
+		log.Debugw("save OpenDataset", "err", err.Error())
+		return nil, err
+	}
+
+	// runState holds the results of transform application. will be non-nil if a
+	// transform is applied while saving
+	var runState *run.State
+
+	// If applying a transform, execute its script before saving
+	if p.Apply {
+		if ds.Transform == nil {
+			// if no transform component exists, load the latest transform component
+			// from history
+			if isNew {
+				return nil, fmt.Errorf("cannot apply while saving without a transform")
+			}
+
+			prevTransformDataset, err := base.LoadRevs(scope.Context(), scope.Filesystem(), ref, []*dsref.Rev{{Field: "tf", Gen: 1}})
+			if err != nil {
+				return nil, fmt.Errorf("loading transform component from history: %w", err)
+			}
+			ds.Transform = prevTransformDataset.Transform
+		}
+
+		scriptOut := p.ScriptOutput
+		secrets := p.Secrets
+		// allocate an ID for the transform, subscribe to print output & build up
+		// runState
+		runID := run.NewID()
+		runState = run.NewState(runID)
+		// create a loader so transforms can call `load_dataset`
+		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverForMode
+		// on the passed in mode string instead of just using the default resolver
+		// cmd can then define "remote" and "offline" flags, that set the ResolverMode
+		// string and control how transform functions
+		loader := scope.ParseResolveFunc()
+
+		scope.Bus().SubscribeID(func(ctx context.Context, e event.Event) error {
+			runState.AddTransformEvent(e)
+			if e.Type == event.ETTransformPrint {
+				if msg, ok := e.Payload.(event.TransformMessage); ok {
+					if p.ScriptOutput != nil {
+						io.WriteString(scriptOut, msg.Msg)
+						io.WriteString(scriptOut, "\n")
+					}
+				}
+			}
+			return nil
+		}, runID)
+
+		// apply the transform
+		shouldWait := true
+		transformer := transform.NewTransformer(scope.AppContext(), loader, scope.Bus())
+		if err := transformer.Apply(scope.Context(), ds, runID, shouldWait, scriptOut, secrets); err != nil {
+			log.Errorw("transform run error", "err", err.Error())
+			runState.Message = err.Error()
+			if err := scope.Logbook().WriteTransformRun(scope.Context(), ref.InitID, runState); err != nil {
+				log.Debugw("writing errored transform run to logbook:", "err", err.Error())
+				return nil, err
+			}
+
+			return nil, err
+		}
+
+		ds.Commit.RunID = runID
+	}
+
+	if fsiPath != "" && p.Drop != "" {
+		return nil, qrierr.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
+	}
+
+	fileHint := p.BodyPath
+	if len(p.FilePaths) > 0 {
+		fileHint = p.FilePaths[0]
+	}
+
+	switches := base.SaveSwitches{
+		FileHint:            fileHint,
+		Replace:             p.Replace,
+		Pin:                 true,
+		ConvertFormatToPrev: p.ConvertFormatToPrev,
+		ForceIfNoChanges:    p.Force,
+		ShouldRender:        p.ShouldRender,
+		NewName:             p.NewName,
+		Drop:                p.Drop,
+	}
+	savedDs, err := base.SaveDataset(scope.Context(), scope.Repo(), writeDest, ref.InitID, ref.Path, ds, runState, switches)
+	if err != nil {
+		// datasets that are unchanged & have a runState record a record of no-changes
+		// to logbook
+		if errors.Is(err, dsfs.ErrNoChanges) && runState != nil {
+			runState.Status = run.RSUnchanged
+			runState.Message = err.Error()
+			if err := scope.Logbook().WriteTransformRun(scope.Context(), ref.InitID, runState); err != nil {
+				log.Debugw("writing unchanged transform run to logbook:", "err", err.Error())
+				return nil, err
+			}
+		}
+
+		log.Debugw("save base.SaveDataset", "err", err)
+		return nil, err
+	}
+
+	success = true
+	*res = *savedDs
+
+	// TODO (b5) - this should be integrated into base.SaveDataset
+	if fsiPath != "" {
+		vi := dsref.ConvertDatasetToVersionInfo(savedDs)
+		vi.FSIPath = fsiPath
+		if err = repo.PutVersionInfoShim(scope.Context(), scope.Repo(), &vi); err != nil {
+			log.Debugw("save PutVersionInfoShim", "fsiPath", fsiPath, "err", err)
+			return nil, err
+		}
+		// Need to pass filesystem here so that we can read the README component and write it
+		// properly back to disk.
+		if writeErr := fsi.WriteComponents(savedDs, fsiPath, scope.Filesystem()); err != nil {
+			log.Error(writeErr)
+		}
+	}
+
+	return res, nil
 }
 
 // Rename changes a user's given name for a dataset

@@ -79,13 +79,12 @@ func (r *APITestRunner) BuildDataset(dsName string) *dataset.Dataset {
 }
 
 func (r *APITestRunner) SaveDataset(ds *dataset.Dataset, bodyFilename string) {
-	dsm := lib.NewDatasetMethods(r.Inst)
 	saveParams := lib.SaveParams{
 		Ref:      fmt.Sprintf("peer/%s", ds.Name),
 		Dataset:  ds,
 		BodyPath: bodyFilename,
 	}
-	_, err := dsm.Save(r.Ctx, &saveParams)
+	_, err := r.Inst.Dataset().Save(r.Ctx, &saveParams)
 	if err != nil {
 		panic(err)
 	}

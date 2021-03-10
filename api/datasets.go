@@ -469,10 +469,11 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	scriptOutput := &bytes.Buffer{}
 	params.ScriptOutput = scriptOutput
 
-	res, err := h.Save(r.Context(), params)
-	if err != nil {
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.save", params)
+	res, ok := got.(*dataset.Dataset)
+	if err != nil || !ok {
 		log.Debugw("save dataset error", "err", err)
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		util.RespondWithError(w, err)
 		return
 	}
 	// Don't leak paths across the API, it's possible they contain absolute paths or tmp dirs.

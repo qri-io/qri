@@ -232,8 +232,6 @@ func TestFSIWrite(t *testing.T) {
 	// already exists.
 	_ = os.RemoveAll(workDir)
 
-	dsm := lib.NewDatasetMethods(inst)
-
 	// TODO(dustmop): Use a TestRunner here, and have it call SaveDataset instead.
 
 	// Save version 1
@@ -246,7 +244,7 @@ func TestFSIWrite(t *testing.T) {
 		},
 		BodyPath: "testdata/cities/data.csv",
 	}
-	_, err := dsm.Save(ctx, &saveParams)
+	_, err := inst.Dataset().Save(ctx, &saveParams)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,8 +335,6 @@ func TestCheckoutAndRestore(t *testing.T) {
 	// already exists.
 	_ = os.RemoveAll(workDir)
 
-	dsm := lib.NewDatasetMethods(inst)
-
 	// Save version 1
 	saveParams := lib.SaveParams{
 		Ref: "me/fsi_checkout_restore",
@@ -349,7 +345,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 		},
 		BodyPath: "testdata/cities/data.csv",
 	}
-	res, err := dsm.Save(ctx, &saveParams)
+	res, err := inst.Dataset().Save(ctx, &saveParams)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -367,7 +363,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 			},
 		},
 	}
-	res, err = dsm.Save(ctx, &saveParams)
+	res, err = inst.Dataset().Save(ctx, &saveParams)
 	if err != nil {
 		t.Fatal(err)
 	}

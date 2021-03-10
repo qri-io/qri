@@ -15,7 +15,6 @@ import (
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/stats"
-	"github.com/qri-io/qri/transform"
 )
 
 // scope represents the lifetime of a method call, abstractly connected to the caller of
@@ -138,12 +137,13 @@ func (s *scope) Repo() repo.Repo {
 	return s.inst.repo
 }
 
+// ResolverForMode returns a resolver for a particular mode, options are:
+// "local", "network", "registry, "p2p", or "" for the default resolver
+func (s *scope) ResolverForMode(mode string) (dsref.Resolver, error) {
+	return s.inst.resolverForMode(mode)
+}
+
 // Stats returns the stats service
 func (s *scope) Stats() *stats.Service {
 	return s.inst.stats
-}
-
-// Transform returns the transform service
-func (s *scope) Transform() *transform.Service {
-	return s.inst.transform
 }

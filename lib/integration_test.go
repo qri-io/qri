@@ -164,7 +164,6 @@ func TestReferencePulling(t *testing.T) {
 
 	// create adnan
 	adnan := tr.InitAdnan(t)
-	dsm := NewDatasetMethods(adnan)
 
 	// run a transform script that relies on world_bank_population, which adnan's
 	// node should automatically pull to execute this script
@@ -187,7 +186,7 @@ def transform(ds, ctx):
 		},
 		Apply: true,
 	}
-	_, err = dsm.Save(tr.Ctx, saveParams)
+	_, err = adnan.Dataset().Save(tr.Ctx, saveParams)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,7 +372,7 @@ func AssertLogsEqual(a, b *Instance, ref dsref.Ref) error {
 }
 
 func InitWorldBankDataset(ctx context.Context, t *testing.T, inst *Instance) dsref.Ref {
-	res, err := NewDatasetMethods(inst).Save(ctx, &SaveParams{
+	res, err := inst.Dataset().Save(ctx, &SaveParams{
 		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
 			Meta: &dataset.Meta{
@@ -397,7 +396,7 @@ d,e,f,false,3`),
 }
 
 func Commit2WorldBank(ctx context.Context, t *testing.T, inst *Instance) dsref.Ref {
-	res, err := NewDatasetMethods(inst).Save(ctx, &SaveParams{
+	res, err := inst.Dataset().Save(ctx, &SaveParams{
 		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
 			Meta: &dataset.Meta{

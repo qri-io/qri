@@ -125,7 +125,7 @@ func newRenderTestRunner(t *testing.T, testName string) *renderTestRunner {
 		panic(err)
 	}
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), r.Node)
-	r.DatasetReqs = NewDatasetMethods(inst)
+	r.DatasetReqs = inst.Dataset()
 	r.RenderMethods = NewRenderMethods(inst)
 
 	return &r
