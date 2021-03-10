@@ -97,14 +97,14 @@ func (s *scope) GetVersionInfoShim(ref dsref.Ref) (*dsref.VersionInfo, error) {
 	return repo.GetVersionInfoShim(r, ref)
 }
 
-// Loader returns the instance
-func (s *scope) Loader() dsref.Loader {
-	return s.inst
-}
-
 // LoadDataset loads a dataset
 func (s *scope) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
 	return s.inst.LoadDataset(ctx, ref, source)
+}
+
+// Loader returns the instance
+func (s *scope) Loader() dsref.Loader {
+	return s.inst
 }
 
 // Logbook returns the repo logbook
