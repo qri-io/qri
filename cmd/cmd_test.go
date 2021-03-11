@@ -626,7 +626,9 @@ func TestListFormatJson(t *testing.T) {
     "bodyRows": 8,
     "bodyFormat": "csv",
     "numErrors": 1,
-    "commitTime": "2001-01-01T01:01:01.000000001Z"
+    "commitTime": "2001-01-01T01:01:01.000000001Z",
+    "commitTitle": "created dataset from body_ten.csv",
+    "commitMessage": "created dataset from body_ten.csv"
   }
 ]`, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",

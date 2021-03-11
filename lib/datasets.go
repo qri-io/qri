@@ -95,7 +95,7 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 	// If the list operation leads to a warning, store it in this var
 	var listWarning error
 
-	var refs []reporef.DatasetRef
+	var infos []dsref.VersionInfo
 	if p.UseDscache {
 		c := m.inst.dscache
 		if c.IsEmpty() {
@@ -109,7 +109,7 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 				log.Error(err)
 			}
 		}
-		refs, err = c.ListRefs()
+		refs, err := c.ListRefs()
 		if err != nil {
 			return nil, err
 		}
@@ -135,9 +135,14 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 		if p.Limit < len(refs) {
 			refs = refs[:p.Limit]
 		}
-		// TODO(dlong): Filtered by p.Published flag
+		// Convert old style DatasetRef list to VersionInfo list.
+		// TODO(dustmop): Remove this and convert lower-level functions to return []VersionInfo.
+		infos = make([]dsref.VersionInfo, len(refs))
+		for i, r := range refs {
+			infos[i] = reporef.ConvertToVersionInfo(&r)
+		}
 	} else if listProfile.Peername == "" || reqProfile.Peername == listProfile.Peername {
-		refs, err = base.ListDatasets(ctx, m.inst.repo, p.Term, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
+		infos, err = base.ListDatasets(ctx, m.inst.repo, p.Term, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
 		if errors.Is(err, ErrListWarning) {
 			listWarning = err
 			err = nil
@@ -147,13 +152,6 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 	}
 	if err != nil {
 		return nil, err
-	}
-
-	// Convert old style DatasetRef list to VersionInfo list.
-	// TODO(dustmop): Remove this and convert lower-level functions to return []VersionInfo.
-	infos := make([]dsref.VersionInfo, len(refs))
-	for i, r := range refs {
-		infos[i] = reporef.ConvertToVersionInfo(&r)
 	}
 
 	if p.EnsureFSIExists {

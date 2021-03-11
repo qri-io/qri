@@ -168,3 +168,32 @@ func ConvertDatasetToVersionInfo(ds *dataset.Dataset) VersionInfo {
 
 	return vi
 }
+
+// ConvertVersionInfoToDataset builds up a dataset from all the relevant
+// VersionInfo fields.
+//
+// Deprecated: This function is needed only for supporting Search functionality.
+// Do not add new callers if possible.
+func ConvertVersionInfoToDataset(info *VersionInfo) *dataset.Dataset {
+	return &dataset.Dataset{
+		Peername:  info.Username,
+		ProfileID: info.ProfileID,
+		Name:      info.Name,
+		Path:      info.Path,
+		Commit: &dataset.Commit{
+			Timestamp: info.CommitTime,
+			Title:     info.CommitTitle,
+			Message:   info.CommitMessage,
+			RunID:     info.RunID,
+		},
+		Meta: &dataset.Meta{
+			Title: info.MetaTitle,
+		},
+		Structure: &dataset.Structure{
+			Format:   info.BodyFormat,
+			Length:   info.BodySize,
+			Entries:  info.BodyRows,
+			ErrCount: info.NumErrors,
+		},
+	}
+}
