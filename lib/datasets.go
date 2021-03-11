@@ -149,13 +149,21 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 		return nil, err
 	}
 
+	// Convert old style DatasetRef list to VersionInfo list.
+	// TODO(dustmop): Remove this and convert lower-level functions to return []VersionInfo.
+	infos := make([]dsref.VersionInfo, len(refs))
+	for i, r := range refs {
+		infos[i] = reporef.ConvertToVersionInfo(&r)
+	}
+
 	if p.EnsureFSIExists {
 		// For each reference with a linked fsi working directory, check that the folder exists
 		// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
 		// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
-		for _, ref := range refs {
-			if ref.FSIPath != "" && !linkfile.ExistsInDir(ref.FSIPath) {
-				ref.FSIPath = ""
+		for _, info := range infos {
+			if info.FSIPath != "" && !linkfile.ExistsInDir(info.FSIPath) {
+				info.FSIPath = ""
+				ref := reporef.RefFromVersionInfo(&info)
 				if ref.Path == "" {
 					if err = m.inst.repo.DeleteRef(ref); err != nil {
 						log.Debugf("cannot delete ref for %q, err: %s", ref, err)
@@ -167,13 +175,6 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 				}
 			}
 		}
-	}
-
-	// Convert old style DatasetRef list to VersionInfo list.
-	// TODO(dlong): Remove this and convert lower-level functions to return []VersionInfo.
-	infos := make([]dsref.VersionInfo, len(refs))
-	for i, r := range refs {
-		infos[i] = reporef.ConvertToVersionInfo(&r)
 	}
 
 	if listWarning != nil {
