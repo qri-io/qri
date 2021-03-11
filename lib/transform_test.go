@@ -42,4 +42,28 @@ func TestApplyTransform(t *testing.T) {
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("qri list (-want +got):\n%s", diff)
 	}
+
+	p := &ApplyParams{
+		Wait: true,
+		Transform: &dataset.Transform{
+			ScriptBytes: []byte(`
+body = """a,b,c
+1,2,3
+4,5,6
+"""
+def transform(ds,ctx):
+	ds.set_body(body, parse_as="csv")
+`),
+		},
+	}
+	res, err = tr.ApplyWithParams(tr.Ctx, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectBody := json.RawMessage(`[[1,2,3],[4,5,6]]`)
+
+	if diff := cmp.Diff(expectBody, res.Body); diff != "" {
+		t.Errorf("result mismatch. (-want +got):\n%s", diff)
+	}
 }
