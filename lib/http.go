@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/gorilla/schema"
 	ma "github.com/multiformats/go-multiaddr"
@@ -112,7 +113,19 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 	var err error
 
 	if httpMethod == http.MethodGet || httpMethod == http.MethodDelete {
-		req, err = http.NewRequest(httpMethod, addr, nil)
+		u, err := url.Parse(addr)
+		if err != nil {
+			return err
+		}
+
+		if pm, ok := params.(map[string]string); ok {
+			qvars := u.Query()
+			for k, v := range pm {
+				qvars.Set(k, v)
+			}
+			u.RawQuery = qvars.Encode()
+		}
+		req, err = http.NewRequest(httpMethod, u.String(), nil)
 	} else if httpMethod == http.MethodPost || httpMethod == http.MethodPut {
 		payload, err := json.Marshal(params)
 		if err != nil {

@@ -1,8 +1,9 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -64,15 +65,15 @@ func (o *PushOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the push command
 func (o *PushOptions) Run() error {
-	var res dsref.Ref
-
+	ctx := context.TODO()
 	for _, ref := range o.Refs.RefList() {
 		p := lib.PushParams{
-			Ref:        ref,
-			RemoteName: o.RemoteName,
+			Ref:    ref,
+			Remote: o.RemoteName,
 		}
 
-		if err := o.RemoteMethods.Push(&p, &res); err != nil {
+		res, err := o.RemoteMethods.Push(ctx, &p)
+		if err != nil {
 			return err
 		}
 		printInfo(o.Out, "pushed dataset %s", res)

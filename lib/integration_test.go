@@ -29,7 +29,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	ref := InitWorldBankDataset(tr.Ctx, t, nasim)
 
 	// - nasim publishes to the registry
-	PushToRegistry(t, nasim, ref.Alias())
+	PushToRegistry(tr.Ctx, t, nasim, ref.Alias())
 
 	if err := AssertLogsEqual(nasim, tr.RegistryInst, ref); err != nil {
 		t.Error(err)
@@ -52,7 +52,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	// - hunshun fetches a preview of nasim's dataset
 	// TODO (b5) - need to use the ref returned from search results
 	t.Log(ref.String())
-	Preview(t, hinshun, ref.String())
+	Preview(tr.Ctx, t, hinshun, ref.String())
 
 	// - hinshun pulls nasim's dataset
 	Pull(tr.Ctx, t, hinshun, ref.Alias())
@@ -65,7 +65,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	ref = Commit2WorldBank(tr.Ctx, t, nasim)
 
 	// 6. nasim re-publishes to the registry
-	PushToRegistry(t, nasim, ref.Alias())
+	PushToRegistry(tr.Ctx, t, nasim, ref.Alias())
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
 	_, err = hinshun.Dataset().Pull(tr.Ctx, &PullParams{LogsOnly: true, Ref: ref.String()})
@@ -103,7 +103,7 @@ func TestAddCheckoutIntegration(t *testing.T) {
 
 	// - nasim creates a dataset, publishes to registry
 	ref := InitWorldBankDataset(tr.Ctx, t, nasim)
-	PushToRegistry(t, nasim, ref.Alias())
+	PushToRegistry(tr.Ctx, t, nasim, ref.Alias())
 
 	hinshun := tr.InitHinshun(t)
 
@@ -125,7 +125,7 @@ func TestReferencePulling(t *testing.T) {
 
 	// - nasim creates a dataset, publishes to registry
 	ref := InitWorldBankDataset(tr.Ctx, t, nasim)
-	PushToRegistry(t, nasim, ref.Alias())
+	PushToRegistry(tr.Ctx, t, nasim, ref.Alias())
 
 	// - nasim's local repo should reflect publication
 	logRes, err := NewLogMethods(nasim).Log(tr.Ctx, &LogParams{Ref: ref.Alias(), ListParams: ListParams{Limit: 1}})
@@ -414,17 +414,16 @@ g,g,i,true,4`),
 	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
 }
 
-func PushToRegistry(t *testing.T, inst *Instance, refstr string) dsref.Ref {
-	res := dsref.Ref{}
-	err := NewRemoteMethods(inst).Push(&PushParams{
+func PushToRegistry(ctx context.Context, t *testing.T, inst *Instance, refstr string) dsref.Ref {
+	res, err := NewRemoteMethods(inst).Push(ctx, &PushParams{
 		Ref: refstr,
-	}, &res)
+	})
 
 	if err != nil {
 		t.Fatalf("publishing dataset: %s", err)
 	}
 
-	return res
+	return *res
 }
 
 func SearchFor(ctx context.Context, t *testing.T, inst *Instance, term string) []SearchResult {
@@ -445,14 +444,14 @@ func Pull(ctx context.Context, t *testing.T, inst *Instance, refstr string) *dat
 	return res
 }
 
-func Preview(t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
+func Preview(ctx context.Context, t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
 	t.Helper()
 	p := &PreviewParams{
-		Ref:        refstr,
-		RemoteName: "",
+		Ref:    refstr,
+		Remote: "",
 	}
-	res := &dataset.Dataset{}
-	if err := NewRemoteMethods(inst).Preview(p, res); err != nil {
+	res, err := NewRemoteMethods(inst).Preview(ctx, p)
+	if err != nil {
 		t.Fatal(err)
 	}
 	return res
