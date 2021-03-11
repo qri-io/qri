@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -69,12 +70,13 @@ func (o *PreviewOptions) Complete(f Factory, args []string) (err error) {
 // Run executes the publish command
 func (o *PreviewOptions) Run() error {
 	p := lib.PreviewParams{
-		Ref:        o.Refs.Ref(),
-		RemoteName: o.RemoteName,
+		Ref:    o.Refs.Ref(),
+		Remote: o.RemoteName,
 	}
 
-	res := &dataset.Dataset{}
-	if err := o.RemoteMethods.Preview(&p, res); err != nil {
+	ctx := context.TODO()
+	res, err := o.RemoteMethods.Preview(ctx, &p)
+	if err != nil {
 		return err
 	}
 	var preview string

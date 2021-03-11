@@ -185,11 +185,11 @@ func (o *RemoveOptions) Run() (err error) {
 
 // RemoveRemote runs the remove command as a network request to a remote
 func (o *RemoveOptions) RemoveRemote() error {
-	res := &dsref.Ref{}
-	err := o.RemoteMethods.Remove(&lib.PushParams{
-		Ref:        o.Refs.Ref(),
-		RemoteName: o.Remote,
-	}, res)
+	ctx := context.TODO()
+	res, err := o.RemoteMethods.Remove(ctx, &lib.PushParams{
+		Ref:    o.Refs.Ref(),
+		Remote: o.Remote,
+	})
 	if err != nil {
 		return fmt.Errorf("dataset not removed")
 	}

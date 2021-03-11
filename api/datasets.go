@@ -517,11 +517,10 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if params.Remote != "" {
-		res := &dsref.Ref{}
-		err := h.remote.Remove(&lib.PushParams{
-			Ref:        params.Ref,
-			RemoteName: params.Remote,
-		}, res)
+		res, err := h.remote.Remove(r.Context(), &lib.PushParams{
+			Ref:    params.Ref,
+			Remote: params.Remote,
+		})
 		if err != nil {
 			log.Error("deleting dataset from remote: %s", err.Error())
 			util.WriteErrResponse(w, http.StatusBadRequest, err)

@@ -2,11 +2,8 @@ package api
 
 import (
 	"net/http"
-	"strings"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/api/util"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -29,43 +26,39 @@ func NewRemoteClientHandlers(inst *lib.Instance, readOnly bool) *RemoteClientHan
 // PushHandler facilitates requests to push dataset data from a local node
 // to a remote. It also supports remove requests to a remote for legacy reasons
 func (h *RemoteClientHandlers) PushHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		h.listPublicHandler(w, r)
+		return
+	}
+
 	if h.readOnly {
 		readOnlyResponse(w, "/push")
 		return
 	}
 
-	switch r.Method {
-	case http.MethodGet:
-		h.listPublicHandler(w, r)
-		return
-	}
-
-	ref, err := lib.DsRefFromPath(r.URL.Path[len("/push"):])
+	params := lib.PushParams{}
+	err := lib.UnmarshalParams(r, &params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	p := &lib.PushParams{
-		Ref:        ref.String(),
-		RemoteName: r.FormValue("remote"),
-	}
-
-	var res dsref.Ref
 	switch r.Method {
 	case http.MethodPost:
-		if err := h.Push(p, &res); err != nil {
+		res, err := h.Push(r.Context(), &params)
+		if err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
-		util.WriteResponse(w, "ok")
+		util.WriteResponse(w, res)
 		return
 	case http.MethodDelete:
-		if err := h.Remove(p, &res); err != nil {
+		res, err := h.Remove(r.Context(), &params)
+		if err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
-		util.WriteResponse(w, "ok")
+		util.WriteResponse(w, res)
 		return
 	default:
 		util.NotFoundHandler(w, r)
@@ -75,7 +68,7 @@ func (h *RemoteClientHandlers) PushHandler(w http.ResponseWriter, r *http.Reques
 // FeedsHandler fetches an index of named feeds
 func (h *RemoteClientHandlers) FeedsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodGet:
+	case http.MethodGet, http.MethodPost:
 		h.feedsHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -83,9 +76,14 @@ func (h *RemoteClientHandlers) FeedsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *RemoteClientHandlers) feedsHandler(w http.ResponseWriter, r *http.Request) {
-	res := map[string][]dsref.VersionInfo{}
-	remName := r.FormValue("remote")
-	if err := h.Feeds(&remName, &res); err != nil {
+	params := lib.FeedsParams{}
+	err := lib.UnmarshalParams(r, &params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	res, err := h.Feeds(r.Context(), &params)
+	if err != nil {
 		log.Infof("home error: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -98,7 +96,7 @@ func (h *RemoteClientHandlers) feedsHandler(w http.ResponseWriter, r *http.Reque
 func (h *RemoteClientHandlers) DatasetPreviewHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 
-	case http.MethodGet:
+	case http.MethodGet, http.MethodPost:
 		h.previewHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -107,12 +105,14 @@ func (h *RemoteClientHandlers) DatasetPreviewHandler(w http.ResponseWriter, r *h
 
 // TODO(dustmop): Add a test for this. Need NewTestRunnerWithMockRemote for API
 func (h *RemoteClientHandlers) previewHandler(w http.ResponseWriter, r *http.Request) {
-	p := &lib.PreviewParams{
-		RemoteName: r.FormValue("remote"),
-		Ref:        lib.HTTPPathToQriPath(strings.TrimPrefix(r.URL.Path, "/preview/")),
+	params := lib.PreviewParams{}
+	err := lib.UnmarshalParams(r, &params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
 	}
-	res := &dataset.Dataset{}
-	if err := h.Preview(p, res); err != nil {
+	res, err := h.Preview(r.Context(), &params)
+	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}

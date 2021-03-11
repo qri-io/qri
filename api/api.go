@@ -253,11 +253,13 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEDAGInfo.String(), s.Middleware(dsh.DAGInfoHandler))
 
 	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)
-	m.Handle(lib.AEPush.String(), s.Middleware(remClientH.PushHandler))
+	routeParams = newrefRouteParams(lib.AEPush, false, false, http.MethodGet, http.MethodPost, http.MethodDelete)
+	handleRefRoute(m, routeParams, s.Middleware(remClientH.PushHandler))
 	routeParams = newrefRouteParams(lib.AEPull, false, false, http.MethodPost, http.MethodPut)
 	handleRefRoute(m, routeParams, s.Middleware(dsh.PullHandler))
 	m.Handle(lib.AEFeeds.String(), s.Middleware(remClientH.FeedsHandler))
-	m.Handle(lib.AEPreview.String(), s.Middleware(remClientH.DatasetPreviewHandler))
+	routeParams = newrefRouteParams(lib.AEPreview, false, false, http.MethodGet, http.MethodPost)
+	handleRefRoute(m, routeParams, s.Middleware(remClientH.DatasetPreviewHandler))
 
 	routeParams = newrefRouteParams(lib.AEStatus, false, false, http.MethodGet, http.MethodPost)
 	handleRefRoute(m, routeParams, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.status")))
