@@ -876,12 +876,11 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 			ds.Transform = prevTransformDataset.Transform
 		}
 
-		str := m.inst.node.LocalStreams
 		scriptOut := p.ScriptOutput
 		secrets := p.Secrets
 		// allocate an ID for the transform, subscribe to print output & build up
 		// runState
-		runID := transform.NewRunID()
+		runID := run.NewID()
 		runState = run.NewState(runID)
 		// create a loader so transforms can call `load_dataset`
 		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverForMode
@@ -905,8 +904,8 @@ func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Data
 
 		// apply the transform
 		shouldWait := true
-		err := m.inst.transform.Apply(ctx, ds, loader, runID, m.inst.bus, shouldWait, str, scriptOut, secrets)
-		if err != nil {
+		transformer := transform.NewTransformer(m.inst.appCtx, loader, m.inst.bus)
+		if err := transformer.Apply(ctx, ds, runID, shouldWait, scriptOut, secrets); err != nil {
 			log.Errorw("transform run error", "err", err.Error())
 			runState.Message = err.Error()
 			if err := m.inst.logbook.WriteTransformRun(ctx, ref.InitID, runState); err != nil {

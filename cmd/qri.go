@@ -240,14 +240,6 @@ func (o *QriOptions) DatasetMethods() (*lib.DatasetMethods, error) {
 	return lib.NewDatasetMethods(o.inst), nil
 }
 
-// TransformMethods generates a lib.TransformMethods from internal state
-func (o *QriOptions) TransformMethods() (*lib.TransformMethods, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewTransformMethods(o.inst), nil
-}
-
 // RemoteMethods generates a lib.RemoteMethods from internal state
 func (o *QriOptions) RemoteMethods() (*lib.RemoteMethods, error) {
 	if err := o.Init(); err != nil {

@@ -52,18 +52,16 @@ the --apply flag on the save command to commit results from transforms.`,
 type ApplyOptions struct {
 	ioes.IOStreams
 
+	Instance *lib.Instance
+
 	Refs     *RefSelect
 	FilePath string
 	Secrets  []string
-
-	TransformMethods *lib.TransformMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ApplyOptions) Complete(f Factory, args []string) (err error) {
-	if o.TransformMethods, err = f.TransformMethods(); err != nil {
-		return err
-	}
+	o.Instance = f.Instance()
 	if o.Refs, err = GetCurrentRefSelect(f, args, -1, nil); err != nil {
 		// This error will be handled during validation
 		if err != repo.ErrEmptyRef {
@@ -88,6 +86,9 @@ func (o *ApplyOptions) Run() error {
 		return errors.New("only transform scripts are supported by --file")
 	}
 
+	ctx := context.TODO()
+	inst := o.Instance
+
 	tf := dataset.Transform{
 		ScriptPath: o.FilePath,
 	}
@@ -99,14 +100,14 @@ func (o *ApplyOptions) Run() error {
 		}
 	}
 
-	ctx := context.TODO()
 	params := lib.ApplyParams{
 		Refstr:       o.Refs.Ref(),
 		Transform:    &tf,
 		ScriptOutput: o.Out,
 		Wait:         true,
 	}
-	res, err := o.TransformMethods.Apply(ctx, &params)
+
+	res, err := inst.Transform().Apply(ctx, &params)
 	if err != nil {
 		return err
 	}

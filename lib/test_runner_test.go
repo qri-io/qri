@@ -185,8 +185,7 @@ func (tr *testRunner) MustGet(t *testing.T, refstr string) *dataset.Dataset {
 }
 
 func (tr *testRunner) ApplyWithParams(ctx context.Context, p *ApplyParams) (*dataset.Dataset, error) {
-	m := NewTransformMethods(tr.Instance)
-	res, err := m.Apply(ctx, p)
+	res, err := tr.Instance.Transform().Apply(ctx, p)
 	if err != nil {
 		return nil, err
 	}

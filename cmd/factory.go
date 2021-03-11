@@ -35,7 +35,6 @@ type Factory interface {
 	SearchMethods() (*lib.SearchMethods, error)
 	SQLMethods() (*lib.SQLMethods, error)
 	RenderMethods() (*lib.RenderMethods, error)
-	TransformMethods() (*lib.TransformMethods, error)
 }
 
 // StandardRepoPath returns qri paths based on the QRI_PATH environment

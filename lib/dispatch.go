@@ -184,10 +184,11 @@ type callable struct {
 // RegisterMethods iterates the methods provided by the lib API, and makes them visible to dispatch
 func (inst *Instance) RegisterMethods() {
 	reg := make(map[string]callable)
-	inst.registerOne("fsi", inst.Filesys(), fsiImpl{}, reg)
 	inst.registerOne("access", inst.Access(), accessImpl{}, reg)
-	inst.registerOne("dataset", inst.Dataset(), datasetImpl{}, reg)
 	inst.registerOne("config", inst.Config(), configImpl{}, reg)
+	inst.registerOne("dataset", inst.Dataset(), datasetImpl{}, reg)
+	inst.registerOne("fsi", inst.Filesys(), fsiImpl{}, reg)
+	inst.registerOne("transform", inst.Transform(), transformImpl{}, reg)
 	inst.regMethods = &regMethodSet{reg: reg}
 }
 
