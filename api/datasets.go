@@ -623,14 +623,12 @@ func (h DatasetHandlers) manifestHandler(w http.ResponseWriter, r *http.Request)
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-
-	res, err := h.Manifest(r.Context(), params)
+	res, _, err := h.inst.Dispatch(r.Context(), "dataset.rename", params)
 	if err != nil {
-		log.Infof("error generating manifest: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		log.Infof("error generating manifest: %s", err)
+		util.RespondWithError(w, err)
 		return
 	}
-
 	util.WriteResponse(w, res)
 }
 
@@ -642,10 +640,10 @@ func (h DatasetHandlers) manifestMissingHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	res, err := h.ManifestMissing(r.Context(), params)
+	res, _, err := h.inst.Dispatch(r.Context(), "dataset.manifestmissing", params)
 	if err != nil {
 		log.Infof("error generating manifest: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.RespondWithError(w, err)
 		return
 	}
 
@@ -660,10 +658,10 @@ func (h DatasetHandlers) dagInfoHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	res, err := h.DAGInfo(r.Context(), params)
+	res, _, err := h.inst.Dispatch(r.Context(), "dataset.daginfo", params)
 	if err != nil {
 		log.Infof("error generating manifest: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.RespondWithError(w, err)
 		return
 	}
 

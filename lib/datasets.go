@@ -568,25 +568,11 @@ type ManifestParams struct {
 
 // Manifest generates a manifest for a dataset path
 func (m *DatasetMethods) Manifest(ctx context.Context, p *ManifestParams) (*dag.Manifest, error) {
-	res := &dag.Manifest{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEManifest, p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "manifest"), p)
+	if res, ok := got.(*dag.Manifest); ok {
+		return res, err
 	}
-
-	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Refstr, "local")
-	if err != nil {
-		return nil, err
-	}
-
-	res, err = m.inst.node.NewManifest(ctx, ref.Path)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // ManifestMissingParams encapsulates parameters to the missing manifest command
@@ -596,20 +582,11 @@ type ManifestMissingParams struct {
 
 // ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
 func (m *DatasetMethods) ManifestMissing(ctx context.Context, p *ManifestMissingParams) (*dag.Manifest, error) {
-	res := &dag.Manifest{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEManifestMissing, p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "manifestmissing"), p)
+	if res, ok := got.(*dag.Manifest); ok {
+		return res, err
 	}
-
-	res, err := m.inst.node.MissingManifest(ctx, p.Manifest)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // DAGInfoParams defines parameters for the DAGInfo method
@@ -619,25 +596,11 @@ type DAGInfoParams struct {
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
 func (m *DatasetMethods) DAGInfo(ctx context.Context, p *DAGInfoParams) (*dag.Info, error) {
-	res := &dag.Info{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEDAGInfo, p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "daginfo"), p)
+	if res, ok := got.(*dag.Info); ok {
+		return res, err
 	}
-
-	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.RefStr, "local")
-	if err != nil {
-		return nil, err
-	}
-
-	res, err = m.inst.node.NewDAGInfo(ctx, ref.Path, p.Label)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // StatsParams defines the params for a Stats request
@@ -651,36 +614,11 @@ type StatsParams struct {
 
 // Stats generates stats for a dataset
 func (m *DatasetMethods) Stats(ctx context.Context, p *StatsParams) (*dataset.Stats, error) {
-	if m.inst.http != nil {
-		res := &dataset.Stats{}
-		params := &GetParams{
-			Refstr:   p.Refstr,
-			Selector: "stats",
-		}
-		err := m.inst.http.Call(ctx, AEGet, params, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "stats"), p)
+	if res, ok := got.(*dataset.Stats); ok {
+		return res, err
 	}
-
-	if p.Refstr == "" && p.Dataset == nil {
-		return nil, fmt.Errorf("either a reference or dataset is required")
-	}
-
-	ds := p.Dataset
-	if ds == nil {
-		// TODO (b5) - stats is currently local-only, supply a source parameter
-		ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, "local")
-		if err != nil {
-			return nil, err
-		}
-		if ds, err = m.inst.LoadDataset(ctx, ref, source); err != nil {
-			return nil, err
-		}
-	}
-
-	return m.inst.stats.Stats(ctx, ds)
+	return nil, dispatchReturnError(got, err)
 }
 
 // formFileDataset extracts a dataset document from a http Request
@@ -1723,20 +1661,62 @@ func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, 
 
 // Manifest generates a manifest for a dataset path
 func (datasetImpl) Manifest(scope scope, p *ManifestParams) (*dag.Manifest, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &dag.Manifest{}
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Refstr, "local")
+	if err != nil {
+		return nil, err
+	}
+
+	res, err = scope.Node().NewManifest(scope.Context(), ref.Path)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifes
 func (datasetImpl) ManifestMissing(scope scope, p *ManifestMissingParams) (*dag.Manifest, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &dag.Manifest{}
+	res, err := scope.Node().MissingManifest(scope.Context(), p.Manifest)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
 func (datasetImpl) DAGInfo(scope scope, p *DAGInfoParams) (*dag.Info, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &dag.Info{}
+
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.RefStr, "local")
+	if err != nil {
+		return nil, err
+	}
+
+	res, err = scope.Node().NewDAGInfo(scope.Context(), ref.Path, p.Label)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Stats generates stats for a dataset
 func (datasetImpl) Stats(scope scope, p *StatsParams) (*dataset.Stats, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	if p.Refstr == "" && p.Dataset == nil {
+		return nil, fmt.Errorf("either a reference or dataset is required")
+	}
+
+	ds := p.Dataset
+	if ds == nil {
+		// TODO (b5) - stats is currently local-only, supply a source parameter
+		ref, source, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Refstr, "local")
+		if err != nil {
+			return nil, err
+		}
+		if ds, err = scope.LoadDataset(scope.Context(), ref, source); err != nil {
+			return nil, err
+		}
+	}
+
+	return scope.Stats().Stats(scope.Context(), ds)
 }
