@@ -33,9 +33,9 @@ func (RegistryClientMethods) CoreRequestsName() string { return "registry" }
 type RegistryProfile = registry.Profile
 
 // CreateProfile creates a profile
-func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err error) {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok))
+func (m RegistryClientMethods) CreateProfile(ctx context.Context, p *RegistryProfile) error {
+	if m.inst.http != nil {
+		return ErrUnsupportedRPC
 	}
 
 	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
@@ -48,18 +48,16 @@ func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err 
 	log.Debugf("create profile response: %v", pro)
 	*p = *pro
 
-	return m.updateConfig(pro)
+	return m.updateConfig(ctx, pro)
 }
 
 // ProveProfileKey sends proof to the registry that this user has control of a
 // specified private key, and modifies the user's config in order to reconcile
 // it with any already existing identity the registry knows about
-func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) error {
-	if m.inst.rpc != nil {
-		return checkRPCError(m.inst.rpc.Call("RegistryClientMethods.CreateProfile", p, ok))
+func (m RegistryClientMethods) ProveProfileKey(ctx context.Context, p *RegistryProfile) error {
+	if m.inst.http != nil {
+		return ErrUnsupportedRPC
 	}
-
-	ctx := context.Background()
 
 	// Check if the repository has any saved datasets. If so, calling prove is
 	// not allowed, because doing so would essentially throw away the old profile,
@@ -157,8 +155,7 @@ func (m RegistryClientMethods) configFromProfile(pro *registry.Profile) *config.
 	return cfg
 }
 
-func (m RegistryClientMethods) updateConfig(pro *registry.Profile) error {
-	ctx := context.TODO()
+func (m RegistryClientMethods) updateConfig(ctx context.Context, pro *registry.Profile) error {
 	cfg := m.configFromProfile(pro)
 
 	// TODO (b5) - this should be automatically done by m.inst.ChangeConfig
