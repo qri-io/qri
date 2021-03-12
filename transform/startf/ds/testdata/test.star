@@ -45,3 +45,14 @@ csv_ds.set_body(csv_ds.get_body())
 expect_data = [["foo",1,"true"], ["bar",2,"false"], ["bat",3,"meh"]]
 assert.eq(expect_data, csv_ds.get_body())
 assert.eq(csv_ds.get_structure()['format'], 'csv')
+
+
+ds2 = dataset.new()
+csvBody = """a,b,c
+1,2,3
+4,5,6
+"""
+ds2.set_body(csvBody, parse_as="csv")
+
+st2 = ds2.get_structure()
+assert.eq(st2['format'], 'csv')

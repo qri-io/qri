@@ -85,8 +85,8 @@ func (d *Dataset) Methods() *starlarkstruct.Struct {
 	})
 }
 
-// checkField runs the check function if one is defined
-func (d *Dataset) checkField(path ...string) error {
+// checkCanMutateField runs the check function if one is defined
+func (d *Dataset) checkCanMutateField(path ...string) error {
 	if d.check != nil {
 		return d.check(path...)
 	}
@@ -136,7 +136,7 @@ func (d *Dataset) SetMeta(thread *starlark.Thread, _ *starlark.Builtin, args sta
 
 	key := keyx.GoString()
 
-	if err := d.checkField("meta", "key"); err != nil {
+	if err := d.checkCanMutateField("meta", "key"); err != nil {
 		return starlark.None, err
 	}
 
@@ -190,7 +190,7 @@ func (d *Dataset) SetStructure(thread *starlark.Thread, _ *starlark.Builtin, arg
 		return starlark.None, fmt.Errorf("cannot call set_structure on read-only dataset")
 	}
 
-	if err := d.checkField("structure"); err != nil {
+	if err := d.checkCanMutateField("structure"); err != nil {
 		return starlark.None, err
 	}
 
@@ -289,25 +289,22 @@ func (d *Dataset) SetBody(thread *starlark.Thread, _ *starlark.Builtin, args sta
 	if d.write == nil {
 		return starlark.None, fmt.Errorf("cannot call set_body on read-only dataset")
 	}
-
-	if err := d.checkField("body"); err != nil {
+	if err := d.checkCanMutateField("body"); err != nil {
 		return starlark.None, err
 	}
-
-	if err := d.checkField("structure"); err != nil {
+	if err := d.checkCanMutateField("structure"); err != nil {
 		err = fmt.Errorf("cannot use a transform to set the body of a dataset and manually adjust structure at the same time")
 		return starlark.None, err
 	}
 
-	df := parseAs.GoString()
-	if df != "" {
+	if df := parseAs.GoString(); df != "" {
 		if _, err := dataset.ParseDataFormatString(df); err != nil {
-			return starlark.None, fmt.Errorf("invalid parse_as format: '%s'", df)
+			return starlark.None, fmt.Errorf("invalid parse_as format: %q", df)
 		}
 
 		str, ok := data.(starlark.String)
 		if !ok {
-			return starlark.None, fmt.Errorf("expected data for '%s' format to be a string", df)
+			return starlark.None, fmt.Errorf("expected data for %q format to be a string", df)
 		}
 
 		d.write.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", df), []byte(string(str))))
