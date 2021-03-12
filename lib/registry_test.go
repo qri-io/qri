@@ -49,9 +49,7 @@ func TestProveProfileKey(t *testing.T) {
 		Email:    "test_peer@qri.io",
 		Password: "hunter2",
 	}
-	ok := false
-	err = methods.ProveProfileKey(&p, &ok)
-	if err != nil {
+	if err = methods.ProveProfileKey(tr.Ctx, &p); err != nil {
 		t.Error(err)
 	}
 

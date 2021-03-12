@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -142,8 +143,8 @@ func (o *RegistryOptions) Signup() error {
 		Password: password,
 	}
 
-	var ok bool
-	if err := o.RegistryClientMethods.CreateProfile(p, &ok); err != nil {
+	ctx := context.TODO()
+	if err := o.RegistryClientMethods.CreateProfile(ctx, p); err != nil {
 		return err
 	}
 	printSuccess(o.ErrOut, "user %s created on registry, connected local key", o.Username)
@@ -162,8 +163,8 @@ func (o *RegistryOptions) Prove() error {
 		Password: password,
 	}
 
-	var ok bool
-	if err := o.RegistryClientMethods.ProveProfileKey(p, &ok); err != nil {
+	ctx := context.TODO()
+	if err := o.RegistryClientMethods.ProveProfileKey(ctx, p); err != nil {
 		return err
 	}
 	printSuccess(o.ErrOut, "proved user %s to registry, connected local key", o.Username)

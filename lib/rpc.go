@@ -31,7 +31,6 @@ func init() {
 // API of lib methods
 func Receivers(inst *Instance) []Methods {
 	return []Methods{
-		NewRegistryClientMethods(inst),
 		NewRemoteMethods(inst),
 		NewPeerMethods(inst),
 	}
