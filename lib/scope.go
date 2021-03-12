@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
+	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/stats"
 )
@@ -135,6 +136,11 @@ func (s *scope) ParseResolveFunc() dsref.ParseResolveLoad {
 // Profiles accesses the profile store
 func (s *scope) Profiles() profile.Store {
 	return s.inst.profiles
+}
+
+// RemoteClient exposes the instance client for making requests to remotes
+func (s *scope) RemoteClient() remote.Client {
+	return s.inst.remoteClient
 }
 
 // Repo returns the repo store

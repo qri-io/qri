@@ -520,48 +520,11 @@ func (p *PullParams) UnmarshalFromRequest(r *http.Request) error {
 // Pull downloads and stores an existing dataset to a peer's repository via
 // a network connection
 func (m *DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Dataset, error) {
-	if err := qfs.AbsPath(&p.LinkDir); err != nil {
-		return nil, err
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "pull"), p)
+	if res, ok := got.(*dataset.Dataset); ok {
+		return res, err
 	}
-	res := &dataset.Dataset{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEPull, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	}
-
-	source := p.Remote
-	if source == "" {
-		source = "network"
-	}
-
-	ref, source, err := m.inst.ParseAndResolveRef(ctx, p.Ref, source)
-	if err != nil {
-		log.Debugf("resolving reference: %s", err)
-		return nil, err
-	}
-
-	ds, err := m.inst.remoteClient.PullDataset(ctx, &ref, source)
-	if err != nil {
-		log.Debugf("pulling dataset: %s", err)
-		return nil, err
-	}
-
-	*res = *ds
-
-	if p.LinkDir != "" {
-		checkoutp := &LinkParams{
-			Refstr: ref.Human(),
-			Dir:    p.LinkDir,
-		}
-		if err = m.inst.Filesys().Checkout(ctx, checkoutp); err != nil {
-			return nil, err
-		}
-	}
-
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // ValidateParams defines parameters for dataset data validation
@@ -1715,7 +1678,45 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 // Pull downloads and stores an existing dataset to a peer's repository via
 // a network connection
 func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	if err := qfs.AbsPath(&p.LinkDir); err != nil {
+		return nil, err
+	}
+	res := &dataset.Dataset{}
+	source := p.Remote
+	if source == "" {
+		source = "network"
+	}
+
+	ref, source, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, source)
+	if err != nil {
+		log.Debugf("resolving reference: %s", err)
+		return nil, err
+	}
+
+	ds, err := scope.RemoteClient().PullDataset(scope.Context(), &ref, source)
+	if err != nil {
+		log.Debugf("pulling dataset: %s", err)
+		return nil, err
+	}
+
+	*res = *ds
+
+	if p.LinkDir != "" {
+		checkoutp := &LinkParams{
+			Refstr: ref.Human(),
+			Dir:    p.LinkDir,
+		}
+		// TODO (ramfox): wasn't sure exactly how to handle this. We don't need `Checkout` to
+		// re-load/re-resolve the reference, but there is a bunch of other checking/verifying
+		// that `Filesys().Checkout` does that doesn't belong in this `Pull` function
+		// Should we allow method creation off of the `scope`? So in this case, `scope.Filesys()`
+		// Or should we be obscuring all of that to create a `scope.Checkout()` method?
+		if err = scope.inst.Filesys().Checkout(scope.Context(), checkoutp); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
 }
 
 // Validate gives a dataset of errors and issues for a given dataset

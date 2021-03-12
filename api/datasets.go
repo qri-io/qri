@@ -454,10 +454,15 @@ func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.Pull(r.Context(), params)
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.pull", params)
 	if err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		log.Infof("error pulling dataset: %s", err.Error())
+		util.RespondWithError(w, err)
 		return
+	}
+	res, ok := got.(*dataset.Dataset)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
 	}
 
 	ref := reporef.DatasetRef{

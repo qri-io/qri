@@ -963,10 +963,9 @@ func TestDatasetRequestsPull(t *testing.T) {
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_case_%d", i), func(t *testing.T) {
-			_, err := m.Pull(ctx, &c.p)
+			_, err := inst.Dataset().Pull(ctx, &c.p)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -1034,9 +1033,8 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 
 				// Build requests for peer1 to peer2.
 				inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), p0)
-				dsm := NewDatasetMethods(inst)
 
-				_, err := dsm.Pull(ctx, p)
+				_, err := inst.Dataset().Pull(ctx, p)
 				if err != nil {
 					pro1 := p0.Repo.Profiles().Owner()
 					pro2 := p1.Repo.Profiles().Owner()
