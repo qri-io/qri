@@ -59,7 +59,7 @@ func (rf RepoFeeds) Feed(ctx context.Context, userID, name string, offset, limit
 	if name != "recent" {
 		return nil, fmt.Errorf("unknown feed name '%s'", name)
 	}
-	return base.ListDatasets(ctx, rf.Repo, "", offset, limit, false, true, false)
+	return base.ListDatasets(ctx, rf.Repo, "", "", offset, limit, false, true, false)
 }
 
 // Previews is an interface for generating constant-size summaries of dataset

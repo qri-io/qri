@@ -107,7 +107,7 @@ type MockRepoSearch struct {
 // Search implements the registry.Searchable interface
 func (ss MockRepoSearch) Search(p registry.SearchParams) ([]*dataset.Dataset, error) {
 	ctx := context.Background()
-	infos, err := base.ListDatasets(ctx, ss.Repo, p.Q, 0, 1000, false, true, false)
+	infos, err := base.ListDatasets(ctx, ss.Repo, p.Q, "", 0, 1000, false, true, false)
 	if err != nil {
 		return nil, err
 	}

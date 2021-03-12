@@ -77,6 +77,11 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 		return res, nil
 	}
 
+	// TODO(dustmop): When List is converted to use scope, get the ProfileID from
+	// the scope if the user is authorized to only view their own datasets, as opposed
+	// to the full collection that exists in this node's repository.
+	restrictPid := ""
+
 	// ensure valid limit value
 	if p.Limit <= 0 {
 		p.Limit = 25
@@ -142,7 +147,7 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 			infos[i] = reporef.ConvertToVersionInfo(&r)
 		}
 	} else if listProfile.Peername == "" || reqProfile.Peername == listProfile.Peername {
-		infos, err = base.ListDatasets(ctx, m.inst.repo, p.Term, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
+		infos, err = base.ListDatasets(ctx, m.inst.repo, p.Term, restrictPid, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
 		if errors.Is(err, ErrListWarning) {
 			listWarning = err
 			err = nil
