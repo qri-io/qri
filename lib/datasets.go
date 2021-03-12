@@ -431,52 +431,11 @@ type RenameParams struct {
 
 // Rename changes a user's given name for a dataset
 func (m *DatasetMethods) Rename(ctx context.Context, p *RenameParams) (*dsref.VersionInfo, error) {
-	if m.inst.http != nil {
-		res := &dsref.VersionInfo{}
-		err := m.inst.http.Call(ctx, AERename, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "rename"), p)
+	if res, ok := got.(*dsref.VersionInfo); ok {
+		return res, err
 	}
-
-	if p.Current == "" {
-		return nil, fmt.Errorf("current name is required to rename a dataset")
-	}
-
-	ref, err := dsref.ParseHumanFriendly(p.Current)
-	// Allow bad upper-case characters in the left-hand side name, because it's needed to let users
-	// fix badly named datasets.
-	if err != nil && err != dsref.ErrBadCaseName {
-		return nil, fmt.Errorf("original name: %w", err)
-	}
-	if _, err := m.inst.ResolveReference(ctx, &ref, "local"); err != nil {
-		return nil, err
-	}
-
-	next, err := dsref.ParseHumanFriendly(p.Next)
-	if errors.Is(err, dsref.ErrNotHumanFriendly) {
-		return nil, fmt.Errorf("destination name: %s", err)
-	} else if err != nil {
-		return nil, fmt.Errorf("destination name: %s", dsref.ErrDescribeValidName)
-	}
-	if ref.Username != next.Username && next.Username != "me" {
-		return nil, fmt.Errorf("cannot change username or profileID of a dataset")
-	}
-
-	// Update the reference stored in the repo
-	vi, err := base.RenameDatasetRef(ctx, m.inst.repo, ref, next.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	// If the dataset is linked to a working directory, update the ref
-	if vi.FSIPath != "" {
-		if _, err = m.inst.fsi.ModifyLinkReference(vi.FSIPath, vi.SimpleRef()); err != nil {
-			return nil, err
-		}
-	}
-	return vi, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // RemoveParams defines parameters for remove command
@@ -1712,7 +1671,43 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 
 // Rename changes a user's given name for a dataset
 func (datasetImpl) Rename(scope scope, p *RenameParams) (*dsref.VersionInfo, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	if p.Current == "" {
+		return nil, fmt.Errorf("current name is required to rename a dataset")
+	}
+
+	ref, err := dsref.ParseHumanFriendly(p.Current)
+	// Allow bad upper-case characters in the left-hand side name, because it's needed to let users
+	// fix badly named datasets.
+	if err != nil && err != dsref.ErrBadCaseName {
+		return nil, fmt.Errorf("original name: %w", err)
+	}
+	if _, err := scope.ResolveReference(scope.Context(), &ref, "local"); err != nil {
+		return nil, err
+	}
+
+	next, err := dsref.ParseHumanFriendly(p.Next)
+	if errors.Is(err, dsref.ErrNotHumanFriendly) {
+		return nil, fmt.Errorf("destination name: %w", err)
+	} else if err != nil {
+		return nil, fmt.Errorf("destination name: %w", dsref.ErrDescribeValidName)
+	}
+	if ref.Username != next.Username && next.Username != "me" {
+		return nil, fmt.Errorf("cannot change username or profileID of a dataset")
+	}
+
+	// Update the reference stored in the repo
+	vi, err := base.RenameDatasetRef(scope.Context(), scope.Repo(), ref, next.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the dataset is linked to a working directory, update the ref
+	if vi.FSIPath != "" {
+		if _, err = scope.FSISubsystem().ModifyLinkReference(vi.FSIPath, vi.SimpleRef()); err != nil {
+			return nil, err
+		}
+	}
+	return vi, nil
 }
 
 // Remove a dataset entirely or remove a certain number of revisions

@@ -142,6 +142,12 @@ func (s *scope) Repo() repo.Repo {
 	return s.inst.repo
 }
 
+// ResolveReference finds the identifier & HEAD path for a dataset reference.
+// the mode parameter determines which subsystems of Qri to use when resolving
+func (s *scope) ResolveReference(ctx context.Context, ref *dsref.Ref, mode string) (string, error) {
+	return s.inst.ResolveReference(ctx, ref, mode)
+}
+
 // ResolverForMode returns a resolver for a particular mode, options are:
 // "local", "network", "registry, "p2p", or "" for the default resolver
 func (s *scope) ResolverForMode(mode string) (dsref.Resolver, error) {

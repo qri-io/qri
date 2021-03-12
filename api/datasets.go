@@ -566,14 +566,16 @@ func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-
-	res, err := h.Rename(r.Context(), params)
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.rename", params)
 	if err != nil {
 		log.Infof("error renaming dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.RespondWithError(w, err)
 		return
 	}
-
+	res, ok := got.(*dsref.VersionInfo)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+	}
 	util.WriteResponse(w, res)
 }
 
