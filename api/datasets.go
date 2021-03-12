@@ -556,11 +556,15 @@ func (h DatasetHandlers) validateHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	res, err := h.Validate(r.Context(), params)
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.validate", params)
 	if err != nil {
 		log.Infof("error validating dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.RespondWithError(w, err)
 		return
+	}
+	res, ok := got.(*lib.ValidateResponse)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
 	}
 
 	util.WriteResponse(w, res)

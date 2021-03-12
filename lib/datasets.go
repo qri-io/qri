@@ -554,141 +554,11 @@ type ValidateResponse struct {
 
 // Validate gives a dataset of errors and issues for a given dataset
 func (m *DatasetMethods) Validate(ctx context.Context, p *ValidateParams) (*ValidateResponse, error) {
-	res := &ValidateResponse{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEValidate, p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "validate"), p)
+	if res, ok := got.(*ValidateResponse); ok {
+		return res, err
 	}
-
-	// Schema can come from either schema.json or structure.json, or the dataset itself.
-	// schemaFlagType determines which of these three contains the schema.
-	schemaFlagType := ""
-	schemaFilename := ""
-	if p.SchemaFilename != "" && p.StructureFilename != "" {
-		return nil, qrierr.New(ErrBadArgs, "cannot provide both --schema and --structure flags")
-	} else if p.SchemaFilename != "" {
-		schemaFlagType = "schema"
-		schemaFilename = p.SchemaFilename
-	} else if p.StructureFilename != "" {
-		schemaFlagType = "structure"
-		schemaFilename = p.StructureFilename
-	}
-
-	if p.Ref == "" && (p.BodyFilename == "" || schemaFlagType == "") {
-		return nil, qrierr.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
-	}
-
-	fsiPath := ""
-	var err error
-	ref := dsref.Ref{}
-
-	// if there is both a bodyfilename and a schema/structure
-	// we don't need to resolve any references
-	if p.BodyFilename == "" || schemaFlagType == "" {
-		// TODO (ramfox): we need consts in `dsref` for "local", "network", "p2p"
-		ref, _, err = m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
-		if err != nil {
-			return nil, err
-		}
-
-		if fsi.IsFSIPath(ref.Path) {
-			fsiPath = fsi.FilesystemPathToLocal(ref.Path)
-		}
-	}
-
-	var ds *dataset.Dataset
-
-	// TODO(dlong): This pattern has shown up many places, such as lib.Get.
-	// Should probably combine into a utility function.
-
-	if p.Ref != "" {
-		if fsiPath != "" {
-			if ds, err = fsi.ReadDir(fsiPath); err != nil {
-				return nil, fmt.Errorf("loading linked dataset: %w", err)
-			}
-		} else {
-			if ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), ref.Path); err != nil {
-				return nil, fmt.Errorf("loading dataset: %w", err)
-			}
-		}
-		if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
-			return nil, err
-		}
-	}
-
-	var body qfs.File
-	if p.BodyFilename == "" {
-		body = ds.BodyFile()
-	} else {
-		// Body is set to the provided filename if given
-		fs, err := localfs.NewFS(nil)
-		if err != nil {
-			return nil, fmt.Errorf("error creating new local filesystem: %w", err)
-		}
-		body, err = fs.Get(context.Background(), p.BodyFilename)
-		if err != nil {
-			return nil, fmt.Errorf("error opening body file %q: %w", p.BodyFilename, err)
-		}
-	}
-
-	var st *dataset.Structure
-	// Schema is set to the provided filename if given, otherwise the dataset's schema
-	if schemaFlagType == "" {
-		st = ds.Structure
-		if err := detect.Structure(ds); err != nil {
-			log.Debug("lib.Validate: InferStructure error: %w", err)
-			return nil, err
-		}
-	} else {
-		data, err := ioutil.ReadFile(schemaFilename)
-		if err != nil {
-			return nil, fmt.Errorf("error opening %s file: %s", schemaFlagType, schemaFilename)
-		}
-		var fileContent map[string]interface{}
-		err = json.Unmarshal(data, &fileContent)
-		if err != nil {
-			return nil, err
-		}
-		if schemaFlagType == "schema" {
-			// If dataset ref was provided, get format from the structure. Otherwise, assume the
-			// format by looking at the body file's extension.
-			var bodyFormat string
-			if ds != nil && ds.Structure != nil {
-				bodyFormat = ds.Structure.Format
-			} else {
-				bodyFormat = filepath.Ext(p.BodyFilename)
-				if strings.HasSuffix(bodyFormat, ".") {
-					bodyFormat = bodyFormat[1:]
-				}
-			}
-			st = &dataset.Structure{
-				Format: bodyFormat,
-				Schema: fileContent,
-			}
-		} else {
-			// schemaFlagType == "structure". Deserialize the provided file into a structure.
-			st = &dataset.Structure{}
-			err = fill.Struct(fileContent, st)
-			if err != nil {
-				return nil, err
-			}
-			// TODO(dlong): What happens if body file extension does not match st.Format?
-		}
-	}
-
-	valerrs, err := base.Validate(ctx, m.inst.repo, body, st)
-	if err != nil {
-		return nil, err
-	}
-
-	*res = ValidateResponse{
-		Structure: st,
-		Errors:    valerrs,
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // ManifestParams encapsulates parameters to the manifest command
@@ -1721,7 +1591,134 @@ func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
 
 // Validate gives a dataset of errors and issues for a given dataset
 func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &ValidateResponse{}
+
+	// Schema can come from either schema.json or structure.json, or the dataset itself.
+	// schemaFlagType determines which of these three contains the schema.
+	schemaFlagType := ""
+	schemaFilename := ""
+	if p.SchemaFilename != "" && p.StructureFilename != "" {
+		return nil, qrierr.New(ErrBadArgs, "cannot provide both --schema and --structure flags")
+	} else if p.SchemaFilename != "" {
+		schemaFlagType = "schema"
+		schemaFilename = p.SchemaFilename
+	} else if p.StructureFilename != "" {
+		schemaFlagType = "structure"
+		schemaFilename = p.StructureFilename
+	}
+
+	if p.Ref == "" && (p.BodyFilename == "" || schemaFlagType == "") {
+		return nil, qrierr.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
+	}
+
+	fsiPath := ""
+	var err error
+	ref := dsref.Ref{}
+
+	// if there is both a bodyfilename and a schema/structure
+	// we don't need to resolve any references
+	if p.BodyFilename == "" || schemaFlagType == "" {
+		// TODO (ramfox): we need consts in `dsref` for "local", "network", "p2p"
+		ref, _, err = scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref, "local")
+		if err != nil {
+			return nil, err
+		}
+
+		if fsi.IsFSIPath(ref.Path) {
+			fsiPath = fsi.FilesystemPathToLocal(ref.Path)
+		}
+	}
+
+	var ds *dataset.Dataset
+
+	// TODO(dlong): This pattern has shown up many places, such as lib.Get.
+	// Should probably combine into a utility function.
+
+	if p.Ref != "" {
+		if fsiPath != "" {
+			if ds, err = fsi.ReadDir(fsiPath); err != nil {
+				return nil, fmt.Errorf("loading linked dataset: %w", err)
+			}
+		} else {
+			if ds, err = dsfs.LoadDataset(scope.Context(), scope.Filesystem(), ref.Path); err != nil {
+				return nil, fmt.Errorf("loading dataset: %w", err)
+			}
+		}
+		if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
+			return nil, err
+		}
+	}
+
+	var body qfs.File
+	if p.BodyFilename == "" {
+		body = ds.BodyFile()
+	} else {
+		// Body is set to the provided filename if given
+		fs, err := localfs.NewFS(nil)
+		if err != nil {
+			return nil, fmt.Errorf("error creating new local filesystem: %w", err)
+		}
+		body, err = fs.Get(scope.Context(), p.BodyFilename)
+		if err != nil {
+			return nil, fmt.Errorf("error opening body file %q: %w", p.BodyFilename, err)
+		}
+	}
+
+	var st *dataset.Structure
+	// Schema is set to the provided filename if given, otherwise the dataset's schema
+	if schemaFlagType == "" {
+		st = ds.Structure
+		if err := detect.Structure(ds); err != nil {
+			log.Debug("lib.Validate: InferStructure error: %w", err)
+			return nil, err
+		}
+	} else {
+		data, err := ioutil.ReadFile(schemaFilename)
+		if err != nil {
+			return nil, fmt.Errorf("error opening %s file: %s", schemaFlagType, schemaFilename)
+		}
+		var fileContent map[string]interface{}
+		err = json.Unmarshal(data, &fileContent)
+		if err != nil {
+			return nil, err
+		}
+		if schemaFlagType == "schema" {
+			// If dataset ref was provided, get format from the structure. Otherwise, assume the
+			// format by looking at the body file's extension.
+			var bodyFormat string
+			if ds != nil && ds.Structure != nil {
+				bodyFormat = ds.Structure.Format
+			} else {
+				bodyFormat = filepath.Ext(p.BodyFilename)
+				if strings.HasSuffix(bodyFormat, ".") {
+					bodyFormat = bodyFormat[1:]
+				}
+			}
+			st = &dataset.Structure{
+				Format: bodyFormat,
+				Schema: fileContent,
+			}
+		} else {
+			// schemaFlagType == "structure". Deserialize the provided file into a structure.
+			st = &dataset.Structure{}
+			err = fill.Struct(fileContent, st)
+			if err != nil {
+				return nil, err
+			}
+			// TODO(dlong): What happens if body file extension does not match st.Format?
+		}
+	}
+
+	valerrs, err := base.Validate(scope.Context(), scope.Repo(), body, st)
+	if err != nil {
+		return nil, err
+	}
+
+	*res = ValidateResponse{
+		Structure: st,
+		Errors:    valerrs,
+	}
+	return res, nil
 }
 
 // Manifest generates a manifest for a dataset path

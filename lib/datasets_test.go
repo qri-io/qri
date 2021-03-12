@@ -1106,9 +1106,8 @@ Pirates of the Caribbean: At World's End ,foo
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewDatasetMethods(inst)
 	for i, c := range cases {
-		res, err := m.Validate(ctx, &c.p)
+		res, err := inst.Dataset().Validate(ctx, &c.p)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err.Error())
 			continue
@@ -1142,10 +1141,8 @@ func TestDatasetRequestsValidateFSI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m := NewDatasetMethods(tr.Instance)
-
 	vp := &ValidateParams{Ref: refstr}
-	if _, err := m.Validate(ctx, vp); err != nil {
+	if _, err := tr.Instance.Dataset().Validate(ctx, vp); err != nil {
 		t.Fatal(err)
 	}
 }
