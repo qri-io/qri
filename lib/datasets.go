@@ -1437,11 +1437,9 @@ func (m *DatasetMethods) Validate(ctx context.Context, p *ValidateParams) (*Vali
 	// Schema is set to the provided filename if given, otherwise the dataset's schema
 	if schemaFlagType == "" {
 		st = ds.Structure
-		if ds.Structure == nil || ds.Structure.Schema == nil {
-			if err := base.InferStructure(ds); err != nil {
-				log.Debug("lib.Validate: InferStructure error: %w", err)
-				return nil, err
-			}
+		if err := detect.Structure(ds); err != nil {
+			log.Debug("lib.Validate: InferStructure error: %w", err)
+			return nil, err
 		}
 	} else {
 		data, err := ioutil.ReadFile(schemaFilename)

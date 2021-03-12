@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/starlib/util"
@@ -310,6 +311,11 @@ func (d *Dataset) SetBody(thread *starlark.Thread, _ *starlark.Builtin, args sta
 		d.write.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", df), []byte(string(str))))
 		d.modBody = true
 		d.bodyCache = nil
+
+		if err := detect.Structure(d.write); err != nil {
+			return nil, err
+		}
+
 		return starlark.None, nil
 	}
 
@@ -324,7 +330,6 @@ func (d *Dataset) SetBody(thread *starlark.Thread, _ *starlark.Builtin, args sta
 	if err != nil {
 		return starlark.None, err
 	}
-
 	r := NewEntryReader(d.write.Structure, iter)
 	if err := dsio.Copy(r, w); err != nil {
 		return starlark.None, err

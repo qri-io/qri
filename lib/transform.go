@@ -7,7 +7,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/transform"
@@ -116,13 +115,6 @@ func (m *TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyRes
 	}
 
 	if p.Wait {
-		if ds.Structure == nil {
-			if err := base.InferStructure(ds); err != nil {
-				log.Debugw("inferring structure", "err", err)
-				return nil, err
-			}
-		}
-
 		ds, err := preview.Create(ctx, ds)
 		if err != nil {
 			return nil, err
