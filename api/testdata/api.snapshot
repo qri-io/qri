@@ -3876,12 +3876,12 @@ Connection: close
 }
 
 /* snapshot: TestDatasetHandlers remove mime/multipart case 0: POST /remove/peer/cities */
-HTTP/1.1 500 Internal Server Error
+HTTP/1.1 404 Not Found
 Connection: close
 
 {
   "meta": {
-    "code": 500,
+    "code": 404,
     "error": "reference not found"
   }
 }

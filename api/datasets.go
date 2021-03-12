@@ -509,8 +509,8 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	params := lib.RemoveParams{}
-	err := lib.UnmarshalParams(r, &params)
+	params := &lib.RemoveParams{}
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -530,14 +530,16 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 		util.WriteResponse(w, res)
 		return
 	}
-
-	res, err := h.Remove(r.Context(), &params)
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.remove", params)
 	if err != nil {
-		log.Infof("error deleting dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		log.Infof("error removing dataset: %s", err.Error())
+		util.RespondWithError(w, err)
 		return
 	}
-
+	res, ok := got.(*lib.RemoveResponse)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+	}
 	util.WriteResponse(w, res)
 }
 

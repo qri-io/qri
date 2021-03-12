@@ -493,179 +493,11 @@ var ErrCantRemoveDirectoryDirty = fmt.Errorf("cannot remove files while working 
 
 // Remove a dataset entirely or remove a certain number of revisions
 func (m *DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveResponse, error) {
-	res := &RemoveResponse{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AERemove, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "remove"), p)
+	if res, ok := got.(*RemoveResponse); ok {
+		return res, err
 	}
-
-	log.Debugf("Remove dataset ref %q, revisions %v", p.Ref, p.Revision)
-
-	if p.Revision.Gen == 0 {
-		return nil, fmt.Errorf("invalid number of revisions to delete: 0")
-	}
-	if p.Revision.Field != "ds" {
-		return nil, fmt.Errorf("can only remove whole dataset versions, not individual components")
-	}
-
-	ref, _, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
-	if err != nil {
-		log.Debugw("Remove, repo.ParseAndResolveRefWithWorkingDir failed", "err", err)
-		// TODO(b5): this "logbook.ErrNotFound" is needed to get cmd.TestRemoveEvenIfLogbookGone
-		// to pass. Relying on dataset resolution returning an error defined in logbook is incorrect
-		// This should really be checking for some sort of "can't fully resolve" error
-		// defined in dsref instead
-		if p.Force || errors.Is(err, logbook.ErrNotFound) {
-			didRemove, _ := base.RemoveEntireDataset(ctx, m.inst.repo, ref, []dsref.VersionInfo{})
-			if didRemove != "" {
-				log.Debugw("Remove cleaned up data found", "didRemove", didRemove)
-				res.Message = didRemove
-				return res, nil
-			}
-		}
-		return nil, err
-	}
-
-	res.Ref = ref.String()
-	var fsiPath string
-	if fsi.IsFSIPath(ref.Path) {
-		fsiPath = fsi.FilesystemPathToLocal(ref.Path)
-	}
-
-	if fsiPath != "" {
-		// Dataset is linked in a working directory.
-		if !(p.KeepFiles || p.Force) {
-			// Make sure that status is clean, otherwise, refuse to remove any revisions.
-			// Setting either --keep-files or --force will skip this check.
-			wdErr := m.inst.fsi.IsWorkingDirectoryClean(ctx, fsiPath)
-			if wdErr != nil {
-				if wdErr == fsi.ErrWorkingDirectoryDirty {
-					log.Debugf("Remove, IsWorkingDirectoryDirty")
-					return nil, ErrCantRemoveDirectoryDirty
-				}
-				if errors.Is(wdErr, fsi.ErrNoLink) || strings.Contains(wdErr.Error(), "not a linked directory") {
-					// If the working directory has been removed (or renamed), could not get the
-					// status. However, don't let this stop the remove operation, since the files
-					// are already gone, and therefore won't be removed.
-					log.Debugf("Remove, couldn't get status for %s, maybe removed or renamed", fsiPath)
-					wdErr = nil
-				} else {
-					log.Debugf("Remove, IsWorkingDirectoryClean error: %s", err)
-					return nil, wdErr
-				}
-			}
-		}
-	} else if p.KeepFiles {
-		// If dataset is not linked in a working directory, --keep-files can't be used.
-		return nil, fmt.Errorf("dataset is not linked to filesystem, cannot use keep-files")
-	}
-
-	// Get the revisions that will be deleted.
-	history, err := base.DatasetLog(ctx, m.inst.repo, ref, p.Revision.Gen+1, 0, false)
-	if err == nil && p.Revision.Gen >= len(history) {
-		// If the number of revisions to delete is greater than or equal to the amount in history,
-		// treat this operation as deleting everything.
-		p.Revision.Gen = dsref.AllGenerations
-	} else if err == repo.ErrNoHistory || errors.Is(err, dsref.ErrPathRequired) {
-		// If the dataset has no history, treat this operation as deleting everything.
-		p.Revision.Gen = dsref.AllGenerations
-	} else if err != nil {
-		log.Debugf("Remove, base.DatasetLog failed, error: %s", err)
-		// Set history to a list of 0 elements. In the rest of this function, certain operations
-		// check the history to figure out what to delete, they will always see a blank history,
-		// which is a safer option for a destructive option such as remove.
-		history = []dsref.VersionInfo{}
-	}
-
-	if p.Revision.Gen == dsref.AllGenerations {
-		// removing all revisions of a dataset must unlink it
-		if fsiPath != "" {
-			if err := m.inst.fsi.Unlink(ctx, fsiPath, ref); err == nil {
-				res.Unlinked = true
-			} else {
-				log.Errorf("during Remove, dataset did not unlink: %s", err)
-			}
-		}
-
-		didRemove, _ := base.RemoveEntireDataset(ctx, m.inst.repo, ref, history)
-		res.NumDeleted = dsref.AllGenerations
-		res.Message = didRemove
-
-		if fsiPath != "" && !p.KeepFiles {
-			// Remove all files
-			fsi.DeleteComponentFiles(fsiPath)
-			var err error
-			if p.Force {
-				err = m.inst.fsi.RemoveAll(fsiPath)
-			} else {
-				err = m.inst.fsi.Remove(fsiPath)
-			}
-			if err != nil {
-				if strings.Contains(err.Error(), "no such file or directory") {
-					// If the working directory has already been removed (or renamed), it is
-					// not an error that this remove operation fails, since we were trying to
-					// remove them anyway.
-					log.Debugf("Remove, couldn't remove %s, maybe already removed or renamed", fsiPath)
-					err = nil
-				} else {
-					log.Debugf("Remove, os.Remove failed, error: %s", err)
-					return nil, err
-				}
-			}
-		}
-	} else if len(history) > 0 {
-		if fsiPath != "" {
-			// if we're operating on an fsi-linked directory, we need to re-resolve to
-			// get the path on qfs. This could be avoided if we refactored ParseAndResolveRefWithWorkingDir
-			// to return an extra fsiPath value
-			qfsRef := ref.Copy()
-			qfsRef.Path = ""
-			if _, err := m.inst.ResolveReference(ctx, &qfsRef, "local"); err != nil {
-				return nil, err
-			}
-			ref = qfsRef
-		}
-		// Delete the specific number of revisions.
-		info, err := base.RemoveNVersionsFromStore(ctx, m.inst.repo, ref, p.Revision.Gen)
-		if err != nil {
-			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
-			return nil, err
-		}
-		res.NumDeleted = p.Revision.Gen
-
-		if info.FSIPath != "" && !p.KeepFiles {
-			// Load dataset version that is at head after newer versions are removed
-			ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), info.Path)
-			if err != nil {
-				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
-				return nil, err
-			}
-			ds.Name = info.Name
-			ds.Peername = info.Username
-			if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
-				log.Debugf("Remove, base.OpenDataset failed, error: %s", err)
-				return nil, err
-			}
-
-			// TODO(dlong): Add a method to FSI called ProjectOntoDirectory, use it here
-			// and also for Restore() in lib/fsi.go and also maybe WriteComponents in fsi/mapping.go
-
-			// Delete the old files
-			err = fsi.DeleteComponentFiles(info.FSIPath)
-			if err != nil {
-				log.Debug("Remove, fsi.DeleteComponentFiles failed, error: %s", err)
-			}
-
-			// Update the files in the working directory
-			fsi.WriteComponents(ds, info.FSIPath, m.inst.repo.Filesystem())
-		}
-	}
-	log.Debugf("Remove finished")
-
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // PullParams encapsulates parameters to the add command
@@ -1712,7 +1544,172 @@ func (datasetImpl) Rename(scope scope, p *RenameParams) (*dsref.VersionInfo, err
 
 // Remove a dataset entirely or remove a certain number of revisions
 func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &RemoveResponse{}
+	log.Debugf("Remove dataset ref %q, revisions %v", p.Ref, p.Revision)
+
+	if p.Revision.Gen == 0 {
+		return nil, fmt.Errorf("invalid number of revisions to delete: 0")
+	}
+	if p.Revision.Field != "ds" {
+		return nil, fmt.Errorf("can only remove whole dataset versions, not individual components")
+	}
+
+	ref, _, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref, "local")
+	if err != nil {
+		log.Debugw("Remove, repo.ParseAndResolveRefWithWorkingDir failed", "err", err)
+		// TODO(b5): this "logbook.ErrNotFound" is needed to get cmd.TestRemoveEvenIfLogbookGone
+		// to pass. Relying on dataset resolution returning an error defined in logbook is incorrect
+		// This should really be checking for some sort of "can't fully resolve" error
+		// defined in dsref instead
+		if p.Force || errors.Is(err, logbook.ErrNotFound) {
+			didRemove, _ := base.RemoveEntireDataset(scope.Context(), scope.Repo(), ref, []dsref.VersionInfo{})
+			if didRemove != "" {
+				log.Debugw("Remove cleaned up data found", "didRemove", didRemove)
+				res.Message = didRemove
+				return res, nil
+			}
+		}
+		return nil, err
+	}
+
+	res.Ref = ref.String()
+	var fsiPath string
+	if fsi.IsFSIPath(ref.Path) {
+		fsiPath = fsi.FilesystemPathToLocal(ref.Path)
+	}
+
+	if fsiPath != "" {
+		// Dataset is linked in a working directory.
+		if !(p.KeepFiles || p.Force) {
+			// Make sure that status is clean, otherwise, refuse to remove any revisions.
+			// Setting either --keep-files or --force will skip this check.
+			wdErr := scope.FSISubsystem().IsWorkingDirectoryClean(scope.Context(), fsiPath)
+			if wdErr != nil {
+				if wdErr == fsi.ErrWorkingDirectoryDirty {
+					log.Debugf("Remove, IsWorkingDirectoryDirty")
+					return nil, ErrCantRemoveDirectoryDirty
+				}
+				if errors.Is(wdErr, fsi.ErrNoLink) || strings.Contains(wdErr.Error(), "not a linked directory") {
+					// If the working directory has been removed (or renamed), could not get the
+					// status. However, don't let this stop the remove operation, since the files
+					// are already gone, and therefore won't be removed.
+					log.Debugf("Remove, couldn't get status for %s, maybe removed or renamed", fsiPath)
+					wdErr = nil
+				} else {
+					log.Debugf("Remove, IsWorkingDirectoryClean error: %s", err)
+					return nil, wdErr
+				}
+			}
+		}
+	} else if p.KeepFiles {
+		// If dataset is not linked in a working directory, --keep-files can't be used.
+		return nil, fmt.Errorf("dataset is not linked to filesystem, cannot use keep-files")
+	}
+
+	// Get the revisions that will be deleted.
+	history, err := base.DatasetLog(scope.Context(), scope.Repo(), ref, p.Revision.Gen+1, 0, false)
+	if err == nil && p.Revision.Gen >= len(history) {
+		// If the number of revisions to delete is greater than or equal to the amount in history,
+		// treat this operation as deleting everything.
+		p.Revision.Gen = dsref.AllGenerations
+	} else if err == repo.ErrNoHistory || errors.Is(err, dsref.ErrPathRequired) {
+		// If the dataset has no history, treat this operation as deleting everything.
+		p.Revision.Gen = dsref.AllGenerations
+	} else if err != nil {
+		log.Debugf("Remove, base.DatasetLog failed, error: %s", err)
+		// Set history to a list of 0 elements. In the rest of this function, certain operations
+		// check the history to figure out what to delete, they will always see a blank history,
+		// which is a safer option for a destructive option such as remove.
+		history = []dsref.VersionInfo{}
+	}
+
+	if p.Revision.Gen == dsref.AllGenerations {
+		// removing all revisions of a dataset must unlink it
+		if fsiPath != "" {
+			if err := scope.FSISubsystem().Unlink(scope.Context(), fsiPath, ref); err == nil {
+				res.Unlinked = true
+			} else {
+				log.Errorf("during Remove, dataset did not unlink: %s", err)
+			}
+		}
+
+		didRemove, _ := base.RemoveEntireDataset(scope.Context(), scope.Repo(), ref, history)
+		res.NumDeleted = dsref.AllGenerations
+		res.Message = didRemove
+
+		if fsiPath != "" && !p.KeepFiles {
+			// Remove all files
+			fsi.DeleteComponentFiles(fsiPath)
+			var err error
+			if p.Force {
+				err = scope.FSISubsystem().RemoveAll(fsiPath)
+			} else {
+				err = scope.FSISubsystem().Remove(fsiPath)
+			}
+			if err != nil {
+				if strings.Contains(err.Error(), "no such file or directory") {
+					// If the working directory has already been removed (or renamed), it is
+					// not an error that this remove operation fails, since we were trying to
+					// remove them anyway.
+					log.Debugf("Remove, couldn't remove %s, maybe already removed or renamed", fsiPath)
+					err = nil
+				} else {
+					log.Debugf("Remove, os.Remove failed, error: %s", err)
+					return nil, err
+				}
+			}
+		}
+	} else if len(history) > 0 {
+		if fsiPath != "" {
+			// if we're operating on an fsi-linked directory, we need to re-resolve to
+			// get the path on qfs. This could be avoided if we refactored ParseAndResolveRefWithWorkingDir
+			// to return an extra fsiPath value
+			qfsRef := ref.Copy()
+			qfsRef.Path = ""
+			if _, err := scope.ResolveReference(scope.Context(), &qfsRef, "local"); err != nil {
+				return nil, err
+			}
+			ref = qfsRef
+		}
+		// Delete the specific number of revisions.
+		info, err := base.RemoveNVersionsFromStore(scope.Context(), scope.Repo(), ref, p.Revision.Gen)
+		if err != nil {
+			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
+			return nil, err
+		}
+		res.NumDeleted = p.Revision.Gen
+
+		if info.FSIPath != "" && !p.KeepFiles {
+			// Load dataset version that is at head after newer versions are removed
+			ds, err := dsfs.LoadDataset(scope.Context(), scope.Filesystem(), info.Path)
+			if err != nil {
+				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
+				return nil, err
+			}
+			ds.Name = info.Name
+			ds.Peername = info.Username
+			if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
+				log.Debugf("Remove, base.OpenDataset failed, error: %s", err)
+				return nil, err
+			}
+
+			// TODO(dlong): Add a method to FSI called ProjectOntoDirectory, use it here
+			// and also for Restore() in lib/fsi.go and also maybe WriteComponents in fsi/mapping.go
+
+			// Delete the old files
+			err = fsi.DeleteComponentFiles(info.FSIPath)
+			if err != nil {
+				log.Debug("Remove, fsi.DeleteComponentFiles failed, error: %s", err)
+			}
+
+			// Update the files in the working directory
+			fsi.WriteComponents(ds, info.FSIPath, scope.Filesystem())
+		}
+	}
+	log.Debugf("Remove finished")
+
+	return res, nil
+
 }
 
 // Pull downloads and stores an existing dataset to a peer's repository via
