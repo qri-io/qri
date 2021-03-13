@@ -52,6 +52,11 @@ func (s *scope) Bus() event.Bus {
 	return s.inst.bus
 }
 
+// ChangeConfig implements the ConfigSetter interface
+func (s *scope) ChangeConfig(ctg *config.Config) error {
+	return s.inst.ChangeConfig(ctg)
+}
+
 // Config returns the config
 func (s *scope) Config() *config.Config {
 	return s.inst.cfg
@@ -93,7 +98,7 @@ func (s *scope) GetVersionInfoShim(ref dsref.Ref) (*dsref.VersionInfo, error) {
 }
 
 // Loader returns the instance
-func (s *scope) Loader() *Instance {
+func (s *scope) Loader() dsref.Loader {
 	return s.inst
 }
 

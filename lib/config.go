@@ -198,7 +198,7 @@ func (configImpl) SetConfig(scope scope, update *config.Config) (*bool, error) {
 		return &res, fmt.Errorf("validating config: %w", err)
 	}
 
-	if err := scope.Loader().ChangeConfig(update); err != nil {
+	if err := scope.ChangeConfig(update); err != nil {
 		return &res, err
 	}
 	res = true
