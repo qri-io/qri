@@ -228,18 +228,26 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if params.Raw {
 		got, _, err := h.inst.Dispatch(r.Context(), "dataset.listrawrefs", params)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
 		ok := false
 		resRaw, ok = got.(string)
-		if err != nil || !ok {
-			util.RespondWithError(w, err)
+		if !ok {
+			util.RespondWithDispatchTypeError(w, got)
 			return
 		}
 	} else {
 		got, _, err := h.inst.Dispatch(r.Context(), "dataset.list", params)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
 		ok := false
 		res, ok = got.([]dsref.VersionInfo)
-		if err != nil || !ok {
-			util.RespondWithError(w, err)
+		if !ok {
+			util.RespondWithDispatchTypeError(w, got)
 			return
 		}
 	}
@@ -276,9 +284,13 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	got, _, err := h.inst.Dispatch(r.Context(), "dataset.get", params)
-	res, ok := got.(*lib.GetResult)
-	if err != nil || !ok {
+	if err != nil {
 		util.RespondWithError(w, err)
+		return
+	}
+	res, ok := got.(*lib.GetResult)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
 		return
 	}
 	h.replyWithGetResponse(w, r, params, res)
@@ -470,12 +482,17 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	params.ScriptOutput = scriptOutput
 
 	got, _, err := h.inst.Dispatch(r.Context(), "dataset.save", params)
-	res, ok := got.(*dataset.Dataset)
-	if err != nil || !ok {
+	if err != nil {
 		log.Debugw("save dataset error", "err", err)
 		util.RespondWithError(w, err)
 		return
 	}
+	res, ok := got.(*dataset.Dataset)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+		return
+	}
+
 	// Don't leak paths across the API, it's possible they contain absolute paths or tmp dirs.
 	res.BodyPath = filepath.Base(res.BodyPath)
 
