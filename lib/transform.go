@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/base"
+	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/transform"
@@ -118,7 +118,8 @@ func (transformImpl) Apply(scp scope, p *ApplyParams) (*ApplyResult, error) {
 
 	res := &ApplyResult{}
 	if p.Wait {
-		if err = base.InlineJSONBody(ds); err != nil && err != base.ErrNoBodyToInline {
+		ds, err := preview.Create(ctx, ds)
+		if err != nil {
 			return nil, err
 		}
 		res.Data = ds

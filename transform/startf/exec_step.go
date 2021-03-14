@@ -9,7 +9,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	skyctx "github.com/qri-io/qri/transform/startf/context"
@@ -157,16 +156,6 @@ func (r *StepRunner) callTransformFunc(ctx context.Context, thread *starlark.Thr
 	d.SetMutable(ds)
 	if _, err = starlark.Call(thread, transform, starlark.Tuple{d.Methods(), r.starCtx.Struct()}, nil); err != nil {
 		return err
-	}
-
-	// TODO (b5) - this should happen in ds.set_body method call
-	if f := ds.BodyFile(); f != nil {
-		if ds.Structure == nil {
-			if err := base.InferStructure(ds); err != nil {
-				log.Debugw("inferring structure", "err", err)
-				return err
-			}
-		}
 	}
 
 	if r.eventsCh != nil {

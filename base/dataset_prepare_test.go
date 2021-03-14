@@ -104,60 +104,6 @@ func TestInferValues(t *testing.T) {
 	}
 }
 
-func TestInferStructure(t *testing.T) {
-	ds := &dataset.Dataset{
-		Name: "animals",
-	}
-	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
-		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
-
-	if err := InferStructure(ds); err != nil {
-		t.Error(err)
-	}
-
-	if ds.Structure.Format != "csv" {
-		t.Errorf("expected format CSV, got %s", ds.Structure.Format)
-	}
-	if ds.Structure.FormatConfig["headerRow"] != true {
-		t.Errorf("expected format config to set headerRow set to true")
-	}
-
-	actual := datasetSchemaToJSON(ds)
-	expect := `{"items":{"items":[{"title":"animal","type":"string"},{"title":"sound","type":"string"},{"title":"weight","type":"number"}],"type":"array"},"type":"array"}`
-
-	if expect != actual {
-		t.Errorf("mismatched schema, expected \"%s\", got \"%s\"", expect, actual)
-	}
-}
-
-func TestInferStructureSchema(t *testing.T) {
-	ds := &dataset.Dataset{
-		Name: "animals",
-		Structure: &dataset.Structure{
-			Format: "csv",
-		},
-	}
-	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
-		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
-	if err := InferStructure(ds); err != nil {
-		t.Error(err)
-	}
-
-	if ds.Structure.Format != "csv" {
-		t.Errorf("expected format CSV, got %s", ds.Structure.Format)
-	}
-	if ds.Structure.FormatConfig["headerRow"] != true {
-		t.Errorf("expected format config to set headerRow set to true")
-	}
-
-	actual := datasetSchemaToJSON(ds)
-	expect := `{"items":{"items":[{"title":"animal","type":"string"},{"title":"sound","type":"string"},{"title":"weight","type":"number"}],"type":"array"},"type":"array"}`
-
-	if expect != actual {
-		t.Errorf("mismatched schema, expected \"%s\", got \"%s\"", expect, actual)
-	}
-}
-
 func TestInferValuesDontOverwriteSchema(t *testing.T) {
 	r := newTestRepo(t)
 	pro := r.Profiles().Owner()
@@ -188,15 +134,15 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 	if ds.Structure.Format != "csv" {
 		t.Errorf("expected format CSV, got %s", ds.Structure.Format)
 	}
-	if ds.Structure.FormatConfig != nil {
-		t.Errorf("expected format config to be nil")
+	if ds.Structure.FormatConfig == nil {
+		t.Errorf("expected format config to be non-nil")
 	}
 
 	actual := datasetSchemaToJSON(ds)
 	expect := `{"items":{"items":[{"title":"animal","type":"number"},{"title":"noise","type":"number"},{"title":"height","type":"number"}],"type":"array"},"type":"array"}`
 
 	if expect != actual {
-		t.Errorf("mismatched schema, expected \"%s\", got \"%s\"", expect, actual)
+		t.Errorf("mismatched schema, expected %q, got %q", expect, actual)
 	}
 }
 

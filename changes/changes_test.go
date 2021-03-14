@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
@@ -743,7 +744,7 @@ func (run *testRunner) updateDataset(t *testing.T, ds *dataset.Dataset, newBody 
 
 	// force recalculate structure as that is what we rely on for the change reports
 	ds.Structure = nil
-	if err := base.InferStructure(ds); err != nil {
+	if err := detect.Structure(ds); err != nil {
 		t.Fatal(err.Error())
 	}
 
