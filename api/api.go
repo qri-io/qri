@@ -235,6 +235,7 @@ func NewServerRoutes(s Server) *mux.Router {
 
 	dsh := NewDatasetHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle(lib.AEList.String(), s.Middleware(dsh.ListHandler))
+	m.Handle(lib.AEListRaw.String(), s.Middleware(dsh.ListRawHandler))
 	m.Handle(lib.AEPeerList.String(), s.Middleware(dsh.PeerListHandler))
 	routeParams = newrefRouteParams(lib.AESave, false, false, http.MethodPost, http.MethodPut)
 	handleRefRoute(m, routeParams, s.Middleware(dsh.SaveHandler))

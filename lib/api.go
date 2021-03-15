@@ -65,6 +65,9 @@ const (
 
 	// dataset endpoints
 
+	// AEListRawl lists all datasets in your collection as a well formatted string
+	AEListRaw = APIEndpoint("/listraw")
+
 	// AEList lists all datasets in your collection
 	AEList = APIEndpoint("/list")
 	// AEPeerList lists all datasets in your

@@ -49,6 +49,20 @@ func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListRawHandler is a dataset list endpoint
+func (h *DatasetHandlers) ListRawHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet, http.MethodPost:
+		if h.ReadOnly {
+			readOnlyResponse(w, "/listraw")
+			return
+		}
+		h.listRawHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 // SaveHandler is a dataset save/update endpoint
 func (h *DatasetHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -223,55 +237,39 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resRaw := ""
-	res := []dsref.VersionInfo{}
-	var err error
-	if params.Raw {
-		got, _, err := h.inst.Dispatch(r.Context(), "dataset.listrawrefs", params)
-		if err != nil {
-			util.RespondWithError(w, err)
-			return
-		}
-		ok := false
-		resRaw, ok = got.(string)
-		if !ok {
-			util.RespondWithDispatchTypeError(w, got)
-			return
-		}
-	} else {
-		got, _, err := h.inst.Dispatch(r.Context(), "dataset.list", params)
-		if err != nil {
-			util.RespondWithError(w, err)
-			return
-		}
-		ok := false
-		res, ok = got.([]dsref.VersionInfo)
-		if !ok {
-			util.RespondWithDispatchTypeError(w, got)
-			return
-		}
-	}
-
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.list", params)
 	if err != nil {
-		if errors.Is(err, lib.ErrListWarning) {
-			log.Error(err)
-			err = nil
-		} else {
-			log.Infof("error listing datasets: %s", err.Error())
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
+		log.Infof("error listing datasets: %s", err.Error())
+		util.RespondWithError(w, err)
+		return
 	}
+	res, ok := got.([]dsref.VersionInfo)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+		return
+	}
+	util.WritePageResponse(w, res, r, params.Page())
+}
 
-	if params.Raw {
-		w.Header().Set("Content-Type", extensionToMimeType(".txt"))
-		w.Write([]byte(resRaw))
+func (h *DatasetHandlers) listRawHandler(w http.ResponseWriter, r *http.Request) {
+	params := &lib.ListParams{}
+	if err := lib.UnmarshalParams(r, params); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	if err := util.WritePageResponse(w, res, r, params.Page()); err != nil {
-		log.Infof("error list datasests response: %s", err.Error())
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.listrawrefs", params)
+	if err != nil {
+		util.RespondWithError(w, err)
+		return
 	}
+	res, ok := got.(string)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+		return
+	}
+	w.Header().Set("Content-Type", extensionToMimeType(".txt"))
+	w.Write([]byte(res))
 }
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
