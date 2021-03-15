@@ -1,13 +1,10 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/qri-io/qri/api/util"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/profile"
 )
 
 // PeerHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -54,8 +51,10 @@ func (h *PeerHandlers) PeerHandler(w http.ResponseWriter, r *http.Request) {
 // ConnectToPeerHandler is the endpoint for explicitly connecting to a peer
 func (h *PeerHandlers) ConnectToPeerHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodGet:
+	case http.MethodPost:
 		h.connectToPeerHandler(w, r)
+	case http.MethodDelete:
+		h.disconnectFromPeerHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -75,32 +74,43 @@ func (h *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
-	args := lib.ListParamsFromRequest(r)
-	// args.OrderBy = "created"
-	cached := util.ReqParamBool(r, "cached", false)
-
-	p := &lib.PeerListParams{
-		Limit:  args.Limit,
-		Offset: args.Offset,
-		Cached: cached,
+// QriConnectionsHandler is the endpoint for listing qri profile connections
+func (h *PeerHandlers) QriConnectionsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		if h.ReadOnly {
+			readOnlyResponse(w, "/connections/qri")
+			return
+		}
+		h.listQriConnectionsHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
 	}
-	res := []*config.ProfilePod{}
-	if err := h.List(p, &res); err != nil {
+}
+
+func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
+	params := &lib.PeerListParams{}
+	err := lib.UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	res, err := h.List(r.Context(), params)
+	if err != nil {
 		log.Infof("list peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WritePageResponse(w, res, r, args.Page())
+	page := util.NewPageFromOffsetAndLimit(params.Offset, params.Limit)
+	util.WritePageResponse(w, res, r, page)
 }
 
 func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Request) {
-	//limit := 0
-	// TODO: double check with @b5 on this change
-	listParams := lib.ListParamsFromRequest(r)
-	peers := []string{}
-
-	if err := h.ConnectedIPFSPeers(&listParams.Limit, &peers); err != nil {
+	// TODO(arqu): we don't utilize limit, but should
+	limit := -1
+	peers, err := h.ConnectedIPFSPeers(r.Context(), &limit)
+	if err != nil {
 		log.Infof("error showing connected peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -109,19 +119,28 @@ func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Req
 	util.WriteResponse(w, peers)
 }
 
+func (h *PeerHandlers) listQriConnectionsHandler(w http.ResponseWriter, r *http.Request) {
+	limit := util.ReqParamInt(r, "limit", 25)
+	peers, err := h.ConnectedQriProfiles(r.Context(), &limit)
+	if err != nil {
+		log.Infof("error showing connected qri profiles: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, peers)
+}
+
 func (h *PeerHandlers) peerHandler(w http.ResponseWriter, r *http.Request) {
-	proid := r.URL.Path[len("/peers/"):]
-	id, err := profile.IDB58Decode(proid)
+	params := &lib.PeerInfoParams{}
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	p := &lib.PeerInfoParams{
-		ProfileID: id,
-	}
-	res := &config.ProfilePod{}
-	if err := h.Info(p, res); err != nil {
+	res, err := h.Info(r.Context(), params)
+	if err != nil {
 		log.Infof("error getting peer info: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -131,19 +150,36 @@ func (h *PeerHandlers) peerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Request) {
-	arg := r.URL.Path[len("/connect/"):]
-	if len(arg) == 0 {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("invalid connect argument"))
+	params := &lib.PeerConnectionParamsPod{}
+	err := lib.UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	pcpod := lib.NewPeerConnectionParamsPod(arg)
 
-	res := &config.ProfilePod{}
-	if err := h.ConnectToPeer(pcpod, res); err != nil {
+	res, err := h.ConnectToPeer(r.Context(), params)
+	if err != nil {
 		log.Infof("error connecting to peer: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	util.WriteResponse(w, res)
+}
+
+func (h *PeerHandlers) disconnectFromPeerHandler(w http.ResponseWriter, r *http.Request) {
+	params := &lib.PeerConnectionParamsPod{}
+	err := lib.UnmarshalParams(r, params)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := h.DisconnectFromPeer(r.Context(), params); err != nil {
+		log.Infof("error connecting to peer: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, nil)
 }

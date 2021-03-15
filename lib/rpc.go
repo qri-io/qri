@@ -30,9 +30,7 @@ func init() {
 // Receivers returns a slice of CoreRequests that defines the full local
 // API of lib methods
 func Receivers(inst *Instance) []Methods {
-	return []Methods{
-		NewPeerMethods(inst),
-	}
+	return []Methods{}
 }
 
 // ServeRPC checks for a configured RPC port, and registers a listener if so

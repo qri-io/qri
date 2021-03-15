@@ -14,7 +14,6 @@ import (
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestPeerMethodsListNoConnection(t *testing.T) {
@@ -25,8 +24,7 @@ func TestPeerMethodsListNoConnection(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	req := NewPeerMethods(inst)
 	p := PeerListParams{}
-	got := []*config.ProfilePod{}
-	err := req.List(&p, &got)
+	_, err := req.List(ctx, &p)
 	if err == nil {
 		t.Errorf("error: req.List should have failed and returned an error")
 	} else if !strings.HasPrefix(err.Error(), "error: not connected") {
@@ -54,8 +52,7 @@ func TestPeerMethodsList(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
-		got := []*config.ProfilePod{}
-		err := m.List(c.p, &got)
+		_, err := m.List(ctx, c.p)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -80,8 +77,7 @@ func TestConnectedQriProfiles(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
-		got := []*config.ProfilePod{}
-		err := m.ConnectedQriProfiles(&c.limit, &got)
+		got, err := m.ConnectedQriProfiles(ctx, &c.limit)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -109,8 +105,7 @@ func TestConnectedIPFSPeers(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
-		got := []string{}
-		err := m.ConnectedIPFSPeers(&c.limit, &got)
+		got, err := m.ConnectedIPFSPeers(ctx, &c.limit)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -139,8 +134,7 @@ func TestInfo(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
-		got := config.ProfilePod{}
-		err := m.Info(&c.p, &got)
+		_, err := m.Info(ctx, &c.p)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -150,39 +144,6 @@ func TestInfo(t *testing.T) {
 		// 	t.Errorf("case %d reference count mismatch. expected: %d, got: %d", i, c.refCount, len(got))
 		// 	continue
 		// }
-	}
-}
-
-func TestGetReferences(t *testing.T) {
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-	cases := []struct {
-		p        PeerRefsParams
-		refCount int
-		err      string
-	}{
-		{PeerRefsParams{}, 0, "error decoding peer Id: failed to parse peer ID: cid too short"},
-		{PeerRefsParams{PeerID: "QmY1PxkV9t9RoBwtXHfue1Qf6iYob19nL6rDHuXxooAVZa"}, 0, "not connected to p2p network"},
-	}
-
-	node, err := newTestDisconnectedQriNode()
-	if err != nil {
-		t.Errorf("error creating qri node: %s", err)
-		return
-	}
-	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewPeerMethods(inst)
-	for i, c := range cases {
-		got := []reporef.DatasetRef{}
-		err := m.GetReferences(&c.p, &got)
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
-			continue
-		}
-		if len(got) != c.refCount {
-			t.Errorf("case %d reference count mismatch. expected: %d, got: %d", i, c.refCount, len(got))
-			continue
-		}
 	}
 }
 
