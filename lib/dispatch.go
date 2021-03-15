@@ -52,6 +52,14 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 		return nil, nil, fmt.Errorf("instance is nil, cannot dispatch")
 	}
 
+	// If the input parameters has a Validate method, call it
+	if validator, ok := param.(ParamValidator); ok {
+		err = validator.Validate()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
 	// If the http rpc layer is engaged, use it to dispatch methods
 	// This happens when another process is running `qri connect`
 	if inst.http != nil {
@@ -148,6 +156,12 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 		return nil, nil, fmt.Errorf("last return value should be an error, got: %v", errVal)
 	}
 	return nil, nil, fmt.Errorf("method %q not found", method)
+}
+
+// ParamValidator may be implemented by method parameter structs, and if so
+// then Dispatch will validate the parameters are okay before calling anything
+type ParamValidator interface {
+	Validate() error
 }
 
 // NewInputParam takes a method name that has been registered, and constructs

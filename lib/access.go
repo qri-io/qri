@@ -66,12 +66,6 @@ func (accessImpl) CreateAuthToken(scp scope, p *CreateAuthTokenParams) (string, 
 		grantee *profile.Profile
 		err     error
 	)
-	// TODO(b5): it'd be great if dispatch checked if input params implemented
-	// a "validator" interface & auto-called validate *before* dispatching.
-	// would save an HTTP call in RPC-style contexts.
-	if err = p.Validate(); err != nil {
-		return "", err
-	}
 
 	if p.GranteeProfileID != "" {
 		id, err := profile.IDB58Decode(p.GranteeProfileID)
