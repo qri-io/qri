@@ -74,7 +74,7 @@ func RespondWithError(w http.ResponseWriter, err error) {
 	return
 }
 
-// RespondWithDispatchTypeError(w http.ResponseWriter, got
+// RespondWithDispatchTypeError writes an error describing a type mismatch error from using dispatch
 func RespondWithDispatchTypeError(w http.ResponseWriter, got interface{}) {
 	log.Errorf("type mismatch: %v of type %s", got, reflect.TypeOf(got))
 	WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("type mismatch: %v of type %s", got, reflect.TypeOf(got)))
