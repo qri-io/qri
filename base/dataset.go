@@ -157,7 +157,7 @@ func CloseDataset(ds *dataset.Dataset) (err error) {
 }
 
 // ListDatasets lists datasets from a repo
-func ListDatasets(ctx context.Context, r repo.Repo, term string, offset, limit int, RPC, publishedOnly, showVersions bool) (res []reporef.DatasetRef, err error) {
+func ListDatasets(ctx context.Context, r repo.Repo, term, profileID string, offset, limit int, RPC, publishedOnly, showVersions bool) ([]dsref.VersionInfo, error) {
 	fs := r.Filesystem()
 	num, err := r.RefCount()
 	if err != nil {
@@ -166,34 +166,34 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, offset, limit i
 	if limit < 0 {
 		limit = num
 	}
-	res, err = r.References(0, num)
+	refs, err := r.References(0, num)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error getting dataset list: %s", err.Error())
 	}
 
 	if publishedOnly {
-		pub := make([]reporef.DatasetRef, len(res))
+		pub := make([]reporef.DatasetRef, len(refs))
 		i := 0
-		for _, ref := range res {
+		for _, ref := range refs {
 			if ref.Published {
 				pub[i] = ref
 				i++
 			}
 		}
-		res = pub[:i]
+		refs = pub[:i]
 	}
 	// if offset is too high, return empty list
-	if offset >= len(res) {
-		return []reporef.DatasetRef{}, nil
+	if offset >= len(refs) {
+		return []dsref.VersionInfo{}, nil
 	}
-	res = res[offset:]
+	refs = refs[offset:]
 
 	// Collect references that get resolved and match any given filters
-	matches := make([]reporef.DatasetRef, 0, len(res))
+	matches := make([]dsref.VersionInfo, 0, len(refs))
 	hasUnlistableRefs := false
 
-	for _, ref := range res {
+	for _, ref := range refs {
 		if pros, err := r.Profiles().ProfilesForUsername(ref.Peername); err != nil || len(pros) > 1 {
 			// This occurs when two profileIDs map to the same username, which can happen
 			// when a user creates a new profile using an old username. We should ignore
@@ -206,6 +206,11 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, offset, limit i
 		if term != "" {
 			// If this operation has a term to filter on, skip references that don't match
 			if !strings.Contains(ref.AliasString(), term) {
+				continue
+			}
+		}
+		if profileID != "" {
+			if profileID != ref.ProfileID.String() {
 				continue
 			}
 		}
@@ -236,21 +241,20 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, offset, limit i
 			}
 		}
 
-		matches = append(matches, ref)
+		matches = append(matches, reporef.ConvertToVersionInfo(&ref))
 	}
 
 	if limit < len(matches) {
 		matches = matches[:limit]
 	}
-	res = matches
 
 	// If some references could not be listed, return the other, valid references
 	// and return a known error, which callers can handle as desired.
 	if hasUnlistableRefs {
-		return res, ErrUnlistableReferences
+		return matches, ErrUnlistableReferences
 	}
 
-	return res, nil
+	return matches, nil
 }
 
 // RawDatasetRefs converts the dataset refs to a string
