@@ -67,3 +67,18 @@ def transform(ds,ctx):
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
 }
+
+func TestApplyTransformValidationFailure(t *testing.T) {
+	tr := newTestRunner(t)
+	defer tr.Delete()
+
+	params := ApplyParams{}
+	_, err := tr.Instance.Transform().Apply(tr.Ctx, &params)
+	if err == nil {
+		t.Fatal("expected err but did not get one")
+	}
+	expectErr := "one or both of Reference, Transform are required"
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
+	}
+}

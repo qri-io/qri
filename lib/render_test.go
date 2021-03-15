@@ -239,3 +239,22 @@ func TestRenderReadme(t *testing.T) {
 		t.Errorf("expected RenderReadme with both ref & dataset to error")
 	}
 }
+
+func TestRenderValidationFailure(t *testing.T) {
+	runner := newRenderTestRunner(t, "render_readme")
+	defer runner.Delete()
+
+	params := RenderParams{
+		Ref:     "peer/my_dataset",
+		Dataset: &dataset.Dataset{},
+		Format:  "html",
+	}
+	_, err := runner.RenderMethods.RenderReadme(runner.Context, &params)
+	if err == nil {
+		t.Fatal("expected err but did not get one")
+	}
+	expectErr := "cannot provide both a reference and a dataset to render"
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
+	}
+}

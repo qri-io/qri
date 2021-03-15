@@ -107,6 +107,7 @@ func (m *RenderMethods) RenderViz(ctx context.Context, p *RenderParams) ([]byte,
 		return bres.Bytes(), nil
 	}
 
+	// TODO(dustmop): Remove this once scope is used here, Dispatch will call Validate
 	if err := p.Validate(); err != nil {
 		return nil, err
 	}
