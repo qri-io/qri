@@ -58,13 +58,6 @@ func (inst *Instance) Dataset() *DatasetMethods {
 // ErrListWarning is a warning that can occur while listing
 var ErrListWarning = base.ErrUnlistableReferences
 
-// NewDatasetMethods creates a DatasetMethods pointer from a qri instance
-func NewDatasetMethods(inst *Instance) *DatasetMethods {
-	return &DatasetMethods{
-		inst: inst,
-	}
-}
-
 // List gets the reflist for either the local repo or a peer
 func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "list"), p)
@@ -431,52 +424,11 @@ type RenameParams struct {
 
 // Rename changes a user's given name for a dataset
 func (m *DatasetMethods) Rename(ctx context.Context, p *RenameParams) (*dsref.VersionInfo, error) {
-	if m.inst.http != nil {
-		res := &dsref.VersionInfo{}
-		err := m.inst.http.Call(ctx, AERename, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "rename"), p)
+	if res, ok := got.(*dsref.VersionInfo); ok {
+		return res, err
 	}
-
-	if p.Current == "" {
-		return nil, fmt.Errorf("current name is required to rename a dataset")
-	}
-
-	ref, err := dsref.ParseHumanFriendly(p.Current)
-	// Allow bad upper-case characters in the left-hand side name, because it's needed to let users
-	// fix badly named datasets.
-	if err != nil && err != dsref.ErrBadCaseName {
-		return nil, fmt.Errorf("original name: %w", err)
-	}
-	if _, err := m.inst.ResolveReference(ctx, &ref, "local"); err != nil {
-		return nil, err
-	}
-
-	next, err := dsref.ParseHumanFriendly(p.Next)
-	if errors.Is(err, dsref.ErrNotHumanFriendly) {
-		return nil, fmt.Errorf("destination name: %s", err)
-	} else if err != nil {
-		return nil, fmt.Errorf("destination name: %s", dsref.ErrDescribeValidName)
-	}
-	if ref.Username != next.Username && next.Username != "me" {
-		return nil, fmt.Errorf("cannot change username or profileID of a dataset")
-	}
-
-	// Update the reference stored in the repo
-	vi, err := base.RenameDatasetRef(ctx, m.inst.repo, ref, next.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	// If the dataset is linked to a working directory, update the ref
-	if vi.FSIPath != "" {
-		if _, err = m.inst.fsi.ModifyLinkReference(vi.FSIPath, vi.SimpleRef()); err != nil {
-			return nil, err
-		}
-	}
-	return vi, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // RemoveParams defines parameters for remove command
@@ -534,179 +486,11 @@ var ErrCantRemoveDirectoryDirty = fmt.Errorf("cannot remove files while working 
 
 // Remove a dataset entirely or remove a certain number of revisions
 func (m *DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveResponse, error) {
-	res := &RemoveResponse{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AERemove, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "remove"), p)
+	if res, ok := got.(*RemoveResponse); ok {
+		return res, err
 	}
-
-	log.Debugf("Remove dataset ref %q, revisions %v", p.Ref, p.Revision)
-
-	if p.Revision.Gen == 0 {
-		return nil, fmt.Errorf("invalid number of revisions to delete: 0")
-	}
-	if p.Revision.Field != "ds" {
-		return nil, fmt.Errorf("can only remove whole dataset versions, not individual components")
-	}
-
-	ref, _, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
-	if err != nil {
-		log.Debugw("Remove, repo.ParseAndResolveRefWithWorkingDir failed", "err", err)
-		// TODO(b5): this "logbook.ErrNotFound" is needed to get cmd.TestRemoveEvenIfLogbookGone
-		// to pass. Relying on dataset resolution returning an error defined in logbook is incorrect
-		// This should really be checking for some sort of "can't fully resolve" error
-		// defined in dsref instead
-		if p.Force || errors.Is(err, logbook.ErrNotFound) {
-			didRemove, _ := base.RemoveEntireDataset(ctx, m.inst.repo, ref, []dsref.VersionInfo{})
-			if didRemove != "" {
-				log.Debugw("Remove cleaned up data found", "didRemove", didRemove)
-				res.Message = didRemove
-				return res, nil
-			}
-		}
-		return nil, err
-	}
-
-	res.Ref = ref.String()
-	var fsiPath string
-	if fsi.IsFSIPath(ref.Path) {
-		fsiPath = fsi.FilesystemPathToLocal(ref.Path)
-	}
-
-	if fsiPath != "" {
-		// Dataset is linked in a working directory.
-		if !(p.KeepFiles || p.Force) {
-			// Make sure that status is clean, otherwise, refuse to remove any revisions.
-			// Setting either --keep-files or --force will skip this check.
-			wdErr := m.inst.fsi.IsWorkingDirectoryClean(ctx, fsiPath)
-			if wdErr != nil {
-				if wdErr == fsi.ErrWorkingDirectoryDirty {
-					log.Debugf("Remove, IsWorkingDirectoryDirty")
-					return nil, ErrCantRemoveDirectoryDirty
-				}
-				if errors.Is(wdErr, fsi.ErrNoLink) || strings.Contains(wdErr.Error(), "not a linked directory") {
-					// If the working directory has been removed (or renamed), could not get the
-					// status. However, don't let this stop the remove operation, since the files
-					// are already gone, and therefore won't be removed.
-					log.Debugf("Remove, couldn't get status for %s, maybe removed or renamed", fsiPath)
-					wdErr = nil
-				} else {
-					log.Debugf("Remove, IsWorkingDirectoryClean error: %s", err)
-					return nil, wdErr
-				}
-			}
-		}
-	} else if p.KeepFiles {
-		// If dataset is not linked in a working directory, --keep-files can't be used.
-		return nil, fmt.Errorf("dataset is not linked to filesystem, cannot use keep-files")
-	}
-
-	// Get the revisions that will be deleted.
-	history, err := base.DatasetLog(ctx, m.inst.repo, ref, p.Revision.Gen+1, 0, false)
-	if err == nil && p.Revision.Gen >= len(history) {
-		// If the number of revisions to delete is greater than or equal to the amount in history,
-		// treat this operation as deleting everything.
-		p.Revision.Gen = dsref.AllGenerations
-	} else if err == repo.ErrNoHistory || errors.Is(err, dsref.ErrPathRequired) {
-		// If the dataset has no history, treat this operation as deleting everything.
-		p.Revision.Gen = dsref.AllGenerations
-	} else if err != nil {
-		log.Debugf("Remove, base.DatasetLog failed, error: %s", err)
-		// Set history to a list of 0 elements. In the rest of this function, certain operations
-		// check the history to figure out what to delete, they will always see a blank history,
-		// which is a safer option for a destructive option such as remove.
-		history = []dsref.VersionInfo{}
-	}
-
-	if p.Revision.Gen == dsref.AllGenerations {
-		// removing all revisions of a dataset must unlink it
-		if fsiPath != "" {
-			if err := m.inst.fsi.Unlink(ctx, fsiPath, ref); err == nil {
-				res.Unlinked = true
-			} else {
-				log.Errorf("during Remove, dataset did not unlink: %s", err)
-			}
-		}
-
-		didRemove, _ := base.RemoveEntireDataset(ctx, m.inst.repo, ref, history)
-		res.NumDeleted = dsref.AllGenerations
-		res.Message = didRemove
-
-		if fsiPath != "" && !p.KeepFiles {
-			// Remove all files
-			fsi.DeleteComponentFiles(fsiPath)
-			var err error
-			if p.Force {
-				err = m.inst.fsi.RemoveAll(fsiPath)
-			} else {
-				err = m.inst.fsi.Remove(fsiPath)
-			}
-			if err != nil {
-				if strings.Contains(err.Error(), "no such file or directory") {
-					// If the working directory has already been removed (or renamed), it is
-					// not an error that this remove operation fails, since we were trying to
-					// remove them anyway.
-					log.Debugf("Remove, couldn't remove %s, maybe already removed or renamed", fsiPath)
-					err = nil
-				} else {
-					log.Debugf("Remove, os.Remove failed, error: %s", err)
-					return nil, err
-				}
-			}
-		}
-	} else if len(history) > 0 {
-		if fsiPath != "" {
-			// if we're operating on an fsi-linked directory, we need to re-resolve to
-			// get the path on qfs. This could be avoided if we refactored ParseAndResolveRefWithWorkingDir
-			// to return an extra fsiPath value
-			qfsRef := ref.Copy()
-			qfsRef.Path = ""
-			if _, err := m.inst.ResolveReference(ctx, &qfsRef, "local"); err != nil {
-				return nil, err
-			}
-			ref = qfsRef
-		}
-		// Delete the specific number of revisions.
-		info, err := base.RemoveNVersionsFromStore(ctx, m.inst.repo, ref, p.Revision.Gen)
-		if err != nil {
-			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
-			return nil, err
-		}
-		res.NumDeleted = p.Revision.Gen
-
-		if info.FSIPath != "" && !p.KeepFiles {
-			// Load dataset version that is at head after newer versions are removed
-			ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), info.Path)
-			if err != nil {
-				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
-				return nil, err
-			}
-			ds.Name = info.Name
-			ds.Peername = info.Username
-			if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
-				log.Debugf("Remove, base.OpenDataset failed, error: %s", err)
-				return nil, err
-			}
-
-			// TODO(dlong): Add a method to FSI called ProjectOntoDirectory, use it here
-			// and also for Restore() in lib/fsi.go and also maybe WriteComponents in fsi/mapping.go
-
-			// Delete the old files
-			err = fsi.DeleteComponentFiles(info.FSIPath)
-			if err != nil {
-				log.Debug("Remove, fsi.DeleteComponentFiles failed, error: %s", err)
-			}
-
-			// Update the files in the working directory
-			fsi.WriteComponents(ds, info.FSIPath, m.inst.repo.Filesystem())
-		}
-	}
-	log.Debugf("Remove finished")
-
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // PullParams encapsulates parameters to the add command
@@ -732,45 +516,11 @@ func (m *DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Data
 	if err := qfs.AbsPath(&p.LinkDir); err != nil {
 		return nil, err
 	}
-	res := &dataset.Dataset{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEPull, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "pull"), p)
+	if res, ok := got.(*dataset.Dataset); ok {
+		return res, err
 	}
-
-	source := p.Remote
-	if source == "" {
-		source = "network"
-	}
-
-	ref, source, err := m.inst.ParseAndResolveRef(ctx, p.Ref, source)
-	if err != nil {
-		log.Debugf("resolving reference: %s", err)
-		return nil, err
-	}
-
-	ds, err := m.inst.remoteClient.PullDataset(ctx, &ref, source)
-	if err != nil {
-		log.Debugf("pulling dataset: %s", err)
-		return nil, err
-	}
-
-	*res = *ds
-
-	if p.LinkDir != "" {
-		checkoutp := &LinkParams{
-			Refstr: ref.Human(),
-			Dir:    p.LinkDir,
-		}
-		if err = m.inst.Filesys().Checkout(ctx, checkoutp); err != nil {
-			return nil, err
-		}
-	}
-
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // ValidateParams defines parameters for dataset data validation
@@ -800,141 +550,11 @@ type ValidateResponse struct {
 
 // Validate gives a dataset of errors and issues for a given dataset
 func (m *DatasetMethods) Validate(ctx context.Context, p *ValidateParams) (*ValidateResponse, error) {
-	res := &ValidateResponse{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEValidate, p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "validate"), p)
+	if res, ok := got.(*ValidateResponse); ok {
+		return res, err
 	}
-
-	// Schema can come from either schema.json or structure.json, or the dataset itself.
-	// schemaFlagType determines which of these three contains the schema.
-	schemaFlagType := ""
-	schemaFilename := ""
-	if p.SchemaFilename != "" && p.StructureFilename != "" {
-		return nil, qrierr.New(ErrBadArgs, "cannot provide both --schema and --structure flags")
-	} else if p.SchemaFilename != "" {
-		schemaFlagType = "schema"
-		schemaFilename = p.SchemaFilename
-	} else if p.StructureFilename != "" {
-		schemaFlagType = "structure"
-		schemaFilename = p.StructureFilename
-	}
-
-	if p.Ref == "" && (p.BodyFilename == "" || schemaFlagType == "") {
-		return nil, qrierr.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
-	}
-
-	fsiPath := ""
-	var err error
-	ref := dsref.Ref{}
-
-	// if there is both a bodyfilename and a schema/structure
-	// we don't need to resolve any references
-	if p.BodyFilename == "" || schemaFlagType == "" {
-		// TODO (ramfox): we need consts in `dsref` for "local", "network", "p2p"
-		ref, _, err = m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Ref, "local")
-		if err != nil {
-			return nil, err
-		}
-
-		if fsi.IsFSIPath(ref.Path) {
-			fsiPath = fsi.FilesystemPathToLocal(ref.Path)
-		}
-	}
-
-	var ds *dataset.Dataset
-
-	// TODO(dlong): This pattern has shown up many places, such as lib.Get.
-	// Should probably combine into a utility function.
-
-	if p.Ref != "" {
-		if fsiPath != "" {
-			if ds, err = fsi.ReadDir(fsiPath); err != nil {
-				return nil, fmt.Errorf("loading linked dataset: %w", err)
-			}
-		} else {
-			if ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), ref.Path); err != nil {
-				return nil, fmt.Errorf("loading dataset: %w", err)
-			}
-		}
-		if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
-			return nil, err
-		}
-	}
-
-	var body qfs.File
-	if p.BodyFilename == "" {
-		body = ds.BodyFile()
-	} else {
-		// Body is set to the provided filename if given
-		fs, err := localfs.NewFS(nil)
-		if err != nil {
-			return nil, fmt.Errorf("error creating new local filesystem: %w", err)
-		}
-		body, err = fs.Get(context.Background(), p.BodyFilename)
-		if err != nil {
-			return nil, fmt.Errorf("error opening body file %q: %w", p.BodyFilename, err)
-		}
-	}
-
-	var st *dataset.Structure
-	// Schema is set to the provided filename if given, otherwise the dataset's schema
-	if schemaFlagType == "" {
-		st = ds.Structure
-		if err := detect.Structure(ds); err != nil {
-			log.Debug("lib.Validate: InferStructure error: %w", err)
-			return nil, err
-		}
-	} else {
-		data, err := ioutil.ReadFile(schemaFilename)
-		if err != nil {
-			return nil, fmt.Errorf("error opening %s file: %s", schemaFlagType, schemaFilename)
-		}
-		var fileContent map[string]interface{}
-		err = json.Unmarshal(data, &fileContent)
-		if err != nil {
-			return nil, err
-		}
-		if schemaFlagType == "schema" {
-			// If dataset ref was provided, get format from the structure. Otherwise, assume the
-			// format by looking at the body file's extension.
-			var bodyFormat string
-			if ds != nil && ds.Structure != nil {
-				bodyFormat = ds.Structure.Format
-			} else {
-				bodyFormat = filepath.Ext(p.BodyFilename)
-				if strings.HasSuffix(bodyFormat, ".") {
-					bodyFormat = bodyFormat[1:]
-				}
-			}
-			st = &dataset.Structure{
-				Format: bodyFormat,
-				Schema: fileContent,
-			}
-		} else {
-			// schemaFlagType == "structure". Deserialize the provided file into a structure.
-			st = &dataset.Structure{}
-			err = fill.Struct(fileContent, st)
-			if err != nil {
-				return nil, err
-			}
-			// TODO(dlong): What happens if body file extension does not match st.Format?
-		}
-	}
-
-	valerrs, err := base.Validate(ctx, m.inst.repo, body, st)
-	if err != nil {
-		return nil, err
-	}
-
-	*res = ValidateResponse{
-		Structure: st,
-		Errors:    valerrs,
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // ManifestParams encapsulates parameters to the manifest command
@@ -944,25 +564,11 @@ type ManifestParams struct {
 
 // Manifest generates a manifest for a dataset path
 func (m *DatasetMethods) Manifest(ctx context.Context, p *ManifestParams) (*dag.Manifest, error) {
-	res := &dag.Manifest{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEManifest, p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "manifest"), p)
+	if res, ok := got.(*dag.Manifest); ok {
+		return res, err
 	}
-
-	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Refstr, "local")
-	if err != nil {
-		return nil, err
-	}
-
-	res, err = m.inst.node.NewManifest(ctx, ref.Path)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // ManifestMissingParams encapsulates parameters to the missing manifest command
@@ -972,20 +578,11 @@ type ManifestMissingParams struct {
 
 // ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
 func (m *DatasetMethods) ManifestMissing(ctx context.Context, p *ManifestMissingParams) (*dag.Manifest, error) {
-	res := &dag.Manifest{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEManifestMissing, p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "manifestmissing"), p)
+	if res, ok := got.(*dag.Manifest); ok {
+		return res, err
 	}
-
-	res, err := m.inst.node.MissingManifest(ctx, p.Manifest)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // DAGInfoParams defines parameters for the DAGInfo method
@@ -995,25 +592,11 @@ type DAGInfoParams struct {
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
 func (m *DatasetMethods) DAGInfo(ctx context.Context, p *DAGInfoParams) (*dag.Info, error) {
-	res := &dag.Info{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEDAGInfo, p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "daginfo"), p)
+	if res, ok := got.(*dag.Info); ok {
+		return res, err
 	}
-
-	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.RefStr, "local")
-	if err != nil {
-		return nil, err
-	}
-
-	res, err = m.inst.node.NewDAGInfo(ctx, ref.Path, p.Label)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // StatsParams defines the params for a Stats request
@@ -1027,36 +610,11 @@ type StatsParams struct {
 
 // Stats generates stats for a dataset
 func (m *DatasetMethods) Stats(ctx context.Context, p *StatsParams) (*dataset.Stats, error) {
-	if m.inst.http != nil {
-		res := &dataset.Stats{}
-		params := &GetParams{
-			Refstr:   p.Refstr,
-			Selector: "stats",
-		}
-		err := m.inst.http.Call(ctx, AEGet, params, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "stats"), p)
+	if res, ok := got.(*dataset.Stats); ok {
+		return res, err
 	}
-
-	if p.Refstr == "" && p.Dataset == nil {
-		return nil, fmt.Errorf("either a reference or dataset is required")
-	}
-
-	ds := p.Dataset
-	if ds == nil {
-		// TODO (b5) - stats is currently local-only, supply a source parameter
-		ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, "local")
-		if err != nil {
-			return nil, err
-		}
-		if ds, err = m.inst.LoadDataset(ctx, ref, source); err != nil {
-			return nil, err
-		}
-	}
-
-	return m.inst.stats.Stats(ctx, ds)
+	return nil, dispatchReturnError(got, err)
 }
 
 // formFileDataset extracts a dataset document from a http Request
@@ -1712,41 +1270,446 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 
 // Rename changes a user's given name for a dataset
 func (datasetImpl) Rename(scope scope, p *RenameParams) (*dsref.VersionInfo, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	if p.Current == "" {
+		return nil, fmt.Errorf("current name is required to rename a dataset")
+	}
+
+	ref, err := dsref.ParseHumanFriendly(p.Current)
+	// Allow bad upper-case characters in the left-hand side name, because it's needed to let users
+	// fix badly named datasets.
+	if err != nil && err != dsref.ErrBadCaseName {
+		return nil, fmt.Errorf("original name: %w", err)
+	}
+	if _, err := scope.ResolveReference(scope.Context(), &ref, "local"); err != nil {
+		return nil, err
+	}
+
+	next, err := dsref.ParseHumanFriendly(p.Next)
+	if errors.Is(err, dsref.ErrNotHumanFriendly) {
+		return nil, fmt.Errorf("destination name: %w", err)
+	} else if err != nil {
+		return nil, fmt.Errorf("destination name: %w", dsref.ErrDescribeValidName)
+	}
+	if ref.Username != next.Username && next.Username != "me" {
+		return nil, fmt.Errorf("cannot change username or profileID of a dataset")
+	}
+
+	// Update the reference stored in the repo
+	vi, err := base.RenameDatasetRef(scope.Context(), scope.Repo(), ref, next.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the dataset is linked to a working directory, update the ref
+	if vi.FSIPath != "" {
+		if _, err = scope.FSISubsystem().ModifyLinkReference(vi.FSIPath, vi.SimpleRef()); err != nil {
+			return nil, err
+		}
+	}
+	return vi, nil
 }
 
 // Remove a dataset entirely or remove a certain number of revisions
 func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &RemoveResponse{}
+	log.Debugf("Remove dataset ref %q, revisions %v", p.Ref, p.Revision)
+
+	if p.Revision.Gen == 0 {
+		return nil, fmt.Errorf("invalid number of revisions to delete: 0")
+	}
+	if p.Revision.Field != "ds" {
+		return nil, fmt.Errorf("can only remove whole dataset versions, not individual components")
+	}
+
+	ref, _, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref, "local")
+	if err != nil {
+		log.Debugw("Remove, repo.ParseAndResolveRefWithWorkingDir failed", "err", err)
+		// TODO(b5): this "logbook.ErrNotFound" is needed to get cmd.TestRemoveEvenIfLogbookGone
+		// to pass. Relying on dataset resolution returning an error defined in logbook is incorrect
+		// This should really be checking for some sort of "can't fully resolve" error
+		// defined in dsref instead
+		if p.Force || errors.Is(err, logbook.ErrNotFound) {
+			didRemove, _ := base.RemoveEntireDataset(scope.Context(), scope.Repo(), ref, []dsref.VersionInfo{})
+			if didRemove != "" {
+				log.Debugw("Remove cleaned up data found", "didRemove", didRemove)
+				res.Message = didRemove
+				return res, nil
+			}
+		}
+		return nil, err
+	}
+
+	res.Ref = ref.String()
+	var fsiPath string
+	if fsi.IsFSIPath(ref.Path) {
+		fsiPath = fsi.FilesystemPathToLocal(ref.Path)
+	}
+
+	if fsiPath != "" {
+		// Dataset is linked in a working directory.
+		if !(p.KeepFiles || p.Force) {
+			// Make sure that status is clean, otherwise, refuse to remove any revisions.
+			// Setting either --keep-files or --force will skip this check.
+			wdErr := scope.FSISubsystem().IsWorkingDirectoryClean(scope.Context(), fsiPath)
+			if wdErr != nil {
+				if wdErr == fsi.ErrWorkingDirectoryDirty {
+					log.Debugf("Remove, IsWorkingDirectoryDirty")
+					return nil, ErrCantRemoveDirectoryDirty
+				}
+				if errors.Is(wdErr, fsi.ErrNoLink) || strings.Contains(wdErr.Error(), "not a linked directory") {
+					// If the working directory has been removed (or renamed), could not get the
+					// status. However, don't let this stop the remove operation, since the files
+					// are already gone, and therefore won't be removed.
+					log.Debugf("Remove, couldn't get status for %s, maybe removed or renamed", fsiPath)
+					wdErr = nil
+				} else {
+					log.Debugf("Remove, IsWorkingDirectoryClean error: %s", err)
+					return nil, wdErr
+				}
+			}
+		}
+	} else if p.KeepFiles {
+		// If dataset is not linked in a working directory, --keep-files can't be used.
+		return nil, fmt.Errorf("dataset is not linked to filesystem, cannot use keep-files")
+	}
+
+	// Get the revisions that will be deleted.
+	history, err := base.DatasetLog(scope.Context(), scope.Repo(), ref, p.Revision.Gen+1, 0, false)
+	if err == nil && p.Revision.Gen >= len(history) {
+		// If the number of revisions to delete is greater than or equal to the amount in history,
+		// treat this operation as deleting everything.
+		p.Revision.Gen = dsref.AllGenerations
+	} else if err == repo.ErrNoHistory || errors.Is(err, dsref.ErrPathRequired) {
+		// If the dataset has no history, treat this operation as deleting everything.
+		p.Revision.Gen = dsref.AllGenerations
+	} else if err != nil {
+		log.Debugf("Remove, base.DatasetLog failed, error: %s", err)
+		// Set history to a list of 0 elements. In the rest of this function, certain operations
+		// check the history to figure out what to delete, they will always see a blank history,
+		// which is a safer option for a destructive option such as remove.
+		history = []dsref.VersionInfo{}
+	}
+
+	if p.Revision.Gen == dsref.AllGenerations {
+		// removing all revisions of a dataset must unlink it
+		if fsiPath != "" {
+			if err := scope.FSISubsystem().Unlink(scope.Context(), fsiPath, ref); err == nil {
+				res.Unlinked = true
+			} else {
+				log.Errorf("during Remove, dataset did not unlink: %s", err)
+			}
+		}
+
+		didRemove, _ := base.RemoveEntireDataset(scope.Context(), scope.Repo(), ref, history)
+		res.NumDeleted = dsref.AllGenerations
+		res.Message = didRemove
+
+		if fsiPath != "" && !p.KeepFiles {
+			// Remove all files
+			fsi.DeleteComponentFiles(fsiPath)
+			var err error
+			if p.Force {
+				err = scope.FSISubsystem().RemoveAll(fsiPath)
+			} else {
+				err = scope.FSISubsystem().Remove(fsiPath)
+			}
+			if err != nil {
+				if strings.Contains(err.Error(), "no such file or directory") {
+					// If the working directory has already been removed (or renamed), it is
+					// not an error that this remove operation fails, since we were trying to
+					// remove them anyway.
+					log.Debugf("Remove, couldn't remove %s, maybe already removed or renamed", fsiPath)
+					err = nil
+				} else {
+					log.Debugf("Remove, os.Remove failed, error: %s", err)
+					return nil, err
+				}
+			}
+		}
+	} else if len(history) > 0 {
+		if fsiPath != "" {
+			// if we're operating on an fsi-linked directory, we need to re-resolve to
+			// get the path on qfs. This could be avoided if we refactored ParseAndResolveRefWithWorkingDir
+			// to return an extra fsiPath value
+			qfsRef := ref.Copy()
+			qfsRef.Path = ""
+			if _, err := scope.ResolveReference(scope.Context(), &qfsRef, "local"); err != nil {
+				return nil, err
+			}
+			ref = qfsRef
+		}
+		// Delete the specific number of revisions.
+		info, err := base.RemoveNVersionsFromStore(scope.Context(), scope.Repo(), ref, p.Revision.Gen)
+		if err != nil {
+			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
+			return nil, err
+		}
+		res.NumDeleted = p.Revision.Gen
+
+		if info.FSIPath != "" && !p.KeepFiles {
+			// Load dataset version that is at head after newer versions are removed
+			ds, err := dsfs.LoadDataset(scope.Context(), scope.Filesystem(), info.Path)
+			if err != nil {
+				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
+				return nil, err
+			}
+			ds.Name = info.Name
+			ds.Peername = info.Username
+			if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
+				log.Debugf("Remove, base.OpenDataset failed, error: %s", err)
+				return nil, err
+			}
+
+			// TODO(dlong): Add a method to FSI called ProjectOntoDirectory, use it here
+			// and also for Restore() in lib/fsi.go and also maybe WriteComponents in fsi/mapping.go
+
+			// Delete the old files
+			err = fsi.DeleteComponentFiles(info.FSIPath)
+			if err != nil {
+				log.Debug("Remove, fsi.DeleteComponentFiles failed, error: %s", err)
+			}
+
+			// Update the files in the working directory
+			fsi.WriteComponents(ds, info.FSIPath, scope.Filesystem())
+		}
+	}
+	log.Debugf("Remove finished")
+
+	return res, nil
+
 }
 
 // Pull downloads and stores an existing dataset to a peer's repository via
 // a network connection
 func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &dataset.Dataset{}
+	source := p.Remote
+	if source == "" {
+		source = "network"
+	}
+
+	ref, source, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, source)
+	if err != nil {
+		log.Debugf("resolving reference: %s", err)
+		return nil, err
+	}
+
+	ds, err := scope.RemoteClient().PullDataset(scope.Context(), &ref, source)
+	if err != nil {
+		log.Debugf("pulling dataset: %s", err)
+		return nil, err
+	}
+
+	*res = *ds
+
+	if p.LinkDir != "" {
+		checkoutp := &LinkParams{
+			Refstr: ref.Human(),
+			Dir:    p.LinkDir,
+		}
+		// TODO (ramfox): wasn't sure exactly how to handle this. We don't need `Checkout` to
+		// re-load/re-resolve the reference, but there is a bunch of other checking/verifying
+		// that `Filesys().Checkout` does that doesn't belong in this `Pull` function
+		// Should we allow method creation off of the `scope`? So in this case, `scope.Filesys()`
+		// Or should we be obscuring all of that to create a `scope.Checkout()` method?
+		if err = scope.inst.Filesys().Checkout(scope.Context(), checkoutp); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
 func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &ValidateResponse{}
+
+	// Schema can come from either schema.json or structure.json, or the dataset itself.
+	// schemaFlagType determines which of these three contains the schema.
+	schemaFlagType := ""
+	schemaFilename := ""
+	if p.SchemaFilename != "" && p.StructureFilename != "" {
+		return nil, qrierr.New(ErrBadArgs, "cannot provide both --schema and --structure flags")
+	} else if p.SchemaFilename != "" {
+		schemaFlagType = "schema"
+		schemaFilename = p.SchemaFilename
+	} else if p.StructureFilename != "" {
+		schemaFlagType = "structure"
+		schemaFilename = p.StructureFilename
+	}
+
+	if p.Ref == "" && (p.BodyFilename == "" || schemaFlagType == "") {
+		return nil, qrierr.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
+	}
+
+	fsiPath := ""
+	var err error
+	ref := dsref.Ref{}
+
+	// if there is both a bodyfilename and a schema/structure
+	// we don't need to resolve any references
+	if p.BodyFilename == "" || schemaFlagType == "" {
+		// TODO (ramfox): we need consts in `dsref` for "local", "network", "p2p"
+		ref, _, err = scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref, "local")
+		if err != nil {
+			return nil, err
+		}
+
+		if fsi.IsFSIPath(ref.Path) {
+			fsiPath = fsi.FilesystemPathToLocal(ref.Path)
+		}
+	}
+
+	var ds *dataset.Dataset
+
+	// TODO(dlong): This pattern has shown up many places, such as lib.Get.
+	// Should probably combine into a utility function.
+
+	if p.Ref != "" {
+		if fsiPath != "" {
+			if ds, err = fsi.ReadDir(fsiPath); err != nil {
+				return nil, fmt.Errorf("loading linked dataset: %w", err)
+			}
+		} else {
+			if ds, err = dsfs.LoadDataset(scope.Context(), scope.Filesystem(), ref.Path); err != nil {
+				return nil, fmt.Errorf("loading dataset: %w", err)
+			}
+		}
+		if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
+			return nil, err
+		}
+	}
+
+	var body qfs.File
+	if p.BodyFilename == "" {
+		body = ds.BodyFile()
+	} else {
+		// Body is set to the provided filename if given
+		fs, err := localfs.NewFS(nil)
+		if err != nil {
+			return nil, fmt.Errorf("error creating new local filesystem: %w", err)
+		}
+		body, err = fs.Get(scope.Context(), p.BodyFilename)
+		if err != nil {
+			return nil, fmt.Errorf("error opening body file %q: %w", p.BodyFilename, err)
+		}
+	}
+
+	var st *dataset.Structure
+	// Schema is set to the provided filename if given, otherwise the dataset's schema
+	if schemaFlagType == "" {
+		st = ds.Structure
+		if err := detect.Structure(ds); err != nil {
+			log.Debug("lib.Validate: InferStructure error: %w", err)
+			return nil, err
+		}
+	} else {
+		data, err := ioutil.ReadFile(schemaFilename)
+		if err != nil {
+			return nil, fmt.Errorf("error opening %s file: %s", schemaFlagType, schemaFilename)
+		}
+		var fileContent map[string]interface{}
+		err = json.Unmarshal(data, &fileContent)
+		if err != nil {
+			return nil, err
+		}
+		if schemaFlagType == "schema" {
+			// If dataset ref was provided, get format from the structure. Otherwise, assume the
+			// format by looking at the body file's extension.
+			var bodyFormat string
+			if ds != nil && ds.Structure != nil {
+				bodyFormat = ds.Structure.Format
+			} else {
+				bodyFormat = filepath.Ext(p.BodyFilename)
+				if strings.HasSuffix(bodyFormat, ".") {
+					bodyFormat = bodyFormat[1:]
+				}
+			}
+			st = &dataset.Structure{
+				Format: bodyFormat,
+				Schema: fileContent,
+			}
+		} else {
+			// schemaFlagType == "structure". Deserialize the provided file into a structure.
+			st = &dataset.Structure{}
+			err = fill.Struct(fileContent, st)
+			if err != nil {
+				return nil, err
+			}
+			// TODO(dlong): What happens if body file extension does not match st.Format?
+		}
+	}
+
+	valerrs, err := base.Validate(scope.Context(), scope.Repo(), body, st)
+	if err != nil {
+		return nil, err
+	}
+
+	*res = ValidateResponse{
+		Structure: st,
+		Errors:    valerrs,
+	}
+	return res, nil
 }
 
 // Manifest generates a manifest for a dataset path
 func (datasetImpl) Manifest(scope scope, p *ManifestParams) (*dag.Manifest, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &dag.Manifest{}
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Refstr, "local")
+	if err != nil {
+		return nil, err
+	}
+
+	res, err = scope.Node().NewManifest(scope.Context(), ref.Path)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifes
 func (datasetImpl) ManifestMissing(scope scope, p *ManifestMissingParams) (*dag.Manifest, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &dag.Manifest{}
+	res, err := scope.Node().MissingManifest(scope.Context(), p.Manifest)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
 func (datasetImpl) DAGInfo(scope scope, p *DAGInfoParams) (*dag.Info, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &dag.Info{}
+
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.RefStr, "local")
+	if err != nil {
+		return nil, err
+	}
+
+	res, err = scope.Node().NewDAGInfo(scope.Context(), ref.Path, p.Label)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Stats generates stats for a dataset
 func (datasetImpl) Stats(scope scope, p *StatsParams) (*dataset.Stats, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	if p.Refstr == "" && p.Dataset == nil {
+		return nil, fmt.Errorf("either a reference or dataset is required")
+	}
+
+	ds := p.Dataset
+	if ds == nil {
+		// TODO (b5) - stats is currently local-only, supply a source parameter
+		ref, source, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Refstr, "local")
+		if err != nil {
+			return nil, err
+		}
+		if ds, err = scope.LoadDataset(scope.Context(), ref, source); err != nil {
+			return nil, err
+		}
+	}
+
+	return scope.Stats().Stats(scope.Context(), ds)
 }

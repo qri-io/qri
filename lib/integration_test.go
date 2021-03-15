@@ -106,17 +106,15 @@ func TestAddCheckoutIntegration(t *testing.T) {
 	PushToRegistry(t, nasim, ref.Alias())
 
 	hinshun := tr.InitHinshun(t)
-	dsm := NewDatasetMethods(hinshun)
 
 	checkoutPath := filepath.Join(tr.hinshunRepo.RootPath, "wbp")
-	_, err := dsm.Pull(tr.Ctx, &PullParams{
+	_, err := hinshun.Dataset().Pull(tr.Ctx, &PullParams{
 		Ref:     ref.String(),
 		LinkDir: checkoutPath,
 	})
 	if err != nil {
 		t.Errorf("adding with linked directory: %s", err)
 	}
-
 }
 
 func TestReferencePulling(t *testing.T) {
@@ -440,7 +438,7 @@ func SearchFor(ctx context.Context, t *testing.T, inst *Instance, term string) [
 
 func Pull(ctx context.Context, t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
 	t.Helper()
-	res, err := NewDatasetMethods(inst).Pull(ctx, &PullParams{Ref: refstr})
+	res, err := inst.Dataset().Pull(ctx, &PullParams{Ref: refstr})
 	if err != nil {
 		t.Fatalf("cloning dataset %s: %s", refstr, err)
 	}

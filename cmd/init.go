@@ -75,13 +75,13 @@ type InitOptions struct {
 // Complete completes a dataset reference
 func (o *InitOptions) Complete(f Factory, args []string) (err error) {
 	if o.Instance, err = f.Instance(); err != nil {
-		return
+		return err
 	}
 
 	if len(args) > 0 {
 		o.TargetDir = args[0]
 	}
-	return
+	return nil
 }
 
 // Run executes the `init` command

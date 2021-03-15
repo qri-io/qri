@@ -50,6 +50,10 @@ func RespondWithError(w http.ResponseWriter, err error) {
 		WriteErrResponse(w, http.StatusUnprocessableEntity, err)
 		return
 	}
+	if errors.Is(err, dsref.ErrBadCaseShouldRename) || errors.Is(err, dsref.ErrDescribeValidName) || errors.Is(err, dsref.ErrDescribeValidUsername) {
+		WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
 	var perr *dsref.ParseError
 	if errors.As(err, &perr) {
 		WriteErrResponse(w, http.StatusBadRequest, err)

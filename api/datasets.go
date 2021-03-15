@@ -29,9 +29,8 @@ type DatasetHandlers struct {
 
 // NewDatasetHandlers allocates a DatasetHandlers pointer
 func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
-	dsm := lib.NewDatasetMethods(inst)
 	rm := lib.NewRemoteMethods(inst)
-	h := DatasetHandlers{*dsm, inst, rm, readOnly}
+	h := DatasetHandlers{*inst.Dataset(), inst, rm, readOnly}
 	return &h
 }
 
@@ -44,6 +43,20 @@ func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.listHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// ListRawHandler is a dataset list endpoint
+func (h *DatasetHandlers) ListRawHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet, http.MethodPost:
+		if h.ReadOnly {
+			readOnlyResponse(w, "/listraw")
+			return
+		}
+		h.listRawHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -223,55 +236,39 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resRaw := ""
-	res := []dsref.VersionInfo{}
-	var err error
-	if params.Raw {
-		got, _, err := h.inst.Dispatch(r.Context(), "dataset.listrawrefs", params)
-		if err != nil {
-			util.RespondWithError(w, err)
-			return
-		}
-		ok := false
-		resRaw, ok = got.(string)
-		if !ok {
-			util.RespondWithDispatchTypeError(w, got)
-			return
-		}
-	} else {
-		got, _, err := h.inst.Dispatch(r.Context(), "dataset.list", params)
-		if err != nil {
-			util.RespondWithError(w, err)
-			return
-		}
-		ok := false
-		res, ok = got.([]dsref.VersionInfo)
-		if !ok {
-			util.RespondWithDispatchTypeError(w, got)
-			return
-		}
-	}
-
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.list", params)
 	if err != nil {
-		if errors.Is(err, lib.ErrListWarning) {
-			log.Error(err)
-			err = nil
-		} else {
-			log.Infof("error listing datasets: %s", err.Error())
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
+		log.Infof("error listing datasets: %s", err.Error())
+		util.RespondWithError(w, err)
+		return
 	}
+	res, ok := got.([]dsref.VersionInfo)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+		return
+	}
+	util.WritePageResponse(w, res, r, params.Page())
+}
 
-	if params.Raw {
-		w.Header().Set("Content-Type", extensionToMimeType(".txt"))
-		w.Write([]byte(resRaw))
+func (h *DatasetHandlers) listRawHandler(w http.ResponseWriter, r *http.Request) {
+	params := &lib.ListParams{}
+	if err := lib.UnmarshalParams(r, params); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	if err := util.WritePageResponse(w, res, r, params.Page()); err != nil {
-		log.Infof("error list datasests response: %s", err.Error())
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.listrawrefs", params)
+	if err != nil {
+		util.RespondWithError(w, err)
+		return
 	}
+	res, ok := got.(string)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+		return
+	}
+	w.Header().Set("Content-Type", extensionToMimeType(".txt"))
+	w.Write([]byte(res))
 }
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
@@ -454,10 +451,15 @@ func (h *DatasetHandlers) pullHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.Pull(r.Context(), params)
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.pull", params)
 	if err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		log.Infof("error pulling dataset: %s", err.Error())
+		util.RespondWithError(w, err)
 		return
+	}
+	res, ok := got.(*dataset.Dataset)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
 	}
 
 	ref := reporef.DatasetRef{
@@ -509,8 +511,8 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	params := lib.RemoveParams{}
-	err := lib.UnmarshalParams(r, &params)
+	params := &lib.RemoveParams{}
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -530,14 +532,16 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 		util.WriteResponse(w, res)
 		return
 	}
-
-	res, err := h.Remove(r.Context(), &params)
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.remove", params)
 	if err != nil {
-		log.Infof("error deleting dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		log.Infof("error removing dataset: %s", err.Error())
+		util.RespondWithError(w, err)
 		return
 	}
-
+	res, ok := got.(*lib.RemoveResponse)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+	}
 	util.WriteResponse(w, res)
 }
 
@@ -549,11 +553,15 @@ func (h DatasetHandlers) validateHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	res, err := h.Validate(r.Context(), params)
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.validate", params)
 	if err != nil {
 		log.Infof("error validating dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.RespondWithError(w, err)
 		return
+	}
+	res, ok := got.(*lib.ValidateResponse)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
 	}
 
 	util.WriteResponse(w, res)
@@ -566,14 +574,16 @@ func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-
-	res, err := h.Rename(r.Context(), params)
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.rename", params)
 	if err != nil {
 		log.Infof("error renaming dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.RespondWithError(w, err)
 		return
 	}
-
+	res, ok := got.(*dsref.VersionInfo)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+	}
 	util.WriteResponse(w, res)
 }
 
@@ -610,14 +620,12 @@ func (h DatasetHandlers) manifestHandler(w http.ResponseWriter, r *http.Request)
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-
-	res, err := h.Manifest(r.Context(), params)
+	res, _, err := h.inst.Dispatch(r.Context(), "dataset.rename", params)
 	if err != nil {
-		log.Infof("error generating manifest: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		log.Infof("error generating manifest: %s", err)
+		util.RespondWithError(w, err)
 		return
 	}
-
 	util.WriteResponse(w, res)
 }
 
@@ -629,10 +637,10 @@ func (h DatasetHandlers) manifestMissingHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	res, err := h.ManifestMissing(r.Context(), params)
+	res, _, err := h.inst.Dispatch(r.Context(), "dataset.manifestmissing", params)
 	if err != nil {
 		log.Infof("error generating manifest: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.RespondWithError(w, err)
 		return
 	}
 
@@ -647,10 +655,10 @@ func (h DatasetHandlers) dagInfoHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	res, err := h.DAGInfo(r.Context(), params)
+	res, _, err := h.inst.Dispatch(r.Context(), "dataset.daginfo", params)
 	if err != nil {
 		log.Infof("error generating manifest: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.RespondWithError(w, err)
 		return
 	}
 

@@ -61,7 +61,7 @@ type AccessOptions struct {
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *AccessOptions) Complete(f Factory, args []string) (err error) {
 	o.Instance, err = f.Instance()
-	return
+	return err
 }
 
 // CreateAccessToken constructs an access token suitable for making

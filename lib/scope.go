@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
+	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/stats"
 )
@@ -97,14 +98,14 @@ func (s *scope) GetVersionInfoShim(ref dsref.Ref) (*dsref.VersionInfo, error) {
 	return repo.GetVersionInfoShim(r, ref)
 }
 
-// Loader returns the instance
-func (s *scope) Loader() dsref.Loader {
-	return s.inst
-}
-
 // LoadDataset loads a dataset
 func (s *scope) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
 	return s.inst.LoadDataset(ctx, ref, source)
+}
+
+// Loader returns the instance
+func (s *scope) Loader() dsref.Loader {
+	return s.inst
 }
 
 // Logbook returns the repo logbook
@@ -137,9 +138,20 @@ func (s *scope) Profiles() profile.Store {
 	return s.inst.profiles
 }
 
+// RemoteClient exposes the instance client for making requests to remotes
+func (s *scope) RemoteClient() remote.Client {
+	return s.inst.remoteClient
+}
+
 // Repo returns the repo store
 func (s *scope) Repo() repo.Repo {
 	return s.inst.repo
+}
+
+// ResolveReference finds the identifier & HEAD path for a dataset reference.
+// the mode parameter determines which subsystems of Qri to use when resolving
+func (s *scope) ResolveReference(ctx context.Context, ref *dsref.Ref, mode string) (string, error) {
+	return s.inst.ResolveReference(ctx, ref, mode)
 }
 
 // ResolverForMode returns a resolver for a particular mode, options are:

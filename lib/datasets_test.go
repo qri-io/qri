@@ -338,9 +338,8 @@ func TestDatasetRequestsList(t *testing.T) {
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*dsref.VersionInfo{cities, counter, movies}, ""},
 	}
 
-	m := NewDatasetMethods(inst)
 	for _, c := range cases {
-		got, err := m.List(ctx, c.p)
+		got, err := inst.Dataset().List(ctx, c.p)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)
@@ -410,9 +409,8 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 			defer wg.Done()
 
 			inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-			m := NewDatasetMethods(inst)
 			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
-			res, err := m.List(ctx, p)
+			res, err := inst.Dataset().List(ctx, p)
 			if err != nil {
 				t.Errorf("error listing dataset: %s", err.Error())
 			}
@@ -736,10 +734,9 @@ func TestDatasetRequestsRename(t *testing.T) {
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_%d", i), func(t *testing.T) {
-			_, err := m.Rename(ctx, c.p)
+			_, err := inst.Dataset().Rename(ctx, c.p)
 
 			if err == nil {
 				t.Fatalf("test didn't error")
@@ -761,7 +758,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		Next:    "peer/new_movies",
 	}
 
-	res, err := m.Rename(ctx, p)
+	res, err := inst.Dataset().Rename(ctx, p)
 	if err != nil {
 		t.Errorf("unexpected error renaming: %s", err)
 	}
@@ -814,7 +811,7 @@ func TestRenameNoHistory(t *testing.T) {
 		Current: "me/rename_no_history",
 		Next:    "me/rename_second_name",
 	}
-	_, err = NewDatasetMethods(tr.Instance).Rename(ctx, renameP)
+	_, err = tr.Instance.Dataset().Rename(ctx, renameP)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -964,10 +961,9 @@ func TestDatasetRequestsPull(t *testing.T) {
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewDatasetMethods(inst)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_case_%d", i), func(t *testing.T) {
-			_, err := m.Pull(ctx, &c.p)
+			_, err := inst.Dataset().Pull(ctx, &c.p)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -1035,9 +1031,8 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 
 				// Build requests for peer1 to peer2.
 				inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), p0)
-				dsm := NewDatasetMethods(inst)
 
-				_, err := dsm.Pull(ctx, p)
+				_, err := inst.Dataset().Pull(ctx, p)
 				if err != nil {
 					pro1 := p0.Repo.Profiles().Owner()
 					pro2 := p1.Repo.Profiles().Owner()
@@ -1109,9 +1104,8 @@ Pirates of the Caribbean: At World's End ,foo
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewDatasetMethods(inst)
 	for i, c := range cases {
-		res, err := m.Validate(ctx, &c.p)
+		res, err := inst.Dataset().Validate(ctx, &c.p)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err.Error())
 			continue
@@ -1145,10 +1139,8 @@ func TestDatasetRequestsValidateFSI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m := NewDatasetMethods(tr.Instance)
-
 	vp := &ValidateParams{Ref: refstr}
-	if _, err := m.Validate(ctx, vp); err != nil {
+	if _, err := tr.Instance.Dataset().Validate(ctx, vp); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -1167,7 +1159,7 @@ func TestDatasetRequestsStats(t *testing.T) {
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewDatasetMethods(inst)
+	m := inst.Dataset()
 
 	badCases := []struct {
 		description string

@@ -190,14 +190,13 @@ func (tr *testRunner) ApplyWithParams(ctx context.Context, p *ApplyParams) (*dat
 }
 
 func (tr *testRunner) Diff(left, right, selector string) (string, error) {
-	m := NewDatasetMethods(tr.Instance)
 	p := DiffParams{
 		LeftSide:           left,
 		RightSide:          right,
 		UseLeftPrevVersion: right == "",
 		Selector:           selector,
 	}
-	r, err := m.Diff(tr.Ctx, &p)
+	r, err := tr.Instance.Dataset().Diff(tr.Ctx, &p)
 	if err != nil {
 		return "", err
 	}
@@ -209,8 +208,7 @@ func (tr *testRunner) Diff(left, right, selector string) (string, error) {
 }
 
 func (tr *testRunner) DiffWithParams(p *DiffParams) (string, error) {
-	m := NewDatasetMethods(tr.Instance)
-	r, err := m.Diff(tr.Ctx, p)
+	r, err := tr.Instance.Dataset().Diff(tr.Ctx, p)
 	if err != nil {
 		return "", err
 	}
