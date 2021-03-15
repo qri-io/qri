@@ -338,9 +338,8 @@ func TestDatasetRequestsList(t *testing.T) {
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*dsref.VersionInfo{cities, counter, movies}, ""},
 	}
 
-	m := NewDatasetMethods(inst)
 	for _, c := range cases {
-		got, err := m.List(ctx, c.p)
+		got, err := inst.Dataset().List(ctx, c.p)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)
@@ -410,9 +409,8 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 			defer wg.Done()
 
 			inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-			m := NewDatasetMethods(inst)
 			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
-			res, err := m.List(ctx, p)
+			res, err := inst.Dataset().List(ctx, p)
 			if err != nil {
 				t.Errorf("error listing dataset: %s", err.Error())
 			}
@@ -1161,7 +1159,7 @@ func TestDatasetRequestsStats(t *testing.T) {
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewDatasetMethods(inst)
+	m := inst.Dataset()
 
 	badCases := []struct {
 		description string

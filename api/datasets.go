@@ -29,9 +29,8 @@ type DatasetHandlers struct {
 
 // NewDatasetHandlers allocates a DatasetHandlers pointer
 func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
-	dsm := lib.NewDatasetMethods(inst)
 	rm := lib.NewRemoteMethods(inst)
-	h := DatasetHandlers{*dsm, inst, rm, readOnly}
+	h := DatasetHandlers{*inst.Dataset(), inst, rm, readOnly}
 	return &h
 }
 

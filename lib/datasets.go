@@ -58,13 +58,6 @@ func (inst *Instance) Dataset() *DatasetMethods {
 // ErrListWarning is a warning that can occur while listing
 var ErrListWarning = base.ErrUnlistableReferences
 
-// NewDatasetMethods creates a DatasetMethods pointer from a qri instance
-func NewDatasetMethods(inst *Instance) *DatasetMethods {
-	return &DatasetMethods{
-		inst: inst,
-	}
-}
-
 // List gets the reflist for either the local repo or a peer
 func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "list"), p)
