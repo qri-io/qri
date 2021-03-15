@@ -72,7 +72,9 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 	o.Path = ""
 	o.ComponentName = ""
 
-	o.Instance = f.Instance()
+	if o.Instance, err = f.Instance(); err != nil {
+		return
+	}
 
 	// TODO(dlong): Add low-level utilities that parse strings like "peername/ds_name", and
 	// "/ipfs/QmFoo", "meta.description", etc and use those everywhere. Use real regexs so
@@ -114,10 +116,8 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf("unknown argument \"%s\"", arg)
 	}
 
-	if o.Refs, err = GetCurrentRefSelect(f, dsRefList, 1, EnsureFSIAgrees(o.Instance)); err != nil {
-		return err
-	}
-	return nil
+	o.Refs, err = GetCurrentRefSelect(f, dsRefList, 1, EnsureFSIAgrees(o.Instance))
+	return
 }
 
 // Run executes the `restore` command

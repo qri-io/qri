@@ -61,7 +61,9 @@ type ApplyOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ApplyOptions) Complete(f Factory, args []string) (err error) {
-	o.Instance = f.Instance()
+	if o.Instance, err = f.Instance(); err != nil {
+		return err
+	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, -1, nil); err != nil {
 		// This error will be handled during validation
 		if err != repo.ErrEmptyRef {

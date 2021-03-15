@@ -45,8 +45,8 @@ func TestDiffComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.DatasetMethods == nil {
-			t.Errorf("case %d, opt.DatasetMethods not set.", i)
+		if opt.inst == nil {
+			t.Errorf("case %d, opt.inst not set.", i)
 			run.IOReset()
 			continue
 		}
@@ -99,14 +99,14 @@ func TestDiffRun(t *testing.T) {
 
 	for _, c := range good {
 		t.Run(c.description, func(t *testing.T) {
-			dsm, err := f.DatasetMethods()
+			inst, err := f.Instance()
 			if err != nil {
-				t.Fatalf("case %s, error creating dataset request: %s", c.description, err)
+				t.Fatalf("case %s, error creating inst: %s", c.description, err)
 			}
 
 			opt := c.opt
 			opt.IOStreams = run.Streams
-			opt.DatasetMethods = dsm
+			opt.inst = inst
 
 			if err = opt.Run(); err != nil {
 				t.Fatalf("case %s unexpected error: %s", c.description, err)
@@ -131,16 +131,16 @@ func TestDiffRun(t *testing.T) {
 	}
 
 	for _, c := range bad {
-		dsm, err := f.DatasetMethods()
+		inst, err := f.Instance()
 		if err != nil {
-			t.Errorf("case %s, error creating dataset request: %s", c.err, err)
+			t.Errorf("case %s, error creating instance: %s", c.err, err)
 			continue
 		}
 
 		opt := c.opt
 		opt.Refs = NewListOfRefSelects([]string{})
 		opt.IOStreams = run.Streams
-		opt.DatasetMethods = dsm
+		opt.inst = inst
 
 		err = opt.Run()
 

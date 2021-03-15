@@ -67,150 +67,20 @@ func NewDatasetMethods(inst *Instance) *DatasetMethods {
 
 // List gets the reflist for either the local repo or a peer
 func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
-	if m.inst.http != nil {
-		res := []dsref.VersionInfo{}
-		p.RPC = true
-		err := m.inst.http.Call(ctx, AEList, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "list"), p)
+	if res, ok := got.([]dsref.VersionInfo); ok {
+		return res, err
 	}
-
-	// TODO(dustmop): When List is converted to use scope, get the ProfileID from
-	// the scope if the user is authorized to only view their own datasets, as opposed
-	// to the full collection that exists in this node's repository.
-	restrictPid := ""
-
-	// ensure valid limit value
-	if p.Limit <= 0 {
-		p.Limit = 25
-	}
-	// ensure valid offset value
-	if p.Offset < 0 {
-		p.Offset = 0
-	}
-
-	reqProfile := m.inst.repo.Profiles().Owner()
-	listProfile, err := getProfile(ctx, m.inst.Repo().Profiles(), reqProfile.ID.String(), p.Peername)
-	if err != nil {
-		return nil, err
-	}
-
-	// If the list operation leads to a warning, store it in this var
-	var listWarning error
-
-	var infos []dsref.VersionInfo
-	if p.UseDscache {
-		c := m.inst.dscache
-		if c.IsEmpty() {
-			log.Infof("building dscache from repo's logbook, profile, and dsref")
-			built, err := build.DscacheFromRepo(ctx, m.inst.repo)
-			if err != nil {
-				return nil, err
-			}
-			err = c.Assign(built)
-			if err != nil {
-				log.Error(err)
-			}
-		}
-		refs, err := c.ListRefs()
-		if err != nil {
-			return nil, err
-		}
-		// Filter references so that only with a matching name are returned
-		if p.Term != "" {
-			matched := make([]reporef.DatasetRef, len(refs))
-			count := 0
-			for _, ref := range refs {
-				if strings.Contains(ref.AliasString(), p.Term) {
-					matched[count] = ref
-					count++
-				}
-			}
-			refs = matched[:count]
-		}
-		// Filter references by skipping to the correct offset
-		if p.Offset > len(refs) {
-			refs = []reporef.DatasetRef{}
-		} else {
-			refs = refs[p.Offset:]
-		}
-		// Filter references by limiting how many are returned
-		if p.Limit < len(refs) {
-			refs = refs[:p.Limit]
-		}
-		// Convert old style DatasetRef list to VersionInfo list.
-		// TODO(dustmop): Remove this and convert lower-level functions to return []VersionInfo.
-		infos = make([]dsref.VersionInfo, len(refs))
-		for i, r := range refs {
-			infos[i] = reporef.ConvertToVersionInfo(&r)
-		}
-	} else if listProfile.Peername == "" || reqProfile.Peername == listProfile.Peername {
-		infos, err = base.ListDatasets(ctx, m.inst.repo, p.Term, restrictPid, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
-		if errors.Is(err, ErrListWarning) {
-			listWarning = err
-			err = nil
-		}
-	} else {
-		return nil, fmt.Errorf("listing datasets on a peer is not implemented")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if p.EnsureFSIExists {
-		// For each reference with a linked fsi working directory, check that the folder exists
-		// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
-		// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
-		for _, info := range infos {
-			if info.FSIPath != "" && !linkfile.ExistsInDir(info.FSIPath) {
-				info.FSIPath = ""
-				ref := reporef.RefFromVersionInfo(&info)
-				if ref.Path == "" {
-					if err = m.inst.repo.DeleteRef(ref); err != nil {
-						log.Debugf("cannot delete ref for %q, err: %s", ref, err)
-					}
-					continue
-				}
-				if err = m.inst.repo.PutRef(ref); err != nil {
-					log.Debugf("cannot put ref for %q, err: %s", ref, err)
-				}
-			}
-		}
-	}
-
-	if listWarning != nil {
-		return nil, listWarning
-	}
-
-	return infos, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // ListRawRefs gets the list of raw references as string
 func (m *DatasetMethods) ListRawRefs(ctx context.Context, p *ListParams) (string, error) {
-	var err error
-	text := ""
-	if m.inst.http != nil {
-		var bres bytes.Buffer
-		p.Raw = true
-		err := m.inst.http.CallRaw(ctx, AEList, p, &bres)
-		if err != nil {
-			return "", err
-		}
-		text = bres.String()
-		return text, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "listrawrefs"), p)
+	if res, ok := got.(string); ok {
+		return res, err
 	}
-	if p.UseDscache {
-		c := m.inst.dscache
-		if c == nil || c.IsEmpty() {
-			return "", fmt.Errorf("repo: dscache not found")
-		}
-		text = c.VerboseString(true)
-		return text, nil
-	}
-	text, err = base.RawDatasetRefs(ctx, m.inst.repo)
-	return text, err
+	return "", dispatchReturnError(got, err)
 }
 
 // GetParams defines parameters for looking up the head or body of a dataset
@@ -369,216 +239,19 @@ type DataResponse struct {
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
 // with the generated stats.
 func (m *DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, error) {
+	// TODO(dustmop): Have Dispatch perform this AbsPath call automatically
 	if err := qfs.AbsPath(&p.Outfile); err != nil {
 		return nil, err
 	}
-	res := &GetResult{}
 
-	if m.inst.http != nil {
-		params := *p
-		if params.Format == "json" {
-			if params.Selector != "" {
-				dr := &DataResponse{}
-				err := m.inst.http.Call(ctx, AEGet, params, &dr)
-				if err != nil {
-					return nil, err
-				}
-				res.Bytes = dr.Data
-				return res, nil
-			}
-
-			err := m.inst.http.Call(ctx, AEGet, params, &res)
-			if err != nil {
-				return nil, err
-			}
-			return res, nil
-		}
-
-		var bres bytes.Buffer
-		err := m.inst.http.CallRaw(ctx, AEGet, params, &bres)
-		if err != nil {
-			return nil, err
-		}
-		res.Bytes = bres.Bytes()
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "get"), p)
+	if res, ok := got.(*GetResult); ok {
+		return res, err
 	}
-
-	var ds *dataset.Dataset
-	ref, source, err := m.inst.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, p.Remote)
-	if err != nil {
-		return nil, err
-	}
-	ds, err = m.inst.LoadDataset(ctx, ref, source)
-	if err != nil {
-		return nil, err
-	}
-
-	res.Ref = &ref
-	res.Dataset = ds
-
-	if fsi.IsFSIPath(ref.Path) {
-		res.FSIPath = fsi.FilesystemPathToLocal(ref.Path)
-	}
-	// TODO (b5) - Published field is longer set as part of Reference Resolution
-	// getting publication status should be delegated to a new function
-
-	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
-		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
-		return nil, err
-	}
-
-	if p.Format == "zip" {
-		// Only if GenFilename is true, and no output filename is set, generate one from the
-		// dataset name
-		if p.Outfile == "" && p.GenFilename {
-			p.Outfile = fmt.Sprintf("%s.zip", ds.Name)
-		}
-		var outBuf bytes.Buffer
-		var zipFile io.Writer
-		if p.Outfile == "" {
-			// In this case, write to a buffer, which will be assigned to res.Bytes later on
-			zipFile = &outBuf
-		} else {
-			zipFile, err = os.Create(p.Outfile)
-			if err != nil {
-				return nil, err
-			}
-		}
-		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
-		// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
-		// necessary until dscache is in use.
-		initID, err := m.inst.repo.Logbook().RefToInitID(currRef)
-		if err != nil {
-			return nil, err
-		}
-		err = archive.WriteZip(ctx, m.inst.repo.Filesystem(), ds, "json", initID, currRef, zipFile)
-		if err != nil {
-			return nil, err
-		}
-		// Handle output. If outfile is empty, return the raw bytes. Otherwise provide a helpful
-		// message for the user
-		if p.Outfile == "" {
-			res.Bytes = outBuf.Bytes()
-		} else {
-			res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
-		}
-		return res, nil
-	}
-
-	if p.Selector == "body" {
-		// `qri get body` loads the body
-		if !p.All && (p.Limit < 0 || p.Offset < 0) {
-			return nil, fmt.Errorf("invalid limit / offset settings")
-		}
-		df, err := dataset.ParseDataFormatString(p.Format)
-		if err != nil {
-			log.Debugf("Get dataset, ParseDataFormatString %q failed, error: %s", p.Format, err)
-			return nil, err
-		}
-
-		if fsi.IsFSIPath(ref.Path) {
-			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
-			// but no structure, which should infer a schema in order to read the body. Once that
-			// works we can remove the fsi.GetBody call and just use base.ReadBody.
-			res.Bytes, err = fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), df, p.FormatConfig, p.Offset, p.Limit, p.All)
-			if err != nil {
-				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
-				return nil, err
-			}
-			err = m.maybeWriteOutfile(p, res)
-			if err != nil {
-				return nil, err
-			}
-			return res, nil
-		}
-		res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
-		if err != nil {
-			log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
-			return nil, err
-		}
-		err = m.maybeWriteOutfile(p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
-		// Fields that have qfs.File types should be read and returned
-		res.Bytes, err = ioutil.ReadAll(scriptFile)
-		if err != nil {
-			return nil, err
-		}
-		err = m.maybeWriteOutfile(p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	} else if p.Selector == "stats" {
-		statsParams := &StatsParams{
-			Dataset: res.Dataset,
-		}
-		sa, err := m.Stats(ctx, statsParams)
-		if err != nil {
-			return nil, err
-		}
-		res.Bytes, err = json.Marshal(sa.Stats)
-		if err != nil {
-			return nil, err
-		}
-		err = m.maybeWriteOutfile(p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	}
-
-	var value interface{}
-	if p.Selector == "" {
-		// `qri get` without a selector loads only the dataset head
-		value = res.Dataset
-	} else {
-		// `qri get <selector>` loads only the applicable component / field
-		value, err = base.ApplyPath(res.Dataset, p.Selector)
-		if err != nil {
-			return nil, err
-		}
-	}
-	switch p.Format {
-	case "json":
-		// Pretty defaults to true for the dataset head, unless explicitly set in the config.
-		pretty := true
-		if p.FormatConfig != nil {
-			pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
-			if ok {
-				pretty = pvalue
-			}
-		}
-		if pretty {
-			res.Bytes, err = json.MarshalIndent(value, "", " ")
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			res.Bytes, err = json.Marshal(value)
-			if err != nil {
-				return nil, err
-			}
-		}
-	case "yaml", "":
-		res.Bytes, err = yaml.Marshal(value)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("unknown format: \"%s\"", p.Format)
-	}
-	err = m.maybeWriteOutfile(p, res)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
-func (m *DatasetMethods) maybeWriteOutfile(p *GetParams, res *GetResult) error {
+func maybeWriteOutfile(p *GetParams, res *GetResult) error {
 	if p.Outfile != "" {
 		err := ioutil.WriteFile(p.Outfile, res.Bytes, 0644)
 		if err != nil {
@@ -744,240 +417,11 @@ func (p *SaveParams) SetNonZeroDefaults() {
 
 // Save adds a history entry, updating a dataset
 func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Dataset, error) {
-	log.Debugw("DatasetMethods.Save", "ref", p.Ref, "apply", p.Apply)
-	res := &dataset.Dataset{}
-
-	if m.inst.http != nil {
-		p.ScriptOutput = nil
-		err := m.inst.http.Call(ctx, AESave, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "save"), p)
+	if res, ok := got.(*dataset.Dataset); ok {
+		return res, err
 	}
-
-	var (
-		writeDest = m.inst.qfs.DefaultWriteFS()    // filesystem dataset will be written to
-		pro       = m.inst.repo.Profiles().Owner() // user making the request. hard-coded to repo owner
-	)
-
-	if p.Private {
-		return nil, fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
-	}
-
-	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
-	if p.UseDscache {
-		c := m.inst.dscache
-		c.CreateNewEnabled = true
-	}
-
-	// start with dataset fields provided by params
-	ds := p.Dataset
-	if ds == nil {
-		ds = &dataset.Dataset{}
-	}
-	ds.Assign(&dataset.Dataset{
-		BodyPath: p.BodyPath,
-		Commit: &dataset.Commit{
-			Title:   p.Title,
-			Message: p.Message,
-		},
-	})
-
-	if len(p.FilePaths) > 0 {
-		// TODO (b5): handle this with a qfs.Filesystem
-		dsf, err := ReadDatasetFiles(p.FilePaths...)
-		if err != nil {
-			return nil, err
-		}
-		dsf.Assign(ds)
-		ds = dsf
-	}
-
-	if p.Ref == "" && ds.Name != "" {
-		p.Ref = fmt.Sprintf("me/%s", ds.Name)
-	}
-
-	resolver, err := m.inst.resolverForMode("local")
-	if err != nil {
-		log.Debugw("save construct resolver", "mode", "local", "err", err)
-		return nil, err
-	}
-
-	ref, isNew, err := base.PrepareSaveRef(ctx, pro, m.inst.logbook, resolver, p.Ref, ds.BodyPath, p.NewName)
-	if err != nil {
-		log.Debugw("save PrepareSaveRef", "refParam", p.Ref, "wantNewName", p.NewName, "err", err)
-		return nil, err
-	}
-
-	success := false
-	defer func() {
-		// if creating a new dataset fails, we need to remove the dataset
-		if isNew && !success {
-			log.Debugf("removing unused log for new dataset %s", ref)
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-			if err := m.inst.logbook.RemoveLog(ctx, ref); err != nil {
-				log.Errorf("couldn't cleanup unused reference: %q", err)
-			}
-			cancel()
-		}
-	}()
-
-	ds.Name = ref.Name
-	ds.Peername = ref.Username
-
-	var fsiPath string
-	if !isNew {
-		// check for FSI linked data
-		fsiRef := ref.Copy()
-		if err := m.inst.fsi.ResolvedPath(&fsiRef); err == nil {
-			fsiPath = fsi.FilesystemPathToLocal(fsiRef.Path)
-			fsiDs, err := fsi.ReadDir(fsiPath)
-			if err != nil {
-				return nil, err
-			}
-			fsiDs.Assign(ds)
-			ds = fsiDs
-		}
-	}
-
-	if !p.Force &&
-		!p.Apply &&
-		p.Drop == "" &&
-		ds.BodyPath == "" &&
-		ds.Body == nil &&
-		ds.BodyBytes == nil &&
-		ds.Structure == nil &&
-		ds.Meta == nil &&
-		ds.Readme == nil &&
-		ds.Viz == nil &&
-		ds.Transform == nil {
-		return nil, fmt.Errorf("no changes to save")
-	}
-
-	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
-		log.Debugw("save OpenDataset", "err", err.Error())
-		return nil, err
-	}
-
-	// runState holds the results of transform application. will be non-nil if a
-	// transform is applied while saving
-	var runState *run.State
-
-	// If applying a transform, execute its script before saving
-	if p.Apply {
-		if ds.Transform == nil {
-			// if no transform component exists, load the latest transform component
-			// from history
-			if isNew {
-				return nil, fmt.Errorf("cannot apply while saving without a transform")
-			}
-
-			prevTransformDataset, err := base.LoadRevs(ctx, m.inst.qfs, ref, []*dsref.Rev{{Field: "tf", Gen: 1}})
-			if err != nil {
-				return nil, fmt.Errorf("loading transform component from history: %w", err)
-			}
-			ds.Transform = prevTransformDataset.Transform
-		}
-
-		scriptOut := p.ScriptOutput
-		secrets := p.Secrets
-		// allocate an ID for the transform, subscribe to print output & build up
-		// runState
-		runID := run.NewID()
-		runState = run.NewState(runID)
-		// create a loader so transforms can call `load_dataset`
-		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverForMode
-		// on the passed in mode string instead of just using the default resolver
-		// cmd can then define "remote" and "offline" flags, that set the ResolverMode
-		// string and control how transform functions
-		loader := NewParseResolveLoadFunc("", m.inst.defaultResolver(), m.inst)
-
-		m.inst.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
-			runState.AddTransformEvent(e)
-			if e.Type == event.ETTransformPrint {
-				if msg, ok := e.Payload.(event.TransformMessage); ok {
-					if p.ScriptOutput != nil {
-						io.WriteString(scriptOut, msg.Msg)
-						io.WriteString(scriptOut, "\n")
-					}
-				}
-			}
-			return nil
-		}, runID)
-
-		// apply the transform
-		shouldWait := true
-		transformer := transform.NewTransformer(m.inst.appCtx, loader, m.inst.bus)
-		if err := transformer.Apply(ctx, ds, runID, shouldWait, scriptOut, secrets); err != nil {
-			log.Errorw("transform run error", "err", err.Error())
-			runState.Message = err.Error()
-			if err := m.inst.logbook.WriteTransformRun(ctx, ref.InitID, runState); err != nil {
-				log.Debugw("writing errored transform run to logbook:", "err", err.Error())
-				return nil, err
-			}
-
-			return nil, err
-		}
-
-		ds.Commit.RunID = runID
-	}
-
-	if fsiPath != "" && p.Drop != "" {
-		return nil, qrierr.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
-	}
-
-	fileHint := p.BodyPath
-	if len(p.FilePaths) > 0 {
-		fileHint = p.FilePaths[0]
-	}
-
-	switches := base.SaveSwitches{
-		FileHint:            fileHint,
-		Replace:             p.Replace,
-		Pin:                 true,
-		ConvertFormatToPrev: p.ConvertFormatToPrev,
-		ForceIfNoChanges:    p.Force,
-		ShouldRender:        p.ShouldRender,
-		NewName:             p.NewName,
-		Drop:                p.Drop,
-	}
-	savedDs, err := base.SaveDataset(ctx, m.inst.repo, writeDest, ref.InitID, ref.Path, ds, runState, switches)
-	if err != nil {
-		// datasets that are unchanged & have a runState record a record of no-changes
-		// to logbook
-		if errors.Is(err, dsfs.ErrNoChanges) && runState != nil {
-			runState.Status = run.RSUnchanged
-			runState.Message = err.Error()
-			if err := m.inst.logbook.WriteTransformRun(ctx, ref.InitID, runState); err != nil {
-				log.Debugw("writing unchanged transform run to logbook:", "err", err.Error())
-				return nil, err
-			}
-		}
-
-		log.Debugw("save base.SaveDataset", "err", err)
-		return nil, err
-	}
-
-	success = true
-	*res = *savedDs
-
-	// TODO (b5) - this should be integrated into base.SaveDataset
-	if fsiPath != "" {
-		vi := dsref.ConvertDatasetToVersionInfo(savedDs)
-		vi.FSIPath = fsiPath
-		if err = repo.PutVersionInfoShim(ctx, m.inst.repo, &vi); err != nil {
-			log.Debugw("save PutVersionInfoShim", "fsiPath", fsiPath, "err", err)
-			return nil, err
-		}
-		// Need to pass filesystem here so that we can read the README component and write it
-		// properly back to disk.
-		if writeErr := fsi.WriteComponents(savedDs, fsiPath, m.inst.repo.Filesystem()); err != nil {
-			log.Error(writeErr)
-		}
-	}
-
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // RenameParams defines parameters for Dataset renaming
@@ -1737,22 +1181,533 @@ type datasetImpl struct{}
 
 // List gets the reflist for either the local repo or a peer
 func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	// TODO(dustmop): When List is converted to use scope, get the ProfileID from
+	// the scope if the user is authorized to only view their own datasets, as opposed
+	// to the full collection that exists in this node's repository.
+	restrictPid := ""
+
+	// ensure valid limit value
+	if p.Limit <= 0 {
+		p.Limit = 25
+	}
+	// ensure valid offset value
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+
+	reqProfile := scope.Repo().Profiles().Owner()
+	listProfile, err := getProfile(scope.Context(), scope.Repo().Profiles(), reqProfile.ID.String(), p.Peername)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the list operation leads to a warning, store it in this var
+	var listWarning error
+
+	var infos []dsref.VersionInfo
+	if p.UseDscache {
+		c := scope.Dscache()
+		if c.IsEmpty() {
+			log.Infof("building dscache from repo's logbook, profile, and dsref")
+			built, err := build.DscacheFromRepo(scope.Context(), scope.Repo())
+			if err != nil {
+				return nil, err
+			}
+			err = c.Assign(built)
+			if err != nil {
+				log.Error(err)
+			}
+		}
+		refs, err := c.ListRefs()
+		if err != nil {
+			return nil, err
+		}
+		// Filter references so that only with a matching name are returned
+		if p.Term != "" {
+			matched := make([]reporef.DatasetRef, len(refs))
+			count := 0
+			for _, ref := range refs {
+				if strings.Contains(ref.AliasString(), p.Term) {
+					matched[count] = ref
+					count++
+				}
+			}
+			refs = matched[:count]
+		}
+		// Filter references by skipping to the correct offset
+		if p.Offset > len(refs) {
+			refs = []reporef.DatasetRef{}
+		} else {
+			refs = refs[p.Offset:]
+		}
+		// Filter references by limiting how many are returned
+		if p.Limit < len(refs) {
+			refs = refs[:p.Limit]
+		}
+		// Convert old style DatasetRef list to VersionInfo list.
+		// TODO(dustmop): Remove this and convert lower-level functions to return []VersionInfo.
+		infos = make([]dsref.VersionInfo, len(refs))
+		for i, r := range refs {
+			infos[i] = reporef.ConvertToVersionInfo(&r)
+		}
+	} else if listProfile.Peername == "" || reqProfile.Peername == listProfile.Peername {
+		infos, err = base.ListDatasets(scope.Context(), scope.Repo(), p.Term, restrictPid, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
+		if errors.Is(err, ErrListWarning) {
+			listWarning = err
+			err = nil
+		}
+	} else {
+		return nil, fmt.Errorf("listing datasets on a peer is not implemented")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if p.EnsureFSIExists {
+		// For each reference with a linked fsi working directory, check that the folder exists
+		// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
+		// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
+		for _, info := range infos {
+			if info.FSIPath != "" && !linkfile.ExistsInDir(info.FSIPath) {
+				info.FSIPath = ""
+				ref := reporef.RefFromVersionInfo(&info)
+				if ref.Path == "" {
+					if err = scope.Repo().DeleteRef(ref); err != nil {
+						log.Debugf("cannot delete ref for %q, err: %s", ref, err)
+					}
+					continue
+				}
+				if err = scope.Repo().PutRef(ref); err != nil {
+					log.Debugf("cannot put ref for %q, err: %s", ref, err)
+				}
+			}
+		}
+	}
+
+	if listWarning != nil {
+		return nil, listWarning
+	}
+
+	return infos, nil
 }
 
 // ListRawRefs gets the list of raw references as string
 func (datasetImpl) ListRawRefs(scope scope, p *ListParams) (string, error) {
-	return "", fmt.Errorf("not yet implemented")
+	text := ""
+	if p.UseDscache {
+		c := scope.Dscache()
+		if c == nil || c.IsEmpty() {
+			return "", fmt.Errorf("repo: dscache not found")
+		}
+		text = c.VerboseString(true)
+		return text, nil
+	}
+	return base.RawDatasetRefs(scope.Context(), scope.Repo())
 }
 
 // Get retrieves datasets and components for a given reference.t
 func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	res := &GetResult{}
+
+	var ds *dataset.Dataset
+	ref, source, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Refstr, p.Remote)
+	if err != nil {
+		return nil, err
+	}
+	ds, err = scope.LoadDataset(scope.Context(), ref, source)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Ref = &ref
+	res.Dataset = ds
+
+	if fsi.IsFSIPath(ref.Path) {
+		res.FSIPath = fsi.FilesystemPathToLocal(ref.Path)
+	}
+	// TODO (b5) - Published field is longer set as part of Reference Resolution
+	// getting publication status should be delegated to a new function
+
+	if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
+		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
+		return nil, err
+	}
+
+	if p.Format == "zip" {
+		// Only if GenFilename is true, and no output filename is set, generate one from the
+		// dataset name
+		if p.Outfile == "" && p.GenFilename {
+			p.Outfile = fmt.Sprintf("%s.zip", ds.Name)
+		}
+		var outBuf bytes.Buffer
+		var zipFile io.Writer
+		if p.Outfile == "" {
+			// In this case, write to a buffer, which will be assigned to res.Bytes later on
+			zipFile = &outBuf
+		} else {
+			zipFile, err = os.Create(p.Outfile)
+			if err != nil {
+				return nil, err
+			}
+		}
+		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
+		// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
+		// necessary until dscache is in use.
+		initID, err := scope.Logbook().RefToInitID(currRef)
+		if err != nil {
+			return nil, err
+		}
+		err = archive.WriteZip(scope.Context(), scope.Filesystem(), ds, "json", initID, currRef, zipFile)
+		if err != nil {
+			return nil, err
+		}
+		// Handle output. If outfile is empty, return the raw bytes. Otherwise provide a helpful
+		// message for the user
+		if p.Outfile == "" {
+			res.Bytes = outBuf.Bytes()
+		} else {
+			res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
+		}
+		return res, nil
+	}
+
+	if p.Selector == "body" {
+		// `qri get body` loads the body
+		if !p.All && (p.Limit < 0 || p.Offset < 0) {
+			return nil, fmt.Errorf("invalid limit / offset settings")
+		}
+		df, err := dataset.ParseDataFormatString(p.Format)
+		if err != nil {
+			log.Debugf("Get dataset, ParseDataFormatString %q failed, error: %s", p.Format, err)
+			return nil, err
+		}
+
+		if fsi.IsFSIPath(ref.Path) {
+			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
+			// but no structure, which should infer a schema in order to read the body. Once that
+			// works we can remove the fsi.GetBody call and just use base.ReadBody.
+			res.Bytes, err = fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), df, p.FormatConfig, p.Offset, p.Limit, p.All)
+			if err != nil {
+				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
+				return nil, err
+			}
+			err = maybeWriteOutfile(p, res)
+			if err != nil {
+				return nil, err
+			}
+			return res, nil
+		}
+		res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
+		if err != nil {
+			log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
+			return nil, err
+		}
+		err = maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
+		// Fields that have qfs.File types should be read and returned
+		res.Bytes, err = ioutil.ReadAll(scriptFile)
+		if err != nil {
+			return nil, err
+		}
+		err = maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	} else if p.Selector == "stats" {
+		sa, err := scope.Stats().Stats(scope.Context(), res.Dataset)
+		if err != nil {
+			return nil, err
+		}
+		res.Bytes, err = json.Marshal(sa.Stats)
+		if err != nil {
+			return nil, err
+		}
+		err = maybeWriteOutfile(p, res)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	}
+
+	var value interface{}
+	if p.Selector == "" {
+		// `qri get` without a selector loads only the dataset head
+		value = res.Dataset
+	} else {
+		// `qri get <selector>` loads only the applicable component / field
+		value, err = base.ApplyPath(res.Dataset, p.Selector)
+		if err != nil {
+			return nil, err
+		}
+	}
+	switch p.Format {
+	case "json":
+		// Pretty defaults to true for the dataset head, unless explicitly set in the config.
+		pretty := true
+		if p.FormatConfig != nil {
+			pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
+			if ok {
+				pretty = pvalue
+			}
+		}
+		if pretty {
+			res.Bytes, err = json.MarshalIndent(value, "", " ")
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			res.Bytes, err = json.Marshal(value)
+			if err != nil {
+				return nil, err
+			}
+		}
+	case "yaml", "":
+		res.Bytes, err = yaml.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unknown format: \"%s\"", p.Format)
+	}
+	err = maybeWriteOutfile(p, res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Save adds a history entry, updating a dataset
 func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	log.Debugw("DatasetMethods.Save", "ref", p.Ref, "apply", p.Apply)
+	res := &dataset.Dataset{}
+
+	var (
+		writeDest = scope.Filesystem().DefaultWriteFS() // filesystem dataset will be written to
+		pro       = scope.Repo().Profiles().Owner()     // user making the request. hard-coded to repo owner
+	)
+
+	if p.Private {
+		return nil, fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
+	}
+
+	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
+	if p.UseDscache {
+		c := scope.Dscache()
+		c.CreateNewEnabled = true
+	}
+
+	// start with dataset fields provided by params
+	ds := p.Dataset
+	if ds == nil {
+		ds = &dataset.Dataset{}
+	}
+	ds.Assign(&dataset.Dataset{
+		BodyPath: p.BodyPath,
+		Commit: &dataset.Commit{
+			Title:   p.Title,
+			Message: p.Message,
+		},
+	})
+
+	if len(p.FilePaths) > 0 {
+		// TODO (b5): handle this with a qfs.Filesystem
+		dsf, err := ReadDatasetFiles(p.FilePaths...)
+		if err != nil {
+			return nil, err
+		}
+		dsf.Assign(ds)
+		ds = dsf
+	}
+
+	if p.Ref == "" && ds.Name != "" {
+		p.Ref = fmt.Sprintf("me/%s", ds.Name)
+	}
+
+	resolver, err := scope.ResolverForMode("local")
+	if err != nil {
+		log.Debugw("save construct resolver", "mode", "local", "err", err)
+		return nil, err
+	}
+
+	ref, isNew, err := base.PrepareSaveRef(scope.Context(), pro, scope.Logbook(), resolver, p.Ref, ds.BodyPath, p.NewName)
+	if err != nil {
+		log.Debugw("save PrepareSaveRef", "refParam", p.Ref, "wantNewName", p.NewName, "err", err)
+		return nil, err
+	}
+
+	success := false
+	defer func() {
+		// if creating a new dataset fails, we need to remove the dataset
+		if isNew && !success {
+			log.Debugf("removing unused log for new dataset %s", ref)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+			if err := scope.Logbook().RemoveLog(ctx, ref); err != nil {
+				log.Errorf("couldn't cleanup unused reference: %q", err)
+			}
+			cancel()
+		}
+	}()
+
+	ds.Name = ref.Name
+	ds.Peername = ref.Username
+
+	var fsiPath string
+	if !isNew {
+		// check for FSI linked data
+		fsiRef := ref.Copy()
+		if err := scope.FSISubsystem().ResolvedPath(&fsiRef); err == nil {
+			fsiPath = fsi.FilesystemPathToLocal(fsiRef.Path)
+			fsiDs, err := fsi.ReadDir(fsiPath)
+			if err != nil {
+				return nil, err
+			}
+			fsiDs.Assign(ds)
+			ds = fsiDs
+		}
+	}
+
+	if !p.Force &&
+		!p.Apply &&
+		p.Drop == "" &&
+		ds.BodyPath == "" &&
+		ds.Body == nil &&
+		ds.BodyBytes == nil &&
+		ds.Structure == nil &&
+		ds.Meta == nil &&
+		ds.Readme == nil &&
+		ds.Viz == nil &&
+		ds.Transform == nil {
+		return nil, fmt.Errorf("no changes to save")
+	}
+
+	if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
+		log.Debugw("save OpenDataset", "err", err.Error())
+		return nil, err
+	}
+
+	// runState holds the results of transform application. will be non-nil if a
+	// transform is applied while saving
+	var runState *run.State
+
+	// If applying a transform, execute its script before saving
+	if p.Apply {
+		if ds.Transform == nil {
+			// if no transform component exists, load the latest transform component
+			// from history
+			if isNew {
+				return nil, fmt.Errorf("cannot apply while saving without a transform")
+			}
+
+			prevTransformDataset, err := base.LoadRevs(scope.Context(), scope.Filesystem(), ref, []*dsref.Rev{{Field: "tf", Gen: 1}})
+			if err != nil {
+				return nil, fmt.Errorf("loading transform component from history: %w", err)
+			}
+			ds.Transform = prevTransformDataset.Transform
+		}
+
+		scriptOut := p.ScriptOutput
+		secrets := p.Secrets
+		// allocate an ID for the transform, subscribe to print output & build up
+		// runState
+		runID := run.NewID()
+		runState = run.NewState(runID)
+		// create a loader so transforms can call `load_dataset`
+		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverForMode
+		// on the passed in mode string instead of just using the default resolver
+		// cmd can then define "remote" and "offline" flags, that set the ResolverMode
+		// string and control how transform functions
+		loader := scope.ParseResolveFunc()
+
+		scope.Bus().SubscribeID(func(ctx context.Context, e event.Event) error {
+			runState.AddTransformEvent(e)
+			if e.Type == event.ETTransformPrint {
+				if msg, ok := e.Payload.(event.TransformMessage); ok {
+					if p.ScriptOutput != nil {
+						io.WriteString(scriptOut, msg.Msg)
+						io.WriteString(scriptOut, "\n")
+					}
+				}
+			}
+			return nil
+		}, runID)
+
+		// apply the transform
+		shouldWait := true
+		transformer := transform.NewTransformer(scope.AppContext(), loader, scope.Bus())
+		if err := transformer.Apply(scope.Context(), ds, runID, shouldWait, scriptOut, secrets); err != nil {
+			log.Errorw("transform run error", "err", err.Error())
+			runState.Message = err.Error()
+			if err := scope.Logbook().WriteTransformRun(scope.Context(), ref.InitID, runState); err != nil {
+				log.Debugw("writing errored transform run to logbook:", "err", err.Error())
+				return nil, err
+			}
+
+			return nil, err
+		}
+
+		ds.Commit.RunID = runID
+	}
+
+	if fsiPath != "" && p.Drop != "" {
+		return nil, qrierr.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
+	}
+
+	fileHint := p.BodyPath
+	if len(p.FilePaths) > 0 {
+		fileHint = p.FilePaths[0]
+	}
+
+	switches := base.SaveSwitches{
+		FileHint:            fileHint,
+		Replace:             p.Replace,
+		Pin:                 true,
+		ConvertFormatToPrev: p.ConvertFormatToPrev,
+		ForceIfNoChanges:    p.Force,
+		ShouldRender:        p.ShouldRender,
+		NewName:             p.NewName,
+		Drop:                p.Drop,
+	}
+	savedDs, err := base.SaveDataset(scope.Context(), scope.Repo(), writeDest, ref.InitID, ref.Path, ds, runState, switches)
+	if err != nil {
+		// datasets that are unchanged & have a runState record a record of no-changes
+		// to logbook
+		if errors.Is(err, dsfs.ErrNoChanges) && runState != nil {
+			runState.Status = run.RSUnchanged
+			runState.Message = err.Error()
+			if err := scope.Logbook().WriteTransformRun(scope.Context(), ref.InitID, runState); err != nil {
+				log.Debugw("writing unchanged transform run to logbook:", "err", err.Error())
+				return nil, err
+			}
+		}
+
+		log.Debugw("save base.SaveDataset", "err", err)
+		return nil, err
+	}
+
+	success = true
+	*res = *savedDs
+
+	// TODO (b5) - this should be integrated into base.SaveDataset
+	if fsiPath != "" {
+		vi := dsref.ConvertDatasetToVersionInfo(savedDs)
+		vi.FSIPath = fsiPath
+		if err = repo.PutVersionInfoShim(scope.Context(), scope.Repo(), &vi); err != nil {
+			log.Debugw("save PutVersionInfoShim", "fsiPath", fsiPath, "err", err)
+			return nil, err
+		}
+		// Need to pass filesystem here so that we can read the README component and write it
+		// properly back to disk.
+		if writeErr := fsi.WriteComponents(savedDs, fsiPath, scope.Filesystem()); err != nil {
+			log.Error(writeErr)
+		}
+	}
+
+	return res, nil
 }
 
 // Rename changes a user's given name for a dataset

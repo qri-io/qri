@@ -65,8 +65,8 @@ func TestGetComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.DatasetMethods == nil {
-			t.Errorf("case %d, opt.DatasetRequests not set.", i)
+		if opt.inst == nil {
+			t.Errorf("case %d, opt.inst not set.", i)
 			run.IOReset()
 			continue
 		}

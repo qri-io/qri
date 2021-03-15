@@ -15,7 +15,7 @@ import (
 // Factory is an interface for providing required structures to cobra commands
 // It's main implementation is QriOptions
 type Factory interface {
-	Instance() *lib.Instance
+	Instance() (*lib.Instance, error)
 	Config() (*config.Config, error)
 
 	// path to qri data directory
@@ -26,7 +26,6 @@ type Factory interface {
 	RPC() *rpc.Client
 	ConnectionNode() (*p2p.QriNode, error)
 
-	DatasetMethods() (*lib.DatasetMethods, error)
 	RemoteMethods() (*lib.RemoteMethods, error)
 	RegistryClientMethods() (*lib.RegistryClientMethods, error)
 	LogMethods() (*lib.LogMethods, error)

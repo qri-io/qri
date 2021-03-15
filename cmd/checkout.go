@@ -49,15 +49,13 @@ type CheckoutOptions struct {
 
 // Complete configures the checkout command
 func (o *CheckoutOptions) Complete(f Factory, args []string) (err error) {
-	o.Instance = f.Instance()
-
-	if err != nil {
-		return err
+	if o.Instance, err = f.Instance(); err != nil {
+		return
 	}
 
 	o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.Instance))
 	if err != nil {
-		return err
+		return
 	}
 
 	if len(args) == 2 {
@@ -65,8 +63,7 @@ func (o *CheckoutOptions) Complete(f Factory, args []string) (err error) {
 	} else {
 		o.Dir = ""
 	}
-
-	return nil
+	return
 }
 
 // Run executes the `checkout` command

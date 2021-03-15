@@ -70,20 +70,18 @@ type InitOptions struct {
 	TargetDir string
 	// Experimental: Use dscache subsystem to store dataset references
 	UseDscache bool
-
-	DatasetMethods *lib.DatasetMethods
 }
 
 // Complete completes a dataset reference
 func (o *InitOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
-		return err
+	if o.Instance, err = f.Instance(); err != nil {
+		return
 	}
-	o.Instance = f.Instance()
+
 	if len(args) > 0 {
 		o.TargetDir = args[0]
 	}
-	return err
+	return
 }
 
 // Run executes the `init` command

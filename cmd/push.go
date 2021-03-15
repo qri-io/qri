@@ -50,17 +50,13 @@ type PushOptions struct {
 	Logs       bool
 	RemoteName string
 
-	DatasetMethods *lib.DatasetMethods
-	RemoteMethods  *lib.RemoteMethods
+	RemoteMethods *lib.RemoteMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *PushOptions) Complete(f Factory, args []string) (err error) {
-	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
-		return err
-	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
-		return err
+		return
 	}
 	o.RemoteMethods, err = f.RemoteMethods()
 	return

@@ -87,8 +87,8 @@ func TestDAGComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.DatasetMethods == nil {
-			t.Errorf("case %d, opt.DatasetMethods not set.", i)
+		if opt.inst == nil {
+			t.Errorf("case %d, opt.inst not set.", i)
 		}
 
 		if opt.Label != c.label {
@@ -152,15 +152,15 @@ func TestDAGInfo(t *testing.T) {
 		//     },
 	}
 	for i, c := range cases {
-		dsm, err := f.DatasetMethods()
+		inst, err := f.Instance()
 		if err != nil {
-			t.Errorf("case %d, error creating dataset request: %s", i, err)
+			t.Errorf("case %d, error creating inst: %s", i, err)
 			continue
 		}
 
 		opt := c.opt
 		opt.IOStreams = run.Streams
-		opt.DatasetMethods = dsm
+		opt.inst = inst
 
 		err = opt.Info()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {

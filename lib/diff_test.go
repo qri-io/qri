@@ -11,7 +11,7 @@ func TestDatasetMethodsDiff(t *testing.T) {
 	tr := newTestRunner(t)
 	defer tr.Delete()
 
-	req := NewDatasetMethods(tr.Instance)
+	req := tr.Instance.Dataset()
 	jobsOnePath := tr.MustWriteTmpFile(t, "jobs_by_automation_1.csv", jobsByAutomationData1)
 	jobsTwoPath := tr.MustWriteTmpFile(t, "jobs_by_automation_2.csv", jobsByAutomationData2)
 

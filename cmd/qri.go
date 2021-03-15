@@ -191,11 +191,11 @@ Run migration now?`
 }
 
 // Instance returns the instance this options is using
-func (o *QriOptions) Instance() *lib.Instance {
+func (o *QriOptions) Instance() (*lib.Instance, error) {
 	if err := o.Init(); err != nil {
-		return nil
+		return nil, err
 	}
-	return o.inst
+	return o.inst, nil
 }
 
 // RepoPath returns the path to the qri data directory
@@ -230,14 +230,6 @@ func (o *QriOptions) ConnectionNode() (*p2p.QriNode, error) {
 		return nil, fmt.Errorf("repo not available")
 	}
 	return o.inst.Node(), nil
-}
-
-// DatasetMethods generates a lib.DatasetMethods from internal state
-func (o *QriOptions) DatasetMethods() (*lib.DatasetMethods, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewDatasetMethods(o.inst), nil
 }
 
 // RemoteMethods generates a lib.RemoteMethods from internal state

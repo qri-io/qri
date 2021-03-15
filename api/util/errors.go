@@ -2,7 +2,9 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 
 	golog "github.com/ipfs/go-log"
@@ -70,4 +72,10 @@ func RespondWithError(w http.ResponseWriter, err error) {
 	log.Errorf("%s: treating this as a 500 is a bug, see https://github.com/qri-io/qri/issues/959. The code path that generated this should return a known error type, which this function should map to a reasonable http status code", err)
 	WriteErrResponse(w, http.StatusInternalServerError, err)
 	return
+}
+
+// RespondWithDispatchTypeError writes an error describing a type mismatch error from using dispatch
+func RespondWithDispatchTypeError(w http.ResponseWriter, got interface{}) {
+	log.Errorf("type mismatch: %v of type %s", got, reflect.TypeOf(got))
+	WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("type mismatch: %v of type %s", got, reflect.TypeOf(got)))
 }

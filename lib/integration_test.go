@@ -36,7 +36,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	}
 
 	p := &ListParams{}
-	refs, err := NewDatasetMethods(tr.RegistryInst).ListRawRefs(tr.Ctx, p)
+	refs, err := tr.RegistryInst.Dataset().ListRawRefs(tr.Ctx, p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,8 +68,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	PushToRegistry(t, nasim, ref.Alias())
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
-	dsm := NewDatasetMethods(hinshun)
-	_, err = dsm.Pull(tr.Ctx, &PullParams{LogsOnly: true, Ref: ref.String()})
+	_, err = hinshun.Dataset().Pull(tr.Ctx, &PullParams{LogsOnly: true, Ref: ref.String()})
 	if err != nil {
 		t.Errorf("cloning logs: %s", err)
 	}
@@ -165,7 +164,6 @@ func TestReferencePulling(t *testing.T) {
 
 	// create adnan
 	adnan := tr.InitAdnan(t)
-	dsm := NewDatasetMethods(adnan)
 
 	// run a transform script that relies on world_bank_population, which adnan's
 	// node should automatically pull to execute this script
@@ -188,7 +186,7 @@ def transform(ds, ctx):
 		},
 		Apply: true,
 	}
-	_, err = dsm.Save(tr.Ctx, saveParams)
+	_, err = adnan.Dataset().Save(tr.Ctx, saveParams)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -374,7 +372,7 @@ func AssertLogsEqual(a, b *Instance, ref dsref.Ref) error {
 }
 
 func InitWorldBankDataset(ctx context.Context, t *testing.T, inst *Instance) dsref.Ref {
-	res, err := NewDatasetMethods(inst).Save(ctx, &SaveParams{
+	res, err := inst.Dataset().Save(ctx, &SaveParams{
 		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
 			Meta: &dataset.Meta{
@@ -398,7 +396,7 @@ d,e,f,false,3`),
 }
 
 func Commit2WorldBank(ctx context.Context, t *testing.T, inst *Instance) dsref.Ref {
-	res, err := NewDatasetMethods(inst).Save(ctx, &SaveParams{
+	res, err := inst.Dataset().Save(ctx, &SaveParams{
 		Ref: "me/world_bank_population",
 		Dataset: &dataset.Dataset{
 			Meta: &dataset.Meta{

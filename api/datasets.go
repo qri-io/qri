@@ -227,9 +227,29 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	res := []dsref.VersionInfo{}
 	var err error
 	if params.Raw {
-		resRaw, err = h.ListRawRefs(r.Context(), params)
+		got, _, err := h.inst.Dispatch(r.Context(), "dataset.listrawrefs", params)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
+		ok := false
+		resRaw, ok = got.(string)
+		if !ok {
+			util.RespondWithDispatchTypeError(w, got)
+			return
+		}
 	} else {
-		res, err = h.List(r.Context(), params)
+		got, _, err := h.inst.Dispatch(r.Context(), "dataset.list", params)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
+		ok := false
+		res, ok = got.([]dsref.VersionInfo)
+		if !ok {
+			util.RespondWithDispatchTypeError(w, got)
+			return
+		}
 	}
 
 	if err != nil {
@@ -255,20 +275,25 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
-	params := lib.GetParams{}
+	params := &lib.GetParams{}
 
-	err := lib.UnmarshalParams(r, &params)
+	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	result, err := h.Get(r.Context(), &params)
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.get", params)
 	if err != nil {
 		util.RespondWithError(w, err)
 		return
 	}
-	h.replyWithGetResponse(w, r, &params, result)
+	res, ok := got.(*lib.GetResult)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+		return
+	}
+	h.replyWithGetResponse(w, r, params, res)
 }
 
 // inlineScriptsToBytes consumes all open script files for dataset components
@@ -456,12 +481,18 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	scriptOutput := &bytes.Buffer{}
 	params.ScriptOutput = scriptOutput
 
-	res, err := h.Save(r.Context(), params)
+	got, _, err := h.inst.Dispatch(r.Context(), "dataset.save", params)
 	if err != nil {
 		log.Debugw("save dataset error", "err", err)
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		util.RespondWithError(w, err)
 		return
 	}
+	res, ok := got.(*dataset.Dataset)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+		return
+	}
+
 	// Don't leak paths across the API, it's possible they contain absolute paths or tmp dirs.
 	res.BodyPath = filepath.Base(res.BodyPath)
 

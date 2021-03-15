@@ -43,9 +43,11 @@ type WhatChangedOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *WhatChangedOptions) Complete(f Factory, args []string) (err error) {
-	o.Instance = f.Instance()
+	if o.Instance, err = f.Instance(); err != nil {
+		return
+	}
 	o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.Instance))
-	return nil
+	return
 }
 
 // Run executes the whatchanged command

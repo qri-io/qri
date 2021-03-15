@@ -57,8 +57,8 @@ func TestRenameComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.DatasetMethods == nil {
-			t.Errorf("case %d, opt.DatasetMethods not set.", i)
+		if opt.inst == nil {
+			t.Errorf("case %d, opt.inst not set.", i)
 			run.IOReset()
 			continue
 		}
@@ -129,17 +129,17 @@ func TestRenameRun(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		dsm, err := f.DatasetMethods()
+		inst, err := f.Instance()
 		if err != nil {
-			t.Errorf("case %d, error creating dataset request: %s", i, err)
+			t.Errorf("case %d, error creating instance: %s", i, err)
 			continue
 		}
 
 		opt := &RenameOptions{
-			IOStreams:      run.Streams,
-			From:           c.from,
-			To:             c.to,
-			DatasetMethods: dsm,
+			IOStreams: run.Streams,
+			From:      c.from,
+			To:        c.to,
+			inst:      inst,
 		}
 
 		err = opt.Run()

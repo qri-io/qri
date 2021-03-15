@@ -47,18 +47,17 @@ dataset version(s). By default pull fetches the latest version of a dataset.
 // PullOptions encapsulates state for the add command
 type PullOptions struct {
 	ioes.IOStreams
-	LinkDir        string
-	Remote         string
-	LogsOnly       bool
-	DatasetMethods *lib.DatasetMethods
+	LinkDir  string
+	Remote   string
+	LogsOnly bool
+
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *PullOptions) Complete(f Factory) (err error) {
-	if o.DatasetMethods, err = f.DatasetMethods(); err != nil {
-		return
-	}
-	return nil
+	o.inst, err = f.Instance()
+	return
 }
 
 // Run adds another peer's dataset to this user's repo
@@ -81,7 +80,7 @@ func (o *PullOptions) Run(args []string) error {
 			Remote:   o.Remote,
 		}
 
-		res, err := o.DatasetMethods.Pull(ctx, p)
+		res, err := o.inst.Dataset().Pull(ctx, p)
 		if err != nil {
 			return err
 		}

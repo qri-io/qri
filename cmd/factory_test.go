@@ -103,8 +103,8 @@ func (t TestFactory) Config() (*config.Config, error) {
 	return t.config, nil
 }
 
-func (t TestFactory) Instance() *lib.Instance {
-	return t.inst
+func (t TestFactory) Instance() (*lib.Instance, error) {
+	return t.inst, nil
 }
 
 // RepoPath returns the path to the qri directory from internal state
@@ -130,11 +130,6 @@ func (t TestFactory) ConnectionNode() (*p2p.QriNode, error) {
 // RPC returns from internal state
 func (t TestFactory) RPC() *rpc.Client {
 	return nil
-}
-
-// DatasetMethods generates a lib.DatasetMethods from internal state
-func (t TestFactory) DatasetMethods() (*lib.DatasetMethods, error) {
-	return lib.NewDatasetMethods(t.inst), nil
 }
 
 // RemoteRequests generates a lib.RemoteRequests from internal state

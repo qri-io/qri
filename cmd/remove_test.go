@@ -44,8 +44,8 @@ func TestRemoveComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.DatasetMethods == nil {
-			t.Errorf("case %d, opt.DatasetMethods not set.", i)
+		if opt.inst == nil {
+			t.Errorf("case %d, opt.inst not set.", i)
 			run.IOReset()
 			continue
 		}
@@ -113,17 +113,16 @@ func TestRemoveRun(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		dsm, err := f.DatasetMethods()
+		inst, err := f.Instance()
 		if err != nil {
-			t.Errorf("case %d, error creating dataset request: %s", i, err)
-			continue
+			t.Fatalf("case %d, error creating instance: %s", i, err)
 		}
 
 		opt := &RemoveOptions{
-			IOStreams:      run.Streams,
-			Refs:           NewListOfRefSelects(c.args),
-			Revision:       &dsref.Rev{Field: "ds", Gen: c.revision},
-			DatasetMethods: dsm,
+			IOStreams: run.Streams,
+			Refs:      NewListOfRefSelects(c.args),
+			Revision:  &dsref.Rev{Field: "ds", Gen: c.revision},
+			inst:      inst,
 		}
 
 		err = opt.Run()

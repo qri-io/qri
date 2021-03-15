@@ -681,6 +681,5 @@ func TestSetupHappensBeforeOtherCommands(t *testing.T) {
 			err := fmt.Sprintf("expected error for command %v:\n %v\n but received error:\n %v", cmdText, expect, noRepoErr)
 			t.Fatal(err)
 		}
-
 	}
 }

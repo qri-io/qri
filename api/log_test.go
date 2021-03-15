@@ -27,7 +27,7 @@ func TestHistoryHandlers(t *testing.T) {
 		},
 		Private: false,
 	}
-	_, err := lib.NewDatasetMethods(inst).Save(ctx, p)
+	_, err := inst.Dataset().Save(ctx, p)
 	if err != nil {
 		t.Fatalf("error writing dataset update: %s", err.Error())
 	}
