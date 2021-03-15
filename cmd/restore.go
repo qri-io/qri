@@ -73,7 +73,7 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 	o.ComponentName = ""
 
 	if o.Instance, err = f.Instance(); err != nil {
-		return
+		return err
 	}
 
 	// TODO(dlong): Add low-level utilities that parse strings like "peername/ds_name", and
@@ -117,7 +117,7 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 	}
 
 	o.Refs, err = GetCurrentRefSelect(f, dsRefList, 1, EnsureFSIAgrees(o.Instance))
-	return
+	return err
 }
 
 // Run executes the `restore` command

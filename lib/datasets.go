@@ -513,6 +513,9 @@ func (p *PullParams) UnmarshalFromRequest(r *http.Request) error {
 // Pull downloads and stores an existing dataset to a peer's repository via
 // a network connection
 func (m *DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Dataset, error) {
+	if err := qfs.AbsPath(&p.LinkDir); err != nil {
+		return nil, err
+	}
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "pull"), p)
 	if res, ok := got.(*dataset.Dataset); ok {
 		return res, err
@@ -1479,9 +1482,6 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 // Pull downloads and stores an existing dataset to a peer's repository via
 // a network connection
 func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
-	if err := qfs.AbsPath(&p.LinkDir); err != nil {
-		return nil, err
-	}
 	res := &dataset.Dataset{}
 	source := p.Remote
 	if source == "" {

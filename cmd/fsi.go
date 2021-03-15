@@ -68,7 +68,7 @@ type FSIOptions struct {
 // calling Run
 func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
 	if o.Instance, err = f.Instance(); err != nil {
-		return
+		return err
 	}
 
 	if len(args) > 1 {
@@ -77,7 +77,7 @@ func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
 	}
 
 	o.Refs, err = GetCurrentRefSelect(f, args, 1, EnsureFSIAgrees(o.Instance))
-	return
+	return err
 }
 
 // Link creates a FSI link
