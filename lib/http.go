@@ -118,12 +118,14 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 			return err
 		}
 
-		if pm, ok := params.(map[string]string); ok {
-			qvars := u.Query()
-			for k, v := range pm {
-				qvars.Set(k, v)
+		if params != nil {
+			if pm, ok := params.(map[string]string); ok {
+				qvars := u.Query()
+				for k, v := range pm {
+					qvars.Set(k, v)
+				}
+				u.RawQuery = qvars.Encode()
 			}
-			u.RawQuery = qvars.Encode()
 		}
 		req, err = http.NewRequest(httpMethod, u.String(), nil)
 	} else if httpMethod == http.MethodPost || httpMethod == http.MethodPut {
@@ -168,14 +170,16 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 		return nil
 	}
 
-	resData := apiutil.Response{
-		Data: result,
-		Meta: &apiutil.Meta{},
-	}
-	err = json.Unmarshal(body, &resData)
-	if err != nil {
-		log.Debugf("HTTPClient response err: %s", err.Error())
-		return fmt.Errorf("HTTPClient response err: %s", err)
+	if result != nil {
+		resData := apiutil.Response{
+			Data: result,
+			Meta: &apiutil.Meta{},
+		}
+		err = json.Unmarshal(body, &resData)
+		if err != nil {
+			log.Debugf("HTTPClient response err: %s", err.Error())
+			return fmt.Errorf("HTTPClient response err: %s", err)
+		}
 	}
 	return nil
 }

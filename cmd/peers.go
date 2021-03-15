@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -185,8 +186,9 @@ func (o *PeersOptions) Info() (err error) {
 		Verbose:  o.Verbose,
 	}
 
-	res := &config.ProfilePod{}
-	if err = o.PeerMethods.Info(p, res); err != nil {
+	ctx := context.TODO()
+	res, err := o.PeerMethods.Info(ctx, p)
+	if err != nil {
 		return err
 	}
 
@@ -212,10 +214,12 @@ func (o *PeersOptions) List() (err error) {
 	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	res := []*config.ProfilePod{}
+	ctx := context.TODO()
 
 	if o.Network == "ipfs" {
 		limit := page.Limit()
-		if err := o.PeerMethods.ConnectedQriProfiles(&limit, &res); err != nil {
+		res, err = o.PeerMethods.ConnectedQriProfiles(ctx, &limit)
+		if err != nil {
 			return err
 		}
 	} else {
@@ -230,7 +234,8 @@ func (o *PeersOptions) List() (err error) {
 			Offset: page.Offset(),
 			Cached: o.Cached,
 		}
-		if err = o.PeerMethods.List(p, &res); err != nil {
+		res, err = o.PeerMethods.List(ctx, p)
+		if err != nil {
 			return err
 		}
 	}
@@ -253,8 +258,9 @@ func (o *PeersOptions) List() (err error) {
 // Connect attempts to connect to a peer
 func (o *PeersOptions) Connect() (err error) {
 	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
-	res := &config.ProfilePod{}
-	if err = o.PeerMethods.ConnectToPeer(pcpod, res); err != nil {
+	ctx := context.TODO()
+	res, err := o.PeerMethods.ConnectToPeer(ctx, pcpod)
+	if err != nil {
 		return err
 	}
 
@@ -267,8 +273,8 @@ func (o *PeersOptions) Connect() (err error) {
 // Disconnect attempts to disconnect from a peer
 func (o *PeersOptions) Disconnect() (err error) {
 	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
-	res := false
-	if err = o.PeerMethods.DisconnectFromPeer(pcpod, &res); err != nil {
+	ctx := context.TODO()
+	if err = o.PeerMethods.DisconnectFromPeer(ctx, pcpod); err != nil {
 		return err
 	}
 

@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/qri-io/qri/dsref"
@@ -20,6 +21,11 @@ func (ae APIEndpoint) NoTrailingSlash() string {
 	s := string(ae)
 	s = strings.TrimSuffix(s, "/")
 	return s
+}
+
+// WithSuffix returns a new endpoint with added path suffix
+func (ae APIEndpoint) WithSuffix(suffix string) APIEndpoint {
+	return APIEndpoint(fmt.Sprintf("%s/%s", ae, suffix))
 }
 
 const (
@@ -48,11 +54,15 @@ const (
 	// AEPeers fetches all the peers
 	AEPeers = APIEndpoint("/peers")
 	// AEPeer fetches a specific peer
-	AEPeer = APIEndpoint("/peers/{path:.*}")
+	AEPeer = APIEndpoint("/peers/{profile}")
 	// AEConnect initiates an explicit connection to a peer
 	AEConnect = APIEndpoint("/connect")
+	// AEConnectAlt initiates an explicit connection to a peer
+	AEConnectAlt = APIEndpoint("/connect/{path:.*}")
 	// AEConnections lists qri & IPFS connections
 	AEConnections = APIEndpoint("/connections")
+	// AEConnectionsQri lists qri profile connections
+	AEConnectionsQri = APIEndpoint("/connections/qri")
 
 	// remote endpoints
 
