@@ -243,8 +243,8 @@ func (m *animalMethods) Name() string {
 
 func (m *animalMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"cat": {"", ""},
-		"dog": {"", ""},
+		"cat": {denyRPC, ""},
+		"dog": {denyRPC, ""},
 	}
 }
 
@@ -346,7 +346,7 @@ func (m *fruitMethods) Attributes() map[string]AttributeSet {
 		"cherry": {"/cherry", "GET"},
 		"date":   {"/date", "GET"},
 		// entawak cannot be called over RPC
-		"entawak": {"", ""},
+		"entawak": {denyRPC, ""},
 	}
 }
 

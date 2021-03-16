@@ -136,6 +136,13 @@ const (
 	AEFSICreateLink = APIEndpoint("/fsi/createlink/{path:.*}")
 	// AEFSIUnlink removes the fsi link
 	AEFSIUnlink = APIEndpoint("/fsi/unlink/{path:.*}")
+	// AEEnsureRef ensures that the ref is fsi linked
+	AEEnsureRef = APIEndpoint("/fsi/ensureref/{path:.*}")
+
+	// auth endpoints
+
+	// AECreateAuthToken creates an auth token for a user
+	AECreateAuthToken = APIEndpoint("/auth/createauthtoken")
 
 	// other endpoints
 
@@ -162,6 +169,9 @@ const (
 	AEApply = APIEndpoint("/apply")
 	// AEWebUI serves the remote WebUI
 	AEWebUI = APIEndpoint("/webui")
+
+	// denyRPC if used will disable RPC calls for a method
+	denyRPC = APIEndpoint("")
 )
 
 // DsRefFromPath parses a path and returns a dsref.Ref

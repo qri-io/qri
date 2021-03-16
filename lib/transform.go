@@ -26,7 +26,7 @@ func (m *TransformMethods) Name() string {
 // Attributes defines attributes for each method
 func (m *TransformMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apply": {"/apply", "POST"},
+		"apply": {AEApply, "POST"},
 	}
 }
 

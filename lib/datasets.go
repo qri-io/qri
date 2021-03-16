@@ -54,22 +54,22 @@ func (m *DatasetMethods) Name() string {
 // Attributes defines attributes for each method
 func (m *DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"changereport": {"/changes", "POST"},
-		"daginfo":      {"/dag/info", "GET"},
-		"diff":         {"/diff", "GET"},
-		"get":          {"/get", "GET"},
-		"list":         {"/list", "GET"},
+		"changereport": {AEChanges, "POST"},
+		"daginfo":      {AEDAGInfo, "GET"},
+		"diff":         {AEDiff, "GET"},
+		"get":          {AEGet, "GET"},
+		"list":         {AEList, "GET"},
 		// TODO(dustmop): Needs its own endpoint
-		"listrawrefs":     {"/list", "GET"},
-		"manifest":        {"/manifest", "GET"},
-		"manifestmissing": {"/manifest/missing", "GET"},
-		"pull":            {"/pull", "POST"},
-		"remove":          {"/remove", "POST"},
-		"rename":          {"/rename", "POST"},
-		"save":            {"/save", "POST"},
+		"listrawrefs":     {AEList, "GET"},
+		"manifest":        {AEManifest, "GET"},
+		"manifestmissing": {AEManifestMissing, "GET"},
+		"pull":            {AEPull, "POST"},
+		"remove":          {AERemove, "POST"},
+		"rename":          {AERename, "POST"},
+		"save":            {AESave, "POST"},
 		// TODO(dustmop): Needs its own endpoint
-		"stats":    {"/get", "GET"},
-		"validate": {"/validate", "GET"},
+		"stats":    {AEGet, "GET"},
+		"validate": {AEValidate, "GET"},
 	}
 }
 
