@@ -168,7 +168,7 @@ func (o *PeersOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) > 0 {
 		o.Peername = args[0]
 	}
-	o.UsingRPC = f.RPC() != nil
+	o.UsingRPC = f.HTTPClient() != nil
 	o.PeerMethods, err = f.PeerMethods()
 	return
 }

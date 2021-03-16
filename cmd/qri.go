@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/rpc"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -216,12 +215,12 @@ func (o *QriOptions) CryptoGenerator() key.CryptoGenerator {
 	return o.generator
 }
 
-// RPC returns from internal state
-func (o *QriOptions) RPC() *rpc.Client {
+// HTTPClient returns a client for performing RPC over HTTP
+func (o *QriOptions) HTTPClient() *lib.HTTPClient {
 	if err := o.Init(); err != nil {
 		return nil
 	}
-	return o.inst.RPC()
+	return o.inst.HTTPClient()
 }
 
 // ConnectionNode returns the internal QriNode, if it is available

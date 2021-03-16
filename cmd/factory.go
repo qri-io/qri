@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"net/rpc"
 	"os"
 	"path/filepath"
 
@@ -23,7 +22,7 @@ type Factory interface {
 	CryptoGenerator() key.CryptoGenerator
 
 	Init() error
-	RPC() *rpc.Client
+	HTTPClient() *lib.HTTPClient
 	ConnectionNode() (*p2p.QriNode, error)
 
 	RemoteMethods() (*lib.RemoteMethods, error)
