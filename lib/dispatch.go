@@ -376,6 +376,9 @@ func methodEndpoint(method string) APIEndpoint {
 	if method == "fsi.unlink" {
 		return "/fsi/unlink/"
 	}
+	if method == "dataset.list" {
+		return "/list"
+	}
 	pos := strings.Index(method, ".")
 	prefix := method[:pos]
 	_ = prefix

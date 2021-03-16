@@ -127,8 +127,8 @@ func (t TestFactory) ConnectionNode() (*p2p.QriNode, error) {
 	return t.node, nil
 }
 
-// RPC returns from internal state
-func (t TestFactory) RPC() *rpc.Client {
+// HTTPClient returns nil for tests
+func (t TestFactory) HTTPClient() *lib.HTTPClient {
 	return nil
 }
 

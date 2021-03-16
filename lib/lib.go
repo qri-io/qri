@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/rpc"
 	"os"
 	"path/filepath"
 	"strings"
@@ -404,18 +403,13 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	// check if we're operating over RPC
 	if cfg.RPC.Enabled {
-		addr, err := ma.NewMultiaddr(cfg.RPC.Address)
+		addr, err := ma.NewMultiaddr(cfg.API.Address)
 		if err != nil {
-			return nil, qrierr.New(err, fmt.Sprintf("invalid config.rpc.address value: %q", cfg.RPC.Address))
+			return nil, qrierr.New(err, fmt.Sprintf("invalid config.api.address value: %q", cfg.API.Address))
 		}
-		conn, err := manet.Dial(addr)
+		_, err = manet.Dial(addr)
 		if err == nil {
 			// we have a connection
-			log.Debugf("using RPC address %s", cfg.RPC.Address)
-			inst.rpc = rpc.NewClient(conn)
-
-			// TODO(arqu): I blindly assume this means we have a working API connection
-			// till the HTTPClient is fleshed out
 			inst.http, err = NewHTTPClient(cfg.API.Address)
 			if err != nil {
 				return nil, err
@@ -733,7 +727,6 @@ type Instance struct {
 
 	remoteOptsFuncs []remote.OptionsFunc
 
-	rpc  *rpc.Client
 	http *HTTPClient
 
 	cancel    context.CancelFunc
@@ -882,14 +875,6 @@ func (inst *Instance) Dscache() *dscache.Dscache {
 		return nil
 	}
 	return inst.dscache
-}
-
-// RPC accesses the instance RPC client if one exists
-func (inst *Instance) RPC() *rpc.Client {
-	if inst == nil {
-		return nil
-	}
-	return inst.rpc
 }
 
 // HTTPClient accesses the instance HTTP client if one exists

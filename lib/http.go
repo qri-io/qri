@@ -112,6 +112,8 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 	var req *http.Request
 	var err error
 
+	log.Debugf("http: %s - %s", httpMethod, addr)
+
 	if httpMethod == http.MethodGet || httpMethod == http.MethodDelete {
 		u, err := url.Parse(addr)
 		if err != nil {

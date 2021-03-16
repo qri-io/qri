@@ -17,7 +17,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	testcfg "github.com/qri-io/qri/config/test"
@@ -25,7 +24,6 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
-	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/remote/access"
@@ -161,37 +159,6 @@ func CompareInstances(a, b *Instance) error {
 
 	// TODO (b5): compare all instance fields
 	return nil
-}
-
-func TestReceivers(t *testing.T) {
-	ctx := context.Background()
-	fs, err := muxfs.New(ctx, []qfs.Config{
-		{Type: "mem"},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	r, err := repo.NewMemRepoWithProfile(ctx, &profile.Profile{PrivKey: privKey}, fs, event.NilBus)
-	if err != nil {
-		t.Errorf("error creating mem repo: %s", err)
-		return
-	}
-	n, err := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode).New(r)
-	if err != nil {
-		t.Errorf("error creating qri node: %s", err)
-		return
-	}
-
-	node := n.(*p2p.QriNode)
-	cfg := testcfg.DefaultConfigForTesting()
-	inst := &Instance{node: node, cfg: cfg}
-
-	reqs := Receivers(inst)
-	expect := 0
-	if len(reqs) != expect {
-		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", expect, len(reqs))
-		return
-	}
 }
 
 // pulled from base packages

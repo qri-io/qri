@@ -68,8 +68,6 @@ func (s Server) Serve(ctx context.Context) (err error) {
 		Handler: s.Mux,
 	}
 
-	go s.ServeRPC(ctx)
-
 	info := "\n📡  Success! You are now connected to the d.web. Here's your connection details:\n"
 	info += cfg.SummaryString()
 	info += "IPFS Addresses:"
