@@ -30,11 +30,6 @@ func (m *TransformMethods) Attributes() map[string]AttributeSet {
 	}
 }
 
-// Transform returns the TransformMethods that Instance has registered
-func (inst *Instance) Transform() *TransformMethods {
-	return &TransformMethods{d: inst}
-}
-
 // ApplyParams are parameters for the apply command
 type ApplyParams struct {
 	Refstr    string

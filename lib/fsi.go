@@ -44,11 +44,6 @@ func (m *FSIMethods) Attributes() map[string]AttributeSet {
 	}
 }
 
-// Filesys returns the FSIMethods that Instance has registered
-func (inst *Instance) Filesys() *FSIMethods {
-	return &FSIMethods{d: inst}
-}
-
 // LinkParams encapsulate parameters for linked datasets
 type LinkParams struct {
 	Dir    string

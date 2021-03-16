@@ -13,7 +13,7 @@ import (
 
 // ConfigMethods encapsulates changes to a qri configuration
 type ConfigMethods struct {
-	inst *Instance
+	d dispatcher
 }
 
 // Name returns the name of this method group
@@ -31,11 +31,6 @@ func (m *ConfigMethods) Attributes() map[string]AttributeSet {
 	}
 }
 
-// Config returns the `Config` that the instance has registered
-func (inst *Instance) Config() *ConfigMethods {
-	return &ConfigMethods{inst: inst}
-}
-
 // GetConfigParams are the params needed to format/specify the fields in bytes
 // returned from the GetConfig function
 type GetConfigParams struct {
@@ -48,7 +43,7 @@ type GetConfigParams struct {
 // GetConfig returns the Config, or one of the specified fields of the Config,
 // as a slice of bytes the bytes can be formatted as json, concise json, or yaml
 func (m *ConfigMethods) GetConfig(ctx context.Context, p *GetConfigParams) ([]byte, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "getconfig"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "getconfig"), p)
 	if res, ok := got.([]byte); ok {
 		return res, err
 	}
@@ -58,7 +53,7 @@ func (m *ConfigMethods) GetConfig(ctx context.Context, p *GetConfigParams) ([]by
 // GetConfigKeys returns the Config key fields, or sub keys of the specified
 // fields of the Config, as a slice of bytes to be used for auto completion
 func (m *ConfigMethods) GetConfigKeys(ctx context.Context, p *GetConfigParams) ([]byte, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "getconfigkeys"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "getconfigkeys"), p)
 	if res, ok := got.([]byte); ok {
 		return res, err
 	}
@@ -67,7 +62,7 @@ func (m *ConfigMethods) GetConfigKeys(ctx context.Context, p *GetConfigParams) (
 
 // SetConfig validates, updates and saves the config
 func (m *ConfigMethods) SetConfig(ctx context.Context, update *config.Config) (*bool, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "setconfig"), update)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "setconfig"), update)
 	if res, ok := got.(*bool); ok {
 		return res, err
 	}

@@ -341,10 +341,10 @@ func (m *fruitMethods) Name() string {
 
 func (m *fruitMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apple": {"/apple", "GET"},
+		"apple":  {"/apple", "GET"},
 		"banana": {"/banana", "GET"},
 		"cherry": {"/cherry", "GET"},
-		"date": {"/date", "GET"},
+		"date":   {"/date", "GET"},
 		// entawak cannot be called over RPC
 		"entawak": {"", ""},
 	}

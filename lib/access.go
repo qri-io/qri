@@ -26,11 +26,6 @@ func (m AccessMethods) Attributes() map[string]AttributeSet {
 	}
 }
 
-// Access returns the authentication that Instance has registered
-func (inst *Instance) Access() AccessMethods {
-	return AccessMethods{d: inst}
-}
-
 // CreateAuthTokenParams are input parameters for Access().CreateAuthToken
 type CreateAuthTokenParams struct {
 	GranteeUsername  string

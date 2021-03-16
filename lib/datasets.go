@@ -42,6 +42,7 @@ import (
 
 // DatasetMethods encapsulates business logic for working with Datasets on Qri
 type DatasetMethods struct {
+	// TODO(dustmop): Once Dispatch is in use for Diff, change to "d dispatcher"
 	inst *Instance
 }
 
@@ -53,11 +54,11 @@ func (m *DatasetMethods) Name() string {
 // Attributes defines attributes for each method
 func (m *DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"changereport":    {"/changes", "POST"},
-		"daginfo":         {"/dag/info", "GET"},
-		"diff":            {"/diff", "GET"},
-		"get":             {"/get", "GET"},
-		"list":            {"/list", "GET"},
+		"changereport": {"/changes", "POST"},
+		"daginfo":      {"/dag/info", "GET"},
+		"diff":         {"/diff", "GET"},
+		"get":          {"/get", "GET"},
+		"list":         {"/list", "GET"},
 		// TODO(dustmop): Needs its own endpoint
 		"listrawrefs":     {"/list", "GET"},
 		"manifest":        {"/manifest", "GET"},
@@ -67,14 +68,9 @@ func (m *DatasetMethods) Attributes() map[string]AttributeSet {
 		"rename":          {"/rename", "POST"},
 		"save":            {"/save", "POST"},
 		// TODO(dustmop): Needs its own endpoint
-		"stats":           {"/get", "GET"},
-		"validate":        {"/validate", "GET"},
+		"stats":    {"/get", "GET"},
+		"validate": {"/validate", "GET"},
 	}
-}
-
-// Dataset returns the DatasetMethods the instance has registered
-func (inst *Instance) Dataset() *DatasetMethods {
-	return &DatasetMethods{inst: inst}
 }
 
 // ErrListWarning is a warning that can occur while listing
