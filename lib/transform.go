@@ -18,9 +18,16 @@ type TransformMethods struct {
 	d dispatcher
 }
 
-// Name returns the name of this method gropu
+// Name returns the name of this method group
 func (m *TransformMethods) Name() string {
 	return "transform"
+}
+
+// Attributes defines attributes for each method
+func (m *TransformMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"apply": {"/apply", "POST"},
+	}
 }
 
 // Transform returns the TransformMethods that Instance has registered

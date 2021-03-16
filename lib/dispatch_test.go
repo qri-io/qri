@@ -134,13 +134,23 @@ func TestVariadicReturnsWorkOverHTTP(t *testing.T) {
 		t.Errorf("%s", err)
 	}
 
-	// Call the last method
+	// Call a method successfully
 	val, _, err := clientFruit.Date(ctx, &fruitParams{})
 	if err != nil {
 		t.Errorf("%s", err)
 	}
 	if val != "January 1st" {
 		t.Errorf("value mismatch, expect: January 1st, got: %s", val)
+	}
+
+	// Call a method not supported over RPC
+	val, _, err = clientFruit.Entawak(ctx, &fruitParams{})
+	if err == nil {
+		t.Fatal("expected to get error but did not get one")
+	}
+	expectErr = "method is not suported over RPC"
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
 	}
 }
 
@@ -153,14 +163,18 @@ func serverConnectAndListen(t *testing.T, servInst *Instance, port int) (*HTTPCl
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		method := ""
-		if r.URL.Path == "/apple/" {
+		if r.URL.Path == "/apple" {
 			method = "fruit.apple"
-		} else if r.URL.Path == "/banana/" {
+		} else if r.URL.Path == "/banana" {
 			method = "fruit.banana"
-		} else if r.URL.Path == "/cherry/" {
+		} else if r.URL.Path == "/cherry" {
 			method = "fruit.cherry"
-		} else if r.URL.Path == "/date/" {
+		} else if r.URL.Path == "/date" {
 			method = "fruit.date"
+		} else if r.URL.Path == "/entawak" {
+			method = "fruit.entawak"
+		} else {
+			t.Fatalf("404: Not Found %q", r.URL.Path)
 		}
 		p := servInst.NewInputParam(method)
 		res, _, err := servInst.Dispatch(r.Context(), method, p)
@@ -225,6 +239,13 @@ type animalMethods struct {
 
 func (m *animalMethods) Name() string {
 	return "animal"
+}
+
+func (m *animalMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"cat": {"", ""},
+		"dog": {"", ""},
+	}
 }
 
 type animalParams struct {
@@ -318,6 +339,17 @@ func (m *fruitMethods) Name() string {
 	return "fruit"
 }
 
+func (m *fruitMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"apple": {"/apple", "GET"},
+		"banana": {"/banana", "GET"},
+		"cherry": {"/cherry", "GET"},
+		"date": {"/date", "GET"},
+		// entawak cannot be called over RPC
+		"entawak": {"", ""},
+	}
+}
+
 type fruitParams struct {
 	Name string
 }
@@ -348,6 +380,14 @@ func (m *fruitMethods) Date(ctx context.Context, p *fruitParams) (string, Cursor
 	return "", nil, dispatchReturnError(got, err)
 }
 
+func (m *fruitMethods) Entawak(ctx context.Context, p *fruitParams) (string, Cursor, error) {
+	got, cur, err := m.d.Dispatch(ctx, dispatchMethodName(m, "entawak"), p)
+	if res, ok := got.(string); ok {
+		return res, cur, err
+	}
+	return "", nil, dispatchReturnError(got, err)
+}
+
 // Implementation for fruit
 type fruitImpl struct{}
 
@@ -367,4 +407,8 @@ func (fruitImpl) Cherry(scp scope, p *fruitParams) error {
 func (fruitImpl) Date(scp scope, p *fruitParams) (string, Cursor, error) {
 	var cur Cursor
 	return "January 1st", cur, nil
+}
+
+func (fruitImpl) Entawak(scp scope, p *fruitParams) (string, Cursor, error) {
+	return "mentawa", nil, nil
 }

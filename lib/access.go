@@ -19,6 +19,13 @@ func (m AccessMethods) Name() string {
 	return "access"
 }
 
+// Attributes defines attributes for each method
+func (m AccessMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"createauthtoken": {APIEndpoint("/auth/createauthtoken"), "GET"},
+	}
+}
+
 // Access returns the authentication that Instance has registered
 func (inst *Instance) Access() AccessMethods {
 	return AccessMethods{d: inst}

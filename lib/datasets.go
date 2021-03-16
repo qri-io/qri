@@ -50,6 +50,28 @@ func (m *DatasetMethods) Name() string {
 	return "dataset"
 }
 
+// Attributes defines attributes for each method
+func (m *DatasetMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"changereport":    {"/changes", "POST"},
+		"daginfo":         {"/dag/info", "GET"},
+		"diff":            {"/diff", "GET"},
+		"get":             {"/get", "GET"},
+		"list":            {"/list", "GET"},
+		// TODO(dustmop): Needs its own endpoint
+		"listrawrefs":     {"/list", "GET"},
+		"manifest":        {"/manifest", "GET"},
+		"manifestmissing": {"/manifest/missing", "GET"},
+		"pull":            {"/pull", "POST"},
+		"remove":          {"/remove", "POST"},
+		"rename":          {"/rename", "POST"},
+		"save":            {"/save", "POST"},
+		// TODO(dustmop): Needs its own endpoint
+		"stats":           {"/get", "GET"},
+		"validate":        {"/validate", "GET"},
+	}
+}
+
 // Dataset returns the DatasetMethods the instance has registered
 func (inst *Instance) Dataset() *DatasetMethods {
 	return &DatasetMethods{inst: inst}

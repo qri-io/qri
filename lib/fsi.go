@@ -28,6 +28,22 @@ func (m *FSIMethods) Name() string {
 	return "fsi"
 }
 
+// Attributes defines attributes for each method
+func (m *FSIMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"createlink":            {"/fsi/createlink", "POST"},
+		"unlink":                {"/fsi/unlink", "POST"},
+		"status":                {"/status", "GET"},
+		"whatchanged":           {"/whatchanged", "GET"},
+		"checkout":              {"/checkout", "POST"},
+		"write":                 {"/fsi/write", "POST"},
+		"restore":               {"/restore", "POST"},
+		"init":                  {"/init", "POST"},
+		"caninitdatasetworkdir": {"/caninitdatasetworkdir", "GET"},
+		"ensureref":             {"/ensureref", "POST"},
+	}
+}
+
 // Filesys returns the FSIMethods that Instance has registered
 func (inst *Instance) Filesys() *FSIMethods {
 	return &FSIMethods{d: inst}

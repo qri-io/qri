@@ -21,6 +21,16 @@ func (m *ConfigMethods) Name() string {
 	return "config"
 }
 
+// Attributes defines attributes for each method
+func (m *ConfigMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		// config methods are not allowed over HTTP nor RPC
+		"getconfig":     {"", ""},
+		"getconfigkeys": {"", ""},
+		"setconfig":     {"", ""},
+	}
+}
+
 // Config returns the `Config` that the instance has registered
 func (inst *Instance) Config() *ConfigMethods {
 	return &ConfigMethods{inst: inst}
@@ -38,10 +48,6 @@ type GetConfigParams struct {
 // GetConfig returns the Config, or one of the specified fields of the Config,
 // as a slice of bytes the bytes can be formatted as json, concise json, or yaml
 func (m *ConfigMethods) GetConfig(ctx context.Context, p *GetConfigParams) ([]byte, error) {
-	if m.inst.http != nil {
-		return nil, ErrUnsupportedRPC
-	}
-
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "getconfig"), p)
 	if res, ok := got.([]byte); ok {
 		return res, err
@@ -52,9 +58,6 @@ func (m *ConfigMethods) GetConfig(ctx context.Context, p *GetConfigParams) ([]by
 // GetConfigKeys returns the Config key fields, or sub keys of the specified
 // fields of the Config, as a slice of bytes to be used for auto completion
 func (m *ConfigMethods) GetConfigKeys(ctx context.Context, p *GetConfigParams) ([]byte, error) {
-	if m.inst.http != nil {
-		return nil, ErrUnsupportedRPC
-	}
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "getconfigkeys"), p)
 	if res, ok := got.([]byte); ok {
 		return res, err
@@ -64,11 +67,6 @@ func (m *ConfigMethods) GetConfigKeys(ctx context.Context, p *GetConfigParams) (
 
 // SetConfig validates, updates and saves the config
 func (m *ConfigMethods) SetConfig(ctx context.Context, update *config.Config) (*bool, error) {
-	if m.inst.http != nil {
-		res := false
-		return &res, ErrUnsupportedRPC
-	}
-
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "setconfig"), update)
 	if res, ok := got.(*bool); ok {
 		return res, err
