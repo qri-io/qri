@@ -183,6 +183,16 @@ func handleRefRoute(m *mux.Router, p refRouteParams, f http.HandlerFunc) {
 
 	for _, route := range routes {
 		if len(p.Methods) > 0 {
+			hasOptions := false
+			for _, o := range p.Methods {
+				if o == http.MethodOptions {
+					hasOptions = true
+					break
+				}
+			}
+			if !hasOptions {
+				p.Methods = append(p.Methods, http.MethodOptions)
+			}
 			// TODO(b5): this is a band-aid that lets us punt on teaching lib about how to
 			// switch on HTTP verbs. I think we should use tricks like this that leverage
 			// the gorilla/mux package until we get a better sense of how our API uses
@@ -202,6 +212,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	if m == nil {
 		m = mux.NewRouter()
 	}
+	m.Use(corsMiddleware(cfg.API.AllowedOrigins))
 	m.Use(muxVarsToQueryParamMiddleware)
 	m.Use(refStringMiddleware)
 	m.Use(token.OAuthTokenMiddleware)

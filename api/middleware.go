@@ -26,12 +26,6 @@ func (s Server) mwFunc(handler http.HandlerFunc, shouldLog bool) http.HandlerFun
 			log.Infof("%s %s %s", r.Method, r.URL.Path, time.Now())
 		}
 
-		s.addCORSHeaders(w, r)
-		if r.Method == http.MethodOptions {
-			util.EmptyOkHandler(w, r)
-			return
-		}
-
 		if ok := s.readOnlyCheck(r); ok {
 			handler(w, r)
 		} else {
@@ -40,22 +34,34 @@ func (s Server) mwFunc(handler http.HandlerFunc, shouldLog bool) http.HandlerFun
 	}
 }
 
-func (s *Server) readOnlyCheck(r *http.Request) bool {
-	return !s.GetConfig().API.ReadOnly || r.Method == "GET" || r.Method == "OPTIONS"
+// corsMiddleware adds Cross-Origin Resource Sharing headers for any request
+// who's origin matches one of allowedOrigins
+func corsMiddleware(allowedOrigins []string) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+			for _, o := range allowedOrigins {
+				if origin == o {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
+					w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization")
+					w.Header().Set("Access-Control-Allow-Credentials", "true")
+				}
+			}
+
+			// intercept OPTIONS requests with an early return
+			if r.Method == http.MethodOptions {
+				util.EmptyOkHandler(w, r)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
-// addCORSHeaders adds CORS header info for whitelisted servers
-func (s *Server) addCORSHeaders(w http.ResponseWriter, r *http.Request) {
-	origin := r.Header.Get("Origin")
-	for _, o := range s.GetConfig().API.AllowedOrigins {
-		if origin == o {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization")
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			return
-		}
-	}
+func (s *Server) readOnlyCheck(r *http.Request) bool {
+	return !s.GetConfig().API.ReadOnly || r.Method == "GET" || r.Method == "OPTIONS"
 }
 
 // muxVarsToQueryParamMiddleware moves all mux variables to query parameter
