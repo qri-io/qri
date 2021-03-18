@@ -28,6 +28,8 @@ type Cursor interface{}
 //           3: (output, Cursor, error)
 // The implementation should have the same input and output as the method, except
 // with the context.Context replaced by a scope.
+// No other functions are allowed to be defined, other that those that are going to
+// be registered (as described above) and those that are required by the interface.
 type MethodSet interface {
 	Name() string
 	Attributes() map[string]AttributeSet
@@ -35,6 +37,7 @@ type MethodSet interface {
 
 // AttributeSet is extra information about each method, such as: http endpoint,
 // http verb, (TODO) permissions, and (TODO) other metadata
+// Each method is required to have associated attributes in order to successfully register
 type AttributeSet struct {
 	endpoint APIEndpoint
 	verb     string
