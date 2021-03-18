@@ -380,10 +380,9 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.Diff(r.Context(), params)
+	res, _, err := h.inst.Dispatch(r.Context(), "dataset.diff", params)
 	if err != nil {
-		fmt.Println(err)
-		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error generating diff: %s", err.Error()))
+		util.RespondWithError(w, err)
 		return
 	}
 
