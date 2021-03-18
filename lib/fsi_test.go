@@ -206,9 +206,9 @@ func TestDscacheCheckout(t *testing.T) {
 	actual := run.NiceifyTempDirs(cache.VerboseString(false))
 	expect := dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=peer profileID={{ .profileID }}
+  0) user=default_profile_for_testing profileID={{ .profileID }}
  Dscache.Refs:
-  0) initID        = vrh4iurbzeyx42trlddzvtoiqevmy2d3mxex4ojd4mxv7cudhlwq
+  0) initID        = brblgyckelk7fsmt7bgxq6grjaslaey7z32wvq3dzcvtl2hvgy3q
      profileID     = {{ .profileID }}
      topIndex      = 1
      cursorIndex   = 1
@@ -219,8 +219,8 @@ func TestDscacheCheckout(t *testing.T) {
      headRef       = {{ .headRef }}
      fsiPath       = /tmp/cities_ds
 `, map[string]string{
-		"profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-		"headRef":   "/mem/QmQqnpYhA7UfcyCLkupkd35VLY8AL9XSQEtY5QhhLvV5jj",
+		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"headRef":   "/mem/QmbTMgT154t4NnP4H2FXBPcec7D85HrJKnBmZKWvRsYCtS",
 	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
@@ -258,9 +258,9 @@ func TestDscacheInit(t *testing.T) {
 	actual := run.NiceifyTempDirs(cache.VerboseString(false))
 	expect := dstest.Template(t, `Dscache:
  Dscache.Users:
-  0) user=peer profileID={{ .profileID }}
+  0) user=default_profile_for_testing profileID={{ .profileID }}
  Dscache.Refs:
-  0) initID        = vrh4iurbzeyx42trlddzvtoiqevmy2d3mxex4ojd4mxv7cudhlwq
+  0) initID        = brblgyckelk7fsmt7bgxq6grjaslaey7z32wvq3dzcvtl2hvgy3q
      profileID     = {{ .profileID }}
      topIndex      = 1
      cursorIndex   = 1
@@ -269,7 +269,7 @@ func TestDscacheInit(t *testing.T) {
      bodyRows      = 5
      commitTime    = 978310861
      headRef       = {{ .citiesHeadRef }}
-  1) initID        = ekwzgcu4s4o4xchsoip3oa3j45ko5n7pybtizgvsbudojbhxuita
+  1) initID        = bin777fera6wcqzthjzmitfipd5p5myda55qgau2eirba4ynu7ia
      profileID     = {{ .profileID }}
      topIndex      = 0
      cursorIndex   = 0
@@ -277,8 +277,8 @@ func TestDscacheInit(t *testing.T) {
      commitTime    = -62135596800
      fsiPath       = /tmp/json_body
 `, map[string]string{
-		"profileID":     "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-		"citiesHeadRef": "/mem/QmQqnpYhA7UfcyCLkupkd35VLY8AL9XSQEtY5QhhLvV5jj",
+		"profileID":     "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"citiesHeadRef": "/mem/QmbTMgT154t4NnP4H2FXBPcec7D85HrJKnBmZKWvRsYCtS",
 	})
 
 	if diff := cmp.Diff(expect, actual); diff != "" {

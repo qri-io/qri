@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/qri-io/qfs"
 	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/config"
 )
@@ -19,7 +20,25 @@ func DefaultConfigForTesting() *config.Config {
 	return cfg
 }
 
-// DefaultProfileForTesting constructs a profile with precomputed keys, only used for testing.
+// DefaultMemConfigForTesting constructs a config with precomputed keys & settings for an in memory repo & fs, only used for testing.
+func DefaultMemConfigForTesting() *config.Config {
+	cfg := DefaultConfigForTesting().Copy()
+
+	// add settings for in-mem filesystem
+	cfg.Filesystems = []qfs.Config{
+		{Type: "mem"},
+		{Type: "local"},
+		{Type: "http"},
+	}
+
+	// add settings for in mem repo
+	cfg.Repo.Type = "mem"
+
+	return cfg
+}
+
+// DefaultProfileForTesting constructs a profile with precompted keys, only used for testing.
+// TODO (b5): move this into a new profile/test package
 func DefaultProfileForTesting() *config.ProfilePod {
 	kd := testkeys.GetKeyData(0)
 	pro := config.DefaultProfile()

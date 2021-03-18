@@ -130,7 +130,7 @@ func (s *scope) ParseAndResolveRefWithWorkingDir(ctx context.Context, refstr, so
 
 // ParseResolveFunc returns a function that can parse a ref, then resolve and load it
 func (s *scope) ParseResolveFunc() dsref.ParseResolveLoad {
-	return NewParseResolveLoadFunc("", s.inst.defaultResolver(), s.inst)
+	return NewParseResolveLoadFunc(s.ActiveProfile().Peername, s.inst.defaultResolver(), s.inst)
 }
 
 // Profiles accesses the profile store
