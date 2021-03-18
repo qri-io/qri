@@ -45,24 +45,32 @@ func NewMemRepoWithProfile(ctx context.Context, owner *profile.Profile, fs *muxf
 	if err != nil {
 		return nil, err
 	}
-	return NewMemRepo(ctx, pros, fs, bus)
+	return NewMemRepo(ctx, fs, nil, nil, pros, bus)
 }
 
 // NewMemRepo creates a new in-memory repository
-func NewMemRepo(ctx context.Context, pros profile.Store, fs *muxfs.Mux, bus event.Bus) (*MemRepo, error) {
+func NewMemRepo(ctx context.Context, fs *muxfs.Mux, book *logbook.Book, cache *dscache.Dscache, pros profile.Store, bus event.Bus) (*MemRepo, error) {
+	var err error
 	if fs.Filesystem(qfs.MemFilestoreType) == nil {
-		fs.SetFilesystem(qfs.NewMemFS())
+		err := fs.SetFilesystem(qfs.NewMemFS())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	p := pros.Owner()
-	book, err := logbook.NewJournal(p.PrivKey, p.Peername, bus, fs, "/mem/logbook.qfb")
-	if err != nil {
-		return nil, err
+	if book == nil {
+		book, err = logbook.NewJournal(p.PrivKey, p.Peername, bus, fs, "/mem/logbook.qfb")
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	// NOTE: This dscache won't get change notifications from FSI, because it's not constructed
-	// with the hook for FSI.
-	cache := dscache.NewDscache(ctx, fs, bus, p.Peername, "")
+	if cache == nil {
+		// NOTE: This dscache won't get change notifications from FSI, because it's not constructed
+		// with the hook for FSI.
+		cache = dscache.NewDscache(ctx, fs, bus, p.Peername, "")
+	}
 
 	mr := &MemRepo{
 		bus:         bus,
