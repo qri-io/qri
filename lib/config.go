@@ -17,12 +17,12 @@ type ConfigMethods struct {
 }
 
 // Name returns the name of this method group
-func (m *ConfigMethods) Name() string {
+func (m ConfigMethods) Name() string {
 	return "config"
 }
 
 // Attributes defines attributes for each method
-func (m *ConfigMethods) Attributes() map[string]AttributeSet {
+func (m ConfigMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		// config methods are not allowed over HTTP nor RPC
 		"getconfig":     {denyRPC, ""},
@@ -42,7 +42,7 @@ type GetConfigParams struct {
 
 // GetConfig returns the Config, or one of the specified fields of the Config,
 // as a slice of bytes the bytes can be formatted as json, concise json, or yaml
-func (m *ConfigMethods) GetConfig(ctx context.Context, p *GetConfigParams) ([]byte, error) {
+func (m ConfigMethods) GetConfig(ctx context.Context, p *GetConfigParams) ([]byte, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "getconfig"), p)
 	if res, ok := got.([]byte); ok {
 		return res, err
@@ -52,7 +52,7 @@ func (m *ConfigMethods) GetConfig(ctx context.Context, p *GetConfigParams) ([]by
 
 // GetConfigKeys returns the Config key fields, or sub keys of the specified
 // fields of the Config, as a slice of bytes to be used for auto completion
-func (m *ConfigMethods) GetConfigKeys(ctx context.Context, p *GetConfigParams) ([]byte, error) {
+func (m ConfigMethods) GetConfigKeys(ctx context.Context, p *GetConfigParams) ([]byte, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "getconfigkeys"), p)
 	if res, ok := got.([]byte); ok {
 		return res, err
@@ -61,7 +61,7 @@ func (m *ConfigMethods) GetConfigKeys(ctx context.Context, p *GetConfigParams) (
 }
 
 // SetConfig validates, updates and saves the config
-func (m *ConfigMethods) SetConfig(ctx context.Context, update *config.Config) (*bool, error) {
+func (m ConfigMethods) SetConfig(ctx context.Context, update *config.Config) (*bool, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "setconfig"), update)
 	if res, ok := got.(*bool); ok {
 		return res, err

@@ -814,23 +814,23 @@ func (inst *Instance) Access() AccessMethods {
 }
 
 // Config returns the ConfigMethods that Instance has registered
-func (inst *Instance) Config() *ConfigMethods {
-	return &ConfigMethods{d: inst}
+func (inst *Instance) Config() ConfigMethods {
+	return ConfigMethods{d: inst}
 }
 
 // Dataset returns the DatasetMethods that Instance has registered
-func (inst *Instance) Dataset() *DatasetMethods {
-	return &DatasetMethods{inst: inst}
+func (inst *Instance) Dataset() DatasetMethods {
+	return DatasetMethods{inst: inst}
 }
 
 // Filesys returns the FSIMethods that Instance has registered
-func (inst *Instance) Filesys() *FSIMethods {
-	return &FSIMethods{d: inst}
+func (inst *Instance) Filesys() FSIMethods {
+	return FSIMethods{d: inst}
 }
 
 // Transform returns the TransformMethods that Instance has registered
-func (inst *Instance) Transform() *TransformMethods {
-	return &TransformMethods{d: inst}
+func (inst *Instance) Transform() TransformMethods {
+	return TransformMethods{d: inst}
 }
 
 // GetConfig provides methods for manipulating Qri configuration

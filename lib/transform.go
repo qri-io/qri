@@ -19,12 +19,12 @@ type TransformMethods struct {
 }
 
 // Name returns the name of this method group
-func (m *TransformMethods) Name() string {
+func (m TransformMethods) Name() string {
 	return "transform"
 }
 
 // Attributes defines attributes for each method
-func (m *TransformMethods) Attributes() map[string]AttributeSet {
+func (m TransformMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		"apply": {AEApply, "POST"},
 	}
@@ -57,7 +57,7 @@ type ApplyResult struct {
 }
 
 // Apply runs a transform script
-func (m *TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
+func (m TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "apply"), p)
 	if res, ok := got.(*ApplyResult); ok {
 		return res, err

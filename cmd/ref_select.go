@@ -223,7 +223,7 @@ func EnsureFSIAgrees(inst *lib.Instance) *FSIRefLinkEnsurer {
 // EnsureFSIAgrees(*fsiMethods) when calling GetRefSelect, hopefully providing a bit of insight
 // about what this parameter is for.
 type FSIRefLinkEnsurer struct {
-	FSIMethods *lib.FSIMethods
+	FSIMethods lib.FSIMethods
 }
 
 // EnsureRef checks if the linkfile and repository agree on the dataset's working directory path.
