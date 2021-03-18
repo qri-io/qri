@@ -75,9 +75,11 @@ type InstanceOptions struct {
 	node       *p2p.QriNode
 	repo       repo.Repo
 	qfs        *muxfs.Mux
+	dscache    *dscache.Dscache
 	regclient  *regclient.Client
 	logbook    *logbook.Book
 	profiles   profile.Store
+	bus        event.Bus
 	logAll     bool
 
 	remoteMockClient bool
@@ -294,6 +296,22 @@ func OptProfiles(pros profile.Store) Option {
 	}
 }
 
+// OptBus overrides the configured `event.Bus` with a manually provided one
+func OptBus(bus event.Bus) Option {
+	return func(o *InstanceOptions) error {
+		o.bus = bus
+		return nil
+	}
+}
+
+// OptDscache overrides the configured `dscache.Dscache` with a manually provided one
+func OptDscache(dscache *dscache.Dscache) Option {
+	return func(o *InstanceOptions) error {
+		o.dscache = dscache
+		return nil
+	}
+}
+
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
@@ -376,8 +394,9 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		streams:  o.Streams,
 		registry: o.regclient,
 		logbook:  o.logbook,
+		dscache:  o.dscache,
 		profiles: o.profiles,
-		bus:      event.NewBus(ctx),
+		bus:      o.bus,
 		appCtx:   ctx,
 	}
 	qri = inst
@@ -418,6 +437,10 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			go inst.waitForAllDone()
 			return qri, err
 		}
+	}
+
+	if inst.bus == nil {
+		inst.bus = newEventBus(ctx)
 	}
 
 	if o.eventHandler != nil && o.events != nil {
@@ -465,6 +488,14 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		inst.registry = newRegClient(ctx, cfg)
 	}
 
+	if inst.dscache == nil {
+		inst.dscache, err = newDscache(ctx, inst.qfs, inst.bus, pro.Peername, inst.repoPath)
+		if err != nil {
+			log.Error("initalizing dscache:", err.Error())
+			return nil, fmt.Errorf("newDsache: %w", err)
+		}
+	}
+
 	if inst.repo == nil {
 		if inst.repo, err = buildrepo.New(ctx, inst.repoPath, cfg, func(o *buildrepo.Options) {
 			o.Bus = inst.bus
@@ -488,13 +519,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	} else if inst.stats == nil {
 		if inst.stats, err = newStats(cfg, inst.repoPath); err != nil {
 			return nil, err
-		}
-	}
-
-	if inst.dscache == nil {
-		inst.dscache, err = newDscache(ctx, inst.qfs, inst.bus, pro.Peername, inst.repoPath)
-		if err != nil {
-			return nil, fmt.Errorf("newDsache: %w", err)
 		}
 	}
 
@@ -663,11 +687,12 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		cancel: cancel,
 		doneCh: make(chan struct{}),
 
-		cfg:     cfg,
-		node:    node,
-		dscache: dc,
-		logbook: r.Logbook(),
-		appCtx:  ctx,
+		cfg:      cfg,
+		node:     node,
+		dscache:  dc,
+		logbook:  r.Logbook(),
+		profiles: r.Profiles(),
+		appCtx:   ctx,
 	}
 	inst.RegisterMethods()
 
@@ -934,6 +959,10 @@ func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, 
 
 	if inst.profiles != nil {
 		return inst.profiles.Owner(), nil
+	}
+
+	if pro == nil {
+		return nil, fmt.Errorf("no active profile")
 	}
 
 	return pro, err
