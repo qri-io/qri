@@ -1,15 +1,20 @@
 [
   {
     "endpoint": "/save/me/test_wd",
+    "params": {
+      "new": "true"
+    },
     "method": "POST",
     "headers": {
       "Content-Type": "application/json"
     },
     "body": {
-      "meta": {
-        "title": "test working directory"
+      "dataset": {
+        "meta": {
+          "title": "test working directory"
+        }
       },
-      "body": [[1,2,3],[4,5,6]]
+      "bodypath":"http://127.0.0.1:55556/C2ImportFamRelSample.csv"
     },
     "expect": {
       "code": 200,
@@ -70,7 +75,10 @@
     }
   },
   {
-    "endpoint": "/remove/me/test_wd?all=true",
+    "endpoint": "/remove/me/test_wd",
+    "params": {
+      "all": "true"
+    },
     "method": "POST",
     "expect": {
       "code": 200,

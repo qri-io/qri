@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -20,13 +22,32 @@ import (
 func AssertHTTPAPISpec(t *testing.T, baseURL, specPackagePath string) {
 	t.Helper()
 
+	// Create a mock data server. Can't move this into the testRunner, because we need to
+	// ensure only this test is using the server's port "55555".
+	s := newMockDataServer(t)
+	defer s.Close()
+
 	base, err := url.Parse(baseURL)
 	if err != nil {
 		t.Fatalf("invalid base url: %s", err)
 	}
 
 	testFiles := []string{
-		"testdata/working_directory.json",
+		// TODO(arqu): enable once API refactoring is done
+		// "testdata/access.json",
+		// "testdata/aggregate.json",
+		// "testdata/automation.json",
+		// "testdata/dataset.json",
+		// "testdata/misc.json",
+		// "testdata/peer.json",
+		// "testdata/profile.json",
+		// "testdata/remote.json",
+		// "testdata/working_directory.json",
+
+		// sync.json is intentionally left out
+		// as it's more a protocol that doesn't belong
+		// in the RPC API
+		// "testdata/sync.json",
 	}
 
 	for _, path := range testFiles {
@@ -41,11 +62,31 @@ func AssertHTTPAPISpec(t *testing.T, baseURL, specPackagePath string) {
 	}
 }
 
+func newMockDataServer(t *testing.T) *httptest.Server {
+	t.Helper()
+
+	mockData := []byte(`Parent Identifier,Student Identifier
+1001,1002
+1010,1020
+`)
+	mockDataServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(mockData)
+	}))
+	l, err := net.Listen("tcp", ":55556")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	mockDataServer.Listener = l
+	mockDataServer.Start()
+	return mockDataServer
+}
+
 // TestCase is a single request-response round trip to the API with parameters
 // for constructing the request & expectations for assessing the response.
 type TestCase struct {
 	Endpoint string            // API endpoint to test
 	Method   string            // HTTP request method, defaults to "GET"
+	Params   map[string]string // Request query or path parameters
 	Headers  map[string]string // Request HTTP headers
 	Body     interface{}       // request body
 	Expect   *Response         // Assertions about the response
@@ -57,6 +98,12 @@ func (c *TestCase) do(u *url.URL) error {
 	}
 
 	u.Path = c.Endpoint
+
+	qvars := u.Query()
+	for k, v := range c.Params {
+		qvars.Set(k, v)
+	}
+	u.RawQuery = qvars.Encode()
 
 	body, err := c.reqBodyReader()
 	if err != nil {
@@ -87,7 +134,6 @@ func (c *TestCase) do(u *url.URL) error {
 				return fmt.Errorf("repsonse header %q mismatch.\nwant: %q\ngot:  %q", key, expVal, got)
 			}
 		}
-
 	}
 
 	return nil
@@ -139,9 +185,12 @@ func (c *TestCase) resBodyErrString(res *http.Response) string {
 	return fmt.Sprintf("<unexpected response body. Content-Type: %q DataType: %T>", ct, bd)
 }
 
+// Response holds the expected HTTP response
 type Response struct {
-	Code    int
-	Headers map[string]string
+	Code       int
+	Headers    map[string]string
+	IgnoreBody bool
+	Body       []byte
 }
 
 func mustLoadTestSuite(t *testing.T, filePath string) []*TestCase {
