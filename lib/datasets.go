@@ -42,24 +42,42 @@ import (
 
 // DatasetMethods encapsulates business logic for working with Datasets on Qri
 type DatasetMethods struct {
+	// TODO(dustmop): Once Dispatch is in use for Diff, change to "d dispatcher"
 	inst *Instance
 }
 
 // Name returns the name of this method group
-func (m *DatasetMethods) Name() string {
+func (m DatasetMethods) Name() string {
 	return "dataset"
 }
 
-// Dataset returns the DatasetMethods the instance has registered
-func (inst *Instance) Dataset() *DatasetMethods {
-	return &DatasetMethods{inst: inst}
+// Attributes defines attributes for each method
+func (m DatasetMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"changereport": {AEChanges, "POST"},
+		"daginfo":      {AEDAGInfo, "GET"},
+		"diff":         {AEDiff, "GET"},
+		"get":          {AEGet, "GET"},
+		"list":         {AEList, "GET"},
+		// TODO(dustmop): Needs its own endpoint
+		"listrawrefs":     {AEList, "GET"},
+		"manifest":        {AEManifest, "GET"},
+		"manifestmissing": {AEManifestMissing, "GET"},
+		"pull":            {AEPull, "POST"},
+		"remove":          {AERemove, "POST"},
+		"rename":          {AERename, "POST"},
+		"save":            {AESave, "POST"},
+		// TODO(dustmop): Needs its own endpoint
+		"stats":    {AEGet, "GET"},
+		"validate": {AEValidate, "GET"},
+	}
 }
 
 // ErrListWarning is a warning that can occur while listing
 var ErrListWarning = base.ErrUnlistableReferences
 
 // List gets the reflist for either the local repo or a peer
-func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
+func (m DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "list"), p)
 	if res, ok := got.([]dsref.VersionInfo); ok {
 		return res, err
@@ -68,7 +86,7 @@ func (m *DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versi
 }
 
 // ListRawRefs gets the list of raw references as string
-func (m *DatasetMethods) ListRawRefs(ctx context.Context, p *ListParams) (string, error) {
+func (m DatasetMethods) ListRawRefs(ctx context.Context, p *ListParams) (string, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "listrawrefs"), p)
 	if res, ok := got.(string); ok {
 		return res, err
@@ -231,7 +249,7 @@ type DataResponse struct {
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
 // with the generated stats.
-func (m *DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, error) {
+func (m DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, error) {
 	// TODO(dustmop): Have Dispatch perform this AbsPath call automatically
 	if err := qfs.AbsPath(&p.Outfile); err != nil {
 		return nil, err
@@ -409,7 +427,7 @@ func (p *SaveParams) SetNonZeroDefaults() {
 }
 
 // Save adds a history entry, updating a dataset
-func (m *DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Dataset, error) {
+func (m DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Dataset, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "save"), p)
 	if res, ok := got.(*dataset.Dataset); ok {
 		return res, err
@@ -423,7 +441,7 @@ type RenameParams struct {
 }
 
 // Rename changes a user's given name for a dataset
-func (m *DatasetMethods) Rename(ctx context.Context, p *RenameParams) (*dsref.VersionInfo, error) {
+func (m DatasetMethods) Rename(ctx context.Context, p *RenameParams) (*dsref.VersionInfo, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "rename"), p)
 	if res, ok := got.(*dsref.VersionInfo); ok {
 		return res, err
@@ -485,7 +503,7 @@ func (p *RemoveParams) SetNonZeroDefaults() {
 var ErrCantRemoveDirectoryDirty = fmt.Errorf("cannot remove files while working directory is dirty")
 
 // Remove a dataset entirely or remove a certain number of revisions
-func (m *DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveResponse, error) {
+func (m DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveResponse, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "remove"), p)
 	if res, ok := got.(*RemoveResponse); ok {
 		return res, err
@@ -512,7 +530,7 @@ func (p *PullParams) UnmarshalFromRequest(r *http.Request) error {
 
 // Pull downloads and stores an existing dataset to a peer's repository via
 // a network connection
-func (m *DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Dataset, error) {
+func (m DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Dataset, error) {
 	if err := qfs.AbsPath(&p.LinkDir); err != nil {
 		return nil, err
 	}
@@ -549,7 +567,7 @@ type ValidateResponse struct {
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
-func (m *DatasetMethods) Validate(ctx context.Context, p *ValidateParams) (*ValidateResponse, error) {
+func (m DatasetMethods) Validate(ctx context.Context, p *ValidateParams) (*ValidateResponse, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "validate"), p)
 	if res, ok := got.(*ValidateResponse); ok {
 		return res, err
@@ -563,7 +581,7 @@ type ManifestParams struct {
 }
 
 // Manifest generates a manifest for a dataset path
-func (m *DatasetMethods) Manifest(ctx context.Context, p *ManifestParams) (*dag.Manifest, error) {
+func (m DatasetMethods) Manifest(ctx context.Context, p *ManifestParams) (*dag.Manifest, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "manifest"), p)
 	if res, ok := got.(*dag.Manifest); ok {
 		return res, err
@@ -577,7 +595,7 @@ type ManifestMissingParams struct {
 }
 
 // ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
-func (m *DatasetMethods) ManifestMissing(ctx context.Context, p *ManifestMissingParams) (*dag.Manifest, error) {
+func (m DatasetMethods) ManifestMissing(ctx context.Context, p *ManifestMissingParams) (*dag.Manifest, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "manifestmissing"), p)
 	if res, ok := got.(*dag.Manifest); ok {
 		return res, err
@@ -591,7 +609,7 @@ type DAGInfoParams struct {
 }
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
-func (m *DatasetMethods) DAGInfo(ctx context.Context, p *DAGInfoParams) (*dag.Info, error) {
+func (m DatasetMethods) DAGInfo(ctx context.Context, p *DAGInfoParams) (*dag.Info, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "daginfo"), p)
 	if res, ok := got.(*dag.Info); ok {
 		return res, err
@@ -609,7 +627,7 @@ type StatsParams struct {
 }
 
 // Stats generates stats for a dataset
-func (m *DatasetMethods) Stats(ctx context.Context, p *StatsParams) (*dataset.Stats, error) {
+func (m DatasetMethods) Stats(ctx context.Context, p *StatsParams) (*dataset.Stats, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "stats"), p)
 	if res, ok := got.(*dataset.Stats); ok {
 		return res, err

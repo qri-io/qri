@@ -18,14 +18,16 @@ type TransformMethods struct {
 	d dispatcher
 }
 
-// Name returns the name of this method gropu
-func (m *TransformMethods) Name() string {
+// Name returns the name of this method group
+func (m TransformMethods) Name() string {
 	return "transform"
 }
 
-// Transform returns the TransformMethods that Instance has registered
-func (inst *Instance) Transform() *TransformMethods {
-	return &TransformMethods{d: inst}
+// Attributes defines attributes for each method
+func (m TransformMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"apply": {AEApply, "POST"},
+	}
 }
 
 // ApplyParams are parameters for the apply command
@@ -55,7 +57,7 @@ type ApplyResult struct {
 }
 
 // Apply runs a transform script
-func (m *TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
+func (m TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "apply"), p)
 	if res, ok := got.(*ApplyResult); ok {
 		return res, err

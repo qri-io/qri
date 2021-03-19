@@ -94,7 +94,7 @@ func TestRenderMethodsRender(t *testing.T) {
 type renderTestRunner struct {
 	Node          *p2p.QriNode
 	Repo          repo.Repo
-	DatasetReqs   *DatasetMethods
+	DatasetReqs   DatasetMethods
 	RenderMethods *RenderMethods
 	Context       context.Context
 	ContextDone   func()

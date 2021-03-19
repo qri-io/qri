@@ -106,7 +106,7 @@ const (
 )
 
 // Diff computes the diff of two sources
-func (m *DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse, error) {
+func (m DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse, error) {
 	// absolutize any local paths before a possible trip over RPC to another local process
 	if !dsref.IsRefString(p.LeftSide) {
 		if err := qfs.AbsPath(&p.LeftSide); err != nil {

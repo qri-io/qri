@@ -19,9 +19,11 @@ func (m AccessMethods) Name() string {
 	return "access"
 }
 
-// Access returns the authentication that Instance has registered
-func (inst *Instance) Access() AccessMethods {
-	return AccessMethods{d: inst}
+// Attributes defines attributes for each method
+func (m AccessMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"createauthtoken": {AECreateAuthToken, "GET"},
+	}
 }
 
 // CreateAuthTokenParams are input parameters for Access().CreateAuthToken

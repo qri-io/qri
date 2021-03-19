@@ -3,6 +3,7 @@ package lib
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"time"
@@ -27,8 +28,19 @@ type Cursor interface{}
 //           3: (output, Cursor, error)
 // The implementation should have the same input and output as the method, except
 // with the context.Context replaced by a scope.
+// No other functions are allowed to be defined, other that those that are going to
+// be registered (as described above) and those that are required by the interface.
 type MethodSet interface {
 	Name() string
+	Attributes() map[string]AttributeSet
+}
+
+// AttributeSet is extra information about each method, such as: http endpoint,
+// http verb, (TODO) permissions, and (TODO) other metadata
+// Each method is required to have associated attributes in order to successfully register
+type AttributeSet struct {
+	endpoint APIEndpoint
+	verb     string
 }
 
 // Dispatch is a system for handling calls to lib. Should only be called by top-level lib methods.
@@ -80,14 +92,14 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 		}
 
 		if c, ok := inst.regMethods.lookup(method); ok {
-			// TODO(dustmop): This is always using the "POST" verb currently. We need some
-			// mechanism of tagging methods as being read-only and "GET"-able. Once that
-			// exists, use it here to lookup the verb that should be used to invoke the rpc.
+			if c.Endpoint == "" {
+				return nil, nil, ErrUnsupportedRPC
+			}
 			if c.OutType != nil {
 				out := reflect.New(c.OutType)
 				res = out.Interface()
 			}
-			err = inst.http.Call(ctx, methodEndpoint(method), param, res)
+			err = inst.http.CallMethod(ctx, c.Endpoint, c.Verb, param, res)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -193,6 +205,8 @@ type callable struct {
 	InType    reflect.Type
 	OutType   reflect.Type
 	RetCursor bool
+	Endpoint  APIEndpoint
+	Verb      string
 }
 
 // RegisterMethods iterates the methods provided by the lib API, and makes them visible to dispatch
@@ -210,6 +224,10 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 	implType := reflect.TypeOf(impl)
 	msetType := reflect.TypeOf(methods)
 	methodMap := inst.buildMethodMap(methods)
+	// Validate that the methodSet has the correct name
+	if methods.Name() != ourName {
+		regFail("registration wrong name, expect: %q, got: %q", ourName, methods.Name())
+	}
 	// Iterate methods on the implementation, register those that have the right signature
 	num := implType.NumMethod()
 	for k := 0; k < num; k++ {
@@ -222,31 +240,31 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 		// should have 1-3 output parametres: ([output value]?, [cursor]?, error)
 		f := i.Type
 		if f.NumIn() != 3 {
-			panic(fmt.Sprintf("%s: bad number of inputs: %d", funcName, f.NumIn()))
+			regFail("%s: bad number of inputs: %d", funcName, f.NumIn())
 		}
 		// First input must be the receiver
 		inType := f.In(0)
 		if inType != implType {
-			panic(fmt.Sprintf("%s: first input param should be impl, got %v", funcName, inType))
+			regFail("%s: first input param should be impl, got %v", funcName, inType)
 		}
 		// Second input must be a scope
 		inType = f.In(1)
 		if inType.Name() != "scope" {
-			panic(fmt.Sprintf("%s: second input param should be scope, got %v", funcName, inType))
+			regFail("%s: second input param should be scope, got %v", funcName, inType)
 		}
 		// Third input is a pointer to the input struct
 		inType = f.In(2)
 		if inType.Kind() != reflect.Ptr {
-			panic(fmt.Sprintf("%s: third input param must be a struct pointer, got %v", funcName, inType))
+			regFail("%s: third input param must be a struct pointer, got %v", funcName, inType)
 		}
 		inType = inType.Elem()
 		if inType.Kind() != reflect.Struct {
-			panic(fmt.Sprintf("%s: third input param must be a struct pointer, got %v", funcName, inType))
+			regFail("%s: third input param must be a struct pointer, got %v", funcName, inType)
 		}
 		// Validate the output values of the implementation
 		numOuts := f.NumOut()
 		if numOuts < 1 || numOuts > 3 {
-			panic(fmt.Sprintf("%s: bad number of outputs: %d", funcName, numOuts))
+			regFail("%s: bad number of outputs: %d", funcName, numOuts)
 		}
 		// Validate output values
 		var outType reflect.Type
@@ -259,14 +277,14 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 			// Second output must be a cursor
 			outCursorType := f.Out(1)
 			if outCursorType.Name() != "Cursor" {
-				panic(fmt.Sprintf("%s: second output val must be a cursor, got %v", funcName, outCursorType))
+				regFail("%s: second output val must be a cursor, got %v", funcName, outCursorType)
 			}
 			returnsCursor = true
 		}
 		// Last output must be an error
 		outErrType := f.Out(numOuts - 1)
 		if outErrType.Name() != "error" {
-			panic(fmt.Sprintf("%s: last output val should be error, got %v", funcName, outErrType))
+			regFail("%s: last output val should be error, got %v", funcName, outErrType)
 		}
 
 		// Validate the parameters to the method that matches the implementation
@@ -274,58 +292,78 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 		// should have 1-3 output parametres: ([output value: same as impl], [cursor], error)
 		m, ok := methodMap[i.Name]
 		if !ok {
-			panic(fmt.Sprintf("method %s not found on MethodSet", i.Name))
+			regFail("method %s not found on MethodSet", i.Name)
 		}
 		f = m.Type
 		if f.NumIn() != 3 {
-			panic(fmt.Sprintf("%s: bad number of inputs: %d", funcName, f.NumIn()))
+			regFail("%s: bad number of inputs: %d", funcName, f.NumIn())
 		}
 		// First input must be the receiver
 		mType := f.In(0)
 		if mType.Name() != msetType.Name() {
-			panic(fmt.Sprintf("%s: first input param should be impl, got %v", funcName, mType))
+			regFail("%s: first input param should be impl, got %v", funcName, mType)
 		}
 		// Second input must be a context
 		mType = f.In(1)
 		if mType.Name() != "Context" {
-			panic(fmt.Sprintf("%s: second input param should be context.Context, got %v", funcName, mType))
+			regFail("%s: second input param should be context.Context, got %v", funcName, mType)
 		}
 		// Third input is a pointer to the input struct
 		mType = f.In(2)
 		if mType.Kind() != reflect.Ptr {
-			panic(fmt.Sprintf("%s: third input param must be a pointer, got %v", funcName, mType))
+			regFail("%s: third input param must be a pointer, got %v", funcName, mType)
 		}
 		mType = mType.Elem()
 		if mType != inType {
-			panic(fmt.Sprintf("%s: third input param must match impl, expect %v, got %v", funcName, inType, mType))
+			regFail("%s: third input param must match impl, expect %v, got %v", funcName, inType, mType)
 		}
 		// Validate the output values of the implementation
 		msetNumOuts := f.NumOut()
 		if msetNumOuts < 1 || msetNumOuts > 3 {
-			panic(fmt.Sprintf("%s: bad number of outputs: %d", funcName, f.NumOut()))
+			regFail("%s: bad number of outputs: %d", funcName, f.NumOut())
 		}
 		// First output, if there's more than 1, matches the impl output
 		if msetNumOuts == 2 || msetNumOuts == 3 {
 			mType = f.Out(0)
 			if mType != outType {
-				panic(fmt.Sprintf("%s: first output val must match impl, expect %v, got %v", funcName, outType, mType))
+				regFail("%s: first output val must match impl, expect %v, got %v", funcName, outType, mType)
 			}
 		}
 		// Second output, if there are three, must be a cursor
 		if msetNumOuts == 3 {
 			mType = f.Out(1)
 			if mType.Name() != "Cursor" {
-				panic(fmt.Sprintf("%s: second output val must match a cursor, got %v", funcName, mType))
+				regFail("%s: second output val must match a cursor, got %v", funcName, mType)
 			}
 		}
 		// Last output must be an error
 		mType = f.Out(msetNumOuts - 1)
 		if mType.Name() != "error" {
-			panic(fmt.Sprintf("%s: last output val should be error, got %v", funcName, mType))
+			regFail("%s: last output val should be error, got %v", funcName, mType)
 		}
 
 		// Remove this method from the methodSetMap now that it has been processed
 		delete(methodMap, i.Name)
+
+		var endpoint APIEndpoint
+		var httpVerb string
+		// Additional attributes for the method are found in the Attributes
+		amap := methods.Attributes()
+		methodAttrs, ok := amap[lowerName]
+		if !ok {
+			regFail("not in Attributes: %s.%s", ourName, lowerName)
+		}
+		endpoint = methodAttrs.endpoint
+		httpVerb = methodAttrs.verb
+		// If both these are empty string, RPC is not allowed for this method
+		if endpoint != "" || httpVerb != "" {
+			if !strings.HasPrefix(string(endpoint), "/") {
+				regFail("%s: endpoint URL must start with /, got %q", lowerName, endpoint)
+			}
+			if httpVerb != http.MethodGet && httpVerb != http.MethodPost && httpVerb != http.MethodPut {
+				regFail("%s: unknown http verb, got %q", lowerName, httpVerb)
+			}
+		}
 
 		// Save the method to the registration table
 		reg[funcName] = callable{
@@ -334,15 +372,21 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 			InType:    inType,
 			OutType:   outType,
 			RetCursor: returnsCursor,
+			Endpoint:  endpoint,
+			Verb:      httpVerb,
 		}
 		log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
 	}
 
 	for k := range methodMap {
-		if k != "Name" {
-			panic(fmt.Sprintf("%s: did not find implementation for method %s", msetType, k))
+		if k != "Name" && k != "Attributes" {
+			regFail("%s: did not find implementation for method %s", msetType, k)
 		}
 	}
+}
+
+func regFail(fstr string, vals ...interface{}) {
+	panic(fmt.Sprintf(fstr, vals...))
 }
 
 func (inst *Instance) buildMethodMap(impl interface{}) map[string]reflect.Method {
@@ -359,31 +403,6 @@ func (inst *Instance) buildMethodMap(impl interface{}) map[string]reflect.Method
 func dispatchMethodName(m MethodSet, funcName string) string {
 	lowerName := strings.ToLower(funcName)
 	return fmt.Sprintf("%s.%s", m.Name(), lowerName)
-}
-
-// methodEndpoint returns a method name and returns the API endpoint for it
-func methodEndpoint(method string) APIEndpoint {
-	// TODO(dustmop): This is here temporarily. /fsi/write/ works differently than
-	// other methods; their http API endpoints are only their method name, for
-	// exmaple /status/. This should be replaced with an explicit mapping from
-	// method names to endpoints.
-	if method == "fsi.write" {
-		return "/fsi/write/"
-	}
-	if method == "fsi.createlink" {
-		return "/fsi/createlink/"
-	}
-	if method == "fsi.unlink" {
-		return "/fsi/unlink/"
-	}
-	if method == "dataset.list" {
-		return "/list"
-	}
-	pos := strings.Index(method, ".")
-	prefix := method[:pos]
-	_ = prefix
-	res := "/" + method[pos+1:] + "/"
-	return APIEndpoint(res)
 }
 
 func dispatchReturnError(got interface{}, err error) error {

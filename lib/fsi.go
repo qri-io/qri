@@ -24,13 +24,24 @@ type FSIMethods struct {
 }
 
 // Name returns the name of this method group
-func (m *FSIMethods) Name() string {
+func (m FSIMethods) Name() string {
 	return "fsi"
 }
 
-// Filesys returns the FSIMethods that Instance has registered
-func (inst *Instance) Filesys() *FSIMethods {
-	return &FSIMethods{d: inst}
+// Attributes defines attributes for each method
+func (m FSIMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"createlink":            {AEFSICreateLink, "POST"},
+		"unlink":                {AEFSIUnlink, "POST"},
+		"status":                {AEStatus, "GET"},
+		"whatchanged":           {AEWhatChanged, "GET"},
+		"checkout":              {AECheckout, "POST"},
+		"write":                 {AEFSIWrite, "POST"},
+		"restore":               {AERestore, "POST"},
+		"init":                  {AEInit, "POST"},
+		"caninitdatasetworkdir": {AECanInitDatasetWorkDir, "GET"},
+		"ensureref":             {AEEnsureRef, "POST"},
+	}
 }
 
 // LinkParams encapsulate parameters for linked datasets
@@ -67,7 +78,7 @@ type InitDatasetParams = fsi.InitParams
 type StatusItem = fsi.StatusItem
 
 // CreateLink creates a connection between a working directory and a dataset history
-func (m *FSIMethods) CreateLink(ctx context.Context, p *LinkParams) (*dsref.VersionInfo, error) {
+func (m FSIMethods) CreateLink(ctx context.Context, p *LinkParams) (*dsref.VersionInfo, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "createlink"), p)
 	if res, ok := got.(*dsref.VersionInfo); ok {
 		return res, err
@@ -78,7 +89,7 @@ func (m *FSIMethods) CreateLink(ctx context.Context, p *LinkParams) (*dsref.Vers
 // Unlink removes the connection between a working directory and a dataset. If given only a
 // directory, will remove the link file from that directory. If given only a reference,
 // will remove the fsi path from that reference, and remove the link file from that fsi path
-func (m *FSIMethods) Unlink(ctx context.Context, p *LinkParams) (string, error) {
+func (m FSIMethods) Unlink(ctx context.Context, p *LinkParams) (string, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "unlink"), p)
 	if res, ok := got.(string); ok {
 		return res, err
@@ -88,7 +99,7 @@ func (m *FSIMethods) Unlink(ctx context.Context, p *LinkParams) (string, error) 
 
 // Status checks for any modifications or errors in a linked directory against its previous
 // version in the repo. Must only be called if FSI is enabled for this dataset.
-func (m *FSIMethods) Status(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
+func (m FSIMethods) Status(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
 	// TODO(dustmop): Have Dispatch perform this AbsPath call automatically
 	if err := qfs.AbsPath(&p.Dir); err != nil {
 		return nil, err
@@ -102,7 +113,7 @@ func (m *FSIMethods) Status(ctx context.Context, p *LinkParams) ([]StatusItem, e
 
 // WhatChanged gets changes that happened at a particular version in the history of the given
 // dataset reference.
-func (m *FSIMethods) WhatChanged(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
+func (m FSIMethods) WhatChanged(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "whatchanged"), p)
 	if res, ok := got.([]StatusItem); ok {
 		return res, err
@@ -111,13 +122,13 @@ func (m *FSIMethods) WhatChanged(ctx context.Context, p *LinkParams) ([]StatusIt
 }
 
 // Checkout method writes a dataset to a directory as individual files.
-func (m *FSIMethods) Checkout(ctx context.Context, p *LinkParams) error {
+func (m FSIMethods) Checkout(ctx context.Context, p *LinkParams) error {
 	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "checkout"), p)
 	return err
 }
 
 // Write mutates a linked dataset on the filesystem
-func (m *FSIMethods) Write(ctx context.Context, p *FSIWriteParams) ([]StatusItem, error) {
+func (m FSIMethods) Write(ctx context.Context, p *FSIWriteParams) ([]StatusItem, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "write"), p)
 	if res, ok := got.([]StatusItem); ok {
 		return res, err
@@ -126,13 +137,13 @@ func (m *FSIMethods) Write(ctx context.Context, p *FSIWriteParams) ([]StatusItem
 }
 
 // Restore method restores a component or all of the component files of a dataset from the repo
-func (m *FSIMethods) Restore(ctx context.Context, p *RestoreParams) error {
+func (m FSIMethods) Restore(ctx context.Context, p *RestoreParams) error {
 	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "restore"), p)
 	return err
 }
 
 // Init initializes a new working directory for a linked dataset
-func (m *FSIMethods) Init(ctx context.Context, p *InitDatasetParams) (string, error) {
+func (m FSIMethods) Init(ctx context.Context, p *InitDatasetParams) (string, error) {
 	// TODO(dustmop): Have Dispatch perform these AbsPath calls automatically
 	if err := qfs.AbsPath(&p.TargetDir); err != nil {
 		return "", err
@@ -148,13 +159,13 @@ func (m *FSIMethods) Init(ctx context.Context, p *InitDatasetParams) (string, er
 }
 
 // CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not
-func (m *FSIMethods) CanInitDatasetWorkDir(ctx context.Context, p *InitDatasetParams) error {
+func (m FSIMethods) CanInitDatasetWorkDir(ctx context.Context, p *InitDatasetParams) error {
 	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "caninitdatasetworkdir"), p)
 	return err
 }
 
 // EnsureRef will modify the directory path in the repo for the given reference
-func (m *FSIMethods) EnsureRef(ctx context.Context, p *LinkParams) (*dsref.VersionInfo, error) {
+func (m FSIMethods) EnsureRef(ctx context.Context, p *LinkParams) (*dsref.VersionInfo, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "ensureref"), p)
 	if res, ok := got.(*dsref.VersionInfo); ok {
 		return res, err
@@ -163,7 +174,6 @@ func (m *FSIMethods) EnsureRef(ctx context.Context, p *LinkParams) (*dsref.Versi
 }
 
 // Implementations for FSI methods follow
-// TODO(dustmop): Perhaps consider moving these methods to /lib/impl/*.go
 
 // fsiImpl holds the method implementations for FSI
 type fsiImpl struct{}

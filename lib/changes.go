@@ -17,7 +17,7 @@ type ChangeReportParams struct {
 type ChangeReport = changes.ChangeReportResponse
 
 // ChangeReport resolves the requested datasets and tries to generate a change report
-func (m *DatasetMethods) ChangeReport(ctx context.Context, p *ChangeReportParams) (*ChangeReport, error) {
+func (m DatasetMethods) ChangeReport(ctx context.Context, p *ChangeReportParams) (*ChangeReport, error) {
 	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "changereport"), p)
 	if res, ok := got.(*ChangeReport); ok {
 		return res, err
