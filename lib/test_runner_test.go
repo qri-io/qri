@@ -15,16 +15,12 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
-	testrepo "github.com/qri-io/qri/repo/test"
 )
 
 type testRunner struct {
 	Ctx      context.Context
-	Profile  *profile.Profile
 	Instance *Instance
 	Pwd      string
 	TmpDir   string
@@ -54,34 +50,35 @@ func newTestRunner(t *testing.T) *testRunner {
 		t.Fatal(err)
 	}
 
-	bus := event.NewBus(ctx)
-
 	// A temporary directory for doing filesystem work.
 	tmpDir, err := ioutil.TempDir("", "lib_test_runner")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	mr, err := testrepo.NewEmptyTestRepo(bus)
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err.Error())
+	qriPath := filepath.Join(tmpDir, "qri")
+	if err := os.Mkdir(qriPath, os.ModePerm); err != nil {
+		t.Fatal(err)
 	}
-	localResolver := dsref.SequentialResolver(mr.Dscache(), mr)
-	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), bus, localResolver)
+	cfg := testcfg.DefaultMemConfigForTesting()
+
+	// ensure we create a mock registry client for testing
+	key := InstanceContextKey("RemoteClient")
+	ctx = context.WithValue(ctx, key, "mock")
+
+	// create new instance!
+	inst, err := NewInstance(
+		ctx,
+		// NewInstance requires a qriPath, even if the repo & all stores are in mem
+		qriPath,
+		OptConfig(cfg),
+	)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
-
-	inst := NewInstanceFromConfigAndNodeAndBus(ctx, testcfg.DefaultConfigForTesting(), node, bus)
-	// Assign the repoPath, as some tests inspect it in order to save files in the repository.
-	// Not assigning a path will cause them to use the current directory, and then save
-	// into the sourcetree.
-	inst.repoPath = tmpDir
-
 	return &testRunner{
 		Ctx: ctx,
 		// TODO (b5) - move test profile creation into testRunner constructor
-		Profile:  testPeerProfile,
 		Instance: inst,
 		TmpDir:   tmpDir,
 		Pwd:      pwd,
@@ -95,6 +92,14 @@ func (tr *testRunner) Delete() {
 	logbook.NewTimestamp = tr.bookTs
 	os.Chdir(tr.Pwd)
 	os.RemoveAll(tr.TmpDir)
+}
+
+func (tr *testRunner) MustOwner(t *testing.T) *profile.Profile {
+	owner, err := tr.Instance.activeProfile(tr.Ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return owner
 }
 
 func (tr *testRunner) MustReadFile(t *testing.T, filename string) string {
@@ -153,8 +158,12 @@ func (tr *testRunner) MustSaveFromBody(t *testing.T, dsName, bodyFilename string
 	if !dsref.IsValidName(dsName) {
 		t.Fatalf("invalid dataset name: %q", dsName)
 	}
+	pro, err := tr.Instance.activeProfile(tr.Ctx)
+	if err != nil {
+		t.Fatalf("error getting active profile: %s", err)
+	}
 	p := SaveParams{
-		Ref:      fmt.Sprintf("peer/%s", dsName),
+		Ref:      fmt.Sprintf("%s/%s", pro.Peername, dsName),
 		BodyPath: bodyFilename,
 	}
 	res, err := tr.Instance.Dataset().Save(tr.Ctx, &p)

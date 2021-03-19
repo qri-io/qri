@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/deepdiff"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/component"
@@ -117,16 +118,42 @@ func (m *DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse
 			return nil, err
 		}
 	}
-
-	res := &DiffResponse{}
-
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEDiff, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "diff"), p)
+	if res, ok := got.(*DiffResponse); ok {
+		return res, err
 	}
+	return nil, dispatchReturnError(got, err)
+}
+
+func schemaDiff(ctx context.Context, left, right *component.BodyComponent) ([]*Delta, *DiffStat, error) {
+	dd := deepdiff.New()
+	if left.Format == ".csv" && right.Format == ".csv" {
+		left, _, err := tabular.ColumnsFromJSONSchema(left.InferredSchema)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		right, _, err := tabular.ColumnsFromJSONSchema(right.InferredSchema)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return dd.StatDiff(ctx, left.Titles(), right.Titles())
+	}
+	return dd.StatDiff(ctx, left.InferredSchema, right.InferredSchema)
+}
+
+// assume a non-empty string, which isn't a dataset reference, is a file
+func isFilePath(text string) bool {
+	if text == "" {
+		return false
+	}
+	return !dsref.IsRefString(text)
+}
+
+// Diff computes the diff of two source
+func (datasetImpl) Diff(scope scope, p *DiffParams) (*DiffResponse, error) {
+	res := &DiffResponse{}
 
 	diffMode, err := p.diffMode()
 	if err != nil {
@@ -147,13 +174,13 @@ func (m *DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse
 			return nil, err
 		}
 
-		res.Schema, res.SchemaStat, err = schemaDiff(ctx, leftComp, rightComp)
+		res.Schema, res.SchemaStat, err = schemaDiff(scope.Context(), leftComp, rightComp)
 		if err != nil {
 			return nil, err
 		}
 
 		dd := deepdiff.New()
-		res.Diff, res.Stat, err = dd.StatDiff(ctx, leftData, rightData)
+		res.Diff, res.Stat, err = dd.StatDiff(scope.Context(), leftData, rightData)
 		if err != nil {
 			return nil, err
 		}
@@ -161,11 +188,8 @@ func (m *DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse
 	}
 
 	// Left side of diff loaded into a component
-	parseResolveLoad, err := m.inst.NewParseResolveLoadFunc(p.Remote)
-	if err != nil {
-		return nil, err
-	}
-	ds, err := parseResolveLoad(ctx, p.LeftSide)
+	parseResolveLoad := scope.ParseResolveFunc()
+	ds, err := parseResolveLoad(scope.Context(), p.LeftSide)
 	if err != nil {
 		if errors.Is(err, dsref.ErrNoHistory) {
 			return nil, qerr.New(err, fmt.Sprintf("dataset %s has no versions, nothing to diff against", p.LeftSide))
@@ -176,7 +200,7 @@ func (m *DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse
 	// calling ds.DropDerivedValues is overzealous. investigate the right solution
 	ds.Name = ""
 	ds.Peername = ""
-	leftComp := component.ConvertDatasetToComponents(ds, m.inst.repo.Filesystem())
+	leftComp := component.ConvertDatasetToComponents(ds, scope.Filesystem())
 
 	// Right side of diff laoded into a component
 	var rightComp component.Component
@@ -188,7 +212,7 @@ func (m *DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse
 		if err != nil {
 			return nil, err
 		}
-		err = component.ExpandListedComponents(rightComp, m.inst.repo.Filesystem())
+		err = component.ExpandListedComponents(rightComp, scope.Filesystem())
 		if err != nil {
 			return nil, err
 		}
@@ -205,13 +229,13 @@ func (m *DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse
 		if ds.PreviousPath == "" {
 			return nil, fmt.Errorf("dataset has only one version, nothing to diff against")
 		}
-		ds, err = dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), ds.PreviousPath)
+		ds, err = dsfs.LoadDataset(scope.Context(), scope.Filesystem(), ds.PreviousPath)
 		if err != nil {
 			return nil, err
 		}
-		leftComp = component.ConvertDatasetToComponents(ds, m.inst.repo.Filesystem())
+		leftComp = component.ConvertDatasetToComponents(ds, scope.Filesystem())
 	case DatasetRefDiffMode:
-		ds, err = parseResolveLoad(ctx, p.RightSide)
+		ds, err = parseResolveLoad(scope.Context(), p.RightSide)
 		if err != nil {
 			return nil, err
 		}
@@ -219,7 +243,7 @@ func (m *DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse
 		// calling ds.DropDerivedValues is overzealous. investigate the right solution
 		ds.Name = ""
 		ds.Peername = ""
-		rightComp = component.ConvertDatasetToComponents(ds, m.inst.repo.Filesystem())
+		rightComp = component.ConvertDatasetToComponents(ds, scope.Filesystem())
 	}
 
 	// If in an FSI linked working directory, drop derived values, since the user is not
@@ -299,61 +323,9 @@ func (m *DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse
 	}
 
 	dd := deepdiff.New()
-	res.Diff, res.Stat, err = dd.StatDiff(ctx, leftData, rightData)
+	res.Diff, res.Stat, err = dd.StatDiff(scope.Context(), leftData, rightData)
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
-}
-
-func schemaDiff(ctx context.Context, left, right *component.BodyComponent) ([]*Delta, *DiffStat, error) {
-	dd := deepdiff.New()
-	if left.Format == ".csv" && right.Format == ".csv" {
-		left, err := terribleHackToGetHeaderRow(left.InferredSchema)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		right, err := terribleHackToGetHeaderRow(right.InferredSchema)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return dd.StatDiff(ctx, left, right)
-	}
-	return dd.StatDiff(ctx, left.InferredSchema, right.InferredSchema)
-}
-
-// TODO (b5) - this is terrible. We need better logic error handling for
-// jsonschemas describing CSV data. We're relying too heavily on the schema
-// being well-formed
-func terribleHackToGetHeaderRow(sch map[string]interface{}) ([]string, error) {
-	if itemObj, ok := sch["items"].(map[string]interface{}); ok {
-		if itemArr, ok := itemObj["items"].([]interface{}); ok {
-			titles := make([]string, len(itemArr))
-			for i, f := range itemArr {
-				if field, ok := f.(map[string]interface{}); ok {
-					if title, ok := field["title"].(string); ok {
-						titles[i] = title
-					}
-				}
-			}
-			return titles, nil
-		}
-	}
-	log.Debug("that terrible hack to detect header row & types just failed")
-	return nil, fmt.Errorf("nope")
-}
-
-// assume a non-empty string, which isn't a dataset reference, is a file
-func isFilePath(text string) bool {
-	if text == "" {
-		return false
-	}
-	return !dsref.IsRefString(text)
-}
-
-// Diff computes the diff of two source
-func (datasetImpl) Diff(scope scope, p *DiffParams) (*DiffResponse, error) {
-	return nil, fmt.Errorf("not yet implemented")
 }

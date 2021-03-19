@@ -794,14 +794,14 @@ func TestRenameNoHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if refstr != "peer/rename_no_history" {
-		t.Errorf("init returned bad refstring %q", refstr)
+	username := tr.MustOwner(t).Peername
+	expect := fmt.Sprintf("%s/rename_no_history", username)
+	if refstr != expect {
+		t.Errorf("dataset init refstring mismatch, expected %q, got %q", expect, refstr)
 	}
 
 	// Read .qri-ref file, it contains the reference this directory is linked to
 	actual := tr.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
-	expect := "peer/rename_no_history"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("qri list (-want +got):\n%s", diff)
 	}
@@ -818,7 +818,7 @@ func TestRenameNoHistory(t *testing.T) {
 
 	// Read .qri-ref file, it contains the new reference name
 	actual = tr.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
-	expect = "peer/rename_second_name"
+	expect = fmt.Sprintf("%s/rename_second_name", username)
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("qri list (-want +got):\n%s", diff)
 	}

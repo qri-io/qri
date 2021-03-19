@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/auth/key"
@@ -18,6 +19,8 @@ import (
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 )
+
+var log = golog.Logger("buildrepo")
 
 // Options provides additional fields to new
 type Options struct {
@@ -43,26 +46,31 @@ func New(ctx context.Context, path string, cfg *config.Config, opts ...func(o *O
 
 	var err error
 	if o.Keystore == nil {
+		log.Debug("buildrepo.New: creating keystore")
 		if o.Keystore, err = key.NewStore(cfg); err != nil {
 			return nil, err
 		}
 	}
 	if o.Profiles == nil {
+		log.Debug("buildrepo.New: creating profiles")
 		if o.Profiles, err = profile.NewStore(cfg, o.Keystore); err != nil {
 			return nil, err
 		}
 	}
 	if o.Filesystem == nil {
+		log.Debug("buildrepo.New: creating filesystem")
 		if o.Filesystem, err = NewFilesystem(ctx, cfg); err != nil {
 			return nil, err
 		}
 	}
 	if o.Bus == nil {
+		log.Debug("buildrepo.New: creating bus")
 		o.Bus = event.NilBus
 	}
 
 	pro := o.Profiles.Owner()
 
+	log.Debug("buildrepo.New: profile %q, %q", pro.Peername, pro.ID)
 	switch cfg.Repo.Type {
 	case "fs":
 		if o.Logbook == nil {
@@ -78,7 +86,7 @@ func New(ctx context.Context, path string, cfg *config.Config, opts ...func(o *O
 
 		return fsrepo.NewRepo(path, o.Filesystem, o.Logbook, o.Dscache, o.Profiles, o.Bus)
 	case "mem":
-		return repo.NewMemRepo(ctx, o.Profiles, o.Filesystem, o.Bus)
+		return repo.NewMemRepo(ctx, o.Filesystem, o.Logbook, o.Dscache, o.Profiles, o.Bus)
 	default:
 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
 	}
