@@ -118,7 +118,7 @@ func (m DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse,
 			return nil, err
 		}
 	}
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "diff"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "diff"), p)
 	if res, ok := got.(*DiffResponse); ok {
 		return res, err
 	}

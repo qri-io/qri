@@ -42,8 +42,7 @@ import (
 
 // DatasetMethods encapsulates business logic for working with Datasets on Qri
 type DatasetMethods struct {
-	// TODO(dustmop): Once Dispatch is in use for Diff, change to "d dispatcher"
-	inst *Instance
+	d dispatcher
 }
 
 // Name returns the name of this method group
@@ -78,7 +77,7 @@ var ErrListWarning = base.ErrUnlistableReferences
 
 // List gets the reflist for either the local repo or a peer
 func (m DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "list"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "list"), p)
 	if res, ok := got.([]dsref.VersionInfo); ok {
 		return res, err
 	}
@@ -87,7 +86,7 @@ func (m DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.Versio
 
 // ListRawRefs gets the list of raw references as string
 func (m DatasetMethods) ListRawRefs(ctx context.Context, p *ListParams) (string, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "listrawrefs"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "listrawrefs"), p)
 	if res, ok := got.(string); ok {
 		return res, err
 	}
@@ -255,7 +254,7 @@ func (m DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, erro
 		return nil, err
 	}
 
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "get"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "get"), p)
 	if res, ok := got.(*GetResult); ok {
 		return res, err
 	}
@@ -428,7 +427,7 @@ func (p *SaveParams) SetNonZeroDefaults() {
 
 // Save adds a history entry, updating a dataset
 func (m DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Dataset, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "save"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "save"), p)
 	if res, ok := got.(*dataset.Dataset); ok {
 		return res, err
 	}
@@ -442,7 +441,7 @@ type RenameParams struct {
 
 // Rename changes a user's given name for a dataset
 func (m DatasetMethods) Rename(ctx context.Context, p *RenameParams) (*dsref.VersionInfo, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "rename"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "rename"), p)
 	if res, ok := got.(*dsref.VersionInfo); ok {
 		return res, err
 	}
@@ -504,7 +503,7 @@ var ErrCantRemoveDirectoryDirty = fmt.Errorf("cannot remove files while working 
 
 // Remove a dataset entirely or remove a certain number of revisions
 func (m DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveResponse, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "remove"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "remove"), p)
 	if res, ok := got.(*RemoveResponse); ok {
 		return res, err
 	}
@@ -534,7 +533,7 @@ func (m DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Datas
 	if err := qfs.AbsPath(&p.LinkDir); err != nil {
 		return nil, err
 	}
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "pull"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "pull"), p)
 	if res, ok := got.(*dataset.Dataset); ok {
 		return res, err
 	}
@@ -568,7 +567,7 @@ type ValidateResponse struct {
 
 // Validate gives a dataset of errors and issues for a given dataset
 func (m DatasetMethods) Validate(ctx context.Context, p *ValidateParams) (*ValidateResponse, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "validate"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "validate"), p)
 	if res, ok := got.(*ValidateResponse); ok {
 		return res, err
 	}
@@ -582,7 +581,7 @@ type ManifestParams struct {
 
 // Manifest generates a manifest for a dataset path
 func (m DatasetMethods) Manifest(ctx context.Context, p *ManifestParams) (*dag.Manifest, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "manifest"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "manifest"), p)
 	if res, ok := got.(*dag.Manifest); ok {
 		return res, err
 	}
@@ -596,7 +595,7 @@ type ManifestMissingParams struct {
 
 // ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
 func (m DatasetMethods) ManifestMissing(ctx context.Context, p *ManifestMissingParams) (*dag.Manifest, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "manifestmissing"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "manifestmissing"), p)
 	if res, ok := got.(*dag.Manifest); ok {
 		return res, err
 	}
@@ -610,7 +609,7 @@ type DAGInfoParams struct {
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
 func (m DatasetMethods) DAGInfo(ctx context.Context, p *DAGInfoParams) (*dag.Info, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "daginfo"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "daginfo"), p)
 	if res, ok := got.(*dag.Info); ok {
 		return res, err
 	}
@@ -628,7 +627,7 @@ type StatsParams struct {
 
 // Stats generates stats for a dataset
 func (m DatasetMethods) Stats(ctx context.Context, p *StatsParams) (*dataset.Stats, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "stats"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "stats"), p)
 	if res, ok := got.(*dataset.Stats); ok {
 		return res, err
 	}
@@ -1193,7 +1192,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		runID := run.NewID()
 		runState = run.NewState(runID)
 		// create a loader so transforms can call `load_dataset`
-		// TODO(b5) - add a ResolverMode save parameter and call m.inst.resolverForMode
+		// TODO(b5) - add a ResolverMode save parameter and call m.d.resolverForMode
 		// on the passed in mode string instead of just using the default resolver
 		// cmd can then define "remote" and "offline" flags, that set the ResolverMode
 		// string and control how transform functions

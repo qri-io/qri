@@ -820,7 +820,7 @@ func (inst *Instance) Config() ConfigMethods {
 
 // Dataset returns the DatasetMethods that Instance has registered
 func (inst *Instance) Dataset() DatasetMethods {
-	return DatasetMethods{inst: inst}
+	return DatasetMethods{d: inst}
 }
 
 // Filesys returns the FSIMethods that Instance has registered
