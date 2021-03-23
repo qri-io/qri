@@ -69,7 +69,7 @@ func TestTokenStore(t *testing.T) {
 func TestNewPrivKeyAuthToken(t *testing.T) {
 	// create a token from a private key
 	kd := testkeys.GetKeyData(0)
-	str, err := token.NewPrivKeyAuthToken(kd.PrivKey, 0)
+	str, err := token.NewPrivKeyAuthToken(kd.PrivKey, kd.KeyID.String(), 0)
 	if err != nil {
 		t.Fatal(err)
 	}

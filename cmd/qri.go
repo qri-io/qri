@@ -167,6 +167,10 @@ func (o *QriOptions) Init() (err error) {
 	// being false also disables progress bars, which may be what we want (ahem: TTY
 	// detection), but even if so, isn't the right use of this variable name
 	if shouldColorOutput {
+		// TODO(ramfox): we guard for a nil bus in `PrintProgressBarsOnEvents`
+		// but noting here that no requests that go through http rpc will have
+		// a working bus, so we won't get any progress bars when working over
+		// http rpc until this is adjusted (once we get the events "rpc-ified")
 		PrintProgressBarsOnEvents(o.IOStreams.ErrOut, o.inst.Bus())
 	}
 

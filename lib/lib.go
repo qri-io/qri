@@ -978,7 +978,11 @@ func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, 
 			// token. We either need ProfileID == KeyID, or we need a UCAN. we need to
 			// check for those, ideally in a method within the profile package that
 			// abstracts over profile & key agreement
-			return inst.profiles.GetProfile(profile.IDB58DecodeOrEmpty(claims.ProfileID))
+			pro, err := inst.profiles.GetProfile(profile.IDB58DecodeOrEmpty(claims.ProfileID))
+			if errors.Is(err, profile.ErrNotFound) {
+				return nil, fmt.Errorf("request profile not sent")
+			}
+			return pro, err
 		}
 	}
 

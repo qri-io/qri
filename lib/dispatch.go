@@ -84,7 +84,7 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 			if err != nil {
 				return nil, nil, err
 			}
-			tokstr, err := token.NewPrivKeyAuthToken(p.PrivKey, time.Minute)
+			tokstr, err := token.NewPrivKeyAuthToken(p.PrivKey, p.ID.String(), time.Minute)
 			if err != nil {
 				return nil, nil, err
 			}
