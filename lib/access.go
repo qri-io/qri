@@ -89,5 +89,5 @@ func (accessImpl) CreateAuthToken(scp scope, p *CreateAuthTokenParams) (string, 
 		return "", fmt.Errorf("cannot create token for %q (id: %s), private key is required", grantee.Peername, grantee.ID.String())
 	}
 
-	return token.NewPrivKeyAuthToken(pk, p.TTL)
+	return token.NewPrivKeyAuthToken(pk, grantee.ID.String(), p.TTL)
 }

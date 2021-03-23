@@ -11,7 +11,6 @@ import (
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	qerr "github.com/qri-io/qri/errors"
@@ -441,7 +440,7 @@ func (r *LocalStore) PeernameID(peername string) (ID, error) {
 			return IDB58Decode(id)
 		}
 	}
-	return "", qfs.ErrNotFound
+	return "", ErrNotFound
 }
 
 // GetProfile fetches a profile from the store
@@ -469,7 +468,7 @@ func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
 		}
 	}
 
-	return nil, qfs.ErrNotFound
+	return nil, ErrNotFound
 }
 
 // ProfilesForUsername fetches all profile that match a username (Peername)
@@ -524,7 +523,7 @@ func (r *LocalStore) PeerProfile(id peer.ID) (*Profile, error) {
 		}
 	}
 
-	return nil, qfs.ErrNotFound
+	return nil, ErrNotFound
 }
 
 // DeleteProfile removes a profile from the store

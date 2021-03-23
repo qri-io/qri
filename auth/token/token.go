@@ -48,7 +48,7 @@ func Parse(tokenString string, tokens Source) (*Token, error) {
 
 // NewPrivKeyAuthToken creates a JWT token string suitable for making requests
 // authenticated as the given private key
-func NewPrivKeyAuthToken(pk crypto.PrivKey, ttl time.Duration) (string, error) {
+func NewPrivKeyAuthToken(pk crypto.PrivKey, profileID string, ttl time.Duration) (string, error) {
 	signingMethod, err := jwtSigningMethod(pk)
 	if err != nil {
 		return "", err
@@ -84,6 +84,7 @@ func NewPrivKeyAuthToken(pk crypto.PrivKey, ttl time.Duration) (string, error) {
 			// see http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-20#section-4.1.4
 			ExpiresAt: exp,
 		},
+		ProfileID: profileID,
 	}
 
 	return t.SignedString(signKey)
