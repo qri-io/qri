@@ -244,6 +244,10 @@ func PrintProgressBarsOnEvents(w io.Writer, bus event.Bus) {
 	p := mpb.New(mpb.WithWidth(80), mpb.WithOutput(w))
 	progress := map[string]*mpb.Bar{}
 
+	if bus == nil {
+		log.Errorf("event bus is nil")
+		return
+	}
 	// wire up a subscription to print download progress to streams
 	bus.SubscribeTypes(func(_ context.Context, e event.Event) error {
 		lock.Lock()
