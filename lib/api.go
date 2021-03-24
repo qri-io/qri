@@ -108,36 +108,36 @@ const (
 	// remote client endpoints
 
 	// AEPush facilitates dataset push requests to a remote
-	AEPush = APIEndpoint("/push/{path:.*}")
+	AEPush = APIEndpoint("/push")
 	// AEPull facilittates dataset pull requests from a remote
 	AEPull = APIEndpoint("/pull")
 	// AEFeeds fetches and index of named feeds
 	AEFeeds = APIEndpoint("/feeds")
 	// AEPreview fetches a dataset preview from the registry
-	AEPreview = APIEndpoint("/preview/{path:.*}")
+	AEPreview = APIEndpoint("/preview")
 
 	// fsi endpoints
 
 	// AEStatus returns the filesystem dataset status
 	AEStatus = APIEndpoint("/status")
 	// AEWhatChanged returns what changed for a specific commit
-	AEWhatChanged = APIEndpoint("/whatchanged/{path:.*}")
+	AEWhatChanged = APIEndpoint("/whatchanged")
 	// AEInit invokes a dataset initialization on the filesystem
-	AEInit = APIEndpoint("/init/{path:.*}")
+	AEInit = APIEndpoint("/init")
 	// AECanInitDatasetWorkDir returns whether a dataset can be initialized
-	AECanInitDatasetWorkDir = APIEndpoint("/caninitdatasetworkdir/{path:.*}")
+	AECanInitDatasetWorkDir = APIEndpoint("/caninitdatasetworkdir")
 	// AECheckout invokes a dataset checkout to the filesystem
-	AECheckout = APIEndpoint("/checkout/{path:.*}")
+	AECheckout = APIEndpoint("/checkout")
 	// AERestore invokes a restore
-	AERestore = APIEndpoint("/restore/{path:.*}")
+	AERestore = APIEndpoint("/restore")
 	// AEFSIWrite writes input data to the filesystem
-	AEFSIWrite = APIEndpoint("/fsi/write/{path:.*}")
+	AEFSIWrite = APIEndpoint("/fsi/write")
 	// AEFSICreateLink creates an fsi link
-	AEFSICreateLink = APIEndpoint("/fsi/createlink/{path:.*}")
+	AEFSICreateLink = APIEndpoint("/fsi/createlink")
 	// AEFSIUnlink removes the fsi link
-	AEFSIUnlink = APIEndpoint("/fsi/unlink/{path:.*}")
+	AEFSIUnlink = APIEndpoint("/fsi/unlink")
 	// AEEnsureRef ensures that the ref is fsi linked
-	AEEnsureRef = APIEndpoint("/fsi/ensureref/{path:.*}")
+	AEEnsureRef = APIEndpoint("/fsi/ensureref")
 
 	// auth endpoints
 

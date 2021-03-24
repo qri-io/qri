@@ -99,7 +99,12 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 				out := reflect.New(c.OutType)
 				res = out.Interface()
 			}
-			err = inst.http.CallMethod(ctx, c.Endpoint, c.Verb, param, res)
+			// TODO(ramfox): dispatch is still unable to give enough details to the url
+			// (because it doesn't know how or what param information to put into the url or query)
+			// for it to reliably use GET. All POSTs w/ content type application json work, however.
+			// we may want to just flat out say that as an RPC layer, dispatch will only ever use
+			// json POST to communicate.
+			err = inst.http.CallMethod(ctx, c.Endpoint, "POST", param, res)
 			if err != nil {
 				return nil, nil, err
 			}
