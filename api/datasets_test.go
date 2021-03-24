@@ -31,18 +31,12 @@ func TestDatasetHandlers(t *testing.T) {
 
 	h := NewDatasetHandlers(run.Inst, false)
 
-	listCases := []handlerTestCase{
-		{"GET", "/", nil, nil},
-		{"DELETE", "/", nil, nil},
-	}
-	runHandlerTestCases(t, "list", h.ListHandler, listCases, true)
-
 	// TODO: Remove this case, update API snapshot.
 	saveCases := []handlerTestCase{
 		{"POST", "/?new=true", mustFile(t, "testdata/newRequestFromURL.json"), nil},
 		{"DELETE", "/", nil, nil},
 	}
-	runHandlerTestCases(t, "init", h.SaveHandler, saveCases, true)
+	runHandlerTestCases(t, "init", h.SaveHandler(""), saveCases, true)
 
 	getCases := []handlerTestCase{
 		{"GET", "/get/peer/family_relationships", nil, map[string]string{"peername": "peer", "name": "family_relationships"}},
@@ -53,7 +47,7 @@ func TestDatasetHandlers(t *testing.T) {
 		{"GET", "/get/peer/family_relationships?fsi=true", nil, map[string]string{"peername": "peer", "name": "family_relationships"}},
 		{"DELETE", "/", nil, nil},
 	}
-	runHandlerTestCases(t, "get", h.GetHandler, getCases, true)
+	runHandlerTestCases(t, "get", h.GetHandler(""), getCases, true)
 
 	bodyCases := []handlerTestCase{
 		{"GET", "/get/peer/family_relationships/body", nil, map[string]string{"peername": "peer", "name": "family_relationships", "selector": "body"}},
@@ -61,45 +55,26 @@ func TestDatasetHandlers(t *testing.T) {
 		// {"GET", "/get/peer/family_relationships?component=body&download=true", nil},
 		{"DELETE", "/", nil, nil},
 	}
-	runHandlerTestCases(t, "body", h.GetHandler, bodyCases, true)
+	runHandlerTestCases(t, "body", h.GetHandler(""), bodyCases, true)
 
 	statsCases := []handlerTestCase{
 		{"GET", "/get/peer/craigslist/stats", nil, map[string]string{"peername": "peer", "name": "craigslist", "selector": "stats"}},
 		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg/stats", nil, map[string]string{"peername": "peer", "name": "family_relationships", "fs": "mem", "hash": "Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", "selector": "stats"}},
 	}
-	runHandlerTestCases(t, "stats", h.GetHandler, statsCases, false)
-
-	renameCases := []handlerTestCase{
-		{"POST", "/rename", mustFile(t, "testdata/renameRequest.json"), nil},
-		{"DELETE", "/", nil, nil},
-	}
-	runHandlerTestCases(t, "rename", h.RenameHandler, renameCases, true)
+	runHandlerTestCases(t, "stats", h.GetHandler(""), statsCases, false)
 
 	// TODO: Perhaps add an option to runHandlerTestCases to set Content-Type, then combin, truee
 	// `runHandlerZipPostTestCases` with `runHandlerTestCases`, true.
 	unpackCases := []handlerTestCase{
 		{"POST", "/unpack/", mustFile(t, "testdata/exported.zip"), nil},
 	}
-	runHandlerZipPostTestCases(t, "unpack", h.UnpackHandler, unpackCases)
-
-	diffCases := []handlerTestCase{
-		{"GET", "/?leftPath=peer/family_relationships&rightPath=peer/cities", nil, nil},
-		{"DELETE", "/", nil, nil},
-	}
-	runHandlerTestCases(t, "diff", h.DiffHandler, diffCases, false)
-
-	changesCases := []handlerTestCase{
-		// TODO(arqu): disabled because output of changes is not stable thus being a very flakey test
-		// {"GET", "/?leftRef=peer/family_relationships&rightRef=peer/cities", nil, nil},
-		{"DELETE", "/", nil, nil},
-	}
-	runHandlerTestCases(t, "changes", h.ChangesHandler(""), changesCases, false)
+	runHandlerZipPostTestCases(t, "unpack", h.UnpackHandler(""), unpackCases)
 
 	removeCases := []handlerTestCase{
 		{"GET", "/", nil, nil},
 		{"POST", "/remove/peer/cities", nil, map[string]string{"peername": "peer", "name": "cities"}},
 	}
-	runHandlerTestCases(t, "remove", h.RemoveHandler, removeCases, true)
+	runHandlerTestCases(t, "remove", h.RemoveHandler(""), removeCases, true)
 
 	removeMimeCases := []handlerMimeMultipartTestCase{
 		{"POST", "/remove/peer/cities",
@@ -108,7 +83,7 @@ func TestDatasetHandlers(t *testing.T) {
 			map[string]string{"peername": "peer", "name": "cities"},
 		},
 	}
-	runMimeMultipartHandlerTestCases(t, "remove mime/multipart", h.RemoveHandler, removeMimeCases)
+	runMimeMultipartHandlerTestCases(t, "remove mime/multipart", h.RemoveHandler(""), removeMimeCases)
 
 	newMimeCases := []handlerMimeMultipartTestCase{
 		{"POST", "/save",
@@ -148,7 +123,7 @@ func TestDatasetHandlers(t *testing.T) {
 			nil,
 		},
 	}
-	runMimeMultipartHandlerTestCases(t, "save mime/multipart", h.SaveHandler, newMimeCases)
+	runMimeMultipartHandlerTestCases(t, "save mime/multipart", h.SaveHandler(""), newMimeCases)
 }
 
 func newMockDataServer(t *testing.T) *httptest.Server {
@@ -183,9 +158,9 @@ func TestSaveWithInferredNewName(t *testing.T) {
 	bodyPath := "testdata/cities/data.csv"
 
 	// Save first version using a body path
-	req := postJSONRequest(fmt.Sprintf("/save/?bodypath=%s&new=true", absolutePath(bodyPath)), "{}")
+	req := postJSONRequest(fmt.Sprintf("/save?bodypath=%s&new=true", absolutePath(bodyPath)), "")
 	w := httptest.NewRecorder()
-	h.SaveHandler(w, req)
+	h.SaveHandler("")(w, req)
 	bodyText := resultText(w)
 	// Name is inferred from the body path
 	expectText := `"name":"data"`
@@ -194,9 +169,9 @@ func TestSaveWithInferredNewName(t *testing.T) {
 	}
 
 	// Save a second time
-	req = postJSONRequest(fmt.Sprintf("/save/?bodypath=%s&new=true", absolutePath(bodyPath)), "{}")
+	req = postJSONRequest(fmt.Sprintf("/save?bodypath=%s&new=true", absolutePath(bodyPath)), "")
 	w = httptest.NewRecorder()
-	h.SaveHandler(w, req)
+	h.SaveHandler("")(w, req)
 	bodyText = resultText(w)
 	// Name is guaranteed to be unique
 	expectText = `"name":"data_2"`
@@ -416,7 +391,7 @@ func TestGetZip(t *testing.T) {
 
 	// Get a zip file binary over the API
 	dsHandler := NewDatasetHandlers(run.Inst, false)
-	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds"})
+	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds"})
 	if gotStatusCode != 200 {
 		t.Fatalf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -455,13 +430,13 @@ func TestDatasetGet(t *testing.T) {
 	}
 	run.SaveDataset(&ds, "testdata/cities/data.csv")
 
-	actualStatusCode, actualBody := APICall("/get/peer/test_ds", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds"})
+	actualStatusCode, actualBody := APICall("/get/peer/test_ds", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds"})
 	assertStatusCode(t, "get dataset", actualStatusCode, 200)
 	got := datasetJSONResponse(t, actualBody)
 	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestDatasetGet.test_ds.json", got)
 
 	// Get csv body using "body.csv" suffix
-	actualStatusCode, actualBody = APICall("/get/peer/test_ds/body.csv", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "selector": "body.csv"})
+	actualStatusCode, actualBody = APICall("/get/peer/test_ds/body.csv", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds", "selector": "body.csv"})
 	expectBody := "city,pop,avg_age,in_usa\ntoronto,40000000,55.5,false\nnew york,8500000,44.4,true\nchicago,300000,44.4,true\nchatham,35000,65.25,true\nraleigh,250000,50.65,true\n"
 	assertStatusCode(t, "get body.csv using suffix", actualStatusCode, 200)
 	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
@@ -469,27 +444,27 @@ func TestDatasetGet(t *testing.T) {
 	}
 
 	// Can get zip file
-	actualStatusCode, _ = APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds?format=zip", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds"})
 	assertStatusCode(t, "get zip file", actualStatusCode, 200)
 
 	// Can get a single component
-	actualStatusCode, _ = APICall("/get/peer/test_ds/meta", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "selector": "meta"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds/meta", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds", "selector": "meta"})
 	assertStatusCode(t, "get meta component", actualStatusCode, 200)
 
 	// Can get at an ipfs version
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "fs": "mem", "hash": "QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds", "fs": "mem", "hash": "QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr"})
 	assertStatusCode(t, "get at content-addressed version", actualStatusCode, 200)
 
 	// Error 404 if ipfs version doesn't exist
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "fs": "mem", "hash": "QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds", "fs": "mem", "hash": "QmissingEJUqFWNfdiPTPtxyba6wf86TmbQe1nifpZCRH6"})
 	assertStatusCode(t, "get missing content-addressed version", actualStatusCode, 404)
 
 	// Error 400 due to unknown component
-	actualStatusCode, _ = APICall("/get/peer/test_ds/dunno", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "selector": "dunno"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds/dunno", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds", "selector": "dunno"})
 	assertStatusCode(t, "unknown component", actualStatusCode, 400)
 
 	// Error 400 due to parse error of dsref
-	actualStatusCode, _ = APICall("/get/peer/test+ds", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test+ds"})
+	actualStatusCode, _ = APICall("/get/peer/test+ds", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test+ds"})
 	assertStatusCode(t, "invalid dsref", actualStatusCode, 400)
 }
 
