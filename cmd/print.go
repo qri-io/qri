@@ -245,7 +245,7 @@ func PrintProgressBarsOnEvents(w io.Writer, bus event.Bus) {
 	progress := map[string]*mpb.Bar{}
 
 	if bus == nil {
-		log.Errorf("event bus is nil")
+		log.Debugf("event bus is nil")
 		return
 	}
 	// wire up a subscription to print download progress to streams

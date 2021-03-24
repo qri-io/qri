@@ -29,6 +29,9 @@ func (node *QriNode) NewManifest(ctx context.Context, path string) (*dag.Manifes
 // MissingManifest returns a manifest describing blocks that are not in this
 // node for a given manifest
 func (node *QriNode) MissingManifest(ctx context.Context, m *dag.Manifest) (missing *dag.Manifest, err error) {
+	if m == nil {
+		return nil, fmt.Errorf("nil manifest")
+	}
 	ng, err := newNodeGetter(node)
 	if err != nil {
 		return nil, err
