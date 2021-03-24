@@ -239,18 +239,12 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"GET", "/peers", 403},
 		{"GET", "/peers/test_peer", 403},
 		{"GET", "/connections", 403},
-		// TODO(ramfox): when `AEList` endpoint was refactored to use `NewHTTPHandlerFunc`, we lost
-		// the `readOnly` check
-		// {"GET", "/list", 403},
 		{"POST", "/save", 403},
 		{"PUT", "/save", 403},
 		{"POST", "/remove", 403},
 		{"DELETE", "/remove", 403},
 		{"POST", "/rename", 403},
 		{"PUT", "/rename", 403},
-		// TODO(ramfox): when `AEDiff` endpoint was refactored to use `NewHTTPHandlerFunc`, we lost
-		// {"POST", "/diff", 403},
-		// {"GET", "/diff", 403},
 		{"POST", "/registry/profile/new", 403},
 		{"POST", "/registry/profile/prove", 403},
 

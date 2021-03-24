@@ -35,85 +35,218 @@ func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
 
 // SaveHandler is a dataset save/update endpoint
 func (h *DatasetHandlers) SaveHandler(routePrefix string) http.HandlerFunc {
-	handleChanges := h.saveHandler(routePrefix)
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPut, http.MethodPost:
-			handleChanges(w, r)
-		default:
+		if !(r.Method == http.MethodPut || r.Method == http.MethodPost) {
 			util.NotFoundHandler(w, r)
+			return
 		}
+		params := &lib.SaveParams{}
+		err := lib.UnmarshalParams(r, params)
+		if err != nil {
+			log.Debugw("unmarshal dataset save error", "err", err)
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		scriptOutput := &bytes.Buffer{}
+		params.ScriptOutput = scriptOutput
+
+		got, _, err := h.inst.Dispatch(r.Context(), "dataset.save", params)
+		if err != nil {
+			log.Debugw("save dataset error", "err", err)
+			util.RespondWithError(w, err)
+			return
+		}
+		res, ok := got.(*dataset.Dataset)
+		if !ok {
+			util.RespondWithDispatchTypeError(w, got)
+			return
+		}
+
+		// Don't leak paths across the API, it's possible they contain absolute paths or tmp dirs.
+		res.BodyPath = filepath.Base(res.BodyPath)
+
+		resRef := reporef.DatasetRef{
+			Peername:  res.Peername,
+			Name:      res.Name,
+			ProfileID: profile.IDB58DecodeOrEmpty(res.ProfileID),
+			Path:      res.Path,
+			Dataset:   res,
+		}
+
+		msg := scriptOutput.String()
+		util.WriteMessageResponse(w, msg, resRef)
 	}
+
 }
 
 // RemoveHandler is a a dataset delete endpoint
 func (h *DatasetHandlers) RemoveHandler(routePrefix string) http.HandlerFunc {
-	handleChanges := h.removeHandler(routePrefix)
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodDelete, http.MethodPost:
-			handleChanges(w, r)
-		default:
+		if !(r.Method == http.MethodDelete || r.Method == http.MethodPost) {
 			util.NotFoundHandler(w, r)
+			return
 		}
+		params := &lib.RemoveParams{}
+		err := lib.UnmarshalParams(r, params)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if params.Remote != "" {
+			res, err := h.remote.Remove(r.Context(), &lib.PushParams{
+				Ref:    params.Ref,
+				Remote: params.Remote,
+			})
+			if err != nil {
+				log.Error("deleting dataset from remote: %s", err.Error())
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			util.WriteResponse(w, res)
+			return
+		}
+		got, _, err := h.inst.Dispatch(r.Context(), "dataset.remove", params)
+		if err != nil {
+			log.Infof("error removing dataset: %s", err.Error())
+			util.RespondWithError(w, err)
+			return
+		}
+		res, ok := got.(*lib.RemoveResponse)
+		if !ok {
+			util.RespondWithDispatchTypeError(w, got)
+		}
+		util.WriteResponse(w, res)
 	}
 }
 
 // GetHandler is a dataset single endpoint
 func (h *DatasetHandlers) GetHandler(routePrefix string) http.HandlerFunc {
-	handleChanges := h.getHandler(routePrefix)
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet, http.MethodPost:
-			handleChanges(w, r)
-		default:
+		if !(r.Method == http.MethodGet || r.Method == http.MethodPost) {
 			util.NotFoundHandler(w, r)
+			return
 		}
+		params := &lib.GetParams{}
+
+		err := lib.UnmarshalParams(r, params)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+		got, _, err := h.inst.Dispatch(r.Context(), "dataset.get", params)
+		if err != nil {
+			util.RespondWithError(w, err)
+			return
+		}
+		res, ok := got.(*lib.GetResult)
+		if !ok {
+			util.RespondWithDispatchTypeError(w, got)
+			return
+		}
+		h.replyWithGetResponse(w, r, params, res)
 	}
+
 }
 
 // PeerListHandler is a dataset list endpoint
 func (h *DatasetHandlers) PeerListHandler(routePrefix string) http.HandlerFunc {
-	handleChanges := h.peerListHandler(routePrefix)
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handleChanges(w, r)
-		default:
+		if r.Method != http.MethodGet {
 			util.NotFoundHandler(w, r)
+			return
+		}
+		p := lib.ListParamsFromRequest(r)
+		p.OrderBy = "created"
+
+		// TODO - cheap peerId detection
+		profileID := r.URL.Path[len("/list/"):]
+		if len(profileID) > 0 && profileID[:2] == "Qm" {
+			// TODO - let's not ignore this error
+			p.ProfileID, _ = profile.IDB58Decode(profileID)
+		} else {
+			ref, err := lib.DsRefFromPath(r.URL.Path[len("/list/"):])
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			if !ref.IsPeerRef() {
+				util.WriteErrResponse(w, http.StatusBadRequest, errors.New("request needs to be in the form '/list/[peername]'"))
+				return
+			}
+			p.Peername = ref.Username
+		}
+
+		res, err := h.List(r.Context(), &p)
+		if err != nil {
+			log.Infof("error listing peer's datasets: %s", err.Error())
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		if err := util.WritePageResponse(w, res, r, p.Page()); err != nil {
+			log.Infof("error list datasests response: %s", err.Error())
 		}
 	}
 }
 
 // PullHandler is an endpoint for creating new datasets
 func (h *DatasetHandlers) PullHandler(routePrefix string) http.HandlerFunc {
-	handleChanges := h.pullHandler(routePrefix)
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost, http.MethodPut:
-			handleChanges(w, r)
-		default:
+		if !(r.Method == http.MethodPost || r.Method == http.MethodPut) {
 			util.NotFoundHandler(w, r)
+			return
 		}
+		params := &lib.PullParams{}
+		if err := lib.UnmarshalParams(r, params); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		got, _, err := h.inst.Dispatch(r.Context(), "dataset.pull", params)
+		if err != nil {
+			log.Infof("error pulling dataset: %s", err.Error())
+			util.RespondWithError(w, err)
+			return
+		}
+		res, ok := got.(*dataset.Dataset)
+		if !ok {
+			util.RespondWithDispatchTypeError(w, got)
+		}
+
+		ref := reporef.DatasetRef{
+			Peername: res.Peername,
+			Name:     res.Name,
+			Path:     res.Path,
+			Dataset:  res,
+		}
+		util.WriteResponse(w, ref)
 	}
 }
 
 // UnpackHandler unpacks a zip file and sends it back as json
 func (h *DatasetHandlers) UnpackHandler(routePrefix string) http.HandlerFunc {
-	handleChanges := h.unpackHandler(routePrefix)
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			handleChanges(w, r)
-		default:
+		if r.Method != http.MethodPost {
 			util.NotFoundHandler(w, r)
+			return
 		}
+		postData, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+		contents, err := archive.UnzipGetContents(postData)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		data, err := json.Marshal(contents)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		util.WriteResponse(w, json.RawMessage(data))
 	}
 }
 
@@ -133,29 +266,6 @@ func extensionToMimeType(ext string) string {
 		return "text/plain"
 	default:
 		return ""
-	}
-}
-
-func (h *DatasetHandlers) getHandler(routePrefix string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := &lib.GetParams{}
-
-		err := lib.UnmarshalParams(r, params)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-		got, _, err := h.inst.Dispatch(r.Context(), "dataset.get", params)
-		if err != nil {
-			util.RespondWithError(w, err)
-			return
-		}
-		res, ok := got.(*lib.GetResult)
-		if !ok {
-			util.RespondWithDispatchTypeError(w, got)
-			return
-		}
-		h.replyWithGetResponse(w, r, params, res)
 	}
 }
 
@@ -238,148 +348,6 @@ func (h *DatasetHandlers) replyWithGetResponse(w http.ResponseWriter, r *http.Re
 	}
 }
 
-func (h *DatasetHandlers) peerListHandler(routePrefix string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log.Info(r.URL.Path)
-		p := lib.ListParamsFromRequest(r)
-		p.OrderBy = "created"
-
-		// TODO - cheap peerId detection
-		profileID := r.URL.Path[len("/list/"):]
-		if len(profileID) > 0 && profileID[:2] == "Qm" {
-			// TODO - let's not ignore this error
-			p.ProfileID, _ = profile.IDB58Decode(profileID)
-		} else {
-			ref, err := lib.DsRefFromPath(r.URL.Path[len("/list/"):])
-			if err != nil {
-				util.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
-			}
-			if !ref.IsPeerRef() {
-				util.WriteErrResponse(w, http.StatusBadRequest, errors.New("request needs to be in the form '/list/[peername]'"))
-				return
-			}
-			p.Peername = ref.Username
-		}
-
-		res, err := h.List(r.Context(), &p)
-		if err != nil {
-			log.Infof("error listing peer's datasets: %s", err.Error())
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
-		if err := util.WritePageResponse(w, res, r, p.Page()); err != nil {
-			log.Infof("error list datasests response: %s", err.Error())
-		}
-	}
-}
-
-func (h *DatasetHandlers) pullHandler(routePrefix string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := &lib.PullParams{}
-		if err := lib.UnmarshalParams(r, params); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		got, _, err := h.inst.Dispatch(r.Context(), "dataset.pull", params)
-		if err != nil {
-			log.Infof("error pulling dataset: %s", err.Error())
-			util.RespondWithError(w, err)
-			return
-		}
-		res, ok := got.(*dataset.Dataset)
-		if !ok {
-			util.RespondWithDispatchTypeError(w, got)
-		}
-
-		ref := reporef.DatasetRef{
-			Peername: res.Peername,
-			Name:     res.Name,
-			Path:     res.Path,
-			Dataset:  res,
-		}
-		util.WriteResponse(w, ref)
-	}
-}
-
-func (h *DatasetHandlers) saveHandler(routePrefix string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := &lib.SaveParams{}
-		err := lib.UnmarshalParams(r, params)
-		if err != nil {
-			log.Debugw("unmarshal dataset save error", "err", err)
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		scriptOutput := &bytes.Buffer{}
-		params.ScriptOutput = scriptOutput
-
-		got, _, err := h.inst.Dispatch(r.Context(), "dataset.save", params)
-		if err != nil {
-			log.Debugw("save dataset error", "err", err)
-			util.RespondWithError(w, err)
-			return
-		}
-		res, ok := got.(*dataset.Dataset)
-		if !ok {
-			util.RespondWithDispatchTypeError(w, got)
-			return
-		}
-
-		// Don't leak paths across the API, it's possible they contain absolute paths or tmp dirs.
-		res.BodyPath = filepath.Base(res.BodyPath)
-
-		resRef := reporef.DatasetRef{
-			Peername:  res.Peername,
-			Name:      res.Name,
-			ProfileID: profile.IDB58DecodeOrEmpty(res.ProfileID),
-			Path:      res.Path,
-			Dataset:   res,
-		}
-
-		msg := scriptOutput.String()
-		util.WriteMessageResponse(w, msg, resRef)
-	}
-}
-
-func (h *DatasetHandlers) removeHandler(routePrefix string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := &lib.RemoveParams{}
-		err := lib.UnmarshalParams(r, params)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		if params.Remote != "" {
-			res, err := h.remote.Remove(r.Context(), &lib.PushParams{
-				Ref:    params.Ref,
-				Remote: params.Remote,
-			})
-			if err != nil {
-				log.Error("deleting dataset from remote: %s", err.Error())
-				util.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
-			}
-			util.WriteResponse(w, res)
-			return
-		}
-		got, _, err := h.inst.Dispatch(r.Context(), "dataset.remove", params)
-		if err != nil {
-			log.Infof("error removing dataset: %s", err.Error())
-			util.RespondWithError(w, err)
-			return
-		}
-		res, ok := got.(*lib.RemoveResponse)
-		if !ok {
-			util.RespondWithDispatchTypeError(w, got)
-		}
-		util.WriteResponse(w, res)
-	}
-}
-
 func loadFileIfPath(path string) (file *os.File, err error) {
 	if path == "" {
 		return nil, nil
@@ -390,25 +358,4 @@ func loadFileIfPath(path string) (file *os.File, err error) {
 	}
 
 	return os.Open(path)
-}
-
-func (h DatasetHandlers) unpackHandler(routePrefix string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		postData, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-		contents, err := archive.UnzipGetContents(postData)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
-		data, err := json.Marshal(contents)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
-		util.WriteResponse(w, json.RawMessage(data))
-	}
 }
