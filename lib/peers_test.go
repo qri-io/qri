@@ -66,18 +66,18 @@ func TestConnectedQriProfiles(t *testing.T) {
 	defer done()
 
 	cases := []struct {
-		limit     int
+		params    *ConnectionsParams
 		peerCount int
 		err       string
 	}{
-		{100, 0, ""},
+		{&ConnectionsParams{Limit: 100}, 0, ""},
 	}
 
 	node := newTestQriNode(t)
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
-		got, err := m.ConnectedQriProfiles(ctx, &c.limit)
+		got, err := m.ConnectedQriProfiles(ctx, c.params)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -89,23 +89,23 @@ func TestConnectedQriProfiles(t *testing.T) {
 	}
 }
 
-func TestConnectedIPFSPeers(t *testing.T) {
+func TestConnections(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
 	cases := []struct {
-		limit     int
+		params    *ConnectionsParams
 		peerCount int
 		err       string
 	}{
-		{100, 0, ""},
+		{&ConnectionsParams{Limit: 100}, 0, ""},
 	}
 
 	node := newTestQriNode(t)
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	m := NewPeerMethods(inst)
 	for i, c := range cases {
-		got, err := m.ConnectedIPFSPeers(ctx, &c.limit)
+		got, err := m.Connections(ctx, c.params)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -148,46 +148,46 @@ func TestInfo(t *testing.T) {
 }
 
 func TestPeerConnectionsParamsPod(t *testing.T) {
-	if p := NewPeerConnectionParamsPod("peername"); p.Peername != "peername" {
+	if p := NewConnectParamsPod("peername"); p.Peername != "peername" {
 		t.Error("expected Peername to be set")
 	}
 
-	if p := NewPeerConnectionParamsPod("/ipfs/Foo"); p.NetworkID != "/ipfs/Foo" {
+	if p := NewConnectParamsPod("/ipfs/Foo"); p.NetworkID != "/ipfs/Foo" {
 		t.Error("expected NetworkID to be set")
 	}
 
 	ma := "/ip4/130.211.198.23/tcp/4001/p2p/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"
-	if p := NewPeerConnectionParamsPod(ma); p.Multiaddr != ma {
+	if p := NewConnectParamsPod(ma); p.Multiaddr != ma {
 		t.Errorf("peer Multiaddr mismatch. expected: %q, got: %q", ma, p.Multiaddr)
 	}
 
-	if p := NewPeerConnectionParamsPod("QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"); p.ProfileID != "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb" {
+	if p := NewConnectParamsPod("QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"); p.ProfileID != "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb" {
 		t.Error("expected ProfileID to be set")
 	}
 
-	p := PeerConnectionParamsPod{NetworkID: "/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
+	p := ConnectParamsPod{NetworkID: "/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
 	if _, err := p.Decode(); err != nil {
 		t.Error(err.Error())
 	}
-	p = PeerConnectionParamsPod{NetworkID: "/ipfs/QmNX"}
+	p = ConnectParamsPod{NetworkID: "/ipfs/QmNX"}
 	if _, err := p.Decode(); err == nil {
 		t.Error("expected invalid decode to error")
 	}
 
-	p = PeerConnectionParamsPod{ProfileID: "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
+	p = ConnectParamsPod{ProfileID: "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
 	if _, err := p.Decode(); err != nil {
 		t.Error(err.Error())
 	}
-	p = PeerConnectionParamsPod{ProfileID: "21hub2dj23"}
+	p = ConnectParamsPod{ProfileID: "21hub2dj23"}
 	if _, err := p.Decode(); err == nil {
 		t.Error("expected invalid decode to error")
 	}
 
-	p = PeerConnectionParamsPod{Multiaddr: "/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
+	p = ConnectParamsPod{Multiaddr: "/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
 	if _, err := p.Decode(); err != nil {
 		t.Error(err.Error())
 	}
-	p = PeerConnectionParamsPod{Multiaddr: "nhuh"}
+	p = ConnectParamsPod{Multiaddr: "nhuh"}
 	if _, err := p.Decode(); err == nil {
 		t.Error("expected invalid decode to error")
 	}

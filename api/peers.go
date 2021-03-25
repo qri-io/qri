@@ -108,8 +108,8 @@ func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) 
 
 func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO(arqu): we don't utilize limit, but should
-	limit := -1
-	peers, err := h.ConnectedIPFSPeers(r.Context(), &limit)
+	params := &lib.ConnectionsParams{Limit: -1}
+	peers, err := h.Connections(r.Context(), params)
 	if err != nil {
 		log.Infof("error showing connected peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -120,8 +120,8 @@ func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (h *PeerHandlers) listQriConnectionsHandler(w http.ResponseWriter, r *http.Request) {
-	limit := util.ReqParamInt(r, "limit", 25)
-	peers, err := h.ConnectedQriProfiles(r.Context(), &limit)
+	params := &lib.ConnectionsParams{Limit: util.ReqParamInt(r, "limit", 25)}
+	peers, err := h.ConnectedQriProfiles(r.Context(), params)
 	if err != nil {
 		log.Infof("error showing connected qri profiles: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -150,14 +150,14 @@ func (h *PeerHandlers) peerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Request) {
-	params := &lib.PeerConnectionParamsPod{}
+	params := &lib.ConnectParamsPod{}
 	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	res, err := h.ConnectToPeer(r.Context(), params)
+	res, err := h.Connect(r.Context(), params)
 	if err != nil {
 		log.Infof("error connecting to peer: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -168,14 +168,14 @@ func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *PeerHandlers) disconnectFromPeerHandler(w http.ResponseWriter, r *http.Request) {
-	params := &lib.PeerConnectionParamsPod{}
+	params := &lib.ConnectParamsPod{}
 	err := lib.UnmarshalParams(r, params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	if err := h.DisconnectFromPeer(r.Context(), params); err != nil {
+	if err := h.Disconnect(r.Context(), params); err != nil {
 		log.Infof("error connecting to peer: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

@@ -59,6 +59,10 @@ const (
 	AEConnect = APIEndpoint("/connect")
 	// AEConnectAlt initiates an explicit connection to a peer
 	AEConnectAlt = APIEndpoint("/connect/{path:.*}")
+	// AEDisconnect closes an explicit connection to a peer
+	AEDisconnect = APIEndpoint("/disconnect")
+	// AEDisconnectAlt closes an explicit connection to a peer
+	AEDisconnectAlt = APIEndpoint("/disconnect/{path:.*}")
 	// AEConnections lists qri & IPFS connections
 	AEConnections = APIEndpoint("/connections")
 	// AEConnectionsQri lists qri profile connections

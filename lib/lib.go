@@ -823,6 +823,11 @@ func (inst *Instance) Dataset() DatasetMethods {
 	return DatasetMethods{inst: inst}
 }
 
+// Peer returns the PeerMethods that Instance has registered
+func (inst *Instance) Peer() PeerMethods {
+	return PeerMethods{inst: inst}
+}
+
 // Filesys returns the FSIMethods that Instance has registered
 func (inst *Instance) Filesys() FSIMethods {
 	return FSIMethods{d: inst}

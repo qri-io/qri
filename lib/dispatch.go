@@ -222,6 +222,7 @@ func (inst *Instance) RegisterMethods() {
 	inst.registerOne("dataset", inst.Dataset(), datasetImpl{}, reg)
 	inst.registerOne("fsi", inst.Filesys(), fsiImpl{}, reg)
 	inst.registerOne("transform", inst.Transform(), transformImpl{}, reg)
+	inst.registerOne("peer", inst.Peer(), peerImpl{}, reg)
 	inst.regMethods = &regMethodSet{reg: reg}
 }
 

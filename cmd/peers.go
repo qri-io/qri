@@ -209,7 +209,6 @@ func (o *PeersOptions) Info() (err error) {
 
 // List shows a list of peers
 func (o *PeersOptions) List() (err error) {
-
 	// convert Page and PageSize to Limit and Offset
 	page := apiutil.NewPage(o.Page, o.PageSize)
 
@@ -217,8 +216,8 @@ func (o *PeersOptions) List() (err error) {
 	ctx := context.TODO()
 
 	if o.Network == "ipfs" {
-		limit := page.Limit()
-		res, err = o.PeerMethods.ConnectedQriProfiles(ctx, &limit)
+		params := &lib.ConnectionsParams{Limit: page.Limit()}
+		res, err = o.PeerMethods.ConnectedQriProfiles(ctx, params)
 		if err != nil {
 			return err
 		}
@@ -257,9 +256,9 @@ func (o *PeersOptions) List() (err error) {
 
 // Connect attempts to connect to a peer
 func (o *PeersOptions) Connect() (err error) {
-	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
+	pcpod := lib.NewConnectParamsPod(o.Peername)
 	ctx := context.TODO()
-	res, err := o.PeerMethods.ConnectToPeer(ctx, pcpod)
+	res, err := o.PeerMethods.Connect(ctx, pcpod)
 	if err != nil {
 		return err
 	}
@@ -272,9 +271,9 @@ func (o *PeersOptions) Connect() (err error) {
 
 // Disconnect attempts to disconnect from a peer
 func (o *PeersOptions) Disconnect() (err error) {
-	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
+	pcpod := lib.NewConnectParamsPod(o.Peername)
 	ctx := context.TODO()
-	if err = o.PeerMethods.DisconnectFromPeer(ctx, pcpod); err != nil {
+	if err = o.PeerMethods.Disconnect(ctx, pcpod); err != nil {
 		return err
 	}
 
