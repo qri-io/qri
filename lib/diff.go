@@ -7,7 +7,6 @@ import (
 
 	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/deepdiff"
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -27,10 +26,10 @@ type DiffStat = deepdiff.Stats
 // LeftSide set with the UseLeftPrevVersion flag.
 type DiffParams struct {
 	// File paths or reference to datasets
-	LeftSide  string `schema:"leftPath" json:"leftPath"`
-	RightSide string `schema:"rightPath" json:"rightPath"`
+	LeftSide  string `schema:"leftPath" json:"leftPath" qri:"dsrefOrFspath"`
+	RightSide string `schema:"rightPath" json:"rightPath" qri:"dsrefOrFspath"`
 	// If not null, the working directory that the diff is using
-	WorkingDir string
+	WorkingDir string `qri:"fspath"`
 	// Whether to get the previous version of the left parameter
 	UseLeftPrevVersion bool
 
@@ -107,17 +106,6 @@ const (
 
 // Diff computes the diff of two sources
 func (m DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse, error) {
-	// absolutize any local paths before a possible trip over RPC to another local process
-	if !dsref.IsRefString(p.LeftSide) {
-		if err := qfs.AbsPath(&p.LeftSide); err != nil {
-			return nil, err
-		}
-	}
-	if !dsref.IsRefString(p.RightSide) {
-		if err := qfs.AbsPath(&p.RightSide); err != nil {
-			return nil, err
-		}
-	}
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "diff"), p)
 	if res, ok := got.(*DiffResponse); ok {
 		return res, err

@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/auth/token"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/profile"
 )
 
@@ -134,6 +136,9 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// Handle filepaths in the params by calling qfs.Abs on each of them
+		param = normalizeInputParams(param)
 
 		// Construct the parameter list for the function call, then call it
 		args := make([]reflect.Value, 3)
@@ -416,4 +421,51 @@ func dispatchReturnError(got interface{}, err error) error {
 		log.Errorf("type mismatch: %v of type %s", got, reflect.TypeOf(got))
 	}
 	return err
+}
+
+// normalizeInputParams will look at each field of the params, and modify filepaths so that
+// they are absolute paths, making them safe to send across RPC to another process
+func normalizeInputParams(param interface{}) interface{} {
+	typ := reflect.TypeOf(param)
+	val := reflect.ValueOf(param)
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+		val = val.Elem()
+	}
+	if typ.Kind() == reflect.Struct {
+		num := typ.NumField()
+		for i := 0; i < num; i++ {
+			tfield := typ.Field(i)
+			vfield := val.Field(i)
+			qriTag := tfield.Tag.Get("qri")
+			if qriTag == "fspath" || qriTag == "dsrefOrFspath" {
+				normalizeFileField(vfield, qriTag)
+			} else if qriTag != "" {
+				log.Errorf("unknown qri struct tag %q", qriTag)
+			}
+		}
+	}
+	return param
+}
+
+func normalizeFileField(vfield reflect.Value, qriTag string) {
+	interf := vfield.Interface()
+	if str, ok := interf.(string); ok {
+		if qriTag == "dsrefOrFspath" && dsref.IsRefString(str) {
+			return
+		}
+		if err := qfs.AbsPath(&str); err == nil {
+			vfield.SetString(str)
+		}
+	}
+	if strList, ok := interf.([]string); ok {
+		build := make([]string, 0, len(strList))
+		for _, str := range strList {
+			if qriTag != "dsrefOrFspath" || !dsref.IsRefString(str) {
+				_ = qfs.AbsPath(&str)
+			}
+			build = append(build, str)
+		}
+		vfield.Set(reflect.ValueOf(build))
+	}
 }

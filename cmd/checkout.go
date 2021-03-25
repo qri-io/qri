@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -86,10 +85,6 @@ func (o *CheckoutOptions) Run() (err error) {
 		// subset of characters. However, it's possible the user has bad data in their repo, so
 		// generate a name just to be safe.
 		o.Dir = dsref.GenerateName(ref[pos+1:], "")
-	}
-
-	if err = qfs.AbsPath(&o.Dir); err != nil {
-		return err
 	}
 
 	if err = inst.Filesys().Checkout(ctx, &lib.LinkParams{Dir: o.Dir, Refstr: ref}); err != nil {
