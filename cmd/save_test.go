@@ -117,9 +117,15 @@ func TestSaveRun(t *testing.T) {
 
 	f, err := NewTestFactory(ctx)
 	if err != nil {
-		t.Errorf("error creating new test factory: %s", err)
-		return
+		t.Fatalf("error creating new test factory: %s", err)
 	}
+
+	// Get the current directory, ending in a slash, to remove it from error messages
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pwd = pwd + "/"
 
 	cases := []struct {
 		description string
@@ -167,9 +173,15 @@ func TestSaveRun(t *testing.T) {
 		}
 
 		err = opt.Run()
-		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-			t.Errorf("case '%s', mismatched error. Expected: '%s', Got: '%v'", c.description, c.err, err)
-			continue
+		if err == nil && c.err != "" {
+			t.Errorf("case '%s', did not get error, expected: '%s'", c.description, c.err)
+		}
+		if err != nil {
+			errGot := strings.Replace(err.Error(), pwd, "", -1)
+			if c.err != errGot {
+				t.Errorf("case '%s', mismatched error. Expected: '%s', Got: '%v'", c.description, c.err, errGot)
+				continue
+			}
 		}
 
 		if libErr, ok := err.(qrierr.Error); ok {

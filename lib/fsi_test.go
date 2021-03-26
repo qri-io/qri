@@ -160,17 +160,7 @@ func TestCheckoutInvalidDirs(t *testing.T) {
 		t.Errorf("error mismatch (-want +got):\n%s", diff)
 	}
 
-	// Checkout fails with a relative directory
-	err = run.Checkout("me/movie_ds", "relative/dir/")
-	if err == nil {
-		t.Fatal("expected error from checkout, did not get one")
-	}
-	expectErr = `need Dir to be a non-empty, absolute path`
-	if diff := cmp.Diff(expectErr, err.Error()); diff != "" {
-		t.Errorf("error mismatch (-want +got):\n%s", diff)
-	}
-
-	// Checkout with an absolute path succeeds
+	// Checkout with a valid path succeeds
 	checkoutPath := filepath.Join(run.TmpDir, "movie_ds")
 	err = run.Checkout("me/movie_ds", checkoutPath)
 	if err != nil {
