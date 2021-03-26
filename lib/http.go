@@ -270,9 +270,7 @@ func UnmarshalParams(r *http.Request, p interface{}) error {
 			// this avoids resolving on empty body requests
 			// and tries to handle it almost like a GET
 			if err != io.EOF {
-				if err := json.NewDecoder(body).Decode(p); err != nil {
-					return err
-				}
+				return json.NewDecoder(body).Decode(p)
 			}
 		}
 	}

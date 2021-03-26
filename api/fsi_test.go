@@ -116,7 +116,7 @@ func TestNoHistory(t *testing.T) {
 	expectBody := `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0"}},"published":false},"meta":{"code":200}}`
 
 	// Dataset with a link to the filesystem, but no history and the api request says fsi=false
-	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds"})
+	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds"})
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -126,7 +126,7 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Dataset with a link to the filesystem, but no history and the api request says fsi=true
-	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds?fsi=true", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds"})
+	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds?fsi=true", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds"})
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -139,7 +139,7 @@ func TestNoHistory(t *testing.T) {
 	expectBody = `{"data":{"path":"fsi_init_dir/body.csv","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"page":1,"pageSize":50,"nextUrl":"/get/peer/test_ds/body?page=2","prevUrl":""}}`
 
 	// Body with no history, but fsi working directory has body
-	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds/body", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "selector": "body"})
+	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds/body", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds", "selector": "body"})
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -149,7 +149,7 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Body with no history, but fsi working directory has body
-	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds/body&fsi=true", dsHandler.GetHandler, map[string]string{"peername": "peer", "name": "test_ds", "selector": "body"})
+	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds/body&fsi=true", dsHandler.GetHandler(""), map[string]string{"peername": "peer", "name": "test_ds", "selector": "body"})
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
