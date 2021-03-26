@@ -1,20 +1,9 @@
 [
   {
-    "endpoint": "/save/me/test_wd",
-    "params": {
-      "new": "true"
-    },
+    "endpoint": "/wd/caninitworkdir",
     "method": "POST",
     "headers": {
       "Content-Type": "application/json"
-    },
-    "body": {
-      "dataset": {
-        "meta": {
-          "title": "test working directory"
-        }
-      },
-      "bodypath":"http://127.0.0.1:55556/C2ImportFamRelSample.csv"
     },
     "expect": {
       "code": 200,
@@ -24,12 +13,27 @@
     }
   },
   {
-    "endpoint": "/wd/init/me/test_wd",
-    "method": "POST"
+    "endpoint": "/wd/init",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
   },
   {
-    "endpoint": "/wd/status/me/test_wd",
-    "method": "GET",
+    "endpoint": "/wd/status",
+    "method": "POST",
+    "body": {
+      "ref": "me/test_wd"
+    },
     "expect": { 
       "code": 200,
       "headers": {
@@ -38,29 +42,36 @@
     }
   },
   {
-    "endpoint": "/wd/whatchanged/me/test_wd",
-    "method": "GET",
-    "expect": {
-      "code": 200,
-      "headers": {
-        "Content-Type": "application/json"
-      }
-    }
-  },
-  {
-    "endpoint": "/wd/restore/me/test_wd",
-    "method": "POST",
-    "expect": {
-      "code": 200,
-      "headers": {
-        "Content-Type": "application/json"
-      }
-    }
-  },
-  {
-    "endpoint": "/wd/write/me/test_wd",
+    "endpoint": "/wd/checkout",
     "method": "POST",
     "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/wd/restore",
+    "method": "POST",
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/wd/write",
+    "method": "POST",
+    "body": {
+      "ref": "me/test_wd",
       "meta": {
         "title": "test working directory",
         "description": "with an added description!"
@@ -75,11 +86,25 @@
     }
   },
   {
-    "endpoint": "/remove/me/test_wd",
-    "params": {
-      "all": "true"
-    },
+    "endpoint": "/wd/createlink",
     "method": "POST",
+    "body": {
+      "ref": "me/test_wd",
+      "path": "some_path"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/wd/unlink",
+    "method": "POST",
+    "body": {
+      "ref": "me/test_wd",
+    },
     "expect": {
       "code": 200,
       "headers": {
