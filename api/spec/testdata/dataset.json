@@ -1,0 +1,236 @@
+[
+  {
+    "endpoint": "/ds/componentstatus",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/get",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/log",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/rename",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "current": "me/test_wd",
+      "next": "me/test_wd_2"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/save",
+    "params": {
+      "new": "true"
+    },
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd",
+      "dataset": {
+        "meta": {
+          "title": "test working directory"
+        }
+      },
+      "bodypath":"http://127.0.0.1:55556/C2ImportFamRelSample.csv"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/pull",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/push",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/render",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/remove",
+    "params": {
+      "all": "true"
+    },
+    "method": "POST",
+    "body": {
+    	"ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/validatee",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/unpack",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/manifest",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/manifestmissing",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "manifest": {}
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/ds/daginfo",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "me/test_wd"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  }
+]

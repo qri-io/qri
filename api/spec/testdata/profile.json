@@ -1,0 +1,54 @@
+[
+  {
+    "endpoint": "/profile/list",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/profile/me",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/profile/me/photo",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "image/jpeg"
+      }
+    }
+  },
+  {
+    "endpoint": "/profile/me/poster",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "image/jpeg"
+      }
+    }
+  }
+]
