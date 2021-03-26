@@ -1,0 +1,16 @@
+[
+  {
+    "endpoint": "/access/token",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {},
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  }
+]

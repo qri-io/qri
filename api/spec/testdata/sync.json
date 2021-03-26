@@ -1,0 +1,136 @@
+[
+  {
+    "endpoint": "/sync/dag",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/sync/dag",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/sync/dag",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {},
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/sync/dag",
+    "method": "PUT",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {},
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/sync/dag",
+    "method": "PATCH",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {},
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/sync/logs",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/sync/logs",
+    "method": "PUT",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {},
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/sync/logs",
+    "method": "DELETE",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/sync/resolve",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/sync/resolve",
+    "method": "DELETE",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  }
+]

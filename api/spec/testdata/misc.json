@@ -1,0 +1,67 @@
+[
+  {
+    "endpoint": "/",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      }
+    }
+  },
+  {
+    "endpoint": "/health",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      }
+    }
+  },
+  {
+    "endpoint": "/qfs/ipfs/test_path",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      }
+    }
+  },
+  {
+    "endpoint": "/qfs/s3/test_path",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "text/plain; charset=utf-8"
+      }
+    }
+  },
+  {
+    "endpoint": "/webui",
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "text/html; charset=utf-8"
+      }
+    }
+  }
+]
