@@ -227,13 +227,12 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEProfilePhoto.String(), s.Middleware(proh.ProfilePhotoHandler))
 	m.Handle(lib.AEProfilePoster.String(), s.Middleware(proh.PosterHandler))
 
-	ph := NewPeerHandlers(s.Instance, cfg.API.ReadOnly)
-	m.Handle(lib.AEPeers.String(), s.Middleware(ph.PeersHandler))
-	m.Handle(lib.AEPeer.String(), s.Middleware(ph.PeerHandler))
-	m.Handle(lib.AEConnect.String(), s.Middleware(ph.ConnectToPeerHandler))
-	m.Handle(lib.AEConnectAlt.String(), s.Middleware(ph.ConnectToPeerHandler))
-	m.Handle(lib.AEConnections.String(), s.Middleware(ph.ConnectionsHandler))
-	m.Handle(lib.AEConnectionsQri.String(), s.Middleware(ph.QriConnectionsHandler))
+	m.Handle(lib.AEPeers.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.list"))).Methods(http.MethodPost)
+	m.Handle(lib.AEPeer.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.info"))).Methods(http.MethodPost)
+	m.Handle(lib.AEConnect.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.connect"))).Methods(http.MethodPost)
+	m.Handle(lib.AEDisconnect.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.disconnect"))).Methods(http.MethodPost)
+	m.Handle(lib.AEConnections.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.connections"))).Methods(http.MethodPost)
+	m.Handle(lib.AEConnectedQriProfiles.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.connectedqriprofiles"))).Methods(http.MethodPost)
 
 	if cfg.Remote != nil && cfg.Remote.Enabled {
 		log.Info("running in `remote` mode")

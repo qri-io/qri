@@ -34,7 +34,7 @@ func (m PeerMethods) Attributes() map[string]AttributeSet {
 		"connect":              {AEConnect, "POST"},
 		"disconnect":           {AEDisconnect, "POST"},
 		"connections":          {AEConnections, "POST"},
-		"connectedqriprofiles": {AEConnectionsQri, "POST"},
+		"connectedqriprofiles": {AEConnectedQriProfiles, "POST"},
 	}
 }
 
@@ -86,7 +86,7 @@ func (m PeerMethods) List(ctx context.Context, p *PeerListParams) ([]*config.Pro
 // PeerInfoParams defines parameters for the Info method
 type PeerInfoParams struct {
 	Peername  string
-	ProfileID profile.ID
+	ProfileID string
 	// Verbose adds network details from the p2p Peerstore
 	Verbose bool
 }
@@ -98,11 +98,11 @@ func (p *PeerInfoParams) UnmarshalFromRequest(r *http.Request) error {
 	}
 
 	if r.FormValue("profile") != "" {
-		pid, err := profile.IDB58Decode(r.FormValue("profile"))
+		_, err := profile.IDB58Decode(r.FormValue("profile"))
 		if err != nil {
 			p.Peername = r.FormValue("profile")
 		} else {
-			p.ProfileID = pid
+			p.ProfileID = r.FormValue("profile")
 		}
 	}
 
@@ -306,6 +306,15 @@ func (peerImpl) Info(scope scope, p *PeerInfoParams) (*config.ProfilePod, error)
 	// TODO: Move most / all of this to p2p package, perhaps.
 	r := scope.Repo()
 
+	var pid profile.ID
+	var err error
+	if p.ProfileID != "" {
+		pid, err = profile.IDB58Decode(p.ProfileID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	profiles, err := r.Profiles().List()
 	if err != nil {
 		log.Debug(err.Error())
@@ -313,7 +322,7 @@ func (peerImpl) Info(scope scope, p *PeerInfoParams) (*config.ProfilePod, error)
 	}
 
 	for _, pro := range profiles {
-		if pro.ID == p.ProfileID || pro.Peername == p.Peername {
+		if pro.ID == pid || pro.Peername == p.Peername {
 			if p.Verbose && len(pro.PeerIDs) > 0 {
 				// TODO - grab more than just the first peerID
 				pinfo := scope.Node().PeerInfo(pro.PeerIDs[0])
@@ -376,11 +385,30 @@ func (peerImpl) Disconnect(scope scope, p *ConnectParamsPod) error {
 // Connections lists PeerID's we're currently connected to. If running
 // IPFS this will also return connected IPFS nodes
 func (peerImpl) Connections(scope scope, p *ConnectionsParams) ([]string, error) {
+	// TODO (ramfox): limit and offset not currently used
+	// ensure valid limit value
+	if p.Limit <= 0 {
+		p.Limit = 25
+	}
+	// ensure valid offset value
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
 	return scope.Node().ConnectedPeers(), nil
 }
 
 // ConnectedQriProfiles lists profiles we're currently connected to
 func (peerImpl) ConnectedQriProfiles(scope scope, p *ConnectionsParams) ([]*config.ProfilePod, error) {
+	// TODO (ramfox): offset not currently used
+	// ensure valid limit value
+	if p.Limit <= 0 {
+		p.Limit = 25
+	}
+	// ensure valid offset value
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+
 	connected := scope.Node().ConnectedQriProfiles()
 
 	build := make([]*config.ProfilePod, intMin(len(connected), p.Limit))

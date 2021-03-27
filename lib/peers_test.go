@@ -126,7 +126,7 @@ func TestInfo(t *testing.T) {
 		err      string
 	}{
 		{PeerInfoParams{}, 0, "repo: not found"},
-		{PeerInfoParams{ProfileID: profile.IDB58MustDecode("QmY1PxkV9t9RoBwtXHfue1Qf6iYob19nL6rDHuXxooAVZa")}, 0, "repo: not found"},
+		{PeerInfoParams{ProfileID: "QmY1PxkV9t9RoBwtXHfue1Qf6iYob19nL6rDHuXxooAVZa"}, 0, "repo: not found"},
 	}
 
 	node := newTestQriNode(t)
