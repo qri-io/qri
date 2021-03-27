@@ -20,7 +20,7 @@ import (
 // PeerMethods extends a lib.Instance with business logic for peer-to-peer
 // interaction
 type PeerMethods struct {
-	inst *Instance
+	d dispatcher
 }
 
 // Name returns the name of this method group
@@ -76,7 +76,7 @@ func (p *PeerListParams) UnmarshalFromRequest(r *http.Request) error {
 
 // List lists Peers on the qri network
 func (m PeerMethods) List(ctx context.Context, p *PeerListParams) ([]*config.ProfilePod, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "list"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "list"), p)
 	if res, ok := got.([]*config.ProfilePod); ok {
 		return res, err
 	}
@@ -115,7 +115,7 @@ func (p *PeerInfoParams) UnmarshalFromRequest(r *http.Request) error {
 
 // Info shows peer profile details
 func (m PeerMethods) Info(ctx context.Context, p *PeerInfoParams) (*config.ProfilePod, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "info"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "info"), p)
 	if res, ok := got.(*config.ProfilePod); ok {
 		return res, err
 	}
@@ -124,7 +124,7 @@ func (m PeerMethods) Info(ctx context.Context, p *PeerInfoParams) (*config.Profi
 
 // Connect attempts to create a connection with a peer for a given peer.ID
 func (m PeerMethods) Connect(ctx context.Context, p *ConnectParamsPod) (*config.ProfilePod, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "connect"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "connect"), p)
 	if res, ok := got.(*config.ProfilePod); ok {
 		return res, err
 	}
@@ -133,7 +133,7 @@ func (m PeerMethods) Connect(ctx context.Context, p *ConnectParamsPod) (*config.
 
 // Disconnect explicitly closes a peer connection
 func (m PeerMethods) Disconnect(ctx context.Context, p *ConnectParamsPod) error {
-	_, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "disconnect"), p)
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "disconnect"), p)
 	return err
 }
 
@@ -171,7 +171,7 @@ func (p *ConnectionsParams) UnmarshalFromRequest(r *http.Request) error {
 // Connections lists PeerID's we're currently connected to. If running
 // IPFS this will also return connected IPFS nodes
 func (m PeerMethods) Connections(ctx context.Context, p *ConnectionsParams) ([]string, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "connections"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "connections"), p)
 	if res, ok := got.([]string); ok {
 		return res, err
 	}
@@ -180,7 +180,7 @@ func (m PeerMethods) Connections(ctx context.Context, p *ConnectionsParams) ([]s
 
 // ConnectedQriProfiles lists profiles we're currently connected to
 func (m PeerMethods) ConnectedQriProfiles(ctx context.Context, p *ConnectionsParams) ([]*config.ProfilePod, error) {
-	got, _, err := m.inst.Dispatch(ctx, dispatchMethodName(m, "connectedqriprofiles"), p)
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "connectedqriprofiles"), p)
 	if res, ok := got.([]*config.ProfilePod); ok {
 		return res, err
 	}
