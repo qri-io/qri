@@ -15,8 +15,7 @@ type PeerHandlers struct {
 
 // NewPeerHandlers allocates a PeerHandlers pointer
 func NewPeerHandlers(inst *lib.Instance, readOnly bool) *PeerHandlers {
-	m := lib.NewPeerMethods(inst)
-	h := PeerHandlers{*m, readOnly}
+	h := PeerHandlers{inst.Peer(), readOnly}
 	return &h
 }
 

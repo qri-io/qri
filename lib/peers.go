@@ -38,13 +38,6 @@ func (m PeerMethods) Attributes() map[string]AttributeSet {
 	}
 }
 
-// NewPeerMethods creates a p2p Methods pointer
-func NewPeerMethods(inst *Instance) *PeerMethods {
-	return &PeerMethods{
-		inst: inst,
-	}
-}
-
 // PeerListParams defines parameters for the List method
 type PeerListParams struct {
 	Limit, Offset int

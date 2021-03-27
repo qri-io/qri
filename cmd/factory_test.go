@@ -147,11 +147,6 @@ func (t TestFactory) LogMethods() (*lib.LogMethods, error) {
 	return lib.NewLogMethods(t.inst), nil
 }
 
-// PeerMethods generates a lib.PeerMethods from internal state
-func (t TestFactory) PeerMethods() (*lib.PeerMethods, error) {
-	return lib.NewPeerMethods(t.inst), nil
-}
-
 // ProfileMethods generates a lib.ProfileMethods from internal state
 func (t TestFactory) ProfileMethods() (*lib.ProfileMethods, error) {
 	return lib.NewProfileMethods(t.inst), nil

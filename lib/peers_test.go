@@ -22,9 +22,8 @@ func TestPeerMethodsListNoConnection(t *testing.T) {
 
 	node := newTestQriNode(t)
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	req := NewPeerMethods(inst)
 	p := PeerListParams{}
-	_, err := req.List(ctx, &p)
+	_, err := inst.Peer().List(ctx, &p)
 	if err == nil {
 		t.Errorf("error: req.List should have failed and returned an error")
 	} else if !strings.HasPrefix(err.Error(), "error: not connected") {
@@ -50,7 +49,7 @@ func TestPeerMethodsList(t *testing.T) {
 
 	node := newTestQriNode(t)
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewPeerMethods(inst)
+	m := inst.Peer()
 	for i, c := range cases {
 		_, err := m.List(ctx, c.p)
 
@@ -75,7 +74,7 @@ func TestConnectedQriProfiles(t *testing.T) {
 
 	node := newTestQriNode(t)
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewPeerMethods(inst)
+	m := inst.Peer()
 	for i, c := range cases {
 		got, err := m.ConnectedQriProfiles(ctx, c.params)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -103,7 +102,7 @@ func TestConnections(t *testing.T) {
 
 	node := newTestQriNode(t)
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewPeerMethods(inst)
+	m := inst.Peer()
 	for i, c := range cases {
 		got, err := m.Connections(ctx, c.params)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -132,7 +131,7 @@ func TestInfo(t *testing.T) {
 
 	node := newTestQriNode(t)
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewPeerMethods(inst)
+	m := inst.Peer()
 	for i, c := range cases {
 		_, err := m.Info(ctx, &c.p)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
