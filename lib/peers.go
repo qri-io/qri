@@ -20,16 +20,21 @@ import (
 // PeerMethods extends a lib.Instance with business logic for peer-to-peer
 // interaction
 type PeerMethods struct {
-	inst *Instance
+	d dispatcher
 }
 
-// CoreRequestsName implements the Requets interface
-func (m PeerMethods) CoreRequestsName() string { return "peers" }
+// Name returns the name of this method group
+func (m PeerMethods) Name() string { return "peer" }
 
-// NewPeerMethods creates a p2p Methods pointer
-func NewPeerMethods(inst *Instance) *PeerMethods {
-	return &PeerMethods{
-		inst: inst,
+// Attributes defines attributes for each method
+func (m PeerMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"list":                 {AEPeers, "POST"},
+		"info":                 {AEPeer, "POST"},
+		"connect":              {AEConnect, "POST"},
+		"disconnect":           {AEDisconnect, "POST"},
+		"connections":          {AEConnections, "POST"},
+		"connectedqriprofiles": {AEConnectedQriProfiles, "POST"},
 	}
 }
 
@@ -70,85 +75,121 @@ func (p *PeerListParams) UnmarshalFromRequest(r *http.Request) error {
 }
 
 // List lists Peers on the qri network
-func (m *PeerMethods) List(ctx context.Context, p *PeerListParams) ([]*config.ProfilePod, error) {
-	res := []*config.ProfilePod{}
-	if m.inst.http != nil {
-		qvars := map[string]string{
-			"limit":  strconv.Itoa(p.Limit),
-			"offset": strconv.Itoa(p.Offset),
-			"cached": strconv.FormatBool(p.Cached),
-		}
-		err := m.inst.http.CallMethod(ctx, AEPeers, http.MethodGet, qvars, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+func (m PeerMethods) List(ctx context.Context, p *PeerListParams) ([]*config.ProfilePod, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "list"), p)
+	if res, ok := got.([]*config.ProfilePod); ok {
+		return res, err
 	}
-
-	if m.inst.node == nil || !m.inst.node.Online {
-		return nil, fmt.Errorf("error: not connected, run `qri connect` in another window")
-	}
-
-	var err error
-
-	if p.Limit <= 0 {
-		p.Limit = DefaultPageSize
-	}
-
-	// requesting user is hardcoded as node owner
-	u := m.inst.repo.Profiles().Owner()
-	res, err = p2p.ListPeers(m.inst.node, u.ID, p.Offset, p.Limit, !p.Cached)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
-// ConnectedIPFSPeers lists PeerID's we're currently connected to. If running
-// IPFS this will also return connected IPFS nodes
-func (m *PeerMethods) ConnectedIPFSPeers(ctx context.Context, limit *int) ([]string, error) {
-	res := []string{}
-	if m.inst.http != nil {
-		err := m.inst.http.CallMethodRaw(ctx, AEConnections, http.MethodGet, nil, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+// PeerInfoParams defines parameters for the Info method
+type PeerInfoParams struct {
+	Peername  string
+	ProfileID string
+	// Verbose adds network details from the p2p Peerstore
+	Verbose bool
+}
+
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *PeerInfoParams) UnmarshalFromRequest(r *http.Request) error {
+	if p == nil {
+		p = &PeerInfoParams{}
 	}
 
-	res = m.inst.node.ConnectedPeers()
-	return res, nil
+	if r.FormValue("profile") != "" {
+		_, err := profile.IDB58Decode(r.FormValue("profile"))
+		if err != nil {
+			p.Peername = r.FormValue("profile")
+		} else {
+			p.ProfileID = r.FormValue("profile")
+		}
+	}
+
+	if !p.Verbose {
+		p.Verbose = r.FormValue("verbose") == "true"
+	}
+
+	return nil
+}
+
+// Info shows peer profile details
+func (m PeerMethods) Info(ctx context.Context, p *PeerInfoParams) (*config.ProfilePod, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "info"), p)
+	if res, ok := got.(*config.ProfilePod); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// Connect attempts to create a connection with a peer for a given peer.ID
+func (m PeerMethods) Connect(ctx context.Context, p *ConnectParamsPod) (*config.ProfilePod, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "connect"), p)
+	if res, ok := got.(*config.ProfilePod); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// Disconnect explicitly closes a peer connection
+func (m PeerMethods) Disconnect(ctx context.Context, p *ConnectParamsPod) error {
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "disconnect"), p)
+	return err
+}
+
+// ConnectionsParams defines parameters for the Connections method
+type ConnectionsParams struct {
+	Limit  int
+	Offset int
+}
+
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *ConnectionsParams) UnmarshalFromRequest(r *http.Request) error {
+	if p == nil {
+		p = &ConnectionsParams{}
+	}
+
+	if r.FormValue("limit") != "" {
+		limit, err := strconv.ParseInt(r.FormValue("limit"), 10, 0)
+		if err != nil {
+			return err
+		}
+		p.Limit = int(limit)
+	}
+
+	if r.FormValue("offset") != "" {
+		offset, err := strconv.ParseInt(r.FormValue("offset"), 10, 0)
+		if err != nil {
+			return err
+		}
+		p.Offset = int(offset)
+	}
+
+	return nil
+}
+
+// Connections lists PeerID's we're currently connected to. If running
+// IPFS this will also return connected IPFS nodes
+func (m PeerMethods) Connections(ctx context.Context, p *ConnectionsParams) ([]string, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "connections"), p)
+	if res, ok := got.([]string); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
 }
 
 // ConnectedQriProfiles lists profiles we're currently connected to
-func (m *PeerMethods) ConnectedQriProfiles(ctx context.Context, limit *int) ([]*config.ProfilePod, error) {
-	res := []*config.ProfilePod{}
-	if m.inst.http != nil {
-		qvars := map[string]string{
-			"limit": strconv.Itoa(*limit),
-		}
-		err := m.inst.http.CallMethod(ctx, AEConnectionsQri, http.MethodGet, qvars, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+func (m PeerMethods) ConnectedQriProfiles(ctx context.Context, p *ConnectionsParams) ([]*config.ProfilePod, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "connectedqriprofiles"), p)
+	if res, ok := got.([]*config.ProfilePod); ok {
+		return res, err
 	}
-
-	connected := m.inst.node.ConnectedQriProfiles()
-
-	build := make([]*config.ProfilePod, intMin(len(connected), *limit))
-	for _, p := range connected {
-		build = append(build, p)
-		if len(build) >= *limit {
-			break
-		}
-	}
-	return build, nil
+	return nil, dispatchReturnError(got, err)
 }
 
-// PeerConnectionParamsPod defines parameters for defining a connection
+// ConnectParamsPod defines parameters for defining a connection
 // to a peer as plain-old-data
-type PeerConnectionParamsPod struct {
+type ConnectParamsPod struct {
 	Peername  string
 	ProfileID string
 	NetworkID string
@@ -156,21 +197,21 @@ type PeerConnectionParamsPod struct {
 }
 
 // UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *PeerConnectionParamsPod) UnmarshalFromRequest(r *http.Request) error {
+func (p *ConnectParamsPod) UnmarshalFromRequest(r *http.Request) error {
 	if p == nil {
-		p = &PeerConnectionParamsPod{}
+		p = &ConnectParamsPod{}
 	}
 
 	if r.FormValue("path") != "" {
-		*p = *NewPeerConnectionParamsPod(r.FormValue("path"))
+		*p = *NewConnectParamsPod(r.FormValue("path"))
 	}
 
 	return nil
 }
 
-// NewPeerConnectionParamsPod attempts to turn a string into peer connection parameters
-func NewPeerConnectionParamsPod(s string) *PeerConnectionParamsPod {
-	pcpod := &PeerConnectionParamsPod{}
+// NewConnectParamsPod attempts to turn a string into peer connection parameters
+func NewConnectParamsPod(s string) *ConnectParamsPod {
+	pcpod := &ConnectParamsPod{}
 
 	if strings.HasPrefix(s, "/ipfs/") {
 		pcpod.NetworkID = s
@@ -185,7 +226,7 @@ func NewPeerConnectionParamsPod(s string) *PeerConnectionParamsPod {
 	return pcpod
 }
 
-func (p PeerConnectionParamsPod) String() string {
+func (p ConnectParamsPod) String() string {
 	if p.Peername != "" {
 		return p.Peername
 	}
@@ -202,7 +243,7 @@ func (p PeerConnectionParamsPod) String() string {
 }
 
 // Decode turns plain-old-data into it's rich types
-func (p PeerConnectionParamsPod) Decode() (cp p2p.PeerConnectionParams, err error) {
+func (p ConnectParamsPod) Decode() (cp p2p.PeerConnectionParams, err error) {
 	cp.Peername = p.Peername
 
 	if p.NetworkID != "" {
@@ -233,23 +274,92 @@ func (p PeerConnectionParamsPod) Decode() (cp p2p.PeerConnectionParams, err erro
 	return
 }
 
-// ConnectToPeer attempts to create a connection with a peer for a given peer.ID
-func (m *PeerMethods) ConnectToPeer(ctx context.Context, p *PeerConnectionParamsPod) (*config.ProfilePod, error) {
-	res := &config.ProfilePod{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEConnect, p, res)
+// peerImpl holds the method implementations for PeerMethods
+type peerImpl struct{}
+
+// List lists Peers on the qri network
+func (peerImpl) List(scope scope, p *PeerListParams) ([]*config.ProfilePod, error) {
+	res := []*config.ProfilePod{}
+
+	if scope.Node() == nil || !scope.Node().Online {
+		return nil, fmt.Errorf("error: not connected, run `qri connect` in another window")
+	}
+
+	var err error
+
+	if p.Limit <= 0 {
+		p.Limit = DefaultPageSize
+	}
+
+	// requesting user is hardcoded as node owner
+	u := scope.ActiveProfile()
+	res, err = p2p.ListPeers(scope.Node(), u.ID, p.Offset, p.Limit, !p.Cached)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// Info shows peer profile details
+func (peerImpl) Info(scope scope, p *PeerInfoParams) (*config.ProfilePod, error) {
+	res := config.ProfilePod{}
+	// TODO: Move most / all of this to p2p package, perhaps.
+	r := scope.Repo()
+
+	var pid profile.ID
+	var err error
+	if p.ProfileID != "" {
+		pid, err = profile.IDB58Decode(p.ProfileID)
 		if err != nil {
 			return nil, err
 		}
-		return res, nil
 	}
 
+	profiles, err := r.Profiles().List()
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, err
+	}
+
+	for _, pro := range profiles {
+		if pro.ID == pid || pro.Peername == p.Peername {
+			if p.Verbose && len(pro.PeerIDs) > 0 {
+				// TODO - grab more than just the first peerID
+				pinfo := scope.Node().PeerInfo(pro.PeerIDs[0])
+				pro.NetworkAddrs = pinfo.Addrs
+			}
+
+			prof, err := pro.Encode()
+			if err != nil {
+				return nil, err
+			}
+			res = *prof
+
+			connected := scope.Node().ConnectedQriProfiles()
+
+			// If the requested profileID is in the list of connected peers, set Online flag.
+			if _, ok := connected[pro.ID]; ok {
+				res.Online = true
+			}
+			// If the requested profileID is myself and I'm Online, set Online flag.
+			if peer.ID(pro.ID) == scope.Node().ID && scope.Node().Online {
+				res.Online = true
+			}
+			return &res, nil
+		}
+	}
+
+	return nil, repo.ErrNotFound
+}
+
+// Connect attempts to create a connection with a peer for a given peer.ID
+func (peerImpl) Connect(scope scope, p *ConnectParamsPod) (*config.ProfilePod, error) {
 	pcp, err := p.Decode()
 	if err != nil {
 		return nil, err
 	}
 
-	prof, err := m.inst.node.ConnectToPeer(ctx, pcp)
+	prof, err := scope.Node().ConnectToPeer(scope.Context(), pcp)
 	if err != nil {
 		return nil, err
 	}
@@ -262,111 +372,53 @@ func (m *PeerMethods) ConnectToPeer(ctx context.Context, p *PeerConnectionParams
 	return pro, nil
 }
 
-// DisconnectFromPeer explicitly closes a peer connection
-func (m *PeerMethods) DisconnectFromPeer(ctx context.Context, p *PeerConnectionParamsPod) error {
-	if m.inst.http != nil {
-		route := AEConnect.WithSuffix(p.String())
-		err := m.inst.http.CallMethod(ctx, route, http.MethodDelete, nil, nil)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
+// Disconnect explicitly closes a peer connection
+func (peerImpl) Disconnect(scope scope, p *ConnectParamsPod) error {
 	pcp, err := p.Decode()
 	if err != nil {
 		return err
 	}
 
-	return m.inst.node.DisconnectFromPeer(ctx, pcp)
+	return scope.Node().DisconnectFromPeer(scope.Context(), pcp)
 }
 
-// PeerInfoParams defines parameters for the Info method
-type PeerInfoParams struct {
-	Peername  string
-	ProfileID profile.ID
-	// Verbose adds network details from the p2p Peerstore
-	Verbose bool
+// Connections lists PeerID's we're currently connected to. If running
+// IPFS this will also return connected IPFS nodes
+func (peerImpl) Connections(scope scope, p *ConnectionsParams) ([]string, error) {
+	// TODO (ramfox): limit and offset not currently used
+	// ensure valid limit value
+	if p.Limit <= 0 {
+		p.Limit = 25
+	}
+	// ensure valid offset value
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+	return scope.Node().ConnectedPeers(), nil
 }
 
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *PeerInfoParams) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &PeerInfoParams{}
+// ConnectedQriProfiles lists profiles we're currently connected to
+func (peerImpl) ConnectedQriProfiles(scope scope, p *ConnectionsParams) ([]*config.ProfilePod, error) {
+	// TODO (ramfox): offset not currently used
+	// ensure valid limit value
+	if p.Limit <= 0 {
+		p.Limit = 25
+	}
+	// ensure valid offset value
+	if p.Offset < 0 {
+		p.Offset = 0
 	}
 
-	if r.FormValue("profile") != "" {
-		pid, err := profile.IDB58Decode(r.FormValue("profile"))
-		if err != nil {
-			p.Peername = r.FormValue("profile")
-		} else {
-			p.ProfileID = pid
+	connected := scope.Node().ConnectedQriProfiles()
+
+	build := make([]*config.ProfilePod, intMin(len(connected), p.Limit))
+	for _, pro := range connected {
+		build = append(build, pro)
+		if len(build) >= p.Limit {
+			break
 		}
 	}
-
-	if !p.Verbose {
-		p.Verbose = r.FormValue("verbose") == "true"
-	}
-
-	return nil
-}
-
-// Info shows peer profile details
-func (m *PeerMethods) Info(ctx context.Context, p *PeerInfoParams) (*config.ProfilePod, error) {
-	res := config.ProfilePod{}
-	if m.inst.http != nil {
-		route := AEPeers.WithSuffix(p.ProfileID.String())
-		if p.ProfileID.String() == "" {
-			route = AEPeers.WithSuffix(p.Peername)
-		}
-		qvars := map[string]string{
-			"verbose": strconv.FormatBool(p.Verbose),
-		}
-		err := m.inst.http.CallMethod(ctx, route, http.MethodGet, qvars, &res)
-		if err != nil {
-			return nil, err
-		}
-		return &res, nil
-	}
-
-	// TODO: Move most / all of this to p2p package, perhaps.
-	r := m.inst.repo
-
-	profiles, err := r.Profiles().List()
-	if err != nil {
-		log.Debug(err.Error())
-		return nil, err
-	}
-
-	for _, pro := range profiles {
-		if pro.ID == p.ProfileID || pro.Peername == p.Peername {
-			if p.Verbose && len(pro.PeerIDs) > 0 {
-				// TODO - grab more than just the first peerID
-				pinfo := m.inst.node.PeerInfo(pro.PeerIDs[0])
-				pro.NetworkAddrs = pinfo.Addrs
-			}
-
-			prof, err := pro.Encode()
-			if err != nil {
-				return nil, err
-			}
-			res = *prof
-
-			connected := m.inst.node.ConnectedQriProfiles()
-
-			// If the requested profileID is in the list of connected peers, set Online flag.
-			if _, ok := connected[pro.ID]; ok {
-				res.Online = true
-			}
-			// If the requested profileID is myself and I'm Online, set Online flag.
-			if peer.ID(pro.ID) == m.inst.node.ID && m.inst.node.Online {
-				res.Online = true
-			}
-			return &res, nil
-		}
-	}
-
-	return nil, repo.ErrNotFound
+	return build, nil
 }
 
 func intMin(a, b int) int {

@@ -28,7 +28,6 @@ type Factory interface {
 	RemoteMethods() (*lib.RemoteMethods, error)
 	RegistryClientMethods() (*lib.RegistryClientMethods, error)
 	LogMethods() (*lib.LogMethods, error)
-	PeerMethods() (*lib.PeerMethods, error)
 	ProfileMethods() (*lib.ProfileMethods, error)
 	SearchMethods() (*lib.SearchMethods, error)
 	SQLMethods() (*lib.SQLMethods, error)

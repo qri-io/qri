@@ -54,15 +54,15 @@ const (
 	// AEPeers fetches all the peers
 	AEPeers = APIEndpoint("/peers")
 	// AEPeer fetches a specific peer
-	AEPeer = APIEndpoint("/peers/{profile}")
+	AEPeer = APIEndpoint("/peer")
 	// AEConnect initiates an explicit connection to a peer
 	AEConnect = APIEndpoint("/connect")
-	// AEConnectAlt initiates an explicit connection to a peer
-	AEConnectAlt = APIEndpoint("/connect/{path:.*}")
+	// AEDisconnect closes an explicit connection to a peer
+	AEDisconnect = APIEndpoint("/disconnect")
 	// AEConnections lists qri & IPFS connections
 	AEConnections = APIEndpoint("/connections")
-	// AEConnectionsQri lists qri profile connections
-	AEConnectionsQri = APIEndpoint("/connections/qri")
+	// AEConnectedQriProfiles lists qri profile connections
+	AEConnectedQriProfiles = APIEndpoint("/connections/qri")
 
 	// remote endpoints
 

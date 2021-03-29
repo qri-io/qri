@@ -159,17 +159,19 @@ type PeersOptions struct {
 	PageSize int
 	Page     int
 
-	UsingRPC    bool
-	PeerMethods *lib.PeerMethods
+	UsingRPC bool
+	Instance *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *PeersOptions) Complete(f Factory, args []string) (err error) {
+	if o.Instance, err = f.Instance(); err != nil {
+		return err
+	}
 	if len(args) > 0 {
 		o.Peername = args[0]
 	}
 	o.UsingRPC = f.HTTPClient() != nil
-	o.PeerMethods, err = f.PeerMethods()
 	return
 }
 
@@ -187,7 +189,7 @@ func (o *PeersOptions) Info() (err error) {
 	}
 
 	ctx := context.TODO()
-	res, err := o.PeerMethods.Info(ctx, p)
+	res, err := o.Instance.Peer().Info(ctx, p)
 	if err != nil {
 		return err
 	}
@@ -209,7 +211,6 @@ func (o *PeersOptions) Info() (err error) {
 
 // List shows a list of peers
 func (o *PeersOptions) List() (err error) {
-
 	// convert Page and PageSize to Limit and Offset
 	page := apiutil.NewPage(o.Page, o.PageSize)
 
@@ -217,8 +218,8 @@ func (o *PeersOptions) List() (err error) {
 	ctx := context.TODO()
 
 	if o.Network == "ipfs" {
-		limit := page.Limit()
-		res, err = o.PeerMethods.ConnectedQriProfiles(ctx, &limit)
+		params := &lib.ConnectionsParams{Limit: page.Limit()}
+		res, err = o.Instance.Peer().ConnectedQriProfiles(ctx, params)
 		if err != nil {
 			return err
 		}
@@ -234,7 +235,7 @@ func (o *PeersOptions) List() (err error) {
 			Offset: page.Offset(),
 			Cached: o.Cached,
 		}
-		res, err = o.PeerMethods.List(ctx, p)
+		res, err = o.Instance.Peer().List(ctx, p)
 		if err != nil {
 			return err
 		}
@@ -257,9 +258,9 @@ func (o *PeersOptions) List() (err error) {
 
 // Connect attempts to connect to a peer
 func (o *PeersOptions) Connect() (err error) {
-	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
+	pcpod := lib.NewConnectParamsPod(o.Peername)
 	ctx := context.TODO()
-	res, err := o.PeerMethods.ConnectToPeer(ctx, pcpod)
+	res, err := o.Instance.Peer().Connect(ctx, pcpod)
 	if err != nil {
 		return err
 	}
@@ -272,9 +273,9 @@ func (o *PeersOptions) Connect() (err error) {
 
 // Disconnect attempts to disconnect from a peer
 func (o *PeersOptions) Disconnect() (err error) {
-	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
+	pcpod := lib.NewConnectParamsPod(o.Peername)
 	ctx := context.TODO()
-	if err = o.PeerMethods.DisconnectFromPeer(ctx, pcpod); err != nil {
+	if err = o.Instance.Peer().Disconnect(ctx, pcpod); err != nil {
 		return err
 	}
 

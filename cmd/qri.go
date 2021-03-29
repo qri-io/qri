@@ -259,14 +259,6 @@ func (o *QriOptions) LogMethods() (*lib.LogMethods, error) {
 	return lib.NewLogMethods(o.inst), nil
 }
 
-// PeerMethods generates a lib.PeerMethods from internal state
-func (o *QriOptions) PeerMethods() (*lib.PeerMethods, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewPeerMethods(o.inst), nil
-}
-
 // ProfileMethods generates a lib.ProfileMethods from internal state
 func (o *QriOptions) ProfileMethods() (m *lib.ProfileMethods, err error) {
 	if err = o.Init(); err != nil {
