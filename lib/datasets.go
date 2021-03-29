@@ -108,7 +108,7 @@ type GetParams struct {
 	All    bool `json:"all"`
 
 	// outfile is a filename to save the dataset to
-	Outfile string `json:"outfile"`
+	Outfile string `json:"outfile" qri:"fspath"`
 	// whether to generate a filename from the dataset name instead
 	GenFilename bool   `json:"genfilename"`
 	Remote      string `json:"remote"`
@@ -249,11 +249,6 @@ type DataResponse struct {
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
 // with the generated stats.
 func (m DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, error) {
-	// TODO(dustmop): Have Dispatch perform this AbsPath call automatically
-	if err := qfs.AbsPath(&p.Outfile); err != nil {
-		return nil, err
-	}
-
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "get"), p)
 	if res, ok := got.(*GetResult); ok {
 		return res, err
@@ -305,9 +300,9 @@ type SaveParams struct {
 	// commit message, defaults to blank
 	Message string
 	// path to body data
-	BodyPath string
+	BodyPath string `qri:"fspath"`
 	// absolute path or URL to the list of dataset files or components to load
-	FilePaths []string
+	FilePaths []string `qri:"fspath"`
 	// secrets for transform execution
 	Secrets map[string]string
 	// optional writer to have transform script record standard output to
@@ -513,7 +508,7 @@ func (m DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveRes
 // PullParams encapsulates parameters to the add command
 type PullParams struct {
 	Ref      string
-	LinkDir  string
+	LinkDir  string `qri:"fspath"`
 	Remote   string // remote to attempt to pull from
 	LogsOnly bool   // only fetch logbook data
 }
@@ -530,9 +525,6 @@ func (p *PullParams) UnmarshalFromRequest(r *http.Request) error {
 // Pull downloads and stores an existing dataset to a peer's repository via
 // a network connection
 func (m DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Dataset, error) {
-	if err := qfs.AbsPath(&p.LinkDir); err != nil {
-		return nil, err
-	}
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "pull"), p)
 	if res, ok := got.(*dataset.Dataset); ok {
 		return res, err

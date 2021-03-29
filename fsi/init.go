@@ -18,10 +18,10 @@ import (
 
 // InitParams encapsulates parameters for fsi.InitDataset
 type InitParams struct {
-	TargetDir  string `json:"targetDir"`
+	TargetDir  string `json:"targetDir" qri:"fspath"`
 	Name       string `json:"name"`
 	Format     string `json:"format"`
-	BodyPath   string `json:"bodyPath"`
+	BodyPath   string `json:"bodyPath" qri:"fspath"`
 	UseDscache bool   `json:"useDscache"`
 }
 

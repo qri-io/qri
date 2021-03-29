@@ -135,6 +135,9 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 			return nil, nil, err
 		}
 
+		// Handle filepaths in the params by calling qfs.Abs on each of them
+		param = normalizeInputParams(param)
+
 		// Construct the parameter list for the function call, then call it
 		args := make([]reflect.Value, 3)
 		args[0] = reflect.ValueOf(c.Impl)

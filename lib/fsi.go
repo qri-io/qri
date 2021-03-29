@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/base/dsfs"
@@ -46,7 +45,7 @@ func (m FSIMethods) Attributes() map[string]AttributeSet {
 
 // LinkParams encapsulate parameters for linked datasets
 type LinkParams struct {
-	Dir    string
+	Dir    string `qri:"fspath"`
 	Refstr string
 }
 
@@ -65,7 +64,7 @@ type FSIWriteParams struct {
 
 // RestoreParams provides parameters to the restore method.
 type RestoreParams struct {
-	Dir       string
+	Dir       string `qri:"fspath"`
 	Refstr    string
 	Path      string
 	Component string
@@ -100,10 +99,6 @@ func (m FSIMethods) Unlink(ctx context.Context, p *LinkParams) (string, error) {
 // Status checks for any modifications or errors in a linked directory against its previous
 // version in the repo. Must only be called if FSI is enabled for this dataset.
 func (m FSIMethods) Status(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
-	// TODO(dustmop): Have Dispatch perform this AbsPath call automatically
-	if err := qfs.AbsPath(&p.Dir); err != nil {
-		return nil, err
-	}
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "status"), p)
 	if res, ok := got.([]StatusItem); ok {
 		return res, err
@@ -144,13 +139,6 @@ func (m FSIMethods) Restore(ctx context.Context, p *RestoreParams) error {
 
 // Init initializes a new working directory for a linked dataset
 func (m FSIMethods) Init(ctx context.Context, p *InitDatasetParams) (string, error) {
-	// TODO(dustmop): Have Dispatch perform these AbsPath calls automatically
-	if err := qfs.AbsPath(&p.TargetDir); err != nil {
-		return "", err
-	}
-	if err := qfs.AbsPath(&p.BodyPath); err != nil {
-		return "", err
-	}
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "init"), p)
 	if res, ok := got.(string); ok {
 		return res, err
