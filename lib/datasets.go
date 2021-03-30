@@ -1492,18 +1492,21 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 // a network connection
 func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
 	res := &dataset.Dataset{}
+	// TODO(dustmop): source has moved to the scope, and passing it to ParseAndResolveRef
+	// does nothing. Remove it from here and from the third parameter of that func
 	source := p.Remote
 	if source == "" {
 		source = "network"
 	}
 
-	ref, source, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, source)
+	ref, location, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, source)
 	if err != nil {
 		log.Debugf("resolving reference: %s", err)
 		return nil, err
 	}
+	log.Infof("pulling dataset from location: %s", location)
 
-	ds, err := scope.RemoteClient().PullDataset(scope.Context(), &ref, source)
+	ds, err := scope.RemoteClient().PullDataset(scope.Context(), &ref, location)
 	if err != nil {
 		log.Debugf("pulling dataset: %s", err)
 		return nil, err

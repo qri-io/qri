@@ -20,8 +20,6 @@ import (
 )
 
 func TestTwoActorRegistryIntegration(t *testing.T) {
-	t.Skip("TODO(dustmop): meaning of source changed, this needs to be fixed")
-
 	tr := NewNetworkIntegrationTestRunner(t, "integration_two_actor_registry")
 	defer tr.Cleanup()
 
@@ -70,7 +68,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	PushToRegistry(tr.Ctx, t, nasim, ref.Alias())
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
-	_, err = hinshun.Dataset().Pull(tr.Ctx, &PullParams{LogsOnly: true, Ref: ref.String()})
+	_, err = hinshun.WithSource("network").Dataset().Pull(tr.Ctx, &PullParams{LogsOnly: true, Ref: ref.String()})
 	if err != nil {
 		t.Errorf("cloning logs: %s", err)
 	}
@@ -437,7 +435,7 @@ func SearchFor(ctx context.Context, t *testing.T, inst *Instance, term string) [
 
 func Pull(ctx context.Context, t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
 	t.Helper()
-	res, err := inst.Dataset().Pull(ctx, &PullParams{Ref: refstr})
+	res, err := inst.WithSource("network").Dataset().Pull(ctx, &PullParams{Ref: refstr})
 	if err != nil {
 		t.Fatalf("cloning dataset %s: %s", refstr, err)
 	}
