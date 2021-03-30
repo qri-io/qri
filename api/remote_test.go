@@ -4,6 +4,8 @@ import (
 	// "math/rand"
 	"context"
 	"testing"
+
+	"github.com/qri-io/qri/lib"
 )
 
 func TestRemoteClientHandlers(t *testing.T) {
@@ -16,7 +18,7 @@ func TestRemoteClientHandlers(t *testing.T) {
 	defer cancel()
 
 	inst := newTestInstanceWithProfileFromNode(ctx, node)
-	l := NewLogHandlers(inst)
+	historyHandler := lib.NewHTTPRequestHandler(inst, "log.history")
 	h := NewRemoteClientHandlers(inst, false)
 
 	publishCases := []handlerTestCase{
@@ -28,8 +30,8 @@ func TestRemoteClientHandlers(t *testing.T) {
 
 	// tests getting a list of logs from a remote
 	fetchCases := []handlerTestCase{
-		{"GET", "/history/", nil, nil},
-		{"GET", "/history/me/cities", nil, nil},
+		{"POST", "/history/", nil, nil},
+		{"POST", "/history/me/cities", nil, nil},
 	}
-	runHandlerTestCases(t, "fetch", l.LogHandler, fetchCases, true)
+	runHandlerTestCases(t, "fetch", historyHandler, fetchCases, true)
 }

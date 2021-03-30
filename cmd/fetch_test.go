@@ -151,21 +151,21 @@ func TestFetchCommand(t *testing.T) {
 		lib.OptStdIOStreams(),
 		lib.OptSetIPFSPath(b.RepoRoot.IPFSPath),
 	)
-	localLogHandler := api.NewLogHandlers(localInst)
+	localLogHandler := lib.NewHTTPRequestHandler(localInst, "log.history")
 
 	//
 	// Validate the outputs of history and fetch
 	//
 
-	remoteLogHandler := api.NewLogHandlers(remoteServer.Instance)
+	remoteLogHandler := lib.NewHTTPRequestHandler(remoteServer.Instance, "log.history")
 
 	// Validates output of history for a remote dataset getting history for a
 	// dataset in its own namespace in its own repo
 	actualStatusCode, actualBody := APICall(
-		"GET",
-		"/history/peer_a/test_movies",
-		nil,
-		remoteLogHandler.LogHandler)
+		"POST",
+		"/history",
+		map[string]string{"refstr": "peer_a/test_movies"},
+		remoteLogHandler)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
@@ -177,12 +177,13 @@ func TestFetchCommand(t *testing.T) {
 
 	// Validates output of fetching from a remote for a remote dataset
 	actualStatusCode, actualBody = APICall(
-		"GET",
-		"/history/peer_a/test_movies",
+		"POST",
+		"/history",
 		map[string]string{
+			"refstr": "peer_a/test_movies",
 			"remote": "a_node",
 		},
-		localLogHandler.LogHandler)
+		localLogHandler)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}

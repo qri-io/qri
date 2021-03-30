@@ -5062,12 +5062,12 @@ HTTP/1.1 200 OK
 Connection: close
 
 /* snapshot: TestFSIHandlers init case 0: POST / */
-HTTP/1.1 500 Internal Server Error
+HTTP/1.1 400 Bad Request
 Connection: close
 
 {
   "meta": {
-    "code": 500,
+    "code": 400,
     "error": "dataset name must start with a lower-case letter, and only contain lower-case letters, numbers, dashes, and underscore. Maximum length is 144 characters"
   }
 }
