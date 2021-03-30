@@ -24,22 +24,24 @@ import (
 // permissions, and configuration, while also setting us up to properly run multiple
 // operations at the same time to support multi-tenancy and multi-processing.
 type scope struct {
-	ctx  context.Context
-	inst *Instance
-	pro  *profile.Profile
+	ctx    context.Context
+	inst   *Instance
+	pro    *profile.Profile
+	source string
 	// TODO(dustmop): Additional information, such as user identity, their profile, keys
 }
 
-func newScope(ctx context.Context, inst *Instance) (scope, error) {
+func newScope(ctx context.Context, inst *Instance, source string) (scope, error) {
 	pro, err := inst.activeProfile(ctx)
 	if err != nil {
 		return scope{}, err
 	}
 
 	return scope{
-		ctx:  ctx,
-		inst: inst,
-		pro:  pro,
+		ctx:    ctx,
+		inst:   inst,
+		pro:    pro,
+		source: source,
 	}, nil
 }
 
@@ -99,11 +101,12 @@ func (s *scope) GetVersionInfoShim(ref dsref.Ref) (*dsref.VersionInfo, error) {
 }
 
 // LoadDataset loads a dataset
-func (s *scope) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
-	return s.inst.LoadDataset(ctx, ref, source)
+// TODO(dustmop): Remove this function, callers should use the Loader instead
+func (s *scope) LoadDataset(ctx context.Context, ref dsref.Ref, _ string) (*dataset.Dataset, error) {
+	return s.inst.LoadDataset(ctx, ref, s.source)
 }
 
-// Loader returns the instance
+// Loader returns a dataset loader that can load datasets
 func (s *scope) Loader() dsref.Loader {
 	return s.inst
 }
@@ -119,18 +122,23 @@ func (s *scope) Node() *p2p.QriNode {
 }
 
 // ParseAndResolveRef parses a reference and resolves it
-func (s *scope) ParseAndResolveRef(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
-	return s.inst.ParseAndResolveRef(ctx, refStr, source)
+// TODO(dustmop): Remove last input parameter from callers
+func (s *scope) ParseAndResolveRef(ctx context.Context, refStr, _ string) (dsref.Ref, string, error) {
+	return s.inst.ParseAndResolveRef(ctx, refStr, s.source)
 }
 
 // ParseAndResolveRefWithWorkingDir parses a reference and resolves it with FSI info attached
-func (s *scope) ParseAndResolveRefWithWorkingDir(ctx context.Context, refstr, source string) (dsref.Ref, string, error) {
-	return s.inst.ParseAndResolveRefWithWorkingDir(ctx, refstr, source)
+// TODO(dustmop): Remove last input parameter from callers
+func (s *scope) ParseAndResolveRefWithWorkingDir(ctx context.Context, refstr, _ string) (dsref.Ref, string, error) {
+	return s.inst.ParseAndResolveRefWithWorkingDir(ctx, refstr, s.source)
 }
 
 // ParseResolveFunc returns a function that can parse a ref, then resolve and load it
+// TODO(dustmop): Remove this function, add this functionality to the
+// dsref.Loader interface, see https://github.com/qri-io/qri/issues/1704
 func (s *scope) ParseResolveFunc() dsref.ParseResolveLoad {
-	return NewParseResolveLoadFunc(s.ActiveProfile().Peername, s.inst.defaultResolver(), s.inst)
+	resolver, _ := s.inst.resolverForMode(s.source)
+	return NewParseResolveLoadFunc(s.ActiveProfile().Peername, resolver, s.inst)
 }
 
 // Profiles accesses the profile store
@@ -150,14 +158,14 @@ func (s *scope) Repo() repo.Repo {
 
 // ResolveReference finds the identifier & HEAD path for a dataset reference.
 // the mode parameter determines which subsystems of Qri to use when resolving
-func (s *scope) ResolveReference(ctx context.Context, ref *dsref.Ref, mode string) (string, error) {
-	return s.inst.ResolveReference(ctx, ref, mode)
+// TODO(dustmop): Remove last input parameter from callers
+func (s *scope) ResolveReference(ctx context.Context, ref *dsref.Ref, _ string) (string, error) {
+	return s.inst.ResolveReference(ctx, ref, s.source)
 }
 
-// ResolverForMode returns a resolver for a particular mode, options are:
-// "local", "network", "registry, "p2p", or "" for the default resolver
-func (s *scope) ResolverForMode(mode string) (dsref.Resolver, error) {
-	return s.inst.resolverForMode(mode)
+// LocalResolver returns a resolver for local refs
+func (s *scope) LocalResolver() (dsref.Resolver, error) {
+	return s.inst.resolverForMode("local")
 }
 
 // Stats returns the stats service

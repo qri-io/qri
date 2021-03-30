@@ -3,79 +3,59 @@ package lib
 import (
 	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 
 	"github.com/qri-io/qri/sql"
 )
 
-// SQLMethods encapsulates business logic for the qri search command
-// TODO (b5): switch to using an Instance instead of separate fields
+// SQLMethods groups together methods for SQL
 type SQLMethods struct {
-	inst *Instance
+	d dispatcher
 }
 
-// NewSQLMethods creates SQLMethods from a qri Instance
-func NewSQLMethods(inst *Instance) *SQLMethods {
-	return &SQLMethods{inst: inst}
+// Name returns the name of this method group
+func (m SQLMethods) Name() string { return "sql" }
+
+// Attributes defines attributes for each method
+func (m SQLMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"exec": {AESQL, "POST"},
+	}
 }
 
-// CoreRequestsName implements the requests interface
-func (m SQLMethods) CoreRequestsName() string { return "sql" }
-
-// SQLQueryParams defines paremeters for the exec Method
-// ExecParams provides parameters to the execute command
+// SQLQueryParams defines paremeters for running a SQL query
 type SQLQueryParams struct {
-	Query        string
-	OutputFormat string
-	ResolverMode string
+	Query  string
+	Format string
 }
 
 // SetNonZeroDefaults sets format to "json" if it's value is an empty string
 func (p *SQLQueryParams) SetNonZeroDefaults() {
-	if p.OutputFormat == "" {
-		p.OutputFormat = "json"
+	if p.Format == "" {
+		p.Format = "json"
 	}
 }
 
 // Exec runs an SQL query
-func (m *SQLMethods) Exec(ctx context.Context, p *SQLQueryParams) ([]byte, error) {
-	if m.inst.http != nil {
-		if p.OutputFormat == "json" {
-			res := []map[string]interface{}{}
-			err := m.inst.http.Call(ctx, AESQL, p, &res)
-			if err != nil {
-				return nil, err
-			}
-			bres, err := json.Marshal(res)
-			if err != nil {
-				return nil, err
-			}
-			return bres, nil
-		}
-		var bres bytes.Buffer
-		err := m.inst.http.CallRaw(ctx, AESQL, p, &bres)
-		if err != nil {
-			return nil, err
-		}
-		return bres.Bytes(), nil
+func (m SQLMethods) Exec(ctx context.Context, p *SQLQueryParams) ([]byte, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "exec"), p)
+	if res, ok := got.([]byte); ok {
+		return res, err
 	}
+	return nil, dispatchReturnError(got, err)
+}
 
-	if p == nil {
-		return nil, fmt.Errorf("error: search params cannot be nil")
-	}
+// Implementations for SQL methods follow
 
-	resolver, err := m.inst.resolverForMode(p.ResolverMode)
-	if err != nil {
-		return nil, err
-	}
-	// create a loader sql will use to load & fetch datasets
-	// pass in the configured peername, allowing the "me" alias in reference strings
-	loadDataset := NewParseResolveLoadFunc(m.inst.cfg.Profile.Peername, resolver, m.inst)
-	svc := sql.New(m.inst.repo, loadDataset)
+// sqlImpl holds the method implementations for SQL
+type sqlImpl struct{}
+
+// Exec runs an SQL query
+func (sqlImpl) Exec(scope scope, p *SQLQueryParams) ([]byte, error) {
+	loadFunc := scope.ParseResolveFunc()
+	svc := sql.New(scope.Repo(), loadFunc)
 
 	buf := &bytes.Buffer{}
-	if err := svc.Exec(ctx, buf, p.OutputFormat, p.Query); err != nil {
+	if err := svc.Exec(scope.Context(), buf, p.Format, p.Query); err != nil {
 		return nil, err
 	}
 

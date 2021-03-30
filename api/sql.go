@@ -10,15 +10,15 @@ import (
 
 // SQLHandlers connects HTTP requests to the FSI subsystem
 type SQLHandlers struct {
-	lib.SQLMethods
+	Instance *lib.Instance
 	ReadOnly bool
 }
 
 // NewSQLHandlers creates handlers that talk to qri's filesystem integration
 func NewSQLHandlers(inst *lib.Instance, readOnly bool) SQLHandlers {
 	return SQLHandlers{
-		SQLMethods: *lib.NewSQLMethods(inst),
-		ReadOnly:   readOnly,
+		Instance: inst,
+		ReadOnly: readOnly,
 	}
 }
 
@@ -49,18 +49,26 @@ func (h *SQLHandlers) queryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.Exec(r.Context(), params)
+	got, _, err := h.Instance.Dispatch(r.Context(), "sql.exec", params)
 	if err != nil {
-		util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
+		util.RespondWithError(w, err)
 		return
 	}
+	res, ok := got.([]byte)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+		return
+	}
+	h.replyWithSQLResponse(w, r, params, res)
+}
 
-	if params.OutputFormat == "json" {
+func (h *SQLHandlers) replyWithSQLResponse(w http.ResponseWriter, r *http.Request, p *lib.SQLQueryParams, res []byte) {
+	if p.Format == "json" {
 		util.WriteResponse(w, json.RawMessage(res))
 	} else {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		_, err = w.Write(res)
+		_, err := w.Write(res)
 		if err != nil {
 			log.Debugf("failed writing results of SQL query")
 		}

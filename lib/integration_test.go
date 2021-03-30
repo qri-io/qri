@@ -68,7 +68,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	PushToRegistry(tr.Ctx, t, nasim, ref.Alias())
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
-	_, err = hinshun.Dataset().Pull(tr.Ctx, &PullParams{LogsOnly: true, Ref: ref.String()})
+	_, err = hinshun.WithSource("network").Dataset().Pull(tr.Ctx, &PullParams{LogsOnly: true, Ref: ref.String()})
 	if err != nil {
 		t.Errorf("cloning logs: %s", err)
 	}
@@ -138,25 +138,23 @@ func TestReferencePulling(t *testing.T) {
 	}
 
 	hinshun := tr.InitHinshun(t)
-	sqlm := NewSQLMethods(hinshun)
 
 	// fetch this from the registry by default
 	p := &SQLQueryParams{
-		Query:        "SELECT * FROM nasim/world_bank_population a LIMIT 1",
-		OutputFormat: "json",
+		Query:  "SELECT * FROM nasim/world_bank_population a LIMIT 1",
+		Format: "json",
 	}
-	if _, err := sqlm.Exec(tr.Ctx, p); err != nil {
+	if _, err := hinshun.SQL().Exec(tr.Ctx, p); err != nil {
 		t.Fatal(err)
 	}
 
 	// re-run. dataset should now be local, and no longer require registry to
 	// resolve
 	p = &SQLQueryParams{
-		Query:        "SELECT * FROM nasim/world_bank_population a LIMIT 1 OFFSET 1",
-		OutputFormat: "json",
-		ResolverMode: "local",
+		Query:  "SELECT * FROM nasim/world_bank_population a LIMIT 1 OFFSET 1",
+		Format: "json",
 	}
-	if _, err = sqlm.Exec(tr.Ctx, p); err != nil {
+	if _, err = hinshun.WithSource("local").SQL().Exec(tr.Ctx, p); err != nil {
 		t.Fatal(err)
 	}
 
@@ -437,7 +435,7 @@ func SearchFor(ctx context.Context, t *testing.T, inst *Instance, term string) [
 
 func Pull(ctx context.Context, t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
 	t.Helper()
-	res, err := inst.Dataset().Pull(ctx, &PullParams{Ref: refstr})
+	res, err := inst.WithSource("network").Dataset().Pull(ctx, &PullParams{Ref: refstr})
 	if err != nil {
 		t.Fatalf("cloning dataset %s: %s", refstr, err)
 	}

@@ -80,7 +80,7 @@ func (o *PullOptions) Run(args []string) error {
 			Remote:   o.Remote,
 		}
 
-		res, err := o.inst.Dataset().Pull(ctx, p)
+		res, err := o.inst.WithSource("network").Dataset().Pull(ctx, p)
 		if err != nil {
 			return err
 		}

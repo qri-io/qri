@@ -511,17 +511,24 @@ func TestGetRemoteDataset(t *testing.T) {
 
 	expect := "cannot use '--offline' and '--remote' flags together"
 	err := run.ExecCommand("qri get --remote=registry --offline other_peer/their_dataset")
+	if err == nil {
+		t.Fatal("expected to get an error, did not get one")
+	}
 	if expect != err.Error() {
 		t.Errorf("response mismatch\nwant: %q\n got: %q", expect, err)
 	}
 
 	expect = "reference not found"
 	err = run.ExecCommand("qri get --offline other_peer/their_dataset")
+	if err == nil {
+		t.Fatal("expected to get an error, did not get one")
+	}
 	if expect != err.Error() {
 		t.Errorf("response mismatch\nwant: %q\n got: %q", expect, err)
 	}
 
-	expect = dstest.Template(t, `bodyPath: {{ .bodyPath }}
+	expect = dstest.Template(t, `pulling other_peer/their_dataset from registry ...
+bodyPath: {{ .bodyPath }}
 commit:
   message: created dataset
   path: {{ .commitPath }}

@@ -276,14 +276,6 @@ func (o *QriOptions) SearchMethods() (*lib.SearchMethods, error) {
 	return lib.NewSearchMethods(o.inst), nil
 }
 
-// SQLMethods generates a lib.SQLMethods from internal state
-func (o *QriOptions) SQLMethods() (*lib.SQLMethods, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewSQLMethods(o.inst), nil
-}
-
 // RenderMethods generates a lib.RenderMethods from internal state
 func (o *QriOptions) RenderMethods() (*lib.RenderMethods, error) {
 	if err := o.Init(); err != nil {

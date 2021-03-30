@@ -30,7 +30,6 @@ type Factory interface {
 	LogMethods() (*lib.LogMethods, error)
 	ProfileMethods() (*lib.ProfileMethods, error)
 	SearchMethods() (*lib.SearchMethods, error)
-	SQLMethods() (*lib.SQLMethods, error)
 	RenderMethods() (*lib.RenderMethods, error)
 }
 

@@ -157,11 +157,6 @@ func (t TestFactory) SearchMethods() (*lib.SearchMethods, error) {
 	return lib.NewSearchMethods(t.inst), nil
 }
 
-// SQLMethods generates a lib.SQLhMethods from internal state
-func (t TestFactory) SQLMethods() (*lib.SQLMethods, error) {
-	return lib.NewSQLMethods(t.inst), nil
-}
-
 // RenderMethods generates a lib.RenderMethods from internal state
 func (t TestFactory) RenderMethods() (*lib.RenderMethods, error) {
 	return lib.NewRenderMethods(t.inst), nil

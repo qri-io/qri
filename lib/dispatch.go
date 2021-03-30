@@ -60,6 +60,16 @@ type AttributeSet struct {
 // then invoking the actual implementation. Dispatch returns the custom value from the
 // implementation, then a non-nil Cursor if the method supports pagination, then an error or nil.
 func (inst *Instance) Dispatch(ctx context.Context, method string, param interface{}) (res interface{}, cur Cursor, err error) {
+	source := ""
+	return inst.dispatchMethodCall(ctx, method, param, source)
+}
+
+// Dispatch calls the same instance Dispatch but with an explicit source for ref resolution
+func (isw *InstanceSourceWrap) Dispatch(ctx context.Context, method string, param interface{}) (res interface{}, cur Cursor, err error) {
+	return isw.inst.dispatchMethodCall(ctx, method, param, isw.source)
+}
+
+func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, param interface{}, source string) (res interface{}, cur Cursor, err error) {
 	if inst == nil {
 		return nil, nil, fmt.Errorf("instance is nil, cannot dispatch")
 	}
@@ -99,6 +109,7 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 				out := reflect.New(c.OutType)
 				res = out.Interface()
 			}
+			// TODO(dustmop): Send the source across the RPC, using an HTTP header
 			// TODO(ramfox): dispatch is still unable to give enough details to the url
 			// (because it doesn't know how or what param information to put into the url or query)
 			// for it to reliably use GET. All POSTs w/ content type application json work, however.
@@ -130,7 +141,7 @@ func (inst *Instance) Dispatch(ctx context.Context, method string, param interfa
 		// or use copy-on-write semantics, so that one method running at the same time as
 		// another cannot modify the out-of-scope data of the other. This will mostly
 		// involve making copies of the right things
-		scope, err := newScope(ctx, inst)
+		scope, err := newScope(ctx, inst, source)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -224,8 +235,9 @@ func (inst *Instance) RegisterMethods() {
 	inst.registerOne("config", inst.Config(), configImpl{}, reg)
 	inst.registerOne("dataset", inst.Dataset(), datasetImpl{}, reg)
 	inst.registerOne("fsi", inst.Filesys(), fsiImpl{}, reg)
-	inst.registerOne("transform", inst.Transform(), transformImpl{}, reg)
 	inst.registerOne("peer", inst.Peer(), peerImpl{}, reg)
+	inst.registerOne("sql", inst.SQL(), sqlImpl{}, reg)
+	inst.registerOne("transform", inst.Transform(), transformImpl{}, reg)
 	inst.regMethods = &regMethodSet{reg: reg}
 }
 
