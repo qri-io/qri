@@ -1497,13 +1497,15 @@ func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
 		source = "network"
 	}
 
-	ref, source, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, source)
+	ref, fromAddr, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, source)
 	if err != nil {
 		log.Debugf("resolving reference: %s", err)
 		return nil, err
 	}
 
-	ds, err := scope.RemoteClient().PullDataset(scope.Context(), &ref, source)
+	log.Debugf("using resolver address: %s", fromAddr)
+
+	ds, err := scope.RemoteClient().PullDataset(scope.Context(), &ref, fromAddr)
 	if err != nil {
 		log.Debugf("pulling dataset: %s", err)
 		return nil, err

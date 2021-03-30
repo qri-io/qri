@@ -52,6 +52,10 @@ var (
 	log = golog.Logger("lib")
 )
 
+func init() {
+	golog.SetLogLevel("lib", "debug")
+}
+
 // Methods is a related set of library functions
 type Methods interface {
 	// CoreRequestsName confirms participation in the CoreRequests interface while
