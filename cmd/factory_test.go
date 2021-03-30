@@ -144,7 +144,8 @@ func (t TestFactory) RegistryClientMethods() (*lib.RegistryClientMethods, error)
 
 // LogMethods generates a lib.LogMethods from internal state
 func (t TestFactory) LogMethods() (*lib.LogMethods, error) {
-	return lib.NewLogMethods(t.inst), nil
+	logMethods := t.inst.Log()
+	return &logMethods, nil
 }
 
 // ProfileMethods generates a lib.ProfileMethods from internal state

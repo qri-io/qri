@@ -16,9 +16,8 @@ type LogHandlers struct {
 
 // NewLogHandlers allocates a LogHandlers pointer
 func NewLogHandlers(inst *lib.Instance) *LogHandlers {
-	req := lib.NewLogMethods(inst)
 	h := LogHandlers{
-		lm: *req,
+		lm: inst.Log(),
 	}
 	return &h
 }

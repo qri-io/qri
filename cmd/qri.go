@@ -256,7 +256,8 @@ func (o *QriOptions) LogMethods() (*lib.LogMethods, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
-	return lib.NewLogMethods(o.inst), nil
+	logMethods := o.inst.Log()
+	return &logMethods, nil
 }
 
 // ProfileMethods generates a lib.ProfileMethods from internal state

@@ -67,7 +67,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewLogMethods(inst)
+	m := inst.Log()
 	for _, c := range cases {
 		got, err := m.Log(ctx, c.p)
 
@@ -109,7 +109,7 @@ func TestHistoryRequestsLogEntries(t *testing.T) {
 
 	firstRef := refs[0].String()
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewLogMethods(inst)
+	m := inst.Log()
 
 	if _, err = m.Logbook(ctx, &RefListParams{}); err == nil {
 		t.Errorf("expected empty reference param to error")

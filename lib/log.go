@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net/http"
@@ -17,17 +16,21 @@ import (
 // LogMethods extends a lib.Instance with business logic for working with lists
 // of dataset versions. think "git log".
 type LogMethods struct {
-	inst *Instance
+	d dispatcher
 }
 
-// CoreRequestsName implements the Requets interface
-func (m LogMethods) CoreRequestsName() string { return "log" }
+// Name returns the name of this method group
+func (m LogMethods) Name() string {
+	return "log"
+}
 
-// NewLogMethods creates a LogMethods pointer from either a repo
-// or an rpc.Client
-func NewLogMethods(inst *Instance) *LogMethods {
-	return &LogMethods{
-		inst: inst,
+// Attributes defines attributes for each method
+func (m LogMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"log":            {AEHistory, "POST"},
+		"logbook":        {AELogs, "POST"},
+		"plainlogs":      {denyRPC, ""},
+		"logbooksummary": {denyRPC, ""},
 	}
 }
 
@@ -82,83 +85,12 @@ func (p *LogParams) UnmarshalFromRequest(r *http.Request) error {
 }
 
 // Log returns the history of changes for a given dataset
-func (m *LogMethods) Log(ctx context.Context, params *LogParams) ([]dsref.VersionInfo, error) {
-	res := []dsref.VersionInfo{}
-	if m.inst.http != nil {
-		err := m.inst.http.Call(ctx, AEHistory, params, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+func (m LogMethods) Log(ctx context.Context, params *LogParams) ([]dsref.VersionInfo, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "log"), params)
+	if res, ok := got.([]dsref.VersionInfo); ok {
+		return res, err
 	}
-
-	// ensure valid limit value
-	if params.Limit <= 0 {
-		params.Limit = 25
-	}
-	// ensure valid offset value
-	if params.Offset < 0 {
-		params.Offset = 0
-	}
-
-	if params.Pull {
-		switch params.Source {
-		case "":
-			params.Source = "network"
-		case "local":
-			return nil, fmt.Errorf("cannot pull with only local source")
-		}
-	}
-
-	ref, source, err := m.inst.ParseAndResolveRef(ctx, params.Ref, params.Source)
-	if err != nil {
-		return nil, err
-	}
-
-	if source == "" {
-		// local resolution
-		return base.DatasetLog(ctx, m.inst.repo, ref, params.Limit, params.Offset, true)
-	}
-
-	logs, err := m.inst.remoteClient.FetchLogs(ctx, ref, source)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO (b5) - FetchLogs currently returns oplogs arranged in user > dataset > branch
-	// hierarchy, and we need to descend to the branch oplog to get commit history
-	// info. It might be nicer if FetchLogs instead returned the branch oplog, but
-	// with .Parent() fields loaded & connected
-	if len(logs.Logs) > 0 {
-		logs = logs.Logs[0]
-		if len(logs.Logs) > 0 {
-			logs = logs.Logs[0]
-		}
-	}
-
-	items := logbook.ConvertLogsToVersionInfos(logs, ref)
-	log.Debugf("found %d items: %v", len(items), items)
-	if len(items) == 0 {
-		return nil, repo.ErrNoHistory
-	}
-
-	for i, item := range items {
-		local, hasErr := m.inst.qfs.Has(ctx, item.Path)
-		if hasErr != nil {
-			continue
-		}
-		items[i].Foreign = !local
-
-		if local {
-			if ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Filesystem(), item.Path); err == nil {
-				if ds.Commit != nil {
-					items[i].CommitMessage = ds.Commit.Message
-				}
-			}
-		}
-	}
-
-	return items, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // RefListParams encapsulates parameters for requests to a single reference
@@ -201,28 +133,12 @@ func (p *RefListParams) UnmarshalFromRequest(r *http.Request) error {
 type LogEntry = logbook.LogEntry
 
 // Logbook lists log entries for actions taken on a given dataset
-func (m *LogMethods) Logbook(ctx context.Context, p *RefListParams) ([]LogEntry, error) {
-	res := []LogEntry{}
-	var err error
-	if m.inst.http != nil {
-		err = m.inst.http.Call(ctx, AELogbook, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+func (m LogMethods) Logbook(ctx context.Context, p *RefListParams) ([]LogEntry, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "logbook"), p)
+	if res, ok := got.([]LogEntry); ok {
+		return res, err
 	}
-
-	ref, _, err := m.inst.ParseAndResolveRef(ctx, p.Ref, "local")
-	if err != nil {
-		return nil, err
-	}
-
-	book := m.inst.node.Repo.Logbook()
-	res, err = book.LogEntries(ctx, ref, p.Offset, p.Limit)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // PlainLogsParams enapsulates parameters for the PlainLogs methods
@@ -234,17 +150,121 @@ type PlainLogsParams struct {
 type PlainLogs = []logbook.PlainLog
 
 // PlainLogs encodes the full logbook as human-oriented json
-func (m *LogMethods) PlainLogs(ctx context.Context, p *PlainLogsParams) (*PlainLogs, error) {
+func (m LogMethods) PlainLogs(ctx context.Context, p *PlainLogsParams) (*PlainLogs, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "plainlogs"), p)
+	if res, ok := got.(*PlainLogs); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// LogbookSummary returns a string overview of the logbook
+func (m LogMethods) LogbookSummary(ctx context.Context, p *struct{}) (*string, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "logbooksummary"), p)
+	if res, ok := got.(*string); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// logImpl holds the method implementations for LogMethods
+type logImpl struct{}
+
+// Log returns the history of changes for a given dataset
+func (logImpl) Log(scope scope, params *LogParams) ([]dsref.VersionInfo, error) {
+	// ensure valid limit value
+	if params.Limit <= 0 {
+		params.Limit = 25
+	}
+	// ensure valid offset value
+	if params.Offset < 0 {
+		params.Offset = 0
+	}
+
+	if params.Pull {
+		switch params.Source {
+		case "":
+			params.Source = "network"
+		case "local":
+			return nil, fmt.Errorf("cannot pull with only local source")
+		}
+	}
+
+	ref, source, err := scope.ParseAndResolveRef(scope.Context(), params.Ref, params.Source)
+	if err != nil {
+		return nil, err
+	}
+
+	if source == "" {
+		// local resolution
+		return base.DatasetLog(scope.Context(), scope.Repo(), ref, params.Limit, params.Offset, true)
+	}
+
+	logs, err := scope.RemoteClient().FetchLogs(scope.Context(), ref, source)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO (b5) - FetchLogs currently returns oplogs arranged in user > dataset > branch
+	// hierarchy, and we need to descend to the branch oplog to get commit history
+	// info. It might be nicer if FetchLogs instead returned the branch oplog, but
+	// with .Parent() fields loaded & connected
+	if len(logs.Logs) > 0 {
+		logs = logs.Logs[0]
+		if len(logs.Logs) > 0 {
+			logs = logs.Logs[0]
+		}
+	}
+
+	items := logbook.ConvertLogsToVersionInfos(logs, ref)
+	log.Debugf("found %d items: %v", len(items), items)
+	if len(items) == 0 {
+		return nil, repo.ErrNoHistory
+	}
+
+	for i, item := range items {
+		local, hasErr := scope.Filesystem().Has(scope.Context(), item.Path)
+		if hasErr != nil {
+			continue
+		}
+		items[i].Foreign = !local
+
+		if local {
+			if ds, err := dsfs.LoadDataset(scope.Context(), scope.Repo().Filesystem(), item.Path); err == nil {
+				if ds.Commit != nil {
+					items[i].CommitMessage = ds.Commit.Message
+				}
+			}
+		}
+	}
+
+	return items, nil
+}
+
+// Logbook lists log entries for actions taken on a given dataset
+func (logImpl) Logbook(scope scope, p *RefListParams) ([]LogEntry, error) {
+	res := []LogEntry{}
+	var err error
+
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, "local")
+	if err != nil {
+		return nil, err
+	}
+
+	book := scope.Logbook()
+	res, err = book.LogEntries(scope.Context(), ref, p.Offset, p.Limit)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+// PlainLogs encodes the full logbook as human-oriented json
+func (logImpl) PlainLogs(scope scope, p *PlainLogsParams) (*PlainLogs, error) {
 	res := &PlainLogs{}
 	var err error
-	if m.inst.http != nil {
-		err = m.inst.http.Call(ctx, AELogs, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	}
-	*res, err = m.inst.repo.Logbook().PlainLogs(ctx)
+
+	*res, err = scope.Logbook().PlainLogs(scope.Context())
 	if err != nil {
 		return nil, err
 	}
@@ -252,17 +272,8 @@ func (m *LogMethods) PlainLogs(ctx context.Context, p *PlainLogsParams) (*PlainL
 }
 
 // LogbookSummary returns a string overview of the logbook
-func (m *LogMethods) LogbookSummary(ctx context.Context, p *struct{}) (*string, error) {
+func (logImpl) LogbookSummary(scope scope, p *struct{}) (*string, error) {
 	res := ""
-	if m.inst.http != nil {
-		var bres bytes.Buffer
-		err := m.inst.http.CallRaw(ctx, AELogbookSummary, p, &bres)
-		if err != nil {
-			return nil, err
-		}
-		res = bres.String()
-		return &res, nil
-	}
-	res = m.inst.repo.Logbook().SummaryString(ctx)
+	res = scope.Logbook().SummaryString(scope.Context())
 	return &res, nil
 }
