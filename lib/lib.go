@@ -833,9 +833,38 @@ func (inst *Instance) Peer() PeerMethods {
 	return PeerMethods{d: inst}
 }
 
+// SQL returns the SQLMethods that Instance has registered
+func (inst *Instance) SQL() SQLMethods {
+	return SQLMethods{d: inst}
+}
+
 // Transform returns the TransformMethods that Instance has registered
 func (inst *Instance) Transform() TransformMethods {
 	return TransformMethods{d: inst}
+}
+
+// WithSource returns a wrapped instance that will resolve refs from the given source
+func (inst *Instance) WithSource(source string) *InstanceSourceWrap {
+	return &InstanceSourceWrap{
+		source: source,
+		inst:   inst,
+	}
+}
+
+// InstanceSourceWrap is a wrapped instance with an explicit resolver source added
+type InstanceSourceWrap struct {
+	source string
+	inst   *Instance
+}
+
+// Dataset returns the DatasetMethods that Instance has registered
+func (isw *InstanceSourceWrap) Dataset() DatasetMethods {
+	return DatasetMethods{d: isw}
+}
+
+// SQL returns the SQLMethods that Instance has registered
+func (isw *InstanceSourceWrap) SQL() SQLMethods {
+	return SQLMethods{d: isw}
 }
 
 // GetConfig provides methods for manipulating Qri configuration

@@ -6246,12 +6246,12 @@ HTTP/1.1 200 OK
 Connection: close
 
 /* snapshot: TestSQLHandler sql case 0: POST /sql */
-HTTP/1.1 422 Unprocessable Entity
+HTTP/1.1 500 Internal Server Error
 Connection: close
 
 {
   "meta": {
-    "code": 422,
+    "code": 500,
     "error": "empty statement"
   }
 }

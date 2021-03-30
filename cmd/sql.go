@@ -70,40 +70,43 @@ type SQLOptions struct {
 	Format  string
 	Offline bool
 
-	SQLMethods *lib.SQLMethods
+	Instance *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before
 // calling Run
 func (o *SQLOptions) Complete(f Factory, args []string) (err error) {
+	if o.Instance, err = f.Instance(); err != nil {
+		return err
+	}
 	o.Query = args[0]
-	o.SQLMethods, err = f.SQLMethods()
 	return
 }
 
 // Run executes the search command
 func (o *SQLOptions) Run() (err error) {
+	ctx := context.TODO()
+	inst := o.Instance
+
 	o.StartSpinner()
 
-	var mode string
+	// Default resolver (local, then registry) represented by a blank string
+	source := ""
 	if o.Offline {
-		mode = "local"
+		source = "local"
 	}
 
 	p := &lib.SQLQueryParams{
-		Query:        o.Query,
-		OutputFormat: o.Format,
-		ResolverMode: mode,
+		Query:  o.Query,
+		Format: o.Format,
 	}
 
-	ctx := context.TODO()
-	res, err := o.SQLMethods.Exec(ctx, p)
+	res, err := inst.WithSource(source).SQL().Exec(ctx, p)
+	o.StopSpinner()
 	if err != nil {
-		o.StopSpinner()
 		return err
 	}
 
-	o.StopSpinner()
 	printToPager(o.Out, bytes.NewBuffer(res))
 	return nil
 }

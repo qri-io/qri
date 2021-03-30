@@ -1095,9 +1095,9 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		p.Ref = fmt.Sprintf("me/%s", ds.Name)
 	}
 
-	resolver, err := scope.ResolverForMode("local")
+	resolver, err := scope.LocalResolver()
 	if err != nil {
-		log.Debugw("save construct resolver", "mode", "local", "err", err)
+		log.Debugw("save construct local resolver", "err", err)
 		return nil, err
 	}
 

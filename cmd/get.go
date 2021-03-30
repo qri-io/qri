@@ -167,10 +167,9 @@ func (o *GetOptions) Run() (err error) {
 		// outputting a zip. lib.Get will also check that we're outputting a zip, this check is
 		// repeated here for clarity.
 		GenFilename: o.Outfile == "" && stdoutIsTerminal() && o.Format == "zip",
-		Remote:      o.Remote,
 	}
 	ctx := context.TODO()
-	res, err := o.inst.Dataset().Get(ctx, &p)
+	res, err := o.inst.WithSource(o.Remote).Dataset().Get(ctx, &p)
 	if err != nil {
 		return err
 	}
