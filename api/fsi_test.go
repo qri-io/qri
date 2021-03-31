@@ -188,7 +188,7 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("api response (-want +got):\n%s", diff)
 	}
 
-	logHandler := NewLogHandlers(run.Inst)
+	historyHandler := lib.NewHTTPRequestHandler(run.Inst, "log.history")
 
 	expectNoHistoryBody := `{
   "meta": {
@@ -198,7 +198,8 @@ func TestNoHistory(t *testing.T) {
 }`
 
 	// History with no history
-	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds", logHandler.LogHandler, map[string]string{"peername": "peer", "name": "test_ds"})
+	p := lib.HistoryParams{Ref: "peer/test_ds"}
+	gotStatusCode, gotBodyString = JSONAPICallWithBody("POST", lib.AEHistory.String(), p, historyHandler, nil)
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
@@ -206,8 +207,9 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBodyString, diff)
 	}
 
+	p.EnsureFSIExists = true
 	// History with no history, still returns ErrNoHistory since this route ignores fsi param
-	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds?fsi=true", logHandler.LogHandler, map[string]string{"peername": "peer", "name": "test_ds"})
+	gotStatusCode, gotBodyString = JSONAPICallWithBody("POST", lib.AEHistory.String(), p, historyHandler, nil)
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}

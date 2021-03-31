@@ -255,7 +255,6 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"GET", "/profile/photo?peername=me", 200},
 		{"GET", "/profile/poster?peername=me", 200},
 		{"GET", "/get/peer/movies", 200},
-		{"GET", "/history/peer/movies", 200},
 	}
 
 	for i, c := range cases {

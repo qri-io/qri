@@ -48,28 +48,28 @@ func TestHistoryRequestsLog(t *testing.T) {
 
 	cases := []struct {
 		description string
-		p           *LogParams
+		p           *HistoryParams
 		refs        []dsref.VersionInfo
 		err         string
 	}{
 		{"log list - empty",
-			&LogParams{}, nil, `"" is not a valid dataset reference: empty reference`},
+			&HistoryParams{}, nil, `"" is not a valid dataset reference: empty reference`},
 		{"log list - bad path",
-			&LogParams{Ref: "/badpath"}, nil, `"/badpath" is not a valid dataset reference: unexpected character at position 0: '/'`},
+			&HistoryParams{Ref: "/badpath"}, nil, `"/badpath" is not a valid dataset reference: unexpected character at position 0: '/'`},
 		{"log list - default",
-			&LogParams{Ref: firstRef}, items, ""},
+			&HistoryParams{Ref: firstRef}, items, ""},
 		{"log list - offset 0 limit 3",
-			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 0, Limit: 3}}, items[:3], ""},
+			&HistoryParams{Ref: firstRef, ListParams: ListParams{Offset: 0, Limit: 3}}, items[:3], ""},
 		{"log list - offset 3 limit 3",
-			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 3, Limit: 3}}, items[3:], ""},
+			&HistoryParams{Ref: firstRef, ListParams: ListParams{Offset: 3, Limit: 3}}, items[3:], ""},
 		{"log list - offset 6 limit 3",
-			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 6, Limit: 3}}, nil, "repo: no history"},
+			&HistoryParams{Ref: firstRef, ListParams: ListParams{Offset: 6, Limit: 3}}, nil, "repo: no history"},
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewLogMethods(inst)
+	m := inst.Log()
 	for _, c := range cases {
-		got, err := m.Log(ctx, c.p)
+		got, err := m.History(ctx, c.p)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)
@@ -109,13 +109,12 @@ func TestHistoryRequestsLogEntries(t *testing.T) {
 
 	firstRef := refs[0].String()
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := NewLogMethods(inst)
 
-	if _, err = m.Logbook(ctx, &RefListParams{}); err == nil {
+	if _, err = inst.Log().Entries(ctx, &RefListParams{}); err == nil {
 		t.Errorf("expected empty reference param to error")
 	}
 
-	res, err := m.Logbook(ctx, &RefListParams{Ref: firstRef, Limit: 30})
+	res, err := inst.Log().Entries(ctx, &RefListParams{Ref: firstRef, Limit: 30})
 	if err != nil {
 		t.Fatal(err)
 	}

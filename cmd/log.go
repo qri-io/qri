@@ -81,11 +81,15 @@ type LogOptions struct {
 	NoRegistry bool
 	NoPin      bool
 
-	LogMethods *lib.LogMethods
+	Instance *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *LogOptions) Complete(f Factory, args []string) (err error) {
+	if o.Instance, err = f.Instance(); err != nil {
+		return err
+	}
+
 	if o.Local && (o.RemoteName != "" || o.Pull) {
 		return errors.New(err, "cannot use 'local' flag with either the 'remote' or 'pull' flags")
 	}
@@ -96,8 +100,7 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 		}
 	}
 
-	o.LogMethods, err = f.LogMethods()
-	return
+	return err
 }
 
 // Run executes the log command
@@ -108,7 +111,7 @@ func (o *LogOptions) Run() error {
 	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	ctx := context.TODO()
-	p := &lib.LogParams{
+	p := &lib.HistoryParams{
 		Ref:    o.Refs.Ref(),
 		Pull:   o.Pull,
 		Source: o.RemoteName,
@@ -118,7 +121,7 @@ func (o *LogOptions) Run() error {
 		},
 	}
 
-	res, err := o.LogMethods.Log(ctx, p)
+	res, err := o.Instance.Log().History(ctx, p)
 	if err != nil {
 		return err
 	}
@@ -161,7 +164,7 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 			} else if o.Summary {
 				return o.LogbookSummary()
 			}
-			return o.Logbook()
+			return o.LogEntries()
 		},
 	}
 
@@ -182,11 +185,15 @@ type LogbookOptions struct {
 	Refs         *RefSelect
 	Raw, Summary bool
 
-	LogMethods *lib.LogMethods
+	Instance *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
+	if o.Instance, err = f.Instance(); err != nil {
+		return err
+	}
+
 	if o.Raw && o.Summary {
 		return fmt.Errorf("cannot use summary & raw flags at once")
 	}
@@ -201,12 +208,11 @@ func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
 		}
 	}
 
-	o.LogMethods, err = f.LogMethods()
-	return
+	return err
 }
 
 // Logbook executes the Logbook command
-func (o *LogbookOptions) Logbook() error {
+func (o *LogbookOptions) LogEntries() error {
 	printRefSelect(o.ErrOut, o.Refs)
 
 	// convert Page and PageSize to Limit and Offset
@@ -219,7 +225,7 @@ func (o *LogbookOptions) Logbook() error {
 	}
 
 	ctx := context.TODO()
-	res, err := o.LogMethods.Logbook(ctx, p)
+	res, err := o.Instance.Log().Entries(ctx, p)
 	if err != nil {
 		if err == repo.ErrEmptyRef {
 			return errors.New(err, "please provide a dataset reference")
@@ -242,7 +248,7 @@ func (o *LogbookOptions) Logbook() error {
 // RawLogs executes the rawlogs variant of the logbook command
 func (o *LogbookOptions) RawLogs() error {
 	ctx := context.TODO()
-	res, err := o.LogMethods.PlainLogs(ctx, &lib.PlainLogsParams{})
+	res, err := o.Instance.Log().RawLogbook(ctx, &lib.RawLogbookParams{})
 	if err != nil {
 		return err
 	}
@@ -259,7 +265,7 @@ func (o *LogbookOptions) RawLogs() error {
 // LogbookSummary prints a logbook overview
 func (o *LogbookOptions) LogbookSummary() error {
 	ctx := context.TODO()
-	res, err := o.LogMethods.LogbookSummary(ctx, &struct{}{})
+	res, err := o.Instance.Log().LogbookSummary(ctx, &struct{}{})
 	if err != nil {
 		return err
 	}

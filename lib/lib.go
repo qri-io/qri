@@ -828,6 +828,11 @@ func (inst *Instance) Filesys() FSIMethods {
 	return FSIMethods{d: inst}
 }
 
+// Log returns the LogMethods that Instance has registered
+func (inst *Instance) Log() LogMethods {
+	return LogMethods{d: inst}
+}
+
 // Peer returns the PeerMethods that Instance has registered
 func (inst *Instance) Peer() PeerMethods {
 	return PeerMethods{d: inst}

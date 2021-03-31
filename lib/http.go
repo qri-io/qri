@@ -235,7 +235,7 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 		res, cursor, err := inst.Dispatch(r.Context(), libMethod, p)
 		if err != nil {
 			log.Debugw("http request: dispatch", "err", err)
-			apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+			apiutil.RespondWithError(w, err)
 			return
 		}
 
