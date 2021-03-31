@@ -111,7 +111,7 @@ func (o *LogOptions) Run() error {
 	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	ctx := context.TODO()
-	p := &lib.LogParams{
+	p := &lib.HistoryParams{
 		Ref:    o.Refs.Ref(),
 		Pull:   o.Pull,
 		Source: o.RemoteName,
@@ -121,7 +121,7 @@ func (o *LogOptions) Run() error {
 		},
 	}
 
-	res, err := o.Instance.Log().Log(ctx, p)
+	res, err := o.Instance.Log().History(ctx, p)
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 			} else if o.Summary {
 				return o.LogbookSummary()
 			}
-			return o.Logbook()
+			return o.LogEntries()
 		},
 	}
 
@@ -212,7 +212,7 @@ func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
 }
 
 // Logbook executes the Logbook command
-func (o *LogbookOptions) Logbook() error {
+func (o *LogbookOptions) LogEntries() error {
 	printRefSelect(o.ErrOut, o.Refs)
 
 	// convert Page and PageSize to Limit and Offset
@@ -225,7 +225,7 @@ func (o *LogbookOptions) Logbook() error {
 	}
 
 	ctx := context.TODO()
-	res, err := o.Instance.Log().Logbook(ctx, p)
+	res, err := o.Instance.Log().Entries(ctx, p)
 	if err != nil {
 		if err == repo.ErrEmptyRef {
 			return errors.New(err, "please provide a dataset reference")
@@ -248,7 +248,7 @@ func (o *LogbookOptions) Logbook() error {
 // RawLogs executes the rawlogs variant of the logbook command
 func (o *LogbookOptions) RawLogs() error {
 	ctx := context.TODO()
-	res, err := o.Instance.Log().PlainLogs(ctx, &lib.PlainLogsParams{})
+	res, err := o.Instance.Log().RawLogbook(ctx, &lib.RawLogbookParams{})
 	if err != nil {
 		return err
 	}

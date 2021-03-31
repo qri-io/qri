@@ -291,9 +291,9 @@ func NewServerRoutes(s Server) *mux.Router {
 	routeParams = newrefRouteParams(lib.AERender, false, false, http.MethodGet, http.MethodPost)
 	handleRefRoute(m, routeParams, s.Middleware(renderh.RenderHandler))
 
-	m.Handle(lib.AEHistory.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.log"))).Methods(http.MethodPost)
-	m.Handle(lib.AELogbook.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.logbook"))).Methods(http.MethodPost)
-	m.Handle(lib.AELogs.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.plainlogs"))).Methods(http.MethodPost)
+	m.Handle(lib.AEHistory.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.history"))).Methods(http.MethodPost)
+	m.Handle(lib.AEEntries.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.entries"))).Methods(http.MethodPost)
+	m.Handle(lib.AERawLogbook.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.rawlogbook"))).Methods(http.MethodPost)
 	m.Handle(lib.AELogbookSummary.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.logbooksummary"))).Methods(http.MethodPost)
 
 	rch := NewRegistryClientHandlers(s.Instance, cfg.API.ReadOnly)

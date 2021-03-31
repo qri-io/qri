@@ -27,15 +27,15 @@ func (m LogMethods) Name() string {
 // Attributes defines attributes for each method
 func (m LogMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"log":            {AEHistory, "POST"},
-		"logbook":        {AELogs, "POST"},
-		"plainlogs":      {denyRPC, ""},
+		"history":        {AEHistory, "POST"},
+		"entries":        {AEEntries, "POST"},
+		"rawlogbook":     {denyRPC, ""},
 		"logbooksummary": {denyRPC, ""},
 	}
 }
 
-// LogParams defines parameters for the Log method
-type LogParams struct {
+// HistoryParams defines parameters for the Log method
+type HistoryParams struct {
 	ListParams
 	// Reference to data to fetch history for
 	Ref    string
@@ -44,9 +44,9 @@ type LogParams struct {
 }
 
 // UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *LogParams) UnmarshalFromRequest(r *http.Request) error {
+func (p *HistoryParams) UnmarshalFromRequest(r *http.Request) error {
 	if p == nil {
-		p = &LogParams{}
+		p = &HistoryParams{}
 	}
 
 	lp := &ListParams{}
@@ -84,9 +84,9 @@ func (p *LogParams) UnmarshalFromRequest(r *http.Request) error {
 	return nil
 }
 
-// Log returns the history of changes for a given dataset
-func (m LogMethods) Log(ctx context.Context, params *LogParams) ([]dsref.VersionInfo, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "log"), params)
+// History returns the history of changes for a given dataset
+func (m LogMethods) History(ctx context.Context, params *HistoryParams) ([]dsref.VersionInfo, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "history"), params)
 	if res, ok := got.([]dsref.VersionInfo); ok {
 		return res, err
 	}
@@ -132,27 +132,27 @@ func (p *RefListParams) UnmarshalFromRequest(r *http.Request) error {
 // LogEntry is a record in a log of operations on a dataset
 type LogEntry = logbook.LogEntry
 
-// Logbook lists log entries for actions taken on a given dataset
-func (m LogMethods) Logbook(ctx context.Context, p *RefListParams) ([]LogEntry, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "logbook"), p)
+// Entries lists log entries for actions taken on a given dataset
+func (m LogMethods) Entries(ctx context.Context, p *RefListParams) ([]LogEntry, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "entries"), p)
 	if res, ok := got.([]LogEntry); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
 }
 
-// PlainLogsParams enapsulates parameters for the PlainLogs methods
-type PlainLogsParams struct {
+// RawLogbookParams enapsulates parameters for the RawLogbook methods
+type RawLogbookParams struct {
 	// no options yet
 }
 
-// PlainLogs is an alias for a human representation of a plain-old-data logbook
-type PlainLogs = []logbook.PlainLog
+// RawLogs is an alias for a human representation of a plain-old-data logbook
+type RawLogs = []logbook.PlainLog
 
-// PlainLogs encodes the full logbook as human-oriented json
-func (m LogMethods) PlainLogs(ctx context.Context, p *PlainLogsParams) (*PlainLogs, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "plainlogs"), p)
-	if res, ok := got.(*PlainLogs); ok {
+// RawLogbook encodes the full logbook as human-oriented json
+func (m LogMethods) RawLogbook(ctx context.Context, p *RawLogbookParams) (*RawLogs, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "rawlogbook"), p)
+	if res, ok := got.(*RawLogs); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -170,8 +170,8 @@ func (m LogMethods) LogbookSummary(ctx context.Context, p *struct{}) (*string, e
 // logImpl holds the method implementations for LogMethods
 type logImpl struct{}
 
-// Log returns the history of changes for a given dataset
-func (logImpl) Log(scope scope, params *LogParams) ([]dsref.VersionInfo, error) {
+// History returns the history of changes for a given dataset
+func (logImpl) History(scope scope, params *HistoryParams) ([]dsref.VersionInfo, error) {
 	// ensure valid limit value
 	if params.Limit <= 0 {
 		params.Limit = 25
@@ -241,8 +241,8 @@ func (logImpl) Log(scope scope, params *LogParams) ([]dsref.VersionInfo, error) 
 	return items, nil
 }
 
-// Logbook lists log entries for actions taken on a given dataset
-func (logImpl) Logbook(scope scope, p *RefListParams) ([]LogEntry, error) {
+// Entries lists log entries for actions taken on a given dataset
+func (logImpl) Entries(scope scope, p *RefListParams) ([]LogEntry, error) {
 	res := []LogEntry{}
 	var err error
 
@@ -259,9 +259,9 @@ func (logImpl) Logbook(scope scope, p *RefListParams) ([]LogEntry, error) {
 	return res, nil
 }
 
-// PlainLogs encodes the full logbook as human-oriented json
-func (logImpl) PlainLogs(scope scope, p *PlainLogsParams) (*PlainLogs, error) {
-	res := &PlainLogs{}
+// RawLogbook encodes the full logbook as human-oriented json
+func (logImpl) RawLogbook(scope scope, p *RawLogbookParams) (*RawLogs, error) {
+	res := &RawLogs{}
 	var err error
 
 	*res, err = scope.Logbook().PlainLogs(scope.Context())

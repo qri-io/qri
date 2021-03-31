@@ -148,12 +148,12 @@ const (
 
 	// AEHistory returns dataset logs
 	AEHistory = APIEndpoint("/history")
-	// AELogbook lists log entries for actions taken on a given dataset
-	AELogbook = APIEndpoint("/logbook")
+	// AEEntries lists log entries for actions taken on a given dataset
+	AEEntries = APIEndpoint("/log")
+	// AERawLogbook returns the full logbook encoded as human-oriented json
+	AERawLogbook = APIEndpoint("/logbook")
 	// AELogbookSummary returns a string overview of the logbook
 	AELogbookSummary = APIEndpoint("/logbook/summary")
-	// AELogs returns the full logbook encoded as human-oriented json
-	AELogs = APIEndpoint("/logs")
 	// AERender renders the current dataset ref
 	AERender = APIEndpoint("/render")
 	// AERegistryNew creates a new user on the registry
