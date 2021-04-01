@@ -2,7 +2,6 @@ package lib
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/qri-io/dataset"
@@ -10,25 +9,28 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// SearchMethods encapsulates business logic for the qri search command
-// TODO (b5): switch to using an Instance instead of separate fields
+// SearchMethods groups together methods for search
 type SearchMethods struct {
-	inst *Instance
+	d dispatcher
 }
 
-// NewSearchMethods creates SearchMethods from a qri Instance
-func NewSearchMethods(inst *Instance) *SearchMethods {
-	return &SearchMethods{inst: inst}
+// Name returns the name of this method group
+func (m SearchMethods) Name() string {
+	return "search"
 }
 
-// CoreRequestsName implements the requests
-func (m SearchMethods) CoreRequestsName() string { return "search" }
+// Attributes defines attributes for each method
+func (m SearchMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"search": {AESearch, "POST"},
+	}
+}
 
 // SearchParams defines paremeters for the search Method
 type SearchParams struct {
-	QueryString string `json:"q"`
-	Limit       int    `json:"limit,omitempty"`
-	Offset      int    `json:"offset,omitempty"`
+	Query  string `json:"q"`
+	Limit  int    `json:"limit,omitempty"`
+	Offset int    `json:"offset,omitempty"`
 }
 
 // UnmarshalFromRequest implements a custom deserialization-from-HTTP request
@@ -45,8 +47,8 @@ func (p *SearchParams) UnmarshalFromRequest(r *http.Request) error {
 	p.Limit = lp.Limit
 	p.Offset = lp.Offset
 
-	if p.QueryString == "" {
-		p.QueryString = r.FormValue("q")
+	if p.Query == "" {
+		p.Query = r.FormValue("q")
 	}
 
 	return nil
@@ -60,30 +62,32 @@ type SearchResult struct {
 }
 
 // Search queries for items on qri related to given parameters
-func (m *SearchMethods) Search(ctx context.Context, p *SearchParams) ([]SearchResult, error) {
-	if m.inst.http != nil {
-		res := []SearchResult{}
-		err := m.inst.http.Call(ctx, AESearch, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+func (m SearchMethods) Search(ctx context.Context, p *SearchParams) ([]SearchResult, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "search"), p)
+	if res, ok := got.([]SearchResult); ok {
+		return res, err
 	}
-	if p == nil {
-		return nil, fmt.Errorf("error: search params cannot be nil")
-	}
+	return nil, dispatchReturnError(got, err)
+}
 
-	reg := m.inst.registry
-	if reg == nil {
+// Implementations for FSI methods follow
+
+// searchImpl holds the method implementations for search
+type searchImpl struct{}
+
+// Search queries for items on qri related to given parameters
+func (searchImpl) Search(scope scope, p *SearchParams) ([]SearchResult, error) {
+	client := scope.RegistryClient()
+	if client == nil {
 		return nil, repo.ErrNoRegistry
 	}
 	params := &regclient.SearchParams{
-		QueryString: p.QueryString,
-		Limit:       p.Limit,
-		Offset:      p.Offset,
+		Query:  p.Query,
+		Limit:  p.Limit,
+		Offset: p.Offset,
 	}
 
-	regResults, err := reg.Search(params)
+	regResults, err := client.Search(params)
 	if err != nil {
 		return nil, err
 	}

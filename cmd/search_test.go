@@ -57,11 +57,6 @@ func TestSearchComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.SearchMethods == nil {
-			t.Errorf("case %d, opt.SearchMethods not set.", i)
-			run.IOReset()
-			continue
-		}
 		run.IOReset()
 	}
 }
@@ -168,8 +163,11 @@ func TestSearchRun(t *testing.T) {
 
 	f, err := NewTestFactoryInstanceOptions(ctx, run.RootPath, lib.OptRegistryClient(rc))
 	if err != nil {
-		t.Errorf("error creating new test factory: %s", err)
-		return
+		t.Fatal(err)
+	}
+	inst, err := f.Instance()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	cases := []struct {
@@ -184,17 +182,11 @@ func TestSearchRun(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		sr, err := f.SearchMethods()
-		if err != nil {
-			t.Errorf("case %d, error creating dataset request: %s", i, err)
-			continue
-		}
-
 		opt := &SearchOptions{
-			IOStreams:     run.Streams,
-			Query:         c.query,
-			Format:        c.format,
-			SearchMethods: sr,
+			IOStreams: run.Streams,
+			Query:     c.query,
+			Format:    c.format,
+			Instance:  inst,
 		}
 
 		err = opt.Run()

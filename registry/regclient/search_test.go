@@ -20,7 +20,7 @@ func TestSearchMethods(t *testing.T) {
 		Location: srv.URL,
 	})
 
-	searchParams := &SearchParams{QueryString: "presidents", Limit: 100, Offset: 0}
+	searchParams := &SearchParams{Query: "presidents", Limit: 100, Offset: 0}
 	// TODO: need to add tests that actually inspect the search results
 	_, err := c.Search(searchParams)
 	if err != nil {

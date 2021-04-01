@@ -57,15 +57,17 @@ type SearchOptions struct {
 	Page     int
 	// Reindex bool
 
-	SearchMethods *lib.SearchMethods
+	Instance *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SearchOptions) Complete(f Factory, args []string) (err error) {
+	if o.Instance, err = f.Instance(); err != nil {
+		return err
+	}
 	if len(args) != 0 {
 		o.Query = args[0]
 	}
-	o.SearchMethods, err = f.SearchMethods()
 	return
 }
 
@@ -79,6 +81,9 @@ func (o *SearchOptions) Validate() error {
 
 // Run executes the search command
 func (o *SearchOptions) Run() (err error) {
+	ctx := context.TODO()
+	inst := o.Instance
+
 	o.StartSpinner()
 	defer o.StopSpinner()
 
@@ -88,18 +93,16 @@ func (o *SearchOptions) Run() (err error) {
 	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	p := &lib.SearchParams{
-		QueryString: o.Query,
-		Limit:       page.Limit(),
-		Offset:      page.Offset(),
+		Query:  o.Query,
+		Limit:  page.Limit(),
+		Offset: page.Offset(),
 	}
 
-	ctx := context.TODO()
-	results, err := o.SearchMethods.Search(ctx, p)
+	results, err := inst.Search().Search(ctx, p)
 	if err != nil {
 		return err
 	}
 
-	// o.StopSpinner()
 	switch o.Format {
 	case "":
 		fmt.Fprintf(o.Out, "showing %d results for '%s'\n", len(results), o.Query)

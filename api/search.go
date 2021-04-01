@@ -9,13 +9,12 @@ import (
 
 // SearchHandlers wraps a requests struct to interface with http.HandlerFunc
 type SearchHandlers struct {
-	lib.SearchMethods
+	Instance *lib.Instance
 }
 
 // NewSearchHandlers allocates a SearchHandlers pointer
 func NewSearchHandlers(inst *lib.Instance) *SearchHandlers {
-	req := lib.NewSearchMethods(inst)
-	return &SearchHandlers{*req}
+	return &SearchHandlers{Instance: inst}
 }
 
 // SearchHandler is the endpoint for searching qri
@@ -35,12 +34,15 @@ func (h *SearchHandlers) searchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.SearchMethods.Search(r.Context(), params)
+	got, _, err := h.Instance.Dispatch(r.Context(), "search.search", params)
 	if err != nil {
-		log.Infof("search error: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.RespondWithError(w, err)
 		return
 	}
-
+	res, ok := got.([]lib.SearchResult)
+	if !ok {
+		util.RespondWithDispatchTypeError(w, got)
+		return
+	}
 	util.WriteResponse(w, res)
 }

@@ -34,10 +34,8 @@ func TestSearch(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfig(), node)
 	inst.registry = rc
 
-	m := NewSearchMethods(inst)
-
 	p := &SearchParams{"nuun", 0, 100}
-	got, err := m.Search(ctx, p)
+	got, err := inst.Search().Search(ctx, p)
 	if err != nil {
 		t.Error(err)
 	}

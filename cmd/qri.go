@@ -260,14 +260,6 @@ func (o *QriOptions) ProfileMethods() (m *lib.ProfileMethods, err error) {
 	return lib.NewProfileMethods(o.inst), nil
 }
 
-// SearchMethods generates a lib.SearchMethods from internal state
-func (o *QriOptions) SearchMethods() (*lib.SearchMethods, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewSearchMethods(o.inst), nil
-}
-
 // RenderMethods generates a lib.RenderMethods from internal state
 func (o *QriOptions) RenderMethods() (*lib.RenderMethods, error) {
 	if err := o.Init(); err != nil {
