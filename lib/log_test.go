@@ -110,11 +110,11 @@ func TestHistoryRequestsLogEntries(t *testing.T) {
 	firstRef := refs[0].String()
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 
-	if _, err = inst.Log().Entries(ctx, &RefListParams{}); err == nil {
+	if _, err = inst.Log().Log(ctx, &RefListParams{}); err == nil {
 		t.Errorf("expected empty reference param to error")
 	}
 
-	res, err := inst.Log().Entries(ctx, &RefListParams{Ref: firstRef, Limit: 30})
+	res, err := inst.Log().Log(ctx, &RefListParams{Ref: firstRef, Limit: 30})
 	if err != nil {
 		t.Fatal(err)
 	}

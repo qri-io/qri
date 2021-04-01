@@ -136,7 +136,7 @@ func (o *DiffOptions) Run() (err error) {
 	}
 
 	ctx := context.TODO()
-	res, err := o.inst.Dataset().Diff(ctx, p)
+	res, err := o.inst.Diff().Diff(ctx, p)
 	if err != nil {
 		return err
 	}

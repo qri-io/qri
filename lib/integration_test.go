@@ -36,7 +36,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	}
 
 	p := &ListParams{}
-	refs, err := tr.RegistryInst.Dataset().ListRawRefs(tr.Ctx, p)
+	refs, err := tr.RegistryInst.Collection().ListRawRefs(tr.Ctx, p)
 	if err != nil {
 		t.Fatal(err)
 	}

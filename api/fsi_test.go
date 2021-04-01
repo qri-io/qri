@@ -51,16 +51,6 @@ func TestFSIHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "init", initHandler, initCases, true)
 
-	whatChangedHandler := func(w http.ResponseWriter, r *http.Request) {
-		lib.NewHTTPRequestHandler(inst, "fsi.whatchanged").ServeHTTP(w, r)
-	}
-	whatChangedCases := []handlerTestCase{
-		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
-		// temp directory names
-		{"GET", "/me/movies", nil, map[string]string{"peername": "me", "name": "movies"}},
-	}
-	runHandlerTestCases(t, "whatchanged", whatChangedHandler, whatChangedCases, true)
-
 	checkoutHandler := func(w http.ResponseWriter, r *http.Request) {
 		muxVarsToQueryParamMiddleware(lib.NewHTTPRequestHandler(inst, "fsi.checkout")).ServeHTTP(w, r)
 	}
@@ -199,7 +189,7 @@ func TestNoHistory(t *testing.T) {
 
 	// History with no history
 	p := lib.HistoryParams{Ref: "peer/test_ds"}
-	gotStatusCode, gotBodyString = JSONAPICallWithBody("POST", lib.AEHistory.String(), p, historyHandler, nil)
+	gotStatusCode, gotBodyString = JSONAPICallWithBody("POST", lib.AELog.String(), p, historyHandler, nil)
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
@@ -209,7 +199,7 @@ func TestNoHistory(t *testing.T) {
 
 	p.EnsureFSIExists = true
 	// History with no history, still returns ErrNoHistory since this route ignores fsi param
-	gotStatusCode, gotBodyString = JSONAPICallWithBody("POST", lib.AEHistory.String(), p, historyHandler, nil)
+	gotStatusCode, gotBodyString = JSONAPICallWithBody("POST", lib.AELog.String(), p, historyHandler, nil)
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}

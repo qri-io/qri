@@ -11,7 +11,8 @@ func TestDatasetMethodsDiff(t *testing.T) {
 	tr := newTestRunner(t)
 	defer tr.Delete()
 
-	req := tr.Instance.Dataset()
+	req := tr.Instance.Diff()
+	ds := tr.Instance.Dataset()
 	jobsOnePath := tr.MustWriteTmpFile(t, "jobs_by_automation_1.csv", jobsByAutomationData1)
 	jobsTwoPath := tr.MustWriteTmpFile(t, "jobs_by_automation_2.csv", jobsByAutomationData2)
 
@@ -22,7 +23,7 @@ func TestDatasetMethodsDiff(t *testing.T) {
 		Ref:      "me/jobs_ranked_by_automation_prob",
 		BodyPath: jobsOnePath,
 	}
-	ds1, err := req.Save(tr.Ctx, initParams)
+	ds1, err := ds.Save(tr.Ctx, initParams)
 	if err != nil {
 		t.Fatalf("couldn't save: %s", err.Error())
 	}
@@ -31,7 +32,7 @@ func TestDatasetMethodsDiff(t *testing.T) {
 		Ref:      "me/jobs_ranked_by_automation_prob",
 		BodyPath: jobsTwoPath,
 	}
-	ds2, err := req.Save(tr.Ctx, initParams)
+	ds2, err := ds.Save(tr.Ctx, initParams)
 	if err != nil {
 		t.Fatalf("couldn't save second revision: %s", err.Error())
 	}

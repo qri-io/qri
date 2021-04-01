@@ -13,18 +13,18 @@ import (
 	"github.com/qri-io/qri/transform/run"
 )
 
-// TransformMethods groups together methods for transforms
-type TransformMethods struct {
+// AutomationMethods groups together methods for automations
+type AutomationMethods struct {
 	d dispatcher
 }
 
 // Name returns the name of this method group
-func (m TransformMethods) Name() string {
-	return "transform"
+func (m AutomationMethods) Name() string {
+	return "automation"
 }
 
 // Attributes defines attributes for each method
-func (m TransformMethods) Attributes() map[string]AttributeSet {
+func (m AutomationMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		"apply": {AEApply, "POST"},
 	}
@@ -57,7 +57,7 @@ type ApplyResult struct {
 }
 
 // Apply runs a transform script
-func (m TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
+func (m AutomationMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "apply"), p)
 	if res, ok := got.(*ApplyResult); ok {
 		return res, err
@@ -65,13 +65,13 @@ func (m TransformMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResu
 	return nil, dispatchReturnError(got, err)
 }
 
-// Implementations for transform methods follow
+// Implementations for automation methods follow
 
-// transformImpl holds the method implementations for transforms
-type transformImpl struct{}
+// automationImpl holds the method implementations for automations
+type automationImpl struct{}
 
 // Apply runs a transform script
-func (transformImpl) Apply(scp scope, p *ApplyParams) (*ApplyResult, error) {
+func (automationImpl) Apply(scp scope, p *ApplyParams) (*ApplyResult, error) {
 	ctx := scp.Context()
 
 	var err error

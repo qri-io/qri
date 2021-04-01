@@ -16,17 +16,17 @@ type ChangeReportParams struct {
 // ChangeReport is a simple utility type declaration
 type ChangeReport = changes.ChangeReportResponse
 
-// ChangeReport resolves the requested datasets and tries to generate a change report
-func (m DatasetMethods) ChangeReport(ctx context.Context, p *ChangeReportParams) (*ChangeReport, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "changereport"), p)
+// Changes resolves the requested datasets and tries to generate a change report
+func (m DiffMethods) Changes(ctx context.Context, p *ChangeReportParams) (*ChangeReport, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "changes"), p)
 	if res, ok := got.(*ChangeReport); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
 }
 
-// ChangeReport generates report of changes between two datasets
-func (datasetImpl) ChangeReport(scope scope, p *ChangeReportParams) (*ChangeReport, error) {
+// Changes generates report of changes between two datasets
+func (diffImpl) Changes(scope scope, p *ChangeReportParams) (*ChangeReport, error) {
 	ctx := scope.Context()
 	reportSource := ""
 

@@ -225,7 +225,7 @@ func (o *LogbookOptions) LogEntries() error {
 	}
 
 	ctx := context.TODO()
-	res, err := o.Instance.Log().Entries(ctx, p)
+	res, err := o.Instance.Log().Log(ctx, p)
 	if err != nil {
 		if err == repo.ErrEmptyRef {
 			return errors.New(err, "please provide a dataset reference")

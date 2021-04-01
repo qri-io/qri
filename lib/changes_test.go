@@ -31,7 +31,7 @@ func TestChanges(t *testing.T) {
 	p := &ChangeReportParams{
 		RightRefstr: commitref.Alias(),
 	}
-	if _, err := inst.Dataset().ChangeReport(ctx, p); err != nil {
+	if _, err := inst.Diff().Changes(ctx, p); err != nil {
 		t.Fatalf("change report error: %s", err)
 	}
 }

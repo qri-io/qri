@@ -27,14 +27,11 @@ import (
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/base/fill"
-	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
-	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/transform"
@@ -54,45 +51,21 @@ func (m DatasetMethods) Name() string {
 // Attributes defines attributes for each method
 func (m DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"changereport": {AEChanges, "POST"},
-		"daginfo":      {AEDAGInfo, "GET"},
-		"diff":         {AEDiff, "GET"},
-		"get":          {AEGet, "GET"},
-		"list":         {AEList, "GET"},
-		// TODO(dustmop): Needs its own endpoint
-		"listrawrefs":     {AEList, "GET"},
-		"manifest":        {AEManifest, "GET"},
-		"manifestmissing": {AEManifestMissing, "GET"},
-		"pull":            {AEPull, "POST"},
-		"remove":          {AERemove, "POST"},
-		"rename":          {AERename, "POST"},
-		"render":          {AERender, "POST"},
-		"save":            {AESave, "POST"},
-		// TODO(dustmop): Needs its own endpoint
-		"stats":    {AEGet, "GET"},
-		"validate": {AEValidate, "GET"},
+		"componentstatus": {AEComponentStatus, "POST"},
+		"get":             {AEGet, "GET"},
+		// "log":             {AELog, "POST"},
+		"rename": {AERename, "POST"},
+		"save":   {AESave, "POST"},
+		"pull":   {AEPull, "POST"},
+		// "push":            {AEPush, "POST"},
+		"render":   {AERender, "POST"},
+		"remove":   {AERemove, "POST"},
+		"validate": {AEValidate, "POST"},
+		// "unpack":          {AEUnpack, "POST"},
+		"manifest":        {AEManifest, "POST"},
+		"manifestmissing": {AEManifestMissing, "POST"},
+		"daginfo":         {AEDAGInfo, "POST"},
 	}
-}
-
-// ErrListWarning is a warning that can occur while listing
-var ErrListWarning = base.ErrUnlistableReferences
-
-// List gets the reflist for either the local repo or a peer
-func (m DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "list"), p)
-	if res, ok := got.([]dsref.VersionInfo); ok {
-		return res, err
-	}
-	return nil, dispatchReturnError(got, err)
-}
-
-// ListRawRefs gets the list of raw references as string
-func (m DatasetMethods) ListRawRefs(ctx context.Context, p *ListParams) (string, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "listrawrefs"), p)
-	if res, ok := got.(string); ok {
-		return res, err
-	}
-	return "", dispatchReturnError(got, err)
 }
 
 // GetParams defines parameters for looking up the head or body of a dataset
@@ -606,19 +579,11 @@ func (m DatasetMethods) DAGInfo(ctx context.Context, p *DAGInfoParams) (*dag.Inf
 	return nil, dispatchReturnError(got, err)
 }
 
-// StatsParams defines the params for a Stats request
-type StatsParams struct {
-	// string representation of a dataset reference
-	Refstr string
-	// if we get a Dataset from the params, then we do not have to
-	// attempt to open a dataset from the reference
-	Dataset *dataset.Dataset
-}
-
-// Stats generates stats for a dataset
-func (m DatasetMethods) Stats(ctx context.Context, p *StatsParams) (*dataset.Stats, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "stats"), p)
-	if res, ok := got.(*dataset.Stats); ok {
+// ComponentStatus gets changes that happened at a particular version in the history of the given
+// dataset reference.
+func (m DatasetMethods) ComponentStatus(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "componentstatus"), p)
+	if res, ok := got.([]StatusItem); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -822,150 +787,6 @@ func (m DatasetMethods) Render(ctx context.Context, p *RenderParams) ([]byte, er
 
 // datasetImpl holds the method implementations for DatasetMethods
 type datasetImpl struct{}
-
-// List gets the reflist for either the local repo or a peer
-func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error) {
-	// TODO(dustmop): When List is converted to use scope, get the ProfileID from
-	// the scope if the user is authorized to only view their own datasets, as opposed
-	// to the full collection that exists in this node's repository.
-	restrictPid := ""
-
-	// ensure valid limit value
-	if p.Limit <= 0 {
-		p.Limit = 25
-	}
-	// ensure valid offset value
-	if p.Offset < 0 {
-		p.Offset = 0
-	}
-
-	reqProfile := scope.Repo().Profiles().Owner()
-	listProfile, err := getProfile(scope.Context(), scope.Repo().Profiles(), reqProfile.ID.String(), p.Peername)
-	if err != nil {
-		return nil, err
-	}
-
-	// If the list operation leads to a warning, store it in this var
-	var listWarning error
-
-	var infos []dsref.VersionInfo
-	if p.UseDscache {
-		c := scope.Dscache()
-		if c.IsEmpty() {
-			log.Infof("building dscache from repo's logbook, profile, and dsref")
-			built, err := build.DscacheFromRepo(scope.Context(), scope.Repo())
-			if err != nil {
-				return nil, err
-			}
-			err = c.Assign(built)
-			if err != nil {
-				log.Error(err)
-			}
-		}
-		refs, err := c.ListRefs()
-		if err != nil {
-			return nil, err
-		}
-		// Filter references so that only with a matching name are returned
-		if p.Term != "" {
-			matched := make([]reporef.DatasetRef, len(refs))
-			count := 0
-			for _, ref := range refs {
-				if strings.Contains(ref.AliasString(), p.Term) {
-					matched[count] = ref
-					count++
-				}
-			}
-			refs = matched[:count]
-		}
-		// Filter references by skipping to the correct offset
-		if p.Offset > len(refs) {
-			refs = []reporef.DatasetRef{}
-		} else {
-			refs = refs[p.Offset:]
-		}
-		// Filter references by limiting how many are returned
-		if p.Limit < len(refs) {
-			refs = refs[:p.Limit]
-		}
-		// Convert old style DatasetRef list to VersionInfo list.
-		// TODO(dustmop): Remove this and convert lower-level functions to return []VersionInfo.
-		infos = make([]dsref.VersionInfo, len(refs))
-		for i, r := range refs {
-			infos[i] = reporef.ConvertToVersionInfo(&r)
-		}
-	} else if listProfile.Peername == "" || reqProfile.Peername == listProfile.Peername {
-		infos, err = base.ListDatasets(scope.Context(), scope.Repo(), p.Term, restrictPid, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
-		if errors.Is(err, ErrListWarning) {
-			listWarning = err
-			err = nil
-		}
-	} else {
-		return nil, fmt.Errorf("listing datasets on a peer is not implemented")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if p.EnsureFSIExists {
-		// For each reference with a linked fsi working directory, check that the folder exists
-		// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
-		// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
-		for _, info := range infos {
-			if info.FSIPath != "" && !linkfile.ExistsInDir(info.FSIPath) {
-				info.FSIPath = ""
-				ref := reporef.RefFromVersionInfo(&info)
-				if ref.Path == "" {
-					if err = scope.Repo().DeleteRef(ref); err != nil {
-						log.Debugf("cannot delete ref for %q, err: %s", ref, err)
-					}
-					continue
-				}
-				if err = scope.Repo().PutRef(ref); err != nil {
-					log.Debugf("cannot put ref for %q, err: %s", ref, err)
-				}
-			}
-		}
-	}
-
-	if listWarning != nil {
-		return nil, listWarning
-	}
-
-	return infos, nil
-}
-
-func getProfile(ctx context.Context, pros profile.Store, idStr, peername string) (pro *profile.Profile, err error) {
-	if idStr == "" {
-		// TODO(b5): we're handling the "me" keyword here, should be handled as part of
-		// request scope construction
-		if peername == "me" {
-			return pros.Owner(), nil
-		}
-		return profile.ResolveUsername(pros, peername)
-	}
-
-	id, err := profile.IDB58Decode(idStr)
-	if err != nil {
-		log.Debugw("decoding profile ID", "err", err)
-		return nil, err
-	}
-	return pros.GetProfile(id)
-}
-
-// ListRawRefs gets the list of raw references as string
-func (datasetImpl) ListRawRefs(scope scope, p *ListParams) (string, error) {
-	text := ""
-	if p.UseDscache {
-		c := scope.Dscache()
-		if c == nil || c.IsEmpty() {
-			return "", fmt.Errorf("repo: dscache not found")
-		}
-		text = c.VerboseString(true)
-		return text, nil
-	}
-	return base.RawDatasetRefs(scope.Context(), scope.Repo())
-}
 
 // Get retrieves datasets and components for a given reference.t
 func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
@@ -1800,25 +1621,17 @@ func (datasetImpl) DAGInfo(scope scope, p *DAGInfoParams) (*dag.Info, error) {
 	return res, nil
 }
 
-// Stats generates stats for a dataset
-func (datasetImpl) Stats(scope scope, p *StatsParams) (*dataset.Stats, error) {
-	if p.Refstr == "" && p.Dataset == nil {
-		return nil, fmt.Errorf("either a reference or dataset is required")
+// ComponentStatus gets changes that happened at a particular version in the history of the given
+// dataset reference.
+func (datasetImpl) ComponentStatus(scope scope, p *LinkParams) ([]StatusItem, error) {
+	ctx := scope.Context()
+
+	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
+	if err != nil {
+		return nil, err
 	}
 
-	ds := p.Dataset
-	if ds == nil {
-		// TODO (b5) - stats is currently local-only, supply a source parameter
-		ref, source, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Refstr, "local")
-		if err != nil {
-			return nil, err
-		}
-		if ds, err = scope.LoadDataset(scope.Context(), ref, source); err != nil {
-			return nil, err
-		}
-	}
-
-	return scope.Stats().Stats(scope.Context(), ds)
+	return scope.FSISubsystem().StatusAtVersion(ctx, ref)
 }
 
 // Render renders a viz or readme component as html

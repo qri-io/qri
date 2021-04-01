@@ -17,7 +17,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
@@ -276,157 +275,6 @@ func TestDatasetRequestsSaveApply(t *testing.T) {
 	if ds.BodyPath != bodyPath {
 		t.Error("unexpected: body path changed")
 	}
-}
-
-func TestDatasetRequestsList(t *testing.T) {
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	var (
-		movies, counter, cities, craigslist, sitemap dsref.VersionInfo
-	)
-
-	mr, err := testrepo.NewTestRepo()
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err)
-		return
-	}
-
-	refs, err := mr.References(0, 30)
-	if err != nil {
-		t.Fatalf("error getting namespace: %s", err)
-	}
-
-	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-
-	for _, ref := range refs {
-		dr := reporef.ConvertToVersionInfo(&ref)
-		switch dr.Name {
-		case "movies":
-			movies = dr
-		case "counter":
-			counter = dr
-		case "cities":
-			cities = dr
-		case "craigslist":
-			craigslist = dr
-		case "sitemap":
-			sitemap = dr
-		}
-	}
-
-	cases := []struct {
-		description string
-		p           *ListParams
-		res         []dsref.VersionInfo
-		err         string
-	}{
-		{"list datasets - empty (default)", &ListParams{}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - weird (returns sensible default)", &ListParams{OrderBy: "chaos", Limit: -33, Offset: -50}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - happy path", &ListParams{OrderBy: "", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - limit 2 offset 0", &ListParams{OrderBy: "", Limit: 2, Offset: 0}, []dsref.VersionInfo{cities, counter}, ""},
-		{"list datasets - limit 2 offset 2", &ListParams{OrderBy: "", Limit: 2, Offset: 2}, []dsref.VersionInfo{craigslist, movies}, ""},
-		{"list datasets - limit 2 offset 4", &ListParams{OrderBy: "", Limit: 2, Offset: 4}, []dsref.VersionInfo{sitemap}, ""},
-		{"list datasets - limit 2 offset 5", &ListParams{OrderBy: "", Limit: 2, Offset: 5}, []dsref.VersionInfo{}, ""},
-		{"list datasets - order by timestamp", &ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - peername 'me'", &ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
-		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*dsref.VersionInfo{cities, counter, movies}, ""},
-	}
-
-	for _, c := range cases {
-		got, err := inst.Dataset().List(ctx, c.p)
-
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)
-			continue
-		}
-
-		if c.err == "" && c.res != nil {
-			if len(c.res) != len(got) {
-				t.Errorf("case '%s' response length mismatch. expected %d, got: %d", c.description, len(c.res), len(got))
-				continue
-			}
-
-			for j, expect := range c.res {
-				if err := compareVersionInfoAsSimple(expect, got[j]); err != nil {
-					t.Errorf("case '%s' expected dataset error. index %d mismatch: %s", c.description, j, err.Error())
-					continue
-				}
-			}
-		}
-	}
-}
-
-func compareVersionInfoAsSimple(a, b dsref.VersionInfo) error {
-	if a.ProfileID != b.ProfileID {
-		return fmt.Errorf("PeerID mismatch. %s != %s", a.ProfileID, b.ProfileID)
-	}
-	if a.Username != b.Username {
-		return fmt.Errorf("Peername mismatch. %s != %s", a.Username, b.Username)
-	}
-	if a.Name != b.Name {
-		return fmt.Errorf("Name mismatch. %s != %s", a.Name, b.Name)
-	}
-	if a.Path != b.Path {
-		return fmt.Errorf("Path mismatch. %s != %s", a.Path, b.Path)
-	}
-	return nil
-}
-
-func TestDatasetRequestsListP2p(t *testing.T) {
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	// Matches what is used to generated test peers.
-	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
-
-	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
-	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 5)
-	if err != nil {
-		t.Errorf("error creating network: %s", err.Error())
-		return
-	}
-
-	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
-		t.Errorf("error connecting peers: %s", err.Error())
-	}
-
-	// Convert from test nodes to non-test nodes.
-	peers := make([]*p2p.QriNode, len(testPeers))
-	for i, node := range testPeers {
-		peers[i] = node.(*p2p.QriNode)
-	}
-
-	var wg sync.WaitGroup
-	for _, p1 := range peers {
-		wg.Add(1)
-		go func(node *p2p.QriNode) {
-			defer wg.Done()
-
-			inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
-			res, err := inst.Dataset().List(ctx, p)
-			if err != nil {
-				t.Errorf("error listing dataset: %s", err.Error())
-			}
-			// Get number from end of peername, use that to find dataset name.
-			profile := node.Repo.Profiles().Owner()
-			num := profile.Peername[len(profile.Peername)-1:]
-			index, _ := strconv.ParseInt(num, 10, 32)
-			expect := datasets[index]
-
-			if res[0].Name != expect {
-				t.Errorf("dataset %s mismatch: %s", res[0].Name, expect)
-			}
-		}(p1)
-	}
-
-	wg.Wait()
 }
 
 func TestDatasetRequestsGet(t *testing.T) {
@@ -1166,12 +1014,12 @@ func TestDatasetRequestsStats(t *testing.T) {
 		ref         string
 		expectedErr string
 	}{
-		{"empty reference", "", `either a reference or dataset is required`},
+		{"empty reference", "", `"" is not a valid dataset reference: empty reference`},
 		{"bad reference", "!", `"!" is not a valid dataset reference: unexpected character at position 0: '!'`},
 		{"dataset does not exist", "me/dataset_does_not_exist", "reference not found"},
 	}
 	for i, c := range badCases {
-		_, err = m.Stats(ctx, &StatsParams{Refstr: c.ref})
+		_, err = m.Get(ctx, &GetParams{Refstr: c.ref, Selector: "stats"})
 		if c.expectedErr != err.Error() {
 			t.Errorf("%d. case %s: error mismatch, expected: %q, got: %q", i, c.description, c.expectedErr, err.Error())
 		}
@@ -1188,7 +1036,7 @@ func TestDatasetRequestsStats(t *testing.T) {
 		{"json: me/sitemap", "me/sitemap", []byte(`[{"count":10,"histogram":{"bins":[24515,24552,25028,25329,27827,28291,28337,30258,34042,40079,40080],"frequencies":[1,1,1,1,1,1,1,1,1,1]},"key":"contentLength","max":40079,"mean":28825.8,"median":28291,"min":24515,"type":"numeric"},{"count":10,"frequencies":{"text/html; charset=utf-8":10},"key":"contentSniff","maxLength":24,"minLength":24,"type":"string","unique":1},{"count":10,"frequencies":{"text/html; charset=utf-8":10},"key":"contentType","maxLength":24,"minLength":24,"type":"string","unique":1},{"count":10,"histogram":{"bins":[74291866,89911449,4055332831,4075146079,4077173686,4077286486,4077931202,4080164896,4080183198,4081577841,4081577842],"frequencies":[1,1,1,1,1,1,1,1,1,1]},"key":"duration","max":4081577841,"mean":3276899953.4,"median":4077286486,"min":74291866,"type":"numeric"},{"count":10,"frequencies":{"12200c610d5ec64231b2751e8ede38b4fd7d911360159fc5bba3e165f68c1ee4f169":1,"1220131c6c4233a75f1361045dcb45173c4d13eb94f08184edb45109975ce7d8b33a":1,"12203236442fb7b71bf1696b6071beb4abcc08bf318ade377daf352fdc846f14a292":1,"12203f978c899c51c0ee60a2f983ed76d2cd9351846e98efeb8f2f1d025e2e39dff8":1,"122055b62b100b92467d64d781e7f14a91e7ffac0869cb7ecc7fc38ad620d8c04ef5":1,"122066ace8ef380db026ef249b1a4cd2b35008c8901ab98994c56ab8022f099e7991":1,"12206c2e9e217a9efaa0506eba68a039513cd2ec8c7025c367b9b64256d462fb1660":1,"122075ddcf3989ef97e5f9d59ceb1b5b71d72bc32d8b76c181d7826b028792e202ab":1,"122093f53b43ac1e56bd091abacd6c1813eb249400ed0c98eba4e667916a4286ccf2":1,"1220e1975125bdbc7638bb16bd1a52e2115b6531511def6a0228ad1b671111a8066f":1},"key":"hash","maxLength":68,"minLength":68,"type":"string","unique":10},{"key":"links","type":"array","values":[{"count":10,"frequencies":{"http://cfpub.epa.gov/locator":1,"http://epa.gov/ace":1,"http://epa.gov/ace/ace-biomonitoring-lead":1,"http://epa.gov/careers":1,"http://epa.gov/environmental-topics":1,"http://epa.gov/environmental-topics/greener-living":1,"http://epa.gov/home/grants-and-other-funding-opportunities":1,"http://epa.gov/lead":1,"http://epa.gov/open":1,"http://usa.gov":1},"maxLength":58,"minLength":14,"unique":10},{"count":10,"frequencies":{"http://epa.gov/ace/ace-biomonitoring-mercury":1,"http://epa.gov/ace/ace-update-history":1,"http://epa.gov/contracts":1,"http://epa.gov/environmental-topics/air-topics":1,"http://epa.gov/environmental-topics/health-topics":1,"http://epa.gov/mold":1,"http://epa.gov/ocr/whistleblower-protections-epa-and-how-they-relate-non-disclosure-agreements-signed-epa-employees":1,"http://epa.gov/planandbudget":1,"http://regulations.gov":1,"http://whitehouse.gov":1},"maxLength":115,"minLength":19,"unique":10},{"count":10,"frequencies":{"http://epa.gov/ace/ace-biomonitoring-cotinine":1,"http://epa.gov/ace/americas-children-and-environment-update-listserv":1,"http://epa.gov/bedbugs":1,"http://epa.gov/careers":1,"http://epa.gov/environmental-topics/land-waste-and-cleanup-topics":1,"http://epa.gov/home/forms/contact-epa":1,"http://epa.gov/home/grants-and-other-funding-opportunities":1,"http://epa.gov/newsroom/email-subscriptions":1,"http://epa.gov/pesticides":1,"http://epa.gov/privacy":1},"maxLength":68,"minLength":22,"unique":10},{"count":10,"frequencies":{"http://epa.gov/ace/ace-biomonitoring-perfluorochemicals-pfcs":1,"http://epa.gov/ace/basic-information-about-ace":1,"http://epa.gov/contracts":1,"http://epa.gov/environmental-topics/chemicals-and-toxics-topics":1,"http://epa.gov/home/epa-hotlines":1,"http://epa.gov/lead":1,"http://epa.gov/ocr/whistleblower-protections-epa-and-how-they-relate-non-disclosure-agreements-signed-epa-employees":1,"http://epa.gov/privacy/privacy-and-security-notice":1,"http://epa.gov/radon":1,"http://usa.gov":1},"maxLength":115,"minLength":14,"unique":10},{"count":9,"frequencies":{"http://data.gov":1,"http://epa.gov/ace/ace-biomonitoring-polychlorinated-biphenyls-pcbs":1,"http://epa.gov/ace/key-findings-ace3-report":1,"http://epa.gov/environmental-topics/environmental-information-location":1,"http://epa.gov/environmental-topics/science-topics":1,"http://epa.gov/foia":1,"http://epa.gov/home/grants-and-other-funding-opportunities":1,"http://epa.gov/privacy":1,"http://whitehouse.gov":1},"maxLength":70,"minLength":15,"unique":9},{"count":9,"frequencies":{"http://epa.gov/ace/ace-biomonitoring-polybrominated-diphenyl-ethers-pbdes":1,"http://epa.gov/ace/ace-frequent-questions":1,"http://epa.gov/environmental-topics/greener-living":1,"http://epa.gov/environmental-topics/water-topics":1,"http://epa.gov/home/forms/contact-epa":1,"http://epa.gov/home/frequent-questions-specific-epa-programstopics":1,"http://epa.gov/ocr/whistleblower-protections-epa-and-how-they-relate-non-disclosure-agreements-signed-epa-employees":1,"http://epa.gov/office-inspector-general/about-epas-office-inspector-general":1,"http://epa.gov/privacy/privacy-and-security-notice":1},"maxLength":115,"minLength":37,"unique":9},{"count":9,"frequencies":{"http://data.gov":1,"http://epa.gov/ace/ace-biomonitoring-phthalates":1,"http://epa.gov/ace/ace-environments-and-contaminants":1,"http://epa.gov/environmental-topics/health-topics":1,"http://epa.gov/environmental-topics/z-index":1,"http://epa.gov/home/epa-hotlines":1,"http://epa.gov/newsroom":1,"http://epa.gov/privacy":1,"http://facebook.com/EPA":1},"maxLength":52,"minLength":15,"unique":9},{"count":9,"frequencies":{"http://epa.gov/ace/ace-biomonitoring":1,"http://epa.gov/ace/ace-biomonitoring-bisphenol-bpa":1,"http://epa.gov/environmental-topics/land-waste-and-cleanup-topics":1,"http://epa.gov/foia":1,"http://epa.gov/laws-regulations":1,"http://epa.gov/office-inspector-general/about-epas-office-inspector-general":1,"http://epa.gov/open":1,"http://epa.gov/privacy/privacy-and-security-notice":1,"http://twitter.com/epa":1},"maxLength":75,"minLength":19,"unique":9},{"count":9,"frequencies":{"http://data.gov":1,"http://epa.gov/ace/ace-biomonitoring-perchlorate":1,"http://epa.gov/ace/ace-health":1,"http://epa.gov/home/frequent-questions-specific-epa-programstopics":1,"http://epa.gov/lead":1,"http://epa.gov/newsroom":1,"http://epa.gov/regulatory-information-sector":1,"http://regulations.gov":1,"http://youtube.com/user/USEPAgov":1},"maxLength":66,"minLength":15,"unique":9},{"count":7,"frequencies":{"http://epa.gov/ace/ace-supplementary-topics":1,"http://epa.gov/mold":1,"http://epa.gov/office-inspector-general/about-epas-office-inspector-general":1,"http://epa.gov/open":1,"http://epa.gov/regulatory-information-topic":1,"http://facebook.com/EPA":1,"http://flickr.com/photos/usepagov":1},"maxLength":75,"minLength":19,"unique":7},{"count":7,"frequencies":{"http://epa.gov/ace/americas-children-and-environment-third-edition":1,"http://epa.gov/compliance":1,"http://epa.gov/newsroom":1,"http://epa.gov/pesticides":1,"http://instagram.com/epagov":1,"http://regulations.gov":1,"http://twitter.com/epa":1},"maxLength":66,"minLength":22,"unique":7},{"count":6,"frequencies":{"http://epa.gov/ace/download-graphs-and-data":1,"http://epa.gov/enforcement":1,"http://epa.gov/newsroom/email-subscriptions":1,"http://epa.gov/open":1,"http://epa.gov/radon":1,"http://youtube.com/user/USEPAgov":1},"maxLength":43,"minLength":19,"unique":6},{"count":6,"frequencies":{"http://epa.gov/ace/americas-children-and-environment-third-edition-appendices":1,"http://epa.gov/environmental-topics/science-topics":1,"http://epa.gov/laws-regulations/laws-and-executive-orders":1,"http://flickr.com/photos/usepagov":1,"http://regulations.gov":1,"http://usa.gov":1},"maxLength":77,"minLength":14,"unique":6},{"count":6,"frequencies":{"http://epa.gov/ace/americas-children-and-environment-third-edition-references":1,"http://epa.gov/environmental-topics/water-topics":1,"http://epa.gov/laws-regulations/policy-guidance":1,"http://epa.gov/newsroom/email-subscriptions":1,"http://instagram.com/epagov":1,"http://whitehouse.gov":1},"maxLength":77,"minLength":21,"unique":6},{"count":4,"frequencies":{"http://epa.gov/home/forms/contact-epa":1,"http://epa.gov/laws-regulations/regulations":1,"http://instagram.com/epagov":1,"http://usa.gov":1},"maxLength":43,"minLength":14,"unique":4},{"count":3,"frequencies":{"http://epa.gov/aboutepa":1,"http://epa.gov/home/epa-hotlines":1,"http://whitehouse.gov":1},"maxLength":32,"minLength":21,"unique":3},{"count":3,"frequencies":{"http://epa.gov/aboutepa/epas-administrator":1,"http://epa.gov/foia":1,"http://epa.gov/home/forms/contact-epa":1},"maxLength":42,"minLength":19,"unique":3},{"count":3,"frequencies":{"http://epa.gov/aboutepa/current-epa-leadership":1,"http://epa.gov/home/epa-hotlines":1,"http://epa.gov/home/frequent-questions-specific-epa-programstopics":1},"maxLength":66,"minLength":32,"unique":3},{"count":3,"frequencies":{"http://epa.gov/aboutepa/epa-organization-chart":1,"http://epa.gov/foia":1,"http://facebook.com/EPA":1},"maxLength":46,"minLength":19,"unique":3},{"count":2,"frequencies":{"http://epa.gov/home/frequent-questions-specific-epa-programstopics":1,"http://twitter.com/epa":1},"maxLength":66,"minLength":22,"unique":2},{"count":2,"frequencies":{"http://facebook.com/EPA":1,"http://youtube.com/user/USEPAgov":1},"maxLength":32,"minLength":23,"unique":2},{"count":2,"frequencies":{"http://flickr.com/photos/usepagov":1,"http://twitter.com/epa":1},"maxLength":33,"minLength":22,"unique":2},{"count":2,"frequencies":{"http://instagram.com/epagov":1,"http://youtube.com/user/USEPAgov":1},"maxLength":32,"minLength":27,"unique":2},{"count":1,"frequencies":{"http://flickr.com/photos/usepagov":1},"maxLength":33,"minLength":33,"unique":1},{"count":1,"frequencies":{"http://instagram.com/epagov":1},"maxLength":27,"minLength":27,"unique":1}]},{"count":1,"frequencies":{"http://epa.gov/ace":1},"key":"redirectTo","maxLength":18,"minLength":18,"type":"string","unique":1},{"count":11,"histogram":{"bins":[200,301,302],"frequencies":[10,1]},"key":"status","max":301,"mean":209.1818181818182,"median":301,"min":200,"type":"numeric"},{"count":11,"frequencies":{"2018-03-28T09:18:45.235554272-04:00":1,"2018-03-28T09:25:13.540790419-04:00":1,"2018-03-28T09:25:14.862101674-04:00":1,"2018-03-28T09:25:14.945580151-04:00":1,"2018-03-28T09:25:16.428352736-04:00":1,"2018-03-28T09:25:17.625882413-04:00":1,"2018-03-28T09:25:18.940721061-04:00":1,"2018-03-28T09:25:19.026926128-04:00":1,"2018-03-28T09:25:23.023501668-04:00":1,"2018-03-28T10:16:52.269215284-04:00":1,"2018-03-28T13:48:21.498962156-04:00":1},"key":"timestamp","maxLength":35,"minLength":35,"type":"string","unique":11},{"count":10,"frequencies":{"ACE Biomonitoring | America's Children and the Environment (ACE) | US EPA":1,"America's Children and the Environment (ACE) | US EPA":1,"Contact Us about Section 508 Accessibility | Section 508: Accessibility | US EPA":1,"Frequent Questions about Section 508 | Section 508: Accessibility | US EPA":1,"Learn About Section 508 | Section 508: Accessibility | US EPA":1,"Section 508 Resources | Section 508: Accessibility | US EPA":1,"Section 508 Standards Resources | Section 508: Accessibility | US EPA":1,"Section 508 Standards | Section 508: Accessibility | US EPA":1,"Think 508 First! Section 508 Quick Reference Guide | Section 508: Accessibility | US EPA":1,"What is Section 508? | Section 508: Accessibility | US EPA":1},"key":"title","maxLength":88,"minLength":53,"type":"string","unique":10},{"count":11,"frequencies":{"http://epa.gov/accessibility/forms/contact-us-about-section-508-accessibility":1,"http://epa.gov/accessibility/frequent-questions-about-section-508":1,"http://epa.gov/accessibility/learn-about-section-508":1,"http://epa.gov/accessibility/section-508-resources":1,"http://epa.gov/accessibility/section-508-standards":1,"http://epa.gov/accessibility/section-508-standards-resources":1,"http://epa.gov/accessibility/think-508-first-section-508-quick-reference-guide":1,"http://epa.gov/accessibility/what-section-508":1,"http://epa.gov/ace":1,"http://epa.gov/ace%20":1,"http://epa.gov/ace/ace-biomonitoring":1},"key":"url","maxLength":78,"minLength":18,"type":"string","unique":11}]`)},
 	}
 	for i, c := range goodCases {
-		res, err := m.Stats(ctx, &StatsParams{Refstr: c.ref})
+		res, err := m.Get(ctx, &GetParams{Refstr: c.ref, Selector: "stats"})
 		if err != nil {
 			t.Errorf("%d. case %s: unexpected error: '%s'", i, c.description, err.Error())
 			continue
@@ -1197,7 +1045,11 @@ func TestDatasetRequestsStats(t *testing.T) {
 		if err = json.Unmarshal(c.expected, &expect); err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(expect, res.Stats); diff != "" {
+		expectRes := []interface{}{}
+		if err = json.Unmarshal(res.Bytes, &expectRes); err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(expect, expectRes); diff != "" {
 			t.Errorf("%d. '%s' result mismatch (-want +got):%s\n", i, c.description, diff)
 		}
 	}
@@ -1209,81 +1061,6 @@ func mustBeArray(i interface{}, err error) []interface{} {
 		panic(err)
 	}
 	return i.([]interface{})
-}
-
-func TestListRawRefs(t *testing.T) {
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	// TODO(dlong): Put a TestRunner instance here
-
-	// to keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	minute := 0
-	dsfs.Timestamp = func() time.Time {
-		minute++
-		return time.Date(2001, 01, 01, 01, minute, 01, 01, time.UTC)
-	}
-
-	mr, err := testrepo.NewTestRepo()
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err.Error())
-	}
-	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-
-	text, err := inst.Dataset().ListRawRefs(ctx, &ListParams{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expect := dstest.Template(t, `0 Peername:  peer
-  ProfileID: {{ .ProfileID }}
-  Name:      cities
-  Path:      {{ .citiesPath }}
-  FSIPath:   
-  Published: false
-1 Peername:  peer
-  ProfileID: {{ .ProfileID }}
-  Name:      counter
-  Path:      {{ .counterPath }}
-  FSIPath:   
-  Published: false
-2 Peername:  peer
-  ProfileID: {{ .ProfileID }}
-  Name:      craigslist
-  Path:      {{ .craigslistPath }}
-  FSIPath:   
-  Published: false
-3 Peername:  peer
-  ProfileID: {{ .ProfileID }}
-  Name:      movies
-  Path:      {{ .moviesPath }}
-  FSIPath:   
-  Published: false
-4 Peername:  peer
-  ProfileID: {{ .ProfileID }}
-  Name:      sitemap
-  Path:      {{ .sitemapPath }}
-  FSIPath:   
-  Published: false
-`, map[string]string{
-		"ProfileID":      "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-		"citiesPath":     "/mem/QmPWCzaxFoxAu5wS8qXkL6tSA7aR2Lpcwykfz1TbhhpuDp",
-		"counterPath":    "/mem/QmVN68yJdLCstVj7YiDjoDvbuxnWKL57D5EAszM7SxtXi3",
-		"craigslistPath": "/mem/Qmcph3Wc9LHBGxzt4JVXR4T5ZGD85FQKdMvHWg6aNzqFCD",
-		"moviesPath":     "/mem/QmQPS7Nf6dG8zosyAA8zYd64gaLBTAzYsVhMkaMCgCXJST",
-		"sitemapPath":    "/mem/QmPk94KBWhGpfSMrEk85fwuFhqfAU84uwrdnwqQf5EV2B5",
-	})
-
-	if diff := cmp.Diff(expect, text); diff != "" {
-		t.Errorf("result mismatch (-want +got):\n%s", diff)
-	}
 }
 
 func TestFormFileDataset(t *testing.T) {

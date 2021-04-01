@@ -101,7 +101,7 @@ func (o *ListOptions) Run() (err error) {
 		p := &lib.ListParams{
 			UseDscache: o.UseDscache,
 		}
-		text, err := o.inst.Dataset().ListRawRefs(ctx, p)
+		text, err := o.inst.Collection().ListRawRefs(ctx, p)
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ func (o *ListOptions) Run() (err error) {
 		EnsureFSIExists: true,
 		UseDscache:      o.UseDscache,
 	}
-	infos, err := o.inst.Dataset().List(ctx, p)
+	infos, err := o.inst.Collection().List(ctx, p)
 	if err != nil {
 		if errors.Is(err, lib.ErrListWarning) {
 			printWarning(o.ErrOut, fmt.Sprintf("%s\n", err))

@@ -176,7 +176,7 @@ func (h *DatasetHandlers) PeerListHandler(routePrefix string) http.HandlerFunc {
 			p.Peername = ref.Username
 		}
 
-		res, err := h.List(r.Context(), &p)
+		res, err := h.inst.Collection().List(r.Context(), &p)
 		if err != nil {
 			log.Infof("error listing peer's datasets: %s", err.Error())
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)

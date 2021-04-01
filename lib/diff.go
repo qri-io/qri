@@ -13,6 +13,24 @@ import (
 	qerr "github.com/qri-io/qri/errors"
 )
 
+// DiffMethods encapsulates logic for diffing Datasets on Qri
+type DiffMethods struct {
+	d dispatcher
+}
+
+// Name returns the name of this method group
+func (m DiffMethods) Name() string {
+	return "diff"
+}
+
+// Attributes defines attributes for each method
+func (m DiffMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"changes": {AEChanges, "POST"},
+		"diff":    {AEDiff, "POST"},
+	}
+}
+
 // Delta is an alias for deepdiff.Delta, abstracting the deepdiff implementation
 // away from packages that depend on lib
 type Delta = deepdiff.Delta
@@ -105,7 +123,7 @@ const (
 )
 
 // Diff computes the diff of two sources
-func (m DatasetMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse, error) {
+func (m DiffMethods) Diff(ctx context.Context, p *DiffParams) (*DiffResponse, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "diff"), p)
 	if res, ok := got.(*DiffResponse); ok {
 		return res, err
@@ -139,8 +157,11 @@ func isFilePath(text string) bool {
 	return !dsref.IsRefString(text)
 }
 
+// diffImpl holds the method implementations for DiffMethods
+type diffImpl struct{}
+
 // Diff computes the diff of two source
-func (datasetImpl) Diff(scope scope, p *DiffParams) (*DiffResponse, error) {
+func (diffImpl) Diff(scope scope, p *DiffParams) (*DiffResponse, error) {
 	res := &DiffResponse{}
 
 	diffMode, err := p.diffMode()
