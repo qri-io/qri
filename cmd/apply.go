@@ -109,7 +109,7 @@ func (o *ApplyOptions) Run() error {
 		Wait:         true,
 	}
 
-	res, err := inst.Transform().Apply(ctx, &params)
+	res, err := inst.Automation().Apply(ctx, &params)
 	if err != nil {
 		return err
 	}

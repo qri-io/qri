@@ -30,16 +30,15 @@ func (m FSIMethods) Name() string {
 // Attributes defines attributes for each method
 func (m FSIMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
+		"status":                {AEStatus, "POST"},
+		"caninitdatasetworkdir": {AECanInitDatasetWorkDir, "POST"},
+		"init":                  {AEInit, "POST"},
+		"checkout":              {AECheckout, "POST"},
+		"ensureref":             {AEEnsureRef, "POST"},
+		"restore":               {AERestore, "POST"},
+		"write":                 {AEFSIWrite, "POST"},
 		"createlink":            {AEFSICreateLink, "POST"},
 		"unlink":                {AEFSIUnlink, "POST"},
-		"status":                {AEStatus, "GET"},
-		"whatchanged":           {AEWhatChanged, "GET"},
-		"checkout":              {AECheckout, "POST"},
-		"write":                 {AEFSIWrite, "POST"},
-		"restore":               {AERestore, "POST"},
-		"init":                  {AEInit, "POST"},
-		"caninitdatasetworkdir": {AECanInitDatasetWorkDir, "GET"},
-		"ensureref":             {AEEnsureRef, "POST"},
 	}
 }
 
@@ -100,16 +99,6 @@ func (m FSIMethods) Unlink(ctx context.Context, p *LinkParams) (string, error) {
 // version in the repo. Must only be called if FSI is enabled for this dataset.
 func (m FSIMethods) Status(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "status"), p)
-	if res, ok := got.([]StatusItem); ok {
-		return res, err
-	}
-	return nil, dispatchReturnError(got, err)
-}
-
-// WhatChanged gets changes that happened at a particular version in the history of the given
-// dataset reference.
-func (m FSIMethods) WhatChanged(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "whatchanged"), p)
 	if res, ok := got.([]StatusItem); ok {
 		return res, err
 	}
@@ -240,19 +229,6 @@ func (fsiImpl) Status(scope scope, p *LinkParams) ([]StatusItem, error) {
 	}
 
 	return scope.FSISubsystem().Status(ctx, vi.FSIPath)
-}
-
-// WhatChanged gets changes that happened at a particular version in the history of the given
-// dataset reference.
-func (fsiImpl) WhatChanged(scope scope, p *LinkParams) ([]StatusItem, error) {
-	ctx := scope.Context()
-
-	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
-	if err != nil {
-		return nil, err
-	}
-
-	return scope.FSISubsystem().StatusAtVersion(ctx, ref)
 }
 
 // Checkout method writes a dataset to a directory as individual files.

@@ -58,7 +58,7 @@ func (o *WhatChangedOptions) Run() (err error) {
 	inst := o.Instance
 
 	params := lib.LinkParams{Refstr: o.Refs.Ref()}
-	res, err := inst.Filesys().WhatChanged(ctx, &params)
+	res, err := inst.Dataset().ComponentStatus(ctx, &params)
 	if err != nil {
 		printErr(o.ErrOut, err)
 		return nil

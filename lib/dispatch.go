@@ -243,8 +243,10 @@ type callable struct {
 func (inst *Instance) RegisterMethods() {
 	reg := make(map[string]callable)
 	inst.registerOne("access", inst.Access(), accessImpl{}, reg)
+	inst.registerOne("collection", inst.Collection(), collectionImpl{}, reg)
 	inst.registerOne("config", inst.Config(), configImpl{}, reg)
 	inst.registerOne("dataset", inst.Dataset(), datasetImpl{}, reg)
+	inst.registerOne("diff", inst.Diff(), diffImpl{}, reg)
 	inst.registerOne("fsi", inst.Filesys(), fsiImpl{}, reg)
 	inst.registerOne("log", inst.Log(), logImpl{}, reg)
 	inst.registerOne("peer", inst.Peer(), peerImpl{}, reg)
@@ -253,7 +255,7 @@ func (inst *Instance) RegisterMethods() {
 	inst.registerOne("remote", inst.Remote(), remoteImpl{}, reg)
 	inst.registerOne("search", inst.Search(), searchImpl{}, reg)
 	inst.registerOne("sql", inst.SQL(), sqlImpl{}, reg)
-	inst.registerOne("transform", inst.Transform(), transformImpl{}, reg)
+	inst.registerOne("automation", inst.Automation(), automationImpl{}, reg)
 	inst.regMethods = &regMethodSet{reg: reg}
 }
 

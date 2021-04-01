@@ -73,7 +73,7 @@ func TestApplyTransformValidationFailure(t *testing.T) {
 	defer tr.Delete()
 
 	params := ApplyParams{}
-	_, err := tr.Instance.Transform().Apply(tr.Ctx, &params)
+	_, err := tr.Instance.Automation().Apply(tr.Ctx, &params)
 	if err == nil {
 		t.Fatal("expected err but did not get one")
 	}

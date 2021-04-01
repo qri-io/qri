@@ -191,7 +191,7 @@ func (tr *testRunner) MustGet(t *testing.T, refstr string) *dataset.Dataset {
 }
 
 func (tr *testRunner) ApplyWithParams(ctx context.Context, p *ApplyParams) (*dataset.Dataset, error) {
-	res, err := tr.Instance.Transform().Apply(ctx, p)
+	res, err := tr.Instance.Automation().Apply(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func (tr *testRunner) Diff(left, right, selector string) (string, error) {
 		UseLeftPrevVersion: right == "",
 		Selector:           selector,
 	}
-	r, err := tr.Instance.Dataset().Diff(tr.Ctx, &p)
+	r, err := tr.Instance.Diff().Diff(tr.Ctx, &p)
 	if err != nil {
 		return "", err
 	}
@@ -217,7 +217,7 @@ func (tr *testRunner) Diff(left, right, selector string) (string, error) {
 }
 
 func (tr *testRunner) DiffWithParams(p *DiffParams) (string, error) {
-	r, err := tr.Instance.Dataset().Diff(tr.Ctx, p)
+	r, err := tr.Instance.Diff().Diff(tr.Ctx, p)
 	if err != nil {
 		return "", err
 	}

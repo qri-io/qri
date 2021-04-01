@@ -813,6 +813,11 @@ func (inst *Instance) Access() AccessMethods {
 	return AccessMethods{d: inst}
 }
 
+// Collection returns the CollectionMethods that Instance has registered
+func (inst *Instance) Collection() CollectionMethods {
+	return CollectionMethods{d: inst}
+}
+
 // Config returns the ConfigMethods that Instance has registered
 func (inst *Instance) Config() ConfigMethods {
 	return ConfigMethods{d: inst}
@@ -821,6 +826,11 @@ func (inst *Instance) Config() ConfigMethods {
 // Dataset returns the DatasetMethods that Instance has registered
 func (inst *Instance) Dataset() DatasetMethods {
 	return DatasetMethods{d: inst}
+}
+
+// Diff returns the DiffMethods that Instance has registered
+func (inst *Instance) Diff() DiffMethods {
+	return DiffMethods{d: inst}
 }
 
 // Filesys returns the FSIMethods that Instance has registered
@@ -863,9 +873,9 @@ func (inst *Instance) SQL() SQLMethods {
 	return SQLMethods{d: inst}
 }
 
-// Transform returns the TransformMethods that Instance has registered
-func (inst *Instance) Transform() TransformMethods {
-	return TransformMethods{d: inst}
+// Automation returns the AutomationMethods that Instance has registered
+func (inst *Instance) Automation() AutomationMethods {
+	return AutomationMethods{d: inst}
 }
 
 // WithSource returns a wrapped instance that will resolve refs from the given source

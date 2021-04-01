@@ -28,7 +28,7 @@ func (m LogMethods) Name() string {
 func (m LogMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		"history":        {AEHistory, "POST"},
-		"entries":        {AEEntries, "POST"},
+		"log":            {AELog, "POST"},
 		"rawlogbook":     {denyRPC, ""},
 		"logbooksummary": {denyRPC, ""},
 	}
@@ -132,9 +132,9 @@ func (p *RefListParams) UnmarshalFromRequest(r *http.Request) error {
 // LogEntry is a record in a log of operations on a dataset
 type LogEntry = logbook.LogEntry
 
-// Entries lists log entries for actions taken on a given dataset
-func (m LogMethods) Entries(ctx context.Context, p *RefListParams) ([]LogEntry, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "entries"), p)
+// Log lists log entries for actions taken on a given dataset
+func (m LogMethods) Log(ctx context.Context, p *RefListParams) ([]LogEntry, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "log"), p)
 	if res, ok := got.([]LogEntry); ok {
 		return res, err
 	}
@@ -242,7 +242,7 @@ func (logImpl) History(scope scope, params *HistoryParams) ([]dsref.VersionInfo,
 }
 
 // Entries lists log entries for actions taken on a given dataset
-func (logImpl) Entries(scope scope, p *RefListParams) ([]LogEntry, error) {
+func (logImpl) Log(scope scope, p *RefListParams) ([]LogEntry, error) {
 	res := []LogEntry{}
 	var err error
 
