@@ -300,8 +300,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AERegistryNew.String(), s.Middleware(rch.CreateProfileHandler))
 	m.Handle(lib.AERegistryProve.String(), s.Middleware(rch.ProveProfileKeyHandler))
 
-	sh := NewSearchHandlers(s.Instance)
-	m.Handle(lib.AESearch.String(), s.Middleware(sh.SearchHandler))
+	m.Handle(lib.AESearch.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "search.search"))).Methods(http.MethodPost)
 
 	sqlh := NewSQLHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle(lib.AESQL.String(), s.Middleware(sqlh.QueryHandler))

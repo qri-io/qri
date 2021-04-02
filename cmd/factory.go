@@ -28,7 +28,6 @@ type Factory interface {
 	RemoteMethods() (*lib.RemoteMethods, error)
 	RegistryClientMethods() (*lib.RegistryClientMethods, error)
 	ProfileMethods() (*lib.ProfileMethods, error)
-	SearchMethods() (*lib.SearchMethods, error)
 	RenderMethods() (*lib.RenderMethods, error)
 }
 

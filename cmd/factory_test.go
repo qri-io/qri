@@ -147,11 +147,6 @@ func (t TestFactory) ProfileMethods() (*lib.ProfileMethods, error) {
 	return lib.NewProfileMethods(t.inst), nil
 }
 
-// SearchMethods generates a lib.SearchMethods from internal state
-func (t TestFactory) SearchMethods() (*lib.SearchMethods, error) {
-	return lib.NewSearchMethods(t.inst), nil
-}
-
 // RenderMethods generates a lib.RenderMethods from internal state
 func (t TestFactory) RenderMethods() (*lib.RenderMethods, error) {
 	return lib.NewRenderMethods(t.inst), nil

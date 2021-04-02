@@ -30,16 +30,16 @@ type SearchFilter struct {
 // SearchParams contains the parameters that are passed to a
 // Client.Search method
 type SearchParams struct {
-	QueryString string
-	Filters     []SearchFilter
-	Limit       int
-	Offset      int
+	Query   string
+	Filters []SearchFilter
+	Limit   int
+	Offset  int
 }
 
 // Search makes a registry search request
 func (c Client) Search(p *SearchParams) ([]*dataset.Dataset, error) {
 	params := &registry.SearchParams{
-		Q: p.QueryString,
+		Q: p.Query,
 		//Filters: p.Filters,
 		Limit:  p.Limit,
 		Offset: p.Offset,
