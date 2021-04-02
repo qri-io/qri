@@ -19,6 +19,8 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/auth/key"
+	tfrun "github.com/qri-io/qri/automation/run"
+	"github.com/qri-io/qri/automation/transform/startf"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -28,8 +30,6 @@ import (
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
-	tfrun "github.com/qri-io/qri/transform/run"
-	"github.com/qri-io/qri/transform/startf"
 	"github.com/spf13/cobra"
 )
 

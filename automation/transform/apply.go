@@ -8,9 +8,9 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/automation/transform/startf"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/transform/startf"
 )
 
 var log = golog.Logger("transform")

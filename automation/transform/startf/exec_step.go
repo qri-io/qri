@@ -9,10 +9,10 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/qfs"
+	skyctx "github.com/qri-io/qri/automation/transform/startf/context"
+	skyds "github.com/qri-io/qri/automation/transform/startf/ds"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	skyctx "github.com/qri-io/qri/transform/startf/context"
-	skyds "github.com/qri-io/qri/transform/startf/ds"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 )

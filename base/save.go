@@ -6,10 +6,10 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/transform/run"
 )
 
 // SaveSwitches is an alias for the switches that control how saves happen

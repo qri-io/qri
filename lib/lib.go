@@ -23,6 +23,8 @@ import (
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/auth/token"
+	"github.com/qri-io/qri/automation/scheduler"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
@@ -79,6 +81,7 @@ type InstanceOptions struct {
 	regclient  *regclient.Client
 	logbook    *logbook.Book
 	profiles   profile.Store
+	scheduler  scheduler.Scheduler
 	bus        event.Bus
 	logAll     bool
 
@@ -270,6 +273,14 @@ func OptStatsCache(statsCache stats.Cache) Option {
 func OptLogbook(bk *logbook.Book) Option {
 	return func(o *InstanceOptions) error {
 		o.logbook = bk
+		return nil
+	}
+}
+
+// OptLogbook overrides the configured scheduler with a manually provided one
+func OptScheduler(sch scheduler.Scheduler) Option {
+	return func(o *InstanceOptions) error {
+		o.scheduler = sch
 		return nil
 	}
 }
@@ -486,6 +497,18 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	if inst.registry == nil {
 		inst.registry = newRegClient(ctx, cfg)
+	}
+
+	if inst.scheduler == nil {
+		store, err := workflow.NewFileStore(filepath.Join(repoPath, "update", "workflows.json"), inst.Bus())
+		if err != nil {
+			return nil, err
+		}
+		// TODO (b5): this will need to be configurable, for now we're restricted to
+		// local execution
+		factory := newInstanceRunnerFactory(inst)
+
+		inst.scheduler = scheduler.NewCronScheduler(store, factory, inst.bus)
 	}
 
 	if inst.dscache == nil {
@@ -745,6 +768,7 @@ type Instance struct {
 	dscache      *dscache.Dscache
 	bus          event.Bus
 	watcher      *watchfs.FilesysWatcher
+	scheduler    scheduler.Scheduler
 	appCtx       context.Context
 
 	profiles profile.Store
@@ -764,7 +788,15 @@ type Instance struct {
 func (inst *Instance) Connect(ctx context.Context) (err error) {
 	if err = inst.node.GoOnline(ctx); err != nil {
 		log.Debugf("taking node online: %s", err.Error())
-		return
+		return err
+	}
+
+	if inst.scheduler != nil {
+		go func() {
+			if err := inst.scheduler.Start(ctx); err != nil {
+				log.Debugw("scheduler error", "err", err)
+			}
+		}()
 	}
 
 	// for now if we have an IPFS node instance, node.GoOnline has to make a new

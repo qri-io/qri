@@ -20,11 +20,11 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/auth/key"
+	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/profile"
-	"github.com/qri-io/qri/transform/run"
 )
 
 var (
