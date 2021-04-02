@@ -251,15 +251,6 @@ func (o *QriOptions) RegistryClientMethods() (*lib.RegistryClientMethods, error)
 	return lib.NewRegistryClientMethods(o.inst), nil
 }
 
-// ProfileMethods generates a lib.ProfileMethods from internal state
-func (o *QriOptions) ProfileMethods() (m *lib.ProfileMethods, err error) {
-	if err = o.Init(); err != nil {
-		return
-	}
-
-	return lib.NewProfileMethods(o.inst), nil
-}
-
 // RenderMethods generates a lib.RenderMethods from internal state
 func (o *QriOptions) RenderMethods() (*lib.RenderMethods, error) {
 	if err := o.Init(); err != nil {

@@ -38,16 +38,18 @@ const (
 	// AEIPFS is the IPFS endpoint
 	AEIPFS = APIEndpoint("/ipfs/{path:.*}")
 
-	// profile enpoints
+	// profile endpoints
 
-	// AEMe is the "own" profile endpoint
-	AEMe = APIEndpoint("/me")
 	// AEProfile is an alias for the me endpoint
 	AEProfile = APIEndpoint("/profile")
 	// AEProfilePhoto is an endpoint to serve the profile photo
 	AEProfilePhoto = APIEndpoint("/profile/photo")
 	// AEProfilePoster is an endpoint to serve the profile poster
 	AEProfilePoster = APIEndpoint("/profile/poster")
+	// AEProfilePhotoSet is an endpoint to serve the profile photo
+	AEProfilePhotoSet = APIEndpoint("/profile/photo/set")
+	// AEProfilePosterSet is an endpoint to serve the profile poster
+	AEProfilePosterSet = APIEndpoint("/profile/poster/set")
 
 	// peer endpoints
 

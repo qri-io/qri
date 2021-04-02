@@ -84,7 +84,6 @@ func (o *ConfigOptions) CompleteConfig(f Factory) (err error) {
 		return
 	}
 
-	o.ProfileMethods, err = f.ProfileMethods()
 	return
 }
 

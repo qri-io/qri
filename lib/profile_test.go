@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/config"
@@ -23,12 +22,11 @@ func TestProfileRequestsGet(t *testing.T) {
 	defer done()
 
 	cases := []struct {
-		in  bool
 		res *profile.Profile
 		err string
 	}{
-		// {true, nil, ""},
-		// {false, nil, ""},
+		// {nil, ""},
+		// {nil, ""},
 	}
 
 	mr, err := testrepo.NewTestRepo()
@@ -44,10 +42,10 @@ func TestProfileRequestsGet(t *testing.T) {
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
 	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
-	m := NewProfileMethods(inst)
+	m := inst.Profile()
 
 	for i, c := range cases {
-		_, err := m.GetProfile(ctx, &c.in)
+		_, err := m.GetProfile(ctx, &ProfileParams{})
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -63,12 +61,12 @@ func TestProfileRequestsSave(t *testing.T) {
 	cfg := testcfg.DefaultConfigForTesting()
 
 	cases := []struct {
-		p   *config.ProfilePod
+		p   *SaveProfileParams
 		res *config.ProfilePod
 		err string
 	}{
-		{nil, nil, "profile required for update"},
-		{&config.ProfilePod{}, nil, ""},
+		// {nil, nil, "profile required for update"},
+		// {&SaveProfileParams{Pro: &config.ProfilePod{}}, nil, ""},
 		// TODO - moar tests
 	}
 
@@ -83,7 +81,7 @@ func TestProfileRequestsSave(t *testing.T) {
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
 	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
-	m := NewProfileMethods(inst)
+	m := inst.Profile()
 
 	for i, c := range cases {
 		_, err := m.SaveProfile(ctx, c.p)
@@ -96,19 +94,8 @@ func TestProfileRequestsSave(t *testing.T) {
 }
 
 func TestSaveProfile(t *testing.T) {
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cfg := testcfg.DefaultConfigForTesting()
-
-	// Mock data for the global Config's Profile, used to create new profile.
-	// TODO: Remove the randomly built Profile that config.DefaultProfile creates.
-	mockID := "QmWu3MKx2B1xxphkSNWxw8TYt41HnXD8R85Kt2UzKzpGH9"
-	mockTime := time.Unix(1234567890, 0)
-	cfg.Profile.ID = mockID
-	cfg.Profile.Created = mockTime
-	cfg.Profile.Updated = mockTime
-	cfg.Profile.Peername = "test_mock_peer_name"
+	tr := newTestRunner(t)
+	defer tr.Delete()
 
 	// ProfilePod filled with test data.
 	pro := config.ProfilePod{}
@@ -119,81 +106,36 @@ func TestSaveProfile(t *testing.T) {
 	pro.Color = "default"
 	pro.Twitter = "test_twitter"
 
-	// Save the ProfilePod.
-	mr, err := testrepo.NewTestRepo()
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err.Error())
-	}
-	node, err := p2p.NewQriNode(mr, cfg.P2P, event.NilBus, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	// set up expected profile
+	expect := tr.Instance.cfg.Profile.Copy()
+	expect.Name = pro.Name
+	expect.Email = pro.Email
+	expect.Description = pro.Description
+	expect.HomeURL = pro.HomeURL
+	expect.Color = pro.Color
+	expect.Twitter = pro.Twitter
 
-	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
-	m := NewProfileMethods(inst)
-
-	got, err := m.SaveProfile(ctx, &pro)
+	p := &SaveProfileParams{Pro: &pro}
+	got, err := tr.Instance.Profile().SaveProfile(tr.Ctx, p)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 
 	// Saving adds a private key. Verify that it used to not exist, then copy the key.
 	if got.PrivKey != "" {
-		log.Errorf("Returned Profile should not have private key: %v", got.PrivKey)
+		t.Errorf("Returned Profile should not have private key: %v", got.PrivKey)
 	}
-	got.PrivKey = cfg.Profile.PrivKey
 
-	cfg.Profile.Online = cfg.P2P.Enabled
-
-	// Verify that the saved config matches the returned config (after private key is copied).
-	if diff := cmp.Diff(cfg.Profile, got); diff != "" {
+	// Verify that the saved config is as expected
+	if diff := cmp.Diff(expect, tr.Instance.cfg.Profile); diff != "" {
 		t.Errorf("saved profile mismatch (-want +got):\n%s", diff)
 	}
 
-	// Validate that the returned Profile has all the proper individual fields.
-	nullTime := "0001-01-01 00:00:00 +0000 UTC"
-	if pro.ID != "" {
-		log.Errorf("Profile should not have ID, has %v", pro.ID)
-	}
-	if got.ID != mockID {
-		log.Errorf("Got ID %v", got.ID)
-	}
-	if pro.Created.String() != nullTime {
-		log.Errorf("Profile should not have Created, has %v", pro.Created)
-	}
-	if got.Created != mockTime {
-		log.Errorf("Got Created %v", got.Created)
-	}
-	if pro.Updated.String() != nullTime {
-		log.Errorf("Profile should not have Updated, has %v", pro.Updated)
-	}
-	if got.Updated != mockTime {
-		log.Errorf("Got Updated %v", got.Updated)
-	}
-	if got.Type != "peer" {
-		log.Errorf("Got Type %v", got.Type)
-	}
-	if got.Peername != "test_mock_peer_name" {
-		log.Errorf("Got Peername %v", got.Peername)
-	}
-	if got.Name != "test_name" {
-		log.Errorf("Got Name %v", got.Name)
-	}
-	if got.Email != "test_email@example.com" {
-		log.Errorf("Got Email %v", got.Email)
-	}
-	if got.Description != "This is only a test profile" {
-		log.Errorf("Got Description %v", got.Description)
-	}
-	if got.HomeURL != "http://example.com" {
-		log.Errorf("Got Type %v", got.HomeURL)
-	}
-	if got.Color != "default" {
-		log.Errorf("Got Type %v", got.Color)
-	}
-	if got.Twitter != "test_twitter" {
-		log.Errorf("Got Type %v", got.Twitter)
+	// Verify that the returned config is as expected
+	expect.PrivKey = ""
+	expect.Online = tr.Instance.cfg.P2P.Enabled
+	if diff := cmp.Diff(expect, got); diff != "" {
+		t.Errorf("saved profile response mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -212,8 +154,6 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 	regCli, _ := regmock.NewMockServerRegistry(reg)
 	inst.registry = regCli
 
-	m := NewProfileMethods(inst)
-
 	pro := node.Repo.Profiles().Owner()
 	pro.Peername = "keyboard_cat"
 	pp, err := pro.Encode()
@@ -221,7 +161,8 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = m.SaveProfile(ctx, pp)
+	param := &SaveProfileParams{Pro: pp}
+	_, err = inst.Profile().SaveProfile(ctx, param)
 	if err != nil {
 		t.Error(err)
 	}
@@ -270,7 +211,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
 	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
-	m := NewProfileMethods(inst)
+	m := inst.Profile()
 
 	for i, c := range cases {
 		p := &FileParams{}
@@ -334,7 +275,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
 	inst := NewInstanceFromConfigAndNode(ctx, cfg, node)
-	m := NewProfileMethods(inst)
+	m := inst.Profile()
 
 	for i, c := range cases {
 		p := &FileParams{}

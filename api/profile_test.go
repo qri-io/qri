@@ -17,38 +17,6 @@ import (
 	"github.com/qri-io/qri/lib"
 )
 
-func TestProfileHandler(t *testing.T) {
-	node, teardown := newTestNode(t)
-	defer teardown()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	cases := []handlerTestCase{
-		{"GET", "/", nil, nil},
-		{"DELETE", "/", nil, nil},
-	}
-
-	inst := newTestInstanceWithProfileFromNode(ctx, node)
-	proh := NewProfileHandlers(inst, false)
-	runHandlerTestCases(t, "profile", proh.ProfileHandler, cases, true)
-
-	readOnlyCases := []handlerTestCase{
-		{"GET", "/", nil, nil},
-	}
-	proh.ReadOnly = true
-	runHandlerTestCases(t, "read-only", proh.ProfileHandler, readOnlyCases, true)
-
-	mimeCases := []handlerMimeMultipartTestCase{
-		{"GET", "/",
-			map[string]string{},
-			map[string]string{},
-			nil,
-		},
-	}
-	runMimeMultipartHandlerTestCases(t, "mime read", proh.ProfileHandler, mimeCases)
-}
-
 func TestProfilePhotoHandler(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
