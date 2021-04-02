@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -10,6 +11,13 @@ import (
 
 	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/profile"
+)
+
+var (
+	// ErrDispatchNilInstance indicates that the instance that dispatch as been called on is nil
+	ErrDispatchNilInstance = errors.New("instance is nil, cannot dispatch")
+	// ErrDispatchNilParam indicates that the param passed to dispatch is nil
+	ErrDispatchNilParam = errors.New("param is nil, cannot dispatch")
 )
 
 // dispatcher isolates the dispatch method
@@ -71,7 +79,10 @@ func (isw *InstanceSourceWrap) Dispatch(ctx context.Context, method string, para
 
 func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, param interface{}, source string) (res interface{}, cur Cursor, err error) {
 	if inst == nil {
-		return nil, nil, fmt.Errorf("instance is nil, cannot dispatch")
+		return nil, nil, ErrDispatchNilInstance
+	}
+	if param == nil || (reflect.ValueOf(param).Kind() == reflect.Ptr && reflect.ValueOf(param).IsNil()) {
+		return nil, nil, ErrDispatchNilParam
 	}
 
 	// If the input parameters has a Validate method, call it

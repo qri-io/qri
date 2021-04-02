@@ -65,8 +65,8 @@ func TestProfileRequestsSave(t *testing.T) {
 		res *config.ProfilePod
 		err string
 	}{
-		// {nil, nil, "profile required for update"},
-		// {&SaveProfileParams{Pro: &config.ProfilePod{}}, nil, ""},
+		{nil, nil, ErrDispatchNilParam.Error()},
+		{&SaveProfileParams{Pro: &config.ProfilePod{}}, nil, ""},
 		// TODO - moar tests
 	}
 
