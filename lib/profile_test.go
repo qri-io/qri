@@ -61,12 +61,12 @@ func TestProfileRequestsSave(t *testing.T) {
 	cfg := testcfg.DefaultConfigForTesting()
 
 	cases := []struct {
-		p   *SaveProfileParams
+		p   *SetProfileParams
 		res *config.ProfilePod
 		err string
 	}{
 		{nil, nil, ErrDispatchNilParam.Error()},
-		{&SaveProfileParams{Pro: &config.ProfilePod{}}, nil, ""},
+		{&SetProfileParams{Pro: &config.ProfilePod{}}, nil, ""},
 		// TODO - moar tests
 	}
 
@@ -84,7 +84,7 @@ func TestProfileRequestsSave(t *testing.T) {
 	m := inst.Profile()
 
 	for i, c := range cases {
-		_, err := m.SaveProfile(ctx, c.p)
+		_, err := m.SetProfile(ctx, c.p)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -93,7 +93,7 @@ func TestProfileRequestsSave(t *testing.T) {
 	}
 }
 
-func TestSaveProfile(t *testing.T) {
+func TestSetProfile(t *testing.T) {
 	tr := newTestRunner(t)
 	defer tr.Delete()
 
@@ -115,8 +115,8 @@ func TestSaveProfile(t *testing.T) {
 	expect.Color = pro.Color
 	expect.Twitter = pro.Twitter
 
-	p := &SaveProfileParams{Pro: &pro}
-	got, err := tr.Instance.Profile().SaveProfile(tr.Ctx, p)
+	p := &SetProfileParams{Pro: &pro}
+	got, err := tr.Instance.Profile().SetProfile(tr.Ctx, p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,8 +161,8 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	param := &SaveProfileParams{Pro: pp}
-	_, err = inst.Profile().SaveProfile(ctx, param)
+	param := &SetProfileParams{Pro: pp}
+	_, err = inst.Profile().SetProfile(ctx, param)
 	if err != nil {
 		t.Error(err)
 	}
@@ -259,7 +259,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 		err     string
 	}{
 		{"", "", "file is required"},
-		{"testdata/ink_big_photo.jpg", "", "file size too large. max size is 250kb"},
+		{"testdata/ink_big_photo.jpg", "", "file size too large. max size is 2Mb"},
 		{"testdata/q_bang.svg", "", "invalid file format. only .jpg images allowed"},
 		{"testdata/rico_poster_1500x500.jpg", "/mem/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", ""},
 	}
@@ -289,7 +289,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 			p.Data = r
 		}
 
-		res, err := m.SetProfilePhoto(ctx, p)
+		res, err := m.SetPosterPhoto(ctx, p)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err.Error())
 			continue
@@ -304,8 +304,8 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 			continue
 		}
 
-		if c.respath != res.Photo {
-			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath, res.Photo)
+		if c.respath != res.Poster {
+			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath, res.Poster)
 			continue
 		}
 	}

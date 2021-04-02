@@ -221,15 +221,10 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEHealth.String(), s.NoLogMiddleware(HealthCheckHandler))
 	m.Handle(lib.AEIPFS.String(), s.Middleware(s.HandleIPFSPath))
 
-	proh := NewProfileHandlers(s.Instance, cfg.API.ReadOnly)
-	m.Handle(lib.AEProfilePhoto.String(), s.Middleware(proh.ProfilePhotoHandler))
-	m.Handle(lib.AEProfilePoster.String(), s.Middleware(proh.PosterHandler))
-
-	m.Handle(lib.AEProfile.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.getprofile"))).Methods(http.MethodPost)
-	// m.Handle(lib.AEProfilePhoto.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.profilephoto"))).Methods(http.MethodPost)
-	// m.Handle(lib.AEProfilePoster.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.posterphoto"))).Methods(http.MethodPost)
-	m.Handle(lib.AEProfilePhotoSet.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setprofilephoto"))).Methods(http.MethodPost)
-	m.Handle(lib.AEProfilePosterSet.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setposterphoto"))).Methods(http.MethodPost)
+	m.Handle(lib.AEGetProfile.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.getprofile"))).Methods(http.MethodPost)
+	m.Handle(lib.AESetProfile.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setprofile"))).Methods(http.MethodPost)
+	m.Handle(lib.AESetProfilePhoto.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setprofilePhoto"))).Methods(http.MethodPost)
+	m.Handle(lib.AESetPosterPhoto.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setposterphoto"))).Methods(http.MethodPost)
 
 	m.Handle(lib.AEPeers.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.list"))).Methods(http.MethodPost)
 	m.Handle(lib.AEPeer.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.info"))).Methods(http.MethodPost)

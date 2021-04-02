@@ -224,7 +224,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		return err
 	}
 	if profileChanged {
-		if _, err = o.inst.Profile().SaveProfile(ctx, &lib.SaveProfileParams{Pro: profile}); err != nil {
+		if _, err = o.inst.Profile().SetProfile(ctx, &lib.SetProfileParams{Pro: profile}); err != nil {
 			if errors.Is(err, lib.ErrUnsupportedRPC) {
 				return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
 			}

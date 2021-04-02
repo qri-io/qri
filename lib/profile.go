@@ -30,11 +30,9 @@ func (m ProfileMethods) Name() string {
 // Attributes defines attributes for each method
 func (m ProfileMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"getprofile":      {AEProfile, "POST"},
-		"saveprofile":     {denyRPC, ""},
-		"profilephoto":    {denyRPC, ""},
+		"getprofile":      {denyRPC, ""},
+		"setprofile":      {denyRPC, ""},
 		"setprofilephoto": {denyRPC, ""},
-		"posterphoto":     {denyRPC, ""},
 		"setposterphoto":  {denyRPC, ""},
 	}
 }
@@ -51,25 +49,16 @@ func (m ProfileMethods) GetProfile(ctx context.Context, p *ProfileParams) (*conf
 	return nil, dispatchReturnError(got, err)
 }
 
-// SaveProfileParams defines parameters for setting parts of a profile
-// Cannot use this to set private keys, peer id, profile photo, or poster photo
-type SaveProfileParams struct {
+// SetProfileParams defines parameters for setting parts of a profile
+// Cannot use this to set private keys, your peername, or peer id
+type SetProfileParams struct {
 	Pro *config.ProfilePod
 }
 
-// SaveProfile stores changes to the active peer's editable profile
-func (m ProfileMethods) SaveProfile(ctx context.Context, p *SaveProfileParams) (*config.ProfilePod, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "saveprofile"), p)
+// SetProfile stores changes to the active peer's editable profile
+func (m ProfileMethods) SetProfile(ctx context.Context, p *SetProfileParams) (*config.ProfilePod, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "setprofile"), p)
 	if res, ok := got.(*config.ProfilePod); ok {
-		return res, err
-	}
-	return nil, dispatchReturnError(got, err)
-}
-
-// ProfilePhoto fetches the byte slice of the active user's profile photo
-func (m ProfileMethods) ProfilePhoto(ctx context.Context, req *ProfileParams) ([]byte, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "profilephoto"), req)
-	if res, ok := got.([]byte); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -86,15 +75,6 @@ type FileParams struct {
 func (m ProfileMethods) SetProfilePhoto(ctx context.Context, p *FileParams) (*config.ProfilePod, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "setprofilephoto"), p)
 	if res, ok := got.(*config.ProfilePod); ok {
-		return res, err
-	}
-	return nil, dispatchReturnError(got, err)
-}
-
-// PosterPhoto fetches the byte slice of the active user's poster photo
-func (m ProfileMethods) PosterPhoto(ctx context.Context, req *ProfileParams) ([]byte, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "posterphoto"), req)
-	if res, ok := got.([]byte); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -131,8 +111,8 @@ func (profileImpl) GetProfile(scope scope, p *ProfileParams) (*config.ProfilePod
 	return enc, nil
 }
 
-// SaveProfile stores changes to the active peer's editable profile
-func (profileImpl) SaveProfile(scope scope, p *SaveProfileParams) (*config.ProfilePod, error) {
+// SetProfile stores changes to the active peer's editable profile
+func (profileImpl) SetProfile(scope scope, p *SetProfileParams) (*config.ProfilePod, error) {
 	if p.Pro == nil {
 		return nil, fmt.Errorf("profile required for update")
 	}
@@ -201,21 +181,6 @@ func (profileImpl) SaveProfile(scope scope, p *SaveProfileParams) (*config.Profi
 	return res, nil
 }
 
-// ProfilePhoto fetches the byte slice of the active user's profile photo
-func (profileImpl) ProfilePhoto(scope scope, req *ProfileParams) ([]byte, error) {
-	pro := scope.ActiveProfile()
-	if pro.Photo == "" || pro.Photo == "/" {
-		return []byte{}, nil
-	}
-
-	f, e := scope.Filesystem().Get(scope.Context(), pro.Photo)
-	if e != nil {
-		return nil, e
-	}
-
-	return ioutil.ReadAll(f)
-}
-
 // SetProfilePhoto changes the active peer's profile image
 func (profileImpl) SetProfilePhoto(scope scope, p *FileParams) (*config.ProfilePod, error) {
 	if p.Data == nil {
@@ -268,22 +233,6 @@ func (profileImpl) SetProfilePhoto(scope scope, p *FileParams) (*config.ProfileP
 	}
 
 	return pp, nil
-}
-
-// PosterPhoto fetches the byte slice of the active user's poster photo
-func (profileImpl) PosterPhoto(scope scope, req *ProfileParams) ([]byte, error) {
-	pro := scope.ActiveProfile()
-
-	if pro.Poster == "" || pro.Poster == "/" {
-		return []byte{}, nil
-	}
-
-	f, e := scope.Filesystem().Get(scope.Context(), pro.Poster)
-	if e != nil {
-		return nil, e
-	}
-
-	return ioutil.ReadAll(f)
 }
 
 // SetPosterPhoto changes the active peer's poster image

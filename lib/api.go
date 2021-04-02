@@ -40,16 +40,14 @@ const (
 
 	// profile endpoints
 
-	// AEProfile is an alias for the me endpoint
-	AEProfile = APIEndpoint("/profile")
-	// AEProfilePhoto is an endpoint to serve the profile photo
-	AEProfilePhoto = APIEndpoint("/profile/photo")
-	// AEProfilePoster is an endpoint to serve the profile poster
-	AEProfilePoster = APIEndpoint("/profile/poster")
-	// AEProfilePhotoSet is an endpoint to serve the profile photo
-	AEProfilePhotoSet = APIEndpoint("/profile/photo/set")
-	// AEProfilePosterSet is an endpoint to serve the profile poster
-	AEProfilePosterSet = APIEndpoint("/profile/poster/set")
+	// AEGetProfile is an alias for the me endpoint
+	AEGetProfile = APIEndpoint("/profile")
+	// AESetProfile is an endpoint to set the profile
+	AESetProfile = APIEndpoint("/profile/set")
+	// AESetProfilePhoto is an endpoint to set the profile photo
+	AESetProfilePhoto = APIEndpoint("/profile/photo")
+	// AESetPosterPhoto is an endpoint to set the profile poster
+	AESetPosterPhoto = APIEndpoint("/profile/poster")
 
 	// peer endpoints
 
