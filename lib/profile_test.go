@@ -2,7 +2,7 @@ package lib
 
 import (
 	"context"
-	"os"
+	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -194,8 +194,8 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 		respath string
 		err     string
 	}{
-		{"", "", "file is required"},
-		{"testdata/ink_big_photo.jpg", "", "file size too large. max size is 250kb"},
+		{"", "", "filename or data required"},
+		{"testdata/ink_big_photo.jpg", "", "file size too large. max size is 250.0 KiB"},
 		{"testdata/q_bang.svg", "", "invalid file format. only .jpg images allowed"},
 		{"testdata/rico_400x400.jpg", "/mem/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 	}
@@ -217,12 +217,12 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 		p := &FileParams{}
 		if c.infile != "" {
 			p.Filename = filepath.Base(c.infile)
-			r, err := os.Open(c.infile)
+			d, err := ioutil.ReadFile(c.infile)
 			if err != nil {
 				t.Errorf("case %d error opening test file %s: %s ", i, c.infile, err.Error())
 				continue
 			}
-			p.Data = r
+			p.Data = d
 		}
 
 		res, err := m.SetProfilePhoto(ctx, p)
@@ -258,8 +258,8 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 		respath string
 		err     string
 	}{
-		{"", "", "file is required"},
-		{"testdata/ink_big_photo.jpg", "", "file size too large. max size is 2Mb"},
+		{"", "", "filename or data required"},
+		{"testdata/ink_big_photo.jpg", "", "file size too large. max size is 2.0 MiB"},
 		{"testdata/q_bang.svg", "", "invalid file format. only .jpg images allowed"},
 		{"testdata/rico_poster_1500x500.jpg", "/mem/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", ""},
 	}
@@ -278,16 +278,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 	m := inst.Profile()
 
 	for i, c := range cases {
-		p := &FileParams{}
-		if c.infile != "" {
-			p.Filename = filepath.Base(c.infile)
-			r, err := os.Open(c.infile)
-			if err != nil {
-				t.Errorf("case %d error opening test file %s: %s ", i, c.infile, err.Error())
-				continue
-			}
-			p.Data = r
-		}
+		p := &FileParams{Filename: c.infile}
 
 		res, err := m.SetPosterPhoto(ctx, p)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -307,6 +298,27 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 		if c.respath != res.Poster {
 			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath, res.Poster)
 			continue
+		}
+	}
+}
+
+func TestByteCount(t *testing.T) {
+	cases := []struct {
+		input    int64
+		expected string
+	}{
+		{1, "1B"},
+		{1 << 10, "1.0 KiB"},
+		{2 << 20, "2.0 MiB"},
+		{3 << 30, "3.0 GiB"},
+		{4 << 40, "4.0 TiB"},
+		{5 << 50, "5.0 PiB"},
+		{6 << 60, "6.0 EiB"},
+	}
+	for i, c := range cases {
+		got := byteCount(c.input)
+		if c.expected != got {
+			t.Errorf("case %d, output mismatch. expected: %s, got %s", i, c.expected, got)
 		}
 	}
 }

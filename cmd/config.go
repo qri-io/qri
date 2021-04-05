@@ -237,14 +237,8 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 }
 
 func setPhotoPath(ctx context.Context, m *lib.ProfileMethods, proppath, filepath string) error {
-	f, err := loadFileIfPath(filepath)
-	if err != nil {
-		return err
-	}
-
 	p := &lib.FileParams{
-		Filename: f.Name(),
-		Data:     f,
+		Filename: filepath,
 	}
 
 	switch proppath {

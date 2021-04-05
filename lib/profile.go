@@ -3,7 +3,6 @@ package lib
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -65,10 +64,14 @@ func (m ProfileMethods) SetProfile(ctx context.Context, p *SetProfileParams) (*c
 }
 
 // FileParams defines parameters for Files as arguments to lib methods
+// either `Filename` or `Data` is required. If both fields are set, the content in the `Data` field is favored
 type FileParams struct {
-	// Url      string    // url to download data from. either Url or Data is required
-	Filename string    // filename of data file. extension is used for filetype detection
-	Data     io.Reader // reader of structured data. either Url or Data is required
+	// url to download data from. either Url or Data is required
+	// Url      string
+	// Filename of data file. extension is used for filetype detection
+	Filename string `qri:"fspath"`
+	// Data is the file as slice of bytes
+	Data []byte
 }
 
 // SetProfilePhoto changes the active peer's profile image
@@ -183,29 +186,12 @@ func (profileImpl) SetProfile(scope scope, p *SetProfileParams) (*config.Profile
 
 // SetProfilePhoto changes the active peer's profile image
 func (profileImpl) SetProfilePhoto(scope scope, p *FileParams) (*config.ProfilePod, error) {
-	if p.Data == nil {
-		return nil, fmt.Errorf("file is required")
-	}
-
-	// TODO - make the reader be a sizefile to avoid this double-read
-	data, err := ioutil.ReadAll(p.Data)
-	if err != nil {
-		log.Debug(err.Error())
-		return nil, fmt.Errorf("error reading file data: %s", err.Error())
-	}
-	if len(data) > 250000 {
-		return nil, fmt.Errorf("file size too large. max size is 250kb")
-	} else if len(data) == 0 {
-		return nil, fmt.Errorf("data file is empty")
-	}
-
-	mimetype := http.DetectContentType(data)
-	if mimetype != "image/jpeg" {
-		return nil, fmt.Errorf("invalid file format. only .jpg images allowed")
+	if err := loadAndValidateJPEG(p, 256000); err != nil {
+		return nil, err
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
-	path, err := scope.Filesystem().DefaultWriteFS().Put(scope.Context(), qfs.NewMemfileBytes("plz_just_encode", data))
+	path, err := scope.Filesystem().DefaultWriteFS().Put(scope.Context(), qfs.NewMemfileBytes("plz_just_encode", p.Data))
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error saving photo: %s", err.Error())
@@ -237,30 +223,12 @@ func (profileImpl) SetProfilePhoto(scope scope, p *FileParams) (*config.ProfileP
 
 // SetPosterPhoto changes the active peer's poster image
 func (profileImpl) SetPosterPhoto(scope scope, p *FileParams) (*config.ProfilePod, error) {
-	if p.Data == nil {
-		return nil, fmt.Errorf("file is required")
-	}
-
-	// TODO - make the reader be a sizefile to avoid this double-read
-	data, err := ioutil.ReadAll(p.Data)
-	if err != nil {
-		log.Debug(err.Error())
-		return nil, fmt.Errorf("error reading file data: %s", err.Error())
-	}
-
-	if len(data) > 2000000 {
-		return nil, fmt.Errorf("file size too large. max size is 2Mb")
-	} else if len(data) == 0 {
-		return nil, fmt.Errorf("file is empty")
-	}
-
-	mimetype := http.DetectContentType(data)
-	if mimetype != "image/jpeg" {
-		return nil, fmt.Errorf("invalid file format. only .jpg images allowed")
+	if err := loadAndValidateJPEG(p, 2<<20); err != nil {
+		return nil, err
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
-	path, err := scope.Filesystem().DefaultWriteFS().Put(scope.Context(), qfs.NewMemfileBytes("plz_just_encode", data))
+	path, err := scope.Filesystem().DefaultWriteFS().Put(scope.Context(), qfs.NewMemfileBytes("plz_just_encode", p.Data))
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error saving photo: %s", err.Error())
@@ -284,4 +252,43 @@ func (profileImpl) SetPosterPhoto(scope scope, p *FileParams) (*config.ProfilePo
 	}
 
 	return pp, nil
+}
+
+func loadAndValidateJPEG(p *FileParams, maxBytes int) (err error) {
+	if p.Filename == "" && (p.Data == nil || len(p.Data) == 0) {
+		return fmt.Errorf("filename or data required")
+	}
+	if p.Data == nil || len(p.Data) == 0 {
+		if p.Data, err = ioutil.ReadFile(p.Filename); err != nil {
+			return fmt.Errorf("error opening file: %w", err)
+		}
+	}
+
+	if len(p.Data) > maxBytes {
+		return fmt.Errorf("file size too large. max size is %s", byteCount(int64(maxBytes)))
+
+	} else if len(p.Data) == 0 {
+		return fmt.Errorf("file is empty")
+	}
+
+	mimetype := http.DetectContentType(p.Data)
+	if mimetype != "image/jpeg" {
+		return fmt.Errorf("invalid file format. only .jpg images allowed")
+	}
+	return nil
+}
+
+// provides human readable byte count
+func byteCount(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%dB", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB",
+		float64(b)/float64(div), "KMGTPE"[exp])
 }
