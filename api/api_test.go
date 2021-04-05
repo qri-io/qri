@@ -230,12 +230,6 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		// forbidden endpoints
 		{"GET", "/ipfs/", 403},
 		{"GET", "/ipns/", 404},
-		{"GET", "/profile", 403},
-		{"POST", "/profile", 403},
-		{"POST", "/profile/photo", 403},
-		{"PUT", "/profile/photo", 403},
-		{"POST", "/profile/poster", 403},
-		{"PUT", "/profile/poster", 403},
 		{"POST", "/save", 403},
 		{"PUT", "/save", 403},
 		{"POST", "/remove", 403},
@@ -252,8 +246,6 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		// {"GET", "/connect/QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", 200},
 		// Cannot test endpoint until we have peers in this test suite
 		// {"GET", "/peer", 200},
-		{"GET", "/profile/photo?peername=me", 200},
-		{"GET", "/profile/poster?peername=me", 200},
 		{"GET", "/get/peer/movies", 200},
 	}
 

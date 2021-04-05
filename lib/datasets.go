@@ -34,6 +34,7 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/fsi/linkfile"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/transform"
@@ -856,6 +857,24 @@ func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error)
 	}
 
 	return infos, nil
+}
+
+func getProfile(ctx context.Context, pros profile.Store, idStr, peername string) (pro *profile.Profile, err error) {
+	if idStr == "" {
+		// TODO(b5): we're handling the "me" keyword here, should be handled as part of
+		// request scope construction
+		if peername == "me" {
+			return pros.Owner(), nil
+		}
+		return profile.ResolveUsername(pros, peername)
+	}
+
+	id, err := profile.IDB58Decode(idStr)
+	if err != nil {
+		log.Debugw("decoding profile ID", "err", err)
+		return nil, err
+	}
+	return pros.GetProfile(id)
 }
 
 // ListRawRefs gets the list of raw references as string

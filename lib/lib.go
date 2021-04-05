@@ -838,6 +838,11 @@ func (inst *Instance) Peer() PeerMethods {
 	return PeerMethods{d: inst}
 }
 
+// Profile returns the ProfileMethods that Instance has registered
+func (inst *Instance) Profile() ProfileMethods {
+	return ProfileMethods{d: inst}
+}
+
 // Search returns the SearchMethods that Instance has registered
 func (inst *Instance) Search() SearchMethods {
 	return SearchMethods{d: inst}

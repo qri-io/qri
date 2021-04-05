@@ -132,18 +132,13 @@ type ConfigOptions struct {
 	Concise         bool
 	Output          string
 
-	inst           *lib.Instance
-	ProfileMethods *lib.ProfileMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConfigOptions) Complete(f Factory) (err error) {
-	if o.inst, err = f.Instance(); err != nil {
-		return
-	}
-
-	o.ProfileMethods, err = f.ProfileMethods()
-	return
+	o.inst, err = f.Instance()
+	return err
 }
 
 // Get a configuration option
@@ -202,7 +197,8 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		}
 
 		if photoPaths[path] {
-			if err = setPhotoPath(ctx, o.ProfileMethods, path, args[i+1]); err != nil {
+			profileMethods := o.inst.Profile()
+			if err = setPhotoPath(ctx, &profileMethods, path, args[i+1]); err != nil {
 				if errors.Is(err, lib.ErrUnsupportedRPC) {
 					return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
 				}
@@ -228,7 +224,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		return err
 	}
 	if profileChanged {
-		if _, err = o.ProfileMethods.SaveProfile(ctx, profile); err != nil {
+		if _, err = o.inst.Profile().SetProfile(ctx, &lib.SetProfileParams{Pro: profile}); err != nil {
 			if errors.Is(err, lib.ErrUnsupportedRPC) {
 				return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
 			}
@@ -241,14 +237,8 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 }
 
 func setPhotoPath(ctx context.Context, m *lib.ProfileMethods, proppath, filepath string) error {
-	f, err := loadFileIfPath(filepath)
-	if err != nil {
-		return err
-	}
-
 	p := &lib.FileParams{
-		Filename: f.Name(),
-		Data:     f,
+		Filename: filepath,
 	}
 
 	switch proppath {
