@@ -243,14 +243,6 @@ func (o *QriOptions) RemoteMethods() (*lib.RemoteMethods, error) {
 	return lib.NewRemoteMethods(o.inst), nil
 }
 
-// RegistryClientMethods generates a lib.RegistryClientMethods from internal state
-func (o *QriOptions) RegistryClientMethods() (*lib.RegistryClientMethods, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewRegistryClientMethods(o.inst), nil
-}
-
 // RenderMethods generates a lib.RenderMethods from internal state
 func (o *QriOptions) RenderMethods() (*lib.RenderMethods, error) {
 	if err := o.Init(); err != nil {

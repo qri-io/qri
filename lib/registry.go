@@ -16,55 +16,72 @@ import (
 
 // RegistryClientMethods defines business logic for working with registries
 type RegistryClientMethods struct {
-	inst *Instance
+	d dispatcher
 }
 
-// NewRegistryClientMethods creates client methods from an instance
-func NewRegistryClientMethods(inst *Instance) *RegistryClientMethods {
-	return &RegistryClientMethods{
-		inst: inst,
+// Name returns the name of this method group
+func (m RegistryClientMethods) Name() string {
+	return "registry"
+}
+
+// Attributes defines attributes for each method
+func (m RegistryClientMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"createprofile":   {denyRPC, ""},
+		"proveprofilekey": {denyRPC, ""},
 	}
 }
-
-// CoreRequestsName implements the Requests interface
-func (RegistryClientMethods) CoreRequestsName() string { return "registry" }
 
 // RegistryProfile is a user profile as stored on a registry
 type RegistryProfile = registry.Profile
 
+// RegistryProfileParams encapsulates arguments for creating or proving a registry profile
+type RegistryProfileParams struct {
+	Profile *RegistryProfile
+}
+
 // CreateProfile creates a profile
-func (m RegistryClientMethods) CreateProfile(ctx context.Context, p *RegistryProfile) error {
-	if m.inst.http != nil {
-		return ErrUnsupportedRPC
-	}
-
-	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
-	ownerPk := m.inst.repo.Profiles().Owner().PrivKey
-	pro, err := m.inst.registry.CreateProfile(p, ownerPk)
-	if err != nil {
-		return err
-	}
-
-	log.Debugf("create profile response: %v", pro)
-	*p = *pro
-
-	return m.updateConfig(ctx, pro)
+func (m RegistryClientMethods) CreateProfile(ctx context.Context, p *RegistryProfileParams) error {
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "createprofile"), p)
+	return dispatchReturnError(nil, err)
 }
 
 // ProveProfileKey sends proof to the registry that this user has control of a
 // specified private key, and modifies the user's config in order to reconcile
 // it with any already existing identity the registry knows about
-func (m RegistryClientMethods) ProveProfileKey(ctx context.Context, p *RegistryProfile) error {
-	if m.inst.http != nil {
-		return ErrUnsupportedRPC
+func (m RegistryClientMethods) ProveProfileKey(ctx context.Context, p *RegistryProfileParams) error {
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "proveprofilekey"), p)
+	return dispatchReturnError(nil, err)
+}
+
+// registryImpl holds the method implementations for RegistryMethods
+type registryImpl struct{}
+
+// CreateProfile creates a profile
+func (registryImpl) CreateProfile(scope scope, p *RegistryProfileParams) error {
+	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
+	ownerPk := scope.Profiles().Owner().PrivKey
+	pro, err := scope.RegistryClient().CreateProfile(p.Profile, ownerPk)
+	if err != nil {
+		return err
 	}
 
+	log.Debugf("create profile response: %v", pro)
+	*p.Profile = *pro
+
+	return updateConfig(scope, pro)
+}
+
+// ProveProfileKey sends proof to the registry that this user has control of a
+// specified private key, and modifies the user's config in order to reconcile
+// it with any already existing identity the registry knows about
+func (registryImpl) ProveProfileKey(scope scope, p *RegistryProfileParams) error {
 	// Check if the repository has any saved datasets. If so, calling prove is
 	// not allowed, because doing so would essentially throw away the old profile,
 	// making those references unreachable. In the future, this can be changed
 	// such that the old identity is given a different username, and is merged
 	// into the client's collection.
-	numRefs, err := m.inst.repo.RefCount()
+	numRefs, err := scope.Repo().RefCount()
 	if err != nil {
 		return err
 	}
@@ -74,30 +91,30 @@ func (m RegistryClientMethods) ProveProfileKey(ctx context.Context, p *RegistryP
 
 	// For signing the outgoing message
 	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
-	privKey := m.inst.repo.Profiles().Owner().PrivKey
+	privKey := scope.Profiles().Owner().PrivKey
 
 	// Get public key to send to server
-	pro := m.inst.repo.Profiles().Owner()
+	pro := scope.ActiveProfile()
 	pubkeybytes, err := pro.PubKey.Bytes()
 	if err != nil {
 		return err
 	}
 
-	p.ProfileID = pro.ID.String()
-	p.PublicKey = base64.StdEncoding.EncodeToString(pubkeybytes)
+	p.Profile.ProfileID = pro.ID.String()
+	p.Profile.PublicKey = base64.StdEncoding.EncodeToString(pubkeybytes)
 	// TODO(dustmop): Expand the signature to sign more than just the username
-	sigbytes, err := privKey.Sign([]byte(p.Username))
-	p.Signature = base64.StdEncoding.EncodeToString(sigbytes)
+	sigbytes, err := privKey.Sign([]byte(p.Profile.Username))
+	p.Profile.Signature = base64.StdEncoding.EncodeToString(sigbytes)
 
 	// Send proof to the registry
-	res, err := m.inst.registry.ProveKeyForProfile(p)
+	res, err := scope.RegistryClient().ProveKeyForProfile(p.Profile)
 	if err != nil {
 		return err
 	}
 	log.Debugf("prove profile response: %v", res)
 
 	// Convert the profile to a configuration, assign the registry provided profileID
-	cfg := m.configFromProfile(p)
+	cfg := configFromProfile(scope, p.Profile)
 	if profileID, ok := res["profileID"]; ok {
 		cfg.Profile.ID = profileID
 		if pid := profile.IDB58DecodeOrEmpty(profileID); pid != "" {
@@ -119,29 +136,29 @@ func (m RegistryClientMethods) ProveProfileKey(ctx context.Context, p *RegistryP
 		if err := lg.UnmarshalFlatbufferBytes(logbookBytes); err != nil {
 			return err
 		}
-		err = m.inst.repo.Logbook().ReplaceAll(ctx, lg)
+		err = scope.Logbook().ReplaceAll(scope.Context(), lg)
 		if err != nil {
 			return err
 		}
 	} else {
 		// Otherwise, nothing was ever pushed. Create new logbook data using the
 		// profileID we got back.
-		logbookPath := filepath.Join(m.inst.repoPath, "logbook.qfb")
-		logbook, err := logbook.NewJournalOverwriteWithProfileID(privKey, p.Username, m.inst.bus,
-			m.inst.qfs, logbookPath, cfg.Profile.ID)
+		logbookPath := filepath.Join(scope.RepoPath(), "logbook.qfb")
+		logbook, err := logbook.NewJournalOverwriteWithProfileID(privKey, p.Profile.Username, scope.Bus(),
+			scope.Filesystem(), logbookPath, cfg.Profile.ID)
 		if err != nil {
 			return err
 		}
-		m.inst.logbook = logbook
+		scope.SetLogbook(logbook)
 	}
 
 	// Save the modified config
-	return m.inst.ChangeConfig(cfg)
+	return scope.ChangeConfig(cfg)
 }
 
 // Construct a config with the same values as the profile
-func (m RegistryClientMethods) configFromProfile(pro *registry.Profile) *config.Config {
-	cfg := m.inst.cfg.Copy()
+func configFromProfile(scope scope, pro *registry.Profile) *config.Config {
+	cfg := scope.Config().Copy()
 	cfg.Profile.Peername = pro.Username
 	cfg.Profile.Created = pro.Created
 	cfg.Profile.Email = pro.Email
@@ -155,10 +172,10 @@ func (m RegistryClientMethods) configFromProfile(pro *registry.Profile) *config.
 	return cfg
 }
 
-func (m RegistryClientMethods) updateConfig(ctx context.Context, pro *registry.Profile) error {
-	cfg := m.configFromProfile(pro)
+func updateConfig(scope scope, pro *registry.Profile) error {
+	cfg := configFromProfile(scope, pro)
 
-	// TODO (b5) - this should be automatically done by m.inst.ChangeConfig
+	// TODO (b5) - this should be automatically done by inst.ChangeConfig
 	repoPro, err := profile.NewProfile(cfg.Profile)
 	if err != nil {
 		return err
@@ -168,15 +185,15 @@ func (m RegistryClientMethods) updateConfig(ctx context.Context, pro *registry.P
 	// profile name changes, not sure this makes the most sense to have this here.
 	// we should consider a separate track for any change that affects the peername,
 	// it should always be verified by any set registry before saving
-	if cfg.Profile.Peername != m.inst.cfg.Profile.Peername {
-		if err := base.ModifyRepoUsername(ctx, m.inst.Repo(), m.inst.logbook, m.inst.cfg.Profile.Peername, cfg.Profile.Peername); err != nil {
+	if cfg.Profile.Peername != scope.ActiveProfile().Peername {
+		if err := base.ModifyRepoUsername(scope.Context(), scope.Repo(), scope.Logbook(), scope.ActiveProfile().Peername, cfg.Profile.Peername); err != nil {
 			return err
 		}
 	}
 
-	if err := m.inst.Repo().Profiles().SetOwner(repoPro); err != nil {
+	if err := scope.Profiles().SetOwner(repoPro); err != nil {
 		return err
 	}
 
-	return m.inst.ChangeConfig(cfg)
+	return scope.ChangeConfig(cfg)
 }

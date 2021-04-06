@@ -109,7 +109,7 @@ const (
 
 	// AEPush facilitates dataset push requests to a remote
 	AEPush = APIEndpoint("/push")
-	// AEPull facilittates dataset pull requests from a remote
+	// AEPull facilitates dataset pull requests from a remote
 	AEPull = APIEndpoint("/pull")
 	// AEFeeds fetches and index of named feeds
 	AEFeeds = APIEndpoint("/feeds")
