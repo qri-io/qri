@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	apiutil "github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -55,6 +56,7 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json|simple]")
 	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number results, default 1")
+	cmd.Flags().BoolVar(&o.All, "all", false, "")
 	cmd.Flags().BoolVarP(&o.Public, "public", "p", false, "list only publically visible")
 	cmd.Flags().BoolVarP(&o.ShowNumVersions, "num-versions", "n", false, "show number of versions")
 	cmd.Flags().StringVar(&o.Peername, "peer", "", "peer whose datasets to list")
@@ -72,6 +74,7 @@ type ListOptions struct {
 	Format          string
 	PageSize        int
 	Page            int
+	All             bool
 	Term            string
 	Peername        string
 	Public          bool
@@ -119,13 +122,35 @@ func (o *ListOptions) Run() (err error) {
 		EnsureFSIExists: true,
 		UseDscache:      o.UseDscache,
 	}
-	infos, err := o.inst.Dataset().List(ctx, p)
+	infos, cur, err := o.inst.Dataset().List(ctx, p)
 	if err != nil {
 		if errors.Is(err, lib.ErrListWarning) {
 			printWarning(o.ErrOut, fmt.Sprintf("%s\n", err))
 			err = nil
 		} else {
 			return err
+		}
+	}
+	// TODO(dustmop): If not using --all actually check the --limit
+	// TODO(dustmop): Generics (Go1.17?) will make this refactorable
+	// Consume the entire Cursor to list all references
+	if cur != nil && o.All {
+		isDone := false
+		// HACK: In case there are bugs, don't loop forever.
+		// TODO(dustmop): Remove this `count` when we know what we're doing
+		for count := 0; count < 10; count++ {
+			more, err := cur.Next(ctx)
+			if err == lib.ErrCursorComplete {
+				isDone = true
+			} else if err != nil {
+				return err
+			}
+			if vals, ok := more.([]dsref.VersionInfo); ok {
+				infos = append(infos, vals...)
+			}
+			if isDone {
+				break
+			}
 		}
 	}
 
