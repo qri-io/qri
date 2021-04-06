@@ -2,8 +2,10 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
@@ -12,17 +14,13 @@ import (
 	"github.com/qri-io/qri/automation/scheduler"
 	"github.com/qri-io/qri/automation/transform"
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 )
 
 // AutomationMethods groups together methods for automations
 // TODO(b5): expand apply methods:
-//   automation.apply             // Done!
-//   automation.workflows         // list local workflows
-//   automation.workflow          // get a workflow
-//   automation.saveWorkflow      // "deploy" in qrimatic UI, create/update a workflow
-//   automation.removeWorkflow    // "undeploy" in qrimatic UI
 //   automation.runs              // list automation runs
 //   automation.run               // get automation run log
 type AutomationMethods struct {
@@ -37,7 +35,10 @@ func (m AutomationMethods) Name() string {
 // Attributes defines attributes for each method
 func (m AutomationMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apply": {AEApply, "POST"},
+		"apply":          {AEApply, "POST"},
+		"deployworkflow": {AEDeployWorkflow, "POST"},
+		"getworkflow":    {AEGetWorkflow, "POST"},
+		"listworkflows":  {AEListWorkflows, "POST"},
 	}
 }
 
@@ -69,6 +70,43 @@ type ApplyResult struct {
 func (m AutomationMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "apply"), p)
 	if res, ok := got.(*ApplyResult); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+type ListWorkflowParams struct {
+	Offset int
+	Limit  int
+}
+
+func (m AutomationMethods) ListWorkflows(ctx context.Context, p *ListWorkflowParams) ([]*workflow.Workflow, Cursor, error) {
+	got, cursor, err := m.d.Dispatch(ctx, dispatchMethodName(m, "listworkflows"), p)
+	if res, ok := got.([]*workflow.Workflow); ok {
+		return res, cursor, err
+	}
+	return nil, cursor, dispatchReturnError(got, err)
+}
+
+type GetWorkflowParams struct {
+	ID  string
+	Ref string
+}
+
+func (m AutomationMethods) GetWorkflow(ctx context.Context, p *GetWorkflowParams) (*workflow.Workflow, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "getworkflow"), p)
+	if res, ok := got.(*workflow.Workflow); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+type DeployParams = scheduler.DeployParams
+type DeployResponse = scheduler.DeployResponse
+
+func (m AutomationMethods) DeployWorkflow(ctx context.Context, p *DeployParams) (*DeployResponse, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "deployworkflow"), p)
+	if res, ok := got.(*DeployResponse); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -136,6 +174,118 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	}
 	res.RunID = runID
 	return res, nil
+}
+
+//   automation.workflow          // get a workflow
+//   automation.saveWorkflow      // "deploy" in qrimatic UI, create/update a workflow
+//   automation.removeWorkflow    // "undeploy" in qrimatic UI
+
+func (automationImpl) ListWorkflows(scp scope, p *ListWorkflowParams) ([]*workflow.Workflow, error) {
+	return scp.Workflows().ListWorkflows(scp.Context(), p.Offset, p.Limit)
+}
+
+func (automationImpl) GetWorkflow(scp scope, p *GetWorkflowParams) (*workflow.Workflow, error) {
+	if p.Ref != "" {
+		return scp.Workflows().GetWorkflowByDatasetID(scp.Context(), p.Ref)
+	}
+	return scp.Workflows().GetWorkflow(scp.Context(), p.ID)
+}
+
+// func (automationImpl) SaveWorkflow(scp scope, p *SaveWorkflowParams) (*workflow.Workflow, error) {
+
+// }
+
+// type RemoveWorkflowParams struct {
+
+// }
+
+// func (automationImpl) RemoveWorkflow(scp scope, p *RemoveWorkflowParams) (*workflow.Workflow, error) {
+
+// }
+
+func (automationImpl) DeployWorkflow(scp scope, p *DeployParams) (*DeployResponse, error) {
+	if p.Workflow == nil {
+		return nil, fmt.Errorf("deploy: workflow not set")
+	}
+	if p.Workflow.DatasetID == "" {
+		return nil, fmt.Errorf("deploy: DatasetID not set")
+	}
+
+	wf := p.Workflow
+	bus := scp.Bus()
+	ctx := scp.Context()
+
+	newWorkflow := true
+	if _, err := scp.Workflows().GetWorkflow(ctx, wf.ID); err == nil {
+		newWorkflow = false
+	}
+	if wf.ID == "" && wf.OwnerID != "" && wf.DatasetID != "" {
+		wf.ID = workflow.GenerateWorkflowID()
+	}
+
+	// TODO(b5): this should be refactored away,
+	nowFunc := time.Now
+
+	now := nowFunc()
+	if newWorkflow {
+		wf.Created = &now
+	}
+	wf.LatestStart = &now
+
+	go func() {
+		if err := bus.PublishID(ctx, workflow.ETWorkflowDeployStarted, wf.ID, wf.Info()); err != nil {
+			log.Debugw("async event error", "evt", workflow.ETWorkflowDeployStarted, "workflowID", wf.ID, "err", err)
+		}
+	}()
+	defer func() {
+		go func() {
+			if err := bus.PublishID(ctx, workflow.ETWorkflowDeployStopped, wf.ID, wf.Info()); err != nil {
+				log.Debugw("async event error", "evt", workflow.ETWorkflowDeployStopped, "workflowID", wf.ID, "err", err)
+			}
+		}()
+	}()
+
+	log.Debugw("deploying dataset", "datasetID", wf.DatasetID)
+
+	res, err := datasetImpl{}.Save(scp, &SaveParams{
+		Ref: wf.DatasetID, // currently the DatasetID is the Ref
+		Dataset: &dataset.Dataset{
+			Transform: p.Transform,
+		},
+		Apply: p.Apply,
+		// Wait: false,
+	})
+	if err != nil {
+		if errors.Is(err, dsfs.ErrNoChanges) {
+			err = nil
+		} else {
+			log.Errorw("deploy save dataset", "error", err)
+			return nil, err
+		}
+	}
+
+	now = nowFunc()
+	wf.LatestEnd = &now
+	wf.RunCount++
+	wf.Status = workflow.StatusSucceeded
+
+	if newWorkflow {
+		ref := &dsref.Ref{
+			Username: res.Peername,
+			Name:     res.Name,
+		}
+
+		wf.Complete(ref, scp.ActiveProfile().ID.String())
+	}
+
+	err = scp.Scheduler().Schedule(ctx, wf)
+	if err != nil {
+		log.Errorw("deploy scheduling", "error", err)
+	}
+
+	return &DeployResponse{
+		Workflow: wf,
+	}, err
 }
 
 // newInstanceRunnerFactory returns a factory function that produces a workflow

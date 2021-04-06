@@ -81,6 +81,7 @@ type InstanceOptions struct {
 	regclient  *regclient.Client
 	logbook    *logbook.Book
 	profiles   profile.Store
+	workflows  workflow.Store
 	scheduler  scheduler.Scheduler
 	bus        event.Bus
 	logAll     bool
@@ -499,16 +500,18 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		inst.registry = newRegClient(ctx, cfg)
 	}
 
-	if inst.scheduler == nil {
-		store, err := workflow.NewFileStore(filepath.Join(repoPath, "update", "workflows.json"), inst.Bus())
+	if inst.workflows == nil {
+		inst.workflows, err = workflow.NewFileStore(filepath.Join(repoPath, "update", "workflows.json"), inst.Bus())
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if inst.workflows != nil && inst.scheduler == nil {
 		// TODO (b5): this will need to be configurable, for now we're restricted to
 		// local execution
 		factory := newInstanceRunnerFactory(inst)
-
-		inst.scheduler = scheduler.NewCronScheduler(store, factory, inst.bus)
+		inst.scheduler = scheduler.NewCronScheduler(inst.workflows, factory, inst.bus)
 	}
 
 	if inst.dscache == nil {
@@ -768,6 +771,7 @@ type Instance struct {
 	dscache      *dscache.Dscache
 	bus          event.Bus
 	watcher      *watchfs.FilesysWatcher
+	workflows    workflow.Store
 	scheduler    scheduler.Scheduler
 	appCtx       context.Context
 

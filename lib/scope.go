@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/automation/scheduler"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
@@ -152,6 +154,16 @@ func (s *scope) Repo() repo.Repo {
 // RepoPath returns the path to the repo
 func (s *scope) RepoPath() string {
 	return s.inst.repoPath
+}
+
+// Workflows returns the instance workflow store
+func (s *scope) Workflows() workflow.Store {
+	return s.inst.workflows
+}
+
+// Scheduler returns the instance scheduler
+func (s *scope) Scheduler() scheduler.Scheduler {
+	return s.inst.scheduler
 }
 
 // ResolveReference finds the identifier & HEAD path for a dataset reference.

@@ -234,7 +234,15 @@ func NewServerRoutes(s Server) *mux.Router {
 	// access endpoints
 
 	// automation endpoints
-	m.Handle(lib.AEApply.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "automation.apply"))).Methods(http.MethodPost)
+	// TODO (b5): I've removed the `.Method(http.MethodPost)` from these because it
+	// interferes with CORS requests browser-side. Ideally we can refactor away the need
+	// for the post-only method specification entirely when we switch to lib providing
+	// a muxer via a single function call
+	// That said, we should make basic CORS compliance part of the test suite
+	m.Handle(lib.AEApply.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "automation.apply")))
+	m.Handle(lib.AEDeployWorkflow.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "automation.deployworkflow")))
+	m.Handle(lib.AEGetWorkflow.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "automation.getworkflow")))
+	m.Handle(lib.AEListWorkflows.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "automation.listworkflows")))
 
 	// dataset endpoints
 	m.Handle(lib.AEComponentStatus.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.componentstatus"))).Methods(http.MethodPost)

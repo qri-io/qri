@@ -42,6 +42,8 @@ const (
 
 	// aggregate endpoints
 
+	// profile enpoints
+
 	// AEList lists all datasets in your collection
 	AEList = APIEndpoint("/list")
 	// AEDiff is an endpoint for generating dataset diffs
@@ -60,6 +62,12 @@ const (
 
 	// AEApply invokes a transform apply
 	AEApply = APIEndpoint("/auto/apply")
+	// AEDeployWorkflow deploys a workflow
+	AEDeployWorkflow = APIEndpoint("/auto/deploy")
+	// AEGetWorkflow gets a workflow
+	AEGetWorkflow = APIEndpoint("/auto/workflow")
+	// AEListWorkflows lists stored workflows
+	AEListWorkflows = APIEndpoint("/auto/workflows")
 
 	// dataset endpoints
 
