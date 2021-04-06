@@ -77,12 +77,12 @@ func (m DatasetMethods) Attributes() map[string]AttributeSet {
 var ErrListWarning = base.ErrUnlistableReferences
 
 // List gets the reflist for either the local repo or a peer
-func (m DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "list"), p)
+func (m DatasetMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, Cursor, error) {
+	got, cur, err := m.d.Dispatch(ctx, dispatchMethodName(m, "list"), p)
 	if res, ok := got.([]dsref.VersionInfo); ok {
-		return res, err
+		return res, cur, err
 	}
-	return nil, dispatchReturnError(got, err)
+	return nil, nil, dispatchReturnError(got, err)
 }
 
 // ListRawRefs gets the list of raw references as string
@@ -748,7 +748,7 @@ func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
 type datasetImpl struct{}
 
 // List gets the reflist for either the local repo or a peer
-func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error) {
+func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, Cursor, error) {
 	// TODO(dustmop): When List is converted to use scope, get the ProfileID from
 	// the scope if the user is authorized to only view their own datasets, as opposed
 	// to the full collection that exists in this node's repository.
@@ -766,7 +766,7 @@ func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error)
 	reqProfile := scope.Repo().Profiles().Owner()
 	listProfile, err := getProfile(scope.Context(), scope.Repo().Profiles(), reqProfile.ID.String(), p.Peername)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// If the list operation leads to a warning, store it in this var
@@ -779,7 +779,7 @@ func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error)
 			log.Infof("building dscache from repo's logbook, profile, and dsref")
 			built, err := build.DscacheFromRepo(scope.Context(), scope.Repo())
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			err = c.Assign(built)
 			if err != nil {
@@ -788,7 +788,7 @@ func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error)
 		}
 		refs, err := c.ListRefs()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		// Filter references so that only with a matching name are returned
 		if p.Term != "" {
@@ -825,10 +825,10 @@ func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error)
 			err = nil
 		}
 	} else {
-		return nil, fmt.Errorf("listing datasets on a peer is not implemented")
+		return nil, nil, fmt.Errorf("listing datasets on a peer is not implemented")
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if p.EnsureFSIExists {
@@ -852,11 +852,26 @@ func (datasetImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error)
 		}
 	}
 
-	if listWarning != nil {
-		return nil, listWarning
+	// If this call returns 0 items, there are obviously no more items left, so don't
+	// return a cursor.
+	// This actually forces a caller to call this method one more time than necessary.
+	// What would be better would be if we can tell that the previous call (which
+	// actually had results) knew there's no more left, returning a nil cursor then.
+	if len(infos) == 0 {
+		return infos, nil, nil
 	}
 
-	return infos, nil
+	// Create a cursor that points to the next page of results
+	// A cursor is simply the current input params to this method, tweaked such that
+	// they get the next page of results
+	p.Offset += p.Limit
+	cur := scope.MakeCursor(p)
+
+	if listWarning != nil {
+		return nil, cur, listWarning
+	}
+
+	return infos, cur, nil
 }
 
 func getProfile(ctx context.Context, pros profile.Store, idStr, peername string) (pro *profile.Profile, err error) {

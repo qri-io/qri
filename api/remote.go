@@ -125,7 +125,8 @@ func (h *RemoteClientHandlers) listPublicHandler(w http.ResponseWriter, r *http.
 	args.OrderBy = "created"
 	args.Public = true
 
-	res, err := h.inst.Dataset().List(r.Context(), &args)
+	// TODO(dustmpo): Cursor value
+	res, _, err := h.inst.Dataset().List(r.Context(), &args)
 	if err != nil {
 		log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
