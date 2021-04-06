@@ -162,6 +162,11 @@ func (s *scope) Repo() repo.Repo {
 	return s.inst.repo
 }
 
+// RepoPath returns the path to the repo
+func (s *scope) RepoPath() string {
+	return s.inst.repoPath
+}
+
 // ResolveReference finds the identifier & HEAD path for a dataset reference.
 // the mode parameter determines which subsystems of Qri to use when resolving
 // TODO(dustmop): Remove last input parameter from callers
@@ -172,6 +177,11 @@ func (s *scope) ResolveReference(ctx context.Context, ref *dsref.Ref, _ string) 
 // LocalResolver returns a resolver for local refs
 func (s *scope) LocalResolver() (dsref.Resolver, error) {
 	return s.inst.resolverForMode("local")
+}
+
+// SetLogbook allows you to replace the current logbook with the given logbook
+func (s *scope) SetLogbook(l *logbook.Book) {
+	s.inst.logbook = l
 }
 
 // Stats returns the stats service

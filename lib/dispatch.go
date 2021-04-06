@@ -249,6 +249,7 @@ func (inst *Instance) RegisterMethods() {
 	inst.registerOne("log", inst.Log(), logImpl{}, reg)
 	inst.registerOne("peer", inst.Peer(), peerImpl{}, reg)
 	inst.registerOne("profile", inst.Profile(), profileImpl{}, reg)
+	inst.registerOne("registry", inst.Registry(), registryImpl{}, reg)
 	inst.registerOne("search", inst.Search(), searchImpl{}, reg)
 	inst.registerOne("sql", inst.SQL(), sqlImpl{}, reg)
 	inst.registerOne("transform", inst.Transform(), transformImpl{}, reg)

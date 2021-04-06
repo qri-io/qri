@@ -236,8 +236,6 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"DELETE", "/remove", 403},
 		{"POST", "/rename", 403},
 		{"PUT", "/rename", 403},
-		{"POST", "/registry/profile/new", 403},
-		{"POST", "/registry/profile/prove", 403},
 
 		// active endpoints:
 		{"GET", "/health", 200},

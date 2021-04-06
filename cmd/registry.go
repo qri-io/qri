@@ -121,14 +121,16 @@ type RegistryOptions struct {
 	Password string
 	Email    string
 
-	RegistryClientMethods *lib.RegistryClientMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
+	if o.inst, err = f.Instance(); err != nil {
+		return err
+	}
 	o.Refs = args
-	o.RegistryClientMethods, err = f.RegistryClientMethods()
-	return
+	return nil
 }
 
 // Signup registers a handle with the registry
@@ -144,7 +146,7 @@ func (o *RegistryOptions) Signup() error {
 	}
 
 	ctx := context.TODO()
-	if err := o.RegistryClientMethods.CreateProfile(ctx, p); err != nil {
+	if err := o.inst.Registry().CreateProfile(ctx, &lib.RegistryProfileParams{Profile: p}); err != nil {
 		return err
 	}
 	printSuccess(o.ErrOut, "user %s created on registry, connected local key", o.Username)
@@ -164,7 +166,7 @@ func (o *RegistryOptions) Prove() error {
 	}
 
 	ctx := context.TODO()
-	if err := o.RegistryClientMethods.ProveProfileKey(ctx, p); err != nil {
+	if err := o.inst.Registry().ProveProfileKey(ctx, &lib.RegistryProfileParams{Profile: p}); err != nil {
 		return err
 	}
 	printSuccess(o.ErrOut, "proved user %s to registry, connected local key", o.Username)

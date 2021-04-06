@@ -295,9 +295,8 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AERawLogbook.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.rawlogbook"))).Methods(http.MethodPost)
 	m.Handle(lib.AELogbookSummary.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.logbooksummary"))).Methods(http.MethodPost)
 
-	rch := NewRegistryClientHandlers(s.Instance, cfg.API.ReadOnly)
-	m.Handle(lib.AERegistryNew.String(), s.Middleware(rch.CreateProfileHandler))
-	m.Handle(lib.AERegistryProve.String(), s.Middleware(rch.ProveProfileKeyHandler))
+	m.Handle(lib.AERegistryNew.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "registry.createprofile"))).Methods(http.MethodPost)
+	m.Handle(lib.AERegistryProve.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "registry.proveprofilekey"))).Methods(http.MethodPost)
 
 	m.Handle(lib.AESearch.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "search.search"))).Methods(http.MethodPost)
 

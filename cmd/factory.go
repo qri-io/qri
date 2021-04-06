@@ -26,7 +26,6 @@ type Factory interface {
 	ConnectionNode() (*p2p.QriNode, error)
 
 	RemoteMethods() (*lib.RemoteMethods, error)
-	RegistryClientMethods() (*lib.RegistryClientMethods, error)
 	RenderMethods() (*lib.RenderMethods, error)
 }
 

@@ -843,6 +843,11 @@ func (inst *Instance) Profile() ProfileMethods {
 	return ProfileMethods{d: inst}
 }
 
+// Registry returns the RegistryMethods that Instance has registered
+func (inst *Instance) Registry() RegistryClientMethods {
+	return RegistryClientMethods{d: inst}
+}
+
 // Search returns the SearchMethods that Instance has registered
 func (inst *Instance) Search() SearchMethods {
 	return SearchMethods{d: inst}

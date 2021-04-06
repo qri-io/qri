@@ -43,13 +43,13 @@ func TestProveProfileKey(t *testing.T) {
 	}
 
 	// Call the endpoint to prove our account
-	methods := NewRegistryClientMethods(tr.Instance)
+	methods := tr.Instance.Registry()
 	p := RegistryProfile{
 		Username: pro.Peername,
 		Email:    "test_peer@qri.io",
 		Password: "hunter2",
 	}
-	if err = methods.ProveProfileKey(tr.Ctx, &p); err != nil {
+	if err = methods.ProveProfileKey(tr.Ctx, &RegistryProfileParams{Profile: &p}); err != nil {
 		t.Error(err)
 	}
 
