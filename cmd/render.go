@@ -131,7 +131,6 @@ func (o *RenderOptions) RunReadmeRender() error {
 
 	p := &lib.RenderParams{
 		Ref:    o.Refs.Ref(),
-		UseFSI: o.Refs.IsLinked(),
 		Format: "html",
 	}
 

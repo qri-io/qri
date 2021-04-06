@@ -38,9 +38,8 @@ func (m LogMethods) Attributes() map[string]AttributeSet {
 type HistoryParams struct {
 	ListParams
 	// Reference to data to fetch history for
-	Ref    string
-	Pull   bool
-	Source string
+	Ref  string
+	Pull bool
 }
 
 // UnmarshalFromRequest implements a custom deserialization-from-HTTP request
@@ -65,20 +64,9 @@ func (p *HistoryParams) UnmarshalFromRequest(r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	lp.Peername = ref.Username
+	lp.Username = ref.Username
 
-	local := r.FormValue("local") == "true"
-	remoteName := r.FormValue("remote")
 	params.Pull = r.FormValue("pull") == "true" || params.Pull
-
-	if params.Source == "" {
-		if local && (remoteName != "" || params.Pull) {
-			return fmt.Errorf("cannot use the 'local' param with either the 'remote' or 'pull' params")
-		} else if local {
-			remoteName = "local"
-		}
-		params.Source = remoteName
-	}
 
 	*p = params
 	return nil
@@ -180,27 +168,21 @@ func (logImpl) History(scope scope, params *HistoryParams) ([]dsref.VersionInfo,
 	if params.Offset < 0 {
 		params.Offset = 0
 	}
-
-	if params.Pull {
-		switch params.Source {
-		case "":
-			params.Source = "network"
-		case "local":
-			return nil, fmt.Errorf("cannot pull with only local source")
-		}
+	if scope.SourceName() != "network" {
+		fmt.Errorf("history needs 'network' source")
 	}
 
-	ref, source, err := scope.ParseAndResolveRef(scope.Context(), params.Ref, params.Source)
+	ref, location, err := scope.ParseAndResolveRef(scope.Context(), params.Ref)
 	if err != nil {
 		return nil, err
 	}
 
-	if source == "" {
+	if location == "" {
 		// local resolution
 		return base.DatasetLog(scope.Context(), scope.Repo(), ref, params.Limit, params.Offset, true)
 	}
 
-	logs, err := scope.RemoteClient().FetchLogs(scope.Context(), ref, source)
+	logs, err := scope.RemoteClient().FetchLogs(scope.Context(), ref, location)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +228,7 @@ func (logImpl) Entries(scope scope, p *RefListParams) ([]LogEntry, error) {
 	res := []LogEntry{}
 	var err error
 
-	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, "local")
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
 	if err != nil {
 		return nil, err
 	}

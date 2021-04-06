@@ -108,7 +108,7 @@ func TestAddCheckoutIntegration(t *testing.T) {
 	hinshun := tr.InitHinshun(t)
 
 	checkoutPath := filepath.Join(tr.hinshunRepo.RootPath, "wbp")
-	_, err := hinshun.Dataset().Pull(tr.Ctx, &PullParams{
+	_, err := hinshun.WithSource("network").Dataset().Pull(tr.Ctx, &PullParams{
 		Ref:     ref.String(),
 		LinkDir: checkoutPath,
 	})
@@ -442,11 +442,10 @@ func Pull(ctx context.Context, t *testing.T, inst *Instance, refstr string) *dat
 	return res
 }
 
-func Preview(ctx context.Context, t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
+func Preview(ctx context.Context, t *testing.T, inst *Instance, ref string) *dataset.Dataset {
 	t.Helper()
 	p := &PreviewParams{
-		Ref:    refstr,
-		Remote: "",
+		Ref: ref,
 	}
 	res, err := NewRemoteMethods(inst).Preview(ctx, p)
 	if err != nil {

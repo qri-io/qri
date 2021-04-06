@@ -181,8 +181,8 @@ func (tr *testRunner) SaveWithParams(p *SaveParams) (dsref.Ref, error) {
 	return dsref.ConvertDatasetToVersionInfo(res).SimpleRef(), nil
 }
 
-func (tr *testRunner) MustGet(t *testing.T, refstr string) *dataset.Dataset {
-	p := GetParams{Refstr: refstr}
+func (tr *testRunner) MustGet(t *testing.T, ref string) *dataset.Dataset {
+	p := GetParams{Ref: ref}
 	res, err := tr.Instance.Dataset().Get(tr.Ctx, &p)
 	if err != nil {
 		t.Fatal(err)
@@ -255,8 +255,8 @@ func (tr *testRunner) Checkout(refstr, dir string) error {
 	ctx := tr.Ctx
 	m := tr.Instance.Filesys()
 	p := LinkParams{
-		Refstr: refstr,
-		Dir:    dir,
+		Ref: refstr,
+		Dir: dir,
 	}
 	return m.Checkout(ctx, &p)
 }

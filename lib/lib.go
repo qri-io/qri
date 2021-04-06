@@ -872,6 +872,12 @@ func (inst *Instance) WithSource(source string) *InstanceSourceWrap {
 }
 
 // InstanceSourceWrap is a wrapped instance with an explicit resolver source added
+// TODO(dustmop): This struct is a temporary solution. The better approach is to
+// make it easy to copy the Instance cheaply. All of Instance's "heavy" state, such
+// as the Bus, and Logbook, should live on a shared object, while values that can
+// be overwritten should live as separate fields. Then `WithSource` can be replaced
+// with a method that constructs a new Instance that points to the original shared
+// object, with other fields assigned as needed.
 type InstanceSourceWrap struct {
 	source string
 	inst   *Instance
@@ -880,6 +886,11 @@ type InstanceSourceWrap struct {
 // Dataset returns the DatasetMethods that Instance has registered
 func (isw *InstanceSourceWrap) Dataset() DatasetMethods {
 	return DatasetMethods{d: isw}
+}
+
+// Log returns the LogMethods that Instance has registered
+func (isw *InstanceSourceWrap) Log() LogMethods {
+	return LogMethods{d: isw}
 }
 
 // SQL returns the SQLMethods that Instance has registered

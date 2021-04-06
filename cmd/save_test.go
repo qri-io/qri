@@ -177,6 +177,7 @@ func TestSaveRun(t *testing.T) {
 			t.Errorf("case '%s', did not get error, expected: '%s'", c.description, c.err)
 		}
 		if err != nil {
+			// Remove the current directory from path, to get consistent error messages
 			errGot := strings.Replace(err.Error(), pwd, "", -1)
 			if c.err != errGot {
 				t.Errorf("case '%s', mismatched error. Expected: '%s', Got: '%v'", c.description, c.err, errGot)

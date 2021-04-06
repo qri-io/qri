@@ -191,7 +191,7 @@ func (profileImpl) SetProfilePhoto(scope scope, p *FileParams) (*config.ProfileP
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
-	path, err := scope.Filesystem().DefaultWriteFS().Put(scope.Context(), qfs.NewMemfileBytes("plz_just_encode", p.Data))
+	path, err := scope.Filesystem().DefaultWriteFS().Put(scope.Context(), qfs.NewMemfileBytes("plz_jkust_encode", p.Data))
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error saving photo: %s", err.Error())

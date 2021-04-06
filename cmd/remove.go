@@ -32,7 +32,7 @@ writable datasets requires a '--revisions' flag, specifying the number of
 commits to delete. Remove always starts from the latest (HEAD) commit, working 
 backwards toward the first commit.
 
-Remove can also be used to ask remotes to delete datasets with the '--remote'
+Remove can also be used to ask remotes to delete datasets with the '--source'
 flag. Passing the remote flag will run the operation as a network request,
 reporting the results of attempting to remove on the destination remote.
 The remote flag can only be used to completely remove a dataset from a remote.
@@ -73,7 +73,7 @@ effect on local data.`,
 	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "synonym for --revisions=all")
 	cmd.Flags().BoolVar(&o.KeepFiles, "keep-files", false, "don't modify files in working directory")
 	cmd.Flags().BoolVarP(&o.Force, "force", "f", false, "remove files even if a working directory is dirty")
-	cmd.Flags().StringVar(&o.Remote, "remote", "", "remote address to remove from")
+	cmd.Flags().StringVar(&o.Source, "source", "", "remote address to remove from")
 
 	return cmd
 }
@@ -84,7 +84,7 @@ type RemoveOptions struct {
 
 	Refs *RefSelect
 
-	Remote        string
+	Source        string
 	RevisionsText string
 	Revision      *dsref.Rev
 	All           bool
@@ -144,7 +144,7 @@ func (o *RemoveOptions) Validate() error {
 func (o *RemoveOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
-	if o.Remote != "" {
+	if o.Source != "" {
 		return o.RemoveRemote()
 	}
 
@@ -156,7 +156,7 @@ func (o *RemoveOptions) Run() (err error) {
 	}
 
 	ctx := context.TODO()
-	res, err := o.inst.Dataset().Remove(ctx, &params)
+	res, err := o.inst.WithSource("local").Dataset().Remove(ctx, &params)
 	if err != nil {
 		// TODO(b5): move this error handling down into lib
 		if errors.Is(err, dsref.ErrRefNotFound) {
@@ -186,9 +186,11 @@ func (o *RemoveOptions) Run() (err error) {
 // RemoveRemote runs the remove command as a network request to a remote
 func (o *RemoveOptions) RemoveRemote() error {
 	ctx := context.TODO()
+
+	// TODO: When Remote uses `scope`, call `WithSource(o.Source)`
+
 	res, err := o.RemoteMethods.Remove(ctx, &lib.PushParams{
 		Ref:    o.Refs.Ref(),
-		Remote: o.Remote,
 	})
 	if err != nil {
 		return fmt.Errorf("dataset not removed")
@@ -196,6 +198,6 @@ func (o *RemoveOptions) RemoveRemote() error {
 
 	// remove profileID info for cleaner output
 	res.ProfileID = ""
-	printSuccess(o.Out, "removed dataset %s from remote %s", res, o.Remote)
+	printSuccess(o.Out, "removed dataset %s from remote %s", res, o.Source)
 	return nil
 }

@@ -38,11 +38,8 @@ type RenderParams struct {
 	// Optional template override
 	Template []byte
 	// If true,
-	UseFSI bool
 	// Output format. defaults to "html"
 	Format string
-	// remote resolver to use
-	Remote string
 	// Old style viz component rendering
 	Viz bool
 }
@@ -72,13 +69,6 @@ func (p *RenderParams) UnmarshalFromRequest(r *http.Request) error {
 
 	if !params.Viz {
 		params.Viz = r.FormValue("viz") == "true"
-	}
-	if !params.UseFSI {
-		params.UseFSI = r.FormValue("fsi") == "true"
-	}
-
-	if params.Remote == "" {
-		params.Remote = r.FormValue("remote")
 	}
 	if params.Format == "" {
 		params.Format = r.FormValue("format")
@@ -111,10 +101,12 @@ func (m *RenderMethods) RenderViz(ctx context.Context, p *RenderParams) ([]byte,
 	if err := p.Validate(); err != nil {
 		return nil, err
 	}
+	// TODO(dustmop): When `scope` is in use, get the source from it
+	source := ""
 
 	ds := p.Dataset
 	if ds == nil {
-		parseResolveLoad, err := m.inst.NewParseResolveLoadFunc(p.Remote)
+		parseResolveLoad, err := m.inst.NewParseResolveLoadFunc(source)
 		if err != nil {
 			return nil, err
 		}

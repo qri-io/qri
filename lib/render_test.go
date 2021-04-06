@@ -36,8 +36,7 @@ func TestRenderMethodsRender(t *testing.T) {
 			&RenderParams{}, nil, "empty reference"},
 		{"invalid ref",
 			&RenderParams{
-				Ref:    "foo/invalid_ref",
-				Remote: "local",
+				Ref: "foo/invalid_ref",
 			}, nil, "reference not found"},
 		{"template override just title",
 			&RenderParams{

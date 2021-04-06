@@ -277,8 +277,8 @@ func TestFSIWrite(t *testing.T) {
 		muxVarsToQueryParamMiddleware(lib.NewHTTPRequestHandler(inst, "fsi.write")).ServeHTTP(w, r)
 	}
 	p := lib.FSIWriteParams{
-		Refstr: "peer/write_test",
-		Ds:     &dataset.Dataset{Meta: &dataset.Meta{Title: "oh hai there"}},
+		Ref:     "peer/write_test",
+		Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh hai there"}},
 	}
 	status, strRes := JSONAPICallWithBody("POST", "/fsi/write/me/write_test", p, writeHandler, map[string]string{
 		"peername": "me",

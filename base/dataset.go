@@ -157,7 +157,7 @@ func CloseDataset(ds *dataset.Dataset) (err error) {
 }
 
 // ListDatasets lists datasets from a repo
-func ListDatasets(ctx context.Context, r repo.Repo, term, profileID string, offset, limit int, RPC, publishedOnly, showVersions bool) ([]dsref.VersionInfo, error) {
+func ListDatasets(ctx context.Context, r repo.Repo, term, profileID string, offset, limit int, publishedOnly, showVersions bool) ([]dsref.VersionInfo, error) {
 	fs := r.Filesystem()
 	num, err := r.RefCount()
 	if err != nil {
@@ -228,9 +228,6 @@ func ListDatasets(ctx context.Context, r repo.Repo, term, profileID string, offs
 			ds.Peername = ref.Peername
 			ds.Name = ref.Name
 			ref.Dataset = ds
-			if RPC {
-				ref.Dataset.Structure.Schema = nil
-			}
 
 			if showVersions {
 				dsVersions, err := DatasetLog(ctx, r, reporef.ConvertToDsref(ref), 1000000, 0, false)

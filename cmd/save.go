@@ -79,7 +79,6 @@ different peer, the dataset gets renamed from ` + "`peers_name/dataset_name`" +
 	// TODO(dustmop): --no-render is deprecated, viz are being phased out, in favor of readme.
 	cmd.Flags().BoolVar(&o.NoRender, "no-render", false, "don't store a rendered version of the the visualization")
 	cmd.Flags().BoolVarP(&o.NewName, "new", "n", false, "save a new dataset only, using an available name")
-	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "experimental: build and use dscache if none exists")
 	cmd.Flags().StringVar(&o.Drop, "drop", "", "comma-separated list of components to remove")
 
 	return cmd
@@ -159,7 +158,6 @@ func (o *SaveOptions) Run() (err error) {
 
 		ShouldRender: !o.NoRender,
 		NewName:      o.NewName,
-		UseDscache:   o.UseDscache,
 	}
 
 	// Check if file ends in '.star'. If so, either Apply or NoApply is required.

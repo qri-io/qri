@@ -76,7 +76,7 @@ func (h *RemoteClientHandlers) FeedsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *RemoteClientHandlers) feedsHandler(w http.ResponseWriter, r *http.Request) {
-	params := lib.FeedsParams{}
+	params := lib.EmptyParams{}
 	err := lib.UnmarshalParams(r, &params)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)

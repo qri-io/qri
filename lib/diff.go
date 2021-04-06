@@ -35,8 +35,6 @@ type DiffParams struct {
 
 	// Which component or part of a dataset to compare
 	Selector string
-
-	Remote string
 }
 
 // diffMode determinse
@@ -291,14 +289,14 @@ func (datasetImpl) Diff(scope scope, p *DiffParams) (*DiffResponse, error) {
 		}
 	}
 
-	selector := p.Selector
-	if selector == "" {
-		selector = "dataset"
+	component := p.Selector
+	if component == "" {
+		component = "dataset"
 	}
-	leftComp = leftComp.Base().GetSubcomponent(selector)
-	rightComp = rightComp.Base().GetSubcomponent(selector)
+	leftComp = leftComp.Base().GetSubcomponent(component)
+	rightComp = rightComp.Base().GetSubcomponent(component)
 	if leftComp == nil || rightComp == nil {
-		return nil, fmt.Errorf("component %q not found", selector)
+		return nil, fmt.Errorf("component %q not found", component)
 	}
 
 	leftData, err := leftComp.StructuredData()

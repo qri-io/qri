@@ -83,7 +83,7 @@ func (n *QriNode) handleDatasetsList(ws *WrappedStream, msg Message) (hangup boo
 			dlp.Limit = listMax
 		}
 
-		refs, err := base.ListDatasets(context.TODO(), n.Repo, dlp.Term, "", dlp.Offset, dlp.Limit, false, true, false)
+		refs, err := base.ListDatasets(context.TODO(), n.Repo, dlp.Term, "", dlp.Offset, dlp.Limit, true, false)
 		if err != nil {
 			log.Error(err)
 			return

@@ -14,6 +14,10 @@ import (
 // Limit param is provided to a paginated method
 const DefaultPageSize = 100
 
+// EmptyParams is for methods that don't need any input
+type EmptyParams struct {
+}
+
 // NZDefaultSetter modifies zero values to non-zero defaults when called
 type NZDefaultSetter interface {
 	SetNonZeroDefaults()
@@ -30,13 +34,10 @@ type RequestUnmarshaller interface {
 type ListParams struct {
 	ProfileID profile.ID `json:"-"`
 	Term      string
-	Peername  string
+	Username  string
 	OrderBy   string
 	Limit     int
 	Offset    int
-	// RPC is a horrible hack while we work to replace the net/rpc package
-	// TODO - remove this
-	RPC bool
 	// Public only applies to listing datasets, shows only datasets that are
 	// set to visible
 	Public bool
@@ -44,11 +45,6 @@ type ListParams struct {
 	ShowNumVersions bool
 	// EnsureFSIExists controls whether to ensure references in the repo have correct FSIPaths
 	EnsureFSIExists bool
-	// UseDscache controls whether to build a dscache to use to list the references
-	UseDscache bool
-
-	// Raw indicates whether to return a raw string representation of a dataset list
-	Raw bool
 }
 
 // SetNonZeroDefaults sets OrderBy to "created" if it's value is the empty string
@@ -64,15 +60,10 @@ func (p *ListParams) UnmarshalFromRequest(r *http.Request) error {
 	if p == nil {
 		p = &ListParams{}
 	}
-	if !p.Raw {
-		lp.Raw = r.FormValue("raw") == "true"
+	if p.Username == "" {
+		lp.Username = r.FormValue("username")
 	} else {
-		lp.Raw = p.Raw
-	}
-	if p.Peername == "" {
-		lp.Peername = r.FormValue("peername")
-	} else {
-		lp.Peername = p.Peername
+		lp.Username = p.Username
 	}
 	if p.Term == "" {
 		lp.Term = r.FormValue("term")

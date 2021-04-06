@@ -38,7 +38,7 @@ If no remote is specified, qri pushes to the registry.`,
 	}
 
 	cmd.Flags().BoolVarP(&o.Logs, "logs", "", false, "send only dataset history")
-	cmd.Flags().StringVarP(&o.RemoteName, "remote", "", "", "name of remote to push to")
+	cmd.Flags().StringVarP(&o.Source, "source", "", "", "name of remote to push to")
 
 	return cmd
 }
@@ -47,9 +47,9 @@ If no remote is specified, qri pushes to the registry.`,
 type PushOptions struct {
 	ioes.IOStreams
 
-	Refs       *RefSelect
-	Logs       bool
-	RemoteName string
+	Refs   *RefSelect
+	Logs   bool
+	Source string
 
 	RemoteMethods *lib.RemoteMethods
 }
@@ -69,8 +69,9 @@ func (o *PushOptions) Run() error {
 	for _, ref := range o.Refs.RefList() {
 		p := lib.PushParams{
 			Ref:    ref,
-			Remote: o.RemoteName,
 		}
+
+		// TODO: When Remote uses `scope`, call `WithSource(o.Source)`
 
 		res, err := o.RemoteMethods.Push(ctx, &p)
 		if err != nil {

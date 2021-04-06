@@ -94,10 +94,11 @@ func (h *DatasetHandlers) RemoveHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		if params.Remote != "" {
+		source := lib.SourceFromRequest(r)
+		if source != "" {
+			// TODO(dustmop): h.remote.WithSource(source).Remove
 			res, err := h.remote.Remove(r.Context(), &lib.PushParams{
 				Ref:    params.Ref,
-				Remote: params.Remote,
 			})
 			if err != nil {
 				log.Error("deleting dataset from remote: %s", err.Error())
@@ -175,7 +176,7 @@ func (h *DatasetHandlers) PeerListHandler(routePrefix string) http.HandlerFunc {
 				util.WriteErrResponse(w, http.StatusBadRequest, errors.New("request needs to be in the form '/list/[peername]'"))
 				return
 			}
-			p.Peername = ref.Username
+			p.Username = ref.Username
 		}
 
 		res, err := h.List(r.Context(), &p)

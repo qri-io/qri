@@ -208,7 +208,7 @@ func TestParseGetParams(t *testing.T) {
 			"basic get",
 			"/get/peer/my_ds",
 			&lib.GetParams{
-				Refstr: "peer/my_ds",
+				Ref: "peer/my_ds",
 				Format: "json",
 				All:    true,
 			},
@@ -218,7 +218,7 @@ func TestParseGetParams(t *testing.T) {
 			"meta component",
 			"/get/peer/my_ds/meta",
 			&lib.GetParams{
-				Refstr:   "peer/my_ds",
+				Ref:   "peer/my_ds",
 				Format:   "json",
 				Selector: "meta",
 				All:      true,
@@ -229,7 +229,7 @@ func TestParseGetParams(t *testing.T) {
 			"body component",
 			"/get/peer/my_ds/body",
 			&lib.GetParams{
-				Refstr:   "peer/my_ds",
+				Ref:   "peer/my_ds",
 				Format:   "json",
 				Selector: "body",
 				All:      true,
@@ -240,7 +240,7 @@ func TestParseGetParams(t *testing.T) {
 			"body.csv path suffix",
 			"/get/peer/my_ds/body.csv",
 			&lib.GetParams{
-				Refstr:   "peer/my_ds",
+				Ref:   "peer/my_ds",
 				Format:   "csv",
 				Selector: "body",
 				All:      true,
@@ -251,7 +251,7 @@ func TestParseGetParams(t *testing.T) {
 			"download body as csv",
 			"/get/peer/my_ds/body?format=csv",
 			&lib.GetParams{
-				Refstr:   "peer/my_ds",
+				Ref:   "peer/my_ds",
 				Format:   "csv",
 				Selector: "body",
 				All:      true,
@@ -262,7 +262,7 @@ func TestParseGetParams(t *testing.T) {
 			"zip format",
 			"/get/peer/my_ds?format=zip",
 			&lib.GetParams{
-				Refstr: "peer/my_ds",
+				Ref: "peer/my_ds",
 				Format: "zip",
 				All:    true,
 			},
@@ -339,7 +339,7 @@ func TestParseGetParamsAcceptHeader(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectArgs := &lib.GetParams{
-		Refstr:   "peer/my_ds",
+		Ref:   "peer/my_ds",
 		Selector: "body",
 		Format:   "csv",
 		All:      true,

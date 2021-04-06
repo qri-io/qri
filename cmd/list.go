@@ -57,10 +57,9 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number results, default 1")
 	cmd.Flags().BoolVarP(&o.Public, "public", "p", false, "list only publically visible")
 	cmd.Flags().BoolVarP(&o.ShowNumVersions, "num-versions", "n", false, "show number of versions")
-	cmd.Flags().StringVar(&o.Peername, "peer", "", "peer whose datasets to list")
-	cmd.MarkFlagCustom("peer", "__qri_get_peer_flag_suggestions")
+	cmd.Flags().StringVar(&o.Username, "user", "", "user whose datasets to list")
+	cmd.MarkFlagCustom("user", "__qri_get_user_flag_suggestions")
 	cmd.Flags().BoolVarP(&o.Raw, "raw", "r", false, "to show raw references")
-	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "experimental: build and use dscache to list")
 
 	return cmd
 }
@@ -73,11 +72,10 @@ type ListOptions struct {
 	PageSize        int
 	Page            int
 	Term            string
-	Peername        string
+	Username        string
 	Public          bool
 	ShowNumVersions bool
 	Raw             bool
-	UseDscache      bool
 
 	inst *lib.Instance
 }
@@ -98,9 +96,7 @@ func (o *ListOptions) Run() (err error) {
 	ctx := context.TODO()
 
 	if o.Raw {
-		p := &lib.ListParams{
-			UseDscache: o.UseDscache,
-		}
+		p := &lib.ListParams{}
 		text, err := o.inst.Dataset().ListRawRefs(ctx, p)
 		if err != nil {
 			return err
@@ -111,13 +107,12 @@ func (o *ListOptions) Run() (err error) {
 
 	p := &lib.ListParams{
 		Term:            o.Term,
-		Peername:        o.Peername,
+		Username:        o.Username,
 		Limit:           page.Limit(),
 		Offset:          page.Offset(),
 		Public:          o.Public,
 		ShowNumVersions: o.ShowNumVersions,
 		EnsureFSIExists: true,
-		UseDscache:      o.UseDscache,
 	}
 	infos, err := o.inst.Dataset().List(ctx, p)
 	if err != nil {
@@ -135,8 +130,8 @@ func (o *ListOptions) Run() (err error) {
 	}
 
 	if len(infos) == 0 {
-		pn := fmt.Sprintf("%s has", o.Peername)
-		if o.Peername == "" {
+		pn := fmt.Sprintf("%s has", o.Username)
+		if o.Username == "" {
 			pn = "you have"
 		}
 

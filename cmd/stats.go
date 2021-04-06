@@ -69,9 +69,9 @@ func (o *StatsOptions) Run() (err error) {
 
 	ctx := context.TODO()
 	p := &lib.StatsParams{
-		Refstr: o.Refs.Ref(),
+		Ref: o.Refs.Ref(),
 	}
-	sa, err := o.inst.Dataset().Stats(ctx, p)
+	sa, err := o.inst.WithSource("local").Dataset().Stats(ctx, p)
 	if err != nil {
 		return err
 	}

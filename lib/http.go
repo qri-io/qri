@@ -232,7 +232,8 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 			return
 		}
 
-		res, cursor, err := inst.Dispatch(r.Context(), libMethod, p)
+		source := SourceFromRequest(r)
+		res, cursor, err := inst.WithSource(source).Dispatch(r.Context(), libMethod, p)
 		if err != nil {
 			log.Debugw("http request: dispatch", "err", err)
 			apiutil.RespondWithError(w, err)
@@ -246,6 +247,11 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 
 		apiutil.WriteResponse(w, res)
 	}
+}
+
+// SourceFromRequest retrieves from the http request the source for resolving refs
+func SourceFromRequest(r *http.Request) string {
+	return r.Header.Get("SourceResolver")
 }
 
 // UnmarshalParams deserialzes a lib req params stuct pointer from an HTTP

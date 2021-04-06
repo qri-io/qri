@@ -124,13 +124,12 @@ func (s *scope) Node() *p2p.QriNode {
 
 // ParseAndResolveRef parses a reference and resolves it
 // TODO(dustmop): Remove last input parameter from callers
-func (s *scope) ParseAndResolveRef(ctx context.Context, refStr, _ string) (dsref.Ref, string, error) {
-	return s.inst.ParseAndResolveRef(ctx, refStr, s.source)
+func (s *scope) ParseAndResolveRef(ctx context.Context, refstr string) (dsref.Ref, string, error) {
+	return s.inst.ParseAndResolveRef(ctx, refstr, s.source)
 }
 
 // ParseAndResolveRefWithWorkingDir parses a reference and resolves it with FSI info attached
-// TODO(dustmop): Remove last input parameter from callers
-func (s *scope) ParseAndResolveRefWithWorkingDir(ctx context.Context, refstr, _ string) (dsref.Ref, string, error) {
+func (s *scope) ParseAndResolveRefWithWorkingDir(ctx context.Context, refstr string) (dsref.Ref, string, error) {
 	return s.inst.ParseAndResolveRefWithWorkingDir(ctx, refstr, s.source)
 }
 
@@ -184,7 +183,16 @@ func (s *scope) SetLogbook(l *logbook.Book) {
 	s.inst.logbook = l
 }
 
+// SourceName is the name of the configured source for reference resolution
+func (s *scope) SourceName() string {
+	return s.source
+}
+
 // Stats returns the stats service
 func (s *scope) Stats() *stats.Service {
 	return s.inst.stats
+}
+
+func (s *scope) UseDscache() bool {
+	return false
 }
