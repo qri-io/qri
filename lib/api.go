@@ -115,6 +115,8 @@ const (
 	AEFeeds = APIEndpoint("/feeds")
 	// AEPreview fetches a dataset preview from the registry
 	AEPreview = APIEndpoint("/preview")
+	// AERemoteRemove removes a dataset from a given remote
+	AERemoteRemove = APIEndpoint("/remote/remove")
 
 	// fsi endpoints
 

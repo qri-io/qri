@@ -51,16 +51,18 @@ type PushOptions struct {
 	Logs       bool
 	RemoteName string
 
-	RemoteMethods *lib.RemoteMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *PushOptions) Complete(f Factory, args []string) (err error) {
-	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
-		return
+	if o.inst, err = f.Instance(); err != nil {
+		return err
 	}
-	o.RemoteMethods, err = f.RemoteMethods()
-	return
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Run executes the push command
@@ -72,7 +74,7 @@ func (o *PushOptions) Run() error {
 			Remote: o.RemoteName,
 		}
 
-		res, err := o.RemoteMethods.Push(ctx, &p)
+		res, err := o.inst.Remote().Push(ctx, &p)
 		if err != nil {
 			return err
 		}

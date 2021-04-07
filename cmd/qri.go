@@ -235,14 +235,6 @@ func (o *QriOptions) ConnectionNode() (*p2p.QriNode, error) {
 	return o.inst.Node(), nil
 }
 
-// RemoteMethods generates a lib.RemoteMethods from internal state
-func (o *QriOptions) RemoteMethods() (*lib.RemoteMethods, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewRemoteMethods(o.inst), nil
-}
-
 // RenderMethods generates a lib.RenderMethods from internal state
 func (o *QriOptions) RenderMethods() (*lib.RenderMethods, error) {
 	if err := o.Init(); err != nil {

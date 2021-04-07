@@ -236,10 +236,9 @@ func NewServerRoutes(s Server) *mux.Router {
 	if cfg.Remote != nil && cfg.Remote.Enabled {
 		log.Info("running in `remote` mode")
 
-		remh := NewRemoteHandlers(s.Instance)
-		m.Handle(lib.AERemoteDSync.String(), s.Middleware(remh.DsyncHandler))
-		m.Handle(lib.AERemoteLogSync.String(), s.Middleware(remh.LogsyncHandler))
-		m.Handle(lib.AERemoteRefs.String(), s.Middleware(remh.RefsHandler))
+		m.Handle(lib.AERemoteDSync.String(), s.Middleware(s.Instance.RemoteServer().DsyncHTTPHandler()))
+		m.Handle(lib.AERemoteLogSync.String(), s.Middleware(s.Instance.RemoteServer().LogsyncHTTPHandler()))
+		m.Handle(lib.AERemoteRefs.String(), s.Middleware(s.Instance.RemoteServer().RefsHTTPHandler()))
 	}
 
 	dsh := NewDatasetHandlers(s.Instance, cfg.API.ReadOnly)
@@ -264,14 +263,10 @@ func NewServerRoutes(s Server) *mux.Router {
 	routeParams = newrefRouteParams(lib.AEDAGInfo, false, false, http.MethodPost)
 	handleRefRoute(m, routeParams, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.daginfo")))
 
-	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)
-	routeParams = newrefRouteParams(lib.AEPush, false, false, http.MethodGet, http.MethodPost, http.MethodDelete)
-	handleRefRoute(m, routeParams, s.Middleware(remClientH.PushHandler))
-	routeParams = newrefRouteParams(lib.AEPull, false, false, http.MethodPost, http.MethodPut)
-	handleRefRoute(m, routeParams, s.Middleware(dsh.PullHandler(lib.AEPull.NoTrailingSlash())))
-	m.Handle(lib.AEFeeds.String(), s.Middleware(remClientH.FeedsHandler))
-	routeParams = newrefRouteParams(lib.AEPreview, false, false, http.MethodGet, http.MethodPost)
-	handleRefRoute(m, routeParams, s.Middleware(remClientH.DatasetPreviewHandler))
+	m.Handle(lib.AEFeeds.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.feeds"))).Methods(http.MethodPost)
+	m.Handle(lib.AEPreview.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.preview"))).Methods(http.MethodPost)
+	m.Handle(lib.AEPush.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.push"))).Methods(http.MethodPost)
+	m.Handle(lib.AERemoteRemove.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.remove"))).Methods(http.MethodPost)
 
 	routeParams = newrefRouteParams(lib.AEStatus, false, false, http.MethodGet, http.MethodPost)
 	handleRefRoute(m, routeParams, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.status")))

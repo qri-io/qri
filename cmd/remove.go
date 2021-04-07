@@ -91,8 +91,7 @@ type RemoveOptions struct {
 	KeepFiles     bool
 	Force         bool
 
-	RemoteMethods *lib.RemoteMethods
-	inst          *lib.Instance
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -101,9 +100,6 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 		return
 	}
 
-	if o.RemoteMethods, err = f.RemoteMethods(); err != nil {
-		return
-	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
 		// This error will be handled during validation
 		if err != repo.ErrEmptyRef {
@@ -186,7 +182,7 @@ func (o *RemoveOptions) Run() (err error) {
 // RemoveRemote runs the remove command as a network request to a remote
 func (o *RemoveOptions) RemoveRemote() error {
 	ctx := context.TODO()
-	res, err := o.RemoteMethods.Remove(ctx, &lib.PushParams{
+	res, err := o.inst.Remote().Remove(ctx, &lib.PushParams{
 		Ref:    o.Refs.Ref(),
 		Remote: o.Remote,
 	})

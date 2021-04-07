@@ -848,6 +848,11 @@ func (inst *Instance) Registry() RegistryClientMethods {
 	return RegistryClientMethods{d: inst}
 }
 
+// Remote returns the RemoteMethods that Instance has registered
+func (inst *Instance) Remote() RemoteMethods {
+	return RemoteMethods{d: inst}
+}
+
 // Search returns the SearchMethods that Instance has registered
 func (inst *Instance) Search() SearchMethods {
 	return SearchMethods{d: inst}
@@ -989,8 +994,8 @@ func (inst *Instance) HTTPClient() *HTTPClient {
 	return inst.http
 }
 
-// Remote accesses the remote subsystem if one exists
-func (inst *Instance) Remote() *remote.Remote {
+// RemoteServer accesses the remote subsystem if one exists
+func (inst *Instance) RemoteServer() *remote.Remote {
 	if inst == nil {
 		return nil
 	}

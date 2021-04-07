@@ -413,7 +413,7 @@ g,g,i,true,4`),
 }
 
 func PushToRegistry(ctx context.Context, t *testing.T, inst *Instance, refstr string) dsref.Ref {
-	res, err := NewRemoteMethods(inst).Push(ctx, &PushParams{
+	res, err := inst.Remote().Push(ctx, &PushParams{
 		Ref: refstr,
 	})
 
@@ -448,7 +448,7 @@ func Preview(ctx context.Context, t *testing.T, inst *Instance, refstr string) *
 		Ref:    refstr,
 		Remote: "",
 	}
-	res, err := NewRemoteMethods(inst).Preview(ctx, p)
+	res, err := inst.Remote().Preview(ctx, p)
 	if err != nil {
 		t.Fatal(err)
 	}
