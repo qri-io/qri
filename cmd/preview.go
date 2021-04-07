@@ -53,18 +53,18 @@ type PreviewOptions struct {
 	Format     string
 	RemoteName string
 
-	RemoteMethods *lib.RemoteMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *PreviewOptions) Complete(f Factory, args []string) (err error) {
-
+	if o.inst, err = f.Instance(); err != nil {
+		return err
+	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
 		return err
 	}
-
-	o.RemoteMethods, err = f.RemoteMethods()
-	return
+	return nil
 }
 
 // Run executes the publish command
@@ -75,7 +75,7 @@ func (o *PreviewOptions) Run() error {
 	}
 
 	ctx := context.TODO()
-	res, err := o.RemoteMethods.Preview(ctx, &p)
+	res, err := o.inst.Remote().Preview(ctx, &p)
 	if err != nil {
 		return err
 	}

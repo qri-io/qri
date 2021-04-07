@@ -17,18 +17,23 @@ const allowedDagInfoSize uint64 = 10 * 1024 * 1024
 // RemoteMethods encapsulates business logic of remote operation
 // TODO (b5): switch to using an Instance instead of separate fields
 type RemoteMethods struct {
-	inst *Instance
+	d dispatcher
 }
 
-// NewRemoteMethods creates a RemoteMethods pointer from either a node or an rpc.Client
-func NewRemoteMethods(inst *Instance) *RemoteMethods {
-	return &RemoteMethods{
-		inst: inst,
+// Name returns the name of this method group
+func (m RemoteMethods) Name() string {
+	return "remote"
+}
+
+// Attributes defines attributes for each method
+func (m RemoteMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"feeds":   {AEFeeds, "POST"},
+		"preview": {AEPreview, "POST"},
+		"push":    {AEPush, "POST"},
+		"remove":  {AERemoteRemove, "POST"},
 	}
 }
-
-// CoreRequestsName implements the Requests interface
-func (*RemoteMethods) CoreRequestsName() string { return "remote" }
 
 // FeedsParams provides arguments to the feeds method
 type FeedsParams struct {
@@ -37,26 +42,12 @@ type FeedsParams struct {
 
 // Feeds returns a listing of datasets from a number of feeds like featured and
 // popular. Each feed is keyed by string in the response
-func (r *RemoteMethods) Feeds(ctx context.Context, p *FeedsParams) (map[string][]dsref.VersionInfo, error) {
-	if r.inst.http != nil {
-		res := map[string][]dsref.VersionInfo{}
-		err := r.inst.http.Call(ctx, AEFeeds, p, &res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+func (m RemoteMethods) Feeds(ctx context.Context, p *FeedsParams) (map[string][]dsref.VersionInfo, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "feeds"), p)
+	if res, ok := got.(map[string][]dsref.VersionInfo); ok {
+		return res, err
 	}
-
-	addr, err := remote.Address(r.inst.GetConfig(), p.Remote)
-	if err != nil {
-		return nil, err
-	}
-
-	feed, err := r.inst.RemoteClient().Feeds(ctx, addr)
-	if err != nil {
-		return nil, err
-	}
-	return feed, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // PreviewParams provides arguments to the preview method
@@ -84,32 +75,12 @@ func (p *PreviewParams) UnmarshalFromRequest(r *http.Request) error {
 }
 
 // Preview requests a dataset preview from a remote
-func (r *RemoteMethods) Preview(ctx context.Context, p *PreviewParams) (*dataset.Dataset, error) {
-	if r.inst.http != nil {
-		res := &dataset.Dataset{}
-		err := r.inst.http.Call(ctx, AEPreview, p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+func (m RemoteMethods) Preview(ctx context.Context, p *PreviewParams) (*dataset.Dataset, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "preview"), p)
+	if res, ok := got.(*dataset.Dataset); ok {
+		return res, err
 	}
-
-	ref, err := dsref.Parse(p.Ref)
-	if err != nil {
-		return nil, err
-	}
-
-	addr, err := remote.Address(r.inst.GetConfig(), p.Remote)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := r.inst.RemoteClient().PreviewDatasetVersion(ctx, ref, addr)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+	return nil, dispatchReturnError(got, err)
 }
 
 // PushParams encapsulates parmeters for dataset publication
@@ -122,33 +93,80 @@ type PushParams struct {
 }
 
 // Push posts a dataset version to a remote
-func (r *RemoteMethods) Push(ctx context.Context, p *PushParams) (*dsref.Ref, error) {
-	if r.inst.http != nil {
-		res := &dsref.Ref{}
-		err := r.inst.http.Call(ctx, AEPush, p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+func (m RemoteMethods) Push(ctx context.Context, p *PushParams) (*dsref.Ref, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "push"), p)
+	if res, ok := got.(*dsref.Ref); ok {
+		return res, err
 	}
+	return nil, dispatchReturnError(got, err)
+}
 
-	ref, _, err := r.inst.ParseAndResolveRef(ctx, p.Ref, "local")
+// Remove asks a remote to remove a dataset
+func (m RemoteMethods) Remove(ctx context.Context, p *PushParams) (*dsref.Ref, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "remove"), p)
+	if res, ok := got.(*dsref.Ref); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// remoteImpl holds the method implementations for RemoteMethods
+type remoteImpl struct{}
+
+// Feeds returns a listing of datasets from a number of feeds like featured and
+// popular. Each feed is keyed by string in the response
+func (remoteImpl) Feeds(scope scope, p *FeedsParams) (map[string][]dsref.VersionInfo, error) {
+	addr, err := remote.Address(scope.Config(), p.Remote)
 	if err != nil {
 		return nil, err
 	}
 
-	addr, err := remote.Address(r.inst.GetConfig(), p.Remote)
+	feed, err := scope.RemoteClient().Feeds(scope.Context(), addr)
+	if err != nil {
+		return nil, err
+	}
+	return feed, nil
+}
+
+// Preview requests a dataset preview from a remote
+func (remoteImpl) Preview(scope scope, p *PreviewParams) (*dataset.Dataset, error) {
+	ref, err := dsref.Parse(p.Ref)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = r.inst.RemoteClient().PushDataset(ctx, ref, addr); err != nil {
+	addr, err := remote.Address(scope.Config(), p.Remote)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := scope.RemoteClient().PreviewDatasetVersion(scope.Context(), ref, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+// Push posts a dataset version to a remote
+func (remoteImpl) Push(scope scope, p *PushParams) (*dsref.Ref, error) {
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, "local")
+	if err != nil {
+		return nil, err
+	}
+
+	addr, err := remote.Address(scope.Config(), p.Remote)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = scope.RemoteClient().PushDataset(scope.Context(), ref, addr); err != nil {
 		return nil, err
 	}
 
 	datasetRef := reporef.RefFromDsref(ref)
 	datasetRef.Published = true
-	if err = base.SetPublishStatus(ctx, r.inst.node.Repo, ref, true); err != nil {
+	if err = base.SetPublishStatus(scope.Context(), scope.Repo(), ref, true); err != nil {
 		return nil, err
 	}
 
@@ -156,20 +174,7 @@ func (r *RemoteMethods) Push(ctx context.Context, p *PushParams) (*dsref.Ref, er
 }
 
 // Remove asks a remote to remove a dataset
-func (r *RemoteMethods) Remove(ctx context.Context, p *PushParams) (*dsref.Ref, error) {
-	if r.inst.http != nil {
-		res := &dsref.Ref{}
-		qvars := map[string]string{
-			"refstr": p.Ref,
-			"remote": p.Remote,
-		}
-		err := r.inst.http.CallMethod(ctx, AEPush, http.MethodDelete, qvars, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	}
-
+func (remoteImpl) Remove(scope scope, p *PushParams) (*dsref.Ref, error) {
 	ref, err := dsref.ParseHumanFriendly(p.Ref)
 	if err != nil {
 		if err == dsref.ErrNotHumanFriendly {
@@ -178,20 +183,20 @@ func (r *RemoteMethods) Remove(ctx context.Context, p *PushParams) (*dsref.Ref, 
 		return nil, err
 	}
 
-	if _, err := r.inst.ResolveReference(ctx, &ref, "local"); err != nil {
+	if _, err := scope.ResolveReference(scope.Context(), &ref, "local"); err != nil {
 		return nil, err
 	}
 
-	addr, err := remote.Address(r.inst.GetConfig(), p.Remote)
+	addr, err := remote.Address(scope.Config(), p.Remote)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := r.inst.RemoteClient().RemoveDataset(ctx, ref, addr); err != nil {
+	if err := scope.RemoteClient().RemoveDataset(scope.Context(), ref, addr); err != nil {
 		return nil, err
 	}
 
-	if err = base.SetPublishStatus(ctx, r.inst.node.Repo, ref, false); err != nil {
+	if err = base.SetPublishStatus(scope.Context(), scope.Repo(), ref, false); err != nil {
 		return nil, err
 	}
 

@@ -25,7 +25,6 @@ type Factory interface {
 	HTTPClient() *lib.HTTPClient
 	ConnectionNode() (*p2p.QriNode, error)
 
-	RemoteMethods() (*lib.RemoteMethods, error)
 	RenderMethods() (*lib.RenderMethods, error)
 }
 

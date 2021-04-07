@@ -132,11 +132,6 @@ func (t TestFactory) HTTPClient() *lib.HTTPClient {
 	return nil
 }
 
-// RemoteRequests generates a lib.RemoteRequests from internal state
-func (t TestFactory) RemoteMethods() (*lib.RemoteMethods, error) {
-	return lib.NewRemoteMethods(t.inst), nil
-}
-
 // RenderMethods generates a lib.RenderMethods from internal state
 func (t TestFactory) RenderMethods() (*lib.RenderMethods, error) {
 	return lib.NewRenderMethods(t.inst), nil

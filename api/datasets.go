@@ -22,14 +22,12 @@ import (
 type DatasetHandlers struct {
 	lib.DatasetMethods
 	inst     *lib.Instance
-	remote   *lib.RemoteMethods
 	ReadOnly bool
 }
 
 // NewDatasetHandlers allocates a DatasetHandlers pointer
 func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
-	rm := lib.NewRemoteMethods(inst)
-	h := DatasetHandlers{inst.Dataset(), inst, rm, readOnly}
+	h := DatasetHandlers{inst.Dataset(), inst, readOnly}
 	return &h
 }
 
@@ -95,7 +93,7 @@ func (h *DatasetHandlers) RemoveHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		if params.Remote != "" {
-			res, err := h.remote.Remove(r.Context(), &lib.PushParams{
+			res, err := h.inst.Remote().Remove(r.Context(), &lib.PushParams{
 				Ref:    params.Ref,
 				Remote: params.Remote,
 			})
