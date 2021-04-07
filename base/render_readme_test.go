@@ -18,7 +18,7 @@ three things:
 * one
 * two
 * three`))
-	htmlStr, err := RenderReadme(ctx, f)
+	htmlBytes, err := RenderReadme(ctx, f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +32,7 @@ three things:
 <li>three</li>
 </ul>
 `
-	if diff := cmp.Diff(expectStr, htmlStr); diff != "" {
+	if diff := cmp.Diff(expectStr, string(htmlBytes)); diff != "" {
 		t.Errorf("body component (-want +got):\n%s", diff)
 	}
 }
@@ -45,7 +45,7 @@ func TestRenderReadmeWithScriptTag(t *testing.T) {
 <script>alert('hi');</script>
 
 done`))
-	htmlStr, err := RenderReadme(ctx, f)
+	htmlBytes, err := RenderReadme(ctx, f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ done`))
 
 <p>done</p>
 `
-	if diff := cmp.Diff(expectStr, htmlStr); diff != "" {
+	if diff := cmp.Diff(expectStr, string(htmlBytes)); diff != "" {
 		t.Errorf("body component (-want +got):\n%s", diff)
 	}
 }

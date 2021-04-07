@@ -50,8 +50,8 @@ func TestRenderComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.RenderMethods == nil {
-			t.Errorf("case %d, opt.RenderMethods not set.", i)
+		if opt.inst == nil {
+			t.Errorf("case %d, opt.inst not set.", i)
 			run.IOReset()
 			continue
 		}
@@ -98,19 +98,19 @@ func TestRenderRun(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		rr, err := f.RenderMethods()
+		inst, err := f.Instance()
 		if err != nil {
-			t.Errorf("case %d, error creating dataset request: %s", i, err)
+			t.Errorf("case %d, error creating instance: %s", i, err)
 			continue
 		}
 
 		opt := &RenderOptions{
-			IOStreams:     run.Streams,
-			Refs:          NewExplicitRefSelect(c.ref),
-			UseViz:        true,
-			Template:      c.template,
-			Output:        c.output,
-			RenderMethods: rr,
+			IOStreams: run.Streams,
+			Refs:      NewExplicitRefSelect(c.ref),
+			UseViz:    true,
+			Template:  c.template,
+			Output:    c.output,
+			inst:      inst,
 		}
 
 		err = opt.Run()

@@ -66,6 +66,7 @@ func (m DatasetMethods) Attributes() map[string]AttributeSet {
 		"pull":            {AEPull, "POST"},
 		"remove":          {AERemove, "POST"},
 		"rename":          {AERename, "POST"},
+		"render":          {AERender, "POST"},
 		"save":            {AESave, "POST"},
 		// TODO(dustmop): Needs its own endpoint
 		"stats":    {AEGet, "GET"},
@@ -206,10 +207,6 @@ func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
 
 	if params.Format != "" && params.Format != "json" && params.Format != "csv" && params.Format != "zip" {
 		return fmt.Errorf("invalid extension format")
-	}
-
-	if params.Remote == "" {
-		params.Remote = r.FormValue("remote")
 	}
 
 	// TODO(arqu): we default to true but should implement a guard and/or respect the page params
@@ -742,6 +739,85 @@ func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
 	}
 
 	return
+}
+
+// RenderParams defines parameters for the Render method
+type RenderParams struct {
+	// Ref is a string reference to the dataset to render
+	Ref string
+	// Optionally pass an entire dataset in for rendering, if providing a dataset,
+	// the Ref field must be empty
+	Dataset *dataset.Dataset
+	// Optional template override
+	Template []byte
+	// If true,
+	UseFSI bool
+	// Output format. defaults to "html"
+	Format string
+	// Selector
+	Selector string
+}
+
+// SetNonZeroDefaults assigns default values
+func (p *RenderParams) SetNonZeroDefaults() {
+	if p.Format == "" {
+		p.Format = "html"
+	}
+}
+
+// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+func (p *RenderParams) UnmarshalFromRequest(r *http.Request) error {
+	if p == nil {
+		p = &RenderParams{}
+	}
+
+	params := *p
+	if params.Ref == "" {
+		params.Ref = r.FormValue("refstr")
+	}
+
+	_, err := dsref.Parse(params.Ref)
+	if err != nil && params.Dataset == nil {
+		return err
+	}
+
+	if params.Selector == "" {
+		params.Selector = r.FormValue("selector")
+	}
+
+	if !params.UseFSI {
+		params.UseFSI = r.FormValue("fsi") == "true"
+	}
+
+	if params.Format == "" {
+		params.Format = r.FormValue("format")
+	}
+
+	*p = params
+	return nil
+}
+
+// Validate checks if render parameters are valid
+func (p *RenderParams) Validate() error {
+	if p.Ref != "" && p.Dataset != nil {
+		return fmt.Errorf("cannot provide both a reference and a dataset to render")
+	}
+	if p.Ref == "" && p.Dataset == nil {
+		return dsref.ErrEmptyRef
+	}
+	if p.Selector == "" {
+		return fmt.Errorf("selector must be one of 'viz' or 'readme'")
+	}
+	return nil
+}
+
+// Render renders a viz or readme component as html
+func (m DatasetMethods) Render(ctx context.Context, p *RenderParams) ([]byte, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "render"), p)
+	if res, ok := got.([]byte); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
 }
 
 // datasetImpl holds the method implementations for DatasetMethods
@@ -1743,4 +1819,43 @@ func (datasetImpl) Stats(scope scope, p *StatsParams) (*dataset.Stats, error) {
 	}
 
 	return scope.Stats().Stats(scope.Context(), ds)
+}
+
+// Render renders a viz or readme component as html
+func (datasetImpl) Render(scope scope, p *RenderParams) (res []byte, err error) {
+	ds := p.Dataset
+	if ds == nil {
+		parseResolveLoad := scope.ParseResolveFunc()
+		ds, err = parseResolveLoad(scope.Context(), p.Ref)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	switch p.Selector {
+	case "viz":
+		res, err = base.Render(scope.Context(), scope.Repo(), ds, p.Template)
+		if err != nil {
+			return nil, err
+		}
+	case "readme":
+		if ds.Readme == nil {
+			return nil, fmt.Errorf("no readme to render")
+		}
+
+		if err := ds.Readme.OpenScriptFile(scope.Context(), scope.Filesystem()); err != nil {
+			return nil, err
+		}
+		if ds.Readme.ScriptFile() == nil {
+			return nil, fmt.Errorf("no readme to render")
+		}
+
+		res, err = base.RenderReadme(scope.Context(), ds.Readme.ScriptFile())
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("selector must be one of 'viz' or 'readme'")
+	}
+	return res, nil
 }

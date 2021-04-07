@@ -131,8 +131,3 @@ func (t TestFactory) ConnectionNode() (*p2p.QriNode, error) {
 func (t TestFactory) HTTPClient() *lib.HTTPClient {
 	return nil
 }
-
-// RenderMethods generates a lib.RenderMethods from internal state
-func (t TestFactory) RenderMethods() (*lib.RenderMethods, error) {
-	return lib.NewRenderMethods(t.inst), nil
-}

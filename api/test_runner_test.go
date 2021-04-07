@@ -89,7 +89,3 @@ func (r *APITestRunner) SaveDataset(ds *dataset.Dataset, bodyFilename string) {
 		panic(err)
 	}
 }
-
-func (r *APITestRunner) NewRenderHandlers() *RenderHandlers {
-	return NewRenderHandlers(r.Inst)
-}

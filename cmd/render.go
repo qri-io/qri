@@ -62,12 +62,12 @@ type RenderOptions struct {
 	UseViz   bool
 	Output   string
 
-	RenderMethods *lib.RenderMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
-	if o.RenderMethods, err = f.RenderMethods(); err != nil {
+	if o.inst, err = f.Instance(); err != nil {
 		return err
 	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
@@ -85,31 +85,19 @@ func (o *RenderOptions) Run() error {
 		return fmt.Errorf("you must specify --viz when using --template")
 	}
 
+	p := &lib.RenderParams{}
+	var err error
 	if o.UseViz {
-		return o.RunVizRender()
-	}
-
-	return o.RunReadmeRender()
-}
-
-// RunVizRender renders a viz component of a dataset as html
-func (o *RenderOptions) RunVizRender() (err error) {
-	var template []byte
-	if o.Template != "" {
-		template, err = ioutil.ReadFile(o.Template)
+		p, err = o.vizRenderParams()
 		if err != nil {
 			return err
 		}
+	} else {
+		p = o.readmeRenderParams()
 	}
 
-	p := &lib.RenderParams{
-		Ref:      o.Refs.Ref(),
-		Template: template,
-		Format:   "html",
-	}
-
-	ctx := context.TODO()
-	res, err := o.RenderMethods.RenderViz(ctx, p)
+	printRefSelect(o.ErrOut, o.Refs)
+	res, err := o.inst.Dataset().Render(context.TODO(), p)
 	if err != nil {
 		if errors.Is(err, dsref.ErrEmptyRef) {
 			return qerr.New(err, "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info")
@@ -125,26 +113,28 @@ func (o *RenderOptions) RunVizRender() (err error) {
 	return nil
 }
 
-// RunReadmeRender renders a readme file as html
-func (o *RenderOptions) RunReadmeRender() error {
-	printRefSelect(o.ErrOut, o.Refs)
-
-	p := &lib.RenderParams{
-		Ref:    o.Refs.Ref(),
-		UseFSI: o.Refs.IsLinked(),
-		Format: "html",
+func (o *RenderOptions) vizRenderParams() (p *lib.RenderParams, err error) {
+	var template []byte
+	if o.Template != "" {
+		template, err = ioutil.ReadFile(o.Template)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	ctx := context.TODO()
-	res, err := o.RenderMethods.RenderReadme(ctx, p)
-	if err != nil {
-		return err
-	}
+	return &lib.RenderParams{
+		Ref:      o.Refs.Ref(),
+		Template: template,
+		Format:   "html",
+		Selector: "viz",
+	}, nil
+}
 
-	if o.Output == "" {
-		fmt.Fprint(o.Out, string(res))
-	} else {
-		ioutil.WriteFile(o.Output, []byte(res), 0777)
+func (o *RenderOptions) readmeRenderParams() *lib.RenderParams {
+	return &lib.RenderParams{
+		Ref:      o.Refs.Ref(),
+		UseFSI:   o.Refs.IsLinked(),
+		Format:   "html",
+		Selector: "readme",
 	}
-	return nil
 }
