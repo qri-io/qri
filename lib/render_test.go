@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -10,88 +11,12 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	testcfg "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
-
-func TestRenderVizWithErrors(t *testing.T) {
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	// set Default Template to something easier to work with, then
-	// cleanup when test completes
-	prevDefaultTemplate := base.DefaultTemplate
-	base.DefaultTemplate = `<html><h1>{{.Peername}}/{{.Name}}</h1></html>`
-	defer func() { base.DefaultTemplate = prevDefaultTemplate }()
-
-	cases := []struct {
-		description string
-		params      *RenderParams
-		expect      []byte
-		err         string
-	}{
-		{"invalid ref",
-			&RenderParams{
-				Ref:      "foo/invalid_ref",
-				Remote:   "local",
-				Selector: "viz",
-			}, nil, "reference not found"},
-		{"template override just title",
-			&RenderParams{
-				Ref:      "me/movies",
-				Template: []byte("{{ .Meta.Title }}"),
-				Selector: "viz",
-			}, []byte("example movie data"), ""},
-		{"override with invalid template",
-			&RenderParams{
-				Ref:      "me/movies",
-				Template: []byte("{{ .BadTemplate }}"),
-				Selector: "viz",
-			}, nil, `template: index.html:1:3: executing "index.html" at <.BadTemplate>: can't evaluate field BadTemplate in type *dataset.Dataset`},
-		{"override with corrupt template",
-			&RenderParams{
-				Ref:      "me/movies",
-				Template: []byte("{{ .BadTemplateBooPlzFail"),
-				Selector: "viz",
-			}, nil, `parsing template: template: index.html:1: unclosed action`},
-		{"default template",
-			&RenderParams{
-				Ref:      "me/movies",
-				Selector: "viz",
-			}, []byte("<html><h1>peer/movies</h1></html>"), ""},
-		{"alternate dataset default template",
-			&RenderParams{
-				Ref:      "me/sitemap",
-				Selector: "viz",
-			}, []byte("<html><h1>peer/sitemap</h1></html>"), ""},
-	}
-
-	tr, err := testrepo.NewTestRepo()
-	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
-	}
-	node, err := p2p.NewQriNode(tr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-
-	for i, c := range cases {
-		got, err := inst.Dataset().Render(ctx, c.params)
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d %s error mismatch. expected: '%s', got: '%s'", i, c.description, c.err, err)
-			return
-		}
-
-		if diff := cmp.Diff(string(got), string(c.expect)); diff != "" {
-			t.Errorf("case %d result mismatch. (-want +got):\n%s", i, c.description)
-		}
-	}
-}
 
 // renderTestRunner holds state to make it easier to run tests
 type renderTestRunner struct {
@@ -150,35 +75,79 @@ func (r *renderTestRunner) Save(ref string, ds *dataset.Dataset, bodyPath string
 	}
 }
 
-func TestRenderVizFromTestRunner(t *testing.T) {
-	runner := newRenderTestRunner(t, "render_viz")
-	defer runner.Delete()
+func TestRenderViz(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
 
-	ctx := context.TODO()
+	// set Default Template to something easier to work with, then
+	// cleanup when test completes
+	prevDefaultTemplate := base.DefaultTemplate
+	base.DefaultTemplate = `<html><h1>{{.Peername}}/{{.Name}}</h1></html>`
+	defer func() { base.DefaultTemplate = prevDefaultTemplate }()
 
-	params := RenderParams{
-		Ref:      "foo/bar",
-		Selector: "viz",
-		Dataset: &dataset.Dataset{
-			Readme: &dataset.Readme{
-				ScriptBytes: []byte("# hi\n\nhello"),
-			},
-		},
-	}
-	if _, err := runner.Instance.Dataset().Render(ctx, &params); err == nil {
-		t.Errorf("expected RenderReadme with both ref & dataset to error")
+	cases := []struct {
+		description string
+		params      *RenderParams
+		expect      []byte
+		err         string
+	}{
+		{"invalid ref",
+			&RenderParams{
+				Ref:      "foo/invalid_ref",
+				Selector: "viz",
+			}, nil, "reference not found"},
+		{"template override just title",
+			&RenderParams{
+				Ref:      "me/movies",
+				Template: []byte("{{ .Meta.Title }}"),
+				Selector: "viz",
+			}, []byte("example movie data"), ""},
+		{"override with invalid template",
+			&RenderParams{
+				Ref:      "me/movies",
+				Template: []byte("{{ .BadTemplate }}"),
+				Selector: "viz",
+			}, nil, `template: index.html:1:3: executing "index.html" at <.BadTemplate>: can't evaluate field BadTemplate in type *dataset.Dataset`},
+		{"override with corrupt template",
+			&RenderParams{
+				Ref:      "me/movies",
+				Template: []byte("{{ .BadTemplateBooPlzFail"),
+				Selector: "viz",
+			}, nil, `parsing template: template: index.html:1: unclosed action`},
+		{"default template",
+			&RenderParams{
+				Ref:      "me/movies",
+				Selector: "viz",
+			}, []byte("<html><h1>peer/movies</h1></html>"), ""},
+		{"alternate dataset default template",
+			&RenderParams{
+				Ref:      "me/sitemap",
+				Selector: "viz",
+			}, []byte("<html><h1>peer/sitemap</h1></html>"), ""},
 	}
 
-	params = RenderParams{
-		Dataset: &dataset.Dataset{
-			Readme: &dataset.Readme{
-				ScriptBytes: []byte("# hi\n\nhello"),
-			},
-		},
-		Selector: "viz",
+	tr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Errorf("error allocating test repo: %s", err.Error())
+		return
 	}
-	if _, err := runner.Instance.Dataset().Render(ctx, &params); err != nil {
-		t.Error(err)
+	node, err := p2p.NewQriNode(tr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
+
+	for i, c := range cases {
+		got, err := inst.Dataset().Render(ctx, c.params)
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d %s error mismatch. expected: '%s', got: '%s'", i, c.description, c.err, err)
+			return
+		}
+
+		if diff := cmp.Diff(string(got), string(c.expect)); diff != "" {
+			t.Errorf("case %d result mismatch. (-want +got):\n%s", i, c.description)
+		}
 	}
 }
 
@@ -267,13 +236,10 @@ func TestRenderValidationFailure(t *testing.T) {
 
 	params = RenderParams{}
 	_, err = runner.Instance.Dataset().Render(runner.Context, &params)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	if !errors.Is(dsref.ErrEmptyRef, err) {
+		t.Errorf("err mismatch, expected %q, got %q", dsref.ErrEmptyRef, err)
 	}
-	expect = "must provide either a dataset or a dataset reference"
-	if diff := cmp.Diff(expect, err.Error()); diff != "" {
-		t.Errorf("err mismatch (-want +got):\n%s", diff)
-	}
+
 	params = RenderParams{
 		Ref: "peer/my_dataset",
 	}

@@ -209,10 +209,6 @@ func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
 		return fmt.Errorf("invalid extension format")
 	}
 
-	if params.Remote == "" {
-		params.Remote = r.FormValue("remote")
-	}
-
 	// TODO(arqu): we default to true but should implement a guard and/or respect the page params
 	params.All = true
 	// listParams := ListParamsFromRequest(r)
@@ -758,8 +754,6 @@ type RenderParams struct {
 	UseFSI bool
 	// Output format. defaults to "html"
 	Format string
-	// remote resolver to use
-	Remote string
 	// Selector
 	Selector string
 }
@@ -795,9 +789,6 @@ func (p *RenderParams) UnmarshalFromRequest(r *http.Request) error {
 		params.UseFSI = r.FormValue("fsi") == "true"
 	}
 
-	if params.Remote == "" {
-		params.Remote = r.FormValue("remote")
-	}
 	if params.Format == "" {
 		params.Format = r.FormValue("format")
 	}
@@ -812,7 +803,7 @@ func (p *RenderParams) Validate() error {
 		return fmt.Errorf("cannot provide both a reference and a dataset to render")
 	}
 	if p.Ref == "" && p.Dataset == nil {
-		return fmt.Errorf("must provide either a dataset or a dataset reference")
+		return dsref.ErrEmptyRef
 	}
 	if p.Selector == "" {
 		return fmt.Errorf("selector must be one of 'viz' or 'readme'")
@@ -1834,11 +1825,8 @@ func (datasetImpl) Stats(scope scope, p *StatsParams) (*dataset.Stats, error) {
 func (datasetImpl) Render(scope scope, p *RenderParams) (res []byte, err error) {
 	ds := p.Dataset
 	if ds == nil {
-		ref, source, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref, p.Remote)
-		if err != nil {
-			return nil, err
-		}
-		ds, err = scope.LoadDataset(scope.Context(), ref, source)
+		parseResolveLoad := scope.ParseResolveFunc()
+		ds, err = parseResolveLoad(scope.Context(), p.Ref)
 		if err != nil {
 			return nil, err
 		}
