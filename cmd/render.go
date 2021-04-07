@@ -62,12 +62,12 @@ type RenderOptions struct {
 	UseViz   bool
 	Output   string
 
-	RenderMethods *lib.RenderMethods
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
-	if o.RenderMethods, err = f.RenderMethods(); err != nil {
+	if o.inst, err = f.Instance(); err != nil {
 		return err
 	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
@@ -106,10 +106,11 @@ func (o *RenderOptions) RunVizRender() (err error) {
 		Ref:      o.Refs.Ref(),
 		Template: template,
 		Format:   "html",
+		Selector: "viz",
 	}
 
 	ctx := context.TODO()
-	res, err := o.RenderMethods.RenderViz(ctx, p)
+	res, err := o.inst.Dataset().Render(ctx, p)
 	if err != nil {
 		if errors.Is(err, dsref.ErrEmptyRef) {
 			return qerr.New(err, "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info")
@@ -130,13 +131,14 @@ func (o *RenderOptions) RunReadmeRender() error {
 	printRefSelect(o.ErrOut, o.Refs)
 
 	p := &lib.RenderParams{
-		Ref:    o.Refs.Ref(),
-		UseFSI: o.Refs.IsLinked(),
-		Format: "html",
+		Ref:      o.Refs.Ref(),
+		UseFSI:   o.Refs.IsLinked(),
+		Format:   "html",
+		Selector: "readme",
 	}
 
 	ctx := context.TODO()
-	res, err := o.RenderMethods.RenderReadme(ctx, p)
+	res, err := o.inst.Dataset().Render(ctx, p)
 	if err != nil {
 		return err
 	}

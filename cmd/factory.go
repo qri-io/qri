@@ -24,8 +24,6 @@ type Factory interface {
 	Init() error
 	HTTPClient() *lib.HTTPClient
 	ConnectionNode() (*p2p.QriNode, error)
-
-	RenderMethods() (*lib.RenderMethods, error)
 }
 
 // StandardRepoPath returns qri paths based on the QRI_PATH environment

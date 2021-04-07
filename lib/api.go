@@ -104,6 +104,8 @@ const (
 	AEManifestMissing = APIEndpoint("/manifest/missing")
 	// AEDAGInfo generates a dag.Info for a dataset path
 	AEDAGInfo = APIEndpoint("/dag/info")
+	// AERender renders the current dataset ref
+	AERender = APIEndpoint("/render")
 
 	// remote client endpoints
 
@@ -156,8 +158,6 @@ const (
 	AERawLogbook = APIEndpoint("/logbook")
 	// AELogbookSummary returns a string overview of the logbook
 	AELogbookSummary = APIEndpoint("/logbook/summary")
-	// AERender renders the current dataset ref
-	AERender = APIEndpoint("/render")
 	// AERegistryNew creates a new user on the registry
 	AERegistryNew = APIEndpoint("/registry/profile/new")
 	// AERegistryProve links an the current peer with an existing

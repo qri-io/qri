@@ -16,7 +16,7 @@ import (
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
-func TestRenderMethodsRender(t *testing.T) {
+func TestRenderVizWithErrors(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
@@ -32,35 +32,39 @@ func TestRenderMethodsRender(t *testing.T) {
 		expect      []byte
 		err         string
 	}{
-		{"no ref",
-			&RenderParams{}, nil, "empty reference"},
 		{"invalid ref",
 			&RenderParams{
-				Ref:    "foo/invalid_ref",
-				Remote: "local",
+				Ref:      "foo/invalid_ref",
+				Remote:   "local",
+				Selector: "viz",
 			}, nil, "reference not found"},
 		{"template override just title",
 			&RenderParams{
 				Ref:      "me/movies",
 				Template: []byte("{{ .Meta.Title }}"),
+				Selector: "viz",
 			}, []byte("example movie data"), ""},
 		{"override with invalid template",
 			&RenderParams{
 				Ref:      "me/movies",
 				Template: []byte("{{ .BadTemplate }}"),
+				Selector: "viz",
 			}, nil, `template: index.html:1:3: executing "index.html" at <.BadTemplate>: can't evaluate field BadTemplate in type *dataset.Dataset`},
 		{"override with corrupt template",
 			&RenderParams{
 				Ref:      "me/movies",
 				Template: []byte("{{ .BadTemplateBooPlzFail"),
+				Selector: "viz",
 			}, nil, `parsing template: template: index.html:1: unclosed action`},
 		{"default template",
 			&RenderParams{
-				Ref: "me/movies",
+				Ref:      "me/movies",
+				Selector: "viz",
 			}, []byte("<html><h1>peer/movies</h1></html>"), ""},
 		{"alternate dataset default template",
 			&RenderParams{
-				Ref: "me/sitemap",
+				Ref:      "me/sitemap",
+				Selector: "viz",
 			}, []byte("<html><h1>peer/sitemap</h1></html>"), ""},
 	}
 
@@ -75,10 +79,9 @@ func TestRenderMethodsRender(t *testing.T) {
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	rm := NewRenderMethods(inst)
 
 	for i, c := range cases {
-		got, err := rm.RenderViz(ctx, c.params)
+		got, err := inst.Dataset().Render(ctx, c.params)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d %s error mismatch. expected: '%s', got: '%s'", i, c.description, c.err, err)
 			return
@@ -92,13 +95,12 @@ func TestRenderMethodsRender(t *testing.T) {
 
 // renderTestRunner holds state to make it easier to run tests
 type renderTestRunner struct {
-	Node          *p2p.QriNode
-	Repo          repo.Repo
-	DatasetReqs   DatasetMethods
-	RenderMethods *RenderMethods
-	Context       context.Context
-	ContextDone   func()
-	TsFunc        func() time.Time
+	Node        *p2p.QriNode
+	Repo        repo.Repo
+	Instance    *Instance
+	Context     context.Context
+	ContextDone func()
+	TsFunc      func() time.Time
 }
 
 // newRenderTestRunner returns a test runner for render
@@ -124,9 +126,7 @@ func newRenderTestRunner(t *testing.T, testName string) *renderTestRunner {
 	if err != nil {
 		panic(err)
 	}
-	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), r.Node)
-	r.DatasetReqs = inst.Dataset()
-	r.RenderMethods = NewRenderMethods(inst)
+	r.Instance = NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), r.Node)
 
 	return &r
 }
@@ -144,27 +144,28 @@ func (r *renderTestRunner) Save(ref string, ds *dataset.Dataset, bodyPath string
 		Dataset:  ds,
 		BodyPath: bodyPath,
 	}
-	_, err := r.DatasetReqs.Save(r.Context, &params)
+	_, err := r.Instance.Dataset().Save(r.Context, &params)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func TestRenderMethodsRenderViz(t *testing.T) {
+func TestRenderVizFromTestRunner(t *testing.T) {
 	runner := newRenderTestRunner(t, "render_viz")
 	defer runner.Delete()
 
 	ctx := context.TODO()
 
 	params := RenderParams{
-		Ref: "foo/bar",
+		Ref:      "foo/bar",
+		Selector: "viz",
 		Dataset: &dataset.Dataset{
 			Readme: &dataset.Readme{
 				ScriptBytes: []byte("# hi\n\nhello"),
 			},
 		},
 	}
-	if _, err := runner.RenderMethods.RenderViz(ctx, &params); err == nil {
+	if _, err := runner.Instance.Dataset().Render(ctx, &params); err == nil {
 		t.Errorf("expected RenderReadme with both ref & dataset to error")
 	}
 
@@ -174,8 +175,9 @@ func TestRenderMethodsRenderViz(t *testing.T) {
 				ScriptBytes: []byte("# hi\n\nhello"),
 			},
 		},
+		Selector: "viz",
 	}
-	if _, err := runner.RenderMethods.RenderViz(ctx, &params); err != nil {
+	if _, err := runner.Instance.Dataset().Render(ctx, &params); err != nil {
 		t.Error(err)
 	}
 }
@@ -197,10 +199,11 @@ func TestRenderReadme(t *testing.T) {
 		"testdata/jobs_by_automation/body.csv")
 
 	params := RenderParams{
-		Ref:    "peer/my_dataset",
-		Format: "html",
+		Ref:      "peer/my_dataset",
+		Format:   "html",
+		Selector: "readme",
 	}
-	text, err := runner.RenderMethods.RenderReadme(ctx, &params)
+	text, err := runner.Instance.Dataset().Render(ctx, &params)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,8 +219,9 @@ func TestRenderReadme(t *testing.T) {
 				ScriptBytes: []byte("# hi\n\nhello"),
 			},
 		},
+		Selector: "readme",
 	}
-	text, err = runner.RenderMethods.RenderReadme(ctx, &params)
+	text, err = runner.Instance.Dataset().Render(ctx, &params)
 	if err != nil {
 		t.Errorf("dynamic dataset render error: %s", err)
 	}
@@ -233,8 +237,9 @@ func TestRenderReadme(t *testing.T) {
 				ScriptBytes: []byte("# hi\n\nhello"),
 			},
 		},
+		Selector: "readme",
 	}
-	text, err = runner.RenderMethods.RenderReadme(ctx, &params)
+	text, err = runner.Instance.Dataset().Render(ctx, &params)
 	if err == nil {
 		t.Errorf("expected RenderReadme with both ref & dataset to error")
 	}
@@ -245,16 +250,39 @@ func TestRenderValidationFailure(t *testing.T) {
 	defer runner.Delete()
 
 	params := RenderParams{
-		Ref:     "peer/my_dataset",
-		Dataset: &dataset.Dataset{},
-		Format:  "html",
+		Ref:      "peer/my_dataset",
+		Dataset:  &dataset.Dataset{},
+		Format:   "html",
+		Selector: "viz",
 	}
-	_, err := runner.RenderMethods.RenderReadme(runner.Context, &params)
+	_, err := runner.Instance.Dataset().Render(runner.Context, &params)
 	if err == nil {
-		t.Fatal("expected err but did not get one")
+		t.Fatal("expected error, got nil")
 	}
-	expectErr := "cannot provide both a reference and a dataset to render"
-	if err.Error() != expectErr {
-		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
+
+	expect := "cannot provide both a reference and a dataset to render"
+	if diff := cmp.Diff(expect, err.Error()); diff != "" {
+		t.Errorf("err mismatch (-want +got):\n%s", diff)
+	}
+
+	params = RenderParams{}
+	_, err = runner.Instance.Dataset().Render(runner.Context, &params)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	expect = "must provide either a dataset or a dataset reference"
+	if diff := cmp.Diff(expect, err.Error()); diff != "" {
+		t.Errorf("err mismatch (-want +got):\n%s", diff)
+	}
+	params = RenderParams{
+		Ref: "peer/my_dataset",
+	}
+	_, err = runner.Instance.Dataset().Render(runner.Context, &params)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	expect = "selector must be one of 'viz' or 'readme'"
+	if diff := cmp.Diff(expect, err.Error()); diff != "" {
+		t.Errorf("err mismatch (-want +got):\n%s", diff)
 	}
 }

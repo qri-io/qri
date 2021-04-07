@@ -235,14 +235,6 @@ func (o *QriOptions) ConnectionNode() (*p2p.QriNode, error) {
 	return o.inst.Node(), nil
 }
 
-// RenderMethods generates a lib.RenderMethods from internal state
-func (o *QriOptions) RenderMethods() (*lib.RenderMethods, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewRenderMethods(o.inst), nil
-}
-
 // Shutdown closes the instance
 func (o *QriOptions) Shutdown() <-chan error {
 	if o.inst == nil {

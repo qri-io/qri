@@ -262,6 +262,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEManifestMissing.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.manifestmissing"))).Methods(http.MethodPost)
 	routeParams = newrefRouteParams(lib.AEDAGInfo, false, false, http.MethodPost)
 	handleRefRoute(m, routeParams, s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.daginfo")))
+	m.Handle(lib.AERender.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.render"))).Methods(http.MethodPost)
 
 	m.Handle(lib.AEFeeds.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.feeds"))).Methods(http.MethodPost)
 	m.Handle(lib.AEPreview.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.preview"))).Methods(http.MethodPost)
@@ -280,10 +281,6 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEFSIWrite.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.write"))).Methods(http.MethodPost)
 	m.Handle(lib.AEFSICreateLink.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.createlink"))).Methods(http.MethodPost)
 	m.Handle(lib.AEFSIUnlink.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.unlink"))).Methods(http.MethodPost)
-
-	renderh := NewRenderHandlers(s.Instance)
-	routeParams = newrefRouteParams(lib.AERender, false, false, http.MethodGet, http.MethodPost)
-	handleRefRoute(m, routeParams, s.Middleware(renderh.RenderHandler))
 
 	m.Handle(lib.AEHistory.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.history"))).Methods(http.MethodPost)
 	m.Handle(lib.AEEntries.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.entries"))).Methods(http.MethodPost)

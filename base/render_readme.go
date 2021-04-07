@@ -10,12 +10,12 @@ import (
 )
 
 // RenderReadme converts the markdown from the file into html.
-func RenderReadme(ctx context.Context, file qfs.File) (string, error) {
+func RenderReadme(ctx context.Context, file qfs.File) ([]byte, error) {
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	unsafe := blackfriday.Run(data)
 	htmlBytes := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
-	return string(htmlBytes), nil
+	return htmlBytes, nil
 }
