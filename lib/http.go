@@ -219,6 +219,11 @@ func (c HTTPClient) checkError(res *http.Response, body []byte, raw bool) error 
 // method
 func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			apiutil.WriteErrResponse(w, http.StatusNotFound, fmt.Errorf("%s only accepts http POST requests", libMethod))
+			return
+		}
+
 		p := inst.NewInputParam(libMethod)
 		if p == nil {
 			log.Debugw("http request: input params returned nil", "libMethod", libMethod)
@@ -226,10 +231,19 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 			return
 		}
 
-		if err := UnmarshalParams(r, p); err != nil {
-			log.Debugw("unmarshal request params", "err", err)
+		body, err := snoop(&r.Body)
+		if err != nil && err != io.EOF {
+			log.Debugw("http request: unable to read body", "err", err)
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
+		}
+
+		if err != io.EOF {
+			if err := json.NewDecoder(body).Decode(p); err != nil {
+				log.Debugw("json decode request params", "err", err)
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
 		}
 
 		res, cursor, err := inst.Dispatch(r.Context(), libMethod, p)
