@@ -1,16 +1,9 @@
 package api
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
-	"net/http/httptest"
-	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -19,183 +12,6 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/lib"
 )
-
-func TestDatasetHandlers(t *testing.T) {
-	run := NewAPITestRunner(t)
-	defer run.Delete()
-
-	// Create a mock data server. Can't move this into the testRunner, because we need to
-	// ensure only this test is using the server's port "55555".
-	s := newMockDataServer(t)
-	defer s.Close()
-
-	h := NewDatasetHandlers(run.Inst, false)
-
-	// TODO: Remove this case, update API snapshot.
-	saveCases := []handlerTestCase{
-		{"POST", "/?new=true", mustFile(t, "testdata/newRequestFromURL.json"), nil},
-		{"DELETE", "/", nil, nil},
-	}
-	runHandlerTestCases(t, "init", h.SaveHandler(""), saveCases, true)
-
-	getCases := []handlerTestCase{
-		{"GET", "/get/peer/family_relationships", nil, map[string]string{"peername": "peer", "name": "family_relationships"}},
-		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", nil, map[string]string{"peername": "peer", "name": "family_relationships", "fs": "mem", "hash": "Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg"}},
-		// TODO(arqu): this no longer works with the gorrila.Mux router and URL param extraction
-		// {"GET", "/get/at/map/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", nil},
-		// test that when fsi=true parameter doesn't affect the api response
-		{"GET", "/get/peer/family_relationships?fsi=true", nil, map[string]string{"peername": "peer", "name": "family_relationships"}},
-		{"DELETE", "/", nil, nil},
-	}
-	runHandlerTestCases(t, "get", h.GetHandler(""), getCases, true)
-
-	bodyCases := []handlerTestCase{
-		{"GET", "/get/peer/family_relationships/body", nil, map[string]string{"peername": "peer", "name": "family_relationships", "selector": "body"}},
-		// TODO(arqu): broken, expecing object and not array response
-		// {"GET", "/get/peer/family_relationships?component=body&download=true", nil},
-		{"DELETE", "/", nil, nil},
-	}
-	runHandlerTestCases(t, "body", h.GetHandler(""), bodyCases, true)
-
-	statsCases := []handlerTestCase{
-		{"GET", "/get/peer/craigslist/stats", nil, map[string]string{"peername": "peer", "name": "craigslist", "selector": "stats"}},
-		{"GET", "/get/peer/family_relationships/at/mem/Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg/stats", nil, map[string]string{"peername": "peer", "name": "family_relationships", "fs": "mem", "hash": "Qme4PTjzRGRXLW22ECBrocSVDfpRKXvvKYbAvjvzEdNATg", "selector": "stats"}},
-	}
-	runHandlerTestCases(t, "stats", h.GetHandler(""), statsCases, false)
-
-	// TODO: Perhaps add an option to runHandlerTestCases to set Content-Type, then combin, truee
-	// `runHandlerZipPostTestCases` with `runHandlerTestCases`, true.
-	unpackCases := []handlerTestCase{
-		{"POST", "/unpack/", mustFile(t, "testdata/exported.zip"), nil},
-	}
-	runHandlerZipPostTestCases(t, "unpack", h.UnpackHandler(""), unpackCases)
-
-	removeCases := []handlerTestCase{
-		{"GET", "/", nil, nil},
-		{"POST", "/remove/peer/cities", nil, map[string]string{"peername": "peer", "name": "cities"}},
-	}
-	runHandlerTestCases(t, "remove", h.RemoveHandler(""), removeCases, true)
-
-	removeMimeCases := []handlerMimeMultipartTestCase{
-		{"POST", "/remove/peer/cities",
-			map[string]string{},
-			map[string]string{},
-			map[string]string{"peername": "peer", "name": "cities"},
-		},
-	}
-	runMimeMultipartHandlerTestCases(t, "remove mime/multipart", h.RemoveHandler(""), removeMimeCases)
-
-	newMimeCases := []handlerMimeMultipartTestCase{
-		{"POST", "/save",
-			map[string]string{
-				"body":      "testdata/cities/data.csv",
-				"structure": "testdata/cities/structure.json",
-				"metadata":  "testdata/cities/meta.json",
-			},
-			map[string]string{
-				"ref":     "peer/cities",
-				"name":    "cities",
-				"private": "true",
-			},
-			nil,
-		},
-		{"POST", "/save",
-			map[string]string{
-				"body": "testdata/cities/data.csv",
-				"file": "testdata/cities/init_dataset.json",
-			},
-			map[string]string{
-				"peername": "peer",
-				"name":     "cities",
-			},
-			nil,
-		},
-		{"POST", "/save",
-			map[string]string{
-				"body":      "testdata/cities/data.csv",
-				"structure": "testdata/cities/structure.json",
-				"metadata":  "testdata/cities/meta.json",
-			},
-			map[string]string{
-				"peername": "peer",
-				"name":     "cities_2",
-			},
-			nil,
-		},
-	}
-	runMimeMultipartHandlerTestCases(t, "save mime/multipart", h.SaveHandler(""), newMimeCases)
-}
-
-func newMockDataServer(t *testing.T) *httptest.Server {
-	t.Helper()
-
-	mockData := []byte(`Parent Identifier,Student Identifier
-1001,1002
-1010,1020
-`)
-	mockDataServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write(mockData)
-	}))
-	l, err := net.Listen("tcp", ":55556")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	mockDataServer.Listener = l
-	mockDataServer.Start()
-	return mockDataServer
-}
-
-func TestSaveWithInferredNewName(t *testing.T) {
-	node, teardown := newTestNode(t)
-	defer teardown()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	inst := newTestInstanceWithProfileFromNode(ctx, node)
-	h := NewDatasetHandlers(inst, false)
-
-	bodyPath := "testdata/cities/data.csv"
-
-	// Save first version using a body path
-	req := postJSONRequest(fmt.Sprintf("/save?bodypath=%s&new=true", absolutePath(bodyPath)), "")
-	w := httptest.NewRecorder()
-	h.SaveHandler("")(w, req)
-	bodyText := resultText(w)
-	// Name is inferred from the body path
-	expectText := `"name":"data"`
-	if !strings.Contains(bodyText, expectText) {
-		t.Errorf("expected, body response to contain %q, not found. got %q", expectText, bodyText)
-	}
-
-	// Save a second time
-	req = postJSONRequest(fmt.Sprintf("/save?bodypath=%s&new=true", absolutePath(bodyPath)), "")
-	w = httptest.NewRecorder()
-	h.SaveHandler("")(w, req)
-	bodyText = resultText(w)
-	// Name is guaranteed to be unique
-	expectText = `"name":"data_2"`
-	if !strings.Contains(bodyText, expectText) {
-		t.Errorf("expected, body response to contain %q, not found. got %q", expectText, bodyText)
-	}
-}
-
-func postJSONRequest(url, jsonBody string) *http.Request {
-	req := httptest.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonBody)))
-	req.Header.Set("Content-Type", "application/json")
-	return req
-}
-
-func absolutePath(text string) string {
-	res, _ := filepath.Abs(text)
-	return res
-}
-
-func resultText(rec *httptest.ResponseRecorder) string {
-	res := rec.Result()
-	bytes, _ := ioutil.ReadAll(res.Body)
-	return string(bytes)
-}
 
 func TestParseGetParams(t *testing.T) {
 	cases := []struct {
@@ -404,16 +220,6 @@ func TestGetZip(t *testing.T) {
 	if diff := cmp.Diff(string(expectBytes), gotBodyString); diff != "" {
 		t.Errorf("byte mismatch (-want +got):\n%s", diff)
 	}
-}
-
-func trimGetOrBodyPrefix(text string) string {
-	if strings.HasPrefix(text, "/get/") {
-		text = strings.TrimPrefix(text, "/get/")
-	}
-	if strings.HasPrefix(text, "/body/") {
-		text = strings.TrimPrefix(text, "/body/")
-	}
-	return text
 }
 
 func TestDatasetGet(t *testing.T) {
