@@ -47,9 +47,9 @@ func (inst *Instance) ParseAndResolveRefWithWorkingDir(ctx context.Context, refS
 }
 
 // ResolveReference finds the identifier & HEAD path for a dataset reference.
-// the mode parameter determines which subsystems of Qri to use when resolving
-func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, mode string) (string, error) {
-	log.Debugf("inst.ResolveReference ref=%q mode=%q", ref, mode)
+// the source parameter determines which subsystems of Qri to use when resolving
+func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, source string) (string, error) {
+	log.Debugf("inst.ResolveReference ref=%q source=%q", ref, source)
 	if inst == nil {
 		return "", dsref.ErrRefNotFound
 	}
@@ -59,17 +59,17 @@ func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, mode
 		ref.Username = inst.cfg.Profile.Peername
 	}
 
-	resolver, err := inst.resolverForMode(mode)
+	resolver, err := inst.resolverForSource(source)
 	if err != nil {
-		log.Debug("inst.resolverForMode error=%q", err)
+		log.Debug("inst.resolverForSource error=%q", err)
 		return "", err
 	}
 
 	return resolver.ResolveRef(ctx, ref)
 }
 
-func (inst *Instance) resolverForMode(mode string) (dsref.Resolver, error) {
-	switch mode {
+func (inst *Instance) resolverForSource(source string) (dsref.Resolver, error) {
+	switch source {
 	case "":
 		return inst.defaultResolver(), nil
 	case "local":
@@ -88,12 +88,12 @@ func (inst *Instance) resolverForMode(mode string) (dsref.Resolver, error) {
 		return inst.p2pResolver(), nil
 	}
 
-	// TODO (b5) - mode could be one of:
+	// TODO (b5) - source could be one of:
 	// * configured remote name
 	// * peername
 	// * peer multiaddress
 	// add support for peername & multiaddress resolution
-	addr, err := remote.Address(inst.GetConfig(), mode)
+	addr, err := remote.Address(inst.GetConfig(), source)
 	if err != nil {
 		return nil, err
 	}

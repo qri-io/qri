@@ -246,7 +246,7 @@ func (fsiImpl) Checkout(scope scope, p *LinkParams) error {
 	}
 
 	if location != "" {
-		return fmt.Errorf("auto-adding on checkout is not yet supported, please run `qri add %q` first", ref.Human())
+		return fmt.Errorf("auto-pulling on checkout is not yet supported, please run `qri pull %q` first", ref.Human())
 	}
 
 	log.Debugf("Checkout for ref %q", ref)
@@ -257,7 +257,7 @@ func (fsiImpl) Checkout(scope scope, p *LinkParams) error {
 	}
 
 	// Load dataset that is being checked out.
-	ds, err := scope.LoadDataset(ctx, ref, "")
+	ds, err := scope.Loader().LoadResolved(ctx, ref, location)
 	if err != nil {
 		log.Debugf("Checkout, dsfs.LoadDataset failed, error: %s", err)
 		return err

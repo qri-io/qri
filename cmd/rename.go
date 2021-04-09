@@ -77,7 +77,7 @@ func (o *RenameOptions) Run() error {
 		Next:    o.To,
 	}
 	ctx := context.TODO()
-	res, err := o.inst.Dataset().Rename(ctx, p)
+	res, err := o.inst.WithSource("local").Dataset().Rename(ctx, p)
 	if err != nil {
 		return err
 	}

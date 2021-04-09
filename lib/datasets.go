@@ -638,7 +638,7 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	ds, err = scope.Loader().LoadDataset(scope.Context(), ref, location)
+	ds, err = scope.Loader().LoadResolved(scope.Context(), ref, location)
 	if err != nil {
 		return nil, err
 	}
@@ -940,12 +940,6 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		// runState
 		runID := run.NewID()
 		runState = run.NewState(runID)
-		// create a loader so transforms can call `load_dataset`
-		// TODO(b5) - add a ResolverMode save parameter and call m.d.resolverForMode
-		// on the passed in mode string instead of just using the default resolver
-		// cmd can then define "remote" and "offline" flags, that set the ResolverMode
-		// string and control how transform functions
-		loader := scope.ParseResolveFunc()
 
 		scope.Bus().SubscribeID(func(ctx context.Context, e event.Event) error {
 			runState.AddTransformEvent(e)
@@ -962,7 +956,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 
 		// apply the transform
 		shouldWait := true
-		transformer := transform.NewTransformer(scope.AppContext(), loader, scope.Bus())
+		transformer := transform.NewTransformer(scope.AppContext(), scope.Loader(), scope.Bus())
 		if err := transformer.Apply(scope.Context(), ds, runID, shouldWait, scriptOut, secrets); err != nil {
 			log.Errorw("transform run error", "err", err.Error())
 			runState.Message = err.Error()
@@ -1040,13 +1034,17 @@ func (datasetImpl) Rename(scope scope, p *RenameParams) (*dsref.VersionInfo, err
 		return nil, fmt.Errorf("current name is required to rename a dataset")
 	}
 
+	if scope.SourceName() != "local" {
+		return nil, fmt.Errorf("can only rename using local source")
+	}
+
 	ref, err := dsref.ParseHumanFriendly(p.Current)
 	// Allow bad upper-case characters in the left-hand side name, because it's needed to let users
 	// fix badly named datasets.
 	if err != nil && err != dsref.ErrBadCaseName {
 		return nil, fmt.Errorf("original name: %w", err)
 	}
-	if _, err := scope.ResolveReference(scope.Context(), &ref, "local"); err != nil {
+	if _, err := scope.ResolveReference(scope.Context(), &ref); err != nil {
 		return nil, err
 	}
 
@@ -1087,7 +1085,7 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 		return nil, fmt.Errorf("can only remove whole dataset versions, not individual components")
 	}
 	if scope.SourceName() != "local" {
-		return nil, fmt.Errorf("remove requires the 'local' source")
+		return nil, fmt.Errorf("can only remove from local storage")
 	}
 
 	ref, _, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref)
@@ -1202,7 +1200,7 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 			// to return an extra fsiPath value
 			qfsRef := ref.Copy()
 			qfsRef.Path = ""
-			if _, err := scope.ResolveReference(scope.Context(), &qfsRef, "local"); err != nil {
+			if _, err := scope.ResolveReference(scope.Context(), &qfsRef); err != nil {
 				return nil, err
 			}
 			ref = qfsRef
@@ -1254,7 +1252,7 @@ func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
 	res := &dataset.Dataset{}
 
 	if scope.SourceName() != "network" {
-		return nil, fmt.Errorf("pull requires the 'network' source")
+		return nil, fmt.Errorf("can only pull from network")
 	}
 
 	ref, location, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
@@ -1293,6 +1291,10 @@ func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
 // Validate gives a dataset of errors and issues for a given dataset
 func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, error) {
 	res := &ValidateResponse{}
+
+	if scope.SourceName() != "local" {
+		return nil, fmt.Errorf("can only validate using local storage")
+	}
 
 	// Schema can come from either schema.json or structure.json, or the dataset itself.
 	// schemaFlagType determines which of these three contains the schema.
@@ -1427,6 +1429,10 @@ func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, 
 
 // Manifest generates a manifest for a dataset path
 func (datasetImpl) Manifest(scope scope, p *ManifestParams) (*dag.Manifest, error) {
+	if scope.SourceName() != "local" {
+		return nil, fmt.Errorf("can only create manifest using local storage")
+	}
+
 	res := &dag.Manifest{}
 	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
 	if err != nil {
@@ -1452,6 +1458,10 @@ func (datasetImpl) ManifestMissing(scope scope, p *ManifestMissingParams) (*dag.
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
 func (datasetImpl) DAGInfo(scope scope, p *DAGInfoParams) (*dag.Info, error) {
+	if scope.SourceName() != "local" {
+		return nil, fmt.Errorf("can only create DAGInfo from local storage")
+	}
+
 	res := &dag.Info{}
 
 	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
@@ -1483,8 +1493,7 @@ func (datasetImpl) ComponentStatus(scope scope, p *LinkParams) ([]StatusItem, er
 func (datasetImpl) Render(scope scope, p *RenderParams) (res []byte, err error) {
 	ds := p.Dataset
 	if ds == nil {
-		parseResolveLoad := scope.ParseResolveFunc()
-		ds, err = parseResolveLoad(scope.Context(), p.Ref)
+		ds, err = scope.Loader().LoadDataset(scope.Context(), p.Ref)
 		if err != nil {
 			return nil, err
 		}

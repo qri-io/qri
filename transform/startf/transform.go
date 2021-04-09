@@ -28,8 +28,8 @@ var Version = version.Version
 
 // ExecOpts defines options for execution
 type ExecOpts struct {
-	// function to use for loading datasets
-	DatasetLoader dsref.ParseResolveLoad
+	// loader for loading datasets
+	DatasetLoader dsref.Loader
 	// supply a repo to make the 'qri' module available in starlark
 	Repo repo.Repo
 	// allow floating-point numbers
@@ -55,9 +55,9 @@ type ExecOpts struct {
 }
 
 // AddDatasetLoader is required to enable the load_dataset starlark builtin
-func AddDatasetLoader(prl dsref.ParseResolveLoad) func(o *ExecOpts) {
+func AddDatasetLoader(loader dsref.Loader) func(o *ExecOpts) {
 	return func(o *ExecOpts) {
-		o.DatasetLoader = prl
+		o.DatasetLoader = loader
 	}
 }
 
@@ -120,7 +120,7 @@ func DefaultExecOpts(o *ExecOpts) {
 
 type transform struct {
 	ctx          context.Context
-	loadDataset  dsref.ParseResolveLoad
+	dsLoader     dsref.Loader
 	repo         repo.Repo
 	eventsCh     chan event.Event
 	next         *dataset.Dataset
@@ -185,7 +185,7 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 
 	t := &transform{
 		ctx:          ctx,
-		loadDataset:  o.DatasetLoader,
+		dsLoader:     o.DatasetLoader,
 		eventsCh:     o.EventsCh,
 		next:         next,
 		prev:         prev,
@@ -341,11 +341,11 @@ func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, ar
 		return starlark.None, err
 	}
 
-	if t.loadDataset == nil {
+	if t.dsLoader == nil {
 		return nil, fmt.Errorf("load_dataset function is not enabled")
 	}
 
-	ds, err := t.loadDataset(t.ctx, refstr.GoString())
+	ds, err := t.dsLoader.LoadDataset(t.ctx, refstr.GoString())
 	if err != nil {
 		return starlark.None, err
 	}

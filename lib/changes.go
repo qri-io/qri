@@ -40,8 +40,9 @@ func (diffImpl) Changes(scope scope, p *ChangeReportParams) (*ChangeReport, erro
 			return nil, err
 		}
 	} else {
-		left = dsref.Ref{Username: right.Username, Name: right.Name}
+		left = right.Copy()
 	}
 
-	return changes.New(scope.Loader(), scope.Stats()).Report(ctx, left, right, location)
+	svc := changes.New(scope.Loader(), scope.Stats())
+	return svc.Report(ctx, left, right, location)
 }

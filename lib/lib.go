@@ -524,7 +524,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	if inst.node == nil {
 		var localResolver dsref.Resolver
-		localResolver, err = inst.resolverForMode("local")
+		localResolver, err = inst.resolverForSource("local")
 		if err != nil {
 			return
 		}
@@ -567,7 +567,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 				o.remoteOptsFuncs = []remote.OptionsFunc{}
 			}
 
-			localResolver, resolverErr := inst.resolverForMode("local")
+			localResolver, resolverErr := inst.resolverForSource("local")
 			if resolverErr != nil {
 				return nil, resolverErr
 			}
@@ -791,7 +791,7 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 	}()
 
 	if inst.cfg.Remote != nil && inst.cfg.Remote.Enabled {
-		localResolver, err := inst.resolverForMode("local")
+		localResolver, err := inst.resolverForSource("local")
 		if err != nil {
 			return err
 		}

@@ -16,11 +16,17 @@ func TestLoadDataset(t *testing.T) {
 
 	fs := tr.Instance.Repo().Filesystem()
 
-	if _, err := (*Instance)(nil).LoadDataset(tr.Ctx, dsref.Ref{}, ""); err == nil {
+	if _, err := (*datasetLoader)(nil).LoadResolved(tr.Ctx, dsref.Ref{}, ""); err == nil {
 		t.Errorf("expected loadDataset on a nil instance to fail without panicing")
 	}
 
-	dsrefspec.AssertLoaderSpec(t, tr.Instance, func(ds *dataset.Dataset) (string, error) {
+	loader := &datasetLoader{inst: nil}
+	if _, err := loader.LoadResolved(tr.Ctx, dsref.Ref{}, ""); err == nil {
+		t.Errorf("expected loadDataset on a nil instance to fail without panicing")
+	}
+
+	loader = &datasetLoader{inst: tr.Instance}
+	dsrefspec.AssertLoaderSpec(t, loader, func(ds *dataset.Dataset) (string, error) {
 		return dsfs.CreateDataset(
 			tr.Ctx,
 			fs,

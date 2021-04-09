@@ -24,14 +24,14 @@ var log = golog.Logger("startf")
 
 // StepRunner is able to run individual transform steps
 type StepRunner struct {
-	starCtx     *skyctx.Context
-	loadDataset dsref.ParseResolveLoad
-	prev        *dataset.Dataset
-	checkFunc   func(path ...string) error
-	globals     starlark.StringDict
-	bodyFile    qfs.File
-	eventsCh    chan event.Event
-	thread      *starlark.Thread
+	starCtx   *skyctx.Context
+	dsLoader  dsref.Loader
+	prev      *dataset.Dataset
+	checkFunc func(path ...string) error
+	globals   starlark.StringDict
+	bodyFile  qfs.File
+	eventsCh  chan event.Event
+	thread    *starlark.Thread
 
 	download starlark.Iterable
 }
@@ -63,13 +63,13 @@ func NewStepRunner(prev *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunner
 	starCtx := skyctx.NewContext(nil, o.Secrets)
 
 	r := &StepRunner{
-		starCtx:     starCtx,
-		loadDataset: o.DatasetLoader,
-		eventsCh:    o.EventsCh,
-		prev:        prev,
-		checkFunc:   o.MutateFieldCheck,
-		thread:      thread,
-		globals:     starlark.StringDict{},
+		starCtx:   starCtx,
+		dsLoader:  o.DatasetLoader,
+		eventsCh:  o.EventsCh,
+		prev:      prev,
+		checkFunc: o.MutateFieldCheck,
+		thread:    thread,
+		globals:   starlark.StringDict{},
 	}
 
 	return r
@@ -177,11 +177,11 @@ func (r *StepRunner) LoadDatasetFunc(ctx context.Context, target *dataset.Datase
 			return starlark.None, err
 		}
 
-		if r.loadDataset == nil {
+		if r.dsLoader == nil {
 			return nil, fmt.Errorf("load_dataset function is not enabled")
 		}
 
-		ds, err := r.loadDataset(ctx, refstr.GoString())
+		ds, err := r.dsLoader.LoadDataset(ctx, refstr.GoString())
 		if err != nil {
 			return starlark.None, err
 		}

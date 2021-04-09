@@ -27,11 +27,18 @@ type loader struct {
 	fs qfs.Filesystem
 }
 
-// LoadDataset fetches, derefernces and opens a dataset from a reference
-// implements the dsfs.Loader interface
-func (l loader) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
-	if source != "" {
-		return nil, fmt.Errorf("only local datasets can be loaded")
+// LoadDataset is not implemented for base
+func (l loader) LoadDataset(ctx context.Context, refstr string) (*dataset.Dataset, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+// LoadResolved loads a dataset from a resolved ref
+func (l loader) LoadResolved(ctx context.Context, ref dsref.Ref, location string) (*dataset.Dataset, error) {
+	if ref.Path == "" {
+		return nil, dsref.ErrRefNotResolved
+	}
+	if location != "" {
+		return nil, errors.New("can only load datasets from local store")
 	}
 
 	ds, err := dsfs.LoadDataset(ctx, l.fs, ref.Path)

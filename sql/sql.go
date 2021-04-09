@@ -30,15 +30,15 @@ var log = golog.Logger("sql")
 
 // Service executes SQL queries against qri datasets
 type Service struct {
-	r           repo.Repo
-	loadDataset dsref.ParseResolveLoad
+	r      repo.Repo
+	loader dsref.Loader
 }
 
 // New creates an SQL service
-func New(r repo.Repo, loadDataset dsref.ParseResolveLoad) *Service {
+func New(r repo.Repo, loader dsref.Loader) *Service {
 	return &Service{
-		r:           r,
-		loadDataset: loadDataset,
+		r:      r,
+		loader: loader,
 	}
 }
 
@@ -63,7 +63,7 @@ func (svc *Service) Exec(ctx context.Context, w io.Writer, outFormat, query stri
 	}
 
 	ff := func(dbConfig map[string]interface{}) (physical.DataSourceBuilderFactory, error) {
-		return qds.NewDataSourceBuilderFactory(svc.r, svc.loadDataset), nil
+		return qds.NewDataSourceBuilderFactory(svc.r, svc.loader), nil
 	}
 
 	dataSourceRepository, err := physical.CreateDataSourceRepositoryFromConfig(

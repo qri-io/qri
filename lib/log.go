@@ -109,6 +109,10 @@ func (logImpl) History(scope scope, params *HistoryParams) ([]dsref.VersionInfo,
 		params.Offset = 0
 	}
 
+	if params.Pull && scope.SourceName() != "network" {
+		return nil, fmt.Errorf("cannot pull without using network source")
+	}
+
 	ref, location, err := scope.ParseAndResolveRef(scope.Context(), params.Ref)
 	if err != nil {
 		return nil, err

@@ -43,7 +43,7 @@ type DataSource struct {
 
 // NewDataSourceBuilderFactory is a factory function for qri data source
 // builders
-func NewDataSourceBuilderFactory(r repo.Repo, loadDataset dsref.ParseResolveLoad) physical.DataSourceBuilderFactory {
+func NewDataSourceBuilderFactory(r repo.Repo, loader dsref.Loader) physical.DataSourceBuilderFactory {
 	return physical.NewDataSourceBuilderFactory(
 		func(ctx context.Context, matCtx *physical.MaterializationContext, dbConfig map[string]interface{}, filter physical.Formula, alias string) (execution.Node, error) {
 			refstr, err := config.GetString(dbConfig, "ref")
@@ -51,7 +51,7 @@ func NewDataSourceBuilderFactory(r repo.Repo, loadDataset dsref.ParseResolveLoad
 				return nil, perrors.Wrap(err, "couldn't get path")
 			}
 
-			ds, err := loadDataset(ctx, refstr)
+			ds, err := loader.LoadDataset(ctx, refstr)
 			if err != nil {
 				return nil, err
 			}

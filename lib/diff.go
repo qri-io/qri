@@ -195,8 +195,7 @@ func (diffImpl) Diff(scope scope, p *DiffParams) (*DiffResponse, error) {
 	}
 
 	// Left side of diff loaded into a component
-	parseResolveLoad := scope.ParseResolveFunc()
-	ds, err := parseResolveLoad(scope.Context(), p.LeftSide)
+	ds, err := scope.Loader().LoadDataset(scope.Context(), p.LeftSide)
 	if err != nil {
 		if errors.Is(err, dsref.ErrNoHistory) {
 			return nil, qerr.New(err, fmt.Sprintf("dataset %s has no versions, nothing to diff against", p.LeftSide))
@@ -242,7 +241,7 @@ func (diffImpl) Diff(scope scope, p *DiffParams) (*DiffResponse, error) {
 		}
 		leftComp = component.ConvertDatasetToComponents(ds, scope.Filesystem())
 	case DatasetRefDiffMode:
-		ds, err = parseResolveLoad(scope.Context(), p.RightSide)
+		ds, err = scope.Loader().LoadDataset(scope.Context(), p.RightSide)
 		if err != nil {
 			return nil, err
 		}

@@ -180,25 +180,52 @@ func TestLoadDataset(t *testing.T) {
 	err := ExecScript(ctx, ds, nil, func(o *ExecOpts) {
 		o.Repo = r
 		o.ModuleLoader = testModuleLoader(t)
-		o.DatasetLoader = newParseResolveLoadFunc("", r, repoLoader{r})
+		o.DatasetLoader = newDatasetLoader("", r)
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-// TODO(b5) - we should think about moving this somewhere more general
-type repoLoader struct {
-	r repo.Repo
+type datasetLoader struct {
+	username string
+	r        repo.Repo
 }
 
-func (rl repoLoader) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
+func newDatasetLoader(username string, r repo.Repo) dsref.Loader {
+	return &datasetLoader{
+		username: username,
+		r:        r,
+	}
+}
+
+func (l datasetLoader) LoadDataset(ctx context.Context, refStr string) (*dataset.Dataset, error) {
+	ref, err := dsref.Parse(refStr)
+	if err != nil {
+		return nil, err
+	}
+
+	if l.username == "" && ref.Username == "me" {
+		return nil, fmt.Errorf("invalid contextual reference")
+	} else if l.username != "" && ref.Username == "me" {
+		ref.Username = l.username
+	}
+
+	source, err := l.r.ResolveRef(ctx, &ref)
+	if err != nil {
+		return nil, err
+	}
+
+	return l.LoadResolved(ctx, ref, source)
+}
+
+func (l datasetLoader) LoadResolved(ctx context.Context, ref dsref.Ref, location string) (*dataset.Dataset, error) {
 	var (
 		ds  *dataset.Dataset
 		err error
 	)
 
-	if ds, err = dsfs.LoadDataset(ctx, rl.r.Filesystem(), ref.Path); err != nil {
+	if ds, err = dsfs.LoadDataset(ctx, l.r.Filesystem(), ref.Path); err != nil {
 		return nil, err
 	}
 	// Set transient info on the returned dataset
@@ -207,37 +234,12 @@ func (rl repoLoader) LoadDataset(ctx context.Context, ref dsref.Ref, source stri
 
 	// TODO (b5) - this should be a call to base.OpenDatasets
 	if ds.BodyFile() == nil {
-		if err = ds.OpenBodyFile(ctx, rl.r.Filesystem()); err != nil {
+		if err = ds.OpenBodyFile(ctx, l.r.Filesystem()); err != nil {
 			return nil, err
 		}
 	}
 
 	return ds, nil
-}
-
-// newParseResolveLoadFunc composes a username, resolver, and loader into a
-// higher-order function that converts strings to full datasets
-// pass the empty string as a username to disable the "me" keyword in references
-func newParseResolveLoadFunc(username string, resolver dsref.Resolver, loader dsref.Loader) dsref.ParseResolveLoad {
-	return func(ctx context.Context, refStr string) (*dataset.Dataset, error) {
-		ref, err := dsref.Parse(refStr)
-		if err != nil {
-			return nil, err
-		}
-
-		if username == "" && ref.Username == "me" {
-			return nil, fmt.Errorf("invalid contextual reference")
-		} else if username != "" && ref.Username == "me" {
-			ref.Username = username
-		}
-
-		source, err := resolver.ResolveRef(ctx, &ref)
-		if err != nil {
-			return nil, err
-		}
-
-		return loader.LoadDataset(ctx, ref, source)
-	}
 }
 
 func TestGetMetaNilPrev(t *testing.T) {

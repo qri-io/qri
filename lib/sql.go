@@ -51,9 +51,7 @@ type sqlImpl struct{}
 
 // Exec runs an SQL query
 func (sqlImpl) Exec(scope scope, p *SQLQueryParams) ([]byte, error) {
-	loadFunc := scope.ParseResolveFunc()
-	svc := sql.New(scope.Repo(), loadFunc)
-
+	svc := sql.New(scope.Repo(), scope.Loader())
 	buf := &bytes.Buffer{}
 	if err := svc.Exec(scope.Context(), buf, p.Format, p.Query); err != nil {
 		return nil, err

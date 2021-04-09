@@ -45,7 +45,7 @@ func AssertLoaderSpec(t *testing.T, r dsref.Loader, putFunc PutDatasetFunc) {
 	}
 
 	ref := dsref.Ref{}
-	_, err = r.LoadDataset(ctx, ref, "")
+	_, err = r.LoadResolved(ctx, ref, "")
 	if err == nil {
 		t.Errorf("expected loading without a reference Path value to fail, got nil")
 	}
@@ -55,7 +55,7 @@ func AssertLoaderSpec(t *testing.T, r dsref.Loader, putFunc PutDatasetFunc) {
 		Name:     name,
 		Path:     path,
 	}
-	got, err := r.LoadDataset(ctx, ref, "")
+	got, err := r.LoadResolved(ctx, ref, "")
 	if err != nil {
 		t.Fatal(err)
 	}

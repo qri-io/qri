@@ -108,36 +108,49 @@ func (tr *testRunner) MustRun(t *testing.T, query string, cfg *octocfg.Config) s
 	return out.String()
 }
 
-func (tr *testRunner) loadDatasetFunc() dsref.ParseResolveLoad {
+func (tr *testRunner) loadDatasetFunc() dsref.Loader {
 	pro := tr.repo.Profiles().Owner()
 	loader := base.NewLocalDatasetLoader(tr.repo.Filesystem())
-	return newParseResolveLoadFunc(pro.Peername, tr.repo, loader)
+	return newDsLoader(pro.Peername, tr.repo, loader)
 }
 
-// newParseResolveLoadFunc composes a username, resolver, and loader into a
-// higher-order function that converts strings to full datasets
-// pass the empty string as a username to disable the "me" keyword in references
-func newParseResolveLoadFunc(username string, resolver dsref.Resolver, loader dsref.Loader) dsref.ParseResolveLoad {
-	return func(ctx context.Context, refStr string) (*dataset.Dataset, error) {
-		ref, err := dsref.Parse(refStr)
-		if err != nil {
-			return nil, err
-		}
+type dsLoader struct {
+	username string
+	resolver dsref.Resolver
+	loader   dsref.Loader
+}
 
-		if username == "" && ref.Username == "me" {
-			msg := fmt.Sprintf(`Can't use the "me" keyword to refer to a dataset in this context.
+func newDsLoader(username string, resolver dsref.Resolver, loader dsref.Loader) dsref.Loader {
+	return &dsLoader{
+		username: username,
+		resolver: resolver,
+		loader:   loader,
+	}
+}
+
+func (l *dsLoader) LoadDataset(ctx context.Context, refStr string) (*dataset.Dataset, error) {
+	ref, err := dsref.Parse(refStr)
+	if err != nil {
+		return nil, err
+	}
+
+	if l.username == "" && ref.Username == "me" {
+		msg := fmt.Sprintf(`Can't use the "me" keyword to refer to a dataset in this context.
 Replace "me" with your username for the reference:
 %s`, refStr)
-			return nil, qerr.New(fmt.Errorf("invalid contextual reference"), msg)
-		} else if username != "" && ref.Username == "me" {
-			ref.Username = username
-		}
-
-		source, err := resolver.ResolveRef(ctx, &ref)
-		if err != nil {
-			return nil, err
-		}
-
-		return loader.LoadDataset(ctx, ref, source)
+		return nil, qerr.New(fmt.Errorf("invalid contextual reference"), msg)
+	} else if l.username != "" && ref.Username == "me" {
+		ref.Username = l.username
 	}
+
+	location, err := l.resolver.ResolveRef(ctx, &ref)
+	if err != nil {
+		return nil, err
+	}
+
+	return l.loader.LoadResolved(ctx, ref, location)
+}
+
+func (l *dsLoader) LoadResolved(ctx context.Context, ref dsref.Ref, location string) (*dataset.Dataset, error) {
+	return nil, fmt.Errorf("LoadResolved not implemented")
 }

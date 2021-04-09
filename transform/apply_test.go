@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -67,6 +68,16 @@ func TestApply(t *testing.T) {
 	}
 }
 
+type noHistoryLoader struct{}
+
+func (h noHistoryLoader) LoadDataset(ctx context.Context, refStr string) (*dataset.Dataset, error) {
+	return nil, dsref.ErrNoHistory
+}
+
+func (h noHistoryLoader) LoadResolved(ctx context.Context, ref dsref.Ref, location string) (*dataset.Dataset, error) {
+	return nil, fmt.Errorf("LoadResolved not implemented")
+}
+
 // run a transform script & capture the event log. transform runs against an
 // empty dataset history
 func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event {
@@ -74,9 +85,7 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event 
 	defer cancel()
 
 	scriptOut := &bytes.Buffer{}
-	noHistoryLoader := func(ctx context.Context, refStr string) (*dataset.Dataset, error) {
-		return nil, dsref.ErrNoHistory
-	}
+	noHistoryLoader := noHistoryLoader{}
 	target := &dataset.Dataset{Transform: tf}
 
 	runID := run.NewID()

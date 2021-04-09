@@ -584,7 +584,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	for i, c := range bad {
 		t.Run(fmt.Sprintf("bad_%d", i), func(t *testing.T) {
-			_, err := inst.Dataset().Rename(ctx, c.p)
+			_, err := inst.WithSource("local").Dataset().Rename(ctx, c.p)
 
 			if err == nil {
 				t.Fatalf("test didn't error")
@@ -606,7 +606,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		Next:    "peer/new_movies",
 	}
 
-	res, err := inst.Dataset().Rename(ctx, p)
+	res, err := inst.WithSource("local").Dataset().Rename(ctx, p)
 	if err != nil {
 		t.Errorf("unexpected error renaming: %s", err)
 	}
@@ -659,7 +659,7 @@ func TestRenameNoHistory(t *testing.T) {
 		Current: "me/rename_no_history",
 		Next:    "me/rename_second_name",
 	}
-	_, err = tr.Instance.Dataset().Rename(ctx, renameP)
+	_, err = tr.Instance.WithSource("local").Dataset().Rename(ctx, renameP)
 	if err != nil {
 		t.Fatal(err)
 	}

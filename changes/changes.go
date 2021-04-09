@@ -65,7 +65,7 @@ type EmptyObject map[string]interface{}
 
 // Service generates a change report between two datasets
 type Service interface {
-	Report(ctx context.Context, leftRef, rightRef dsref.Ref, loadSource string) (*ChangeReportResponse, error)
+	Report(ctx context.Context, leftRef, rightRef dsref.Ref, loadLocation string) (*ChangeReportResponse, error)
 }
 
 // Service can generate a change report between two datasets
@@ -385,8 +385,8 @@ func (svc *service) columnStatsDelta(left, right interface{}, lCol, rCol *tabula
 
 // Report computes the change report of two sources
 // This takes some assumptions - we work only with tabular data, with header rows and functional structure.json
-func (svc *service) Report(ctx context.Context, leftRef, rightRef dsref.Ref, loadSource string) (*ChangeReportResponse, error) {
-	rightDs, err := svc.loader.LoadDataset(ctx, rightRef, loadSource)
+func (svc *service) Report(ctx context.Context, leftRef, rightRef dsref.Ref, loadLocation string) (*ChangeReportResponse, error) {
+	rightDs, err := svc.loader.LoadResolved(ctx, rightRef, loadLocation)
 	if err != nil {
 		return nil, err
 	}
@@ -397,7 +397,7 @@ func (svc *service) Report(ctx context.Context, leftRef, rightRef dsref.Ref, loa
 		leftRef.Path = rightDs.PreviousPath
 	}
 
-	leftDs, err := svc.loader.LoadDataset(ctx, leftRef, loadSource)
+	leftDs, err := svc.loader.LoadResolved(ctx, leftRef, loadLocation)
 	if err != nil {
 		return nil, err
 	}
