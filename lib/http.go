@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/gorilla/schema"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	apiutil "github.com/qri-io/qri/api/util"
@@ -22,15 +21,6 @@ import (
 var ErrUnsupportedRPC = errors.New("method is not suported over RPC")
 
 const jsonMimeType = "application/json"
-
-// decoder maps HTTP requests to input structs
-var decoder = schema.NewDecoder()
-
-func init() {
-	// TODO(arqu): once APIs have a strict mapping to Params this line
-	// should be removed and should error out on unknown keys
-	decoder.IgnoreUnknownKeys(true)
-}
 
 // HTTPClient implements the qri http client
 type HTTPClient struct {
@@ -231,21 +221,11 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 			return
 		}
 
-		body, err := snoop(&r.Body)
-		if err != nil && err != io.EOF {
-			log.Debugw("http request: unable to read body", "err", err)
+		if err := DecodeParams(r, &p); err != nil {
+			log.Debugw("decode params:", "err", err)
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
-
-		if err != io.EOF {
-			if err := json.NewDecoder(body).Decode(p); err != nil {
-				log.Debugw("json decode request params", "err", err)
-				apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
-			}
-		}
-
 		res, cursor, err := inst.Dispatch(r.Context(), libMethod, p)
 		if err != nil {
 			log.Debugw("http request: dispatch", "err", err)
@@ -262,41 +242,26 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 	}
 }
 
-// UnmarshalParams deserialzes a lib req params stuct pointer from an HTTP
-// request
-//
-// Deprecated: This is only exported for one-off handlers in the API package
-// can make use of it. Prefer refactoring to use NewHTTPRequestHandler instead.
-// once all callers in the api package are removed, unexport this function.
-func UnmarshalParams(r *http.Request, p interface{}) error {
+// DecodeParams decodes a json body into params
+func DecodeParams(r *http.Request, p interface{}) error {
 	defer func() {
 		if defSetter, ok := p.(NZDefaultSetter); ok {
 			defSetter.SetNonZeroDefaults()
 		}
 	}()
 
-	if r.Method == http.MethodPost || r.Method == http.MethodPut {
-		if r.Header.Get("Content-Type") == jsonMimeType {
-			body, err := snoop(&r.Body)
-			if err != nil && err != io.EOF {
-				return err
-			}
-			// this avoids resolving on empty body requests
-			// and tries to handle it almost like a GET
-			if err != io.EOF {
-				return json.NewDecoder(body).Decode(p)
-			}
+	body, err := snoop(&r.Body)
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("unable to read request body: %w", err)
+	}
+
+	if err != io.EOF {
+		if err := json.NewDecoder(body).Decode(p); err != nil {
+			return fmt.Errorf("unable to decode params from request body: %w", err)
 		}
 	}
-
-	if ru, ok := p.(RequestUnmarshaller); ok {
-		return ru.UnmarshalFromRequest(r)
-	}
-
-	if err := r.ParseForm(); err != nil {
-		return err
-	}
-	return decoder.Decode(p, r.Form)
+	// allow empty params
+	return nil
 }
 
 // snoop reads from an io.ReadCloser and restores it so it can be read again

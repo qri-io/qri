@@ -3,11 +3,8 @@ package lib
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"strconv"
 	"strings"
 
-	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
@@ -46,34 +43,6 @@ type PeerListParams struct {
 	Cached bool
 }
 
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *PeerListParams) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &PeerListParams{}
-	}
-
-	params := *p
-
-	if r.FormValue("limit") != "" && r.FormValue("offset") != "" {
-		params.Limit = util.ReqParamInt(r, "limit", 0)
-		params.Offset = util.ReqParamInt(r, "offset", 0)
-	} else {
-		lp := &ListParams{}
-		if err := lp.UnmarshalFromRequest(r); err != nil {
-			return err
-		}
-		params.Limit = lp.Limit
-		params.Offset = lp.Offset
-	}
-
-	if !params.Cached {
-		params.Cached = r.FormValue("cached") == "true"
-	}
-
-	*p = params
-	return nil
-}
-
 // List lists Peers on the qri network
 func (m PeerMethods) List(ctx context.Context, p *PeerListParams) ([]*config.ProfilePod, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "list"), p)
@@ -89,28 +58,6 @@ type PeerInfoParams struct {
 	ProfileID string
 	// Verbose adds network details from the p2p Peerstore
 	Verbose bool
-}
-
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *PeerInfoParams) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &PeerInfoParams{}
-	}
-
-	if r.FormValue("profile") != "" {
-		_, err := profile.IDB58Decode(r.FormValue("profile"))
-		if err != nil {
-			p.Peername = r.FormValue("profile")
-		} else {
-			p.ProfileID = r.FormValue("profile")
-		}
-	}
-
-	if !p.Verbose {
-		p.Verbose = r.FormValue("verbose") == "true"
-	}
-
-	return nil
 }
 
 // Info shows peer profile details
@@ -143,31 +90,6 @@ type ConnectionsParams struct {
 	Offset int
 }
 
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *ConnectionsParams) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &ConnectionsParams{}
-	}
-
-	if r.FormValue("limit") != "" {
-		limit, err := strconv.ParseInt(r.FormValue("limit"), 10, 0)
-		if err != nil {
-			return err
-		}
-		p.Limit = int(limit)
-	}
-
-	if r.FormValue("offset") != "" {
-		offset, err := strconv.ParseInt(r.FormValue("offset"), 10, 0)
-		if err != nil {
-			return err
-		}
-		p.Offset = int(offset)
-	}
-
-	return nil
-}
-
 // Connections lists PeerID's we're currently connected to. If running
 // IPFS this will also return connected IPFS nodes
 func (m PeerMethods) Connections(ctx context.Context, p *ConnectionsParams) ([]string, error) {
@@ -194,19 +116,6 @@ type ConnectParamsPod struct {
 	ProfileID string
 	NetworkID string
 	Multiaddr string
-}
-
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *ConnectParamsPod) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &ConnectParamsPod{}
-	}
-
-	if r.FormValue("path") != "" {
-		*p = *NewConnectParamsPod(r.FormValue("path"))
-	}
-
-	return nil
 }
 
 // NewConnectParamsPod attempts to turn a string into peer connection parameters

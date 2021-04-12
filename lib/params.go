@@ -19,11 +19,6 @@ type NZDefaultSetter interface {
 	SetNonZeroDefaults()
 }
 
-// RequestUnmarshaller is an interface for deserializing from an HTTP request
-type RequestUnmarshaller interface {
-	UnmarshalFromRequest(r *http.Request) error
-}
-
 // ListParams is the general input for any sort of Paginated Request
 // ListParams define limits & offsets, not pages & page sizes.
 // TODO - rename this to PageParams.
@@ -56,31 +51,6 @@ func (p *ListParams) SetNonZeroDefaults() {
 	if p.OrderBy == "" {
 		p.OrderBy = "created"
 	}
-}
-
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *ListParams) UnmarshalFromRequest(r *http.Request) error {
-	lp := ListParamsFromRequest(r)
-	if p == nil {
-		p = &ListParams{}
-	}
-	if !p.Raw {
-		lp.Raw = r.FormValue("raw") == "true"
-	} else {
-		lp.Raw = p.Raw
-	}
-	if p.Peername == "" {
-		lp.Peername = r.FormValue("peername")
-	} else {
-		lp.Peername = p.Peername
-	}
-	if p.Term == "" {
-		lp.Term = r.FormValue("term")
-	} else {
-		lp.Term = p.Term
-	}
-	*p = lp
-	return nil
 }
 
 // NewListParams creates a ListParams from page & pagesize, pages are 1-indexed

@@ -38,7 +38,7 @@ func (h *DatasetHandlers) GetHandler(routePrefix string) http.HandlerFunc {
 		}
 		params := &lib.GetParams{}
 
-		err := lib.UnmarshalParams(r, params)
+		err := UnmarshalParams(r, params)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return

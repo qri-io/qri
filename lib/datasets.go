@@ -33,7 +33,6 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/transform"
 	"github.com/qri-io/qri/transform/run"
 )
@@ -305,87 +304,6 @@ type SaveParams struct {
 	UseDscache bool
 }
 
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *SaveParams) UnmarshalFromRequest(r *http.Request) error {
-
-	if p.Dataset != nil || r.Header.Get("Content-Type") == "application/json" {
-		if p.Dataset == nil {
-			p.Dataset = &dataset.Dataset{}
-		}
-		pRef := p.Ref
-
-		if pRef == "" {
-			pRef = r.FormValue("refstr")
-		}
-
-		args, err := dsref.Parse(pRef)
-		if err != nil {
-			if err == dsref.ErrEmptyRef && r.FormValue("new") == "true" {
-				err = nil
-			} else {
-				return err
-			}
-		}
-		if args.Username != "" {
-			p.Dataset.Peername = args.Username
-			p.Dataset.Name = args.Name
-		}
-	} else {
-		if p.Dataset == nil {
-			p.Dataset = &dataset.Dataset{}
-		}
-		if err := formFileDataset(r, p.Dataset); err != nil {
-			return err
-		}
-	}
-
-	// TODO (b5) - this should probably be handled by lib
-	// DatasetMethods.Save should fold the provided dataset values *then* attempt
-	// to extract a valid dataset reference from the resulting dataset,
-	// and use that as a save target.
-	ref := reporef.DatasetRef{
-		Name:     p.Dataset.Name,
-		Peername: p.Dataset.Peername,
-	}
-
-	if p.Ref == "" {
-		p.Ref = ref.AliasString()
-	}
-	if v := r.FormValue("apply"); v != "" {
-		p.Apply = v == "true"
-	}
-	if v := r.FormValue("private"); v != "" {
-		p.Private = v == "true"
-	}
-	if v := r.FormValue("force"); v != "" {
-		p.Force = v == "true"
-	}
-	if v := r.FormValue("no_render"); v != "" {
-		p.ShouldRender = !(v == "true")
-	}
-	if v := r.FormValue("new"); v != "" {
-		p.NewName = v == "true"
-	}
-	if v := r.FormValue("bodypath"); v != "" {
-		p.BodyPath = v
-	}
-	if v := r.FormValue("drop"); v != "" {
-		p.Drop = v
-	}
-
-	if r.FormValue("secrets") != "" {
-		p.Secrets = map[string]string{}
-		if err := json.Unmarshal([]byte(r.FormValue("secrets")), &p.Secrets); err != nil {
-			return fmt.Errorf("parsing secrets: %s", err)
-		}
-	} else if p.Dataset.Transform != nil && p.Dataset.Transform.Secrets != nil {
-		// TODO remove this, require API consumers to send secrets separately
-		p.Secrets = p.Dataset.Transform.Secrets
-	}
-
-	return nil
-}
-
 // SetNonZeroDefaults sets basic save path params to defaults
 func (p *SaveParams) SetNonZeroDefaults() {
 	p.ConvertFormatToPrev = true
@@ -431,32 +349,6 @@ type RemoveResponse struct {
 	Unlinked   bool
 }
 
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *RemoveParams) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &RemoveParams{}
-	}
-
-	if p.Ref == "" {
-		p.Ref = r.FormValue("refstr")
-	}
-	if p.Remote == "" {
-		p.Remote = r.FormValue("remote")
-	}
-	if p.KeepFiles == false {
-		p.KeepFiles = r.FormValue("keep-files") == "true"
-	}
-	if p.Force == false {
-		p.Force = r.FormValue("force") == "true"
-	}
-
-	if r.FormValue("all") == "true" {
-		p.Revision = dsref.NewAllRevisions()
-	}
-
-	return nil
-}
-
 // SetNonZeroDefaults assigns default values
 func (p *RemoveParams) SetNonZeroDefaults() {
 	if p.Revision == nil {
@@ -484,15 +376,6 @@ type PullParams struct {
 	LogsOnly bool   // only fetch logbook data
 }
 
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *PullParams) UnmarshalFromRequest(r *http.Request) error {
-	if p.Ref == "" {
-		p.Ref = r.FormValue("refstr")
-	}
-
-	return nil
-}
-
 // Pull downloads and stores an existing dataset to a peer's repository via
 // a network connection
 func (m DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Dataset, error) {
@@ -509,15 +392,6 @@ type ValidateParams struct {
 	BodyFilename      string
 	SchemaFilename    string
 	StructureFilename string
-}
-
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *ValidateParams) UnmarshalFromRequest(r *http.Request) error {
-	if p.Ref == "" {
-		p.Ref = r.FormValue("refstr")
-	}
-
-	return nil
 }
 
 // ValidateResponse is the result of running validate against a dataset
@@ -728,38 +602,6 @@ func (p *RenderParams) SetNonZeroDefaults() {
 	if p.Format == "" {
 		p.Format = "html"
 	}
-}
-
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *RenderParams) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &RenderParams{}
-	}
-
-	params := *p
-	if params.Ref == "" {
-		params.Ref = r.FormValue("refstr")
-	}
-
-	_, err := dsref.Parse(params.Ref)
-	if err != nil && params.Dataset == nil {
-		return err
-	}
-
-	if params.Selector == "" {
-		params.Selector = r.FormValue("selector")
-	}
-
-	if !params.UseFSI {
-		params.UseFSI = r.FormValue("fsi") == "true"
-	}
-
-	if params.Format == "" {
-		params.Format = r.FormValue("format")
-	}
-
-	*p = params
-	return nil
 }
 
 // Validate checks if render parameters are valid
