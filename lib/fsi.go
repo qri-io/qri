@@ -45,7 +45,7 @@ func (m FSIMethods) Attributes() map[string]AttributeSet {
 // LinkParams encapsulate parameters for linked datasets
 type LinkParams struct {
 	Dir    string `qri:"fspath"`
-	Refstr string
+	Refstr string `json:"refstr"`
 }
 
 // UnmarshalFromRequest implements a custom deserialization-from-HTTP request
