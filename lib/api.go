@@ -44,9 +44,6 @@ const (
 
 	// AEList lists all datasets in your collection
 	AEList = APIEndpoint("/list")
-	// AEPeerList lists all datasets in your
-	// collection for a particular peer
-	AEPeerList = APIEndpoint("/list/{peer}")
 	// AEDiff is an endpoint for generating dataset diffs
 	AEDiff = APIEndpoint("/diff")
 	// AEChanges is an endpoint for generating dataset change reports

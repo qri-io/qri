@@ -215,8 +215,6 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Use(refStringMiddleware)
 	m.Use(token.OAuthTokenMiddleware)
 
-	dsh := NewDatasetHandlers(s.Instance, cfg.API.ReadOnly)
-
 	var routeParams refRouteParams
 
 	// misc endpoints
@@ -229,7 +227,6 @@ func NewServerRoutes(s Server) *mux.Router {
 
 	// aggregate endpoints
 	m.Handle(lib.AEList.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "collection.list"))).Methods(http.MethodPost)
-	m.Handle(lib.AEPeerList.String(), s.Middleware(dsh.PeerListHandler(lib.AEPeerList.String())))
 	m.Handle(lib.AESQL.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "sql.exec"))).Methods(http.MethodPost)
 	m.Handle(lib.AEDiff.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "diff.diff"))).Methods(http.MethodPost, http.MethodGet)
 	m.Handle(lib.AEChanges.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "diff.changes"))).Methods(http.MethodPost, http.MethodGet)
@@ -241,23 +238,22 @@ func NewServerRoutes(s Server) *mux.Router {
 
 	// dataset endpoints
 	m.Handle(lib.AEComponentStatus.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.componentstatus"))).Methods(http.MethodPost)
-	routeParams = newrefRouteParams(lib.AEGet, false, true, http.MethodGet, http.MethodPost)
-	handleRefRoute(m, routeParams, s.Middleware(dsh.GetHandler(lib.AEGet.String())))
 	m.Handle(lib.AERename.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.rename"))).Methods(http.MethodPost, http.MethodPut)
-	routeParams = newrefRouteParams(lib.AESave, false, false, http.MethodPost, http.MethodPut)
-	handleRefRoute(m, routeParams, s.Middleware(dsh.SaveHandler(lib.AESave.String())))
-	routeParams = newrefRouteParams(lib.AEPull, false, false, http.MethodPost, http.MethodPut)
-	handleRefRoute(m, routeParams, s.Middleware(dsh.PullHandler(lib.AEPull.NoTrailingSlash())))
+	m.Handle(lib.AESave.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.save"))).Methods(http.MethodPost)
+	m.Handle(lib.AEPull.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.pull"))).Methods(http.MethodPost)
 	m.Handle(lib.AEPush.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.push"))).Methods(http.MethodPost)
 	m.Handle(lib.AERender.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.render"))).Methods(http.MethodPost)
-	m.Handle(lib.AERemoteRemove.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.remove"))).Methods(http.MethodPost)
-	routeParams = newrefRouteParams(lib.AERemove, false, false, http.MethodPost, http.MethodDelete)
-	handleRefRoute(m, routeParams, s.Middleware(dsh.RemoveHandler(lib.AERemove.String())))
+	m.Handle(lib.AERemove.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.remove"))).Methods(http.MethodPost)
 	m.Handle(lib.AEValidate.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.validate"))).Methods(http.MethodPost)
-	m.Handle(lib.AEUnpack.String(), s.Middleware(dsh.UnpackHandler(lib.AEUnpack.NoTrailingSlash())))
 	m.Handle(lib.AEManifest.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.manifest"))).Methods(http.MethodPost)
 	m.Handle(lib.AEManifestMissing.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.manifestmissing"))).Methods(http.MethodPost)
 	m.Handle(lib.AEDAGInfo.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.daginfo"))).Methods(http.MethodPost)
+
+	// non POST/json dataset endpoints
+	dsh := NewDatasetHandlers(s.Instance, cfg.API.ReadOnly)
+	routeParams = newrefRouteParams(lib.AEGet, false, true, http.MethodGet, http.MethodPost)
+	handleRefRoute(m, routeParams, s.Middleware(dsh.GetHandler(lib.AEGet.String())))
+	m.Handle(lib.AEUnpack.String(), s.Middleware(dsh.UnpackHandler(lib.AEUnpack.NoTrailingSlash())))
 
 	// peer endpoints
 	m.Handle(lib.AEPeers.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.list"))).Methods(http.MethodPost)
@@ -278,6 +274,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEPreview.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.preview"))).Methods(http.MethodPost)
 	m.Handle(lib.AERegistryNew.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "registry.createprofile"))).Methods(http.MethodPost)
 	m.Handle(lib.AERegistryProve.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "registry.proveprofilekey"))).Methods(http.MethodPost)
+	m.Handle(lib.AERemoteRemove.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.remove"))).Methods(http.MethodPost)
 	m.Handle(lib.AESearch.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "search.search"))).Methods(http.MethodPost)
 
 	// working directory endpoints
