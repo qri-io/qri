@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -77,6 +78,13 @@ func TestValidateRun(t *testing.T) {
 		return
 	}
 
+	// Get the current directory, ending in a slash, to remove it from error messages
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pwd = pwd + "/"
+
 	inst, err := f.Instance()
 	if err != nil {
 		t.Fatalf("error creating instance: %s", err)
@@ -121,8 +129,10 @@ func TestValidateRun(t *testing.T) {
 				t.Errorf("expected error, got none")
 				return
 			}
-			if c.err != err.Error() {
-				t.Errorf("error mismatch.\nwant: %q\ngot:  %q", c.err, err.Error())
+			// Remove the current directory from path, to get consistent error messages
+			errGot := strings.Replace(err.Error(), pwd, "", -1)
+			if c.err != errGot {
+				t.Errorf("error mismatch.\nwant: %q\ngot:  %q", c.err, errGot)
 			}
 
 			if libErr, ok := err.(errors.Error); ok {

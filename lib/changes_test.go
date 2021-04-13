@@ -29,7 +29,7 @@ func TestChanges(t *testing.T) {
 
 	// test ChangeReport with one param
 	p := &ChangeReportParams{
-		RightRefstr: commitref.Alias(),
+		RightRef: commitref.Alias(),
 	}
 	if _, err := inst.Diff().Changes(ctx, p); err != nil {
 		t.Fatalf("change report error: %s", err)

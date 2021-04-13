@@ -2,7 +2,6 @@ package lib
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
@@ -36,9 +35,8 @@ func (m LogMethods) Attributes() map[string]AttributeSet {
 type HistoryParams struct {
 	ListParams
 	// Reference to data to fetch history for
-	Ref    string
-	Pull   bool
-	Source string
+	Ref  string
+	Pull bool
 }
 
 // History returns the history of changes for a given dataset
@@ -111,26 +109,17 @@ func (logImpl) History(scope scope, params *HistoryParams) ([]dsref.VersionInfo,
 		params.Offset = 0
 	}
 
-	if params.Pull {
-		switch params.Source {
-		case "":
-			params.Source = "network"
-		case "local":
-			return nil, fmt.Errorf("cannot pull with only local source")
-		}
-	}
-
-	ref, source, err := scope.ParseAndResolveRef(scope.Context(), params.Ref, params.Source)
+	ref, location, err := scope.ParseAndResolveRef(scope.Context(), params.Ref)
 	if err != nil {
 		return nil, err
 	}
 
-	if source == "" {
+	if location == "" {
 		// local resolution
 		return base.DatasetLog(scope.Context(), scope.Repo(), ref, params.Limit, params.Offset, true)
 	}
 
-	logs, err := scope.RemoteClient().FetchLogs(scope.Context(), ref, source)
+	logs, err := scope.RemoteClient().FetchLogs(scope.Context(), ref, location)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +165,7 @@ func (logImpl) Log(scope scope, p *RefListParams) ([]LogEntry, error) {
 	res := []LogEntry{}
 	var err error
 
-	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, "local")
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
 	if err != nil {
 		return nil, err
 	}

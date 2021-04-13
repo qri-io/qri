@@ -58,7 +58,7 @@ on the network at a remote.
 	// cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
 	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
-	cmd.Flags().StringVarP(&o.RemoteName, "remote", "", "", "name of remote to fetch from, disables local actions. `registry` will search the default qri registry")
+	cmd.Flags().StringVarP(&o.Source, "source", "", "", "name of source to fetch from. `registry` will search the default qri registry")
 	cmd.Flags().BoolVarP(&o.Local, "local", "l", false, "only fetch local logs, disables network actions")
 	cmd.Flags().BoolVarP(&o.Pull, "pull", "p", false, "fetch the latest logs from the network")
 
@@ -76,7 +76,7 @@ type LogOptions struct {
 	Pull     bool
 
 	// remote fetching specific flags
-	RemoteName string
+	Source     string
 	Unfetch    bool
 	NoRegistry bool
 	NoPin      bool
@@ -90,7 +90,7 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 		return err
 	}
 
-	if o.Local && (o.RemoteName != "" || o.Pull) {
+	if o.Local && (o.Source != "" || o.Pull) {
 		return errors.New(err, "cannot use 'local' flag with either the 'remote' or 'pull' flags")
 	}
 
@@ -112,16 +112,15 @@ func (o *LogOptions) Run() error {
 
 	ctx := context.TODO()
 	p := &lib.HistoryParams{
-		Ref:    o.Refs.Ref(),
-		Pull:   o.Pull,
-		Source: o.RemoteName,
+		Ref:  o.Refs.Ref(),
+		Pull: o.Pull,
 		ListParams: lib.ListParams{
 			Limit:  page.Limit(),
 			Offset: page.Offset(),
 		},
 	}
 
-	res, err := o.Instance.Log().History(ctx, p)
+	res, err := o.Instance.WithSource(o.Source).Log().History(ctx, p)
 	if err != nil {
 		return err
 	}

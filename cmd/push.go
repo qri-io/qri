@@ -38,7 +38,7 @@ If no remote is specified, qri pushes to the registry.`,
 	}
 
 	cmd.Flags().BoolVarP(&o.Logs, "logs", "", false, "send only dataset history")
-	cmd.Flags().StringVarP(&o.RemoteName, "remote", "", "", "name of remote to push to")
+	cmd.Flags().StringVarP(&o.Remote, "remote", "", "", "name of remote to push to")
 
 	return cmd
 }
@@ -47,9 +47,9 @@ If no remote is specified, qri pushes to the registry.`,
 type PushOptions struct {
 	ioes.IOStreams
 
-	Refs       *RefSelect
-	Logs       bool
-	RemoteName string
+	Refs   *RefSelect
+	Logs   bool
+	Remote string
 
 	inst *lib.Instance
 }
@@ -71,10 +71,12 @@ func (o *PushOptions) Run() error {
 	for _, ref := range o.Refs.RefList() {
 		p := lib.PushParams{
 			Ref:    ref,
-			Remote: o.RemoteName,
+			Remote: o.Remote,
 		}
 
-		res, err := o.inst.Remote().Push(ctx, &p)
+		// Though push is pushing to a remote, it has to resolve datasets
+		// from your local collection.
+		res, err := o.inst.WithSource("local").Remote().Push(ctx, &p)
 		if err != nil {
 			return err
 		}

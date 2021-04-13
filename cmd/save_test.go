@@ -177,6 +177,7 @@ func TestSaveRun(t *testing.T) {
 			t.Errorf("case '%s', did not get error, expected: '%s'", c.description, c.err)
 		}
 		if err != nil {
+			// Remove the current directory from path, to get consistent error messages
 			errGot := strings.Replace(err.Error(), pwd, "", -1)
 			if c.err != errGot {
 				t.Errorf("case '%s', mismatched error. Expected: '%s', Got: '%v'", c.description, c.err, errGot)
@@ -539,6 +540,8 @@ func TestSaveFilenameMeta(t *testing.T) {
 }
 
 func TestSaveDscacheFirstCommit(t *testing.T) {
+	t.Skip("TODO(dustmop): Need a way to enable Dscache without the Param field")
+
 	run := NewTestRunner(t, "test_peer_dscache_first", "qri_test_dscache_first")
 	defer run.Delete()
 
@@ -631,6 +634,8 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
 }
 
 func TestSaveDscacheExistingDataset(t *testing.T) {
+	t.Skip("TODO(dustmop): Need a way to enable Dscache without the Param field")
+
 	run := NewTestRunner(t, "test_peer_save_dscache_existing_dataset", "qri_test_save_dscache_existing_dataset")
 	defer run.Delete()
 
@@ -716,6 +721,8 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 }
 
 func TestSaveDscacheThenRemoveAll(t *testing.T) {
+	t.Skip("TODO(dustmop): Need a way to enable Dscache without the Param field")
+
 	run := NewTestRunner(t, "test_peer_save_dscache_remove_all", "qri_test_save_dscache_remove_all")
 	defer run.Delete()
 
@@ -814,6 +821,8 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
 }
 
 func TestSaveDscacheThenRemoveVersions(t *testing.T) {
+	t.Skip("TODO(dustmop): Need a way to enable Dscache without the Param field")
+
 	run := NewTestRunner(t, "test_peer_save_dscache_remove", "qri_test_save_dscache_remove")
 	defer run.Delete()
 

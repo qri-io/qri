@@ -72,7 +72,7 @@ func muxVarsToQueryParamMiddleware(next http.Handler) http.Handler {
 		q := r.URL.Query()
 		for varName, val := range mux.Vars(r) {
 			if q.Get(varName) != "" {
-				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("unrecognized query param: %s", varName))
+				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("conflict in query param: %s = %s", varName, val))
 				return
 			}
 			q.Add(varName, val)
@@ -94,14 +94,14 @@ func refStringMiddleware(next http.Handler) http.Handler {
 func setRefStringFromMuxVars(r *http.Request) {
 	mvars := mux.Vars(r)
 	ref := dsref.Ref{
-		Username: mvars["peername"],
+		Username: mvars["username"],
 		Name:     mvars["name"],
 		Path:     muxVarsPath(mvars),
 	}
 
 	if refstr := ref.String(); refstr != "" {
 		q := r.URL.Query()
-		q.Add("refstr", refstr)
+		q.Add("ref", refstr)
 		r.URL.RawQuery = q.Encode()
 	}
 }
@@ -117,6 +117,6 @@ func muxVarsPath(mvars map[string]string) string {
 
 func stripServerSideQueryParams(r *http.Request) {
 	q := r.URL.Query()
-	q.Del("refstr")
+	q.Del("ref")
 	r.URL.RawQuery = q.Encode()
 }

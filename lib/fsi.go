@@ -43,22 +43,22 @@ func (m FSIMethods) Attributes() map[string]AttributeSet {
 
 // LinkParams encapsulate parameters for linked datasets
 type LinkParams struct {
-	Dir    string `qri:"fspath"`
-	Refstr string `json:"refstr"`
+	Dir string `qri:"fspath"`
+	Ref string
 }
 
 // FSIWriteParams encapsultes arguments for writing to an FSI-linked directory
 type FSIWriteParams struct {
-	Refstr string
-	Ds     *dataset.Dataset
+	Ref     string
+	Dataset *dataset.Dataset
 }
 
 // RestoreParams provides parameters to the restore method.
 type RestoreParams struct {
-	Dir       string `qri:"fspath"`
-	Refstr    string
-	Path      string
-	Component string
+	Dir      string `qri:"fspath"`
+	Ref      string
+	Version  string
+	Selector string
 }
 
 // InitDatasetParams proxies parameters to initialization
@@ -151,7 +151,7 @@ type fsiImpl struct{}
 func (fsiImpl) CreateLink(scope scope, p *LinkParams) (*dsref.VersionInfo, error) {
 	ctx := scope.Context()
 
-	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
+	ref, _, err := scope.ParseAndResolveRef(ctx, p.Ref)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func (fsiImpl) CreateLink(scope scope, p *LinkParams) (*dsref.VersionInfo, error
 func (fsiImpl) Unlink(scope scope, p *LinkParams) (string, error) {
 	ctx := scope.Context()
 
-	if p.Dir != "" && p.Refstr != "" {
+	if p.Dir != "" && p.Ref != "" {
 		return "", fmt.Errorf("Unlink should be called with either Dir or Ref, not both")
 	}
 
@@ -173,7 +173,7 @@ func (fsiImpl) Unlink(scope scope, p *LinkParams) (string, error) {
 	if p.Dir == "" {
 		// If only ref provided, canonicalize it to get its ref
 		var err error
-		ref, _, err = scope.ParseAndResolveRef(ctx, p.Refstr, "local")
+		ref, _, err = scope.ParseAndResolveRef(ctx, p.Ref)
 		if err != nil {
 			return "", err
 		}
@@ -201,8 +201,8 @@ func (fsiImpl) Unlink(scope scope, p *LinkParams) (string, error) {
 func (fsiImpl) Status(scope scope, p *LinkParams) ([]StatusItem, error) {
 	ctx := scope.Context()
 
-	if p.Dir == "" && p.Refstr == "" {
-		return nil, fmt.Errorf("either Dir or Refstr required for status")
+	if p.Dir == "" && p.Ref == "" {
+		return nil, fmt.Errorf("either Dir or Ref required for status")
 	}
 
 	// If the directory is given, get the status of the linked dataset
@@ -211,7 +211,7 @@ func (fsiImpl) Status(scope scope, p *LinkParams) ([]StatusItem, error) {
 	}
 
 	// Otherwise, get the file system path by looking up the ref
-	ref, err := dsref.ParseHumanFriendly(p.Refstr)
+	ref, err := dsref.ParseHumanFriendly(p.Ref)
 	if err != nil {
 		return nil, err
 	}
@@ -240,12 +240,12 @@ func (fsiImpl) Checkout(scope scope, p *LinkParams) error {
 	}
 
 	// Handle the ref to checkout
-	ref, source, err := scope.ParseAndResolveRef(ctx, p.Refstr, "")
+	ref, location, err := scope.ParseAndResolveRef(ctx, p.Ref)
 	if err != nil {
 		return err
 	}
 
-	if source != "" {
+	if location != "" {
 		return fmt.Errorf("auto-adding on checkout is not yet supported, please run `qri add %q` first", ref.Human())
 	}
 
@@ -275,7 +275,7 @@ func (fsiImpl) Checkout(scope scope, p *LinkParams) error {
 		log.Debugf("Checkout, fsi.CreateLink failed, error: %s", ref)
 		return err
 	}
-	log.Debugf("Checkout created link for %q <-> %q", p.Dir, p.Refstr)
+	log.Debugf("Checkout created link for %q <-> %q", p.Dir, p.Ref)
 
 	// Write components of the dataset to the working directory.
 	err = fsi.WriteComponents(ds, p.Dir, scope.Filesystem())
@@ -292,11 +292,11 @@ func (fsiImpl) Checkout(scope scope, p *LinkParams) error {
 func (fsiImpl) Write(scope scope, p *FSIWriteParams) ([]StatusItem, error) {
 	ctx := scope.Context()
 
-	if p.Ds == nil {
+	if p.Dataset == nil {
 		return nil, fmt.Errorf("dataset is required")
 	}
 
-	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
+	ref, _, err := scope.ParseAndResolveRef(ctx, p.Ref)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +312,7 @@ func (fsiImpl) Write(scope scope, p *FSIWriteParams) ([]StatusItem, error) {
 	}
 
 	// Write components of the dataset to the working directory
-	err = fsi.WriteComponents(p.Ds, vi.FSIPath, scope.Filesystem())
+	err = fsi.WriteComponents(p.Dataset, vi.FSIPath, scope.Filesystem())
 	if err != nil {
 		return nil, err
 	}
@@ -324,13 +324,13 @@ func (fsiImpl) Write(scope scope, p *FSIWriteParams) ([]StatusItem, error) {
 func (fsiImpl) Restore(scope scope, p *RestoreParams) error {
 	ctx := scope.Context()
 
-	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
+	ref, _, err := scope.ParseAndResolveRef(ctx, p.Ref)
 	if err != nil {
 		return err
 	}
 
-	if p.Path != "" {
-		ref.Path = p.Path
+	if p.Version != "" {
+		ref.Path = p.Version
 	}
 
 	if p.Dir == "" {
@@ -374,7 +374,7 @@ func (fsiImpl) Restore(scope scope, p *RestoreParams) error {
 	}
 
 	for _, compName := range component.AllSubcomponentNames() {
-		if p.Component == "" || p.Component == compName {
+		if p.Selector == "" || p.Selector == compName {
 			if repoContainer.Base().GetSubcomponent(compName) == nil {
 				fsi.DeleteComponent(diskContainer, compName, p.Dir)
 			} else {
@@ -406,7 +406,7 @@ func (fsiImpl) CanInitDatasetWorkDir(scope scope, p *InitDatasetParams) error {
 func (fsiImpl) EnsureRef(scope scope, p *LinkParams) (*dsref.VersionInfo, error) {
 	ctx := scope.Context()
 
-	ref, err := dsref.Parse(p.Refstr)
+	ref, err := dsref.Parse(p.Ref)
 	if err != nil {
 		return nil, err
 	}

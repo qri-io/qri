@@ -38,7 +38,9 @@ func (inst *Instance) LoadDataset(ctx context.Context, ref dsref.Ref, source str
 	}
 
 	msg := fmt.Sprintf("pulling %s from %s ...\n", ref.Human(), source)
-	inst.streams.Out.Write([]byte(msg))
+	if inst.streams.Out != nil {
+		inst.streams.Out.Write([]byte(msg))
+	}
 
 	// TODO (b5) - it'd be nice to us the returned dataset here, skipping the
 	// loadLocalDataset call entirely. For that to work dsfs.LoadDataset &

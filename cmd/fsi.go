@@ -91,8 +91,8 @@ func (o *FSIOptions) Link() (err error) {
 	inst := o.Instance
 
 	p := &lib.LinkParams{
-		Dir:    o.Path,
-		Refstr: o.Refs.Ref(),
+		Dir: o.Path,
+		Ref: o.Refs.Ref(),
 	}
 	res, err := inst.Filesys().CreateLink(ctx, p)
 	if err != nil {
@@ -111,7 +111,7 @@ func (o *FSIOptions) Unlink(ctx context.Context) error {
 		printRefSelect(o.ErrOut, o.Refs)
 
 		p := &lib.LinkParams{
-			Refstr: ref,
+			Ref: ref,
 		}
 		res, err := inst.Filesys().Unlink(ctx, p)
 		if err != nil {

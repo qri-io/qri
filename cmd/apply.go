@@ -103,7 +103,7 @@ func (o *ApplyOptions) Run() error {
 	}
 
 	params := lib.ApplyParams{
-		Refstr:       o.Refs.Ref(),
+		Ref:          o.Refs.Ref(),
 		Transform:    &tf,
 		ScriptOutput: o.Out,
 		Wait:         true,

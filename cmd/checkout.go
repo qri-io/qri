@@ -87,7 +87,7 @@ func (o *CheckoutOptions) Run() (err error) {
 		o.Dir = dsref.GenerateName(ref[pos+1:], "")
 	}
 
-	if err = inst.Filesys().Checkout(ctx, &lib.LinkParams{Dir: o.Dir, Refstr: ref}); err != nil {
+	if err = inst.Filesys().Checkout(ctx, &lib.LinkParams{Dir: o.Dir, Ref: ref}); err != nil {
 		return err
 	}
 	printSuccess(o.Out, "created and linked working directory %s for existing dataset", o.Dir)

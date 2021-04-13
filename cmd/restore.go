@@ -61,16 +61,16 @@ type RestoreOptions struct {
 
 	Instance *lib.Instance
 
-	Refs          *RefSelect
-	Path          string
-	ComponentName string
+	Refs     *RefSelect
+	Version  string
+	Selector string
 }
 
 // Complete configures the restore command
 func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 	dsRefList := []string{}
-	o.Path = ""
-	o.ComponentName = ""
+	o.Version = ""
+	o.Selector = ""
 
 	if o.Instance, err = f.Instance(); err != nil {
 		return err
@@ -84,10 +84,10 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 	// Process arguments to get dataset name, component name, and/or ref path.
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "/ipfs/") {
-			if o.Path != "" {
+			if o.Version != "" {
 				return fmt.Errorf("cannot provide more than one ref Path")
 			}
-			o.Path = arg
+			o.Version = arg
 			continue
 		}
 
@@ -97,10 +97,10 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 		}
 
 		if component.IsDatasetField.MatchString(arg) {
-			if o.ComponentName != "" {
+			if o.Selector != "" {
 				return fmt.Errorf("cannot provide more than one dataset field")
 			}
-			o.ComponentName = arg
+			o.Selector = arg
 			continue
 		}
 
@@ -128,22 +128,19 @@ func (o *RestoreOptions) Run() (err error) {
 	inst := o.Instance
 
 	ref := o.Refs.Ref()
-	if o.Path != "" {
-		ref += o.Path
-	}
-
 	params := lib.RestoreParams{
-		Refstr:    ref,
-		Dir:       o.Refs.Dir(),
-		Component: o.ComponentName,
+		Ref:      ref,
+		Dir:      o.Refs.Dir(),
+		Version:  o.Version,
+		Selector: o.Selector,
 	}
 
 	if err = inst.Filesys().Restore(ctx, &params); err != nil {
 		return err
 	}
-	if o.ComponentName != "" && o.Path == "" {
-		printSuccess(o.Out, fmt.Sprintf("Restored %s of dataset %s", o.ComponentName, ref))
-	} else if o.Path != "" && o.ComponentName == "" {
+	if o.Selector != "" && o.Version == "" {
+		printSuccess(o.Out, fmt.Sprintf("Restored %s of dataset %s", o.Selector, ref))
+	} else if o.Version != "" && o.Selector == "" {
 		printSuccess(o.Out, fmt.Sprintf("Restored dataset version %s", ref))
 	}
 	// TODO(dlong): Print message when both component and path are specified.

@@ -76,7 +76,7 @@ func TestDatasetRequestsList(t *testing.T) {
 		{"list datasets - limit 2 offset 4", &ListParams{OrderBy: "", Limit: 2, Offset: 4}, []dsref.VersionInfo{sitemap}, ""},
 		{"list datasets - limit 2 offset 5", &ListParams{OrderBy: "", Limit: 2, Offset: 5}, []dsref.VersionInfo{}, ""},
 		{"list datasets - order by timestamp", &ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - peername 'me'", &ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - username 'me'", &ListParams{Username: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*dsref.VersionInfo{cities, counter, movies}, ""},
 	}
 
@@ -109,7 +109,7 @@ func compareVersionInfoAsSimple(a, b dsref.VersionInfo) error {
 		return fmt.Errorf("PeerID mismatch. %s != %s", a.ProfileID, b.ProfileID)
 	}
 	if a.Username != b.Username {
-		return fmt.Errorf("Peername mismatch. %s != %s", a.Username, b.Username)
+		return fmt.Errorf("Username mismatch. %s != %s", a.Username, b.Username)
 	}
 	if a.Name != b.Name {
 		return fmt.Errorf("Name mismatch. %s != %s", a.Name, b.Name)
@@ -197,7 +197,7 @@ func TestListRawRefs(t *testing.T) {
 	}
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 
-	text, err := inst.Collection().ListRawRefs(ctx, &ListParams{})
+	text, err := inst.Collection().ListRawRefs(ctx, &EmptyParams{})
 	if err != nil {
 		t.Fatal(err)
 	}
