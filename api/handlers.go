@@ -16,21 +16,8 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
-type DatasetHandlers struct {
-	lib.DatasetMethods
-	inst     *lib.Instance
-	ReadOnly bool
-}
-
-// NewDatasetHandlers allocates a DatasetHandlers pointer
-func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
-	h := DatasetHandlers{inst.Dataset(), inst, readOnly}
-	return &h
-}
-
 // GetHandler is a dataset single endpoint
-func (h *DatasetHandlers) GetHandler(routePrefix string) http.HandlerFunc {
+func GetHandler(inst *lib.Instance, routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !(r.Method == http.MethodGet || r.Method == http.MethodPost) {
 			util.NotFoundHandler(w, r)
@@ -43,7 +30,7 @@ func (h *DatasetHandlers) GetHandler(routePrefix string) http.HandlerFunc {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
-		got, _, err := h.inst.Dispatch(r.Context(), "dataset.get", params)
+		got, _, err := inst.Dispatch(r.Context(), "dataset.get", params)
 		if err != nil {
 			util.RespondWithError(w, err)
 			return
@@ -53,12 +40,12 @@ func (h *DatasetHandlers) GetHandler(routePrefix string) http.HandlerFunc {
 			util.RespondWithDispatchTypeError(w, got)
 			return
 		}
-		h.replyWithGetResponse(w, r, params, res)
+		replyWithGetResponse(w, r, params, res)
 	}
 }
 
 // UnpackHandler unpacks a zip file and sends it back as json
-func (h *DatasetHandlers) UnpackHandler(routePrefix string) http.HandlerFunc {
+func UnpackHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			util.NotFoundHandler(w, r)
@@ -131,7 +118,7 @@ func inlineScriptsToBytes(ds *dataset.Dataset) error {
 // response they requested. Handles raw file downloads (without response wrappers), zip downloads,
 // body pagination, as well as normal head responses. Input logic has already been handled
 // before this function, so errors should not commonly happen.
-func (h *DatasetHandlers) replyWithGetResponse(w http.ResponseWriter, r *http.Request, params *lib.GetParams, result *lib.GetResult) {
+func replyWithGetResponse(w http.ResponseWriter, r *http.Request, params *lib.GetParams, result *lib.GetResult) {
 	resultFormat := params.Format
 	if resultFormat == "" {
 		resultFormat = result.Dataset.Structure.Format
