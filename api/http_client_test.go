@@ -84,7 +84,8 @@ func TestHTTPClient(t *testing.T) {
 	}
 
 	res := []dsref.VersionInfo{}
-	err = httpClient.CallMethod(ctx, lib.AEList, http.MethodPost, nil, &res)
+	p := lib.ListParams{}
+	err = httpClient.CallMethod(ctx, lib.AEList, http.MethodPost, p, &res)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

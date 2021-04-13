@@ -3,9 +3,7 @@ package lib
 import (
 	"context"
 	"fmt"
-	"net/http"
 
-	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -43,47 +41,6 @@ type HistoryParams struct {
 	Source string
 }
 
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *HistoryParams) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &HistoryParams{}
-	}
-
-	lp := &ListParams{}
-	if err := lp.UnmarshalFromRequest(r); err != nil {
-		return err
-	}
-
-	p.ListParams = *lp
-
-	params := *p
-	if params.Ref == "" {
-		params.Ref = r.FormValue("refstr")
-	}
-
-	ref, err := dsref.Parse(params.Ref)
-	if err != nil {
-		return err
-	}
-	lp.Peername = ref.Username
-
-	local := r.FormValue("local") == "true"
-	remoteName := r.FormValue("remote")
-	params.Pull = r.FormValue("pull") == "true" || params.Pull
-
-	if params.Source == "" {
-		if local && (remoteName != "" || params.Pull) {
-			return fmt.Errorf("cannot use the 'local' param with either the 'remote' or 'pull' params")
-		} else if local {
-			remoteName = "local"
-		}
-		params.Source = remoteName
-	}
-
-	*p = params
-	return nil
-}
-
 // History returns the history of changes for a given dataset
 func (m LogMethods) History(ctx context.Context, params *HistoryParams) ([]dsref.VersionInfo, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "history"), params)
@@ -100,33 +57,6 @@ type RefListParams struct {
 	Ref string
 	// Pagination Parameters
 	Offset, Limit int
-}
-
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *RefListParams) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &RefListParams{}
-	}
-
-	params := *p
-	if params.Ref == "" {
-		params.Ref = r.FormValue("refstr")
-	}
-
-	_, err := dsref.Parse(params.Ref)
-	if err != nil {
-		return err
-	}
-
-	if i := util.ReqParamInt(r, "offset", 0); i != 0 {
-		params.Offset = i
-	}
-	if i := util.ReqParamInt(r, "limit", 0); i != 0 {
-		params.Limit = i
-	}
-
-	*p = params
-	return nil
 }
 
 // LogEntry is a record in a log of operations on a dataset

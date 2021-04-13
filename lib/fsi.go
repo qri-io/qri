@@ -3,7 +3,6 @@ package lib
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -45,14 +44,7 @@ func (m FSIMethods) Attributes() map[string]AttributeSet {
 // LinkParams encapsulate parameters for linked datasets
 type LinkParams struct {
 	Dir    string `qri:"fspath"`
-	Refstr string
-}
-
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *LinkParams) UnmarshalFromRequest(r *http.Request) error {
-	p.Refstr = r.FormValue("refstr")
-	p.Dir = r.FormValue("dir")
-	return nil
+	Refstr string `json:"refstr"`
 }
 
 // FSIWriteParams encapsultes arguments for writing to an FSI-linked directory

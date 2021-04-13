@@ -2,7 +2,6 @@ package lib
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/registry/regclient"
@@ -31,27 +30,6 @@ type SearchParams struct {
 	Query  string `json:"q"`
 	Limit  int    `json:"limit,omitempty"`
 	Offset int    `json:"offset,omitempty"`
-}
-
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *SearchParams) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &SearchParams{}
-	}
-
-	lp := &ListParams{}
-	if err := lp.UnmarshalFromRequest(r); err != nil {
-		return err
-	}
-
-	p.Limit = lp.Limit
-	p.Offset = lp.Offset
-
-	if p.Query == "" {
-		p.Query = r.FormValue("q")
-	}
-
-	return nil
 }
 
 // SearchResult struct

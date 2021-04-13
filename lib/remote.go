@@ -3,7 +3,6 @@ package lib
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
@@ -54,24 +53,6 @@ func (m RemoteMethods) Feeds(ctx context.Context, p *FeedsParams) (map[string][]
 type PreviewParams struct {
 	Remote string
 	Ref    string
-}
-
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *PreviewParams) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &PreviewParams{}
-	}
-
-	params := *p
-	if params.Ref == "" {
-		params.Ref = r.FormValue("refstr")
-	}
-	if params.Remote == "" {
-		params.Remote = r.FormValue("remote")
-	}
-
-	*p = params
-	return nil
 }
 
 // Preview requests a dataset preview from a remote

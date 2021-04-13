@@ -250,10 +250,9 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEDAGInfo.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.daginfo"))).Methods(http.MethodPost)
 
 	// non POST/json dataset endpoints
-	dsh := NewDatasetHandlers(s.Instance, cfg.API.ReadOnly)
 	routeParams = newrefRouteParams(lib.AEGet, false, true, http.MethodGet, http.MethodPost)
-	handleRefRoute(m, routeParams, s.Middleware(dsh.GetHandler(lib.AEGet.String())))
-	m.Handle(lib.AEUnpack.String(), s.Middleware(dsh.UnpackHandler(lib.AEUnpack.NoTrailingSlash())))
+	handleRefRoute(m, routeParams, s.Middleware(GetHandler(s.Instance, lib.AEGet.String())))
+	m.Handle(lib.AEUnpack.String(), s.Middleware(UnpackHandler(lib.AEUnpack.NoTrailingSlash())))
 
 	// peer endpoints
 	m.Handle(lib.AEPeers.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.list"))).Methods(http.MethodPost)

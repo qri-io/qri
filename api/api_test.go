@@ -34,6 +34,12 @@ func init() {
 	abide.SnapshotsDir = "testdata"
 }
 
+func TestMain(m *testing.M) {
+	exit := m.Run()
+	abide.Cleanup()
+	os.Exit(exit)
+}
+
 func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 	var err error
 	if err = confirmQriNotRunning(); err != nil {
