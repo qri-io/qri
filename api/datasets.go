@@ -12,8 +12,6 @@ import (
 	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -156,19 +154,7 @@ func (h *DatasetHandlers) replyWithGetResponse(w http.ResponseWriter, r *http.Re
 			}
 			return
 		}
-
-		// TODO (b5) - remove this. res.Ref should be used instead
-		datasetRef := reporef.DatasetRef{
-			Peername:  result.Dataset.Peername,
-			ProfileID: profile.IDB58DecodeOrEmpty(result.Dataset.ProfileID),
-			Name:      result.Dataset.Name,
-			Path:      result.Dataset.Path,
-			FSIPath:   result.FSIPath,
-			Published: result.Published,
-			Dataset:   result.Dataset,
-		}
-
-		util.WriteResponse(w, datasetRef)
+		util.WriteResponse(w, result)
 	} else {
 		filename, err := archive.GenerateFilename(result.Dataset, resultFormat)
 		if err != nil {

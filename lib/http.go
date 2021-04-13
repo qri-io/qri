@@ -175,7 +175,6 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 	if result != nil {
 		resData := apiutil.Response{
 			Data: result,
-			Meta: &apiutil.Meta{},
 		}
 		err = json.Unmarshal(body, &resData)
 		if err != nil {

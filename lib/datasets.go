@@ -198,7 +198,7 @@ func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
 // GetResult combines data with it's hashed path
 type GetResult struct {
 	Ref       *dsref.Ref       `json:"ref"`
-	Dataset   *dataset.Dataset `json:"data"`
+	Dataset   *dataset.Dataset `json:"dataset"`
 	Bytes     []byte           `json:"bytes"`
 	Message   string           `json:"message"`
 	FSIPath   string           `json:"fsipath"`
