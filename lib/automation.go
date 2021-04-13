@@ -32,19 +32,17 @@ func (m AutomationMethods) Attributes() map[string]AttributeSet {
 
 // ApplyParams are parameters for the apply command
 type ApplyParams struct {
-	Refstr    string
+	Ref       string
 	Transform *dataset.Transform
 	Secrets   map[string]string
 	Wait      bool
-
-	Source string
 	// TODO(arqu): substitute with websockets when working over the wire
 	ScriptOutput io.Writer `json:"-"`
 }
 
 // Validate returns an error if ApplyParams fields are in an invalid state
 func (p *ApplyParams) Validate() error {
-	if p.Refstr == "" && p.Transform == nil {
+	if p.Ref == "" && p.Transform == nil {
 		return fmt.Errorf("one or both of Reference, Transform are required")
 	}
 	return nil
@@ -71,13 +69,13 @@ func (m AutomationMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyRes
 type automationImpl struct{}
 
 // Apply runs a transform script
-func (automationImpl) Apply(scp scope, p *ApplyParams) (*ApplyResult, error) {
-	ctx := scp.Context()
+func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
+	ctx := scope.Context()
 
 	var err error
 	ref := dsref.Ref{}
-	if p.Refstr != "" {
-		ref, _, err = scp.ParseAndResolveRefWithWorkingDir(ctx, p.Refstr, "")
+	if p.Ref != "" {
+		ref, _, err = scope.ParseAndResolveRefWithWorkingDir(ctx, p.Ref)
 		if err != nil {
 			return nil, err
 		}
@@ -90,12 +88,12 @@ func (automationImpl) Apply(scp scope, p *ApplyParams) (*ApplyResult, error) {
 	}
 	if p.Transform != nil {
 		ds.Transform = p.Transform
-		ds.Transform.OpenScriptFile(ctx, scp.Filesystem())
+		ds.Transform.OpenScriptFile(ctx, scope.Filesystem())
 	}
 
 	// allocate an ID for the transform, for now just log the events it produces
 	runID := run.NewID()
-	scp.Bus().SubscribeID(func(ctx context.Context, e event.Event) error {
+	scope.Bus().SubscribeID(func(ctx context.Context, e event.Event) error {
 		go func() {
 			log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
 			if e.Type == event.ETTransformPrint {
@@ -111,9 +109,9 @@ func (automationImpl) Apply(scp scope, p *ApplyParams) (*ApplyResult, error) {
 	}, runID)
 
 	scriptOut := p.ScriptOutput
-	loader := scp.ParseResolveFunc()
+	loader := scope.ParseResolveFunc()
 
-	transformer := transform.NewTransformer(scp.AppContext(), loader, scp.Bus())
+	transformer := transform.NewTransformer(scope.AppContext(), loader, scope.Bus())
 	if err = transformer.Apply(ctx, ds, runID, p.Wait, scriptOut, p.Secrets); err != nil {
 		return nil, err
 	}

@@ -57,7 +57,7 @@ func (o *WhatChangedOptions) Run() (err error) {
 	ctx := context.TODO()
 	inst := o.Instance
 
-	params := lib.LinkParams{Refstr: o.Refs.Ref()}
+	params := lib.LinkParams{Ref: o.Refs.Ref()}
 	res, err := inst.Dataset().ComponentStatus(ctx, &params)
 	if err != nil {
 		printErr(o.ErrOut, err)

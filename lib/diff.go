@@ -53,8 +53,6 @@ type DiffParams struct {
 
 	// Which component or part of a dataset to compare
 	Selector string
-
-	Remote string
 }
 
 // diffMode determinse

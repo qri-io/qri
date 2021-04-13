@@ -45,7 +45,7 @@ func (m CollectionMethods) List(ctx context.Context, p *ListParams) ([]dsref.Ver
 }
 
 // ListRawRefs gets the list of raw references as string
-func (m CollectionMethods) ListRawRefs(ctx context.Context, p *ListParams) (string, error) {
+func (m CollectionMethods) ListRawRefs(ctx context.Context, p *EmptyParams) (string, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "listrawrefs"), p)
 	if res, ok := got.(string); ok {
 		return res, err
@@ -73,7 +73,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 	}
 
 	reqProfile := scope.Repo().Profiles().Owner()
-	listProfile, err := getProfile(scope.Context(), scope.Repo().Profiles(), reqProfile.ID.String(), p.Peername)
+	listProfile, err := getProfile(scope.Context(), scope.Repo().Profiles(), reqProfile.ID.String(), p.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 	var listWarning error
 
 	var infos []dsref.VersionInfo
-	if p.UseDscache {
+	if scope.UseDscache() {
 		c := scope.Dscache()
 		if c.IsEmpty() {
 			log.Infof("building dscache from repo's logbook, profile, and dsref")
@@ -128,7 +128,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 			infos[i] = reporef.ConvertToVersionInfo(&r)
 		}
 	} else if listProfile.Peername == "" || reqProfile.Peername == listProfile.Peername {
-		infos, err = base.ListDatasets(scope.Context(), scope.Repo(), p.Term, restrictPid, p.Offset, p.Limit, p.RPC, p.Public, p.ShowNumVersions)
+		infos, err = base.ListDatasets(scope.Context(), scope.Repo(), p.Term, restrictPid, p.Offset, p.Limit, p.Public, p.ShowNumVersions)
 		if errors.Is(err, ErrListWarning) {
 			listWarning = err
 			err = nil
@@ -187,9 +187,9 @@ func getProfile(ctx context.Context, pros profile.Store, idStr, peername string)
 }
 
 // ListRawRefs gets the list of raw references as string
-func (collectionImpl) ListRawRefs(scope scope, p *ListParams) (string, error) {
+func (collectionImpl) ListRawRefs(scope scope, p *EmptyParams) (string, error) {
 	text := ""
-	if p.UseDscache {
+	if scope.UseDscache() {
 		c := scope.Dscache()
 		if c == nil || c.IsEmpty() {
 			return "", fmt.Errorf("repo: dscache not found")

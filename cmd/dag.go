@@ -120,8 +120,8 @@ func (o *DAGOptions) Complete(f Factory, args []string, parseLabel bool) (err er
 func (o *DAGOptions) Get() (err error) {
 	ctx := context.TODO()
 	mf := &dag.Manifest{}
-	for _, refstr := range o.Refs {
-		if mf, err = o.inst.Dataset().Manifest(ctx, &lib.ManifestParams{Refstr: refstr}); err != nil {
+	for _, ref := range o.Refs {
+		if mf, err = o.inst.Dataset().Manifest(ctx, &lib.ManifestParams{Ref: ref}); err != nil {
 			return err
 		}
 
@@ -214,8 +214,8 @@ func (o *DAGOptions) Info() (err error) {
 		return fmt.Errorf("dataset reference required")
 	}
 
-	for _, refstr := range o.Refs {
-		s := &lib.DAGInfoParams{RefStr: refstr, Label: o.Label}
+	for _, ref := range o.Refs {
+		s := &lib.DAGInfoParams{Ref: ref, Label: o.Label}
 		info, err = o.inst.Dataset().DAGInfo(ctx, s)
 		if err != nil {
 			return err
@@ -242,7 +242,7 @@ func (o *DAGOptions) Info() (err error) {
 			if o.Label != "" {
 				out += fmt.Sprintf("\nSubDAG at: %s", abbrFieldToFull(o.Label))
 			}
-			out += fmt.Sprintf("\nDAG for: %s\n", refstr)
+			out += fmt.Sprintf("\nDAG for: %s\n", ref)
 			if totalSize != 0 {
 				out += fmt.Sprintf("Total Size: %s\n", humanize.Bytes(totalSize))
 			}

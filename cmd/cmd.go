@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -107,7 +108,7 @@ func GetWd() string {
 	return dir
 }
 
-func loadFileIfPath(path string) (file *os.File, err error) {
+func loadFileIfPath(path string) (data []byte, err error) {
 	if path == "" {
 		return nil, nil
 	}
@@ -117,7 +118,7 @@ func loadFileIfPath(path string) (file *os.File, err error) {
 		return nil, err
 	}
 
-	return os.Open(path)
+	return ioutil.ReadFile(path)
 }
 
 // parseSecrets turns a key,value sequence into a map[string]string

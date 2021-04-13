@@ -34,14 +34,9 @@ func (m RemoteMethods) Attributes() map[string]AttributeSet {
 	}
 }
 
-// FeedsParams provides arguments to the feeds method
-type FeedsParams struct {
-	Remote string
-}
-
 // Feeds returns a listing of datasets from a number of feeds like featured and
 // popular. Each feed is keyed by string in the response
-func (m RemoteMethods) Feeds(ctx context.Context, p *FeedsParams) (map[string][]dsref.VersionInfo, error) {
+func (m RemoteMethods) Feeds(ctx context.Context, p *EmptyParams) (map[string][]dsref.VersionInfo, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "feeds"), p)
 	if res, ok := got.(map[string][]dsref.VersionInfo); ok {
 		return res, err
@@ -51,8 +46,7 @@ func (m RemoteMethods) Feeds(ctx context.Context, p *FeedsParams) (map[string][]
 
 // PreviewParams provides arguments to the preview method
 type PreviewParams struct {
-	Remote string
-	Ref    string
+	Ref string
 }
 
 // Preview requests a dataset preview from a remote
@@ -66,7 +60,7 @@ func (m RemoteMethods) Preview(ctx context.Context, p *PreviewParams) (*dataset.
 
 // PushParams encapsulates parmeters for dataset publication
 type PushParams struct {
-	Ref    string `schema:"refstr" json:"refstr"`
+	Ref    string `schema:"ref" json:"ref"`
 	Remote string
 	// All indicates all versions of a dataset and the dataset namespace should
 	// be either published or removed
@@ -96,8 +90,8 @@ type remoteImpl struct{}
 
 // Feeds returns a listing of datasets from a number of feeds like featured and
 // popular. Each feed is keyed by string in the response
-func (remoteImpl) Feeds(scope scope, p *FeedsParams) (map[string][]dsref.VersionInfo, error) {
-	addr, err := remote.Address(scope.Config(), p.Remote)
+func (remoteImpl) Feeds(scope scope, p *EmptyParams) (map[string][]dsref.VersionInfo, error) {
+	addr, err := remote.Address(scope.Config(), scope.SourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +110,7 @@ func (remoteImpl) Preview(scope scope, p *PreviewParams) (*dataset.Dataset, erro
 		return nil, err
 	}
 
-	addr, err := remote.Address(scope.Config(), p.Remote)
+	addr, err := remote.Address(scope.Config(), scope.SourceName())
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +125,11 @@ func (remoteImpl) Preview(scope scope, p *PreviewParams) (*dataset.Dataset, erro
 
 // Push posts a dataset version to a remote
 func (remoteImpl) Push(scope scope, p *PushParams) (*dsref.Ref, error) {
-	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, "local")
+	if scope.SourceName() != "local" {
+		return nil, fmt.Errorf("push requires the 'local' source")
+	}
+
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
 	if err != nil {
 		return nil, err
 	}

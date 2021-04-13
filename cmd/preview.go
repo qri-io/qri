@@ -40,7 +40,7 @@ for investigating a dataset before saving it locally.
 	}
 
 	cmd.Flags().StringVarP(&o.Format, "format", "", "pretty", "output format [pretty|json]")
-	cmd.Flags().StringVarP(&o.RemoteName, "remote", "", "", "name of remote to fetch preview from")
+	cmd.Flags().StringVarP(&o.Source, "source", "", "", "name of source to fetch preview from")
 
 	return cmd
 }
@@ -49,9 +49,9 @@ for investigating a dataset before saving it locally.
 type PreviewOptions struct {
 	ioes.IOStreams
 
-	Refs       *RefSelect
-	Format     string
-	RemoteName string
+	Refs   *RefSelect
+	Format string
+	Source string
 
 	inst *lib.Instance
 }
@@ -70,12 +70,11 @@ func (o *PreviewOptions) Complete(f Factory, args []string) (err error) {
 // Run executes the publish command
 func (o *PreviewOptions) Run() error {
 	p := lib.PreviewParams{
-		Ref:    o.Refs.Ref(),
-		Remote: o.RemoteName,
+		Ref: o.Refs.Ref(),
 	}
 
 	ctx := context.TODO()
-	res, err := o.inst.Remote().Preview(ctx, &p)
+	res, err := o.inst.WithSource(o.Source).Remote().Preview(ctx, &p)
 	if err != nil {
 		return err
 	}

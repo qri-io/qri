@@ -234,7 +234,7 @@ __qri_custom_func() {
 
 # flag completions
 
-__qri_get_peer_flag_suggestions()
+__qri_get_user_flag_suggestions()
 {
 	__qri_suggest_completion "$(__qri_parse_peers)"
 }

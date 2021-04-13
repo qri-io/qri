@@ -69,23 +69,25 @@ func (m DatasetMethods) Attributes() map[string]AttributeSet {
 
 // GetParams defines parameters for looking up the head or body of a dataset
 type GetParams struct {
-	Refstr string `json:"ref"`
+	Ref string `json:"ref"`
 
+	// selector is a component or nested field names to extract from the dataset
 	Selector string `json:"selector"`
 
 	// read from a filesystem link instead of stored version
 	Format       string               `json:"format"`
 	FormatConfig dataset.FormatConfig `json:"format_config"`
 
-	Limit  int  `json:"limit"`
-	Offset int  `json:"offset"`
-	All    bool `json:"all"`
+	Limit  int `json:"limit"`
+	Offset int `json:"offset"`
+	// TODO(dustmop): Remove `All` once `Cursor` is in use. Instead, callers should
+	// loop over their `Cursor` in order to get all rows.
+	All bool `json:"all"`
 
 	// outfile is a filename to save the dataset to
 	Outfile string `json:"outfile" qri:"fspath"`
 	// whether to generate a filename from the dataset name instead
-	GenFilename bool   `json:"genfilename"`
-	Remote      string `json:"remote"`
+	GenFilename bool `json:"genfilename"`
 }
 
 // SetNonZeroDefaults assigns default values
@@ -143,11 +145,11 @@ func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
 	}
 
 	params := *p
-	if params.Refstr == "" {
-		params.Refstr = r.FormValue("refstr")
+	if params.Ref == "" {
+		params.Ref = r.FormValue("ref")
 	}
 
-	ref, err := dsref.Parse(params.Refstr)
+	ref, err := dsref.Parse(params.Ref)
 	if err != nil {
 		return err
 	}
@@ -211,7 +213,7 @@ type DataResponse struct {
 	Data json.RawMessage `json:"data"`
 }
 
-// Get retrieves datasets and components for a given reference. p.Refstr is parsed to create
+// Get retrieves datasets and components for a given reference. p.Ref is parsed to create
 // a reference, which is used to load the dataset. It will be loaded from the local repo
 // or from the filesystem if it has a linked working directory.
 // Using p.Selector will control what components are returned in res.Bytes. The default,
@@ -300,8 +302,6 @@ type SaveParams struct {
 	ShouldRender bool
 	// new dataset only, don't create a commit on an existing dataset, name will be unused
 	NewName bool
-	// whether to create a new dscache if none exists
-	UseDscache bool
 }
 
 // SetNonZeroDefaults sets basic save path params to defaults
@@ -338,7 +338,6 @@ type RemoveParams struct {
 	Revision  *dsref.Rev
 	KeepFiles bool
 	Force     bool
-	Remote    string
 }
 
 // RemoveResponse gives the results of a remove
@@ -372,7 +371,6 @@ func (m DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveRes
 type PullParams struct {
 	Ref      string
 	LinkDir  string `qri:"fspath"`
-	Remote   string // remote to attempt to pull from
 	LogsOnly bool   // only fetch logbook data
 }
 
@@ -389,9 +387,9 @@ func (m DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Datas
 // ValidateParams defines parameters for dataset data validation
 type ValidateParams struct {
 	Ref               string
-	BodyFilename      string
-	SchemaFilename    string
-	StructureFilename string
+	BodyFilename      string `qri:"fspath"`
+	SchemaFilename    string `qri:"fspath"`
+	StructureFilename string `qri:"fspath"`
 }
 
 // ValidateResponse is the result of running validate against a dataset
@@ -413,7 +411,7 @@ func (m DatasetMethods) Validate(ctx context.Context, p *ValidateParams) (*Valid
 
 // ManifestParams encapsulates parameters to the manifest command
 type ManifestParams struct {
-	Refstr string
+	Ref string
 }
 
 // Manifest generates a manifest for a dataset path
@@ -441,7 +439,8 @@ func (m DatasetMethods) ManifestMissing(ctx context.Context, p *ManifestMissingP
 
 // DAGInfoParams defines parameters for the DAGInfo method
 type DAGInfoParams struct {
-	RefStr, Label string
+	Ref   string
+	Label string
 }
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
@@ -635,11 +634,11 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 	res := &GetResult{}
 
 	var ds *dataset.Dataset
-	ref, source, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Refstr, p.Remote)
+	ref, location, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref)
 	if err != nil {
 		return nil, err
 	}
-	ds, err = scope.LoadDataset(scope.Context(), ref, source)
+	ds, err = scope.Loader().LoadDataset(scope.Context(), ref, location)
 	if err != nil {
 		return nil, err
 	}
@@ -821,7 +820,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 	}
 
 	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
-	if p.UseDscache {
+	if scope.UseDscache() {
 		c := scope.Dscache()
 		c.CreateNewEnabled = true
 	}
@@ -1087,8 +1086,11 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 	if p.Revision.Field != "ds" {
 		return nil, fmt.Errorf("can only remove whole dataset versions, not individual components")
 	}
+	if scope.SourceName() != "local" {
+		return nil, fmt.Errorf("remove requires the 'local' source")
+	}
 
-	ref, _, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref, "local")
+	ref, _, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref)
 	if err != nil {
 		log.Debugw("Remove, repo.ParseAndResolveRefWithWorkingDir failed", "err", err)
 		// TODO(b5): this "logbook.ErrNotFound" is needed to get cmd.TestRemoveEvenIfLogbookGone
@@ -1250,14 +1252,12 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 // a network connection
 func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
 	res := &dataset.Dataset{}
-	// TODO(dustmop): source has moved to the scope, and passing it to ParseAndResolveRef
-	// does nothing. Remove it from here and from the third parameter of that func
-	source := p.Remote
-	if source == "" {
-		source = "network"
+
+	if scope.SourceName() != "network" {
+		return nil, fmt.Errorf("pull requires the 'network' source")
 	}
 
-	ref, location, err := scope.ParseAndResolveRef(scope.Context(), p.Ref, source)
+	ref, location, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
 	if err != nil {
 		log.Debugf("resolving reference: %s", err)
 		return nil, err
@@ -1274,8 +1274,8 @@ func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
 
 	if p.LinkDir != "" {
 		checkoutp := &LinkParams{
-			Refstr: ref.Human(),
-			Dir:    p.LinkDir,
+			Ref: ref.Human(),
+			Dir: p.LinkDir,
 		}
 		// TODO (ramfox): wasn't sure exactly how to handle this. We don't need `Checkout` to
 		// re-load/re-resolve the reference, but there is a bunch of other checking/verifying
@@ -1311,6 +1311,9 @@ func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, 
 	if p.Ref == "" && (p.BodyFilename == "" || schemaFlagType == "") {
 		return nil, qrierr.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
 	}
+	if scope.SourceName() != "local" {
+		return nil, fmt.Errorf("validate requires 'local' source")
+	}
 
 	fsiPath := ""
 	var err error
@@ -1320,7 +1323,7 @@ func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, 
 	// we don't need to resolve any references
 	if p.BodyFilename == "" || schemaFlagType == "" {
 		// TODO (ramfox): we need consts in `dsref` for "local", "network", "p2p"
-		ref, _, err = scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref, "local")
+		ref, _, err = scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref)
 		if err != nil {
 			return nil, err
 		}
@@ -1425,7 +1428,7 @@ func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, 
 // Manifest generates a manifest for a dataset path
 func (datasetImpl) Manifest(scope scope, p *ManifestParams) (*dag.Manifest, error) {
 	res := &dag.Manifest{}
-	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Refstr, "local")
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
 	if err != nil {
 		return nil, err
 	}
@@ -1451,7 +1454,7 @@ func (datasetImpl) ManifestMissing(scope scope, p *ManifestMissingParams) (*dag.
 func (datasetImpl) DAGInfo(scope scope, p *DAGInfoParams) (*dag.Info, error) {
 	res := &dag.Info{}
 
-	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.RefStr, "local")
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
 	if err != nil {
 		return nil, err
 	}
@@ -1468,7 +1471,7 @@ func (datasetImpl) DAGInfo(scope scope, p *DAGInfoParams) (*dag.Info, error) {
 func (datasetImpl) ComponentStatus(scope scope, p *LinkParams) ([]StatusItem, error) {
 	ctx := scope.Context()
 
-	ref, _, err := scope.ParseAndResolveRef(ctx, p.Refstr, "local")
+	ref, _, err := scope.ParseAndResolveRef(ctx, p.Ref)
 	if err != nil {
 		return nil, err
 	}

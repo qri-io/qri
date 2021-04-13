@@ -37,7 +37,7 @@ dataset version(s). By default pull fetches the latest version of a dataset.
 	}
 
 	cmd.Flags().StringVar(&o.LinkDir, "link", "", "path to directory to link dataset to")
-	cmd.Flags().StringVar(&o.Remote, "remote", "", "location to pull from")
+	cmd.Flags().StringVar(&o.Source, "source", "network", "location to pull from")
 	cmd.MarkFlagFilename("link")
 	cmd.Flags().BoolVar(&o.LogsOnly, "logs-only", false, "only fetch logs, skipping HEAD data")
 
@@ -48,7 +48,7 @@ dataset version(s). By default pull fetches the latest version of a dataset.
 type PullOptions struct {
 	ioes.IOStreams
 	LinkDir  string
-	Remote   string
+	Source   string
 	LogsOnly bool
 
 	inst *lib.Instance
@@ -77,10 +77,9 @@ func (o *PullOptions) Run(args []string) error {
 			Ref:      arg,
 			LinkDir:  o.LinkDir,
 			LogsOnly: o.LogsOnly,
-			Remote:   o.Remote,
 		}
 
-		res, err := o.inst.WithSource("network").Dataset().Pull(ctx, p)
+		res, err := o.inst.WithSource(o.Source).Dataset().Pull(ctx, p)
 		if err != nil {
 			return err
 		}

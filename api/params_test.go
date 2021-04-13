@@ -20,65 +20,65 @@ func TestUnmarshalGetParams(t *testing.T) {
 			"basic get",
 			"/get/peer/my_ds",
 			&lib.GetParams{
-				Refstr: "peer/my_ds",
+				Ref:    "peer/my_ds",
 				Format: "json",
 				All:    true,
 			},
-			map[string]string{"peername": "peer", "name": "my_ds"},
+			map[string]string{"username": "peer", "name": "my_ds"},
 		},
 		{
 			"meta component",
 			"/get/peer/my_ds/meta",
 			&lib.GetParams{
-				Refstr:   "peer/my_ds",
+				Ref:      "peer/my_ds",
 				Format:   "json",
 				Selector: "meta",
 				All:      true,
 			},
-			map[string]string{"peername": "peer", "name": "my_ds", "selector": "meta"},
+			map[string]string{"username": "peer", "name": "my_ds", "selector": "meta"},
 		},
 		{
 			"body component",
 			"/get/peer/my_ds/body",
 			&lib.GetParams{
-				Refstr:   "peer/my_ds",
+				Ref:      "peer/my_ds",
 				Format:   "json",
 				Selector: "body",
 				All:      true,
 			},
-			map[string]string{"peername": "peer", "name": "my_ds", "selector": "body"},
+			map[string]string{"username": "peer", "name": "my_ds", "selector": "body"},
 		},
 		{
 			"body.csv path suffix",
 			"/get/peer/my_ds/body.csv",
 			&lib.GetParams{
-				Refstr:   "peer/my_ds",
+				Ref:      "peer/my_ds",
 				Format:   "csv",
 				Selector: "body",
 				All:      true,
 			},
-			map[string]string{"peername": "peer", "name": "my_ds", "selector": "body.csv"},
+			map[string]string{"username": "peer", "name": "my_ds", "selector": "body.csv"},
 		},
 		{
 			"download body as csv",
 			"/get/peer/my_ds/body?format=csv",
 			&lib.GetParams{
-				Refstr:   "peer/my_ds",
+				Ref:      "peer/my_ds",
 				Format:   "csv",
 				Selector: "body",
 				All:      true,
 			},
-			map[string]string{"peername": "peer", "name": "my_ds", "selector": "body"},
+			map[string]string{"username": "peer", "name": "my_ds", "selector": "body"},
 		},
 		{
 			"zip format",
 			"/get/peer/my_ds?format=zip",
 			&lib.GetParams{
-				Refstr: "peer/my_ds",
+				Ref:    "peer/my_ds",
 				Format: "zip",
 				All:    true,
 			},
-			map[string]string{"peername": "peer", "name": "my_ds"},
+			map[string]string{"username": "peer", "name": "my_ds"},
 		},
 	}
 	for _, c := range cases {
@@ -110,13 +110,13 @@ func TestUnmarshalGetParams(t *testing.T) {
 			"get me",
 			"/get/me/my_ds",
 			`username "me" not allowed`,
-			map[string]string{"peername": "me", "name": "my_ds"},
+			map[string]string{"username": "me", "name": "my_ds"},
 		},
 		{
 			"bad parse",
 			"/get/peer/my+ds",
 			`unexpected character at position 7: '+'`,
-			map[string]string{"peername": "peer", "name": "my+ds"},
+			map[string]string{"username": "peer", "name": "my+ds"},
 		},
 	}
 	for i, c := range badCases {
@@ -143,7 +143,7 @@ func TestParseGetParamsAcceptHeader(t *testing.T) {
 	// Construct a request with "Accept: text/csv"
 	r, _ := http.NewRequest("GET", "/get/peer/my_ds", nil)
 	r.Header.Add("Accept", "text/csv")
-	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
+	r = mux.SetURLVars(r, map[string]string{"username": "peer", "name": "my_ds"})
 	setRefStringFromMuxVars(r)
 	args := &lib.GetParams{}
 	err := UnmarshalParams(r, args)
@@ -151,7 +151,7 @@ func TestParseGetParamsAcceptHeader(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectArgs := &lib.GetParams{
-		Refstr:   "peer/my_ds",
+		Ref:      "peer/my_ds",
 		Selector: "body",
 		Format:   "csv",
 		All:      true,
@@ -164,7 +164,7 @@ func TestParseGetParamsAcceptHeader(t *testing.T) {
 	// Construct a request with format=csv and "Accept: text/csv", which is ok
 	r, _ = http.NewRequest("GET", "/get/peer/my_ds?format=csv", nil)
 	r.Header.Add("Accept", "text/csv")
-	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
+	r = mux.SetURLVars(r, map[string]string{"username": "peer", "name": "my_ds"})
 	setRefStringFromMuxVars(r)
 	args = &lib.GetParams{}
 	err = UnmarshalParams(r, args)
@@ -178,7 +178,7 @@ func TestParseGetParamsAcceptHeader(t *testing.T) {
 	// Construct a request with format=json and "Accept: text/csv", which is an error
 	r, _ = http.NewRequest("GET", "/get/peer/my_ds?format=json", nil)
 	r.Header.Add("Accept", "text/csv")
-	r = mux.SetURLVars(r, map[string]string{"peername": "peer", "name": "my_ds"})
+	r = mux.SetURLVars(r, map[string]string{"username": "peer", "name": "my_ds"})
 	setRefStringFromMuxVars(r)
 	args = &lib.GetParams{}
 	err = UnmarshalParams(r, args)

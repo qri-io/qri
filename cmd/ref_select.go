@@ -233,7 +233,7 @@ func (e *FSIRefLinkEnsurer) EnsureRef(refs *RefSelect) error {
 	if e == nil {
 		return nil
 	}
-	p := lib.LinkParams{Dir: refs.Dir(), Refstr: refs.Ref()}
+	p := lib.LinkParams{Dir: refs.Dir(), Ref: refs.Ref()}
 	ctx := context.TODO()
 	_, err := e.FSIMethods.EnsureRef(ctx, &p)
 	return err
