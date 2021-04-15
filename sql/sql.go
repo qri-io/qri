@@ -90,7 +90,7 @@ func (svc *Service) Exec(ctx context.Context, w io.Writer, outFormat, query stri
 	case "tabbed":
 		out = csvoutput.NewOutput('\t', w)
 	default:
-		err = fmt.Errorf("invalid output type: %s", w)
+		err = fmt.Errorf("invalid output format: '%s'", w)
 		log.Error(err)
 		return err
 	}

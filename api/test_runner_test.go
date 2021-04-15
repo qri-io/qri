@@ -58,6 +58,7 @@ func NewAPITestRunner(t *testing.T) *APITestRunner {
 
 func (r *APITestRunner) Delete() {
 	os.RemoveAll(r.TmpDir)
+	os.RemoveAll("/tmp/qri_api_test")
 	APIVersion = r.PrevXformVer
 	r.cancelCtx()
 	r.NodeTeardown()

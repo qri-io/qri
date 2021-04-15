@@ -1,0 +1,20 @@
+[
+	"/qfs/ipfs/QmQPS7Nf6dG8zosyAA8zYd64gaLBTAzYsVhMkaMCgCXJST",
+	"/ds/get",
+	"/ds/pull",
+	"/ds/push",
+	"/ds/render",
+	"/ds/unpack/test_unpack_path",
+	"/ds/manifest",
+	"/ds/manifest/missing",
+	"/ds/daginfo",
+	"/peer/connect",
+	"/peer/disconnect",
+	"/peer/list",
+	"/remote/feeds",
+	"/remote/preview",
+	"/remote/registry/profile/new",
+	"/remote/registry/profile/prove",
+	"/remote/remove",
+	"/remote/search"
+]

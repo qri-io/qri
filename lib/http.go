@@ -226,7 +226,7 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 			return
 		}
 
-		if err := DecodeParams(r, &p); err != nil {
+		if err := DecodeParams(r, p); err != nil {
 			log.Debugw("decode params:", "err", err)
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 			return

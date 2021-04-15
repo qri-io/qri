@@ -1,7 +1,7 @@
 [
   {
     "endpoint": "/list",
-    "method": "GET",
+    "method": "POST",
     "headers": {
       "Content-Type": "application/json"
     },
@@ -13,10 +13,13 @@
     }
   },
   {
-    "endpoint": "/list/me",
-    "method": "GET",
+    "endpoint": "/list",
+    "method": "POST",
     "headers": {
       "Content-Type": "application/json"
+    },
+    "body": {
+      "username": "peer"
     },
     "expect": {
       "code": 200,
@@ -32,7 +35,8 @@
       "Content-Type": "application/json"
     },
     "body": {
-      "query": "SELECT * FROM peer/movies"
+      "query": "SELECT * FROM peer/movies",
+      "format": "json"
     },
     "expect": {
       "code": 200,

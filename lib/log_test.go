@@ -48,28 +48,28 @@ func TestHistoryRequestsLog(t *testing.T) {
 
 	cases := []struct {
 		description string
-		p           *HistoryParams
+		p           *ActivityParams
 		refs        []dsref.VersionInfo
 		err         string
 	}{
 		{"log list - empty",
-			&HistoryParams{}, nil, `"" is not a valid dataset reference: empty reference`},
+			&ActivityParams{}, nil, `"" is not a valid dataset reference: empty reference`},
 		{"log list - bad path",
-			&HistoryParams{Ref: "/badpath"}, nil, `"/badpath" is not a valid dataset reference: unexpected character at position 0: '/'`},
+			&ActivityParams{Ref: "/badpath"}, nil, `"/badpath" is not a valid dataset reference: unexpected character at position 0: '/'`},
 		{"log list - default",
-			&HistoryParams{Ref: firstRef}, items, ""},
+			&ActivityParams{Ref: firstRef}, items, ""},
 		{"log list - offset 0 limit 3",
-			&HistoryParams{Ref: firstRef, ListParams: ListParams{Offset: 0, Limit: 3}}, items[:3], ""},
+			&ActivityParams{Ref: firstRef, ListParams: ListParams{Offset: 0, Limit: 3}}, items[:3], ""},
 		{"log list - offset 3 limit 3",
-			&HistoryParams{Ref: firstRef, ListParams: ListParams{Offset: 3, Limit: 3}}, items[3:], ""},
+			&ActivityParams{Ref: firstRef, ListParams: ListParams{Offset: 3, Limit: 3}}, items[3:], ""},
 		{"log list - offset 6 limit 3",
-			&HistoryParams{Ref: firstRef, ListParams: ListParams{Offset: 6, Limit: 3}}, nil, "repo: no history"},
+			&ActivityParams{Ref: firstRef, ListParams: ListParams{Offset: 6, Limit: 3}}, nil, "repo: no history"},
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	m := inst.Log()
+	m := inst.Dataset()
 	for _, c := range cases {
-		got, err := m.History(ctx, c.p)
+		got, err := m.Activity(ctx, c.p)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)

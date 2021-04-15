@@ -6,7 +6,7 @@
       "Content-Type": "application/json"
     },
     "body": {
-      "ref": "me/test_wd"
+      "ref": "peer/movies"
     },
     "expect": {
       "code": 200,
@@ -22,7 +22,7 @@
       "Content-Type": "application/json"
     },
     "body": {
-      "ref": "me/test_wd"
+      "ref": "peer/movies"
     },
     "expect": {
       "code": 200,
@@ -32,13 +32,13 @@
     }
   },
   {
-    "endpoint": "/ds/log",
+    "endpoint": "/ds/activity",
     "method": "POST",
     "headers": {
       "Content-Type": "application/json"
     },
     "body": {
-      "ref": "me/test_wd"
+      "ref": "peer/movies"
     },
     "expect": {
       "code": 200,
@@ -54,8 +54,8 @@
       "Content-Type": "application/json"
     },
     "body": {
-      "current": "me/test_wd",
-      "next": "me/test_wd_2"
+      "current": "peer/craigslist",
+      "next": "peer/craigslist_2"
     },
     "expect": {
       "code": 200,
@@ -128,7 +128,8 @@
       "Content-Type": "application/json"
     },
     "body": {
-      "ref": "me/test_wd"
+      "ref": "peer/movies",
+      "selector": "readme"
     },
     "expect": {
       "code": 200,
@@ -154,13 +155,13 @@
     }
   },
   {
-    "endpoint": "/ds/validatee",
+    "endpoint": "/ds/validate",
     "method": "POST",
     "headers": {
       "Content-Type": "application/json"
     },
     "body": {
-      "ref": "me/test_wd"
+      "ref": "peer/movies"
     },
     "expect": {
       "code": 200,
@@ -170,14 +171,12 @@
     }
   },
   {
-    "endpoint": "/ds/unpack",
+    "endpoint": "/ds/unpack/test_unpack_path",
     "method": "POST",
     "headers": {
-      "Content-Type": "application/json"
+      "Content-Type": "application/zip"
     },
-    "body": {
-      "ref": "me/test_wd"
-    },
+    "body": "UEsDBBQAAAAAAJYBlFIAAAAAAAAAAAAAAAAGACAAemlwZHMvVVQNAAddAH5gYAB+YF0AfmB1eAsAAQT1AQAABBQAAABQSwMEFAAIAAgApAGUUgAAAAAAAAAACgAAAA4AIAB6aXBkcy8ucXJpLXJlZlVUDQAHdQB+YHAAfmB1AH5gdXgLAAEE9QEAAAQUAAAAKyzK1K/KLEgp5gIAUEsHCLakuCwMAAAACgAAAFBLAwQUAAgACACWAZRSAAAAAAAAAAAkAAAAFAAgAHppcGRzL3N0cnVjdHVyZS5qc29uVVQNAAddAH5ggwB+YF0AfmB1eAsAAQT1AQAABBQAAACr5lJQSssvyk0sUbJSUEouLlPSAYoUFmWCuMUlVgZKXLUAUEsHCA5ZGgciAAAAJAAAAFBLAwQUAAgACACWAZRSAAAAAAAAAAAWAAAADgAgAHppcGRzL2JvZHkuY3N2VVQNAAddAH5gXgB+YF0AfmB1eAsAAQT1AQAABBQAAADLz0vVKSnP1zHmSssvLdJJyyxL1THjAgBQSwcIyDoU1BgAAAAWAAAAUEsDBBQACAAIAJYBlFIAAAAAAAAAABIAAAAPACAAemlwZHMvbWV0YS5qc29uVVQNAAddAH5ggwB+YF0AfmB1eAsAAQT1AQAABBQAAACr5lJQKizKVLJSUMpNsTJQ4qoFAFBLBwggQmhbFAAAABIAAABQSwECFAMUAAAAAACWAZRSAAAAAAAAAAAAAAAABgAgAAAAAAAAAAAA7UEAAAAAemlwZHMvVVQNAAddAH5gYAB+YF0AfmB1eAsAAQT1AQAABBQAAABQSwECFAMUAAgACACkAZRStqS4LAwAAAAKAAAADgAgAAAAAAAAAAAApIFEAAAAemlwZHMvLnFyaS1yZWZVVA0AB3UAfmBwAH5gdQB+YHV4CwABBPUBAAAEFAAAAFBLAQIUAxQACAAIAJYBlFIOWRoHIgAAACQAAAAUACAAAAAAAAAAAACkgawAAAB6aXBkcy9zdHJ1Y3R1cmUuanNvblVUDQAHXQB+YIMAfmBdAH5gdXgLAAEE9QEAAAQUAAAAUEsBAhQDFAAIAAgAlgGUUsg6FNQYAAAAFgAAAA4AIAAAAAAAAAAAAKSBMAEAAHppcGRzL2JvZHkuY3N2VVQNAAddAH5gXgB+YF0AfmB1eAsAAQT1AQAABBQAAABQSwECFAMUAAgACACWAZRSIEJoWxQAAAASAAAADwAgAAAAAAAAAAAApIGkAQAAemlwZHMvbWV0YS5qc29uVVQNAAddAH5ggwB+YF0AfmB1eAsAAQT1AQAABBQAAABQSwUGAAAAAAUABQDLAQAAFQIAAAAA",
     "expect": {
       "code": 200,
       "headers": {
@@ -192,7 +191,7 @@
       "Content-Type": "application/json"
     },
     "body": {
-      "ref": "me/test_wd"
+      "ref": "peer/movies"
     },
     "expect": {
       "code": 200,
@@ -202,7 +201,7 @@
     }
   },
   {
-    "endpoint": "/ds/manifestmissing",
+    "endpoint": "/ds/manifest/missing",
     "method": "POST",
     "headers": {
       "Content-Type": "application/json"
@@ -224,7 +223,7 @@
       "Content-Type": "application/json"
     },
     "body": {
-      "ref": "me/test_wd"
+      "ref": "peer/movies"
     },
     "expect": {
       "code": 200,

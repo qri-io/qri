@@ -1,7 +1,7 @@
 [
   {
     "endpoint": "/remote/feeds",
-    "method": "GET",
+    "method": "POST",
     "headers": {
       "Content-Type": "application/json"
     },
@@ -49,6 +49,22 @@
       "Content-Type": "application/json"
     },
     "body": {},
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/remote/remove",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "peer/movies"
+    },
     "expect": {
       "code": 200,
       "headers": {

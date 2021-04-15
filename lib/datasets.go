@@ -32,6 +32,7 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/transform"
 	"github.com/qri-io/qri/transform/run"
@@ -52,18 +53,17 @@ func (m DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		"componentstatus": {endpoint: AEComponentStatus, httpVerb: "POST"},
 		"get":             {endpoint: AEGet, httpVerb: "GET"},
-		// "log":             {endpoint: AELog, httpVerb: "POST"},
-		"rename": {endpoint: AERename, httpVerb: "POST", defaultSource: "local"},
-		"save":   {endpoint: AESave, httpVerb: "POST"},
-		"pull":   {endpoint: AEPull, httpVerb: "POST", defaultSource: "network"},
-		// "push":    {endpoint: AEPush, httpVerb: "POST", defaultSource: "local"},
-		"render":   {endpoint: AERender, httpVerb: "POST"},
-		"remove":   {endpoint: AERemove, httpVerb: "POST", defaultSource: "local"},
-		"validate": {endpoint: AEValidate, httpVerb: "POST", defaultSource: "local"},
-		// "unpack":          {endpoint: AEUnpack, httpVerb: "POST"},
-		"manifest":        {endpoint: AEManifest, httpVerb: "POST"},
-		"manifestmissing": {endpoint: AEManifestMissing, httpVerb: "POST"},
-		"daginfo":         {endpoint: AEDAGInfo, httpVerb: "POST"},
+		"activity":        {endpoint: AEActivity, httpVerb: "POST"},
+		"rename":          {endpoint: AERename, httpVerb: "POST", defaultSource: "local"},
+		"save":            {endpoint: AESave, httpVerb: "POST"},
+		"pull":            {endpoint: AEPull, httpVerb: "POST", defaultSource: "network"},
+		"push":            {endpoint: AEPush, httpVerb: "POST", defaultSource: "local"},
+		"render":          {endpoint: AERender, httpVerb: "POST"},
+		"remove":          {endpoint: AERemove, httpVerb: "POST", defaultSource: "local"},
+		"validate":        {endpoint: AEValidate, httpVerb: "POST", defaultSource: "local"},
+		"manifest":        {endpoint: AEManifest, httpVerb: "POST", defaultSource: "local"},
+		"manifestmissing": {endpoint: AEManifestMissing, httpVerb: "POST", defaultSource: "local"},
+		"daginfo":         {endpoint: AEDAGInfo, httpVerb: "POST", defaultSource: "local"},
 	}
 }
 
@@ -259,6 +259,23 @@ func scriptFileSelection(ds *dataset.Dataset, selector string) (qfs.File, bool) 
 	return nil, false
 }
 
+// ActivityParams defines parameters for the Activity method
+type ActivityParams struct {
+	ListParams
+	// Reference to data to fetch history for
+	Ref  string
+	Pull bool
+}
+
+// Activity returns the activity and changes for a given dataset
+func (m DatasetMethods) Activity(ctx context.Context, params *ActivityParams) ([]dsref.VersionInfo, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "activity"), params)
+	if res, ok := got.([]dsref.VersionInfo); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
 // SaveParams encapsulates arguments to Save
 type SaveParams struct {
 	// dataset supplies params directly, all other param fields override values
@@ -379,6 +396,24 @@ type PullParams struct {
 func (m DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Dataset, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "pull"), p)
 	if res, ok := got.(*dataset.Dataset); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// PushParams encapsulates parmeters for dataset publication
+type PushParams struct {
+	Ref    string `schema:"ref" json:"ref"`
+	Remote string
+	// All indicates all versions of a dataset and the dataset namespace should
+	// be either published or removed
+	All bool
+}
+
+// Push posts a dataset version to a remote
+func (m DatasetMethods) Push(ctx context.Context, p *PushParams) (*dsref.Ref, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "push"), p)
+	if res, ok := got.(*dsref.Ref); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -803,6 +838,72 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 	return res, nil
 }
 
+// Activity returns the activity and changes for a given dataset
+func (datasetImpl) Activity(scope scope, params *ActivityParams) ([]dsref.VersionInfo, error) {
+	// ensure valid limit value
+	if params.Limit <= 0 {
+		params.Limit = 25
+	}
+	// ensure valid offset value
+	if params.Offset < 0 {
+		params.Offset = 0
+	}
+
+	if params.Pull && scope.SourceName() != "network" {
+		return nil, fmt.Errorf("cannot pull without using network source")
+	}
+
+	ref, location, err := scope.ParseAndResolveRef(scope.Context(), params.Ref)
+	if err != nil {
+		return nil, err
+	}
+
+	if location == "" {
+		// local resolution
+		return base.DatasetLog(scope.Context(), scope.Repo(), ref, params.Limit, params.Offset, true)
+	}
+
+	logs, err := scope.RemoteClient().FetchLogs(scope.Context(), ref, location)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO (b5) - FetchLogs currently returns oplogs arranged in user > dataset > branch
+	// hierarchy, and we need to descend to the branch oplog to get commit history
+	// info. It might be nicer if FetchLogs instead returned the branch oplog, but
+	// with .Parent() fields loaded & connected
+	if len(logs.Logs) > 0 {
+		logs = logs.Logs[0]
+		if len(logs.Logs) > 0 {
+			logs = logs.Logs[0]
+		}
+	}
+
+	items := logbook.ConvertLogsToVersionInfos(logs, ref)
+	log.Debugf("found %d items: %v", len(items), items)
+	if len(items) == 0 {
+		return nil, repo.ErrNoHistory
+	}
+
+	for i, item := range items {
+		local, hasErr := scope.Filesystem().Has(scope.Context(), item.Path)
+		if hasErr != nil {
+			continue
+		}
+		items[i].Foreign = !local
+
+		if local {
+			if ds, err := dsfs.LoadDataset(scope.Context(), scope.Repo().Filesystem(), item.Path); err == nil {
+				if ds.Commit != nil {
+					items[i].CommitMessage = ds.Commit.Message
+				}
+			}
+		}
+	}
+
+	return items, nil
+}
+
 // Save adds a history entry, updating a dataset
 func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 	log.Debugw("DatasetMethods.Save", "ref", p.Ref, "apply", p.Apply)
@@ -1076,6 +1177,10 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 	res := &RemoveResponse{}
 	log.Debugf("Remove dataset ref %q, revisions %v", p.Ref, p.Revision)
 
+	if p.Revision == nil {
+		return nil, fmt.Errorf("invalid revision: nil")
+	}
+
 	if p.Revision.Gen == 0 {
 		return nil, fmt.Errorf("invalid number of revisions to delete: 0")
 	}
@@ -1285,6 +1390,33 @@ func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
 	}
 
 	return res, nil
+}
+
+// Push posts a dataset version to a remote
+func (datasetImpl) Push(scope scope, p *PushParams) (*dsref.Ref, error) {
+	if scope.SourceName() != "local" {
+		return nil, fmt.Errorf("push requires the 'local' source")
+	}
+
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
+	if err != nil {
+		return nil, err
+	}
+
+	addr, err := remote.Address(scope.Config(), p.Remote)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = scope.RemoteClient().PushDataset(scope.Context(), ref, addr); err != nil {
+		return nil, err
+	}
+
+	if err = base.SetPublishStatus(scope.Context(), scope.Repo(), ref, true); err != nil {
+		return nil, err
+	}
+
+	return &ref, nil
 }
 
 // Validate gives a dataset of errors and issues for a given dataset

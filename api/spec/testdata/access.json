@@ -5,7 +5,9 @@
     "headers": {
       "Content-Type": "application/json"
     },
-    "body": {},
+    "body": {
+      "granteeUsername": "peer"
+    },
     "expect": {
       "code": 200,
       "headers": {

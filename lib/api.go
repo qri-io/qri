@@ -67,10 +67,8 @@ const (
 	AEComponentStatus = APIEndpoint("/ds/componentstatus")
 	// AEGet is an endpoint for fetch individual dataset components
 	AEGet = APIEndpoint("/ds/get")
-	// AEHistory is an endpoint that returns a dataset history
-	AEHistory = APIEndpoint("/ds/history") // TODO(arqu): /history > /ds/log
-	// AELog is an endpoint that returns dataset logs
-	AELog = APIEndpoint("/ds/log") // TODO(arqu): /history > /ds/log
+	// AEActivity is an endpoint that returns a dataset activity list
+	AEActivity = APIEndpoint("/ds/activity")
 	// AERename is an endpoint for renaming datasets
 	AERename = APIEndpoint("/ds/rename")
 	// AESave is an endpoint for saving a dataset
@@ -98,8 +96,6 @@ const (
 
 	// AEPeer fetches a specific peer
 	AEPeer = APIEndpoint("/peer")
-	// AERemovePeer removes a peer from the store
-	AERemovePeer = APIEndpoint("/peer/remove")
 	// AEConnect initiates an explicit connection to a peer
 	AEConnect = APIEndpoint("/peer/connect")
 	// AEDisconnect closes an explicit connection to a peer
@@ -165,9 +161,6 @@ const (
 	AERemoteRefs = APIEndpoint("/remote/refs")
 
 	// other endpoints
-
-	// AEEntries lists log entries for actions taken on a given dataset
-	AEEntries = APIEndpoint("/log")
 
 	// AEConnections lists qri & IPFS connections
 	AEConnections = APIEndpoint("/connections")

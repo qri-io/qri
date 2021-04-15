@@ -127,7 +127,7 @@ func TestReferencePulling(t *testing.T) {
 	PushToRegistry(tr.Ctx, t, nasim, ref.Alias())
 
 	// - nasim's local repo should reflect publication
-	logRes, err := nasim.Log().History(tr.Ctx, &HistoryParams{Ref: ref.Alias(), ListParams: ListParams{Limit: 1}})
+	logRes, err := nasim.Dataset().Activity(tr.Ctx, &ActivityParams{Ref: ref.Alias(), ListParams: ListParams{Limit: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ def transform(ds, ctx):
 	}
 
 	// - adnan's local repo should reflect nasim's publication
-	logRes, err = adnan.Log().History(tr.Ctx, &HistoryParams{Ref: ref.Alias(), ListParams: ListParams{Limit: 1}})
+	logRes, err = adnan.Dataset().Activity(tr.Ctx, &ActivityParams{Ref: ref.Alias(), ListParams: ListParams{Limit: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -412,7 +412,7 @@ g,g,i,true,4`),
 }
 
 func PushToRegistry(ctx context.Context, t *testing.T, inst *Instance, refstr string) dsref.Ref {
-	res, err := inst.WithSource("local").Remote().Push(ctx, &PushParams{
+	res, err := inst.WithSource("local").Dataset().Push(ctx, &PushParams{
 		Ref: refstr,
 	})
 

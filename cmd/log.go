@@ -111,7 +111,7 @@ func (o *LogOptions) Run() error {
 	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	ctx := context.TODO()
-	p := &lib.HistoryParams{
+	p := &lib.ActivityParams{
 		Ref:  o.Refs.Ref(),
 		Pull: o.Pull,
 		ListParams: lib.ListParams{
@@ -120,7 +120,7 @@ func (o *LogOptions) Run() error {
 		},
 	}
 
-	res, err := o.Instance.WithSource(o.Source).Log().History(ctx, p)
+	res, err := o.Instance.WithSource(o.Source).Dataset().Activity(ctx, p)
 	if err != nil {
 		return err
 	}
