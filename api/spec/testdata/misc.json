@@ -26,7 +26,7 @@
     }
   },
   {
-    "endpoint": "/qfs/ipfs/test_path",
+    "endpoint": "/qfs/ipfs/QmQPS7Nf6dG8zosyAA8zYd64gaLBTAzYsVhMkaMCgCXJST",
     "method": "GET",
     "headers": {
       "Content-Type": "application/json"
@@ -45,7 +45,7 @@
       "Content-Type": "application/json"
     },
     "expect": {
-      "code": 200,
+      "code": 404,
       "headers": {
         "Content-Type": "text/plain; charset=utf-8"
       }

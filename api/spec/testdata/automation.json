@@ -5,7 +5,12 @@
     "headers": {
       "Content-Type": "application/json"
     },
-    "body": {},
+    "body": {
+      "ref": "peer/movies",
+      "transform": {
+        "scriptBytes": "ZGVmIHRyYW5zZm9ybShkcyxjdHgpOlxucmV0dXJu"
+      }
+    },
     "expect": {
       "code": 200,
       "headers": {

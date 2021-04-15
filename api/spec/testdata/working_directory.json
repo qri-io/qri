@@ -5,6 +5,9 @@
     "headers": {
       "Content-Type": "application/json"
     },
+    "body": {
+      "targetDir": "/tmp/qri_api_test/movies"
+    },
     "expect": {
       "code": 200,
       "headers": {
@@ -19,7 +22,9 @@
       "Content-Type": "application/json"
     },
     "body": {
-      "ref": "me/test_wd"
+      "targetDir": "/tmp/qri_api_test/test_wd_ds",
+      "name": "test_wd_ds",
+      "format": "csv"
     },
     "expect": {
       "code": 200,
@@ -32,7 +37,7 @@
     "endpoint": "/wd/status",
     "method": "POST",
     "body": {
-      "ref": "me/test_wd"
+      "ref": "peer/test_wd_ds"
     },
     "expect": { 
       "code": 200,
@@ -45,7 +50,8 @@
     "endpoint": "/wd/checkout",
     "method": "POST",
     "body": {
-      "ref": "me/test_wd"
+      "ref": "peer/movies",
+      "dir": "/tmp/qri_api_test/movies"
     },
     "expect": {
       "code": 200,
@@ -58,25 +64,7 @@
     "endpoint": "/wd/restore",
     "method": "POST",
     "body": {
-      "ref": "me/test_wd"
-    },
-    "expect": {
-      "code": 200,
-      "headers": {
-        "Content-Type": "application/json"
-      }
-    }
-  },
-  {
-    "endpoint": "/wd/write",
-    "method": "POST",
-    "body": {
-      "ref": "me/test_wd",
-      "meta": {
-        "title": "test working directory",
-        "description": "with an added description!"
-      },
-      "body": [[1,2,3],[4,5,6],[7,8,9]]
+      "ref": "me/test_wd_ds"
     },
     "expect": {
       "code": 200,
@@ -89,8 +77,28 @@
     "endpoint": "/wd/createlink",
     "method": "POST",
     "body": {
-      "ref": "me/test_wd",
-      "path": "some_path"
+      "ref": "peer/cities",
+      "dir": "/tmp/qri_api_test/test_wd_ds"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/wd/write",
+    "method": "POST",
+    "body": {
+      "ref": "peer/movies",
+      "dataset": {
+        "meta": {
+          "title": "test working directory",
+          "description": "with an added description!"
+        },
+        "body": [[1,2,3],[4,5,6],[7,8,9]]
+      }
     },
     "expect": {
       "code": 200,
@@ -103,7 +111,20 @@
     "endpoint": "/wd/unlink",
     "method": "POST",
     "body": {
-      "ref": "me/test_wd",
+      "ref": "me/test_wd_ds"
+    },
+    "expect": {
+      "code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  {
+    "endpoint": "/wd/ensureref",
+    "method": "POST",
+    "body": {
+      "ref": "peer/movies"
     },
     "expect": {
       "code": 200,

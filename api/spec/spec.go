@@ -23,7 +23,7 @@ func AssertHTTPAPISpec(t *testing.T, baseURL, specPackagePath string) {
 	t.Helper()
 
 	// Create a mock data server. Can't move this into the testRunner, because we need to
-	// ensure only this test is using the server's port "55555".
+	// ensure only this test is using the server's port "55556".
 	s := newMockDataServer(t)
 	defer s.Close()
 
@@ -33,16 +33,15 @@ func AssertHTTPAPISpec(t *testing.T, baseURL, specPackagePath string) {
 	}
 
 	testFiles := []string{
-		// TODO(arqu): enable once API refactoring is done
-		// "testdata/access.json",
-		// "testdata/aggregate.json",
-		// "testdata/automation.json",
-		// "testdata/dataset.json",
-		// "testdata/misc.json",
-		// "testdata/peer.json",
-		// "testdata/profile.json",
-		// "testdata/remote.json",
-		// "testdata/working_directory.json",
+		"testdata/access.json",
+		"testdata/aggregate.json",
+		"testdata/automation.json",
+		"testdata/dataset.json",
+		"testdata/misc.json",
+		"testdata/peer.json",
+		"testdata/profile.json",
+		"testdata/remote.json",
+		"testdata/working_directory.json",
 
 		// sync.json is intentionally left out
 		// as it's more a protocol that doesn't belong
@@ -50,16 +49,32 @@ func AssertHTTPAPISpec(t *testing.T, baseURL, specPackagePath string) {
 		// "testdata/sync.json",
 	}
 
+	sl := mustLoadSkipList(t, filepath.Join(specPackagePath, "testdata/skip.json"))
+
 	for _, path := range testFiles {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			ts := mustLoadTestSuite(t, filepath.Join(specPackagePath, path))
 			for i, c := range ts {
+				if isInSkipList(sl, c.Endpoint) {
+					continue
+				}
 				if err := c.do(base); err != nil {
 					t.Errorf("case %d %s %s:\n%s", i, c.Method, c.Endpoint, err)
 				}
 			}
 		})
 	}
+}
+
+func isInSkipList(sl SkipList, endpoint string) bool {
+	skip := false
+	for _, s := range sl {
+		if s == endpoint {
+			skip = true
+			break
+		}
+	}
+	return skip
 }
 
 func newMockDataServer(t *testing.T) *httptest.Server {
@@ -187,10 +202,8 @@ func (c *TestCase) resBodyErrString(res *http.Response) string {
 
 // Response holds the expected HTTP response
 type Response struct {
-	Code       int
-	Headers    map[string]string
-	IgnoreBody bool
-	Body       []byte
+	Code    int
+	Headers map[string]string
 }
 
 func mustLoadTestSuite(t *testing.T, filePath string) []*TestCase {
@@ -205,4 +218,21 @@ func mustLoadTestSuite(t *testing.T, filePath string) []*TestCase {
 	}
 
 	return suite
+}
+
+// SkipList holds a list of endpoints for which to skip testing
+type SkipList []string
+
+func mustLoadSkipList(t *testing.T, filePath string) SkipList {
+	f, err := os.Open(filePath)
+	if err != nil {
+		t.Fatalf("opening test skip list file %q: %s", filePath, err)
+	}
+	defer f.Close()
+	skipList := SkipList{}
+	if err := json.NewDecoder(f).Decode(&skipList); err != nil {
+		t.Fatalf("deserializing test skip list file %q: %s", filePath, err)
+	}
+
+	return skipList
 }

@@ -76,7 +76,7 @@ func (o *PushOptions) Run() error {
 
 		// Though push is pushing to a remote, it has to resolve datasets
 		// from your local collection.
-		res, err := o.inst.WithSource("local").Remote().Push(ctx, &p)
+		res, err := o.inst.WithSource("local").Dataset().Push(ctx, &p)
 		if err != nil {
 			return err
 		}

@@ -232,16 +232,18 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(lib.AEChanges.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "diff.changes"))).Methods(http.MethodPost, http.MethodGet)
 
 	// access endpoints
+	m.Handle(lib.AECreateAuthToken.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "access.createauthtoken"))).Methods(http.MethodPost)
 
 	// automation endpoints
 	m.Handle(lib.AEApply.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "automation.apply"))).Methods(http.MethodPost)
 
 	// dataset endpoints
 	m.Handle(lib.AEComponentStatus.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.componentstatus"))).Methods(http.MethodPost)
-	m.Handle(lib.AERename.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.rename"))).Methods(http.MethodPost, http.MethodPut)
+	m.Handle(lib.AEActivity.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.activity"))).Methods(http.MethodPost)
+	m.Handle(lib.AERename.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.rename"))).Methods(http.MethodPost)
 	m.Handle(lib.AESave.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.save"))).Methods(http.MethodPost)
-	m.Handle(lib.AEPull.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.pull"))).Methods(http.MethodPost)
-	m.Handle(lib.AEPush.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.push"))).Methods(http.MethodPost)
+	m.Handle(lib.AEPull.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.pull"))).Methods(http.MethodPost)
+	m.Handle(lib.AEPush.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.push"))).Methods(http.MethodPost)
 	m.Handle(lib.AERender.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.render"))).Methods(http.MethodPost)
 	m.Handle(lib.AERemove.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.remove"))).Methods(http.MethodPost)
 	m.Handle(lib.AEValidate.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.validate"))).Methods(http.MethodPost)
@@ -265,7 +267,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	// profile endpoints
 	m.Handle(lib.AEGetProfile.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.getprofile"))).Methods(http.MethodPost)
 	m.Handle(lib.AESetProfile.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setprofile"))).Methods(http.MethodPost)
-	m.Handle(lib.AESetProfilePhoto.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setprofilePhoto"))).Methods(http.MethodPost)
+	m.Handle(lib.AESetProfilePhoto.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setprofilephoto"))).Methods(http.MethodPost)
 	m.Handle(lib.AESetPosterPhoto.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setposterphoto"))).Methods(http.MethodPost)
 
 	// remote endpoints
@@ -295,10 +297,6 @@ func NewServerRoutes(s Server) *mux.Router {
 		m.Handle(lib.AERemoteLogSync.String(), s.Middleware(s.Instance.RemoteServer().LogsyncHTTPHandler()))
 		m.Handle(lib.AERemoteRefs.String(), s.Middleware(s.Instance.RemoteServer().RefsHTTPHandler()))
 	}
-
-	// TODO(aqru): clear up these endpoints up to spec
-	m.Handle(lib.AELog.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.history"))).Methods(http.MethodPost)
-	m.Handle(lib.AEEntries.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "log.log"))).Methods(http.MethodPost)
 
 	return m
 }

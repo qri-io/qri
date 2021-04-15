@@ -72,14 +72,18 @@ func ConvertDatasetToComponents(ds *dataset.Dataset, qfilesys qfs.Filesystem) Co
 		bc.Value = ds.Body
 		bc.BodyFile = ds.BodyFile()
 		bc.Structure = ds.Structure
-		bc.Format = ds.Structure.Format
+		if ds.Structure != nil {
+			bc.Format = ds.Structure.Format
+		}
 		dc.Subcomponents["body"] = &bc
 	} else if ds.BodyPath != "" {
 		bc := BodyComponent{Resolver: qfilesys}
 		bc.SourceFile = ds.BodyPath
 		bc.BodyFile = ds.BodyFile()
 		bc.Structure = ds.Structure
-		bc.Format = ds.Structure.Format
+		if ds.Structure != nil {
+			bc.Format = ds.Structure.Format
+		}
 		dc.Subcomponents["body"] = &bc
 	}
 

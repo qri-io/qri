@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/remote"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 const allowedDagInfoSize uint64 = 10 * 1024 * 1024
@@ -29,7 +28,6 @@ func (m RemoteMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		"feeds":   {endpoint: AEFeeds, httpVerb: "POST"},
 		"preview": {endpoint: AEPreview, httpVerb: "POST"},
-		"push":    {endpoint: AEPush, httpVerb: "POST", defaultSource: "local"},
 		"remove":  {endpoint: AERemoteRemove, httpVerb: "POST", defaultSource: "network"},
 	}
 }
@@ -53,24 +51,6 @@ type PreviewParams struct {
 func (m RemoteMethods) Preview(ctx context.Context, p *PreviewParams) (*dataset.Dataset, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "preview"), p)
 	if res, ok := got.(*dataset.Dataset); ok {
-		return res, err
-	}
-	return nil, dispatchReturnError(got, err)
-}
-
-// PushParams encapsulates parmeters for dataset publication
-type PushParams struct {
-	Ref    string `schema:"ref" json:"ref"`
-	Remote string
-	// All indicates all versions of a dataset and the dataset namespace should
-	// be either published or removed
-	All bool
-}
-
-// Push posts a dataset version to a remote
-func (m RemoteMethods) Push(ctx context.Context, p *PushParams) (*dsref.Ref, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "push"), p)
-	if res, ok := got.(*dsref.Ref); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -121,35 +101,6 @@ func (remoteImpl) Preview(scope scope, p *PreviewParams) (*dataset.Dataset, erro
 	}
 
 	return res, nil
-}
-
-// Push posts a dataset version to a remote
-func (remoteImpl) Push(scope scope, p *PushParams) (*dsref.Ref, error) {
-	if scope.SourceName() != "local" {
-		return nil, fmt.Errorf("push requires the 'local' source")
-	}
-
-	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
-	if err != nil {
-		return nil, err
-	}
-
-	addr, err := remote.Address(scope.Config(), p.Remote)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = scope.RemoteClient().PushDataset(scope.Context(), ref, addr); err != nil {
-		return nil, err
-	}
-
-	datasetRef := reporef.RefFromDsref(ref)
-	datasetRef.Published = true
-	if err = base.SetPublishStatus(scope.Context(), scope.Repo(), ref, true); err != nil {
-		return nil, err
-	}
-
-	return &ref, nil
 }
 
 // Remove asks a remote to remove a dataset
