@@ -50,20 +50,20 @@ func (m DatasetMethods) Name() string {
 // Attributes defines attributes for each method
 func (m DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"componentstatus": {AEComponentStatus, "POST"},
-		"get":             {AEGet, "GET"},
-		// "log":             {AELog, "POST"},
-		"rename": {AERename, "POST"},
-		"save":   {AESave, "POST"},
-		"pull":   {AEPull, "POST"},
-		// "push":            {AEPush, "POST"},
-		"render":   {AERender, "POST"},
-		"remove":   {AERemove, "POST"},
-		"validate": {AEValidate, "POST"},
-		// "unpack":          {AEUnpack, "POST"},
-		"manifest":        {AEManifest, "POST"},
-		"manifestmissing": {AEManifestMissing, "POST"},
-		"daginfo":         {AEDAGInfo, "POST"},
+		"componentstatus": {AEComponentStatus, "POST", ""},
+		"get":             {AEGet, "GET", ""},
+		// "log":             {AELog, "POST", ""},
+		"rename": {AERename, "POST", "local"},
+		"save":   {AESave, "POST", ""},
+		"pull":   {AEPull, "POST", "network"},
+		// "push":            {AEPush, "POST", "local"},
+		"render":   {AERender, "POST", ""},
+		"remove":   {AERemove, "POST", "local"},
+		"validate": {AEValidate, "POST", "local"},
+		// "unpack":          {AEUnpack, "POST", ""},
+		"manifest":        {AEManifest, "POST", ""},
+		"manifestmissing": {AEManifestMissing, "POST", ""},
+		"daginfo":         {AEDAGInfo, "POST", ""},
 	}
 }
 

@@ -47,8 +47,9 @@ type MethodSet interface {
 // http verb, (TODO) permissions, and (TODO) other metadata
 // Each method is required to have associated attributes in order to successfully register
 type AttributeSet struct {
-	endpoint APIEndpoint
-	verb     string
+	endpoint      APIEndpoint
+	verb          string
+	defaultSource string
 }
 
 // Dispatch is a system for handling calls to lib. Should only be called by top-level lib methods.
@@ -120,13 +121,12 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 				out := reflect.New(c.OutType)
 				res = out.Interface()
 			}
-			// TODO(dustmop): Send the source across the RPC, using an HTTP header
 			// TODO(ramfox): dispatch is still unable to give enough details to the url
 			// (because it doesn't know how or what param information to put into the url or query)
 			// for it to reliably use GET. All POSTs w/ content type application json work, however.
 			// we may want to just flat out say that as an RPC layer, dispatch will only ever use
 			// json POST to communicate.
-			err = inst.http.CallMethod(ctx, c.Endpoint, "POST", param, res)
+			err = inst.http.CallMethod(ctx, c.Endpoint, "POST", source, param, res)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -152,6 +152,9 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 		// or use copy-on-write semantics, so that one method running at the same time as
 		// another cannot modify the out-of-scope data of the other. This will mostly
 		// involve making copies of the right things
+		if source == "" {
+			source = c.DefaultSource
+		}
 		scope, err := newScope(ctx, inst, source)
 		if err != nil {
 			return nil, nil, err
@@ -230,13 +233,14 @@ func (r *regMethodSet) lookup(method string) (*callable, bool) {
 }
 
 type callable struct {
-	Impl      interface{}
-	Func      reflect.Value
-	InType    reflect.Type
-	OutType   reflect.Type
-	RetCursor bool
-	Endpoint  APIEndpoint
-	Verb      string
+	Impl          interface{}
+	Func          reflect.Value
+	InType        reflect.Type
+	OutType       reflect.Type
+	RetCursor     bool
+	Endpoint      APIEndpoint
+	Verb          string
+	DefaultSource string
 }
 
 // RegisterMethods iterates the methods provided by the lib API, and makes them visible to dispatch
@@ -386,6 +390,7 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 
 		var endpoint APIEndpoint
 		var httpVerb string
+		var defaultSource string
 		// Additional attributes for the method are found in the Attributes
 		amap := methods.Attributes()
 		methodAttrs, ok := amap[lowerName]
@@ -394,6 +399,7 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 		}
 		endpoint = methodAttrs.endpoint
 		httpVerb = methodAttrs.verb
+		defaultSource = methodAttrs.defaultSource
 		// If both these are empty string, RPC is not allowed for this method
 		if endpoint != "" || httpVerb != "" {
 			if !strings.HasPrefix(string(endpoint), "/") {
@@ -406,13 +412,14 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 
 		// Save the method to the registration table
 		reg[funcName] = callable{
-			Impl:      impl,
-			Func:      i.Func,
-			InType:    inType,
-			OutType:   outType,
-			RetCursor: returnsCursor,
-			Endpoint:  endpoint,
-			Verb:      httpVerb,
+			Impl:          impl,
+			Func:          i.Func,
+			InType:        inType,
+			OutType:       outType,
+			RetCursor:     returnsCursor,
+			Endpoint:      endpoint,
+			Verb:          httpVerb,
+			DefaultSource: defaultSource,
 		}
 		log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
 	}
