@@ -50,20 +50,20 @@ func (m DatasetMethods) Name() string {
 // Attributes defines attributes for each method
 func (m DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"componentstatus": {AEComponentStatus, "POST", ""},
-		"get":             {AEGet, "GET", ""},
-		// "log":             {AELog, "POST"},
-		"rename": {AERename, "POST", ""},
-		"save":   {AESave, "POST", ""},
-		"pull":   {AEPull, "POST", "network"},
-		// "push":            {AEPush, "POST"},
-		"render":   {AERender, "POST", ""},
-		"remove":   {AERemove, "POST", "local"},
-		"validate": {AEValidate, "POST", ""},
-		// "unpack":          {AEUnpack, "POST"},
-		"manifest":        {AEManifest, "POST", ""},
-		"manifestmissing": {AEManifestMissing, "POST", ""},
-		"daginfo":         {AEDAGInfo, "POST", ""},
+		"componentstatus": {endpoint: AEComponentStatus, httpVerb: "POST"},
+		"get":             {endpoint: AEGet, httpVerb: "GET"},
+		// "log":             {endpoint: AELog, httpVerb: "POST"},
+		"rename": {endpoint: AERename, httpVerb: "POST", defaultSource: "local"},
+		"save":   {endpoint: AESave, httpVerb: "POST"},
+		"pull":   {endpoint: AEPull, httpVerb: "POST", defaultSource: "network"},
+		// "push":    {endpoint: AEPush, httpVerb: "POST", defaultSource: "local"},
+		"render":   {endpoint: AERender, httpVerb: "POST"},
+		"remove":   {endpoint: AERemove, httpVerb: "POST", defaultSource: "local"},
+		"validate": {endpoint: AEValidate, httpVerb: "POST", defaultSource: "local"},
+		// "unpack":          {endpoint: AEUnpack, httpVerb: "POST"},
+		"manifest":        {endpoint: AEManifest, httpVerb: "POST"},
+		"manifestmissing": {endpoint: AEManifestMissing, httpVerb: "POST"},
+		"daginfo":         {endpoint: AEDAGInfo, httpVerb: "POST"},
 	}
 }
 

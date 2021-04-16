@@ -27,10 +27,10 @@ func (m RemoteMethods) Name() string {
 // Attributes defines attributes for each method
 func (m RemoteMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"feeds":   {AEFeeds, "POST", ""},
-		"preview": {AEPreview, "POST", ""},
-		"push":    {AEPush, "POST", "local"},
-		"remove":  {AERemoteRemove, "POST", "network"},
+		"feeds":   {endpoint: AEFeeds, httpVerb: "POST"},
+		"preview": {endpoint: AEPreview, httpVerb: "POST"},
+		"push":    {endpoint: AEPush, httpVerb: "POST", defaultSource: "local"},
+		"remove":  {endpoint: AERemoteRemove, httpVerb: "POST", defaultSource: "network"},
 	}
 }
 

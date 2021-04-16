@@ -308,8 +308,8 @@ func (m *animalMethods) Name() string {
 
 func (m *animalMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"cat": {denyRPC, "", ""},
-		"dog": {denyRPC, "", ""},
+		"cat": {endpoint: denyRPC},
+		"dog": {endpoint: denyRPC},
 	}
 }
 
@@ -406,12 +406,12 @@ func (m *fruitMethods) Name() string {
 
 func (m *fruitMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apple":  {"/apple", "GET", ""},
-		"banana": {"/banana", "GET", ""},
-		"cherry": {"/cherry", "GET", ""},
-		"date":   {"/date", "GET", ""},
+		"apple":  {endpoint: "/apple", httpVerb: "GET"},
+		"banana": {endpoint: "/banana", httpVerb: "GET"},
+		"cherry": {endpoint: "/cherry", httpVerb: "GET"},
+		"date":   {endpoint: "/date", httpVerb: "GET"},
 		// entawak cannot be called over RPC
-		"entawak": {denyRPC, "", ""},
+		"entawak": {endpoint: denyRPC},
 	}
 }
 
@@ -489,8 +489,8 @@ func (m *getSrcMethods) Name() string {
 
 func (m *getSrcMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"one": {"/one", "GET", ""},
-		"two": {"/two", "GET", "network"},
+		"one": {endpoint: "/one", httpVerb: "GET"},
+		"two": {endpoint: "/two", httpVerb: "GET", defaultSource: "network"},
 	}
 }
 
