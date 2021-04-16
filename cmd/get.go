@@ -3,8 +3,10 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 
+	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	apiutil "github.com/qri-io/qri/api/util"
@@ -178,8 +180,30 @@ func (o *GetOptions) Run() (err error) {
 		o.Out.Write([]byte{'\n'})
 		return nil
 	}
-	if len(res.Bytes) > 0 {
-		buf := bytes.NewBuffer(res.Bytes)
+	if res.Value != nil {
+		var data []byte
+		var err error
+
+		switch {
+		case o.Format == "yaml":
+			data, err = yaml.Marshal(res.Value)
+			break
+		case o.Pretty:
+			data, err = json.MarshalIndent(res.Value, "", "  ")
+			break
+		case o.Format == "json":
+			data, err = json.Marshal(res.Value)
+		default:
+			var ok bool
+			data, ok = res.Value.([]byte)
+			if !ok {
+				return fmt.Errorf("unknown return type for get")
+			}
+		}
+		if err != nil {
+			return err
+		}
+		buf := bytes.NewBuffer(data)
 		buf.Write([]byte{'\n'})
 		printToPager(o.Out, buf)
 	}

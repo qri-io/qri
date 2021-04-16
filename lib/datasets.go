@@ -9,22 +9,20 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/ghodss/yaml"
-	"github.com/gorilla/mux"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
+	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/base/fill"
 	"github.com/qri-io/qri/dsref"
@@ -95,6 +93,19 @@ func (p *GetParams) SetNonZeroDefaults() {
 	if p.Format == "" {
 		p.Format = "json"
 	}
+	if p.Selector == "body" {
+		if !p.All {
+			// ensure valid limit value
+			if p.Limit <= 0 {
+				p.Limit = 25
+			}
+			// ensure valid offset value
+			if p.Offset < 0 {
+				p.Offset = 0
+			}
+
+		}
+	}
 }
 
 var validSelector = regexp.MustCompile(`^[\w-\.]*[\w]$`)
@@ -138,14 +149,13 @@ func arrayContains(subject []string, target string) bool {
 
 // UnmarshalFromRequest implements a custom deserialization-from-HTTP request
 func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
-	mvars := mux.Vars(r)
-
 	if p == nil {
 		p = &GetParams{}
 	}
 
 	params := *p
 	if params.Ref == "" {
+		log.Errorf("ref: %s", r.FormValue("ref"))
 		params.Ref = r.FormValue("ref")
 	}
 
@@ -157,13 +167,14 @@ func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
 		return fmt.Errorf("username \"me\" not allowed")
 	}
 
-	if sel, ok := mvars["selector"]; ok && params.Selector == "" {
-		selector, format, err := parseSelector(sel)
+	if r.FormValue("selector") != "" && params.Selector == "" {
+		selector, format, err := parseSelector(r.FormValue("selector"))
 		if err != nil {
 			return err
 		}
 		params.Selector = selector
 		params.Format = format
+		log.Errorf("set format %s", params.Format)
 	}
 
 	if params.Format == "" {
@@ -181,6 +192,13 @@ func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
 
 	if params.Format != "" && params.Format != "json" && params.Format != "csv" && params.Format != "zip" {
 		return fmt.Errorf("invalid extension format")
+	}
+
+	// over the api, we should only return "pretty" if it was requested
+	if params.Format == "json" && apiutil.ReqParamBool(r, "pretty", false) {
+		opt := dataset.JSONOptions{Options: make(map[string]interface{})}
+		opt.Options["pretty"] = true
+		params.FormatConfig = &opt
 	}
 
 	// TODO(arqu): we default to true but should implement a guard and/or respect the page params
@@ -206,7 +224,13 @@ type GetResult struct {
 	Published bool             `json:"published"`
 }
 
-// DataResponse is the struct used to respond to api requests made to the /body Endpoint
+type GetResponseTest struct {
+	Value   interface{} `json:"value"`
+	Type    string      `json:"type"`
+	Message string      `json:"message"`
+}
+
+// DataResponse is the struct used to respond to api requests made to the /body endpoint
 // It is necessary because we need to include the 'path' field in the response
 type DataResponse struct {
 	Path string          `json:"path"`
@@ -220,9 +244,9 @@ type DataResponse struct {
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
 // then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
 // with the generated stats.
-func (m DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, error) {
+func (m DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResponseTest, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "get"), p)
-	if res, ok := got.(*GetResult); ok {
+	if res, ok := got.(*GetResponseTest); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -617,7 +641,7 @@ func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
 // RenderParams defines parameters for the Render method
 type RenderParams struct {
 	// Ref is a string reference to the dataset to render
-	Ref string
+	Ref string `json:"ref"`
 	// Optionally pass an entire dataset in for rendering, if providing a dataset,
 	// the Ref field must be empty
 	Dataset *dataset.Dataset
@@ -628,7 +652,7 @@ type RenderParams struct {
 	// Output format. defaults to "html"
 	Format string
 	// Selector
-	Selector string
+	Selector string `json:"selector"`
 }
 
 // SetNonZeroDefaults assigns default values
@@ -665,20 +689,19 @@ func (m DatasetMethods) Render(ctx context.Context, p *RenderParams) ([]byte, er
 type datasetImpl struct{}
 
 // Get retrieves datasets and components for a given reference.t
-func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
-	res := &GetResult{}
+func (datasetImpl) Get(scope scope, p *GetParams) (*GetResponseTest, error) {
+	// res := &GetResult{}
 
 	scope.EnableWorkingDir(true)
 	ds, err := scope.Loader().LoadDataset(scope.Context(), p.Ref)
+	res := &GetResponseTest{}
 	if err != nil {
 		return nil, err
 	}
 	ref := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
 
-	res.Ref = &ref
-	res.Dataset = ds
+	fsiPath := fsi.FilesystemPathToLocal(ref.Path)
 	if fsi.IsFSIPath(ref.Path) {
-		res.FSIPath = fsi.FilesystemPathToLocal(ref.Path)
 		ds.Path = ""
 	}
 
@@ -690,43 +713,43 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 		return nil, err
 	}
 
-	if p.Format == "zip" {
-		// Only if GenFilename is true, and no output filename is set, generate one from the
-		// dataset name
-		if p.Outfile == "" && p.GenFilename {
-			p.Outfile = fmt.Sprintf("%s.zip", ds.Name)
-		}
-		var outBuf bytes.Buffer
-		var zipFile io.Writer
-		if p.Outfile == "" {
-			// In this case, write to a buffer, which will be assigned to res.Bytes later on
-			zipFile = &outBuf
-		} else {
-			zipFile, err = os.Create(p.Outfile)
-			if err != nil {
-				return nil, err
-			}
-		}
-		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
-		// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
-		// necessary until dscache is in use.
-		initID, err := scope.Logbook().RefToInitID(currRef)
-		if err != nil {
-			return nil, err
-		}
-		err = archive.WriteZip(scope.Context(), scope.Filesystem(), ds, "json", initID, currRef, zipFile)
-		if err != nil {
-			return nil, err
-		}
-		// Handle output. If outfile is empty, return the raw bytes. Otherwise provide a helpful
-		// message for the user
-		if p.Outfile == "" {
-			res.Bytes = outBuf.Bytes()
-		} else {
-			res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
-		}
-		return res, nil
-	}
+	// 	if p.Format == "zip" {
+	// 		// Only if GenFilename is true, and no output filename is set, generate one from the
+	// 		// dataset name
+	// 		if p.Outfile == "" && p.GenFilename {
+	// 			p.Outfile = fmt.Sprintf("%s.zip", ds.Name)
+	// 		}
+	// 		var outBuf bytes.Buffer
+	// 		var zipFile io.Writer
+	// 		if p.Outfile == "" {
+	// 			// In this case, write to a buffer, which will be assigned to res.Bytes later on
+	// 			zipFile = &outBuf
+	// 		} else {
+	// 			zipFile, err = os.Create(p.Outfile)
+	// 			if err != nil {
+	// 				return nil, err
+	// 			}
+	// 		}
+	// 		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
+	// 		// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
+	// 		// necessary until dscache is in use.
+	// 		initID, err := scope.Logbook().RefToInitID(currRef)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		err = archive.WriteZip(scope.Context(), scope.Filesystem(), ds, "json", initID, currRef, zipFile)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		// Handle output. If outfile is empty, return the raw bytes. Otherwise provide a helpful
+	// 		// message for the user
+	// 		if p.Outfile == "" {
+	// 			res.Bytes = outBuf.Bytes()
+	// 		} else {
+	// 			res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
+	// 		}
+	// 		return res, nil
+	// 	}
 
 	if p.Selector == "body" {
 		// `qri get body` loads the body
@@ -743,95 +766,69 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
 			// but no structure, which should infer a schema in order to read the body. Once that
 			// works we can remove the fsi.GetBody call and just use base.ReadBody.
-			res.Bytes, err = fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), df, p.FormatConfig, p.Offset, p.Limit, p.All)
+			bodyBytes, err := fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), df, p.FormatConfig, p.Offset, p.Limit, p.All)
 			if err != nil {
-				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
+				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", fsiPath, err)
 				return nil, err
 			}
-			err = maybeWriteOutfile(p, res)
-			if err != nil {
-				return nil, err
-			}
+			res.Value = bodyBytes
+			res.Type = "body"
+			// err = maybeWriteOutfile(p, res)
+			// if err != nil {
+			// 	return nil, err
+			// }
 			return res, nil
 		}
-		res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
+		if p.Format == "json" {
+			bd, err := base.ReadBodyAsInterface(ds, p.Limit, p.Offset, p.All)
+			if err != nil {
+				log.Debugf("Get dataset, base.ReadBodyAsInterface %q failed, error: %s", ds, err)
+				return nil, err
+			}
+			res.Value = bd
+		}
+		bodyBytes, err := base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
 		if err != nil {
-			log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
+			log.Debugf("Get dataset, base.ReadBodyAsInterface %q failed, error: %s", ds, err)
 			return nil, err
 		}
-		err = maybeWriteOutfile(p, res)
-		if err != nil {
-			return nil, err
-		}
+		res.Value = bodyBytes
 		return res, nil
-	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
-		// Fields that have qfs.File types should be read and returned
-		res.Bytes, err = ioutil.ReadAll(scriptFile)
-		if err != nil {
-			return nil, err
-		}
-		err = maybeWriteOutfile(p, res)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	} else if p.Selector == "stats" {
-		sa, err := scope.Stats().Stats(scope.Context(), res.Dataset)
-		if err != nil {
-			return nil, err
-		}
-		res.Bytes, err = json.Marshal(sa.Stats)
-		if err != nil {
-			return nil, err
-		}
-		err = maybeWriteOutfile(p, res)
-		if err != nil {
-			return nil, err
-		}
+		// err = maybeWriteOutfile(p, res)
+		// if err != nil {
+		// 	return nil, err
+		// }
 		return res, nil
 	}
+	// 	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
+	// 		// Fields that have qfs.File types should be read and returned
+	// 		res.Bytes, err = ioutil.ReadAll(scriptFile)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		err = maybeWriteOutfile(p, res)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		return res, nil
+	// 	} else if p.Selector == "stats" {
+	// 		sa, err := scope.Stats().Stats(scope.Context(), res.Dataset)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		res.Bytes, err = json.Marshal(sa.Stats)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		err = maybeWriteOutfile(p, res)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		return res, nil
+	// 	}
 
-	var value interface{}
-	if p.Selector == "" {
-		// `qri get` without a selector loads only the dataset head
-		value = res.Dataset
-	} else {
-		// `qri get <selector>` loads only the applicable component / field
-		value, err = base.ApplyPath(res.Dataset, p.Selector)
-		if err != nil {
-			return nil, err
-		}
-	}
-	switch p.Format {
-	case "json":
-		// Pretty defaults to true for the dataset head, unless explicitly set in the config.
-		pretty := true
-		if p.FormatConfig != nil {
-			pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
-			if ok {
-				pretty = pvalue
-			}
-		}
-		if pretty {
-			res.Bytes, err = json.MarshalIndent(value, "", " ")
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			res.Bytes, err = json.Marshal(value)
-			if err != nil {
-				return nil, err
-			}
-		}
-	case "yaml", "":
-		res.Bytes, err = yaml.Marshal(value)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("unknown format: \"%s\"", p.Format)
-	}
-	err = maybeWriteOutfile(p, res)
+	// `qri get <selector>` loads only the applicable component / field
+	res.Value, err = base.ApplyPath(ds, p.Selector)
 	if err != nil {
 		return nil, err
 	}

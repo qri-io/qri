@@ -25,7 +25,13 @@ func GetHandler(inst *lib.Instance, routePrefix string) http.HandlerFunc {
 		}
 		params := &lib.GetParams{}
 
-		err := UnmarshalParams(r, params)
+		var err error
+		if r.Method == http.MethodGet {
+			err = UnmarshalParams(r, params)
+		}
+		if r.Method == http.MethodPost {
+			err = lib.DecodeParams(r, params)
+		}
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
@@ -35,12 +41,14 @@ func GetHandler(inst *lib.Instance, routePrefix string) http.HandlerFunc {
 			util.RespondWithError(w, err)
 			return
 		}
-		res, ok := got.(*lib.GetResult)
+		res, ok := got.(*lib.GetResponseTest)
 		if !ok {
 			util.RespondWithDispatchTypeError(w, got)
 			return
 		}
-		replyWithGetResponse(w, r, params, res)
+
+		util.WriteResponse(w, res)
+		// replyWithGetResponse(w, r, params, res)
 	}
 }
 
@@ -157,6 +165,7 @@ func replyWithGetResponse(w http.ResponseWriter, r *http.Request, params *lib.Ge
 
 		util.WriteResponse(w, datasetRef)
 	} else {
+		log.Errorf("IN ELSE")
 		filename, err := archive.GenerateFilename(result.Dataset, resultFormat)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)

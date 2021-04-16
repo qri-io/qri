@@ -45,6 +45,32 @@ func ReadBody(ds *dataset.Dataset, format dataset.DataFormat, fcfg dataset.Forma
 	return data, nil
 }
 
+// ReadBodyAsInterface takes returns the Body as a go-native structure,
+// using limit, offset, and all parameters to determine what part of the Body to return
+func ReadBodyAsInterface(ds *dataset.Dataset, limit, offset int, all bool) (interface{}, error) {
+	if ds == nil {
+		return nil, fmt.Errorf("can't load body from a nil dataset")
+	}
+
+	file := ds.BodyFile()
+	if file == nil {
+		return nil, fmt.Errorf("no body file to read")
+	}
+
+	rr, err := dsio.NewEntryReader(ds.Structure, file)
+	if err != nil {
+		return nil, fmt.Errorf("error allocating data reader: %s", err)
+	}
+	if !all {
+		rr = &dsio.PagedReader{
+			Reader: rr,
+			Limit:  limit,
+			Offset: offset,
+		}
+	}
+	return ReadEntries(rr)
+}
+
 // ReadEntries reads entries and returns them as a native go array or map
 func ReadEntries(reader dsio.EntryReader) (interface{}, error) {
 	obj := make(map[string]interface{})
