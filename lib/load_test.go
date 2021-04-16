@@ -5,13 +5,12 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
 )
 
 func TestLoadDataset(t *testing.T) {
-	t.Skip("TODO(dustmop): Change in LoadDataset semantics breaks this test, figure out why")
-
 	tr := newTestRunner(t)
 	defer tr.Delete()
 
@@ -27,8 +26,19 @@ func TestLoadDataset(t *testing.T) {
 	}
 
 	loader = &datasetLoader{inst: tr.Instance}
-	dsrefspec.AssertLoaderSpec(t, loader, func(ds *dataset.Dataset) (string, error) {
-		return dsfs.CreateDataset(
+	dsrefspec.AssertLoaderSpec(t, loader, func(ds *dataset.Dataset) (*dsref.Ref, error) {
+		// Allocate an initID for this dataset
+		initID, err := tr.Instance.logbook.WriteDatasetInit(tr.Ctx, ds.Name)
+		if err != nil {
+			return nil, err
+		}
+		// Create the dataset in the provided storage
+		ref := &dsref.Ref{
+			InitID:   initID,
+			Username: tr.Instance.repo.Profiles().Owner().Peername,
+			Name:     ds.Name,
+		}
+		path, err := dsfs.CreateDataset(
 			tr.Ctx,
 			fs,
 			fs.DefaultWriteFS(),
@@ -38,5 +48,15 @@ func TestLoadDataset(t *testing.T) {
 			tr.Instance.repo.Profiles().Owner().PrivKey,
 			dsfs.SaveSwitches{},
 		)
+		if err != nil {
+			return nil, err
+		}
+		// Save the reference that the loader will use to laod
+		ref.Path = path
+		ds.Path = path
+		if err = tr.Instance.logbook.WriteVersionSave(tr.Ctx, initID, ds, nil); err != nil {
+			return nil, err
+		}
+		return ref, nil
 	})
 }

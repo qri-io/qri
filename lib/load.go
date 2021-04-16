@@ -75,6 +75,9 @@ func (d *datasetLoader) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*d
 	// Set transient info on the returned dataset
 	ds.Name = ref.Name
 	ds.Peername = ref.Username
+	// TODO(dustmop): When dscache / dscollect is in use, enable this since resolved
+	// references should always have it set
+	// ds.ID = ref.InitID
 
 	if err = base.OpenDataset(ctx, d.inst.repo.Filesystem(), ds); err != nil {
 		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
