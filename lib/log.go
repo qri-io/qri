@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
@@ -107,6 +108,10 @@ func (logImpl) History(scope scope, params *HistoryParams) ([]dsref.VersionInfo,
 	// ensure valid offset value
 	if params.Offset < 0 {
 		params.Offset = 0
+	}
+
+	if params.Pull && scope.SourceName() != "network" {
+		return nil, fmt.Errorf("cannot pull without using network source")
 	}
 
 	ref, location, err := scope.ParseAndResolveRef(scope.Context(), params.Ref)

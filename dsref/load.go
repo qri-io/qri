@@ -10,14 +10,9 @@ import (
 // ErrNoHistory indicates a resolved reference has no HEAD path
 var ErrNoHistory = fmt.Errorf("no history")
 
-// Loader loads and opens a dataset. The only useful implementation of the
-// loader interface is in github.com/qri-io/qri/lib.
-// TODO(b5) - This interface is a work-in-progress
+// Loader loads datasets
 type Loader interface {
-	LoadDataset(ctx context.Context, ref Ref, source string) (*dataset.Dataset, error)
+	// LoadDataset will parse the ref string, resolve it, and load the dataset
+	// from whatever store contains it
+	LoadDataset(ctx context.Context, refstr string) (*dataset.Dataset, error)
 }
-
-// ParseResolveLoad is a function that combines dataset reference parsing,
-// reference resolution, and loading in one function, turning a reference string
-// into a dataset pointer
-type ParseResolveLoad func(ctx context.Context, refStr string) (*dataset.Dataset, error)

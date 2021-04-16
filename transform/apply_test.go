@@ -74,9 +74,7 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event 
 	defer cancel()
 
 	scriptOut := &bytes.Buffer{}
-	noHistoryLoader := func(ctx context.Context, refStr string) (*dataset.Dataset, error) {
-		return nil, dsref.ErrNoHistory
-	}
+	loader := &noHistoryLoader{}
 	target := &dataset.Dataset{Transform: tf}
 
 	runID := run.NewID()
@@ -93,13 +91,20 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event 
 		return nil
 	}, runID)
 
-	transformer := NewTransformer(ctx, noHistoryLoader, bus)
+	transformer := NewTransformer(ctx, loader, bus)
 	if err := transformer.Apply(ctx, target, runID, false, scriptOut, nil); err != nil {
 		t.Fatal(err)
 	}
 
 	<-doneCh
 	return log
+}
+
+type noHistoryLoader struct{}
+
+// LoadDataset fails and returns that the reference has no history
+func (l *noHistoryLoader) LoadDataset(ctx context.Context, ref string) (*dataset.Dataset, error) {
+	return nil, dsref.ErrNoHistory
 }
 
 // compareEventLogs asserts two event log slices are roughly equal,

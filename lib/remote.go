@@ -162,7 +162,7 @@ func (remoteImpl) Remove(scope scope, p *PushParams) (*dsref.Ref, error) {
 		return nil, err
 	}
 
-	if _, err := scope.ResolveReference(scope.Context(), &ref, "local"); err != nil {
+	if _, err := scope.ResolveReference(scope.Context(), &ref); err != nil {
 		return nil, err
 	}
 

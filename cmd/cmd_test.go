@@ -640,9 +640,9 @@ func TestListFormatJson(t *testing.T) {
 	}
 }
 
-// Test that a dataset name with bad upper-case characters, if it already exists, produces a
-// warning but not an error when you try to Get it
-func TestBadCaseIsJustWarning(t *testing.T) {
+// Test that a dataset name with bad upper-case characters, even if it already exists,
+// produces an error and needs to be renamed
+func TestBadCaseIsAnError(t *testing.T) {
 	run := NewTestRunner(t, "test_peer_qri_get_bad_case", "qri_get_bad_case")
 	defer run.Delete()
 
@@ -658,10 +658,14 @@ func TestBadCaseIsJustWarning(t *testing.T) {
 	// Add the dataset to the repo directly, which avoids the name validation check.
 	run.AddDatasetToRefstore(t, "test_peer_qri_get_bad_case/a_New_Dataset", &ds)
 
-	// Save the dataset, which will work now that a version already exists.
+	// Save the dataset, get an error because it needs to be renamed
 	err := run.ExecCommand("qri get test_peer_qri_get_bad_case/a_New_Dataset")
-	if err != nil {
-		t.Errorf("expect no error (just a warning), got %q", err)
+	if err == nil {
+		t.Fatalf("expected an error, didn't get one")
+	}
+	expectErr := `"test_peer_qri_get_bad_case/a_New_Dataset" is not a valid dataset reference: dataset name may not contain any upper-case letters`
+	if expectErr != err.Error() {
+		t.Errorf("error mismatch, expect: %q, got: %q", expectErr, err)
 	}
 }
 

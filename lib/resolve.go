@@ -10,46 +10,35 @@ import (
 )
 
 // ParseAndResolveRef combines reference parsing and resolution
-func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
+func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string, useFSI bool) (dsref.Ref, string, error) {
 	log.Debugf("inst.ParseAndResolveRef refStr=%q source=%q", refStr, source)
 	ref, err := dsref.Parse(refStr)
 	if err != nil {
 		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
 	}
 
-	resolvedSource, err := inst.ResolveReference(ctx, &ref, source)
-	if err != nil {
-		return ref, resolvedSource, err
-	}
-	return ref, resolvedSource, err
-}
-
-// ParseAndResolveRefWithWorkingDir combines reference parsing and resolution,
-// including setting default Path to a linked working directory if one exists
-func (inst *Instance) ParseAndResolveRefWithWorkingDir(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
-	ref, err := dsref.Parse(refStr)
-	if err != nil && err != dsref.ErrBadCaseName {
-		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
-	}
-
+	// Whether the reference came with an explicit version
 	pathProvided := ref.Path != ""
-	resolvedSource, err := inst.ResolveReference(ctx, &ref, source)
+	// Resolve the reference
+	location, err := inst.ResolveReference(ctx, &ref, source)
 	if err != nil {
-		return ref, resolvedSource, err
+		return ref, location, err
 	}
-	if !pathProvided {
+	// If no version was given, and FSI is enabled for resolution, look
+	// up if the dataset has a version on disk.
+	if !pathProvided && useFSI {
 		err = inst.fsi.ResolvedPath(&ref)
 		if err == fsi.ErrNoLink {
 			err = nil
 		}
 	}
-	return ref, resolvedSource, err
+	return ref, location, err
 }
 
 // ResolveReference finds the identifier & HEAD path for a dataset reference.
-// the mode parameter determines which subsystems of Qri to use when resolving
-func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, mode string) (string, error) {
-	log.Debugf("inst.ResolveReference ref=%q mode=%q", ref, mode)
+// the source parameter determines which subsystems of Qri to use when resolving
+func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, source string) (string, error) {
+	log.Debugf("inst.ResolveReference ref=%q source=%q", ref, source)
 	if inst == nil {
 		return "", dsref.ErrRefNotFound
 	}
@@ -59,17 +48,17 @@ func (inst *Instance) ResolveReference(ctx context.Context, ref *dsref.Ref, mode
 		ref.Username = inst.cfg.Profile.Peername
 	}
 
-	resolver, err := inst.resolverForMode(mode)
+	resolver, err := inst.resolverForSource(source)
 	if err != nil {
-		log.Debug("inst.resolverForMode error=%q", err)
+		log.Debug("inst.resolverForSource error=%q", err)
 		return "", err
 	}
 
 	return resolver.ResolveRef(ctx, ref)
 }
 
-func (inst *Instance) resolverForMode(mode string) (dsref.Resolver, error) {
-	switch mode {
+func (inst *Instance) resolverForSource(source string) (dsref.Resolver, error) {
+	switch source {
 	case "":
 		return inst.defaultResolver(), nil
 	case "local":
@@ -88,12 +77,12 @@ func (inst *Instance) resolverForMode(mode string) (dsref.Resolver, error) {
 		return inst.p2pResolver(), nil
 	}
 
-	// TODO (b5) - mode could be one of:
+	// TODO (b5) - source could be one of:
 	// * configured remote name
 	// * peername
 	// * peer multiaddress
 	// add support for peername & multiaddress resolution
-	addr, err := remote.Address(inst.GetConfig(), mode)
+	addr, err := remote.Address(inst.GetConfig(), source)
 	if err != nil {
 		return nil, err
 	}

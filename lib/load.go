@@ -13,47 +13,47 @@ import (
 	"github.com/qri-io/qri/fsi"
 )
 
+type datasetLoader struct {
+	inst      *Instance
+	userOwner string
+	source    string
+	useFSI    bool
+}
+
+func newDatasetLoader(inst *Instance, userOwner, source string, useFSI bool) dsref.Loader {
+	return &datasetLoader{
+		inst:      inst,
+		userOwner: userOwner,
+		source:    source,
+		useFSI:    useFSI,
+	}
+}
+
 // LoadDataset fetches, dereferences and opens a dataset from a reference
 // implements the dsfs.Loader interface
 // this function expects the passed in reference is fully resolved
-func (inst *Instance) LoadDataset(ctx context.Context, ref dsref.Ref, source string) (*dataset.Dataset, error) {
-	if inst == nil {
-		return nil, fmt.Errorf("no instance")
-	}
-	if source == "" {
-		return inst.loadLocalDataset(ctx, ref)
+func (d *datasetLoader) loadRefFromLocation(ctx context.Context, ref dsref.Ref, location string) (*dataset.Dataset, error) {
+	if location == "" {
+		return d.loadLocalDataset(ctx, ref)
 	}
 
-	// empty source assumes the registry
-	// TODO (b5) - not sure we should even allow an empty source if it's expected
-	// the ref is already resolved. The only case I can think of is a user-provided,
-	// fully-resolved reference. Spec on Loading needs work
-	if source == "" {
-		if inst.cfg.Registry == nil {
-			return nil, fmt.Errorf("can't fetch remote dataset %q without a configured registry", ref)
-		} else if inst.cfg.Registry.Location == "" {
-			return nil, fmt.Errorf("can't fetch remote dataset %q without a configured registry", ref)
-		}
-		source = inst.cfg.Registry.Location
-	}
-
-	msg := fmt.Sprintf("pulling %s from %s ...\n", ref.Human(), source)
-	if inst.streams.Out != nil {
-		inst.streams.Out.Write([]byte(msg))
+	msg := fmt.Sprintf("pulling %s from %s ...\n", ref.Human(), location)
+	if d.inst.streams.Out != nil {
+		d.inst.streams.Out.Write([]byte(msg))
 	}
 
 	// TODO (b5) - it'd be nice to us the returned dataset here, skipping the
 	// loadLocalDataset call entirely. For that to work dsfs.LoadDataset &
 	// inst.loadLocalDataset would have to behave exactly the same, and currently
 	// they don't
-	if _, err := inst.remoteClient.PullDataset(ctx, &ref, source); err != nil {
+	if _, err := d.inst.remoteClient.PullDataset(ctx, &ref, location); err != nil {
 		return nil, err
 	}
 
-	return inst.loadLocalDataset(ctx, ref)
+	return d.loadLocalDataset(ctx, ref)
 }
 
-func (inst *Instance) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*dataset.Dataset, error) {
+func (d *datasetLoader) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*dataset.Dataset, error) {
 	var (
 		ds  *dataset.Dataset
 		err error
@@ -64,17 +64,22 @@ func (inst *Instance) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*dat
 		if ds, err = fsi.ReadDir(fsi.FilesystemPathToLocal(ref.Path)); err != nil {
 			return nil, err
 		}
+		// Assign the FSI path to the dataset so callers know where it was loaded from
+		ds.Path = ref.Path
 	} else {
 		// Load from dsfs
-		if ds, err = dsfs.LoadDataset(ctx, inst.qfs, ref.Path); err != nil {
+		if ds, err = dsfs.LoadDataset(ctx, d.inst.qfs, ref.Path); err != nil {
 			return nil, err
 		}
 	}
 	// Set transient info on the returned dataset
 	ds.Name = ref.Name
 	ds.Peername = ref.Username
+	// TODO(dustmop): When dscache / dscollect is in use, enable this since resolved
+	// references should always have it set
+	// ds.ID = ref.InitID
 
-	if err = base.OpenDataset(ctx, inst.repo.Filesystem(), ds); err != nil {
+	if err = base.OpenDataset(ctx, d.inst.repo.Filesystem(), ds); err != nil {
 		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
 		return nil, err
 	}
@@ -82,48 +87,59 @@ func (inst *Instance) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*dat
 	return ds, nil
 }
 
-// NewParseResolveLoadFunc generates a dsref.ParseResolveLoad function from an
-// instance
-func (inst *Instance) NewParseResolveLoadFunc(remote string) (dsref.ParseResolveLoad, error) {
-	resolver, err := inst.resolverForMode(remote)
+// LoadDataset loads a dataset by resolving where it is available according to
+// the source being used, and loading it from there
+func (d *datasetLoader) LoadDataset(ctx context.Context, refstr string) (*dataset.Dataset, error) {
+	if d == nil {
+		return nil, fmt.Errorf("no datasetLoader")
+	}
+	if d.inst == nil {
+		return nil, fmt.Errorf("no instance")
+	}
+
+	ref, err := dsref.Parse(refstr)
+	if err != nil {
+		return nil, fmt.Errorf("%q is not a valid dataset reference: %w", refstr, err)
+	}
+
+	if ref.Username == "me" {
+		if d.userOwner == "" {
+			msg := fmt.Sprintf(`Can't use the "me" keyword to refer to a dataset in this context.
+Replace "me" with your username for the reference:
+%s`, refstr)
+			return nil, qerr.New(fmt.Errorf("invalid contextual reference"), msg)
+		}
+		ref.Username = d.userOwner
+	}
+
+	resolver, err := d.inst.resolverForSource(d.source)
 	if err != nil {
 		return nil, err
 	}
-	return NewParseResolveLoadFunc(inst.cfg.Profile.Peername, resolver, inst), nil
-}
 
-// NewParseResolveLoadFunc composes a username, resolver, and loader into a
-// higher-order function that converts strings to full datasets
-// pass the empty string as a username to disable the "me" keyword in references
-func NewParseResolveLoadFunc(username string, resolver dsref.Resolver, loader dsref.Loader) dsref.ParseResolveLoad {
-	return func(ctx context.Context, refStr string) (*dataset.Dataset, error) {
-		ref, err := dsref.Parse(refStr)
-		if err != nil {
-			return nil, err
+	// Whether the reference came with an explicit version
+	pathGiven := ref.Path != ""
+	// Resolve the reference
+	location, err := resolver.ResolveRef(ctx, &ref)
+	if err != nil {
+		if errors.Is(err, dsref.ErrRefNotFound) {
+			return nil, qerr.New(err, fmt.Sprintf("reference %q not found", refstr))
 		}
-
-		if username == "" && ref.Username == "me" {
-			msg := fmt.Sprintf(`Can't use the "me" keyword to refer to a dataset in this context.
-Replace "me" with your username for the reference:
-%s`, refStr)
-			return nil, qerr.New(fmt.Errorf("invalid contextual reference"), msg)
-		} else if username != "" && ref.Username == "me" {
-			ref.Username = username
-		}
-
-		source, err := resolver.ResolveRef(ctx, &ref)
-		if err != nil {
-			if errors.Is(err, dsref.ErrRefNotFound) {
-				return nil, qerr.New(err, fmt.Sprintf("reference %q not found", refStr))
-			}
-			return nil, err
-		}
-
-		if ref.Path == "" {
-			err = qerr.New(dsref.ErrNoHistory, fmt.Sprintf("can't load dataset %q, it has no saved versions", ref.Human()))
-			return nil, err
-		}
-
-		return loader.LoadDataset(ctx, ref, source)
+		return nil, err
 	}
+	// If no version was given, and FSI is enabled for the loader, look
+	// up if the dataset has a version on disk.
+	if !pathGiven && d.useFSI {
+		err = d.inst.fsi.ResolvedPath(&ref)
+		if err == fsi.ErrNoLink {
+			err = nil
+		}
+	}
+
+	if ref.Path == "" {
+		err = qerr.New(dsref.ErrNoHistory, fmt.Sprintf("can't load dataset %q, it has no saved versions", ref.Human()))
+		return nil, err
+	}
+
+	return d.loadRefFromLocation(ctx, ref, location)
 }

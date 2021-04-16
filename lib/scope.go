@@ -3,7 +3,6 @@ package lib
 import (
 	"context"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
@@ -30,6 +29,7 @@ type scope struct {
 	pro    *profile.Profile
 	source string
 	// TODO(dustmop): Additional information, such as user identity, their profile, keys
+	useFSI bool
 }
 
 func newScope(ctx context.Context, inst *Instance, source string) (scope, error) {
@@ -43,6 +43,7 @@ func newScope(ctx context.Context, inst *Instance, source string) (scope, error)
 		inst:   inst,
 		pro:    pro,
 		source: source,
+		useFSI: false,
 	}, nil
 }
 
@@ -83,6 +84,12 @@ func (s *scope) Dscache() *dscache.Dscache {
 	return s.inst.Dscache()
 }
 
+// EnableWorkingDir allows datasets to be loaded from working directories that they
+// may be linked to
+func (s *scope) EnableWorkingDir(state bool) {
+	s.useFSI = state
+}
+
 // FSISubsystem returns a reference to the FSI subsystem
 // TODO(dustmop): This subsystem contains global data, we should move that data out and
 // into scope
@@ -101,15 +108,10 @@ func (s *scope) GetVersionInfoShim(ref dsref.Ref) (*dsref.VersionInfo, error) {
 	return repo.GetVersionInfoShim(r, ref)
 }
 
-// LoadDataset loads a dataset
-// TODO(dustmop): Remove this function, callers should use the Loader instead
-func (s *scope) LoadDataset(ctx context.Context, ref dsref.Ref, _ string) (*dataset.Dataset, error) {
-	return s.inst.LoadDataset(ctx, ref, s.source)
-}
-
-// Loader returns a dataset loader that can load datasets
+// Loader returns a loader that can load datasets
 func (s *scope) Loader() dsref.Loader {
-	return s.inst
+	username := s.inst.cfg.Profile.Peername
+	return newDatasetLoader(s.inst, username, s.source, s.useFSI)
 }
 
 // Logbook returns the repo logbook
@@ -123,22 +125,8 @@ func (s *scope) Node() *p2p.QriNode {
 }
 
 // ParseAndResolveRef parses a reference and resolves it
-// TODO(dustmop): Remove last input parameter from callers
 func (s *scope) ParseAndResolveRef(ctx context.Context, refStr string) (dsref.Ref, string, error) {
-	return s.inst.ParseAndResolveRef(ctx, refStr, s.source)
-}
-
-// ParseAndResolveRefWithWorkingDir parses a reference and resolves it with FSI info attached
-func (s *scope) ParseAndResolveRefWithWorkingDir(ctx context.Context, refstr string) (dsref.Ref, string, error) {
-	return s.inst.ParseAndResolveRefWithWorkingDir(ctx, refstr, s.source)
-}
-
-// ParseResolveFunc returns a function that can parse a ref, then resolve and load it
-// TODO(dustmop): Remove this function, add this functionality to the
-// dsref.Loader interface, see https://github.com/qri-io/qri/issues/1704
-func (s *scope) ParseResolveFunc() dsref.ParseResolveLoad {
-	resolver, _ := s.inst.resolverForMode(s.source)
-	return NewParseResolveLoadFunc(s.ActiveProfile().Peername, resolver, s.inst)
+	return s.inst.ParseAndResolveRef(ctx, refStr, s.source, s.useFSI)
 }
 
 // Profiles accesses the profile store
@@ -168,14 +156,13 @@ func (s *scope) RepoPath() string {
 
 // ResolveReference finds the identifier & HEAD path for a dataset reference.
 // the mode parameter determines which subsystems of Qri to use when resolving
-// TODO(dustmop): Remove last input parameter from callers
-func (s *scope) ResolveReference(ctx context.Context, ref *dsref.Ref, _ string) (string, error) {
+func (s *scope) ResolveReference(ctx context.Context, ref *dsref.Ref) (string, error) {
 	return s.inst.ResolveReference(ctx, ref, s.source)
 }
 
 // LocalResolver returns a resolver for local refs
 func (s *scope) LocalResolver() (dsref.Resolver, error) {
-	return s.inst.resolverForMode("local")
+	return s.inst.resolverForSource("local")
 }
 
 // SetLogbook allows you to replace the current logbook with the given logbook

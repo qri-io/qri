@@ -38,17 +38,17 @@ const (
 
 // Transformer holds dependencies needed for applying a transform
 type Transformer struct {
-	appCtx   context.Context
-	loadFunc dsref.ParseResolveLoad
-	pub      event.Publisher
+	appCtx context.Context
+	loader dsref.Loader
+	pub    event.Publisher
 }
 
 // NewTransformer returns a new transformer
-func NewTransformer(appCtx context.Context, loadFunc dsref.ParseResolveLoad, pub event.Publisher) *Transformer {
+func NewTransformer(appCtx context.Context, loader dsref.Loader, pub event.Publisher) *Transformer {
 	return &Transformer{
-		appCtx:   appCtx,
-		loadFunc: loadFunc,
-		pub:      pub,
+		appCtx: appCtx,
+		loader: loader,
+		pub:    pub,
 	}
 }
 
@@ -79,7 +79,7 @@ func (t Transformer) Apply(
 	}
 
 	if target.Name != "" {
-		head, err = t.loadFunc(ctx, fmt.Sprintf("%s/%s", target.Peername, target.Name))
+		head, err = t.loader.LoadDataset(ctx, fmt.Sprintf("%s/%s", target.Peername, target.Name))
 		if errors.Is(err, dsref.ErrRefNotFound) || errors.Is(err, dsref.ErrNoHistory) {
 			// Dataset either does not exist yet, or has no history. Not an error
 			head = &dataset.Dataset{}
@@ -99,7 +99,7 @@ func (t Transformer) Apply(
 		startf.AddMutateFieldCheck(mutateCheck),
 		startf.SetErrWriter(scriptOut),
 		startf.SetSecrets(secrets),
-		startf.AddDatasetLoader(t.loadFunc),
+		startf.AddDatasetLoader(t.loader),
 		startf.AddEventsChannel(eventsCh),
 	}
 

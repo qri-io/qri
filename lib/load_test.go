@@ -16,12 +16,29 @@ func TestLoadDataset(t *testing.T) {
 
 	fs := tr.Instance.Repo().Filesystem()
 
-	if _, err := (*Instance)(nil).LoadDataset(tr.Ctx, dsref.Ref{}, ""); err == nil {
+	if _, err := (*datasetLoader)(nil).LoadDataset(tr.Ctx, ""); err == nil {
 		t.Errorf("expected loadDataset on a nil instance to fail without panicing")
 	}
 
-	dsrefspec.AssertLoaderSpec(t, tr.Instance, func(ds *dataset.Dataset) (string, error) {
-		return dsfs.CreateDataset(
+	loader := &datasetLoader{inst: nil}
+	if _, err := loader.LoadDataset(tr.Ctx, ""); err == nil {
+		t.Errorf("expected loadDataset on a nil instance to fail without panicing")
+	}
+
+	loader = &datasetLoader{inst: tr.Instance}
+	dsrefspec.AssertLoaderSpec(t, loader, func(ds *dataset.Dataset) (*dsref.Ref, error) {
+		// Allocate an initID for this dataset
+		initID, err := tr.Instance.logbook.WriteDatasetInit(tr.Ctx, ds.Name)
+		if err != nil {
+			return nil, err
+		}
+		// Create the dataset in the provided storage
+		ref := &dsref.Ref{
+			InitID:   initID,
+			Username: tr.Instance.repo.Profiles().Owner().Peername,
+			Name:     ds.Name,
+		}
+		path, err := dsfs.CreateDataset(
 			tr.Ctx,
 			fs,
 			fs.DefaultWriteFS(),
@@ -31,5 +48,15 @@ func TestLoadDataset(t *testing.T) {
 			tr.Instance.repo.Profiles().Owner().PrivKey,
 			dsfs.SaveSwitches{},
 		)
+		if err != nil {
+			return nil, err
+		}
+		// Save the reference that the loader will use to laod
+		ref.Path = path
+		ds.Path = path
+		if err = tr.Instance.logbook.WriteVersionSave(tr.Ctx, initID, ds, nil); err != nil {
+			return nil, err
+		}
+		return ref, nil
 	})
 }

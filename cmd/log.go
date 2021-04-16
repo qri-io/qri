@@ -42,7 +42,7 @@ on the network at a remote.
   $ qri log ramfox/league_stats
 	
   # Show log for a dataset chriswhong/nyc_parking_tickets on a remote named "nycdatacollection"
-  $ qri log chriswhong/nyc_parking_tickets --remote nycdatacollection`,
+  $ qri log chriswhong/nyc_parking_tickets --source nycdatacollection`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -58,7 +58,7 @@ on the network at a remote.
 	// cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
 	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
-	cmd.Flags().StringVarP(&o.Source, "source", "", "", "name of source to fetch from. `registry` will search the default qri registry")
+	cmd.Flags().StringVarP(&o.Source, "source", "", "", "name of source to fetch from, disables local actions. `registry` will search the default qri registry")
 	cmd.Flags().BoolVarP(&o.Local, "local", "l", false, "only fetch local logs, disables network actions")
 	cmd.Flags().BoolVarP(&o.Pull, "pull", "p", false, "fetch the latest logs from the network")
 
@@ -91,7 +91,7 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 	}
 
 	if o.Local && (o.Source != "" || o.Pull) {
-		return errors.New(err, "cannot use 'local' flag with either the 'remote' or 'pull' flags")
+		return errors.New(err, "cannot use 'local' flag with either the 'source' or 'pull' flags")
 	}
 
 	if o.Refs, err = GetCurrentRefSelect(f, args, AnyNumberOfReferences, nil); err != nil {
