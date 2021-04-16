@@ -154,6 +154,61 @@ func TestVariadicReturnsWorkOverHTTP(t *testing.T) {
 	}
 }
 
+func TestDefaultSource(t *testing.T) {
+	ctx := context.Background()
+
+	inst, cleanup := NewMemTestInstance(ctx, t)
+	defer cleanup()
+	m := &getSrcMethods{d: inst}
+
+	reg := make(map[string]callable)
+	inst.registerOne("getsrc", m, getSrcImpl{}, reg)
+	inst.regMethods = &regMethodSet{reg: reg}
+
+	// Construct another methodSet with a source override
+	withSource := getSrcMethods{d: &dispatchSourceWrap{source: "registry", inst: inst}}
+
+	// Call One with the default source
+	got, err := m.One(ctx, &getSrcParams{})
+	if err != nil {
+		t.Fatalf("m.One call failed, err=%s", err)
+	}
+	expect := `one source=""`
+	if got != expect {
+		t.Errorf("value mismatch, expect: %s, got: %s", expect, got)
+	}
+
+	// Call One with a source override
+	got, err = withSource.One(ctx, &getSrcParams{})
+	if err != nil {
+		t.Fatalf("m.One call failed, err=%s", err)
+	}
+	expect = `one source="registry"`
+	if got != expect {
+		t.Errorf("value mismatch, expect: %s, got: %s", expect, got)
+	}
+
+	// Call Two with the default source
+	got, err = m.Two(ctx, &getSrcParams{})
+	if err != nil {
+		t.Fatalf("m.Two call failed, err=%s", err)
+	}
+	expect = `two source="network"`
+	if got != expect {
+		t.Errorf("value mismatch, expect: %s, got: %s", expect, got)
+	}
+
+	// Call Two with a source override
+	got, err = withSource.Two(ctx, &getSrcParams{})
+	if err != nil {
+		t.Fatalf("m.Two call failed, err=%s", err)
+	}
+	expect = `two source="registry"`
+	if got != expect {
+		t.Errorf("value mismatch, expect: %s, got: %s", expect, got)
+	}
+}
+
 func serverConnectAndListen(t *testing.T, servInst *Instance, port int) (*HTTPClient, func()) {
 	address := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)
 	connection, err := NewHTTPClient(address)
@@ -232,6 +287,16 @@ func expectToPanic(t *testing.T, regFunc func(), expectMessage string) {
 	}
 }
 
+// A dispatcher that wraps the instance and sets a different source
+type dispatchSourceWrap struct {
+	source string
+	inst   *Instance
+}
+
+func (dsw *dispatchSourceWrap) Dispatch(ctx context.Context, method string, param interface{}) (res interface{}, cur Cursor, err error) {
+	return dsw.inst.dispatchMethodCall(ctx, method, param, dsw.source)
+}
+
 // Test data: methodSet and implementation
 type animalMethods struct {
 	d dispatcher
@@ -243,8 +308,8 @@ func (m *animalMethods) Name() string {
 
 func (m *animalMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"cat": {denyRPC, ""},
-		"dog": {denyRPC, ""},
+		"cat": {denyRPC, "", ""},
+		"dog": {denyRPC, "", ""},
 	}
 }
 
@@ -341,12 +406,12 @@ func (m *fruitMethods) Name() string {
 
 func (m *fruitMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apple":  {"/apple", "GET"},
-		"banana": {"/banana", "GET"},
-		"cherry": {"/cherry", "GET"},
-		"date":   {"/date", "GET"},
+		"apple":  {"/apple", "GET", ""},
+		"banana": {"/banana", "GET", ""},
+		"cherry": {"/cherry", "GET", ""},
+		"date":   {"/date", "GET", ""},
 		// entawak cannot be called over RPC
-		"entawak": {denyRPC, ""},
+		"entawak": {denyRPC, "", ""},
 	}
 }
 
@@ -411,4 +476,51 @@ func (fruitImpl) Date(scp scope, p *fruitParams) (string, Cursor, error) {
 
 func (fruitImpl) Entawak(scp scope, p *fruitParams) (string, Cursor, error) {
 	return "mentawa", nil, nil
+}
+
+// MethodSet for methods that return the source being used for resolution
+type getSrcMethods struct {
+	d dispatcher
+}
+
+func (m *getSrcMethods) Name() string {
+	return "getsrc"
+}
+
+func (m *getSrcMethods) Attributes() map[string]AttributeSet {
+	return map[string]AttributeSet{
+		"one": {"/one", "GET", ""},
+		"two": {"/two", "GET", "network"},
+	}
+}
+
+type getSrcParams struct {
+	Name string
+}
+
+func (m *getSrcMethods) One(ctx context.Context, p *getSrcParams) (string, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "one"), p)
+	if res, ok := got.(string); ok {
+		return res, err
+	}
+	return "", dispatchReturnError(got, err)
+}
+
+func (m *getSrcMethods) Two(ctx context.Context, p *getSrcParams) (string, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "two"), p)
+	if res, ok := got.(string); ok {
+		return res, err
+	}
+	return "", dispatchReturnError(got, err)
+}
+
+// Implementation for get source methods
+type getSrcImpl struct{}
+
+func (getSrcImpl) One(scp scope, p *getSrcParams) (string, error) {
+	return fmt.Sprintf("one source=%q", scp.SourceName()), nil
+}
+
+func (getSrcImpl) Two(scp scope, p *getSrcParams) (string, error) {
+	return fmt.Sprintf("two source=%q", scp.SourceName()), nil
 }

@@ -152,7 +152,7 @@ func (o *RemoveOptions) Run() (err error) {
 	}
 
 	ctx := context.TODO()
-	res, err := o.inst.WithSource("local").Dataset().Remove(ctx, &params)
+	res, err := o.inst.Dataset().Remove(ctx, &params)
 	if err != nil {
 		// TODO(b5): move this error handling down into lib
 		if errors.Is(err, dsref.ErrRefNotFound) {

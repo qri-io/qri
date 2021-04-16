@@ -138,7 +138,7 @@ func (o *ValidateOptions) Run() (err error) {
 	}
 
 	ctx := context.TODO()
-	res, err := o.inst.WithSource("local").Dataset().Validate(ctx, p)
+	res, err := o.inst.Dataset().Validate(ctx, p)
 	if err != nil {
 		return err
 	}

@@ -29,15 +29,15 @@ func (m FSIMethods) Name() string {
 // Attributes defines attributes for each method
 func (m FSIMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"status":                {AEStatus, "POST"},
-		"caninitdatasetworkdir": {AECanInitDatasetWorkDir, "POST"},
-		"init":                  {AEInit, "POST"},
-		"checkout":              {AECheckout, "POST"},
-		"ensureref":             {AEEnsureRef, "POST"},
-		"restore":               {AERestore, "POST"},
-		"write":                 {AEFSIWrite, "POST"},
-		"createlink":            {AEFSICreateLink, "POST"},
-		"unlink":                {AEFSIUnlink, "POST"},
+		"status":                {AEStatus, "POST", ""},
+		"caninitdatasetworkdir": {AECanInitDatasetWorkDir, "POST", ""},
+		"init":                  {AEInit, "POST", ""},
+		"checkout":              {AECheckout, "POST", ""},
+		"ensureref":             {AEEnsureRef, "POST", ""},
+		"restore":               {AERestore, "POST", ""},
+		"write":                 {AEFSIWrite, "POST", ""},
+		"createlink":            {AEFSICreateLink, "POST", ""},
+		"unlink":                {AEFSIUnlink, "POST", ""},
 	}
 }
 
