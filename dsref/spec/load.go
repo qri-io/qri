@@ -44,18 +44,17 @@ func AssertLoaderSpec(t *testing.T, r dsref.Loader, putFunc PutDatasetFunc) {
 		t.Fatalf("putting dataset: %s", err)
 	}
 
-	ref := dsref.Ref{}
-	_, err = r.LoadResolved(ctx, ref, "")
+	_, err = r.LoadDataset(ctx, "")
 	if err == nil {
 		t.Errorf("expected loading without a reference Path value to fail, got nil")
 	}
 
-	ref = dsref.Ref{
+	ref := dsref.Ref{
 		Username: username,
 		Name:     name,
 		Path:     path,
 	}
-	got, err := r.LoadResolved(ctx, ref, "")
+	got, err := r.LoadDataset(ctx, ref.String())
 	if err != nil {
 		t.Fatal(err)
 	}

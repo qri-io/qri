@@ -11,7 +11,7 @@ func TestRender(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	ds, err := NewLocalDatasetLoader(r.Filesystem()).LoadResolved(ctx, ref, "")
+	ds, err := NewTestDatasetLoader(r.Filesystem(), r).LoadDataset(ctx, ref.String())
 	if err != nil {
 		t.Fatal(err)
 	}

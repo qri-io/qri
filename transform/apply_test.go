@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -68,16 +67,6 @@ func TestApply(t *testing.T) {
 	}
 }
 
-type noHistoryLoader struct{}
-
-func (h noHistoryLoader) LoadDataset(ctx context.Context, refStr string) (*dataset.Dataset, error) {
-	return nil, dsref.ErrNoHistory
-}
-
-func (h noHistoryLoader) LoadResolved(ctx context.Context, ref dsref.Ref, location string) (*dataset.Dataset, error) {
-	return nil, fmt.Errorf("LoadResolved not implemented")
-}
-
 // run a transform script & capture the event log. transform runs against an
 // empty dataset history
 func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event {
@@ -85,7 +74,7 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event 
 	defer cancel()
 
 	scriptOut := &bytes.Buffer{}
-	noHistoryLoader := noHistoryLoader{}
+	loader := &noHistoryLoader{}
 	target := &dataset.Dataset{Transform: tf}
 
 	runID := run.NewID()
@@ -102,13 +91,20 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event 
 		return nil
 	}, runID)
 
-	transformer := NewTransformer(ctx, noHistoryLoader, bus)
+	transformer := NewTransformer(ctx, loader, bus)
 	if err := transformer.Apply(ctx, target, runID, false, scriptOut, nil); err != nil {
 		t.Fatal(err)
 	}
 
 	<-doneCh
 	return log
+}
+
+type noHistoryLoader struct{}
+
+// LoadDataset fails and returns that the reference has no history
+func (l *noHistoryLoader) LoadDataset(ctx context.Context, ref string) (*dataset.Dataset, error) {
+	return nil, dsref.ErrNoHistory
 }
 
 // compareEventLogs asserts two event log slices are roughly equal,

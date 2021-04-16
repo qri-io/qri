@@ -29,6 +29,7 @@ type scope struct {
 	pro    *profile.Profile
 	source string
 	// TODO(dustmop): Additional information, such as user identity, their profile, keys
+	useFSI bool
 }
 
 func newScope(ctx context.Context, inst *Instance, source string) (scope, error) {
@@ -42,6 +43,7 @@ func newScope(ctx context.Context, inst *Instance, source string) (scope, error)
 		inst:   inst,
 		pro:    pro,
 		source: source,
+		useFSI: false,
 	}, nil
 }
 
@@ -82,6 +84,12 @@ func (s *scope) Dscache() *dscache.Dscache {
 	return s.inst.Dscache()
 }
 
+// EnableWorkingDir allows datasets to be loaded from working directories that they
+// may be linked to
+func (s *scope) EnableWorkingDir(state bool) {
+	s.useFSI = state
+}
+
 // FSISubsystem returns a reference to the FSI subsystem
 // TODO(dustmop): This subsystem contains global data, we should move that data out and
 // into scope
@@ -102,7 +110,8 @@ func (s *scope) GetVersionInfoShim(ref dsref.Ref) (*dsref.VersionInfo, error) {
 
 // Loader returns a loader that can load datasets
 func (s *scope) Loader() dsref.Loader {
-	return &datasetLoader{s.inst, s.source}
+	username := s.inst.cfg.Profile.Peername
+	return newDatasetLoader(s.inst, username, s.source, s.useFSI)
 }
 
 // Logbook returns the repo logbook
@@ -117,12 +126,7 @@ func (s *scope) Node() *p2p.QriNode {
 
 // ParseAndResolveRef parses a reference and resolves it
 func (s *scope) ParseAndResolveRef(ctx context.Context, refStr string) (dsref.Ref, string, error) {
-	return s.inst.ParseAndResolveRef(ctx, refStr, s.source)
-}
-
-// ParseAndResolveRefWithWorkingDir parses a reference and resolves it with FSI info attached
-func (s *scope) ParseAndResolveRefWithWorkingDir(ctx context.Context, refstr string) (dsref.Ref, string, error) {
-	return s.inst.ParseAndResolveRefWithWorkingDir(ctx, refstr, s.source)
+	return s.inst.ParseAndResolveRef(ctx, refStr, s.source, s.useFSI)
 }
 
 // Profiles accesses the profile store
@@ -154,11 +158,6 @@ func (s *scope) RepoPath() string {
 // the mode parameter determines which subsystems of Qri to use when resolving
 func (s *scope) ResolveReference(ctx context.Context, ref *dsref.Ref) (string, error) {
 	return s.inst.ResolveReference(ctx, ref, s.source)
-}
-
-// SourceName returns the name of the source that is used for reference resolution
-func (s *scope) SourceName() string {
-	return s.source
 }
 
 // LocalResolver returns a resolver for local refs

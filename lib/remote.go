@@ -126,20 +126,20 @@ func (remoteImpl) Preview(scope scope, p *PreviewParams) (*dataset.Dataset, erro
 // Push posts a dataset version to a remote
 func (remoteImpl) Push(scope scope, p *PushParams) (*dsref.Ref, error) {
 	if scope.SourceName() != "local" {
-		return nil, fmt.Errorf("can only push from local storage")
+		return nil, fmt.Errorf("push requires the 'local' source")
 	}
 
-	ref, location, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
 	if err != nil {
 		return nil, err
 	}
-/*
+
 	addr, err := remote.Address(scope.Config(), p.Remote)
 	if err != nil {
 		return nil, err
 	}
-*/
-	if err = scope.RemoteClient().PushDataset(scope.Context(), ref, location); err != nil {
+
+	if err = scope.RemoteClient().PushDataset(scope.Context(), ref, addr); err != nil {
 		return nil, err
 	}
 

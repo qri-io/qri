@@ -3,7 +3,6 @@ package startf
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,8 +12,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 	repoTest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/starlib"
@@ -180,66 +178,11 @@ func TestLoadDataset(t *testing.T) {
 	err := ExecScript(ctx, ds, nil, func(o *ExecOpts) {
 		o.Repo = r
 		o.ModuleLoader = testModuleLoader(t)
-		o.DatasetLoader = newDatasetLoader("", r)
+		o.DatasetLoader = base.NewTestDatasetLoader(r.Filesystem(), r)
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-type datasetLoader struct {
-	username string
-	r        repo.Repo
-}
-
-func newDatasetLoader(username string, r repo.Repo) dsref.Loader {
-	return &datasetLoader{
-		username: username,
-		r:        r,
-	}
-}
-
-func (l datasetLoader) LoadDataset(ctx context.Context, refStr string) (*dataset.Dataset, error) {
-	ref, err := dsref.Parse(refStr)
-	if err != nil {
-		return nil, err
-	}
-
-	if l.username == "" && ref.Username == "me" {
-		return nil, fmt.Errorf("invalid contextual reference")
-	} else if l.username != "" && ref.Username == "me" {
-		ref.Username = l.username
-	}
-
-	source, err := l.r.ResolveRef(ctx, &ref)
-	if err != nil {
-		return nil, err
-	}
-
-	return l.LoadResolved(ctx, ref, source)
-}
-
-func (l datasetLoader) LoadResolved(ctx context.Context, ref dsref.Ref, location string) (*dataset.Dataset, error) {
-	var (
-		ds  *dataset.Dataset
-		err error
-	)
-
-	if ds, err = dsfs.LoadDataset(ctx, l.r.Filesystem(), ref.Path); err != nil {
-		return nil, err
-	}
-	// Set transient info on the returned dataset
-	ds.Name = ref.Name
-	ds.Peername = ref.Username
-
-	// TODO (b5) - this should be a call to base.OpenDatasets
-	if ds.BodyFile() == nil {
-		if err = ds.OpenBodyFile(ctx, l.r.Filesystem()); err != nil {
-			return nil, err
-		}
-	}
-
-	return ds, nil
 }
 
 func TestGetMetaNilPrev(t *testing.T) {

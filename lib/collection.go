@@ -130,6 +130,9 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 	} else if listProfile.Peername == "" || reqProfile.Peername == listProfile.Peername {
 		infos, err = base.ListDatasets(scope.Context(), scope.Repo(), p.Term, restrictPid, p.Offset, p.Limit, p.Public, p.ShowNumVersions)
 		if errors.Is(err, ErrListWarning) {
+			// This warning can happen when there's conflicts between usernames and
+			// profileIDs. This type of conflict should not break listing functionality.
+			// Instead, store the warning and treat it as non-fatal.
 			listWarning = err
 			err = nil
 		}
@@ -162,7 +165,10 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 	}
 
 	if listWarning != nil {
-		return nil, listWarning
+		// If there was a warning listing the datasets, we should still return the list
+		// itself. The caller should handle this warning by simply printing it, but this
+		// shouldn't break the `list` functionality.
+		return infos, listWarning
 	}
 
 	return infos, nil

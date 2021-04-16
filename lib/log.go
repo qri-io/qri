@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"

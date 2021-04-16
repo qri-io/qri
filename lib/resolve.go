@@ -10,40 +10,29 @@ import (
 )
 
 // ParseAndResolveRef combines reference parsing and resolution
-func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
+func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string, useFSI bool) (dsref.Ref, string, error) {
 	log.Debugf("inst.ParseAndResolveRef refStr=%q source=%q", refStr, source)
 	ref, err := dsref.Parse(refStr)
 	if err != nil {
 		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
 	}
 
-	resolvedSource, err := inst.ResolveReference(ctx, &ref, source)
-	if err != nil {
-		return ref, resolvedSource, err
-	}
-	return ref, resolvedSource, err
-}
-
-// ParseAndResolveRefWithWorkingDir combines reference parsing and resolution,
-// including setting default Path to a linked working directory if one exists
-func (inst *Instance) ParseAndResolveRefWithWorkingDir(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
-	ref, err := dsref.Parse(refStr)
-	if err != nil && err != dsref.ErrBadCaseName {
-		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
-	}
-
+	// Whether the reference came with an explicit version
 	pathProvided := ref.Path != ""
-	resolvedSource, err := inst.ResolveReference(ctx, &ref, source)
+	// Resolve the reference
+	location, err := inst.ResolveReference(ctx, &ref, source)
 	if err != nil {
-		return ref, resolvedSource, err
+		return ref, location, err
 	}
-	if !pathProvided {
+	// If no version was given, and FSI is enabled for resolution, look
+	// up if the dataset has a version on disk.
+	if !pathProvided && useFSI {
 		err = inst.fsi.ResolvedPath(&ref)
 		if err == fsi.ErrNoLink {
 			err = nil
 		}
 	}
-	return ref, resolvedSource, err
+	return ref, location, err
 }
 
 // ResolveReference finds the identifier & HEAD path for a dataset reference.

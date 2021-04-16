@@ -3,7 +3,6 @@ package qds
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/cube2222/octosql/app"
@@ -13,10 +12,8 @@ import (
 	"github.com/cube2222/octosql/parser/sqlparser"
 	"github.com/cube2222/octosql/physical"
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
-	qerr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
 )
@@ -28,15 +25,15 @@ func TestQriDatasource(t *testing.T) {
 
 	cfg := &octocfg.Config{
 		DataSources: []octocfg.DataSourceConfig{
-			{Type: CfgTypeString, Name: "me_movies",
+			{Type: CfgTypeString, Name: "peer_movies",
 				Config: map[string]interface{}{
-					"ref": "me/movies",
+					"ref": "peer/movies",
 				},
 			},
 		},
 	}
 
-	res := tr.MustRun(t, "select t1.title from me_movies t1 limit 1", cfg)
+	res := tr.MustRun(t, "select t1.title from peer_movies t1 limit 1", cfg)
 
 	expect := "t1.title\n'Avatar '\n"
 	if diff := cmp.Diff(expect, res); diff != "" {
@@ -68,7 +65,7 @@ func newTestRunner(t *testing.T) (*testRunner, func()) {
 }
 
 func (tr *testRunner) MustRun(t *testing.T, query string, cfg *octocfg.Config) string {
-	fac := NewDataSourceBuilderFactory(tr.repo, tr.loadDatasetFunc())
+	fac := NewDataSourceBuilderFactory(tr.repo, tr.newDatasetLoader())
 	ff := func(dbConfig map[string]interface{}) (physical.DataSourceBuilderFactory, error) {
 		return fac, nil
 	}
@@ -108,49 +105,8 @@ func (tr *testRunner) MustRun(t *testing.T, query string, cfg *octocfg.Config) s
 	return out.String()
 }
 
-func (tr *testRunner) loadDatasetFunc() dsref.Loader {
-	pro := tr.repo.Profiles().Owner()
-	loader := base.NewLocalDatasetLoader(tr.repo.Filesystem())
-	return newDsLoader(pro.Peername, tr.repo, loader)
-}
-
-type dsLoader struct {
-	username string
-	resolver dsref.Resolver
-	loader   dsref.Loader
-}
-
-func newDsLoader(username string, resolver dsref.Resolver, loader dsref.Loader) dsref.Loader {
-	return &dsLoader{
-		username: username,
-		resolver: resolver,
-		loader:   loader,
-	}
-}
-
-func (l *dsLoader) LoadDataset(ctx context.Context, refStr string) (*dataset.Dataset, error) {
-	ref, err := dsref.Parse(refStr)
-	if err != nil {
-		return nil, err
-	}
-
-	if l.username == "" && ref.Username == "me" {
-		msg := fmt.Sprintf(`Can't use the "me" keyword to refer to a dataset in this context.
-Replace "me" with your username for the reference:
-%s`, refStr)
-		return nil, qerr.New(fmt.Errorf("invalid contextual reference"), msg)
-	} else if l.username != "" && ref.Username == "me" {
-		ref.Username = l.username
-	}
-
-	location, err := l.resolver.ResolveRef(ctx, &ref)
-	if err != nil {
-		return nil, err
-	}
-
-	return l.loader.LoadResolved(ctx, ref, location)
-}
-
-func (l *dsLoader) LoadResolved(ctx context.Context, ref dsref.Ref, location string) (*dataset.Dataset, error) {
-	return nil, fmt.Errorf("LoadResolved not implemented")
+func (tr *testRunner) newDatasetLoader() dsref.Loader {
+	fs := tr.repo.Filesystem()
+	resolver := tr.repo
+	return base.NewTestDatasetLoader(fs, resolver)
 }

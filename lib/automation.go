@@ -75,7 +75,8 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	var err error
 	ref := dsref.Ref{}
 	if p.Ref != "" {
-		ref, _, err = scp.ParseAndResolveRefWithWorkingDir(ctx, p.Ref)
+		scope.EnableWorkingDir(true)
+		ref, _, err = scope.ParseAndResolveRef(ctx, p.Ref)
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +110,7 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	}, runID)
 
 	scriptOut := p.ScriptOutput
-	transformer := transform.NewTransformer(scp.AppContext(), scp.Loader(), scp.Bus())
+	transformer := transform.NewTransformer(scope.AppContext(), scope.Loader(), scope.Bus())
 	if err = transformer.Apply(ctx, ds, runID, p.Wait, scriptOut, p.Secrets); err != nil {
 		return nil, err
 	}

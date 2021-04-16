@@ -239,27 +239,16 @@ func (fsiImpl) Checkout(scope scope, p *LinkParams) error {
 		return fmt.Errorf("directory with name \"%s\" already exists", p.Dir)
 	}
 
-	// Handle the ref to checkout
-	ref, location, err := scope.ParseAndResolveRef(ctx, p.Ref)
+	ds, err := scope.Loader().LoadDataset(ctx, p.Ref)
 	if err != nil {
+		log.Debugf("Checkout, dsfs.LoadDataset failed, error: %s", err)
 		return err
 	}
 
-	if location != "" {
-		return fmt.Errorf("auto-pulling on checkout is not yet supported, please run `qri pull %q` first", ref.Human())
-	}
-
-	log.Debugf("Checkout for ref %q", ref)
+	ref := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
 
 	// Fail early if link already exists
 	if err := scope.FSISubsystem().EnsureRefNotLinked(ref); err != nil {
-		return err
-	}
-
-	// Load dataset that is being checked out.
-	ds, err := scope.Loader().LoadResolved(ctx, ref, location)
-	if err != nil {
-		log.Debugf("Checkout, dsfs.LoadDataset failed, error: %s", err)
 		return err
 	}
 

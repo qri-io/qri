@@ -18,38 +18,6 @@ import (
 // these problems are non-fatal
 var ErrUnlistableReferences = errors.New("Warning: Some datasets could not be listed, because of invalid state. These datasets still exist in your repository, but have references that cannot be resolved. This will be fixed in a future version. You can see all datasets by using `qri list --raw`")
 
-// NewLocalDatasetLoader creates a dsfs.Loader that operates on a filestore
-func NewLocalDatasetLoader(fs qfs.Filesystem) dsref.Loader {
-	return loader{fs}
-}
-
-type loader struct {
-	fs qfs.Filesystem
-}
-
-// LoadDataset is not implemented for base
-func (l loader) LoadDataset(ctx context.Context, refstr string) (*dataset.Dataset, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-// LoadResolved loads a dataset from a resolved ref
-func (l loader) LoadResolved(ctx context.Context, ref dsref.Ref, location string) (*dataset.Dataset, error) {
-	if ref.Path == "" {
-		return nil, dsref.ErrRefNotResolved
-	}
-	if location != "" {
-		return nil, errors.New("can only load datasets from local store")
-	}
-
-	ds, err := dsfs.LoadDataset(ctx, l.fs, ref.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	err = OpenDataset(ctx, l.fs, ds)
-	return ds, err
-}
-
 // OpenDataset prepares a dataset for use, checking each component
 // for populated Path or Byte suffixed fields, consuming those fields to
 // set File handlers that are ready for reading

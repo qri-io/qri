@@ -673,16 +673,15 @@ func TestReport(t *testing.T) {
 	svc := run.Service
 
 	cities1 := dsref.MustParse("peer/cities")
-	if _, err := run.Repo.ResolveRef(ctx, &cities1); err != nil {
-		t.Fatal(err)
-	}
-
 	cities2 := run.updateCitiesDataset(t)
 
-	_, err := svc.Report(ctx, cities1, cities2, "")
+	_, err := svc.Report(ctx, cities1.String(), cities2.String())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// TODO(dustmop): Inspect the return value to verify that the report is
+	// actually generating something useful
 }
 
 type testRunner struct {
@@ -699,7 +698,7 @@ func newTestRunner(t *testing.T) (run *testRunner) {
 	}
 
 	statsSvc := stats.New(nil)
-	loader := base.NewLocalDatasetLoader(r.Filesystem())
+	loader := base.NewTestDatasetLoader(r.Filesystem(), r)
 
 	return &testRunner{
 		Repo:    r,

@@ -65,7 +65,7 @@ type EmptyObject map[string]interface{}
 
 // Service generates a change report between two datasets
 type Service interface {
-	Report(ctx context.Context, leftRef, rightRef dsref.Ref, loadLocation string) (*ChangeReportResponse, error)
+	Report(ctx context.Context, leftRef, rightRef string) (*ChangeReportResponse, error)
 }
 
 // Service can generate a change report between two datasets
@@ -385,19 +385,21 @@ func (svc *service) columnStatsDelta(left, right interface{}, lCol, rCol *tabula
 
 // Report computes the change report of two sources
 // This takes some assumptions - we work only with tabular data, with header rows and functional structure.json
-func (svc *service) Report(ctx context.Context, leftRef, rightRef dsref.Ref, loadLocation string) (*ChangeReportResponse, error) {
-	rightDs, err := svc.loader.LoadResolved(ctx, rightRef, loadLocation)
+func (svc *service) Report(ctx context.Context, leftRef, rightRef string) (*ChangeReportResponse, error) {
+	rightDs, err := svc.loader.LoadDataset(ctx, rightRef)
 	if err != nil {
 		return nil, err
 	}
-	if leftRef.Path == "" {
-		if rightDs.PreviousPath == "" {
-			return nil, fmt.Errorf("dataset has only one version")
-		}
-		leftRef.Path = rightDs.PreviousPath
+
+	// If only right side is given, then the left side becomes the previous
+	// version of that reference.
+	if leftRef == "" {
+		ref, _ := dsref.Parse(rightRef)
+		ref.Path = rightDs.PreviousPath
+		leftRef = ref.String()
 	}
 
-	leftDs, err := svc.loader.LoadResolved(ctx, leftRef, loadLocation)
+	leftDs, err := svc.loader.LoadDataset(ctx, leftRef)
 	if err != nil {
 		return nil, err
 	}

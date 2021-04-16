@@ -633,22 +633,20 @@ type datasetImpl struct{}
 func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 	res := &GetResult{}
 
-	var ds *dataset.Dataset
-	ref, location, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref)
+	scope.EnableWorkingDir(true)
+	ds, err := scope.Loader().LoadDataset(scope.Context(), p.Ref)
 	if err != nil {
 		return nil, err
 	}
-	ds, err = scope.Loader().LoadResolved(scope.Context(), ref, location)
-	if err != nil {
-		return nil, err
-	}
+	ref := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
 
 	res.Ref = &ref
 	res.Dataset = ds
-
 	if fsi.IsFSIPath(ref.Path) {
 		res.FSIPath = fsi.FilesystemPathToLocal(ref.Path)
+		ds.Path = ""
 	}
+
 	// TODO (b5) - Published field is longer set as part of Reference Resolution
 	// getting publication status should be delegated to a new function
 
@@ -1085,12 +1083,13 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 		return nil, fmt.Errorf("can only remove whole dataset versions, not individual components")
 	}
 	if scope.SourceName() != "local" {
-		return nil, fmt.Errorf("can only remove from local storage")
+		return nil, fmt.Errorf("remove requires the 'local' source")
 	}
 
-	ref, _, err := scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref)
+	scope.EnableWorkingDir(true)
+	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
 	if err != nil {
-		log.Debugw("Remove, repo.ParseAndResolveRefWithWorkingDir failed", "err", err)
+		log.Debugw("Remove, repo.ParseAndResolveRef failed", "err", err)
 		// TODO(b5): this "logbook.ErrNotFound" is needed to get cmd.TestRemoveEvenIfLogbookGone
 		// to pass. Relying on dataset resolution returning an error defined in logbook is incorrect
 		// This should really be checking for some sort of "can't fully resolve" error
@@ -1196,7 +1195,7 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 	} else if len(history) > 0 {
 		if fsiPath != "" {
 			// if we're operating on an fsi-linked directory, we need to re-resolve to
-			// get the path on qfs. This could be avoided if we refactored ParseAndResolveRefWithWorkingDir
+			// get the path on qfs. This could be avoided if we refactored ParseAndResolveRef
 			// to return an extra fsiPath value
 			qfsRef := ref.Copy()
 			qfsRef.Path = ""
@@ -1252,7 +1251,7 @@ func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
 	res := &dataset.Dataset{}
 
 	if scope.SourceName() != "network" {
-		return nil, fmt.Errorf("can only pull from network")
+		return nil, fmt.Errorf("pull requires the 'network' source")
 	}
 
 	ref, location, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
@@ -1324,8 +1323,8 @@ func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, 
 	// if there is both a bodyfilename and a schema/structure
 	// we don't need to resolve any references
 	if p.BodyFilename == "" || schemaFlagType == "" {
-		// TODO (ramfox): we need consts in `dsref` for "local", "network", "p2p"
-		ref, _, err = scope.ParseAndResolveRefWithWorkingDir(scope.Context(), p.Ref)
+		scope.EnableWorkingDir(true)
+		ref, _, err = scope.ParseAndResolveRef(scope.Context(), p.Ref)
 		if err != nil {
 			return nil, err
 		}
@@ -1336,9 +1335,6 @@ func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, 
 	}
 
 	var ds *dataset.Dataset
-
-	// TODO(dlong): This pattern has shown up many places, such as lib.Get.
-	// Should probably combine into a utility function.
 
 	if p.Ref != "" {
 		if fsiPath != "" {

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/qri-io/qri/changes"
-	"github.com/qri-io/qri/dsref"
 )
 
 // ChangeReportParams defines parameters for diffing two sources
@@ -27,22 +26,6 @@ func (m DiffMethods) Changes(ctx context.Context, p *ChangeReportParams) (*Chang
 
 // Changes generates report of changes between two datasets
 func (diffImpl) Changes(scope scope, p *ChangeReportParams) (*ChangeReport, error) {
-	ctx := scope.Context()
-
-	right, location, err := scope.ParseAndResolveRef(ctx, p.RightRef)
-	if err != nil {
-		return nil, err
-	}
-
-	var left dsref.Ref
-	if p.LeftRef != "" {
-		if left, _, err = scope.ParseAndResolveRef(ctx, p.LeftRef); err != nil {
-			return nil, err
-		}
-	} else {
-		left = right.Copy()
-	}
-
 	svc := changes.New(scope.Loader(), scope.Stats())
-	return svc.Report(ctx, left, right, location)
+	return svc.Report(scope.Context(), p.LeftRef, p.RightRef)
 }
