@@ -48,7 +48,9 @@ type MethodSet interface {
 // Each method is required to have associated attributes in order to successfully register
 type AttributeSet struct {
 	endpoint APIEndpoint
-	verb     string
+	httpVerb string
+	// the default source used for resolving references
+	defaultSource string
 }
 
 // Dispatch is a system for handling calls to lib. Should only be called by top-level lib methods.
@@ -120,13 +122,12 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 				out := reflect.New(c.OutType)
 				res = out.Interface()
 			}
-			// TODO(dustmop): Send the source across the RPC, using an HTTP header
 			// TODO(ramfox): dispatch is still unable to give enough details to the url
 			// (because it doesn't know how or what param information to put into the url or query)
 			// for it to reliably use GET. All POSTs w/ content type application json work, however.
 			// we may want to just flat out say that as an RPC layer, dispatch will only ever use
 			// json POST to communicate.
-			err = inst.http.CallMethod(ctx, c.Endpoint, "POST", param, res)
+			err = inst.http.CallMethod(ctx, c.Endpoint, "POST", source, param, res)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -144,6 +145,11 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 
 	// Look up the method for the given signifier
 	if c, ok := inst.regMethods.lookup(method); ok {
+		// If this method has a default source and no override exists, use that
+		// default instead
+		if source == "" {
+			source = c.Source
+		}
 		// Construct the isolated scope for this call
 		// TODO(dustmop): Add user authentication, profile, identity, etc
 		// TODO(dustmop): Also determine if the method is read-only vs read-write,
@@ -237,12 +243,14 @@ type callable struct {
 	RetCursor bool
 	Endpoint  APIEndpoint
 	Verb      string
+	Source    string
 }
 
 // RegisterMethods iterates the methods provided by the lib API, and makes them visible to dispatch
 func (inst *Instance) RegisterMethods() {
 	reg := make(map[string]callable)
 	inst.registerOne("access", inst.Access(), accessImpl{}, reg)
+	inst.registerOne("automation", inst.Automation(), automationImpl{}, reg)
 	inst.registerOne("collection", inst.Collection(), collectionImpl{}, reg)
 	inst.registerOne("config", inst.Config(), configImpl{}, reg)
 	inst.registerOne("dataset", inst.Dataset(), datasetImpl{}, reg)
@@ -255,7 +263,6 @@ func (inst *Instance) RegisterMethods() {
 	inst.registerOne("remote", inst.Remote(), remoteImpl{}, reg)
 	inst.registerOne("search", inst.Search(), searchImpl{}, reg)
 	inst.registerOne("sql", inst.SQL(), sqlImpl{}, reg)
-	inst.registerOne("automation", inst.Automation(), automationImpl{}, reg)
 	inst.regMethods = &regMethodSet{reg: reg}
 }
 
@@ -384,25 +391,13 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 		// Remove this method from the methodSetMap now that it has been processed
 		delete(methodMap, i.Name)
 
-		var endpoint APIEndpoint
-		var httpVerb string
 		// Additional attributes for the method are found in the Attributes
 		amap := methods.Attributes()
 		methodAttrs, ok := amap[lowerName]
 		if !ok {
 			regFail("not in Attributes: %s.%s", ourName, lowerName)
 		}
-		endpoint = methodAttrs.endpoint
-		httpVerb = methodAttrs.verb
-		// If both these are empty string, RPC is not allowed for this method
-		if endpoint != "" || httpVerb != "" {
-			if !strings.HasPrefix(string(endpoint), "/") {
-				regFail("%s: endpoint URL must start with /, got %q", lowerName, endpoint)
-			}
-			if httpVerb != http.MethodGet && httpVerb != http.MethodPost && httpVerb != http.MethodPut {
-				regFail("%s: unknown http verb, got %q", lowerName, httpVerb)
-			}
-		}
+		validateMethodAttrs(lowerName, methodAttrs)
 
 		// Save the method to the registration table
 		reg[funcName] = callable{
@@ -411,8 +406,9 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 			InType:    inType,
 			OutType:   outType,
 			RetCursor: returnsCursor,
-			Endpoint:  endpoint,
-			Verb:      httpVerb,
+			Endpoint:  methodAttrs.endpoint,
+			Verb:      methodAttrs.httpVerb,
+			Source:    methodAttrs.defaultSource,
 		}
 		log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
 	}
@@ -426,6 +422,30 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 
 func regFail(fstr string, vals ...interface{}) {
 	panic(fmt.Sprintf(fstr, vals...))
+}
+
+func validateMethodAttrs(methodName string, attrs AttributeSet) {
+	// If endpoint and verb are not set, then RPC is denied, nothing to validate
+	// TODO(dustmop): Technically this is denying all HTTP, not just RPC. Consider
+	// separating HTTP and RPC denial
+	if attrs.endpoint == "" && attrs.httpVerb == "" {
+		return
+	}
+	if !strings.HasPrefix(string(attrs.endpoint), "/") {
+		regFail("%s: endpoint URL must start with /, got %q", methodName, attrs.endpoint)
+	}
+	if !stringOneOf(attrs.httpVerb, []string{http.MethodGet, http.MethodPost, http.MethodPut}) {
+		regFail("%s: unknown http verb, got %q", methodName, attrs.httpVerb)
+	}
+}
+
+func stringOneOf(needle string, haystack []string) bool {
+	for _, each := range haystack {
+		if needle == each {
+			return true
+		}
+	}
+	return false
 }
 
 func (inst *Instance) buildMethodMap(impl interface{}) map[string]reflect.Method {

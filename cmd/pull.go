@@ -37,7 +37,7 @@ dataset version(s). By default pull fetches the latest version of a dataset.
 	}
 
 	cmd.Flags().StringVar(&o.LinkDir, "link", "", "path to directory to link dataset to")
-	cmd.Flags().StringVar(&o.Source, "source", "network", "location to pull from")
+	cmd.Flags().StringVar(&o.Source, "source", "", "location to pull from")
 	cmd.MarkFlagFilename("link")
 	cmd.Flags().BoolVar(&o.LogsOnly, "logs-only", false, "only fetch logs, skipping HEAD data")
 

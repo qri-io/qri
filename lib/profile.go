@@ -29,10 +29,10 @@ func (m ProfileMethods) Name() string {
 // Attributes defines attributes for each method
 func (m ProfileMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"getprofile":      {denyRPC, ""},
-		"setprofile":      {denyRPC, ""},
-		"setprofilephoto": {denyRPC, ""},
-		"setposterphoto":  {denyRPC, ""},
+		"getprofile":      {endpoint: denyRPC},
+		"setprofile":      {endpoint: denyRPC},
+		"setprofilephoto": {endpoint: denyRPC},
+		"setposterphoto":  {endpoint: denyRPC},
 	}
 }
 

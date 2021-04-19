@@ -21,6 +21,7 @@ import (
 var ErrUnsupportedRPC = errors.New("method is not suported over RPC")
 
 const jsonMimeType = "application/json"
+const sourceResolver = "SourceResolver"
 
 // HTTPClient implements the qri http client
 type HTTPClient struct {
@@ -70,35 +71,35 @@ func NewHTTPClientWithProtocol(multiaddr string, protocol string) (*HTTPClient, 
 }
 
 // Call calls API endpoint and passes on parameters, context info
-func (c HTTPClient) Call(ctx context.Context, apiEndpoint APIEndpoint, params interface{}, result interface{}) error {
-	return c.CallMethod(ctx, apiEndpoint, http.MethodPost, params, result)
+func (c HTTPClient) Call(ctx context.Context, apiEndpoint APIEndpoint, source string, params interface{}, result interface{}) error {
+	return c.CallMethod(ctx, apiEndpoint, http.MethodPost, source, params, result)
 }
 
 // CallMethod calls API endpoint and passes on parameters, context info and specific HTTP Method
-func (c HTTPClient) CallMethod(ctx context.Context, apiEndpoint APIEndpoint, httpMethod string, params interface{}, result interface{}) error {
+func (c HTTPClient) CallMethod(ctx context.Context, apiEndpoint APIEndpoint, httpMethod string, source string, params interface{}, result interface{}) error {
 	// TODO(arqu): work out mimeType configuration/override per API endpoint
 	mimeType := jsonMimeType
 	addr := fmt.Sprintf("%s://%s%s", c.Protocol, c.Address, apiEndpoint)
 
-	return c.do(ctx, addr, httpMethod, mimeType, params, result, false)
+	return c.do(ctx, addr, httpMethod, mimeType, source, params, result, false)
 }
 
 // CallRaw calls API endpoint and passes on parameters, context info and returns the []byte result
-func (c HTTPClient) CallRaw(ctx context.Context, apiEndpoint APIEndpoint, params interface{}, result interface{}) error {
-	return c.CallMethodRaw(ctx, apiEndpoint, http.MethodPost, params, result)
+func (c HTTPClient) CallRaw(ctx context.Context, apiEndpoint APIEndpoint, source string, params interface{}, result interface{}) error {
+	return c.CallMethodRaw(ctx, apiEndpoint, http.MethodPost, source, params, result)
 }
 
 // CallMethodRaw calls API endpoint and passes on parameters, context info, specific HTTP Method and returns the []byte result
-func (c HTTPClient) CallMethodRaw(ctx context.Context, apiEndpoint APIEndpoint, httpMethod string, params interface{}, result interface{}) error {
+func (c HTTPClient) CallMethodRaw(ctx context.Context, apiEndpoint APIEndpoint, httpMethod string, source string, params interface{}, result interface{}) error {
 	// TODO(arqu): work out mimeType configuration/override per API endpoint
 	mimeType := jsonMimeType
 	addr := fmt.Sprintf("%s://%s%s", c.Protocol, c.Address, apiEndpoint)
 	// TODO(arqu): inject context values into headers
 
-	return c.do(ctx, addr, httpMethod, mimeType, params, result, true)
+	return c.do(ctx, addr, httpMethod, mimeType, source, params, result, true)
 }
 
-func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mimeType string, params interface{}, result interface{}, raw bool) error {
+func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mimeType string, source string, params interface{}, result interface{}, raw bool) error {
 	var req *http.Request
 	var err error
 
@@ -133,6 +134,10 @@ func (c HTTPClient) do(ctx context.Context, addr string, httpMethod string, mime
 
 	req.Header.Set("Content-Type", mimeType)
 	req.Header.Set("Accept", mimeType)
+
+	if source != "" {
+		req.Header.Set(sourceResolver, source)
+	}
 
 	req, added := token.AddContextTokenToRequest(ctx, req)
 	if !added {
@@ -246,7 +251,7 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 
 // SourceFromRequest retrieves from the http request the source for resolving refs
 func SourceFromRequest(r *http.Request) string {
-	return r.Header.Get("SourceResolver")
+	return r.Header.Get(sourceResolver)
 }
 
 // DecodeParams decodes a json body into params

@@ -78,14 +78,14 @@ func TestHTTPClient(t *testing.T) {
 	httpClient.Address = sURL.Host
 	httpClient.Protocol = "http"
 
-	err = httpClient.CallRaw(ctx, lib.AEHome, nil, &bytes.Buffer{})
+	err = httpClient.CallRaw(ctx, lib.AEHome, "", nil, &bytes.Buffer{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	res := []dsref.VersionInfo{}
 	p := lib.ListParams{}
-	err = httpClient.CallMethod(ctx, lib.AEList, http.MethodPost, p, &res)
+	err = httpClient.CallMethod(ctx, lib.AEList, http.MethodPost, "", p, &res)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
