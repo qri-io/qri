@@ -5,12 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/ghodss/yaml"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/component"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -41,10 +42,6 @@ dataset and its fields.`,
 		},
 		Args: cobra.MaximumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Special case for --pretty, check if it was passed vs if the default was used.
-			if cmd.Flags().Changed("pretty") {
-				o.HasPretty = true
-			}
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
@@ -52,7 +49,7 @@ dataset and its fields.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json, yaml]")
+	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json, yaml, csv, zip]. If format is set to 'zip' it will save the entire dataset as a zip archive.")
 	cmd.Flags().BoolVar(&o.Pretty, "pretty", false, "whether to print output with indentation, only for json format")
 	cmd.Flags().IntVar(&o.PageSize, "page-size", -1, "for body, limit how many entries to get per page")
 	cmd.Flags().IntVar(&o.Page, "page", -1, "for body, page at which to get entries")
@@ -77,9 +74,8 @@ type GetOptions struct {
 	PageSize int
 	All      bool
 
-	Pretty    bool
-	HasPretty bool
-	Outfile   string
+	Pretty  bool
+	Outfile string
 
 	Offline bool
 	Remote  string
@@ -113,6 +109,9 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 			o.All = false
 		}
 	} else {
+		if o.Format == "csv" {
+			return fmt.Errorf("can only use --format=csv when getting body")
+		}
 		if o.PageSize != -1 {
 			return fmt.Errorf("can only use --page-size flag when getting body")
 		}
@@ -131,23 +130,12 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 func (o *GetOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
 
-	// Pretty maps to a key in the FormatConfig map.
-	var fc dataset.FormatConfig
-	if o.HasPretty {
-		opt := dataset.JSONOptions{Options: make(map[string]interface{})}
-		opt.Options["pretty"] = o.Pretty
-		fc = &opt
-	}
-
 	if o.Offline {
 		if o.Remote != "" {
 			return fmt.Errorf("cannot use '--offline' and '--remote' flags together")
 		}
 		o.Remote = "local"
 	}
-
-	// TODO(dustmop): Consider setting o.Format if o.Outfile has an extension and o.Format
-	// is not assigned anything
 
 	// TODO(dustmop): Allow any number of references. Right now we ignore everything after the
 	// first. The hard parts are:
@@ -156,56 +144,72 @@ func (o *GetOptions) Run() (err error) {
 
 	// convert Page and PageSize to Limit and Offset
 	page := apiutil.NewPage(o.Page, o.PageSize)
-	p := lib.GetParams{
-		Ref:          o.Refs.Ref(),
-		Selector:     o.Selector,
-		Format:       o.Format,
-		FormatConfig: fc,
-		Offset:       page.Offset(),
-		Limit:        page.Limit(),
-		All:          o.All,
-		Outfile:      o.Outfile,
-		// Generate a filename only if we're outputting to a terminal (not a pipe), and we're
-		// outputting a zip. lib.Get will also check that we're outputting a zip, this check is
-		// repeated here for clarity.
-		GenFilename: o.Outfile == "" && stdoutIsTerminal() && o.Format == "zip",
-	}
 	ctx := context.TODO()
-	res, err := o.inst.WithSource(o.Remote).Dataset().Get(ctx, &p)
-	if err != nil {
-		return err
-	}
-	if res.Message != "" {
-		o.Out.Write([]byte(res.Message))
-		o.Out.Write([]byte{'\n'})
-		return nil
-	}
-	if res.Value != nil {
-		var data []byte
-		var err error
-
-		switch {
-		case o.Format == "yaml":
-			data, err = yaml.Marshal(res.Value)
-			break
-		case o.Pretty:
-			data, err = json.MarshalIndent(res.Value, "", "  ")
-			break
-		case o.Format == "json":
-			data, err = json.Marshal(res.Value)
-		default:
-			var ok bool
-			data, ok = res.Value.([]byte)
-			if !ok {
-				return fmt.Errorf("unknown return type for get")
-			}
-		}
+	refStr := o.Refs.Ref()
+	var outBytes []byte
+	switch {
+	case o.Format == "zip":
+		outBytes, err = lib.GetZip(ctx, o.inst, refStr)
 		if err != nil {
 			return err
 		}
-		buf := bytes.NewBuffer(data)
-		buf.Write([]byte{'\n'})
-		printToPager(o.Out, buf)
+		if o.Outfile == "" {
+			ref, err := dsref.Parse(refStr)
+			if err != nil {
+				return err
+			}
+			o.Outfile = fmt.Sprintf("%s.zip", ref.Name)
+		}
+	case o.Format == "csv":
+		outBytes, err = lib.GetCSV(ctx, o.inst, refStr, page.Limit(), page.Offset(), o.All)
+		if err != nil {
+			return err
+		}
+	default:
+		p := lib.GetParams{
+			Ref:      refStr,
+			Selector: o.Selector,
+			Offset:   page.Offset(),
+			Limit:    page.Limit(),
+			All:      o.All,
+		}
+		res, err := o.inst.WithSource(o.Remote).Dataset().Get(ctx, &p)
+		if err != nil {
+			return err
+		}
+		switch {
+		case lib.IsSelectorScriptFile(o.Selector):
+			outBytes = res.Bytes
+		case o.Format == "json" || (o.Selector == "body" && o.Format == ""):
+			if o.Pretty {
+				outBytes, err = json.MarshalIndent(res.Value, "", "  ")
+				if err != nil {
+					return err
+				}
+				break
+			}
+
+			outBytes, err = json.Marshal(res.Value)
+			if err != nil {
+				return err
+			}
+		default:
+			outBytes, err = yaml.Marshal(res.Value)
+			if err != nil {
+				return err
+			}
+		}
 	}
+
+	if o.Outfile != "" {
+		err := ioutil.WriteFile(o.Outfile, outBytes, 0644)
+		if err != nil {
+			return err
+		}
+		outBytes = []byte(fmt.Sprintf("wrote to file %q", o.Outfile))
+	}
+	buf := bytes.NewBuffer(outBytes)
+	buf.Write([]byte{'\n'})
+	printToPager(o.Out, buf)
 	return nil
 }
