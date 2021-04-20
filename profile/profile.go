@@ -92,7 +92,6 @@ func (p *Profile) Decode(sp *config.ProfilePod) error {
 	}
 
 	keyID := IDB58DecodeOrEmpty(sp.KeyID)
-
 	pro := Profile{
 		ID:          id,
 		KeyID:       key.ID(keyID),
