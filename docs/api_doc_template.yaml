@@ -29,18 +29,16 @@ paths:
 
 components:
   schemas:
-{{- range .ParamStructs }}
+{{- range .Types }}
     {{ .Name }}:
       type: object
       properties:
         {{- range .Fields }}
         {{ .Name }}:
-          type: {{ .Type }}
-          {{- if ne .Doc "" }}
-          description: "{{ .Doc }}"
-          {{- end -}}
-        {{- end -}}
-{{ end }}
+{{ if .TypeIsCommon }}          type: {{ .Type }}{{ end }}
+{{ if ne .Doc "" }}          description: "{{ .Doc }}"{{ end }}
+{{- end }}
+{{- end }}
   responses:
     StatusOK:
       description: Generic OK response.
