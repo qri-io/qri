@@ -9,6 +9,7 @@ import (
 	"go/printer"
 	"go/token"
 	"io/ioutil"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"text/template"
@@ -18,37 +19,43 @@ import (
 )
 
 type Docs struct {
-	QriVersion   string
-	LibMethods   []LibMethod
-	ParamStructs []LibMethodParams
+	QriVersion string
+	LibMethods []LibMethod
+	Types      []QriType
 }
 
 type LibMethod struct {
 	MethodSet  string
 	MethodName string
 	Doc        string
-	Params     LibMethodParams
+	Params     QriType
 	Endpoint   lib.APIEndpoint
 	HTTPVerb   string
 }
 
-type LibMethodParams struct {
+type QriType struct {
 	Name   string
 	Doc    string
-	Fields []LibMethodField
+	Fields []Field
 }
 
-type LibMethodField struct {
-	Name    string
-	Type    string
-	Doc     string
-	Tags    string
-	Comment string
+type Field struct {
+	Name         string
+	Type         string
+	TypeIsCommon bool
+	Doc          string
+	Tags         string
+	Comment      string
 }
 
-func OpenAPIYAML() *bytes.Buffer {
-	params := parseLibMethodParams()
+func OpenAPIYAML() (*bytes.Buffer, error) {
+	qriTypes, err := parseQriTypes()
+	if err != nil {
+		return nil, err
+	}
+
 	var methods []LibMethod
+
 	var nilInst *lib.Instance
 	for _, methodSet := range nilInst.AllMethods() {
 		msetType := reflect.TypeOf(methodSet)
@@ -82,51 +89,53 @@ func OpenAPIYAML() *bytes.Buffer {
 				MethodName: i.Name,
 				Endpoint:   attrs.Endpoint,
 				HTTPVerb:   strings.ToLower(attrs.HTTPVerb),
-				Params:     params[inType.Name()],
+				Params:     qriTypes[inType.Name()],
 			}
 			methods = append(methods, m)
 		}
 	}
 
-	paramSlice := make([]LibMethodParams, 0, len(params))
-	for _, param := range params {
-		paramSlice = append(paramSlice, param)
+	qriTypeSlice := make([]QriType, 0, len(qriTypes))
+	for _, qriType := range qriTypes {
+		qriTypeSlice = append(qriTypeSlice, qriType)
 	}
 
 	d := Docs{
-		QriVersion:   version.Version,
-		LibMethods:   methods,
-		ParamStructs: paramSlice,
+		QriVersion: version.Version,
+		LibMethods: methods,
+		Types:      qriTypeSlice,
 	}
 
 	tmpl := template.Must(template.ParseFiles("api_doc_template.yaml"))
 	buf := &bytes.Buffer{}
-	if err := tmpl.Execute(buf, d); err != nil {
-		panic(err)
-	}
 
-	return buf
+	err = tmpl.Execute(buf, d)
+	return buf, err
 }
 
-func parseLibMethodParams() map[string]LibMethodParams {
-	params := map[string]LibMethodParams{}
+func parseQriTypes() (map[string]QriType, error) {
+	params := map[string]QriType{}
 	// Create the AST by parsing src and test.
 	fset := token.NewFileSet()
 
-	fileNames := []string{
-		"/Users/b5/qri/qri/lib/datasets.go",
+	libFiles, err := ioutil.ReadDir("../lib/")
+	if err != nil {
+		return nil, err
 	}
 
-	fileStrings := []string{}
 	files := []*ast.File{}
 
-	for i, filename := range fileNames {
-		fileData, err := ioutil.ReadFile(filename)
-		if err != nil {
-			panic(err)
+	for _, fInfo := range libFiles {
+		if !strings.HasSuffix(fInfo.Name(), ".go") {
+			continue
 		}
-		fileStrings = append(fileStrings, string(fileData))
-		files = append(files, mustParse(fset, filename, fileStrings[i]))
+
+		path := filepath.Join("../lib/", fInfo.Name())
+		astFile, err := readASTFile(fset, path)
+		if err != nil {
+			return nil, fmt.Errorf("reading AST from go file %q %w: ", path, err)
+		}
+		files = append(files, astFile)
 	}
 
 	// Compute package documentation
@@ -141,12 +150,19 @@ func parseLibMethodParams() map[string]LibMethodParams {
 		for _, spec := range t.Decl.Specs {
 			if typeSpec, ok := spec.(*ast.TypeSpec); ok {
 				if structSpec, ok := typeSpec.Type.(*ast.StructType); ok {
-					fields := make([]LibMethodField, 0, len(structSpec.Fields.List))
+					fields := make([]Field, 0, len(structSpec.Fields.List))
 					for _, f := range structSpec.Fields.List {
-						field := LibMethodField{
-							Name:    f.Names[0].String(),
-							Type:    typeToString(fset, f.Type),
-							Comment: f.Comment.Text(),
+						if len(f.Names) == 0 {
+							// fmt.Printf("skipping unnamed (probably embedded struct) field in %q\n", typeSpec.Name)
+							continue
+						}
+
+						t, common := typeToString(fset, f.Type)
+						field := Field{
+							Name:         f.Names[0].String(),
+							Type:         t,
+							TypeIsCommon: common,
+							Comment:      f.Comment.Text(),
 						}
 						if f.Doc != nil {
 							field.Doc = sanitizeDocString(f.Doc.Text())
@@ -157,7 +173,7 @@ func parseLibMethodParams() map[string]LibMethodParams {
 						fields = append(fields, field)
 					}
 
-					p := LibMethodParams{
+					p := QriType{
 						Name:   typeSpec.Name.String(),
 						Doc:    sanitizeDocString(typeSpec.Comment.Text()),
 						Fields: fields,
@@ -168,15 +184,15 @@ func parseLibMethodParams() map[string]LibMethodParams {
 		}
 	}
 
-	return params
+	return params, nil
 }
 
-func mustParse(fset *token.FileSet, filename, file string) *ast.File {
-	f, err := parser.ParseFile(fset, filename, file, parser.ParseComments)
+func readASTFile(fset *token.FileSet, filepath string) (*ast.File, error) {
+	fileData, err := ioutil.ReadFile(filepath)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return f
+	return parser.ParseFile(fset, filepath, string(fileData), parser.ParseComments)
 }
 
 func sanitizeDocString(s string) string {
@@ -185,11 +201,14 @@ func sanitizeDocString(s string) string {
 	return s
 }
 
-func typeToString(fset *token.FileSet, exp ast.Expr) string {
+func typeToString(fset *token.FileSet, exp ast.Expr) (typ string, isJSONSchemaType bool) {
 	buf := &bytes.Buffer{}
 	printer.Fprint(buf, fset, exp)
 	str := buf.String()
 	typeMap := map[string]string{
+		// TODO(b5): we should get these data types captured in the type map, but many
+		// aren't defined in lib, or don't end in "Params". Lots of these are used
+		// as repsonse objects
 		"*dataset.Dataset":     "Dataset",
 		"*dag.Manifest":        "Manifest",
 		"*dsref.Rev":           "Revision",
@@ -198,8 +217,15 @@ func typeToString(fset *token.FileSet, exp ast.Expr) string {
 		"map[string]string":    "Record",
 		"io.Writer":            "Writer",
 		"dataset.FormatConfig": "FormatConfig",
+		"config.ProfilePod":    "Profile",
+		"*config.ProfilePod":   "Profile",
+		"*dataset.Transform":   "Transform",
+		"*config.Config":       "Config",
+		"key.CryptoGenerator":  "CryptoGenerator",
+		"profile.ID":           "ProfileID",
+		"*RegistryProfile":     "RegistryProfile",
 
-		// map to jsonschema types:
+		// map go types to jsonschema types:
 		"bool":    "boolean",
 		"int":     "number",
 		"float32": "number",
@@ -209,5 +235,15 @@ func typeToString(fset *token.FileSet, exp ast.Expr) string {
 	if replace, ok := typeMap[str]; ok {
 		str = replace
 	}
-	return str
+
+	_, isJSONSchemaType = map[string]struct{}{
+		"array":   struct{}{},
+		"boolean": struct{}{},
+		"integer": struct{}{},
+		"number":  struct{}{},
+		"object":  struct{}{},
+		"string":  struct{}{},
+	}[str]
+
+	return str, isJSONSchemaType
 }
