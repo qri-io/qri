@@ -29,15 +29,15 @@ func (m FSIMethods) Name() string {
 // Attributes defines attributes for each method
 func (m FSIMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"status":                {endpoint: AEStatus, httpVerb: "POST"},
-		"caninitdatasetworkdir": {endpoint: AECanInitDatasetWorkDir, httpVerb: "POST"},
-		"init":                  {endpoint: AEInit, httpVerb: "POST"},
-		"checkout":              {endpoint: AECheckout, httpVerb: "POST"},
-		"ensureref":             {endpoint: AEEnsureRef, httpVerb: "POST"},
-		"restore":               {endpoint: AERestore, httpVerb: "POST"},
-		"write":                 {endpoint: AEFSIWrite, httpVerb: "POST"},
-		"createlink":            {endpoint: AEFSICreateLink, httpVerb: "POST"},
-		"unlink":                {endpoint: AEFSIUnlink, httpVerb: "POST"},
+		"status":                {Endpoint: AEStatus, HTTPVerb: "POST"},
+		"caninitdatasetworkdir": {Endpoint: AECanInitDatasetWorkDir, HTTPVerb: "POST"},
+		"init":                  {Endpoint: AEInit, HTTPVerb: "POST"},
+		"checkout":              {Endpoint: AECheckout, HTTPVerb: "POST"},
+		"ensureref":             {Endpoint: AEEnsureRef, HTTPVerb: "POST"},
+		"restore":               {Endpoint: AERestore, HTTPVerb: "POST"},
+		"write":                 {Endpoint: AEFSIWrite, HTTPVerb: "POST"},
+		"createlink":            {Endpoint: AEFSICreateLink, HTTPVerb: "POST"},
+		"unlink":                {Endpoint: AEFSIUnlink, HTTPVerb: "POST"},
 	}
 }
 

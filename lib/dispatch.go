@@ -46,13 +46,14 @@ type MethodSet interface {
 // AttributeSet is extra information about each method, such as: http endpoint,
 // http verb, (TODO) permissions, and (TODO) other metadata
 // Each method is required to have associated attributes in order to successfully register
+// Variables are exported so that external packages such as docs can access them
 type AttributeSet struct {
-	endpoint APIEndpoint
-	httpVerb string
+	Endpoint APIEndpoint
+	HTTPVerb string
 	// the default source used for resolving references
-	defaultSource string
+	DefaultSource string
 	// whether to deny RPC for this endpoint, normal HTTP may still be allowed
-	denyRPC   bool
+	DenyRPC bool
 }
 
 // Dispatch is a system for handling calls to lib. Should only be called by top-level lib methods.
@@ -249,6 +250,26 @@ type callable struct {
 	DenyRPC   bool
 }
 
+// AllMethods returns a method set for documentation purposes,
+func (inst *Instance) AllMethods() []MethodSet {
+	return []MethodSet{
+		inst.Access(),
+		inst.Collection(),
+		inst.Config(),
+		inst.Dataset(),
+		inst.Diff(),
+		inst.Filesys(),
+		inst.Log(),
+		inst.Peer(),
+		inst.Profile(),
+		inst.Registry(),
+		inst.Remote(),
+		inst.Search(),
+		inst.SQL(),
+		inst.Automation(),
+	}
+}
+
 // RegisterMethods iterates the methods provided by the lib API, and makes them visible to dispatch
 func (inst *Instance) RegisterMethods() {
 	reg := make(map[string]callable)
@@ -409,10 +430,10 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 			InType:    inType,
 			OutType:   outType,
 			RetCursor: returnsCursor,
-			Endpoint:  methodAttrs.endpoint,
-			Verb:      methodAttrs.httpVerb,
-			Source:    methodAttrs.defaultSource,
-			DenyRPC:   methodAttrs.denyRPC,
+			Endpoint:  methodAttrs.Endpoint,
+			Verb:      methodAttrs.HTTPVerb,
+			Source:    methodAttrs.DefaultSource,
+			DenyRPC:   methodAttrs.DenyRPC,
 		}
 		log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
 	}
@@ -432,14 +453,14 @@ func validateMethodAttrs(methodName string, attrs AttributeSet) {
 	// If endpoint and verb are not set, then RPC is denied, nothing to validate
 	// TODO(dustmop): Technically this is denying all HTTP, not just RPC. Consider
 	// separating HTTP and RPC denial
-	if attrs.endpoint == "" && attrs.httpVerb == "" {
+	if attrs.Endpoint == "" && attrs.HTTPVerb == "" {
 		return
 	}
-	if !strings.HasPrefix(string(attrs.endpoint), "/") {
-		regFail("%s: endpoint URL must start with /, got %q", methodName, attrs.endpoint)
+	if !strings.HasPrefix(string(attrs.Endpoint), "/") {
+		regFail("%s: endpoint URL must start with /, got %q", methodName, attrs.Endpoint)
 	}
-	if !stringOneOf(attrs.httpVerb, []string{http.MethodGet, http.MethodPost, http.MethodPut}) {
-		regFail("%s: unknown http verb, got %q", methodName, attrs.httpVerb)
+	if !stringOneOf(attrs.HTTPVerb, []string{http.MethodGet, http.MethodPost, http.MethodPut}) {
+		regFail("%s: unknown http verb, got %q", methodName, attrs.HTTPVerb)
 	}
 }
 

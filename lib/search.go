@@ -21,7 +21,7 @@ func (m SearchMethods) Name() string {
 // Attributes defines attributes for each method
 func (m SearchMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"search": {endpoint: AESearch, httpVerb: "POST"},
+		"search": {Endpoint: AESearch, HTTPVerb: "POST"},
 	}
 }
 

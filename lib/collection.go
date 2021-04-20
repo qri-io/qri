@@ -27,8 +27,8 @@ func (m CollectionMethods) Name() string {
 // Attributes defines attributes for each method
 func (m CollectionMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"list":        {endpoint: AEList, httpVerb: "POST"},
-		"listrawrefs": {endpoint: denyHTTP},
+		"list":        {Endpoint: AEList, HTTPVerb: "POST"},
+		"listrawrefs": {Endpoint: denyHTTP},
 	}
 }
 
