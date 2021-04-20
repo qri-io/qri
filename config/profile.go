@@ -12,6 +12,7 @@ import (
 type ProfilePod struct {
 	ID       string `json:"id"`
 	PrivKey  string `json:"privkey,omitempty"`
+	KeyID    string `json:"keyid"`
 	Peername string `json:"peername"`
 	// Created timestamp
 	Created time.Time `json:"created"`
@@ -210,6 +211,7 @@ func (p ProfilePod) Validate() error {
 func (p *ProfilePod) Copy() *ProfilePod {
 	res := &ProfilePod{
 		ID:          p.ID,
+		KeyID:       p.KeyID,
 		PrivKey:     p.PrivKey,
 		Peername:    p.Peername,
 		Created:     p.Created,
