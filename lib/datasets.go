@@ -51,19 +51,19 @@ func (m DatasetMethods) Name() string {
 // Attributes defines attributes for each method
 func (m DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"componentstatus": {endpoint: AEComponentStatus, httpVerb: "POST"},
-		"get":             {endpoint: AEGet, httpVerb: "GET"},
-		"activity":        {endpoint: AEActivity, httpVerb: "POST"},
-		"rename":          {endpoint: AERename, httpVerb: "POST", defaultSource: "local"},
-		"save":            {endpoint: AESave, httpVerb: "POST"},
-		"pull":            {endpoint: AEPull, httpVerb: "POST", defaultSource: "network"},
-		"push":            {endpoint: AEPush, httpVerb: "POST", defaultSource: "local"},
-		"render":          {endpoint: AERender, httpVerb: "POST"},
-		"remove":          {endpoint: AERemove, httpVerb: "POST", defaultSource: "local"},
-		"validate":        {endpoint: AEValidate, httpVerb: "POST", defaultSource: "local"},
-		"manifest":        {endpoint: AEManifest, httpVerb: "POST", defaultSource: "local"},
-		"manifestmissing": {endpoint: AEManifestMissing, httpVerb: "POST", defaultSource: "local"},
-		"daginfo":         {endpoint: AEDAGInfo, httpVerb: "POST", defaultSource: "local"},
+		"componentstatus": {Endpoint: AEComponentStatus, HTTPVerb: "POST"},
+		"get":             {Endpoint: AEGet, HTTPVerb: "GET"},
+		"activity":        {Endpoint: AEActivity, HTTPVerb: "POST"},
+		"rename":          {Endpoint: AERename, HTTPVerb: "POST", DefaultSource: "local"},
+		"save":            {Endpoint: AESave, HTTPVerb: "POST"},
+		"pull":            {Endpoint: AEPull, HTTPVerb: "POST", DefaultSource: "network"},
+		"push":            {Endpoint: AEPush, HTTPVerb: "POST", DefaultSource: "local"},
+		"render":          {Endpoint: AERender, HTTPVerb: "POST"},
+		"remove":          {Endpoint: AERemove, HTTPVerb: "POST", DefaultSource: "local"},
+		"validate":        {Endpoint: AEValidate, HTTPVerb: "POST", DefaultSource: "local"},
+		"manifest":        {Endpoint: AEManifest, HTTPVerb: "POST", DefaultSource: "local"},
+		"manifestmissing": {Endpoint: AEManifestMissing, HTTPVerb: "POST", DefaultSource: "local"},
+		"daginfo":         {Endpoint: AEDAGInfo, HTTPVerb: "POST", DefaultSource: "local"},
 	}
 }
 
@@ -206,7 +206,7 @@ type GetResult struct {
 	Published bool             `json:"published"`
 }
 
-// DataResponse is the struct used to respond to api requests made to the /body endpoint
+// DataResponse is the struct used to respond to api requests made to the /body Endpoint
 // It is necessary because we need to include the 'path' field in the response
 type DataResponse struct {
 	Path string          `json:"path"`

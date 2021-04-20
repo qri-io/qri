@@ -26,8 +26,8 @@ func (m DiffMethods) Name() string {
 // Attributes defines attributes for each method
 func (m DiffMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"changes": {endpoint: AEChanges, httpVerb: "POST"},
-		"diff":    {endpoint: AEDiff, httpVerb: "POST"},
+		"changes": {Endpoint: AEChanges, HTTPVerb: "POST"},
+		"diff":    {Endpoint: AEDiff, HTTPVerb: "POST"},
 	}
 }
 

@@ -26,7 +26,7 @@ func (m AutomationMethods) Name() string {
 // Attributes defines attributes for each method
 func (m AutomationMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apply": {endpoint: AEApply, httpVerb: "POST"},
+		"apply": {Endpoint: AEApply, HTTPVerb: "POST"},
 	}
 }
 

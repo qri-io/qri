@@ -26,12 +26,12 @@ func (m PeerMethods) Name() string { return "peer" }
 // Attributes defines attributes for each method
 func (m PeerMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"list":                 {endpoint: AEPeers, httpVerb: "POST"},
-		"info":                 {endpoint: AEPeer, httpVerb: "POST"},
-		"connect":              {endpoint: AEConnect, httpVerb: "POST"},
-		"disconnect":           {endpoint: AEDisconnect, httpVerb: "POST"},
-		"connections":          {endpoint: AEConnections, httpVerb: "POST"},
-		"connectedqriprofiles": {endpoint: AEConnectedQriProfiles, httpVerb: "POST"},
+		"list":                 {Endpoint: AEPeers, HTTPVerb: "POST"},
+		"info":                 {Endpoint: AEPeer, HTTPVerb: "POST"},
+		"connect":              {Endpoint: AEConnect, HTTPVerb: "POST"},
+		"disconnect":           {Endpoint: AEDisconnect, HTTPVerb: "POST"},
+		"connections":          {Endpoint: AEConnections, HTTPVerb: "POST"},
+		"connectedqriprofiles": {Endpoint: AEConnectedQriProfiles, HTTPVerb: "POST"},
 	}
 }
 

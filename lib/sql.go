@@ -18,7 +18,7 @@ func (m SQLMethods) Name() string { return "sql" }
 // Attributes defines attributes for each method
 func (m SQLMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"exec": {endpoint: AESQL, httpVerb: "POST"},
+		"exec": {Endpoint: AESQL, HTTPVerb: "POST"},
 	}
 }
 
