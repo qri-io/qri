@@ -1,0 +1,50 @@
+openapi: 3.0.0
+info:
+  title: Qri API
+  description: Qri API used to communicate with a Qri node.
+  version: {{ .QriVersion }}
+paths:
+{{- range .LibMethods }}
+{{- if .Endpoint }}
+  '{{ .Endpoint }}':
+    {{ .HTTPVerb }}:
+      operationId: '{{ .MethodSet }}.{{ .MethodName }}'
+      tags:
+      - {{ .MethodSet }}
+      {{- if eq .HTTPVerb "post" }}
+      {{- if ne .Params.Name "" }}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/{{ .Params.Name }}'
+      {{ end -}}
+      {{ end }}
+      responses:
+        '200':
+          '$ref': '#/components/responses/StatusOK'
+{{- end -}}
+{{- end }}
+
+components:
+  schemas:
+{{- range .ParamStructs }}
+    {{ .Name }}:
+      type: object
+      properties:
+        {{- range .Fields }}
+        {{ .Name }}:
+          type: {{ .Type }}
+          {{- if ne .Doc "" }}
+          description: "{{ .Doc }}"
+          {{- end -}}
+        {{- end -}}
+{{ end }}
+  responses:
+    StatusOK:
+      description: Generic OK response.
+      content:
+        application/json:
+          schema:
+            type: object
