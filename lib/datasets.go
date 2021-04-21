@@ -51,6 +51,8 @@ func (m DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		"componentstatus": {Endpoint: AEComponentStatus, HTTPVerb: "POST"},
 		"get":             {Endpoint: AEGet, HTTPVerb: "GET"},
+		"getcsv":          {Endpoint: DenyHTTP}, // getcsv is not part of the json api, but is handled in a separate `GetBodyCSVHandler` function
+		"getzip":          {Endpoint: DenyHTTP}, // getzip is not part of the json api, but is handled is a separate `GetHandler` function
 		"activity":        {Endpoint: AEActivity, HTTPVerb: "POST"},
 		"rename":          {Endpoint: AERename, HTTPVerb: "POST", DefaultSource: "local"},
 		"save":            {Endpoint: AESave, HTTPVerb: "POST"},
@@ -72,9 +74,6 @@ type GetParams struct {
 	// selector is a component or nested field names to extract from the dataset
 	Selector string `json:"selector"`
 
-	// read from a filesystem link instead of stored version
-	Format string `json:"format"`
-
 	Limit  int `json:"limit"`
 	Offset int `json:"offset"`
 	// TODO(dustmop): Remove `All` once `Cursor` is in use. Instead, callers should
@@ -84,9 +83,6 @@ type GetParams struct {
 
 // SetNonZeroDefaults assigns default values
 func (p *GetParams) SetNonZeroDefaults() {
-	if p.Format == "" {
-		p.Format = "json"
-	}
 	if p.Selector == "body" {
 		if !p.All {
 			// ensure valid limit value
@@ -100,6 +96,22 @@ func (p *GetParams) SetNonZeroDefaults() {
 
 		}
 	}
+}
+
+// Validate returns an error if GetParams fields are in an invalid state
+func (p *GetParams) Validate() error {
+	if p.Selector != "body" {
+		if p.Limit >= 0 || p.Offset != 0 {
+			return fmt.Errorf("the limit and offset options can only be used if the selector is \"body\"")
+		}
+	}
+	if p.Selector == "body" {
+		if !p.All && (p.Limit < 0 || p.Offset < 0) {
+			return fmt.Errorf("invalid limit / offset settings")
+		}
+	}
+
+	return nil
 }
 
 var validSelector = regexp.MustCompile(`^[\w-\.]*[\w]$`)
@@ -162,30 +174,16 @@ func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
 	}
 
 	if r.FormValue("selector") != "" && params.Selector == "" {
-		selector, format, err := parseSelector(r.FormValue("selector"))
+		selector, _, err := parseSelector(r.FormValue("selector"))
 		if err != nil {
 			return err
 		}
 		params.Selector = selector
-		params.Format = format
-		log.Errorf("set format %s", params.Format)
-	}
-
-	if params.Format == "" {
-		params.Format = r.FormValue("format")
 	}
 
 	// This HTTP header sets the format to csv, and removes the json wrapper
 	if arrayContains(r.Header["Accept"], "text/csv") {
-		if params.Format != "" && params.Format != "csv" {
-			return fmt.Errorf("format %q conflicts with header \"Accept: text/csv\"", params.Format)
-		}
-		params.Format = "csv"
 		params.Selector = "body"
-	}
-
-	if params.Format != "" && params.Format != "json" && params.Format != "csv" && params.Format != "zip" {
-		return fmt.Errorf("invalid extension format")
 	}
 
 	// TODO(arqu): we default to true but should implement a guard and/or respect the page params
@@ -214,129 +212,34 @@ type DataResponse struct {
 	Data json.RawMessage `json:"data"`
 }
 
-// GetZip fetches an entire dataset as a zip archive
-func GetZip(ctx context.Context, inst *Instance, refstr string) ([]byte, error) {
-	res, err := inst.Dataset().Get(ctx, &GetParams{Ref: refstr})
-	if err != nil {
-		return nil, err
-	}
-	ds, ok := res.Value.(*dataset.Dataset)
-	if !ok {
-		// TODO: better error
-		return nil, fmt.Errorf("expected dataset response from get")
-	}
-
-	var outBuf bytes.Buffer
-	var zipFile io.Writer
-	zipFile = &outBuf
-	// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
-	// necessary until dscache is in use.
-	ref := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
-	initID, err := inst.logbook.RefToInitID(ref)
-	if err != nil {
-		return nil, err
-	}
-	err = archive.WriteZip(ctx, inst.qfs, ds, "json", initID, ref, zipFile)
-	if err != nil {
-		return nil, err
-	}
-	return outBuf.Bytes(), nil
-
-	// OR we pull the body bytes in & then re-write most of the archive package work in this helper function:
-	// _bd, _, err := inst.Dataset().Get(ctx, &GetParams{Ref: refstr, Selector: "body", All: true})
-	// iterate through each component, creating a file for each, and then compressing the results
-}
-
-func GetZipDispatch(scope scope, p *GetParams) ([]byte, error) {
-	scope.EnableWorkingDir(true)
-	ds, err := scope.Loader().LoadDataset(scope.Context(), p.Ref)
-	ref := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
-
-	if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
-		log.Debugf("Get CSV body, base.OpenDataset failed, error: %s", err)
-		return nil, err
-	}
-
-	var outBuf bytes.Buffer
-	var zipFile io.Writer
-	zipFile = &outBuf
-	// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
-	// necessary until dscache is in use.
-	initID, err := scope.Logbook().RefToInitID(ref)
-	if err != nil {
-		return nil, err
-	}
-	err = archive.WriteZip(scope.Context(), scope.Filesystem(), ds, "json", initID, ref, zipFile)
-	if err != nil {
-		return nil, err
-	}
-	return outBuf.Bytes(), nil
-}
-
-func GetCSV(ctx context.Context, inst *Instance, refstr string, limit, offset int, all bool) ([]byte, error) {
-	res, err := inst.Dataset().Get(ctx, &GetParams{Ref: refstr, Selector: "body", Format: "csv", Limit: limit, Offset: offset, All: all})
-	if err != nil {
-		return nil, err
-	}
-	return res.Bytes, nil
-}
-
-// Or we have GetCSVDispatch dataset method that has access to scope, and now any call to the json api will only return json
-func GetCSVDispatch(scope scope, p *GetParams) ([]byte, error) {
-	scope.EnableWorkingDir(true)
-	ds, err := scope.Loader().LoadDataset(scope.Context(), p.Ref)
-	ref := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
-
-	fsiPath := fsi.FilesystemPathToLocal(ref.Path)
-	if fsi.IsFSIPath(ref.Path) {
-		ds.Path = ""
-	}
-
-	// `qri get body` loads the body
-	if !p.All && (p.Limit < 0 || p.Offset < 0) {
-		return nil, fmt.Errorf("invalid limit / offset settings")
-	}
-
-	fcMap := map[string]interface{}{}
-	// if natural format is csv, pull in formatting options
-	if ds.Structure.Format == "csv" {
-		fcMap = ds.Structure.FormatConfig
-	}
-	fc, err := dataset.ParseFormatConfigMap(dataset.CSVDataFormat, fcMap)
-	if err != nil {
-		log.Debugf("Get CSV Body, dataset.ParseFormatConfigMap failed, %w", err)
-		return nil, err
-	}
-	if fsi.IsFSIPath(ref.Path) {
-		// TODO(dustmop): Need to handle the special case where an FSI directory has a body
-		// but no structure, which should infer a schema in order to read the body. Once that
-		// works we can remove the fsi.GetBody call and just use base.ReadBody.
-		bodyBytes, err := fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), dataset.CSVDataFormat, fc, p.Offset, p.Limit, p.All)
-		if err != nil {
-			log.Debugf("Get CSV body, fsi.GetBody %q failed, error: %s", fsiPath, err)
-			return nil, err
-		}
-		return bodyBytes, nil
-	}
-	bodyBytes, err := base.ReadBody(ds, dataset.CSVDataFormat, fc, p.Limit, p.Offset, p.All)
-	if err != nil {
-		log.Debugf("Get CSV body, base.ReadBodyAsInterface %q failed, error: %s", ds, err)
-		return nil, err
-	}
-	return bodyBytes, nil
-}
-
-// TODO(ramfox): rewrite comment
 // Get retrieves datasets and components for a given reference. p.Ref is parsed to create
 // a reference, which is used to load the dataset. It will be loaded from the local repo
 // or from the filesystem if it has a linked working directory.
-// Using p.Selector will control what components are returned in res.Bytes. The default,
-// a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
-// then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
+// Using p.Selector will control what components are returned in res.Value. The default,
+// a blank selector, will also fill the entire dataset at res.Value. If the selector contains ".script"
+// then res.Bytes is loaded with the script contents as bytes. If the selector is "stats", then res.Value is loaded
 // with the generated stats.
 func (m DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "get"), p)
 	if res, ok := got.(*GetResult); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// GetCSV fetches the body as a csv encoded byte slice, it recognizes Limit, Offset, and All list params
+func (m DatasetMethods) GetCSV(ctx context.Context, p *GetParams) ([]byte, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "getcsv"), p)
+	if res, ok := got.([]byte); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// GetZip fetches an entire dataset as a zip archive
+func (m DatasetMethods) GetZip(ctx context.Context, p *GetParams) ([]byte, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "getzip"), p)
+	if res, ok := got.([]byte); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -769,70 +672,24 @@ type datasetImpl struct{}
 
 // Get retrieves datasets and components for a given reference.t
 func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
-	scope.EnableWorkingDir(true)
-	ds, err := scope.Loader().LoadDataset(scope.Context(), p.Ref)
+	ref, ds, err := openAndLoadFSIEnabledDataset(scope, p)
 	if err != nil {
 		return nil, err
 	}
 
 	res := &GetResult{}
-	ref := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
-
-	fsiPath := fsi.FilesystemPathToLocal(ref.Path)
-	if fsi.IsFSIPath(ref.Path) {
-		ds.Path = ""
-	}
-
-	// TODO (b5) - Published field is longer set as part of Reference Resolution
-	// getting publication status should be delegated to a new function
-
-	if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
-		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
-		return nil, err
-	}
 
 	if p.Selector == "body" {
 		// `qri get body` loads the body
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
 			return nil, fmt.Errorf("invalid limit / offset settings")
 		}
-
-		if o.Format == "csv" {
-			fcMap := map[string]interface{}{}
-			// if natural format is csv, pull in formatting options
-			if ds.Structure.Format == "csv" {
-				fcMap = ds.Structure.FormatConfig
-			}
-			fc, err := dataset.ParseFormatConfigMap(dataset.CSVDataFormat, fcMap)
-			if err != nil {
-				log.Debugf("Get CSV Body, dataset.ParseFormatConfigMap failed, %w", err)
-				return nil, err
-			}
-
-			if fsi.IsFSIPath(ref.Path) {
-				// TODO(dustmop): Need to handle the special case where an FSI directory has a body
-				// but no structure, which should infer a schema in order to read the body. Once that
-				// works we can remove the fsi.GetBody call and just use base.ReadBody.
-				res.Bytes, err = fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), dataset.CSVDataFormat, fc, p.Offset, p.Limit, p.All)
-				if err != nil {
-					log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", fsiPath, err)
-					return nil, err
-				}
-				return res, nil
-			}
-			res.Bytes, err = base.ReadBody(ds, dataset.CSVDataFormat, fc, p.Limit, p.Offset, p.All)
-			if err != nil {
-				log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
-				return nil, err
-			}
-			return res, nil
-		}
-
 		if fsi.IsFSIPath(ref.Path) {
 			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
 			// but no structure, which should infer a schema in order to read the body. Once that
 			// works we can remove the fsi.GetBodyAsInterface call and just use base.ReadBodyAsInterface.
-			res.Value, err = fsi.GetBodyAsInterface(fsi.FilesystemPathToLocal(ref.Path), p.Offset, p.Limit, p.All)
+			fsiPath := fsi.FilesystemPathToLocal(ref.Path)
+			res.Value, err = fsi.GetBodyAsInterface(fsiPath, p.Offset, p.Limit, p.All)
 			if err != nil {
 				log.Debugf("Get dataset, fsi.GetBodyAsInterface %q failed, error: %s", fsiPath, err)
 				return nil, err
@@ -867,6 +724,90 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+func openAndLoadFSIEnabledDataset(scope scope, p *GetParams) (*dsref.Ref, *dataset.Dataset, error) {
+	scope.EnableWorkingDir(true)
+	ds, err := scope.Loader().LoadDataset(scope.Context(), p.Ref)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ref := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
+
+	if fsi.IsFSIPath(ref.Path) {
+		ds.Path = ""
+	}
+
+	if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
+		log.Debugf("base.OpenDataset failed, error: %s", err)
+		return nil, nil, err
+	}
+	return &ref, ds, nil
+}
+
+func (datasetImpl) GetCSV(scope scope, p *GetParams) ([]byte, error) {
+	return getBodyBytes(scope, p, dataset.CSVDataFormat, nil)
+}
+
+func getBodyBytes(scope scope, p *GetParams, format dataset.DataFormat, fc dataset.FormatConfig) ([]byte, error) {
+	ref, ds, err := openAndLoadFSIEnabledDataset(scope, p)
+	if err != nil {
+		return nil, err
+	}
+
+	if fc == nil {
+		// if we aren't given any format configuration &
+		// the format given matches the format of the body, pull in any known format configuration
+		if ds.Structure.DataFormat() == format {
+			fc, err = dataset.ParseFormatConfigMap(format, ds.Structure.FormatConfig)
+			if err != nil {
+				log.Debugf("getBodyBytes: dataset.ParseFormatConfigMap failed: %s", err)
+				return nil, err
+			}
+		}
+	}
+
+	if fsi.IsFSIPath(ref.Path) {
+		// TODO(dustmop): Need to handle the special case where an FSI directory has a body
+		// but no structure, which should infer a schema in order to read the body. Once that
+		// works we can remove the fsi.GetBody call and just use base.ReadBody.
+		fsiPath := fsi.FilesystemPathToLocal(ref.Path)
+		bodyBytes, err := fsi.GetBody(fsiPath, dataset.CSVDataFormat, fc, p.Offset, p.Limit, p.All)
+		if err != nil {
+			log.Debugf("lib.getBodyBytes, fsi.GetBody %q failed, error: %s", fsiPath, err)
+			return nil, err
+		}
+		return bodyBytes, nil
+	}
+	bodyBytes, err := base.ReadBody(ds, dataset.CSVDataFormat, fc, p.Limit, p.Offset, p.All)
+	if err != nil {
+		log.Debugf("lib.getBodyBytes, body, base.ReadBodyAsInterface %q failed, error: %s", ds, err)
+		return nil, err
+	}
+	return bodyBytes, nil
+}
+
+func (datasetImpl) GetZip(scope scope, p *GetParams) ([]byte, error) {
+	ref, ds, err := openAndLoadFSIEnabledDataset(scope, p)
+	if err != nil {
+		return nil, err
+	}
+
+	var outBuf bytes.Buffer
+	var zipFile io.Writer
+	zipFile = &outBuf
+	// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
+	// necessary until dscache is in use.
+	initID, err := scope.Logbook().RefToInitID(*ref)
+	if err != nil {
+		return nil, err
+	}
+	err = archive.WriteZip(scope.Context(), scope.Filesystem(), ds, "json", initID, *ref, zipFile)
+	if err != nil {
+		return nil, err
+	}
+	return outBuf.Bytes(), nil
 }
 
 // Activity returns the activity and changes for a given dataset

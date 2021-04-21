@@ -29,22 +29,22 @@ func GetHandler(inst *lib.Instance, routePrefix string) http.HandlerFunc {
 		}
 
 		switch {
-		case params.Format == "zip":
-			outBytes, err := lib.GetZip(r.Context(), inst, params.Ref)
-			if err != nil {
-				util.RespondWithError(w, err)
-				return
-			}
-			writeFileResponse(w, outBytes, "dataset.zip", "zip")
-			return
-		case params.Format == "csv":
-			outBytes, err := lib.GetCSV(r.Context(), inst, params.Ref, params.Limit, params.Offset, params.All)
-			if err != nil {
-				util.RespondWithError(w, err)
-				return
-			}
-			writeFileResponse(w, outBytes, "body.csv", "csv")
-			return
+		// case params.Format == "zip":
+		// 	outBytes, err := lib.GetZip(r.Context(), inst, params.Ref)
+		// 	if err != nil {
+		// 		util.RespondWithError(w, err)
+		// 		return
+		// 	}
+		// 	writeFileResponse(w, outBytes, "dataset.zip", "zip")
+		// 	return
+		// case params.Format == "csv":
+		// 	outBytes, err := lib.GetCSV(r.Context(), inst, params.Ref, params.Limit, params.Offset, params.All)
+		// 	if err != nil {
+		// 		util.RespondWithError(w, err)
+		// 		return
+		// 	}
+		// 	writeFileResponse(w, outBytes, "body.csv", "csv")
+		// 	return
 
 		case lib.IsSelectorScriptFile(params.Selector):
 			res, err := inst.Dataset().Get(r.Context(), params)

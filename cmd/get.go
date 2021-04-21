@@ -145,35 +145,34 @@ func (o *GetOptions) Run() (err error) {
 	// convert Page and PageSize to Limit and Offset
 	page := apiutil.NewPage(o.Page, o.PageSize)
 	ctx := context.TODO()
-	refStr := o.Refs.Ref()
+	p := &lib.GetParams{
+		Ref:      o.Refs.Ref(),
+		Selector: o.Selector,
+		Offset:   page.Offset(),
+		Limit:    page.Limit(),
+		All:      o.All,
+	}
 	var outBytes []byte
 	switch {
 	case o.Format == "zip":
-		outBytes, err = lib.GetZip(ctx, o.inst, refStr)
+		outBytes, err = o.inst.Dataset().GetZip(ctx, p)
 		if err != nil {
 			return err
 		}
 		if o.Outfile == "" {
-			ref, err := dsref.Parse(refStr)
+			ref, err := dsref.Parse(p.Ref)
 			if err != nil {
 				return err
 			}
 			o.Outfile = fmt.Sprintf("%s.zip", ref.Name)
 		}
 	case o.Format == "csv":
-		outBytes, err = lib.GetCSV(ctx, o.inst, refStr, page.Limit(), page.Offset(), o.All)
+		outBytes, err = o.inst.Dataset().GetCSV(ctx, p)
 		if err != nil {
 			return err
 		}
 	default:
-		p := lib.GetParams{
-			Ref:      refStr,
-			Selector: o.Selector,
-			Offset:   page.Offset(),
-			Limit:    page.Limit(),
-			All:      o.All,
-		}
-		res, err := o.inst.WithSource(o.Remote).Dataset().Get(ctx, &p)
+		res, err := o.inst.WithSource(o.Remote).Dataset().Get(ctx, p)
 		if err != nil {
 			return err
 		}
