@@ -100,10 +100,8 @@ func (p *GetParams) SetNonZeroDefaults() {
 
 // Validate returns an error if GetParams fields are in an invalid state
 func (p *GetParams) Validate() error {
-	if p.Selector != "body" {
-		if p.Limit >= 0 || p.Offset != 0 {
-			return fmt.Errorf("the limit and offset options can only be used if the selector is \"body\"")
-		}
+	if !isValidSelector(p.Selector) {
+		return fmt.Errorf("could not parse request: invalid selector")
 	}
 	if p.Selector == "body" {
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
@@ -114,90 +112,19 @@ func (p *GetParams) Validate() error {
 	return nil
 }
 
-var validSelector = regexp.MustCompile(`^[\w-\.]*[\w]$`)
-
-func parseSelector(selector string) (string, string, error) {
+func isValidSelector(selector string) bool {
 	if selector == "" {
-		return "", "", nil
-	}
-
-	format := ""
-
-	if strings.HasSuffix(selector, ".json") {
-		format = "json"
-	}
-	if strings.HasSuffix(selector, ".csv") {
-		format = "csv"
-	}
-	if strings.HasSuffix(selector, ".zip") {
-		format = "zip"
-	}
-
-	if format != "" {
-		selector = selector[:len(selector)-len(format)-1]
+		return true
 	}
 
 	match := validSelector.FindString(selector)
 	if match == "" || len(match) != len(selector) {
-		return "", "", fmt.Errorf("could not parse request: invalid selector")
+		return false
 	}
-	return selector, format, nil
+	return true
 }
 
-func arrayContains(subject []string, target string) bool {
-	for _, v := range subject {
-		if v == target {
-			return true
-		}
-	}
-	return false
-}
-
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
-func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
-	if p == nil {
-		p = &GetParams{}
-	}
-
-	params := *p
-	if params.Ref == "" {
-		log.Errorf("ref: %s", r.FormValue("ref"))
-		params.Ref = r.FormValue("ref")
-	}
-
-	ref, err := dsref.Parse(params.Ref)
-	if err != nil {
-		return err
-	}
-	if ref.Username == "me" {
-		return fmt.Errorf("username \"me\" not allowed")
-	}
-
-	if r.FormValue("selector") != "" && params.Selector == "" {
-		selector, _, err := parseSelector(r.FormValue("selector"))
-		if err != nil {
-			return err
-		}
-		params.Selector = selector
-	}
-
-	// This HTTP header sets the format to csv, and removes the json wrapper
-	if arrayContains(r.Header["Accept"], "text/csv") {
-		params.Selector = "body"
-	}
-
-	// TODO(arqu): we default to true but should implement a guard and/or respect the page params
-	params.All = true
-	// listParams := ListParamsFromRequest(r)
-	// offset := listParams.Offset
-	// limit := listParams.Limit
-	// if offset == 0 && limit == -1 {
-	// 	params.All = true
-	// }
-
-	*p = params
-	return nil
-}
+var validSelector = regexp.MustCompile(`^[\w-\.]*[\w]$`)
 
 // GetResult combines data with it's hashed path
 type GetResult struct {
