@@ -683,7 +683,7 @@ func getBodyBytes(scope scope, p *GetParams, format dataset.DataFormat, fc datas
 		return nil, err
 	}
 
-	if fc == nil {
+	if fc == nil && ds.Structure != nil {
 		// if we aren't given any format configuration &
 		// the format given matches the format of the body, pull in any known format configuration
 		if ds.Structure.DataFormat() == format {
