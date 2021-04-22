@@ -2,9 +2,13 @@ package lib
 
 import (
 	"context"
+	"github.com/ghodss/yaml"
+	"io/ioutil"
+	"path/filepath"
 	"testing"
 
 	testkeys "github.com/qri-io/qri/auth/key/test"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/registry/regserver"
 	repotest "github.com/qri-io/qri/repo/test"
@@ -42,6 +46,10 @@ func TestProveProfileKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Set path for config file so that it will serialize to disk
+	configPath := filepath.Join(tr.TmpDir, "qri", "config.yaml")
+	tr.Instance.GetConfig().SetPath(configPath)
+
 	// Call the endpoint to prove our account
 	methods := tr.Instance.Registry()
 	p := RegistryProfile{
@@ -57,5 +65,26 @@ func TestProveProfileKey(t *testing.T) {
 	expectProfileID := profile.IDFromPeerID(testkeys.GetKeyData(3).PeerID)
 	if pro.ID != expectProfileID {
 		t.Errorf("bad profileID for peer after prove. expect: %s, got: %s", expectProfileID, pro.ID)
+	}
+
+	// Read config to ensure it contains the expected values
+	contents, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfgData := config.Config{}
+	err = yaml.Unmarshal(contents, &cfgData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Key created by the test runner (this current node's profile) is testKey[0], it stays the
+	// same after running prove
+	if cfgData.Profile.KeyID != testkeys.GetKeyData(0).EncodedPeerID {
+		t.Errorf("profile's keyID should be testKey[0]")
+	}
+	// ProfileID given to us by registry, by running prove, is testKey[3]
+	if cfgData.Profile.ID != testkeys.GetKeyData(3).EncodedPeerID {
+		t.Errorf("profile's profileID given by prove command should be testKey[3]")
 	}
 }

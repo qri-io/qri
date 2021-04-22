@@ -116,6 +116,8 @@ func (registryImpl) ProveProfileKey(scope scope, p *RegistryProfileParams) error
 	// Convert the profile to a configuration, assign the registry provided profileID
 	cfg := configFromProfile(scope, p.Profile)
 	if profileID, ok := res["profileID"]; ok {
+		// Store the old profile as the keyID since it came from the original keypair
+		cfg.Profile.KeyID = cfg.Profile.ID
 		cfg.Profile.ID = profileID
 		if pid := profile.IDB58DecodeOrEmpty(profileID); pid != "" {
 			// Assign to profile struct as well
