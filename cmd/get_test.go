@@ -282,6 +282,9 @@ The Chronicles of Narnia: Prince Caspian ,150
 The Avengers ,173
 
 `
+	currBodyJSON = `[["Avatar ",178],["Pirates of the Caribbean: At World's End ",169],["Spectre ",148],["The Dark Knight Rises ",164],["Star Wars: Episode VII - The Force Awakens             ",""],["John Carter ",132],["Spider-Man 3 ",156],["Tangled ",100],["Avengers: Age of Ultron ",141],["Harry Potter and the Half-Blood Prince ",153],["Batman v Superman: Dawn of Justice ",183],["Superman Returns ",169],["Quantum of Solace ",106],["Pirates of the Caribbean: Dead Man's Chest ",151],["The Lone Ranger ",150],["Man of Steel ",143],["The Chronicles of Narnia: Prince Caspian ",150],["The Avengers ",173]]
+`
+
 	prevBodyRepo = `movie_title,duration
 Avatar ,178
 Pirates of the Caribbean: At World's End ,169
@@ -293,6 +296,9 @@ Spider-Man 3 ,156
 Tangled ,100
 
 `
+	prevBodyJSON = `[["Avatar ",178],["Pirates of the Caribbean: At World's End ",169],["Spectre ",148],["The Dark Knight Rises ",164],["Star Wars: Episode VII - The Force Awakens             ",""],["John Carter ",132],["Spider-Man 3 ",156],["Tangled ",100]]
+`
+
 	currHeadFSI = `bodyPath: /tmp/my_ds/my_ds/body.csv
 name: my_ds
 peername: test_peer_get
@@ -363,19 +369,34 @@ func TestGetDatasetFromRepo(t *testing.T) {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 
-	// Get body from current commit.
-	output = run.MustExec(t, "qri get body me/my_ds")
+	// Get body from current commit in csv format
+	output = run.MustExec(t, "qri get body me/my_ds --format csv")
 	expect = currBodyRepo
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 
-	// Get body from one version ago.
-	output = run.MustExec(t, fmt.Sprintf("qri get body %s", ref))
+	// Get body from current commit in json format
+	output = run.MustExec(t, "qri get body me/my_ds")
+	expect = currBodyJSON
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
+	// Get body from one version ago in csv format
+	output = run.MustExec(t, fmt.Sprintf("qri get body %s --format csv", ref))
 	expect = prevBodyRepo
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
+
+	// Get body from one version ago in json format
+	output = run.MustExec(t, fmt.Sprintf("qri get body %s", ref))
+	expect = prevBodyJSON
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
 }
 
 func TestGetDatasetCheckedOut(t *testing.T) {
@@ -405,19 +426,34 @@ func TestGetDatasetCheckedOut(t *testing.T) {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 
-	// Get body from current commit.
-	output = run.MustExec(t, "qri get body me/my_ds")
+	// Get body from current commit as csv
+	output = run.MustExec(t, "qri get body me/my_ds --format csv")
 	expect = currBodyFSI
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 
-	// Get body from one version ago.
-	output = run.MustExec(t, fmt.Sprintf("qri get body %s", ref))
+	// Get body from current commit as json
+	output = run.MustExec(t, "qri get body me/my_ds")
+	expect = currBodyJSON
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
+	// Get body from one version ago as csv
+	output = run.MustExec(t, fmt.Sprintf("qri get body %s --format csv", ref))
 	expect = prevBodyRepo
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
+
+	// Get body from one version ago as json
+	output = run.MustExec(t, fmt.Sprintf("qri get body %s", ref))
+	expect = prevBodyJSON
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
 }
 
 func TestGetDatasetUsingDscache(t *testing.T) {
