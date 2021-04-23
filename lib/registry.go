@@ -27,8 +27,8 @@ func (m RegistryClientMethods) Name() string {
 // Attributes defines attributes for each method
 func (m RegistryClientMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"createprofile":   {Endpoint: denyHTTP},
-		"proveprofilekey": {Endpoint: denyHTTP},
+		"createprofile":   {Endpoint: DenyHTTP},
+		"proveprofilekey": {Endpoint: DenyHTTP},
 	}
 }
 

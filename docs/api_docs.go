@@ -18,28 +18,31 @@ import (
 	"github.com/qri-io/qri/version"
 )
 
-type Docs struct {
+type docs struct {
 	QriVersion string
-	LibMethods []LibMethod
-	Types      []QriType
+	LibMethods []libMethod
+	Types      []qriType
 }
 
-type LibMethod struct {
+type libMethod struct {
 	MethodSet  string
 	MethodName string
 	Doc        string
-	Params     QriType
+	Params     qriType
 	Endpoint   lib.APIEndpoint
 	HTTPVerb   string
+	Response   response
+	Paginated  bool
 }
 
-type QriType struct {
-	Name   string
-	Doc    string
-	Fields []Field
+type qriType struct {
+	Name        string
+	Doc         string
+	Fields      []field
+	WriteToSpec bool
 }
 
-type Field struct {
+type field struct {
 	Name         string
 	Type         string
 	TypeIsCommon bool
@@ -48,13 +51,19 @@ type Field struct {
 	Comment      string
 }
 
+type response struct {
+	Type    string
+	IsArray bool
+}
+
+// OpenAPIYAML generates the OpenAPI Spec for the Qri API
 func OpenAPIYAML() (*bytes.Buffer, error) {
 	qriTypes, err := parseQriTypes()
 	if err != nil {
 		return nil, err
 	}
 
-	var methods []LibMethod
+	var methods []libMethod
 
 	var nilInst *lib.Instance
 	for _, methodSet := range nilInst.AllMethods() {
@@ -67,7 +76,6 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 			i := msetType.Method(k)
 			f := i.Type
 			if f.NumIn() != 3 {
-				// fmt.Printf("%q does not have 2 inputs. Instead has %d\n", i.Name, f.NumIn())
 				continue
 			}
 
@@ -84,23 +92,105 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 			}
 
 			attrs := methodAttributes[strings.ToLower(i.Name)]
-			m := LibMethod{
+			if attrs.Endpoint == lib.DenyHTTP {
+				continue
+			}
+
+			// Validate the output values of the implementation
+			numOuts := f.NumOut()
+			if numOuts < 1 || numOuts > 3 {
+				fmt.Printf("%s: bad number of outputs: %d\n", i.Name, numOuts)
+				continue
+			}
+			// Validate output values
+			var outType reflect.Type
+			outTypeName := ""
+			outIsArray := false
+			returnsCursor := false
+			if numOuts == 2 || numOuts == 3 {
+				// First output is anything
+				outType = f.Out(0)
+			}
+
+			if outType == nil {
+				outTypeName = "nil"
+			} else {
+				if outType.Kind() == reflect.Ptr {
+					outType = outType.Elem()
+				}
+				if outType.Kind() == reflect.Slice {
+					outType = outType.Elem()
+					outIsArray = true
+				}
+				outTypeName = outType.String()
+
+				// all lib structs are already defined
+				outTypeName = strings.TrimPrefix(outTypeName, "lib.")
+			}
+
+			outTypeName = getMappedType(outTypeName)
+
+			if outTypeName == "string" || outTypeName == "Bytes" {
+				outTypeName = "RawResponse"
+			}
+
+			if numOuts == 3 {
+				// Second output must be a cursor
+				outCursorType := f.Out(1)
+				if outCursorType.Name() != "Cursor" {
+					fmt.Printf("%s: second output val must be a cursor, got %v\n", i.Name, outCursorType)
+					// continue
+				}
+				returnsCursor = true
+			}
+
+			// TODO(arqu): we can use error types for the response definitions as well
+			// for now a generic one will do
+			// Last output must be an error
+			outErrType := f.Out(numOuts - 1)
+			if outErrType.Name() != "error" {
+				fmt.Printf("%s: last output val should be error, got %v\n", i.Name, outErrType)
+				// continue
+			}
+
+			if !isDefinedResponse(outTypeName, qriTypes) {
+				fmt.Printf("%s: '%s' output response type not defined (%s)\n", i.Name, outTypeName, inType.Name())
+				outTypeName = "NotDefined"
+			}
+
+			if qt, ok := qriTypes[outTypeName]; ok {
+				qt.WriteToSpec = true
+				qriTypes[outTypeName] = qt
+			}
+
+			if returnsCursor {
+				fmt.Printf("%s: is paginated", i.Name)
+			}
+
+			m := libMethod{
 				MethodSet:  methodSet.Name(),
 				MethodName: i.Name,
 				Endpoint:   attrs.Endpoint,
 				HTTPVerb:   strings.ToLower(attrs.HTTPVerb),
 				Params:     qriTypes[inType.Name()],
+				Paginated:  returnsCursor,
+				Response: response{
+					Type:    outTypeName,
+					IsArray: outIsArray,
+				},
 			}
 			methods = append(methods, m)
 		}
 	}
 
-	qriTypeSlice := make([]QriType, 0, len(qriTypes))
+	qriTypeSlice := make([]qriType, 0, len(qriTypes))
 	for _, qriType := range qriTypes {
-		qriTypeSlice = append(qriTypeSlice, qriType)
+		if qriType.WriteToSpec {
+			qriTypeSlice = append(qriTypeSlice, qriType)
+		}
 	}
 
-	d := Docs{
+	d := docs{
 		QriVersion: version.Version,
 		LibMethods: methods,
 		Types:      qriTypeSlice,
@@ -110,11 +200,51 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 	buf := &bytes.Buffer{}
 
 	err = tmpl.Execute(buf, d)
+
+	buf = sanitizeOutput(buf)
 	return buf, err
 }
 
-func parseQriTypes() (map[string]QriType, error) {
-	params := map[string]QriType{}
+func sanitizeOutput(buf *bytes.Buffer) *bytes.Buffer {
+	s := buf.String()
+	s = strings.Replace(s, "\n\n", "\n", -1)
+	res := &bytes.Buffer{}
+	res.WriteString(s)
+	return res
+}
+
+func isDefinedResponse(r string, qriTypes map[string]qriType) bool {
+	responseMap := map[string]bool{
+		// Placeholders
+		"Dataset":                   true,
+		"VersionInfo":               true,
+		"StatusItem":                true,
+		"Profile":                   true,
+		"Ref":                       true,
+		"DAGManifest":               true,
+		"DAGInfo":                   true,
+		"ChangeReport":              true,
+		"MappedArraysOfVersionInfo": true,
+
+		// Implemented
+		"RawResponse": true,
+		"Nil":         true,
+		"NotDefined":  true,
+	}
+
+	if res, ok := responseMap[r]; ok {
+		return res
+	}
+
+	if qriTypes != nil {
+		_, isQriType := qriTypes[r]
+		return isQriType
+	}
+	return false
+}
+
+func parseQriTypes() (map[string]qriType, error) {
+	params := map[string]qriType{}
 	// Create the AST by parsing src and test.
 	fset := token.NewFileSet()
 
@@ -144,21 +274,18 @@ func parseQriTypes() (map[string]QriType, error) {
 		panic(err)
 	}
 
-	p.Filter(func(name string) bool { return strings.HasSuffix(name, "Params") })
-
 	for _, t := range p.Types {
 		for _, spec := range t.Decl.Specs {
 			if typeSpec, ok := spec.(*ast.TypeSpec); ok {
 				if structSpec, ok := typeSpec.Type.(*ast.StructType); ok {
-					fields := make([]Field, 0, len(structSpec.Fields.List))
+					fields := make([]field, 0, len(structSpec.Fields.List))
 					for _, f := range structSpec.Fields.List {
 						if len(f.Names) == 0 {
-							// fmt.Printf("skipping unnamed (probably embedded struct) field in %q\n", typeSpec.Name)
 							continue
 						}
 
 						t, common := typeToString(fset, f.Type)
-						field := Field{
+						field := field{
 							Name:         f.Names[0].String(),
 							Type:         t,
 							TypeIsCommon: common,
@@ -173,10 +300,12 @@ func parseQriTypes() (map[string]QriType, error) {
 						fields = append(fields, field)
 					}
 
-					p := QriType{
-						Name:   typeSpec.Name.String(),
-						Doc:    sanitizeDocString(typeSpec.Comment.Text()),
-						Fields: fields,
+					writeToSpec := strings.HasSuffix(typeSpec.Name.String(), "Params") || strings.HasSuffix(typeSpec.Name.String(), "ParamsPod")
+					p := qriType{
+						Name:        typeSpec.Name.String(),
+						Doc:         sanitizeDocString(typeSpec.Comment.Text()),
+						Fields:      fields,
+						WriteToSpec: writeToSpec,
 					}
 					params[typeSpec.Name.String()] = p
 				}
@@ -201,29 +330,43 @@ func sanitizeDocString(s string) string {
 	return s
 }
 
-func typeToString(fset *token.FileSet, exp ast.Expr) (typ string, isJSONSchemaType bool) {
-	buf := &bytes.Buffer{}
-	printer.Fprint(buf, fset, exp)
-	str := buf.String()
+func getMappedType(f string) string {
+
+	f = strings.TrimPrefix(f, "*")
+
 	typeMap := map[string]string{
 		// TODO(b5): we should get these data types captured in the type map, but many
 		// aren't defined in lib, or don't end in "Params". Lots of these are used
 		// as repsonse objects
-		"*dataset.Dataset":     "Dataset",
-		"*dag.Manifest":        "Manifest",
-		"*dsref.Rev":           "Revision",
-		"[]byte":               "Bytes",
-		"[]string":             "String Array",
-		"map[string]string":    "Record",
-		"io.Writer":            "Writer",
-		"dataset.FormatConfig": "FormatConfig",
-		"config.ProfilePod":    "Profile",
-		"*config.ProfilePod":   "Profile",
-		"*dataset.Transform":   "Transform",
-		"*config.Config":       "Config",
-		"key.CryptoGenerator":  "CryptoGenerator",
-		"profile.ID":           "ProfileID",
-		"*RegistryProfile":     "RegistryProfile",
+		"dataset.Dataset":                "Dataset",
+		"dataset.Structure":              "DatasetStructure",
+		"dataset.Transform":              "Transform",
+		"dag.Manifest":                   "DAGManifest",
+		"dag.Info":                       "DAGInfo",
+		"dsref.Rev":                      "Revision",
+		"dsref.Ref":                      "Ref",
+		"dsref.VersionInfo":              "VersionInfo",
+		"[]uint8":                        "Bytes",
+		"uint8":                          "Bytes",
+		"[]byte":                         "Bytes",
+		"[]string":                       "StringArray",
+		"map[string]string":              "Record",
+		"io.Writer":                      "Writer",
+		"dataset.FormatConfig":           "FormatConfig",
+		"config.ProfilePod":              "Profile",
+		"config.Config":                  "Config",
+		"key.CryptoGenerator":            "CryptoGenerator",
+		"profile.ID":                     "ProfileID",
+		"RegistryProfile":                "RegistryProfile",
+		"nil":                            "Nil",
+		"fsi.StatusItem":                 "StatusItem",
+		"changes.ChangeReportResponse":   "ChangeReport",
+		"map[string][]dsref.VersionInfo": "MappedArraysOfVersionInfo",
+		"[]*Delta":                       "DeltaValues",
+		"json.RawMessage":                "Bytes",
+		"ioes.IOStreams":                 "Nil",
+		"[]jsonschema.KeyError":          "JSONKeyErrors",
+		"time.Duration":                  "DurationString",
 
 		// map go types to jsonschema types:
 		"bool":    "boolean",
@@ -232,9 +375,19 @@ func typeToString(fset *token.FileSet, exp ast.Expr) (typ string, isJSONSchemaTy
 		"float64": "number",
 	}
 
-	if replace, ok := typeMap[str]; ok {
-		str = replace
+	if replace, ok := typeMap[f]; ok {
+		f = replace
 	}
+
+	return f
+}
+
+func typeToString(fset *token.FileSet, exp ast.Expr) (typ string, isJSONSchemaType bool) {
+	buf := &bytes.Buffer{}
+	printer.Fprint(buf, fset, exp)
+	str := buf.String()
+
+	str = getMappedType(str)
 
 	_, isJSONSchemaType = map[string]struct{}{
 		"array":   struct{}{},

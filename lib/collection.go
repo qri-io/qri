@@ -28,7 +28,7 @@ func (m CollectionMethods) Name() string {
 func (m CollectionMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		"list":        {Endpoint: AEList, HTTPVerb: "POST"},
-		"listrawrefs": {Endpoint: denyHTTP},
+		"listrawrefs": {Endpoint: DenyHTTP},
 	}
 }
 

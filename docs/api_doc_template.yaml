@@ -23,7 +23,58 @@ paths:
       {{ end }}
       responses:
         '200':
-          '$ref': '#/components/responses/StatusOK'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+{{ if not .Response.IsArray }}
+                        allOf:
+                          - $ref: '#/components/schemas/{{ .Response.Type }}'
+{{ end }}
+{{ if .Response.IsArray }}
+                        type: array
+                        items:
+                          allOf:
+                            - $ref: '#/components/schemas/{{ .Response.Type }}'
+{{ end}}
+{{ if .Paginated }}
+                      pagination:
+                        allOf:
+                          - $ref: '#/components/schemas/Pagination'
+{{ end }}
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
 {{- end -}}
 {{- end }}
 
@@ -32,17 +83,76 @@ components:
 {{- range .Types }}
     {{ .Name }}:
       type: object
-      properties:
+{{ if .Fields }}      properties: {{end}}
         {{- range .Fields }}
         {{ .Name }}:
 {{ if .TypeIsCommon }}          type: {{ .Type }}{{ end }}
+{{ if not .TypeIsCommon }}          type: object{{ end }}
 {{ if ne .Doc "" }}          description: "{{ .Doc }}"{{ end }}
 {{- end }}
 {{- end }}
-  responses:
+### Response Schemas
+## Base
+    APIResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          nullable: true
+        meta:
+          type: object
+          nullable: true
     StatusOK:
-      description: Generic OK response.
-      content:
-        application/json:
-          schema:
-            type: object
+      type: object
+    String:
+      type: string
+    Nil:
+      type: object
+      nullable: true
+    NotDefined:
+      type: object
+      nullable: true
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        resultCount:
+          type: integer
+        nextUrl:
+          type: string
+        prevUrl:
+          type: string
+    RawResponse:
+      # supports all string formats: string, binary, byte
+      type: string
+## Qri
+    Dataset:
+      type: object 
+    VersionInfo:
+      type: object
+    StatusItem:
+      type: object
+    Profile:
+      type: object
+    Ref:
+      type: object
+    DAGManifest:
+      type: object
+    DAGInfo:
+      type: object
+    ChangeReport:
+      type: object
+    MappedArraysOfVersionInfo:
+      type: object
+      additionalProperties: true
+## Error
+    APIMetaError:
+      type: object
+      properties:
+        code:
+          type: integer
+        error:
+          type: string
