@@ -25,9 +25,9 @@ func (m ConfigMethods) Name() string {
 func (m ConfigMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		// config methods are not allowed over HTTP nor RPC
-		"getconfig":     {Endpoint: denyHTTP},
-		"getconfigkeys": {Endpoint: denyHTTP},
-		"setconfig":     {Endpoint: denyHTTP},
+		"getconfig":     {Endpoint: DenyHTTP},
+		"getconfigkeys": {Endpoint: DenyHTTP},
+		"setconfig":     {Endpoint: DenyHTTP},
 	}
 }
 

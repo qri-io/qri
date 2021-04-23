@@ -308,8 +308,8 @@ func (m *animalMethods) Name() string {
 
 func (m *animalMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"cat": {Endpoint: denyHTTP},
-		"dog": {Endpoint: denyHTTP},
+		"cat": {Endpoint: DenyHTTP},
+		"dog": {Endpoint: DenyHTTP},
 	}
 }
 

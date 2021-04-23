@@ -20,6 +20,8 @@ import (
 func main() {
 	var (
 		dir        string
+		api        bool
+		apiOnly    bool
 		merge      string
 		filenames  []string
 		aggregator []byte
@@ -27,8 +29,11 @@ func main() {
 
 	flag.StringVar(&dir, "dir", "docs", "path to the docs directory")
 	flag.StringVar(&merge, "filename", "", "docs will be merged into one markdown file with this filename. default extension: markdown")
+	flag.BoolVar(&api, "api", false, "docs will generate the api spec")
+	flag.BoolVar(&apiOnly, "apiOnly", false, "docs will generate the api spec and stop")
 
 	flag.Parse()
+	api = api || apiOnly
 
 	ctx := context.Background()
 
@@ -40,6 +45,21 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 			os.Exit(1)
+		}
+	}
+
+	if api {
+		buf, err := OpenAPIYAML()
+		if err != nil {
+			log.Fatal(err)
+			os.Exit(1)
+		}
+		err = ioutil.WriteFile(filepath.Join(dir, "open_api_spec.yaml"), buf.Bytes(), 0777)
+		if err != nil {
+			panic(err)
+		}
+		if apiOnly {
+			os.Exit(0)
 		}
 	}
 

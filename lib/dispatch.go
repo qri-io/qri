@@ -250,7 +250,9 @@ type callable struct {
 	DenyRPC   bool
 }
 
-// AllMethods returns a method set for documentation purposes,
+// AllMethods returns a method set for documentation purposes
+// TODO(arqu): this is intended to merge with RegisterMethods as it's only exposed
+// for generating the OpenAPI spec
 func (inst *Instance) AllMethods() []MethodSet {
 	return []MethodSet{
 		inst.Access(),
