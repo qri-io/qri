@@ -1,3 +1,121 @@
+<a name="v0.10.0"></a>
+# [v0.10.0](https://github.com/qri-io/qri/compare/v0.9.13...v0.10.0) (2021-04-23)
+
+## Massive Improvements to Save performance
+
+## Completely Overhauled API
+
+## Redesigned Lib interface
+
+## Step-Based Transform Execution
+
+## 
+
+Now down to 6273 Lines of code.
+
+### Bug Fixes
+
+* **api:** Fix unmarshal bug in api test ([0234f30](https://github.com/qri-io/qri/commit/0234f30))
+* **api:** fix vet error ([afbe53e](https://github.com/qri-io/qri/commit/afbe53e))
+* **api:** handle OPTIONS requests on refRoute handlers ([395d5ae](https://github.com/qri-io/qri/commit/395d5ae))
+* **api:** health & root endpoints use middleware, which handles OPTIONS ([5f421eb](https://github.com/qri-io/qri/commit/5f421eb))
+* **apply:** bad API endpoint for apply over HTTP ([c5cc840](https://github.com/qri-io/qri/commit/c5cc840))
+* **base.ListDatasets:** support -1 limit to list all datasets ([bd2f831](https://github.com/qri-io/qri/commit/bd2f831))
+* **base.SaveDataset:** move logbook write operation back down from lib ([a00f1b8](https://github.com/qri-io/qri/commit/a00f1b8))
+* **changes:** "left" side of report should be the previous path ([32b46ff](https://github.com/qri-io/qri/commit/32b46ff))
+* **changes:** column renames are properly handled now ([c306e41](https://github.com/qri-io/qri/commit/c306e41))
+* **cmd:** nil pointer dereference in `PrintProgressBarsOnEvents` ([b0a2ec0](https://github.com/qri-io/qri/commit/b0a2ec0))
+* **dispatch:** Add default source resolver to Attributes ([e074bf4](https://github.com/qri-io/qri/commit/e074bf4))
+* **dispatch:** Calls that return only 1 value can work across RPC ([ceefeaa](https://github.com/qri-io/qri/commit/ceefeaa))
+* **dispatch:** Comments clarifying Methods and Attributes ([33222c6](https://github.com/qri-io/qri/commit/33222c6))
+* **dispatch:** Dispatch for transform. Transformer instead of Service ([24562c5](https://github.com/qri-io/qri/commit/24562c5))
+* **dispatch:** Fix code style and get tests passing ([4cdb3f5](https://github.com/qri-io/qri/commit/4cdb3f5))
+* **dispatch:** Fix for fsi plumbing commands, to work over http ([8070537](https://github.com/qri-io/qri/commit/8070537))
+* **dispatch:** MethodSet interface to get name for dispatch ([9b73d4b](https://github.com/qri-io/qri/commit/9b73d4b))
+* **dispatch:** send source over wire and cleanup attr definitions ([8a2ddf8](https://github.com/qri-io/qri/commit/8a2ddf8))
+* **dispatch:** Use dispatcher interface for DatasetMethods ([201edda](https://github.com/qri-io/qri/commit/201edda))
+* **dispatch:** When registering, compare methods to impl ([c004812](https://github.com/qri-io/qri/commit/c004812))
+* **dsfs:** fix adjustments to meta prior to commit message generation ([365cbb9](https://github.com/qri-io/qri/commit/365cbb9))
+* **dsfs:** LoadDataset using the mux filesystem. Error if nil ([75215be](https://github.com/qri-io/qri/commit/75215be))
+* **dsfs:** remove dataset field computing deadlock ([ef615a9](https://github.com/qri-io/qri/commit/ef615a9))
+* **dsfs:** set script paths before generating commit messages ([8174996](https://github.com/qri-io/qri/commit/8174996))
+* **fill:** Map keys are case-insensitive, handle maps recursively ([ab27f1b](https://github.com/qri-io/qri/commit/ab27f1b))
+* **fsi:** fsi.ReadDir sets the '/fsi' path prefix ([3d64468](https://github.com/qri-io/qri/commit/3d64468))
+* **http:** expect json requests to decode, if the body is not empty ([c50ea28](https://github.com/qri-io/qri/commit/c50ea28))
+* **http:** fix httpClient error checking ([6f4567e](https://github.com/qri-io/qri/commit/6f4567e))
+* **init:** TargetDir for init, can be absolute, is created if needed ([55c9ff6](https://github.com/qri-io/qri/commit/55c9ff6))
+* **key:** fix local keystore key.ID encoding, require ID match keys ([a469b6e](https://github.com/qri-io/qri/commit/a469b6e))
+* **lib:** Align input params across all lib methods ([7ba26b6](https://github.com/qri-io/qri/commit/7ba26b6))
+* **lib:** don't ignore serialization errors when getting full datasets ([64abb7e](https://github.com/qri-io/qri/commit/64abb7e))
+* **lib:** Improve context passing and visibility of internal structs ([8f6509b](https://github.com/qri-io/qri/commit/8f6509b))
+* **list:** List datasets even if some refs have bad profileIDs ([11b6763](https://github.com/qri-io/qri/commit/11b6763))
+* **load:** Fix spec test to exercise LoadDataset ([f978ec7](https://github.com/qri-io/qri/commit/f978ec7))
+* **logbook:** commit timestamps overwrite run timestamps in logs ([2ab44d0](https://github.com/qri-io/qri/commit/2ab44d0))
+* **logbook:** Logsync validates that ref has correct profileID ([153c4b9](https://github.com/qri-io/qri/commit/153c4b9))
+* **logbook:** remove 'stranded' log histories on new dataset creation ([2412a40](https://github.com/qri-io/qri/commit/2412a40))
+* **mux:** allow api mux override ([eccdf9b](https://github.com/qri-io/qri/commit/eccdf9b))
+* **p2p:** dag `MissingManifest` sigfaults if there is a nil manifest ([04ec5b2](https://github.com/qri-io/qri/commit/04ec5b2))
+* **p2p:** qri bootstrap addrs config migration ([0680097](https://github.com/qri-io/qri/commit/0680097))
+* **prove:** Prove command updates local logbook as needed ([b09a2eb](https://github.com/qri-io/qri/commit/b09a2eb))
+* **prove:** Store the original KeyID on config.profile ([88214a4](https://github.com/qri-io/qri/commit/88214a4))
+* **pull:** Pull uses network resolver. Fixes integration test. ([d049958](https://github.com/qri-io/qri/commit/d049958))
+* **remote:** always send progress completion on client push/pull events ([afcb2f8](https://github.com/qri-io/qri/commit/afcb2f8))
+* **repo:** Don't use blank path for new repo in tests ([1ec8e74](https://github.com/qri-io/qri/commit/1ec8e74))
+* **rpc:** unregister dataset methods ([6a2b213](https://github.com/qri-io/qri/commit/6a2b213))
+* **run:** fix unixnano -> *time.Time conversion, clean up transform logging ([c903657](https://github.com/qri-io/qri/commit/c903657))
+* **save:** Remove dry-run, recall, return-body from save path ([fac37da](https://github.com/qri-io/qri/commit/fac37da))
+* **search:** Dispatch for search ([8570abf](https://github.com/qri-io/qri/commit/8570abf))
+* **startf/ds.set_body:** infer structure when ds.set_body is called ([a8a3492](https://github.com/qri-io/qri/commit/a8a3492))
+* **stats:** close accumulator to finalize output ([1b7f4f1](https://github.com/qri-io/qri/commit/1b7f4f1))
+* **test:** fix api tests to consume refstr ([e03ef3a](https://github.com/qri-io/qri/commit/e03ef3a))
+* **token:** `claim` now includes `ProfileID` ([8dd40e4](https://github.com/qri-io/qri/commit/8dd40e4))
+* **transform:** don't duplicate transform steps on save ([8ace963](https://github.com/qri-io/qri/commit/8ace963))
+* **transform:** don't write to out streams when nil, use updated preview.Create ([28651cb](https://github.com/qri-io/qri/commit/28651cb))
+* **version:** add warning when built with 'go install' ([1063a71](https://github.com/qri-io/qri/commit/1063a71))
+
+
+### Features
+
+* **api:** change report API ([ca16f3c](https://github.com/qri-io/qri/commit/ca16f3c))
+* **api:** read oauth tokens to request context ([f024b26](https://github.com/qri-io/qri/commit/f024b26))
+* **apply:** Apply command, and --apply flag for save ([c01a4bf](https://github.com/qri-io/qri/commit/c01a4bf))
+* **bus:** Subscribe to all, or by ID. "Type" -> "Topic" ([cc139bc](https://github.com/qri-io/qri/commit/cc139bc))
+* **cmd:** add access command ([1c56680](https://github.com/qri-io/qri/commit/1c56680))
+* **dispatch:** Abs paths on inputs to dispatch methods ([a19efcc](https://github.com/qri-io/qri/commit/a19efcc))
+* **dispatch:** Dispatch func can return 1-3 values, 2 being Cursor ([304f7c5](https://github.com/qri-io/qri/commit/304f7c5))
+* **dispatch:** Method attributes contain http endpoint and verb ([0036cb7](https://github.com/qri-io/qri/commit/0036cb7))
+* **dsfs:** compute & store stats component at save time ([3ff3b75](https://github.com/qri-io/qri/commit/3ff3b75))
+* **httpClient:** introducing an httpClient ([#1629](https://github.com/qri-io/qri/issues/1629)) ([8ecde53](https://github.com/qri-io/qri/commit/8ecde53))
+* **keystore:** keystore implmenetation ([#1602](https://github.com/qri-io/qri/issues/1602)) ([205165a](https://github.com/qri-io/qri/commit/205165a))
+* **lib:** attach active user to scope ([608540a](https://github.com/qri-io/qri/commit/608540a))
+* **lib:** Create Auth tokens using inst.Access() ([3be7af2](https://github.com/qri-io/qri/commit/3be7af2))
+* **lib:** Dispatch methods call, used by FSI ([afaf06d](https://github.com/qri-io/qri/commit/afaf06d))
+* **list:** Add ProfileID restriction option to List ([774fa06](https://github.com/qri-io/qri/commit/774fa06))
+* **logbook:** add methods for writing transform run ops ([7d0cb91](https://github.com/qri-io/qri/commit/7d0cb91))
+* **profile:** ResolveProfile replaces CanonicalizeProfile ([7bd848b](https://github.com/qri-io/qri/commit/7bd848b))
+* **prove:** Prove a new keypair for an account, set original profileID ([6effbea](https://github.com/qri-io/qri/commit/6effbea))
+* **run:** run package defines state of a transform run ([8e69e5e](https://github.com/qri-io/qri/commit/8e69e5e))
+* **save:** emit save events. Print progress bars on save ([3c979ed](https://github.com/qri-io/qri/commit/3c979ed))
+* **save:** recall transform on empty --apply, write run operations ([3949be9](https://github.com/qri-io/qri/commit/3949be9))
+* **save:** support custom timestamps on commit ([e8c18fa](https://github.com/qri-io/qri/commit/e8c18fa))
+* **sql:** Disable sql command on 32-bit arm to fix compilation ([190b5cb](https://github.com/qri-io/qri/commit/190b5cb))
+* **stats:** overhaul stats service interface, implement os stats cache ([2128a0c](https://github.com/qri-io/qri/commit/2128a0c))
+* **stats:** stats based on sketch/probabalistic data structures ([f6191c8](https://github.com/qri-io/qri/commit/f6191c8))
+* **transform:** Add runID to transform. Publish some events. ([5ceac77](https://github.com/qri-io/qri/commit/5ceac77))
+* **transform:** emit DatasetPreview event after startf transform step ([28bb8b0](https://github.com/qri-io/qri/commit/28bb8b0))
+* **validate:** Parameters to methods will Validate automatically ([7bb1515](https://github.com/qri-io/qri/commit/7bb1515))
+* **version:** add details reported by "qri version" ([e6a0a67](https://github.com/qri-io/qri/commit/e6a0a67))
+* **vesrion:** add json format output for version command ([ad4dcc7](https://github.com/qri-io/qri/commit/ad4dcc7))
+* **websocket:** publish dataset save events to websocket event connections ([378e922](https://github.com/qri-io/qri/commit/378e922))
+
+
+### Performance Improvements
+
+* **dsfs:** don't calculate commit descriptions if title and message are set ([f5ec420](https://github.com/qri-io/qri/commit/f5ec420))
+* **save:** improve save performance, using bounded memory ([7699f02](https://github.com/qri-io/qri/commit/7699f02))
+
+
+
 <a name="v0.9.13"></a>
 # [v0.9.13](https://github.com/qri-io/qri/compare/v0.9.12...v0.9.13) (2020-10-12)
 
