@@ -3,11 +3,14 @@ package api
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/gorilla/mux"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/qri/lib"
 )
 
 func TestGetZip(t *testing.T) {
@@ -96,12 +99,216 @@ func assertStatusCode(t *testing.T, description string, actualStatusCode, expect
 func datasetJSONResponse(t *testing.T, body string) *dataset.Dataset {
 	t.Helper()
 	res := struct {
-		Data struct {
-			Dataset *dataset.Dataset
-		}
+		Data *dataset.Dataset
+		Meta map[string]interface{}
 	}{}
 	if err := json.Unmarshal([]byte(body), &res); err != nil {
 		t.Fatal(err)
 	}
-	return res.Data.Dataset
+	return res.Data
+}
+
+func TestGetCaseAndParamsFromRequest(t *testing.T) {
+	var expectParams *lib.GetParams
+	var expectCase string
+
+	// get request with no headers
+	r, _ := http.NewRequest("GET", "/get/peer/my_ds", nil)
+	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds", "selector": "meta"})
+	expectParams = &lib.GetParams{
+		Ref:      "peer/my_ds",
+		Selector: "meta",
+	}
+	expectCase = ""
+	gotCase, gotParams, err := getCaseAndParamsFromRequest(r)
+	if err != nil {
+		t.Fatalf("error getting case and params from basic get request: %s", err)
+	}
+	if diff := cmp.Diff(expectCase, gotCase); diff != "" {
+		t.Errorf("request with no headers case mismatch (-want +got):\n%s", diff)
+	}
+
+	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
+		t.Errorf("request with no headers params mismatch (-want +got):\n%s", diff)
+	}
+
+	// Construct a request with "Accept: text/csv"
+	r, _ = http.NewRequest("GET", "", nil)
+	r.Header.Add("Accept", "text/csv")
+	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds", "selector": "body"})
+	expectParams = &lib.GetParams{
+		Ref:      "peer/my_ds",
+		Selector: "body",
+		All:      true,
+	}
+	expectCase = "csv"
+	gotCase, gotParams, err = getCaseAndParamsFromRequest(r)
+	if err != nil {
+		t.Fatalf("error getting case and params from get request with 'text/csv' header: %s", err)
+	}
+	if diff := cmp.Diff(expectCase, gotCase); diff != "" {
+		t.Errorf("request with 'text/csv' header case mismatch (-want +got):\n%s", diff)
+	}
+
+	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
+		t.Errorf("request with 'text/csv' header params mismatch (-want +got):\n%s", diff)
+	}
+
+	// Construct a request with format=csv and "Accept: text/csv", which is ok
+	r, _ = http.NewRequest("GET", "?format=csv", nil)
+	r.Header.Add("Accept", "text/csv")
+	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds", "selector": "body.csv"})
+	expectParams = &lib.GetParams{
+		Ref:      "peer/my_ds",
+		Selector: "body",
+		All:      true,
+	}
+	expectCase = "csv"
+	gotCase, gotParams, err = getCaseAndParamsFromRequest(r)
+	if err != nil {
+		t.Fatalf("error getting case and params from get request with format=csv: %s", err)
+	}
+	if diff := cmp.Diff(expectCase, gotCase); diff != "" {
+		t.Errorf("request with format=csv case mismatch (-want +got):\n%s", diff)
+	}
+
+	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
+		t.Errorf("request with format=csv params mismatch (-want +gmt):\n%s", diff)
+	}
+
+	// Construct a request with format=json and "Accept: text/csv", which is an error
+	r, _ = http.NewRequest("GET", "?format=json", nil)
+	r.Header.Add("Accept", "text/csv")
+	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds"})
+
+	_, _, err = getCaseAndParamsFromRequest(r)
+	if err == nil {
+		t.Error("expected to get an error, but did not get one")
+	}
+	expectErr := `format "json" conflicts with header "Accept: text/csv"`
+	if expectErr != err.Error() {
+		t.Errorf("error mismatch, expect: %q, got %q", expectErr, err)
+	}
+
+	// Construct a request with header "Accept: application/zip"
+	r, _ = http.NewRequest("GET", "", nil)
+	r.Header.Add("Accept", "application/zip")
+	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds"})
+	expectParams = &lib.GetParams{
+		Ref: "peer/my_ds",
+	}
+	expectCase = "zip"
+	gotCase, gotParams, err = getCaseAndParamsFromRequest(r)
+	if err != nil {
+		t.Fatalf("error getting case and params from get request with 'application/zip' header: %s", err)
+	}
+	if diff := cmp.Diff(expectCase, gotCase); diff != "" {
+		t.Errorf("request with 'application/zip' header case mismatch (-want +got):\n%s", diff)
+	}
+
+	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
+		t.Errorf("request with 'application/zip' header params mismatch (-want +gbt):\n%s", diff)
+	}
+
+	// Construct a request with format=zip
+	r, _ = http.NewRequest("GET", "?format=zip", nil)
+	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds"})
+	expectParams = &lib.GetParams{
+		Ref: "peer/my_ds",
+	}
+	expectCase = "zip"
+	gotCase, gotParams, err = getCaseAndParamsFromRequest(r)
+	if err != nil {
+		t.Fatalf("error getting case and params from get request format=zip: %s", err)
+	}
+	if diff := cmp.Diff(expectCase, gotCase); diff != "" {
+		t.Errorf("request with format=zip case mismatch (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
+		t.Errorf("request with format=zip params mismatch (-want +gbt):\n%s", diff)
+	}
+
+	// Construct a request with dataset.json
+	r, _ = http.NewRequest("GET", "", nil)
+	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds", "selector": "dataset.json"})
+	expectParams = &lib.GetParams{
+		Ref: "peer/my_ds",
+	}
+	expectCase = "text/json"
+	gotCase, gotParams, err = getCaseAndParamsFromRequest(r)
+	if err != nil {
+		t.Fatalf("error getting case and params from get request selector=dataset.json: %s", err)
+	}
+	if diff := cmp.Diff(expectCase, gotCase); diff != "" {
+		t.Errorf("request with selector=dataset.json case mismatch (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
+		t.Errorf("request with selector=dataset.json params mismatch (-want +gbt):\n%s", diff)
+	}
+
+	// Construct a request with dataset.json
+	r, _ = http.NewRequest("GET", "", nil)
+	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds", "selector": "meta.json"})
+	expectParams = &lib.GetParams{
+		Ref:      "peer/my_ds",
+		Selector: "meta",
+	}
+	expectCase = "text/json"
+	gotCase, gotParams, err = getCaseAndParamsFromRequest(r)
+	if err != nil {
+		t.Fatalf("error getting case and params from get request selector=meta.json: %s", err)
+	}
+	if diff := cmp.Diff(expectCase, gotCase); diff != "" {
+		t.Errorf("request with selector=meta.json case mismatch (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
+		t.Errorf("request with selector=meta.json params mismatch (-want +gbt):\n%s", diff)
+	}
+
+	// Construct a request with format pretty
+	r, _ = http.NewRequest("GET", "?format=pretty", nil)
+	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds", "selector": "meta"})
+	expectParams = &lib.GetParams{
+		Ref:      "peer/my_ds",
+		Selector: "meta",
+	}
+	expectCase = "pretty"
+	gotCase, gotParams, err = getCaseAndParamsFromRequest(r)
+	if err != nil {
+		t.Fatalf("error getting case and params from get request format=pretty: %s", err)
+	}
+	if diff := cmp.Diff(expectCase, gotCase); diff != "" {
+		t.Errorf("request with format=pretty case mismatch (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
+		t.Errorf("request with format=pretty params mismatch (-want +gbt):\n%s", diff)
+	}
+
+	// Construct a request with dataset.json
+	r, _ = http.NewRequest("GET", "", nil)
+	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds", "selector": "meta.json"})
+	expectParams = &lib.GetParams{
+		Ref:      "peer/my_ds",
+		Selector: "meta",
+	}
+	expectCase = "text/json"
+	gotCase, gotParams, err = getCaseAndParamsFromRequest(r)
+	if err != nil {
+		t.Fatalf("error getting case and params from get request selector=meta.json: %s", err)
+	}
+	if diff := cmp.Diff(expectCase, gotCase); diff != "" {
+		t.Errorf("request with selector=meta.json case mismatch (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
+		t.Errorf("request with selector=meta.json params mismatch (-want +gbt):\n%s", diff)
+	}
+}
+
+func mustSetMuxVarsOnRequest(t *testing.T, r *http.Request, muxVars map[string]string) *http.Request {
+	r = mux.SetURLVars(r, muxVars)
+	setRefStringFromMuxVars(r)
+	if err := setMuxVarsToQueryParams(r); err != nil {
+		t.Fatal(err)
+	}
+	return r
 }
