@@ -16,7 +16,7 @@ func (inst *Instance) GiveAPIServer(middleware func(handler http.HandlerFunc) ht
 		handler := middleware(NewHTTPRequestHandler(inst, methodName))
 		// All endpoints use POST verb
 		httpVerb := http.MethodPost
-		m.Handle(string(call.Endpoint), handler).Methods(httpVerb)
+		m.Handle(string(call.Endpoint), handler).Methods(httpVerb, http.MethodOptions)
 	}
 	return m
 }
