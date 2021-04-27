@@ -20,9 +20,9 @@ func (m LogMethods) Name() string {
 // Attributes defines attributes for each method
 func (m LogMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"log":            {endpoint: denyRPC},
-		"rawlogbook":     {endpoint: denyRPC},
-		"logbooksummary": {endpoint: denyRPC},
+		"log":            {endpoint: denyHTTP},
+		"rawlogbook":     {endpoint: denyHTTP},
+		"logbooksummary": {endpoint: denyHTTP},
 	}
 }
 

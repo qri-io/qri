@@ -148,7 +148,7 @@ func TestVariadicReturnsWorkOverHTTP(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected to get error but did not get one")
 	}
-	expectErr = "method is not suported over RPC"
+	expectErr = "method is not supported over RPC"
 	if err.Error() != expectErr {
 		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
 	}
@@ -308,8 +308,8 @@ func (m *animalMethods) Name() string {
 
 func (m *animalMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"cat": {endpoint: denyRPC},
-		"dog": {endpoint: denyRPC},
+		"cat": {endpoint: denyHTTP},
+		"dog": {endpoint: denyHTTP},
 	}
 }
 
@@ -411,7 +411,7 @@ func (m *fruitMethods) Attributes() map[string]AttributeSet {
 		"cherry": {endpoint: "/cherry", httpVerb: "GET"},
 		"date":   {endpoint: "/date", httpVerb: "GET"},
 		// entawak cannot be called over RPC
-		"entawak": {endpoint: denyRPC},
+		"entawak": {endpoint: "/entawak", httpVerb: "POST", denyRPC: true},
 	}
 }
 

@@ -18,7 +18,7 @@ import (
 )
 
 // ErrUnsupportedRPC is an error for when running a method that is not supported via HTTP RPC
-var ErrUnsupportedRPC = errors.New("method is not suported over RPC")
+var ErrUnsupportedRPC = errors.New("method is not supported over RPC")
 
 const jsonMimeType = "application/json"
 const sourceResolver = "SourceResolver"

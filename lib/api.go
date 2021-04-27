@@ -167,8 +167,8 @@ const (
 	// AEConnectedQriProfiles lists qri profile connections
 	AEConnectedQriProfiles = APIEndpoint("/connections/qri")
 
-	// denyRPC if used will disable RPC calls for a method
-	denyRPC = APIEndpoint("")
+	// denyHTTP will disable HTTP access to a method
+	denyHTTP = APIEndpoint("")
 )
 
 // DsRefFromPath parses a path and returns a dsref.Ref
