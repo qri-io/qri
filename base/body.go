@@ -14,8 +14,8 @@ import (
 // ErrNoBodyToInline is an error returned when a dataset has no body for inlining
 var ErrNoBodyToInline = fmt.Errorf("no body to inline")
 
-// ReadBody grabs some or all of a dataset's body, writing an output in the desired format
-func ReadBody(ds *dataset.Dataset, format dataset.DataFormat, fcfg dataset.FormatConfig, limit, offset int, all bool) (data []byte, err error) {
+// ReadBodyBytes grabs some or all of a dataset's body, writing an output in the desired format
+func ReadBodyBytes(ds *dataset.Dataset, format dataset.DataFormat, fcfg dataset.FormatConfig, limit, offset int, all bool) (data []byte, err error) {
 	if ds == nil {
 		return nil, fmt.Errorf("can't load body from a nil dataset")
 	}
@@ -45,9 +45,9 @@ func ReadBody(ds *dataset.Dataset, format dataset.DataFormat, fcfg dataset.Forma
 	return data, nil
 }
 
-// ReadBodyAsInterface takes returns the Body as a go-native structure,
+// GetBody takes returns the Body as a go-native structure,
 // using limit, offset, and all parameters to determine what part of the Body to return
-func ReadBodyAsInterface(ds *dataset.Dataset, limit, offset int, all bool) (interface{}, error) {
+func GetBody(ds *dataset.Dataset, limit, offset int, all bool) (interface{}, error) {
 	if ds == nil {
 		return nil, fmt.Errorf("can't load body from a nil dataset")
 	}

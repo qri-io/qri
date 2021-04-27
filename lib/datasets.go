@@ -614,18 +614,18 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 		if fsi.IsFSIPath(ref.Path) {
 			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
 			// but no structure, which should infer a schema in order to read the body. Once that
-			// works we can remove the fsi.GetBodyAsInterface call and just use base.ReadBodyAsInterface.
+			// works we can remove the fsi.GetBody call and just use base.GetBody.
 			fsiPath := fsi.FilesystemPathToLocal(ref.Path)
-			res.Value, err = fsi.GetBodyAsInterface(fsiPath, p.Offset, p.Limit, p.All)
+			res.Value, err = fsi.GetBody(fsiPath, p.Offset, p.Limit, p.All)
 			if err != nil {
-				log.Debugf("Get dataset, fsi.GetBodyAsInterface %q failed, error: %s", fsiPath, err)
+				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", fsiPath, err)
 				return nil, err
 			}
 			return res, nil
 		}
-		res.Value, err = base.ReadBodyAsInterface(ds, p.Limit, p.Offset, p.All)
+		res.Value, err = base.GetBody(ds, p.Limit, p.Offset, p.All)
 		if err != nil {
-			log.Debugf("Get dataset, base.ReadBodyAsInterface %q failed, error: %s", ds, err)
+			log.Debugf("Get dataset, base.GetBody %q failed, error: %s", ds, err)
 			return nil, err
 		}
 		return res, nil
@@ -698,18 +698,18 @@ func getBodyBytes(scope scope, p *GetParams, format dataset.DataFormat, fc datas
 	if fsi.IsFSIPath(ref.Path) {
 		// TODO(dustmop): Need to handle the special case where an FSI directory has a body
 		// but no structure, which should infer a schema in order to read the body. Once that
-		// works we can remove the fsi.GetBody call and just use base.ReadBody.
+		// works we can remove the fsi.ReadBodyBytes call and just use base.ReadBodyBytes
 		fsiPath := fsi.FilesystemPathToLocal(ref.Path)
-		bodyBytes, err := fsi.GetBody(fsiPath, dataset.CSVDataFormat, fc, p.Offset, p.Limit, p.All)
+		bodyBytes, err := fsi.ReadBodyBytes(fsiPath, dataset.CSVDataFormat, fc, p.Offset, p.Limit, p.All)
 		if err != nil {
 			log.Debugf("lib.getBodyBytes, fsi.GetBody %q failed, error: %s", fsiPath, err)
 			return nil, err
 		}
 		return bodyBytes, nil
 	}
-	bodyBytes, err := base.ReadBody(ds, dataset.CSVDataFormat, fc, p.Limit, p.Offset, p.All)
+	bodyBytes, err := base.ReadBodyBytes(ds, dataset.CSVDataFormat, fc, p.Limit, p.Offset, p.All)
 	if err != nil {
-		log.Debugf("lib.getBodyBytes, body, base.ReadBodyAsInterface %q failed, error: %s", ds, err)
+		log.Debugf("lib.getBodyBytes, body, base.GetBody %q failed, error: %s", ds, err)
 		return nil, err
 	}
 	return bodyBytes, nil

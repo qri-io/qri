@@ -3,16 +3,18 @@ package base
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/qfs"
 )
 
-func TestReadBody(t *testing.T) {
+func TestGetBody(t *testing.T) {
 	ctx := context.Background()
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
@@ -25,7 +27,34 @@ func TestReadBody(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err := ReadBody(ds, dataset.JSONDataFormat, nil, 1, 1, false)
+	gotBody, err := GetBody(ds, 1, 1, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	gotBodyBytes, err := json.Marshal(gotBody)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	expectBodyBytes := []byte(`[["new york",8500000,44.4,true]]`)
+	if diff := cmp.Diff(expectBodyBytes, gotBodyBytes); diff != "" {
+		t.Errorf("GetBody output (-want +got):\n%s", diff)
+	}
+}
+
+func TestReadBodyBytes(t *testing.T) {
+	ctx := context.Background()
+	r := newTestRepo(t)
+	ref := addCitiesDataset(t, r)
+
+	ds, err := ReadDataset(ctx, r, ref.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = OpenDataset(ctx, r.Filesystem(), ds); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := ReadBodyBytes(ds, dataset.JSONDataFormat, nil, 1, 1, false)
 	if err != nil {
 		t.Error(err.Error())
 	}

@@ -12,8 +12,8 @@ import (
 	"github.com/qri-io/qri/base/component"
 )
 
-// GetBody is an FSI version of base.ReadBody
-func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfig, offset, limit int, all bool) ([]byte, error) {
+// ReadBodyBytes is an FSI version of base.ReadBodyBytes
+func ReadBodyBytes(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfig, offset, limit int, all bool) ([]byte, error) {
 
 	components, err := component.ListDirectoryComponents(dirPath)
 	if err != nil {
@@ -83,8 +83,8 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 	return dsio.ConvertFile(file, structure, st, limit, offset, all)
 }
 
-// GetBodyAsInterface is an FSI version of base.ReadBodyAsInterface
-func GetBodyAsInterface(dirPath string, offset, limit int, all bool) (interface{}, error) {
+// GetBody is an FSI version of base.GetBody
+func GetBody(dirPath string, offset, limit int, all bool) (interface{}, error) {
 	components, err := getAllComponents(dirPath)
 	bodyComponent := components.Base().GetSubcomponent("body")
 	f, err := os.Open(bodyComponent.Base().SourceFile)
@@ -93,7 +93,7 @@ func GetBodyAsInterface(dirPath string, offset, limit int, all bool) (interface{
 	}
 	defer f.Close()
 
-	structure, err := prepareInStructure(components, f)
+	structure, err := ensureStructureWithSchema(components, f)
 	if err != nil {
 		return nil, err
 	}
@@ -118,9 +118,9 @@ func getAllComponents(dirPath string) (component.Component, error) {
 	return components, nil
 }
 
-// prepareInStructure loads and fills the structure component. If no schema exists on the structure, if generates one
+// ensureStructureWithSchema loads and fills the structure component. If no schema exists on the structure, if generates one
 // using the bodyComponent
-func prepareInStructure(components component.Component, f *os.File) (*dataset.Structure, error) {
+func ensureStructureWithSchema(components component.Component, f *os.File) (*dataset.Structure, error) {
 	var structure *dataset.Structure
 
 	stComponent := components.Base().GetSubcomponent("structure")

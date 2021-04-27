@@ -386,9 +386,19 @@ func TestGetBodyWithoutStructure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Get the body, even though there's no structure. One will be inferred.
+	// Get the body as csv, even though there's no structure. One will be inferred.
 	output := run.MustExecCombinedOutErr(t, "qri get body --format csv")
 	expectBody := "for linked dataset [test_peer_get_body_without_structure/body_only]\n\none,two,3\nfour,five,6\n\n"
+	if diff := cmp.Diff(expectBody, output); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+
+	// Get the body as json, even though there's no structure. One will be inferred.
+	output = run.MustExecCombinedOutErr(t, "qri get body")
+	expectBody = `for linked dataset [test_peer_get_body_without_structure/body_only]
+
+[["one","two",3],["four","five",6]]
+`
 	if diff := cmp.Diff(expectBody, output); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
