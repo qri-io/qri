@@ -206,7 +206,7 @@ func handleRefRoute(m *mux.Router, p refRouteParams, f http.HandlerFunc) {
 func NewServerRoutes(s Server) *mux.Router {
 	cfg := s.GetConfig()
 
-	m := s.Instance.GiveAPIServer(s.Middleware, []string{"dataset.get"})
+	m := s.Instance.GiveAPIServer(s.Middleware, []string{})
 	m.Use(corsMiddleware(cfg.API.AllowedOrigins))
 	m.Use(muxVarsToQueryParamMiddleware)
 	m.Use(refStringMiddleware)
@@ -221,10 +221,14 @@ func NewServerRoutes(s Server) *mux.Router {
 	if !cfg.API.DisableWebui {
 		m.Handle(lib.AEWebUI.String(), s.Middleware(WebuiHandler))
 	}
+
 	// non POST/json dataset endpoints
+	m.Handle(bodyCSVRouteFullRef, s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
+	m.Handle(bodyCSVRouteShortRef, s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
 	routeParams = newrefRouteParams(lib.AEGet, false, true, http.MethodGet)
 	handleRefRoute(m, routeParams, s.Middleware(GetHandler(s.Instance, lib.AEGet.String())))
 	m.Handle(lib.AEUnpack.String(), s.Middleware(UnpackHandler(lib.AEUnpack.NoTrailingSlash())))
+
 	// sync/protocol endpoints
 	if cfg.Remote != nil && cfg.Remote.Enabled {
 		log.Info("running in `remote` mode")
