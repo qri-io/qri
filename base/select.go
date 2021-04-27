@@ -33,6 +33,7 @@ func Select(ctx context.Context, fs qfs.Filesystem, ref dsref.Ref, valuePath str
 
 // ApplyPath gets a dataset value by applying a case.Sensitve.dot.separated.path
 // ApplyPath cannot select file fields
+// TODO(ramfox): consider replacing this with base.GetPathValue
 func ApplyPath(ds *dataset.Dataset, path string) (interface{}, error) {
 	if path == "" {
 		return ds, nil

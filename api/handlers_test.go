@@ -1,10 +1,13 @@
 package api
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -59,6 +62,14 @@ func TestGetBodyCSVHandler(t *testing.T) {
 	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
 		t.Errorf("output mismatch (-want +got):\n%s", diff)
 	}
+
+	// incorrect http method
+	actualStatusCode, actualBody = APICallWithParams("POST", "/get/peer/test_ds/body.csv", nil, GetBodyCSVHandler(run.Inst), nil)
+	assertStatusCode(t, "get body.csv with incorrect http method", actualStatusCode, 404)
+
+	// invalid request
+	actualStatusCode, actualBody = APICall("/get/peer/test_ds/body.csv", GetBodyCSVHandler(run.Inst), map[string]string{"username": "peer", "name": "test_ds", "format": "json"})
+	assertStatusCode(t, "get body.csv with incorrect http method", actualStatusCode, 400)
 }
 
 func TestDatasetGet(t *testing.T) {
@@ -69,6 +80,9 @@ func TestDatasetGet(t *testing.T) {
 		Name: "test_ds",
 		Meta: &dataset.Meta{
 			Title: "title one",
+		},
+		Readme: &dataset.Readme{
+			ScriptBytes: []byte(`hello world`),
 		},
 	}
 	run.SaveDataset(&ds, "testdata/cities/data.csv")
@@ -86,12 +100,16 @@ func TestDatasetGet(t *testing.T) {
 	actualStatusCode, _ = APICall("/get/peer/test_ds?format=zip", GetHandler(run.Inst, ""), map[string]string{"username": "peer", "name": "test_ds"})
 	assertStatusCode(t, "get zip file", actualStatusCode, 200)
 
+	// Can get a readme script
+	actualStatusCode, _ = APICall("/get/peer/test_ds/readme.script", GetHandler(run.Inst, ""), map[string]string{"username": "peer", "name": "test_ds", "selector": "readme.script"})
+	assertStatusCode(t, "get readme.script", actualStatusCode, 200)
+
 	// Can get a single component
 	actualStatusCode, _ = APICall("/get/peer/test_ds/meta", GetHandler(run.Inst, ""), map[string]string{"username": "peer", "name": "test_ds", "selector": "meta"})
 	assertStatusCode(t, "get meta component", actualStatusCode, 200)
 
 	// Can get at an ipfs version
-	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr", GetHandler(run.Inst, ""), map[string]string{"username": "peer", "name": "test_ds", "fs": "mem", "hash": "QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr"})
+	actualStatusCode, _ = APICall("/get/peer/test_ds/at/mem/QmX3Y2CG4DhZMHKTPAGPpLdwRPoWDjZLxAJwcikNYo8Tqa", GetHandler(run.Inst, ""), map[string]string{"username": "peer", "name": "test_ds", "fs": "mem", "hash": "QmX3Y2CG4DhZMHKTPAGPpLdwRPoWDjZLxAJwcikNYo8Tqa"})
 	assertStatusCode(t, "get at content-addressed version", actualStatusCode, 200)
 
 	// Error 404 if ipfs version doesn't exist
@@ -105,6 +123,51 @@ func TestDatasetGet(t *testing.T) {
 	// Error 400 due to parse error of dsref
 	actualStatusCode, _ = APICall("/get/peer/test+ds", GetHandler(run.Inst, ""), map[string]string{"username": "peer", "name": "test+ds"})
 	assertStatusCode(t, "invalid dsref", actualStatusCode, 400)
+}
+
+func TestUnpackHandler(t *testing.T) {
+	buf := new(bytes.Buffer)
+	zw := zip.NewWriter(buf)
+
+	text := []byte(`{ "meta": { "title": "hello world!" }}`)
+	filename := "meta.json"
+	f, err := zw.Create(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = f.Write(text)
+	if err != nil {
+		t.Fatal(err)
+	}
+	zw.Close()
+
+	rr := bytes.NewReader(buf.Bytes())
+
+	r := httptest.NewRequest("POST", "/unpack", rr)
+	w := httptest.NewRecorder()
+
+	hf := UnpackHandler("/unpack")
+	hf(w, r)
+	if w.Result().StatusCode != 200 {
+		t.Errorf("%s", w.Body.String())
+		t.Fatal(fmt.Errorf("expected unpack handler to return with 200 status code, returned with %d", w.Result().StatusCode))
+	}
+
+	r = httptest.NewRequest("GET", "/unpack", nil)
+	w = httptest.NewRecorder()
+	hf(w, r)
+	if w.Result().StatusCode != 404 {
+		t.Errorf("%s", w.Body.String())
+		t.Fatal(fmt.Errorf("expected call to unpack handler with GET method to return status code 404, got %d", w.Result().StatusCode))
+	}
+
+	r = httptest.NewRequest("POST", "/unpack", nil)
+	w = httptest.NewRecorder()
+	hf(w, r)
+	if w.Result().StatusCode != 500 {
+		t.Errorf("%s", w.Body.String())
+		t.Fatal(fmt.Errorf("expected call to unpack handler with GET method to return status code 500, got %d", w.Result().StatusCode))
+	}
 }
 
 func assertStatusCode(t *testing.T, description string, actualStatusCode, expectStatusCode int) {
@@ -124,101 +187,6 @@ func datasetJSONResponse(t *testing.T, body string) *dataset.Dataset {
 		t.Fatal(err)
 	}
 	return res.Data
-}
-
-func TestGetGetParamsFromRequest(t *testing.T) {
-	var caseName string
-	var expectParams *lib.GetParams
-	var gotParams *lib.GetParams
-	var expectErr error
-	var r *http.Request
-
-	// Construct a request with a bad ref
-	caseName = "get request with bad ref"
-	r, _ = http.NewRequest("GET", "", nil)
-	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my+ds"})
-	_, err := getGetParamsFromRequest(r)
-	if err == nil {
-		t.Errorf("case %q, expected error, get nil error", caseName)
-	}
-
-	// Construct a request with username "me"
-	caseName = "get request with username 'me'"
-	r, _ = http.NewRequest("GET", "", nil)
-	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "me", "name": "my_ds"})
-	expectErr = fmt.Errorf("username \"me\" not allowed")
-	_, err = getGetParamsFromRequest(r)
-	if expectErr.Error() != err.Error() {
-		t.Errorf("case %q, expected error %q, got %q", caseName, expectErr, err)
-	}
-
-	// Construct a request with ref
-	caseName = "get request with ref"
-	r, _ = http.NewRequest("GET", "", nil)
-	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds"})
-	expectParams = &lib.GetParams{
-		Ref: "peer/my_ds",
-		All: true,
-	}
-	gotParams, err = getGetParamsFromRequest(r)
-	if err != nil {
-		t.Fatalf("case %q, error getting params from request: %s", caseName, err)
-	}
-	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
-		t.Errorf("case %q, params mismatch (-want +gbt):\n%s", caseName, diff)
-	}
-
-	// Construct a request with a selector
-	caseName = "get request with a selector"
-	r, _ = http.NewRequest("GET", "", nil)
-	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds", "selector": "meta"})
-	expectParams = &lib.GetParams{
-		Ref:      "peer/my_ds",
-		Selector: "meta",
-		All:      true,
-	}
-	gotParams, err = getGetParamsFromRequest(r)
-	if err != nil {
-		t.Fatalf("case %q, error getting params from request: %s", caseName, err)
-	}
-	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
-		t.Errorf("case %q, params mismatch (-want +gbt):\n%s", caseName, diff)
-	}
-
-	// Construct a request with limit and offset
-	caseName = "get request with limit and offset"
-	r, _ = http.NewRequest("GET", "", nil)
-	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds", "selector": "body", "limit": "0", "offset": "10"})
-	expectParams = &lib.GetParams{
-		Ref:      "peer/my_ds",
-		Selector: "body",
-		Limit:    0,
-		Offset:   10,
-	}
-	gotParams, err = getGetParamsFromRequest(r)
-	if err != nil {
-		t.Fatalf("case %q, error getting params from request: %s", caseName, err)
-	}
-	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
-		t.Errorf("case %q, params mismatch (-want +gbt):\n%s", caseName, diff)
-	}
-
-	// Construct a request with "all"
-	caseName = "get request with 'all'"
-	r, _ = http.NewRequest("GET", "", nil)
-	r = mustSetMuxVarsOnRequest(t, r, map[string]string{"username": "peer", "name": "my_ds", "selector": "body", "all": "true"})
-	expectParams = &lib.GetParams{
-		Ref:      "peer/my_ds",
-		Selector: "body",
-		All:      true,
-	}
-	gotParams, err = getGetParamsFromRequest(r)
-	if err != nil {
-		t.Fatalf("case %q, error getting params from request: %s", caseName, err)
-	}
-	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
-		t.Errorf("case %q, params mismatch (-want +gbt):\n%s", caseName, diff)
-	}
 }
 
 func TestValidateCSVRequest(t *testing.T) {
@@ -306,4 +274,26 @@ func mustSetMuxVarsOnRequest(t *testing.T, r *http.Request, muxVars map[string]s
 		t.Fatal(err)
 	}
 	return r
+}
+
+func TestExtensionToMimeType(t *testing.T) {
+	cases := []struct {
+		ext, expect string
+	}{
+		{".csv", "text/csv"},
+		{".json", "application/json"},
+		{".yaml", "application/x-yaml"},
+		{".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+		{".zip", "application/zip"},
+		{".txt", "text/plain"},
+		{".md", "text/x-markdown"},
+		{".html", "text/html"},
+		{"", ""},
+	}
+	for i, c := range cases {
+		got := extensionToMimeType(c.ext)
+		if c.expect != got {
+			t.Errorf("case %d: expected %q got %q", i, c.expect, got)
+		}
+	}
 }

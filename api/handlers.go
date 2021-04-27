@@ -8,7 +8,6 @@ import (
 
 	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/archive"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -29,8 +28,8 @@ func GetBodyCSVHandler(inst *lib.Instance) http.HandlerFunc {
 			return
 		}
 
-		p, err := getGetParamsFromRequest(r)
-		if err != nil {
+		p := &lib.GetParams{}
+		if err := UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -57,8 +56,8 @@ func GetHandler(inst *lib.Instance, routePrefix string) http.HandlerFunc {
 			util.NotFoundHandler(w, r)
 			return
 		}
-		p, err := getGetParamsFromRequest(r)
-		if err != nil {
+		p := &lib.GetParams{}
+		if err := UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -113,32 +112,6 @@ func GetHandler(inst *lib.Instance, routePrefix string) http.HandlerFunc {
 			util.WriteResponse(w, res.Value)
 		}
 	}
-}
-
-// getGetParamsFormRequest returns lib.GetParams with information from the request
-func getGetParamsFromRequest(r *http.Request) (*lib.GetParams, error) {
-	p := &lib.GetParams{}
-	log.Debugf("ref:%s", r.FormValue("ref"))
-	p.Ref = r.FormValue("ref")
-
-	ref, err := dsref.Parse(p.Ref)
-	if err != nil {
-		return nil, err
-	}
-
-	if ref.Username == "me" {
-		return nil, fmt.Errorf("username \"me\" not allowed")
-	}
-
-	p.Selector = r.FormValue("selector")
-
-	p.All = util.ReqParamBool(r, "all", true)
-	p.Limit = util.ReqParamInt(r, "limit", 0)
-	p.Offset = util.ReqParamInt(r, "offset", 0)
-	if !(p.Offset == 0 && p.Limit == 0) {
-		p.All = false
-	}
-	return p, nil
 }
 
 func validateCSVRequest(r *http.Request, p *lib.GetParams) error {
