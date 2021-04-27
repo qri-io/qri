@@ -51,6 +51,8 @@ type AttributeSet struct {
 	httpVerb string
 	// the default source used for resolving references
 	defaultSource string
+	// whether to deny RPC for this endpoint, normal HTTP may still be allowed
+	denyRPC   bool
 }
 
 // Dispatch is a system for handling calls to lib. Should only be called by top-level lib methods.
@@ -115,7 +117,7 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 		}
 
 		if c, ok := inst.regMethods.lookup(method); ok {
-			if c.Endpoint == "" {
+			if c.DenyRPC {
 				return nil, nil, ErrUnsupportedRPC
 			}
 			if c.OutType != nil {
@@ -244,6 +246,7 @@ type callable struct {
 	Endpoint  APIEndpoint
 	Verb      string
 	Source    string
+	DenyRPC   bool
 }
 
 // RegisterMethods iterates the methods provided by the lib API, and makes them visible to dispatch
@@ -409,6 +412,7 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 			Endpoint:  methodAttrs.endpoint,
 			Verb:      methodAttrs.httpVerb,
 			Source:    methodAttrs.defaultSource,
+			DenyRPC:   methodAttrs.denyRPC,
 		}
 		log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
 	}
