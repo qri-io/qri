@@ -206,10 +206,7 @@ func handleRefRoute(m *mux.Router, p refRouteParams, f http.HandlerFunc) {
 func NewServerRoutes(s Server) *mux.Router {
 	cfg := s.GetConfig()
 
-	m := s.Mux
-	if m == nil {
-		m = mux.NewRouter()
-	}
+	m := s.Instance.GiveAPIServer(s.Middleware, []string{"dataset.get"})
 	m.Use(corsMiddleware(cfg.API.AllowedOrigins))
 	m.Use(muxVarsToQueryParamMiddleware)
 	m.Use(refStringMiddleware)
@@ -224,71 +221,10 @@ func NewServerRoutes(s Server) *mux.Router {
 	if !cfg.API.DisableWebui {
 		m.Handle(lib.AEWebUI.String(), s.Middleware(WebuiHandler))
 	}
-
-	// aggregate endpoints
-	m.Handle(lib.AEList.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "collection.list"))).Methods(http.MethodPost)
-	m.Handle(lib.AESQL.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "sql.exec"))).Methods(http.MethodPost)
-	m.Handle(lib.AEDiff.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "diff.diff"))).Methods(http.MethodPost, http.MethodGet)
-	m.Handle(lib.AEChanges.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "diff.changes"))).Methods(http.MethodPost, http.MethodGet)
-
-	// access endpoints
-	m.Handle(lib.AECreateAuthToken.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "access.createauthtoken"))).Methods(http.MethodPost)
-
-	// automation endpoints
-	m.Handle(lib.AEApply.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "automation.apply"))).Methods(http.MethodPost)
-
-	// dataset endpoints
-	m.Handle(lib.AEComponentStatus.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.componentstatus"))).Methods(http.MethodPost)
-	m.Handle(lib.AEActivity.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.activity"))).Methods(http.MethodPost)
-	m.Handle(lib.AERename.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.rename"))).Methods(http.MethodPost)
-	m.Handle(lib.AESave.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.save"))).Methods(http.MethodPost)
-	m.Handle(lib.AEPull.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.pull"))).Methods(http.MethodPost)
-	m.Handle(lib.AEPush.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.push"))).Methods(http.MethodPost)
-	m.Handle(lib.AERender.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.render"))).Methods(http.MethodPost)
-	m.Handle(lib.AERemove.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.remove"))).Methods(http.MethodPost)
-	m.Handle(lib.AEValidate.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.validate"))).Methods(http.MethodPost)
-	m.Handle(lib.AEManifest.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.manifest"))).Methods(http.MethodPost)
-	m.Handle(lib.AEManifestMissing.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.manifestmissing"))).Methods(http.MethodPost)
-	m.Handle(lib.AEDAGInfo.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "dataset.daginfo"))).Methods(http.MethodPost)
-
 	// non POST/json dataset endpoints
 	routeParams = newrefRouteParams(lib.AEGet, false, true, http.MethodGet, http.MethodPost)
 	handleRefRoute(m, routeParams, s.Middleware(GetHandler(s.Instance, lib.AEGet.String())))
 	m.Handle(lib.AEUnpack.String(), s.Middleware(UnpackHandler(lib.AEUnpack.NoTrailingSlash())))
-
-	// peer endpoints
-	m.Handle(lib.AEPeers.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.list"))).Methods(http.MethodPost)
-	m.Handle(lib.AEPeer.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.info"))).Methods(http.MethodPost)
-	m.Handle(lib.AEConnect.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.connect"))).Methods(http.MethodPost)
-	m.Handle(lib.AEDisconnect.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.disconnect"))).Methods(http.MethodPost)
-	m.Handle(lib.AEConnections.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.connections"))).Methods(http.MethodPost)
-	m.Handle(lib.AEConnectedQriProfiles.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "peer.connectedqriprofiles"))).Methods(http.MethodPost)
-
-	// profile endpoints
-	m.Handle(lib.AEGetProfile.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.getprofile"))).Methods(http.MethodPost)
-	m.Handle(lib.AESetProfile.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setprofile"))).Methods(http.MethodPost)
-	m.Handle(lib.AESetProfilePhoto.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setprofilephoto"))).Methods(http.MethodPost)
-	m.Handle(lib.AESetPosterPhoto.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "profile.setposterphoto"))).Methods(http.MethodPost)
-
-	// remote endpoints
-	m.Handle(lib.AEFeeds.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.feeds"))).Methods(http.MethodPost)
-	m.Handle(lib.AEPreview.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.preview"))).Methods(http.MethodPost)
-	m.Handle(lib.AERegistryNew.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "registry.createprofile"))).Methods(http.MethodPost)
-	m.Handle(lib.AERegistryProve.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "registry.proveprofilekey"))).Methods(http.MethodPost)
-	m.Handle(lib.AERemoteRemove.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "remote.remove"))).Methods(http.MethodPost)
-	m.Handle(lib.AESearch.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "search.search"))).Methods(http.MethodPost)
-
-	// working directory endpoints
-	m.Handle(lib.AEStatus.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.status"))).Methods(http.MethodPost)
-	m.Handle(lib.AECanInitDatasetWorkDir.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.caninitdatasetworkdir"))).Methods(http.MethodPost)
-	m.Handle(lib.AEInit.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.init"))).Methods(http.MethodPost)
-	m.Handle(lib.AECheckout.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.checkout"))).Methods(http.MethodPost)
-	m.Handle(lib.AEEnsureRef.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.ensureref"))).Methods(http.MethodPost)
-	m.Handle(lib.AERestore.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.restore"))).Methods(http.MethodPost)
-	m.Handle(lib.AEFSIWrite.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.write"))).Methods(http.MethodPost)
-	m.Handle(lib.AEFSICreateLink.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.createlink"))).Methods(http.MethodPost)
-	m.Handle(lib.AEFSIUnlink.String(), s.Middleware(lib.NewHTTPRequestHandler(s.Instance, "fsi.unlink"))).Methods(http.MethodPost)
-
 	// sync/protocol endpoints
 	if cfg.Remote != nil && cfg.Remote.Enabled {
 		log.Info("running in `remote` mode")
