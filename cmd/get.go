@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/ioes"
 	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/component"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -155,16 +154,13 @@ func (o *GetOptions) Run() (err error) {
 	var outBytes []byte
 	switch {
 	case o.Format == "zip":
-		outBytes, err = o.inst.Dataset().GetZip(ctx, p)
+		zipResults, err := o.inst.Dataset().GetZip(ctx, p)
 		if err != nil {
 			return err
 		}
+		outBytes = zipResults.Bytes
 		if o.Outfile == "" {
-			ref, err := dsref.Parse(p.Ref)
-			if err != nil {
-				return err
-			}
-			o.Outfile = fmt.Sprintf("%s.zip", ref.Name)
+			o.Outfile = zipResults.GeneratedName
 		}
 	case o.Format == "csv":
 		outBytes, err = o.inst.Dataset().GetCSV(ctx, p)

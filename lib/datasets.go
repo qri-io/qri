@@ -185,10 +185,17 @@ func (m DatasetMethods) GetCSV(ctx context.Context, p *GetParams) ([]byte, error
 	return nil, dispatchReturnError(got, err)
 }
 
+// GetZipResults is returned by `GetZip`
+// It contains a byte slice of the compressed data as well as a generated name based on the dataset
+type GetZipResults struct {
+	Bytes         []byte
+	GeneratedName string
+}
+
 // GetZip fetches an entire dataset as a zip archive
-func (m DatasetMethods) GetZip(ctx context.Context, p *GetParams) ([]byte, error) {
+func (m DatasetMethods) GetZip(ctx context.Context, p *GetParams) (*GetZipResults, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "getzip"), p)
-	if res, ok := got.([]byte); ok {
+	if res, ok := got.(*GetZipResults); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -737,7 +744,7 @@ func getBodyBytes(scope scope, p *GetParams, format dataset.DataFormat, fc datas
 	return bodyBytes, nil
 }
 
-func (datasetImpl) GetZip(scope scope, p *GetParams) ([]byte, error) {
+func (datasetImpl) GetZip(scope scope, p *GetParams) (*GetZipResults, error) {
 	ref, ds, err := openAndLoadFSIEnabledDataset(scope, p)
 	if err != nil {
 		return nil, err
@@ -756,7 +763,11 @@ func (datasetImpl) GetZip(scope scope, p *GetParams) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return outBuf.Bytes(), nil
+	filename, err := archive.GenerateFilename(ds, "zip")
+	if err != nil {
+		return nil, err
+	}
+	return &GetZipResults{Bytes: outBuf.Bytes(), GeneratedName: filename}, nil
 }
 
 // Activity returns the activity and changes for a given dataset

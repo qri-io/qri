@@ -534,7 +534,7 @@ func TestGetZip(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 
 	p := &GetParams{Ref: "peer/movies"}
-	bytes, err := inst.Dataset().GetZip(ctx, p)
+	zipResults, err := inst.Dataset().GetZip(ctx, p)
 	if err != nil {
 		t.Fatalf("TestGetZip unexpected error: %s", err)
 	}
@@ -542,7 +542,7 @@ func TestGetZip(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	filename := path.Join(tempDir, "dataset.zip")
-	if err := ioutil.WriteFile(filename, bytes, 0644); err != nil {
+	if err := ioutil.WriteFile(filename, zipResults.Bytes, 0644); err != nil {
 		t.Fatalf("error writing zip: %s", err)
 	}
 	expectedFiles := []string{

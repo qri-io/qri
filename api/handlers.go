@@ -89,12 +89,12 @@ func GetHandler(inst *lib.Instance, routePrefix string) http.HandlerFunc {
 				util.WriteErrResponse(w, http.StatusBadRequest, err)
 				return
 			}
-			outBytes, err := inst.Dataset().GetZip(r.Context(), p)
+			zipResults, err := inst.Dataset().GetZip(r.Context(), p)
 			if err != nil {
 				util.RespondWithError(w, err)
 				return
 			}
-			writeFileResponse(w, outBytes, "dataset.zip", "zip")
+			writeFileResponse(w, zipResults.Bytes, zipResults.GeneratedName, "zip")
 			return
 
 		default:
