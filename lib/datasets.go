@@ -51,7 +51,7 @@ func (m DatasetMethods) Name() string {
 func (m DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		"componentstatus": {Endpoint: AEComponentStatus, HTTPVerb: "POST"},
-		"get":             {Endpoint: AEGet, HTTPVerb: "GET"},
+		"get":             {Endpoint: AEGet, HTTPVerb: "POST"},
 		"getcsv":          {Endpoint: DenyHTTP}, // getcsv is not part of the json api, but is handled in a separate `GetBodyCSVHandler` function
 		"getzip":          {Endpoint: DenyHTTP}, // getzip is not part of the json api, but is handled is a separate `GetHandler` function
 		"activity":        {Endpoint: AEActivity, HTTPVerb: "POST"},

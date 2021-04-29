@@ -11,14 +11,37 @@ paths:
       operationId: '{{ .MethodSet }}.{{ .MethodName }}'
       tags:
       - {{ .MethodSet }}
+      {{- if eq .HTTPVerb "get" }}
+      {{- if eq .Params.Name "pathParams" }}
+{{ if .Params.Fields }}      parameters: {{end}}
+{{- range .Params.Fields }}
+      - name: '{{ .Name }}'
+        in: path
+        required: true
+        schema:
+          type: string
+{{ end -}}
+      {{ end }}
+      {{ end -}}
       {{- if eq .HTTPVerb "post" }}
       {{- if ne .Params.Name "" }}
+      {{- if not .Params.IsBinary }}
       requestBody:
         required: true
         content:
           application/json:
             schema:
               '$ref': '#/components/schemas/{{ .Params.Name }}'
+      {{ end }}
+      {{- if .Params.IsBinary }}
+      requestBody:
+        required: true
+        content:
+          {{ .Params.Name }}:
+            schema:
+              type: string
+              format: binary
+      {{ end }}
       {{ end -}}
       {{ end }}
       responses:
