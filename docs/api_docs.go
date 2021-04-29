@@ -39,6 +39,7 @@ type qriType struct {
 	Name        string
 	Doc         string
 	Fields      []field
+	IsBinary    bool
 	WriteToSpec bool
 }
 
@@ -132,6 +133,7 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 
 			if outTypeName == "string" || outTypeName == "Bytes" {
 				outTypeName = "RawResponse"
+				outIsArray = false
 			}
 
 			if numOuts == 3 {
@@ -183,6 +185,8 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 		}
 	}
 
+	methods = addNonLibMethods(methods)
+
 	qriTypeSlice := make([]qriType, 0, len(qriTypes))
 	for _, qriType := range qriTypes {
 		if qriType.WriteToSpec {
@@ -203,6 +207,127 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 
 	buf = sanitizeOutput(buf)
 	return buf, err
+}
+
+func addNonLibMethods(methods []libMethod) []libMethod {
+	m := libMethod{
+		MethodSet:  "api",
+		MethodName: "unpack",
+		Endpoint:   lib.AEUnpack,
+		HTTPVerb:   "post",
+		Params: qriType{
+			Name:     "application/zip",
+			IsBinary: true,
+		},
+		Paginated: false,
+		Response: response{
+			Type:    "NotDefined",
+			IsArray: false,
+		},
+	}
+	methods = append(methods, m)
+
+	m = libMethod{
+		MethodSet:  "api",
+		MethodName: "home",
+		Endpoint:   lib.AEHome,
+		HTTPVerb:   "get",
+		Params:     qriType{},
+		Paginated:  false,
+		Response: response{
+			Type:    "StatusOK",
+			IsArray: false,
+		},
+	}
+	methods = append(methods, m)
+
+	m = libMethod{
+		MethodSet:  "api",
+		MethodName: "health",
+		Endpoint:   lib.AEHealth,
+		HTTPVerb:   "get",
+		Params:     qriType{},
+		Paginated:  false,
+		Response: response{
+			Type:    "StatusOK",
+			IsArray: false,
+		},
+	}
+	methods = append(methods, m)
+
+	m = libMethod{
+		MethodSet:  "api",
+		MethodName: "webui",
+		Endpoint:   lib.AEWebUI,
+		HTTPVerb:   "get",
+		Params:     qriType{},
+		Paginated:  false,
+		Response: response{
+			Type:    "RawResponse",
+			IsArray: false,
+		},
+	}
+	methods = append(methods, m)
+
+	m = libMethod{
+		MethodSet:  "api",
+		MethodName: "ipfs",
+		Endpoint:   lib.AEIPFS,
+		HTTPVerb:   "get",
+		Params: qriType{
+			Name: "pathParams",
+			Fields: []field{
+				field{Name: "path:.*"},
+			},
+		},
+		Paginated: false,
+		Response: response{
+			Type:    "RawResponse",
+			IsArray: false,
+		},
+	}
+	methods = append(methods, m)
+
+	m = libMethod{
+		MethodSet:  "api",
+		MethodName: "get_ref",
+		Endpoint:   lib.APIEndpoint(fmt.Sprintf("%s/{dsref}", lib.AEGet)),
+		HTTPVerb:   "get",
+		Params: qriType{
+			Name: "pathParams",
+			Fields: []field{
+				field{Name: "dsref"},
+			},
+		},
+		Paginated: false,
+		Response: response{
+			Type:    "GetResult",
+			IsArray: false,
+		},
+	}
+	methods = append(methods, m)
+
+	m = libMethod{
+		MethodSet:  "api",
+		MethodName: "get_ref_selector",
+		Endpoint:   lib.APIEndpoint(fmt.Sprintf("%s/{dsref}/{selector}", lib.AEGet)),
+		HTTPVerb:   "get",
+		Params: qriType{
+			Name: "pathParams",
+			Fields: []field{
+				field{Name: "dsref"},
+				field{Name: "selector"},
+			},
+		},
+		Paginated: false,
+		Response: response{
+			Type:    "RawResponse",
+			IsArray: false,
+		},
+	}
+	methods = append(methods, m)
+
+	return methods
 }
 
 func sanitizeOutput(buf *bytes.Buffer) *bytes.Buffer {

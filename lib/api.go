@@ -84,7 +84,7 @@ const (
 	// AEValidate is an endpoint for validating datasets
 	AEValidate = APIEndpoint("/ds/validate")
 	// AEUnpack unpacks a zip file and sends it back
-	AEUnpack = APIEndpoint("/ds/unpack/{path:.*}")
+	AEUnpack = APIEndpoint("/ds/unpack")
 	// AEManifest generates a manifest for a dataset path
 	AEManifest = APIEndpoint("/ds/manifest")
 	// AEManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
