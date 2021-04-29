@@ -56,6 +56,11 @@ func RunMigrations(streams ioes.IOStreams, cfg *config.Config, shouldRun func() 
 				return err
 			}
 		}
+		if cfg.Revision == 3 {
+			if err := ThreeToFour(cfg); err != nil {
+				return err
+			}
+		}
 		streams.PrintErr("done!\n")
 
 		if errorOnSuccess {
@@ -110,7 +115,6 @@ func OneToTwo(cfg *config.Config) error {
 	newIPFSPath := filepath.Join(qriPath, "ipfs")
 	oldIPFSPath := configVersionOneIPFSPath()
 
-	// TODO(ramfox): qfs migration
 	if err := qipfs.InternalizeIPFSRepo(oldIPFSPath, newIPFSPath); err != nil {
 		return err
 	}
@@ -208,6 +212,28 @@ func TwoToThree(cfg *config.Config) error {
 	return nil
 }
 
+// ThreeToFour migrates a configuration from Revision 3 to Revision 4
+func ThreeToFour(cfg *config.Config) error {
+	ipfsRepoPath, err := configVersionThreeIPFSPath(cfg)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	if err := qipfs.Migrate(ctx, ipfsRepoPath); err != nil {
+		return err
+	}
+
+	cfg.Revision = 4
+
+	if err := safeWriteConfig(cfg); err != nil {
+		rollbackConfigWrite(cfg)
+		return err
+	}
+
+	return nil
+}
+
 func rollbackConfigWrite(cfg *config.Config) {
 	cfgPath := cfg.Path()
 	if len(cfgPath) == 0 {
@@ -261,6 +287,23 @@ func configVersionOneIPFSPath() string {
 		panic(fmt.Sprintf("Failed to find the home directory: %s", err.Error()))
 	}
 	return filepath.Join(home, ".ipfs")
+}
+
+func configVersionThreeIPFSPath(cfg *config.Config) (string, error) {
+	for _, fsCfg := range cfg.Filesystems {
+		if fsCfg.Type == "ipfs" {
+			if ipath, ok := fsCfg.Config["path"]; ok {
+				if path, ok := ipath.(string); ok {
+					if !filepath.IsAbs(path) {
+						path = filepath.Join(filepath.Dir(cfg.Path()), path)
+					}
+					return path, nil
+				}
+			}
+			return "", fmt.Errorf("IPFS path is not specified")
+		}
+	}
+	return "", fmt.Errorf("no IPFS filesystem is specified")
 }
 
 func confirm(w io.Writer, r io.Reader, message string) bool {

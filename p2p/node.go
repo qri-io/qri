@@ -7,7 +7,6 @@ import (
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
-	namesys "github.com/ipfs/go-ipfs/namesys"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	libp2p "github.com/libp2p/go-libp2p"
 	circuit "github.com/libp2p/go-libp2p-circuit"
@@ -26,6 +25,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
+	p2putil "github.com/qri-io/qri/p2p/p2putil"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 )
@@ -67,7 +67,7 @@ type QriNode struct {
 	msgState *sync.Map
 	// receivers is a list of anyone who wants to be notifed on new
 	// message arrival
-	receivers []chan Message
+	receivers []chan p2putil.Message
 	// receiversMu is the lock for the receivers list
 	receiversMu sync.Mutex
 
@@ -187,18 +187,6 @@ func (n *QriNode) GoOnline(c context.Context) (err error) {
 
 	n.qis.Start(n.host)
 
-	// add multistream handler for qri protocol to the host
-	// setting a stream handler for the QriPrtocolID indicates to peers on
-	// the distributed web that this node supports Qri. for more info on
-	// multistreams  check github.com/multformats/go-multistream
-	// note: even though we are phasing out the old qri protocol, we
-	// we are still handling 3 different cases on the `depQriProtocolID`, using
-	// the previous style of message communication:
-	// * profile requests handler - the older `upgradeToQriConnection` function emits this request
-	// * dataset list requests handler - the current `lib.Peers` actions depend on this functioning
-	// * all other cases get a "sorry please upgrade your version of Qri" response
-	n.host.SetStreamHandler(depQriProtocolID, n.depQriStreamHandler)
-
 	// add ref resolution capabilities:
 	n.host.SetStreamHandler(ResolveRefProtocolID, n.resolveRefHandler)
 
@@ -262,15 +250,6 @@ func (n *QriNode) IPFS() (*core.IpfsNode, error) {
 		return ipfsfs.Node(), nil
 	}
 	return nil, fmt.Errorf("not using IPFS")
-}
-
-// GetIPFSNamesys returns a namesystem from IPFS
-func (n *QriNode) GetIPFSNamesys() (namesys.NameSystem, error) {
-	ipfsn, err := n.IPFS()
-	if err != nil {
-		return nil, err
-	}
-	return ipfsn.Namesys, nil
 }
 
 // note: both qipfs and ipfs_http have this method
