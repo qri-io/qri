@@ -11,13 +11,6 @@ import (
 	"github.com/qri-io/qri/lib"
 )
 
-var (
-	// bodyCSVRouteFullRef is the route used to get a body as a csv, that can also handle a specific hash
-	bodyCSVRouteFullRef = fmt.Sprintf("%s/{username}/{name}/at/{fs}/{hash}/body.csv", lib.AEGet.NoTrailingSlash())
-	// bodyCSVRouteShortRef is the route used to get a body as a csv
-	bodyCSVRouteShortRef = fmt.Sprintf("%s/{username}/{name}/body.csv", lib.AEGet.NoTrailingSlash())
-)
-
 // GetBodyCSVHandler is a handler for returning the body as a csv file
 // Examples:
 // curl http://localhost:2503/ds/get/b5/world_bank_population/body.csv
