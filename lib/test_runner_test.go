@@ -187,7 +187,7 @@ func (tr *testRunner) MustGet(t *testing.T, ref string) *dataset.Dataset {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return res.Dataset
+	return res.Value.(*dataset.Dataset)
 }
 
 func (tr *testRunner) ApplyWithParams(ctx context.Context, p *ApplyParams) (*dataset.Dataset, error) {

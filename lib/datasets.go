@@ -9,20 +9,19 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/ghodss/yaml"
-	"github.com/gorilla/mux"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/base/dsfs"
@@ -53,6 +52,8 @@ func (m DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		"componentstatus": {Endpoint: AEComponentStatus, HTTPVerb: "POST"},
 		"get":             {Endpoint: AEGet, HTTPVerb: "GET"},
+		"getcsv":          {Endpoint: DenyHTTP}, // getcsv is not part of the json api, but is handled in a separate `GetBodyCSVHandler` function
+		"getzip":          {Endpoint: DenyHTTP}, // getzip is not part of the json api, but is handled is a separate `GetHandler` function
 		"activity":        {Endpoint: AEActivity, HTTPVerb: "POST"},
 		"rename":          {Endpoint: AERename, HTTPVerb: "POST", DefaultSource: "local"},
 		"save":            {Endpoint: AESave, HTTPVerb: "POST"},
@@ -74,139 +75,86 @@ type GetParams struct {
 	// selector is a component or nested field names to extract from the dataset
 	Selector string `json:"selector"`
 
-	// read from a filesystem link instead of stored version
-	Format       string               `json:"format"`
-	FormatConfig dataset.FormatConfig `json:"format_config"`
-
 	Limit  int `json:"limit"`
 	Offset int `json:"offset"`
 	// TODO(dustmop): Remove `All` once `Cursor` is in use. Instead, callers should
 	// loop over their `Cursor` in order to get all rows.
 	All bool `json:"all"`
-
-	// outfile is a filename to save the dataset to
-	Outfile string `json:"outfile" qri:"fspath"`
-	// whether to generate a filename from the dataset name instead
-	GenFilename bool `json:"genfilename"`
 }
 
 // SetNonZeroDefaults assigns default values
 func (p *GetParams) SetNonZeroDefaults() {
-	if p.Format == "" {
-		p.Format = "json"
-	}
-}
+	if p.Selector == "body" {
+		if !p.All {
+			// ensure valid limit value
+			if p.Limit <= 0 {
+				p.Limit = 25
+			}
+			// ensure valid offset value
+			if p.Offset < 0 {
+				p.Offset = 0
+			}
 
-var validSelector = regexp.MustCompile(`^[\w-\.]*[\w]$`)
-
-func parseSelector(selector string) (string, string, error) {
-	if selector == "" {
-		return "", "", nil
-	}
-
-	format := ""
-
-	if strings.HasSuffix(selector, ".json") {
-		format = "json"
-	}
-	if strings.HasSuffix(selector, ".csv") {
-		format = "csv"
-	}
-	if strings.HasSuffix(selector, ".zip") {
-		format = "zip"
-	}
-
-	if format != "" {
-		selector = selector[:len(selector)-len(format)-1]
-	}
-
-	match := validSelector.FindString(selector)
-	if match == "" || len(match) != len(selector) {
-		return "", "", fmt.Errorf("could not parse request: invalid selector")
-	}
-	return selector, format, nil
-}
-
-func arrayContains(subject []string, target string) bool {
-	for _, v := range subject {
-		if v == target {
-			return true
 		}
 	}
-	return false
 }
 
-// UnmarshalFromRequest implements a custom deserialization-from-HTTP request
+// Validate returns an error if GetParams fields are in an invalid state
+func (p *GetParams) Validate() error {
+	if !isValidSelector(p.Selector) {
+		return fmt.Errorf("could not parse request: invalid selector")
+	}
+	if p.Selector == "body" {
+		if !p.All && (p.Limit < 0 || p.Offset < 0) {
+			return fmt.Errorf("invalid limit / offset settings")
+		}
+	}
+
+	return nil
+}
+
+func isValidSelector(selector string) bool {
+	return validSelector.MatchString(selector)
+}
+
+var validSelector = regexp.MustCompile(`^$|^[\w-\.]*[\w]$`)
+
+// UnmarshalFromRequest satisfies the Unmarshaller interface
 func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
-	mvars := mux.Vars(r)
+	log.Debugf("GetParams.UnmarshalFromRequest ref:%s", r.FormValue("ref"))
+	p.Ref = r.FormValue("ref")
 
-	if p == nil {
-		p = &GetParams{}
-	}
-
-	params := *p
-	if params.Ref == "" {
-		params.Ref = r.FormValue("ref")
-	}
-
-	ref, err := dsref.Parse(params.Ref)
+	ref, err := dsref.Parse(p.Ref)
 	if err != nil {
 		return err
 	}
+
 	if ref.Username == "me" {
 		return fmt.Errorf("username \"me\" not allowed")
 	}
 
-	if sel, ok := mvars["selector"]; ok && params.Selector == "" {
-		selector, format, err := parseSelector(sel)
-		if err != nil {
-			return err
-		}
-		params.Selector = selector
-		params.Format = format
+	p.Selector = r.FormValue("selector")
+
+	p.All = util.ReqParamBool(r, "all", true)
+	p.Limit = util.ReqParamInt(r, "limit", 0)
+	p.Offset = util.ReqParamInt(r, "offset", 0)
+	if !(p.Offset == 0 && p.Limit == 0) {
+		p.All = false
 	}
-
-	if params.Format == "" {
-		params.Format = r.FormValue("format")
-	}
-
-	// This HTTP header sets the format to csv, and removes the json wrapper
-	if arrayContains(r.Header["Accept"], "text/csv") {
-		if params.Format != "" && params.Format != "csv" {
-			return fmt.Errorf("format %q conflicts with header \"Accept: text/csv\"", params.Format)
-		}
-		params.Format = "csv"
-		params.Selector = "body"
-	}
-
-	if params.Format != "" && params.Format != "json" && params.Format != "csv" && params.Format != "zip" {
-		return fmt.Errorf("invalid extension format")
-	}
-
-	// TODO(arqu): we default to true but should implement a guard and/or respect the page params
-	params.All = true
-	// listParams := ListParamsFromRequest(r)
-	// offset := listParams.Offset
-	// limit := listParams.Limit
-	// if offset == 0 && limit == -1 {
-	// 	params.All = true
-	// }
-
-	*p = params
 	return nil
 }
 
-// GetResult combines data with it's hashed path
+// GetResult returns the dataset or some part of it as structured data inside the `Value` field
+// The `Bytes` field is reserved for data that can only be expressed as a slice of bytes
+// Byte slices must be treated as a special case because of json.Marshal. json.Marshal will serialize
+// a slice of bytes as base64 encoded json. If this is deserialized into an `interface{}`, it will
+// remain a string. It needs to be explicitly deserialized into a `[]byte` field to not degredate the information
 type GetResult struct {
-	Ref       *dsref.Ref       `json:"ref"`
-	Dataset   *dataset.Dataset `json:"data"`
-	Bytes     []byte           `json:"bytes"`
-	Message   string           `json:"message"`
-	FSIPath   string           `json:"fsipath"`
-	Published bool             `json:"published"`
+	Value interface{} `json:"value,omitempty"`
+	Bytes []byte      `json:"bytes,omitempty"`
 }
 
-// DataResponse is the struct used to respond to api requests made to the /body Endpoint
+// DataResponse is the struct used to respond to api requests made to the /body endpoint
 // It is necessary because we need to include the 'path' field in the response
 type DataResponse struct {
 	Path string          `json:"path"`
@@ -216,9 +164,9 @@ type DataResponse struct {
 // Get retrieves datasets and components for a given reference. p.Ref is parsed to create
 // a reference, which is used to load the dataset. It will be loaded from the local repo
 // or from the filesystem if it has a linked working directory.
-// Using p.Selector will control what components are returned in res.Bytes. The default,
-// a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
-// then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
+// Using p.Selector will control what components are returned in res.Value. The default,
+// a blank selector, will also fill the entire dataset at res.Value. If the selector contains ".script"
+// then res.Bytes is loaded with the script contents as bytes. If the selector is "stats", then res.Value is loaded
 // with the generated stats.
 func (m DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "get"), p)
@@ -228,15 +176,29 @@ func (m DatasetMethods) Get(ctx context.Context, p *GetParams) (*GetResult, erro
 	return nil, dispatchReturnError(got, err)
 }
 
-func maybeWriteOutfile(p *GetParams, res *GetResult) error {
-	if p.Outfile != "" {
-		err := ioutil.WriteFile(p.Outfile, res.Bytes, 0644)
-		if err != nil {
-			return err
-		}
-		res.Bytes = []byte{}
+// GetCSV fetches the body as a csv encoded byte slice, it recognizes Limit, Offset, and All list params
+func (m DatasetMethods) GetCSV(ctx context.Context, p *GetParams) ([]byte, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "getcsv"), p)
+	if res, ok := got.([]byte); ok {
+		return res, err
 	}
-	return nil
+	return nil, dispatchReturnError(got, err)
+}
+
+// GetZipResults is returned by `GetZip`
+// It contains a byte slice of the compressed data as well as a generated name based on the dataset
+type GetZipResults struct {
+	Bytes         []byte
+	GeneratedName string
+}
+
+// GetZip fetches an entire dataset as a zip archive
+func (m DatasetMethods) GetZip(ctx context.Context, p *GetParams) (*GetZipResults, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "getzip"), p)
+	if res, ok := got.(*GetZipResults); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
 }
 
 func scriptFileSelection(ds *dataset.Dataset, selector string) (qfs.File, bool) {
@@ -617,7 +579,7 @@ func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
 // RenderParams defines parameters for the Render method
 type RenderParams struct {
 	// Ref is a string reference to the dataset to render
-	Ref string
+	Ref string `json:"ref"`
 	// Optionally pass an entire dataset in for rendering, if providing a dataset,
 	// the Ref field must be empty
 	Dataset *dataset.Dataset
@@ -628,7 +590,7 @@ type RenderParams struct {
 	// Output format. defaults to "html"
 	Format string
 	// Selector
-	Selector string
+	Selector string `json:"selector"`
 }
 
 // SetNonZeroDefaults assigns default values
@@ -666,101 +628,33 @@ type datasetImpl struct{}
 
 // Get retrieves datasets and components for a given reference.t
 func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
-	res := &GetResult{}
-
-	scope.EnableWorkingDir(true)
-	ds, err := scope.Loader().LoadDataset(scope.Context(), p.Ref)
+	ref, ds, err := openAndLoadFSIEnabledDataset(scope, p)
 	if err != nil {
 		return nil, err
 	}
-	ref := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
 
-	res.Ref = &ref
-	res.Dataset = ds
-	if fsi.IsFSIPath(ref.Path) {
-		res.FSIPath = fsi.FilesystemPathToLocal(ref.Path)
-		ds.Path = ""
-	}
-
-	// TODO (b5) - Published field is longer set as part of Reference Resolution
-	// getting publication status should be delegated to a new function
-
-	if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
-		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
-		return nil, err
-	}
-
-	if p.Format == "zip" {
-		// Only if GenFilename is true, and no output filename is set, generate one from the
-		// dataset name
-		if p.Outfile == "" && p.GenFilename {
-			p.Outfile = fmt.Sprintf("%s.zip", ds.Name)
-		}
-		var outBuf bytes.Buffer
-		var zipFile io.Writer
-		if p.Outfile == "" {
-			// In this case, write to a buffer, which will be assigned to res.Bytes later on
-			zipFile = &outBuf
-		} else {
-			zipFile, err = os.Create(p.Outfile)
-			if err != nil {
-				return nil, err
-			}
-		}
-		currRef := dsref.Ref{Username: ds.Peername, Name: ds.Name}
-		// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
-		// necessary until dscache is in use.
-		initID, err := scope.Logbook().RefToInitID(currRef)
-		if err != nil {
-			return nil, err
-		}
-		err = archive.WriteZip(scope.Context(), scope.Filesystem(), ds, "json", initID, currRef, zipFile)
-		if err != nil {
-			return nil, err
-		}
-		// Handle output. If outfile is empty, return the raw bytes. Otherwise provide a helpful
-		// message for the user
-		if p.Outfile == "" {
-			res.Bytes = outBuf.Bytes()
-		} else {
-			res.Message = fmt.Sprintf("Wrote archive %s", p.Outfile)
-		}
-		return res, nil
-	}
+	res := &GetResult{}
 
 	if p.Selector == "body" {
 		// `qri get body` loads the body
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
 			return nil, fmt.Errorf("invalid limit / offset settings")
 		}
-		df, err := dataset.ParseDataFormatString(p.Format)
-		if err != nil {
-			log.Debugf("Get dataset, ParseDataFormatString %q failed, error: %s", p.Format, err)
-			return nil, err
-		}
-
 		if fsi.IsFSIPath(ref.Path) {
 			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
 			// but no structure, which should infer a schema in order to read the body. Once that
-			// works we can remove the fsi.GetBody call and just use base.ReadBody.
-			res.Bytes, err = fsi.GetBody(fsi.FilesystemPathToLocal(ref.Path), df, p.FormatConfig, p.Offset, p.Limit, p.All)
+			// works we can remove the fsi.GetBody call and just use base.GetBody.
+			fsiPath := fsi.FilesystemPathToLocal(ref.Path)
+			res.Value, err = fsi.GetBody(fsiPath, p.Offset, p.Limit, p.All)
 			if err != nil {
-				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", res.FSIPath, err)
-				return nil, err
-			}
-			err = maybeWriteOutfile(p, res)
-			if err != nil {
+				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", fsiPath, err)
 				return nil, err
 			}
 			return res, nil
 		}
-		res.Bytes, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
+		res.Value, err = base.GetBody(ds, p.Limit, p.Offset, p.All)
 		if err != nil {
-			log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
-			return nil, err
-		}
-		err = maybeWriteOutfile(p, res)
-		if err != nil {
+			log.Debugf("Get dataset, base.GetBody %q failed, error: %s", ds, err)
 			return nil, err
 		}
 		return res, nil
@@ -770,72 +664,110 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = maybeWriteOutfile(p, res)
-		if err != nil {
-			return nil, err
-		}
 		return res, nil
 	} else if p.Selector == "stats" {
-		sa, err := scope.Stats().Stats(scope.Context(), res.Dataset)
+		sa, err := scope.Stats().Stats(scope.Context(), ds)
 		if err != nil {
 			return nil, err
 		}
-		res.Bytes, err = json.Marshal(sa.Stats)
-		if err != nil {
-			return nil, err
-		}
-		err = maybeWriteOutfile(p, res)
-		if err != nil {
-			return nil, err
-		}
+		res.Value = sa.Stats
 		return res, nil
 	}
 
-	var value interface{}
-	if p.Selector == "" {
-		// `qri get` without a selector loads only the dataset head
-		value = res.Dataset
-	} else {
-		// `qri get <selector>` loads only the applicable component / field
-		value, err = base.ApplyPath(res.Dataset, p.Selector)
-		if err != nil {
-			return nil, err
-		}
-	}
-	switch p.Format {
-	case "json":
-		// Pretty defaults to true for the dataset head, unless explicitly set in the config.
-		pretty := true
-		if p.FormatConfig != nil {
-			pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
-			if ok {
-				pretty = pvalue
-			}
-		}
-		if pretty {
-			res.Bytes, err = json.MarshalIndent(value, "", " ")
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			res.Bytes, err = json.Marshal(value)
-			if err != nil {
-				return nil, err
-			}
-		}
-	case "yaml", "":
-		res.Bytes, err = yaml.Marshal(value)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("unknown format: \"%s\"", p.Format)
-	}
-	err = maybeWriteOutfile(p, res)
+	// `qri get <selector>` loads only the applicable component / field
+	res.Value, err = base.ApplyPath(ds, p.Selector)
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
+}
+
+func openAndLoadFSIEnabledDataset(scope scope, p *GetParams) (*dsref.Ref, *dataset.Dataset, error) {
+	scope.EnableWorkingDir(true)
+	ds, err := scope.Loader().LoadDataset(scope.Context(), p.Ref)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ref := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
+
+	if fsi.IsFSIPath(ref.Path) {
+		ds.Path = ""
+	}
+
+	if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
+		log.Debugf("base.OpenDataset failed, error: %s", err)
+		return nil, nil, err
+	}
+	return &ref, ds, nil
+}
+
+func (datasetImpl) GetCSV(scope scope, p *GetParams) ([]byte, error) {
+	return getBodyBytes(scope, p, dataset.CSVDataFormat, nil)
+}
+
+func getBodyBytes(scope scope, p *GetParams, format dataset.DataFormat, fc dataset.FormatConfig) ([]byte, error) {
+	ref, ds, err := openAndLoadFSIEnabledDataset(scope, p)
+	if err != nil {
+		return nil, err
+	}
+
+	if fc == nil && ds.Structure != nil {
+		// if we aren't given any format configuration &
+		// the format given matches the format of the body, pull in any known format configuration
+		if ds.Structure.DataFormat() == format {
+			fc, err = dataset.ParseFormatConfigMap(format, ds.Structure.FormatConfig)
+			if err != nil {
+				log.Debugf("getBodyBytes: dataset.ParseFormatConfigMap failed: %s", err)
+				return nil, err
+			}
+		}
+	}
+
+	if fsi.IsFSIPath(ref.Path) {
+		// TODO(dustmop): Need to handle the special case where an FSI directory has a body
+		// but no structure, which should infer a schema in order to read the body. Once that
+		// works we can remove the fsi.ReadBodyBytes call and just use base.ReadBodyBytes
+		fsiPath := fsi.FilesystemPathToLocal(ref.Path)
+		bodyBytes, err := fsi.ReadBodyBytes(fsiPath, dataset.CSVDataFormat, fc, p.Offset, p.Limit, p.All)
+		if err != nil {
+			log.Debugf("lib.getBodyBytes, fsi.GetBody %q failed, error: %s", fsiPath, err)
+			return nil, err
+		}
+		return bodyBytes, nil
+	}
+	bodyBytes, err := base.ReadBodyBytes(ds, dataset.CSVDataFormat, fc, p.Limit, p.Offset, p.All)
+	if err != nil {
+		log.Debugf("lib.getBodyBytes, body, base.GetBody %q failed, error: %s", ds, err)
+		return nil, err
+	}
+	return bodyBytes, nil
+}
+
+func (datasetImpl) GetZip(scope scope, p *GetParams) (*GetZipResults, error) {
+	ref, ds, err := openAndLoadFSIEnabledDataset(scope, p)
+	if err != nil {
+		return nil, err
+	}
+
+	var outBuf bytes.Buffer
+	var zipFile io.Writer
+	zipFile = &outBuf
+	// TODO(dustmop): This function is inefficient and a poor use of logbook, but it's
+	// necessary until dscache is in use.
+	initID, err := scope.Logbook().RefToInitID(*ref)
+	if err != nil {
+		return nil, err
+	}
+	err = archive.WriteZip(scope.Context(), scope.Filesystem(), ds, "json", initID, *ref, zipFile)
+	if err != nil {
+		return nil, err
+	}
+	filename, err := archive.GenerateFilename(ds, "zip")
+	if err != nil {
+		return nil, err
+	}
+	return &GetZipResults{Bytes: outBuf.Bytes(), GeneratedName: filename}, nil
 }
 
 // Activity returns the activity and changes for a given dataset
@@ -902,6 +834,21 @@ func (datasetImpl) Activity(scope scope, params *ActivityParams) ([]dsref.Versio
 	}
 
 	return items, nil
+}
+
+// IsSelectorScriptFile takes a selector string and returns true if the selector contains "script"
+func IsSelectorScriptFile(selector string) bool {
+	if selector == "" {
+		return false
+	}
+	parts := strings.Split(selector, ".")
+	if len(parts) != 2 {
+		return false
+	}
+	if parts[1] == "script" {
+		return true
+	}
+	return false
 }
 
 // Save adds a history entry, updating a dataset
@@ -1347,7 +1294,6 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 	log.Debugf("Remove finished")
 
 	return res, nil
-
 }
 
 // Pull downloads and stores an existing dataset to a peer's repository via

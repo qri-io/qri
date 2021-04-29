@@ -8,11 +8,12 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/component"
 )
 
-// GetBody is an FSI version of base.ReadBody
-func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfig, offset, limit int, all bool) ([]byte, error) {
+// ReadBodyBytes is an FSI version of base.ReadBodyBytes
+func ReadBodyBytes(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfig, offset, limit int, all bool) ([]byte, error) {
 
 	components, err := component.ListDirectoryComponents(dirPath)
 	if err != nil {
@@ -80,4 +81,75 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 	}
 
 	return dsio.ConvertFile(file, structure, st, limit, offset, all)
+}
+
+// GetBody is an FSI version of base.GetBody
+func GetBody(dirPath string, offset, limit int, all bool) (interface{}, error) {
+	components, err := getAllComponents(dirPath)
+	bodyComponent := components.Base().GetSubcomponent("body")
+	f, err := os.Open(bodyComponent.Base().SourceFile)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	structure, err := ensureStructureWithSchema(components, f)
+	if err != nil {
+		return nil, err
+	}
+
+	rr, err := dsio.NewEntryReader(structure, f)
+	if err != nil {
+		return nil, fmt.Errorf("error allocating reader: %s", err)
+	}
+	return base.ReadEntries(rr)
+}
+
+func getAllComponents(dirPath string) (component.Component, error) {
+	components, err := component.ListDirectoryComponents(dirPath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = component.ExpandListedComponents(components, nil)
+	if err != nil {
+		return nil, err
+	}
+	return components, nil
+}
+
+// ensureStructureWithSchema loads and fills the structure component. If no schema exists on the structure, if generates one
+// using the bodyComponent
+func ensureStructureWithSchema(components component.Component, f *os.File) (*dataset.Structure, error) {
+	var structure *dataset.Structure
+
+	stComponent := components.Base().GetSubcomponent("structure")
+	if stComponent != nil {
+		stComponent.LoadAndFill(nil)
+		comp, ok := stComponent.(*component.StructureComponent)
+		if !ok {
+			return nil, fmt.Errorf("could not get structure")
+		}
+		structure = comp.Value
+	}
+
+	if structure == nil {
+		structure = &dataset.Structure{}
+	}
+	if structure.Format == "" {
+		bodyComponent := components.Base().GetSubcomponent("body")
+		structure.Format = bodyComponent.Base().Format
+	}
+	if structure.Schema == nil {
+		// Create schema by detecting it from the body.
+		// TODO(dlong): This should move into `dsio` package.
+		entries, err := component.OpenEntryReader(f, structure.Format)
+		if err != nil {
+			return nil, err
+		}
+		structure.Schema = entries.Structure().Schema
+		// Reset the reader
+		f.Seek(0, 0)
+	}
+	return structure, nil
 }

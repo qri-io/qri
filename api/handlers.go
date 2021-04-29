@@ -5,43 +5,135 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"path/filepath"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/profile"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// GetHandler is a dataset single endpoint
-func GetHandler(inst *lib.Instance, routePrefix string) http.HandlerFunc {
+var (
+	// bodyCSVRouteFullRef is the route used to get a body as a csv, that can also handle a specific hash
+	bodyCSVRouteFullRef = fmt.Sprintf("%s/{username}/{name}/at/{fs}/{hash}/body.csv", lib.AEGet.NoTrailingSlash())
+	// bodyCSVRouteShortRef is the route used to get a body as a csv
+	bodyCSVRouteShortRef = fmt.Sprintf("%s/{username}/{name}/body.csv", lib.AEGet.NoTrailingSlash())
+)
+
+// GetBodyCSVHandler is a handler for returning the body as a csv file
+// Examples:
+// curl http://localhost:2503/ds/get/b5/world_bank_population/body.csv
+func GetBodyCSVHandler(inst *lib.Instance) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !(r.Method == http.MethodGet || r.Method == http.MethodPost) {
+		if r.Method != http.MethodGet {
 			util.NotFoundHandler(w, r)
 			return
 		}
-		params := &lib.GetParams{}
 
-		err := UnmarshalParams(r, params)
-		if err != nil {
+		p := &lib.GetParams{}
+		if err := UnmarshalParams(r, p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
-		got, _, err := inst.Dispatch(r.Context(), "dataset.get", params)
+
+		p.Selector = "body"
+		if err := validateCSVRequest(r, p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		outBytes, err := inst.Dataset().GetCSV(r.Context(), p)
 		if err != nil {
 			util.RespondWithError(w, err)
 			return
 		}
-		res, ok := got.(*lib.GetResult)
-		if !ok {
-			util.RespondWithDispatchTypeError(w, got)
+		writeFileResponse(w, outBytes, "body.csv", "csv")
+	}
+}
+
+// GetHandler is a dataset single endpoint
+func GetHandler(inst *lib.Instance, routePrefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			util.NotFoundHandler(w, r)
 			return
 		}
-		replyWithGetResponse(w, r, params, res)
+		p := &lib.GetParams{}
+		if err := UnmarshalParams(r, p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		format := r.FormValue("format")
+
+		switch {
+		case format == "csv", arrayContains(r.Header["Accept"], "text/csv"):
+			// Examples:
+			// curl http://localhost:2503/ds/get/b5/world_bank_population/body?format=csv
+			// curl -H "Accept: text/csv" http://localhost:2503/ds/get/b5/world_bank_population/body
+			if err := validateCSVRequest(r, p); err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			outBytes, err := inst.Dataset().GetCSV(r.Context(), p)
+			if err != nil {
+				util.RespondWithError(w, err)
+				return
+			}
+			writeFileResponse(w, outBytes, "body.csv", "csv")
+			return
+
+		case format == "zip", arrayContains(r.Header["Accept"], "application/zip"):
+			// Examples:
+			// curl -H "Accept: application/zip" http://localhost:2503/ds/get/world_bank_population
+			// curl http://localhost:2503/ds/get/world_bank_population?format=zip
+			if err := validateZipRequest(r, p); err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			zipResults, err := inst.Dataset().GetZip(r.Context(), p)
+			if err != nil {
+				util.RespondWithError(w, err)
+				return
+			}
+			writeFileResponse(w, zipResults.Bytes, zipResults.GeneratedName, "zip")
+			return
+
+		default:
+			res, err := inst.Dataset().Get(r.Context(), p)
+			if err != nil {
+				util.RespondWithError(w, err)
+				return
+			}
+
+			if lib.IsSelectorScriptFile(p.Selector) {
+				util.WriteResponse(w, res.Bytes)
+				return
+			}
+
+			util.WriteResponse(w, res.Value)
+		}
 	}
+}
+
+func validateCSVRequest(r *http.Request, p *lib.GetParams) error {
+	format := r.FormValue("format")
+	if p.Selector != "body" {
+		return fmt.Errorf("can only get csv of the body component, selector must be 'body'")
+	}
+	if !(format == "csv" || format == "") {
+		return fmt.Errorf("format %q conflicts with requested body csv file", format)
+	}
+	return nil
+}
+
+func validateZipRequest(r *http.Request, p *lib.GetParams) error {
+	format := r.FormValue("format")
+	if p.Selector != "" {
+		return fmt.Errorf("can only get zip file of the entire dataset, got selector %q", p.Selector)
+	}
+	if !(format == "zip" || format == "") {
+		return fmt.Errorf("format %q conflicts with header %q", format, "Accept: application/zip")
+	}
+	return nil
 }
 
 // UnpackHandler unpacks a zip file and sends it back as json
@@ -84,98 +176,26 @@ func extensionToMimeType(ext string) string {
 		return "application/zip"
 	case ".txt":
 		return "text/plain"
+	case ".md":
+		return "text/x-markdown"
+	case ".html":
+		return "text/html"
 	default:
 		return ""
 	}
 }
 
-// inlineScriptsToBytes consumes all open script files for dataset components
-// other than the body, inlining file data to scriptBytes fields
-func inlineScriptsToBytes(ds *dataset.Dataset) error {
-	var err error
-	if ds.Readme != nil && ds.Readme.ScriptFile() != nil {
-		if ds.Readme.ScriptBytes, err = ioutil.ReadAll(ds.Readme.ScriptFile()); err != nil {
-			return err
-		}
-	}
-
-	if ds.Transform != nil && ds.Transform.ScriptFile() != nil {
-		if ds.Transform.ScriptBytes, err = ioutil.ReadAll(ds.Transform.ScriptFile()); err != nil {
-			return err
-		}
-	}
-
-	if ds.Viz != nil && ds.Viz.ScriptFile() != nil {
-		if ds.Viz.ScriptBytes, err = ioutil.ReadAll(ds.Viz.ScriptFile()); err != nil {
-			return err
-		}
-	}
-
-	return nil
+func writeFileResponse(w http.ResponseWriter, val []byte, filename, format string) {
+	w.Header().Set("Content-Type", extensionToMimeType("."+format))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	w.Write(val)
 }
 
-// replyWithGetResponse writes an http response back to the client, based upon what sort of
-// response they requested. Handles raw file downloads (without response wrappers), zip downloads,
-// body pagination, as well as normal head responses. Input logic has already been handled
-// before this function, so errors should not commonly happen.
-func replyWithGetResponse(w http.ResponseWriter, r *http.Request, params *lib.GetParams, result *lib.GetResult) {
-	resultFormat := params.Format
-	if resultFormat == "" {
-		resultFormat = result.Dataset.Structure.Format
-	}
-
-	if resultFormat == "json" {
-		// Convert components with scriptPaths (transform, readme, viz) in scriptBytes
-		if err := inlineScriptsToBytes(result.Dataset); err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
+func arrayContains(subject []string, target string) bool {
+	for _, v := range subject {
+		if v == target {
+			return true
 		}
-
-		if params.Selector != "" {
-			page := util.PageFromRequest(r)
-			dataResponse := lib.DataResponse{
-				Path: result.Dataset.BodyPath,
-				Data: json.RawMessage(result.Bytes),
-			}
-			stripServerSideQueryParams(r)
-			if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
-				log.Infof("error writing response: %s", err.Error())
-			}
-			return
-		}
-
-		// TODO (b5) - remove this. res.Ref should be used instead
-		datasetRef := reporef.DatasetRef{
-			Peername:  result.Dataset.Peername,
-			ProfileID: profile.IDB58DecodeOrEmpty(result.Dataset.ProfileID),
-			Name:      result.Dataset.Name,
-			Path:      result.Dataset.Path,
-			FSIPath:   result.FSIPath,
-			Published: result.Published,
-			Dataset:   result.Dataset,
-		}
-
-		util.WriteResponse(w, datasetRef)
-	} else {
-		filename, err := archive.GenerateFilename(result.Dataset, resultFormat)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
-		w.Header().Set("Content-Type", extensionToMimeType("."+resultFormat))
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
-		w.Write(result.Bytes)
 	}
-}
-
-func loadFileIfPath(path string) (file *os.File, err error) {
-	if path == "" {
-		return nil, nil
-	}
-
-	if !filepath.IsAbs(path) {
-		return nil, fmt.Errorf("filepath must be absolute")
-	}
-
-	return os.Open(path)
+	return false
 }

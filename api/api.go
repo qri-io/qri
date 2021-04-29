@@ -163,15 +163,15 @@ func newrefRouteParams(e lib.APIEndpoint, sr bool, sel bool, methods ...string) 
 func handleRefRoute(m *mux.Router, p refRouteParams, f http.HandlerFunc) {
 	routes := []string{
 		p.Endpoint.String(),
-		fmt.Sprintf("%s/%s", p.Endpoint, "{peername}/{name}"),
+		fmt.Sprintf("%s/%s", p.Endpoint, "{username}/{name}"),
 	}
 	if p.Selector {
-		routes = append(routes, fmt.Sprintf("%s/%s", p.Endpoint, "{peername}/{name}/{selector}"))
+		routes = append(routes, fmt.Sprintf("%s/%s", p.Endpoint, "{username}/{name}/{selector}"))
 	}
 	if !p.ShortRef {
-		routes = append(routes, fmt.Sprintf("%s/%s", p.Endpoint, "{peername}/{name}/at/{fs}/{hash}"))
+		routes = append(routes, fmt.Sprintf("%s/%s", p.Endpoint, "{username}/{name}/at/{fs}/{hash}"))
 		if p.Selector {
-			routes = append(routes, fmt.Sprintf("%s/%s", p.Endpoint, "{peername}/{name}/at/{fs}/{hash}/{selector}"))
+			routes = append(routes, fmt.Sprintf("%s/%s", p.Endpoint, "{username}/{name}/at/{fs}/{hash}/{selector}"))
 		}
 	}
 
@@ -206,7 +206,7 @@ func handleRefRoute(m *mux.Router, p refRouteParams, f http.HandlerFunc) {
 func NewServerRoutes(s Server) *mux.Router {
 	cfg := s.GetConfig()
 
-	m := s.Instance.GiveAPIServer(s.Middleware, []string{"dataset.get"})
+	m := s.Instance.GiveAPIServer(s.Middleware, []string{})
 	m.Use(corsMiddleware(cfg.API.AllowedOrigins))
 	m.Use(muxVarsToQueryParamMiddleware)
 	m.Use(refStringMiddleware)
@@ -221,10 +221,14 @@ func NewServerRoutes(s Server) *mux.Router {
 	if !cfg.API.DisableWebui {
 		m.Handle(lib.AEWebUI.String(), s.Middleware(WebuiHandler))
 	}
+
 	// non POST/json dataset endpoints
-	routeParams = newrefRouteParams(lib.AEGet, false, true, http.MethodGet, http.MethodPost)
+	m.Handle(bodyCSVRouteFullRef, s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
+	m.Handle(bodyCSVRouteShortRef, s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
+	routeParams = newrefRouteParams(lib.AEGet, false, true, http.MethodGet)
 	handleRefRoute(m, routeParams, s.Middleware(GetHandler(s.Instance, lib.AEGet.String())))
 	m.Handle(lib.AEUnpack.String(), s.Middleware(UnpackHandler(lib.AEUnpack.NoTrailingSlash())))
+
 	// sync/protocol endpoints
 	if cfg.Remote != nil && cfg.Remote.Enabled {
 		log.Info("running in `remote` mode")

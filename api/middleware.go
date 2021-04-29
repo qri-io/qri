@@ -69,17 +69,24 @@ func (s *Server) readOnlyCheck(r *http.Request) bool {
 // params occurs
 func muxVarsToQueryParamMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		q := r.URL.Query()
-		for varName, val := range mux.Vars(r) {
-			if q.Get(varName) != "" {
-				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("conflict in query param: %s = %s", varName, val))
-				return
-			}
-			q.Add(varName, val)
+		if err := setMuxVarsToQueryParams(r); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
 		}
-		r.URL.RawQuery = q.Encode()
 		next.ServeHTTP(w, r)
 	})
+}
+
+func setMuxVarsToQueryParams(r *http.Request) error {
+	q := r.URL.Query()
+	for varName, val := range mux.Vars(r) {
+		if q.Get(varName) != "" {
+			return fmt.Errorf("conflict in query param: %s = %s", varName, val)
+		}
+		q.Add(varName, val)
+	}
+	r.URL.RawQuery = q.Encode()
+	return nil
 }
 
 // refStringMiddleware converts gorilla mux params to a "refstr" query parmeter
@@ -113,10 +120,4 @@ func muxVarsPath(mvars map[string]string) string {
 		return fmt.Sprintf("/%s/%s", fs, hash)
 	}
 	return ""
-}
-
-func stripServerSideQueryParams(r *http.Request) {
-	q := r.URL.Query()
-	q.Del("ref")
-	r.URL.RawQuery = q.Encode()
 }

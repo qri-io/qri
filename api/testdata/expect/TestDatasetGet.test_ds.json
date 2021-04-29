@@ -17,8 +17,12 @@
     "title": "title one"
   },
   "name": "test_ds",
-  "path": "/mem/QmeTvt83npHg4HoxL8bp8yz5bmG88hUVvRc5k9taW8uxTr",
+  "path": "/mem/QmX3Y2CG4DhZMHKTPAGPpLdwRPoWDjZLxAJwcikNYo8Tqa",
   "peername": "peer",
+  "readme": {
+    "qri": "rm:0",
+    "scriptPath": "/mem/QmaozNR7DZHQK1ZcU9p7QdrshMvXqWK6gpu5rmrkPdT3L4"
+  },
   "qri": "ds:0",
   "structure": {
     "checksum": "/mem/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",

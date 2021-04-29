@@ -102,7 +102,7 @@ func TestNoHistory(t *testing.T) {
 	structureMtime := st.ModTime().Format(time.RFC3339)
 
 	// Expected response for dataset head, regardless of fsi parameter
-	expectBody := `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0"}},"published":false},"meta":{"code":200}}`
+	expectBody := `{"data":{"bodyPath":"fsi_init_dir/body.csv","meta":{"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0"}},"meta":{"code":200}}`
 
 	// Dataset with a link to the filesystem, but no history and the api request says fsi=false
 	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds", GetHandler(run.Inst, ""), map[string]string{"username": "peer", "name": "test_ds"})
@@ -125,7 +125,7 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Expected response for body of the dataset
-	expectBody = `{"data":{"path":"fsi_init_dir/body.csv","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"page":1,"pageSize":50,"nextUrl":"/get/peer/test_ds/body?page=2","prevUrl":""}}`
+	expectBody = `{"data":[["one","two",3],["four","five",6]],"meta":{"code":200}}`
 
 	// Body with no history, but fsi working directory has body
 	gotStatusCode, gotBodyString = APICall("/get/peer/test_ds/body", GetHandler(run.Inst, ""), map[string]string{"username": "peer", "name": "test_ds", "selector": "body"})
@@ -504,6 +504,9 @@ func APICallWithParams(method, reqURL string, params map[string]string, hf http.
 		req = mux.SetURLVars(req, muxVars)
 	}
 	setRefStringFromMuxVars(req)
+	if err := setMuxVarsToQueryParams(req); err != nil {
+		panic(err)
+	}
 	// Set form-encoded header so server will find the parameters
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(reqParams.Encode())))
