@@ -52,7 +52,10 @@ test-all-coverage:
 	./.circleci/cover.test.sh
 
 cli-docs:
-	go run docs/docs.go --dir temp --filename cli_commands.md
+	cd docs && go run . --dir ../temp --filename cli_commands.md
+
+api-spec:
+	cd docs && go run . --dir ../temp --apiOnly
 
 update-changelog:
 	conventional-changelog -p angular -i CHANGELOG.md -s

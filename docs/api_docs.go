@@ -14,6 +14,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/version"
 )
@@ -213,7 +214,7 @@ func addNonLibMethods(methods []libMethod) []libMethod {
 	m := libMethod{
 		MethodSet:  "api",
 		MethodName: "unpack",
-		Endpoint:   lib.AEUnpack,
+		Endpoint:   api.AEUnpack,
 		HTTPVerb:   "post",
 		Params: qriType{
 			Name:     "application/zip",
@@ -230,7 +231,7 @@ func addNonLibMethods(methods []libMethod) []libMethod {
 	m = libMethod{
 		MethodSet:  "api",
 		MethodName: "home",
-		Endpoint:   lib.AEHome,
+		Endpoint:   api.AEHome,
 		HTTPVerb:   "get",
 		Params:     qriType{},
 		Paginated:  false,
@@ -244,7 +245,7 @@ func addNonLibMethods(methods []libMethod) []libMethod {
 	m = libMethod{
 		MethodSet:  "api",
 		MethodName: "health",
-		Endpoint:   lib.AEHealth,
+		Endpoint:   api.AEHealth,
 		HTTPVerb:   "get",
 		Params:     qriType{},
 		Paginated:  false,
@@ -258,7 +259,7 @@ func addNonLibMethods(methods []libMethod) []libMethod {
 	m = libMethod{
 		MethodSet:  "api",
 		MethodName: "webui",
-		Endpoint:   lib.AEWebUI,
+		Endpoint:   api.AEWebUI,
 		HTTPVerb:   "get",
 		Params:     qriType{},
 		Paginated:  false,
@@ -272,7 +273,7 @@ func addNonLibMethods(methods []libMethod) []libMethod {
 	m = libMethod{
 		MethodSet:  "api",
 		MethodName: "ipfs",
-		Endpoint:   lib.AEIPFS,
+		Endpoint:   api.AEIPFS,
 		HTTPVerb:   "get",
 		Params: qriType{
 			Name: "pathParams",
