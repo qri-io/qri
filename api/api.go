@@ -215,19 +215,19 @@ func NewServerRoutes(s Server) *mux.Router {
 	var routeParams refRouteParams
 
 	// misc endpoints
-	m.Handle(lib.AEHome.String(), s.NoLogMiddleware(s.HomeHandler))
-	m.Handle(lib.AEHealth.String(), s.NoLogMiddleware(HealthCheckHandler))
-	m.Handle(lib.AEIPFS.String(), s.Middleware(s.HandleIPFSPath))
+	m.Handle(AEHome.String(), s.NoLogMiddleware(s.HomeHandler))
+	m.Handle(AEHealth.String(), s.NoLogMiddleware(HealthCheckHandler))
+	m.Handle(AEIPFS.String(), s.Middleware(s.HandleIPFSPath))
 	if !cfg.API.DisableWebui {
-		m.Handle(lib.AEWebUI.String(), s.Middleware(WebuiHandler))
+		m.Handle(AEWebUI.String(), s.Middleware(WebuiHandler))
 	}
 
 	// non POST/json dataset endpoints
-	m.Handle(bodyCSVRouteFullRef, s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
-	m.Handle(bodyCSVRouteShortRef, s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
+	m.Handle(AEGetCSVFullRef.String(), s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
+	m.Handle(AEGetCSVShortRef.String(), s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
 	routeParams = newrefRouteParams(lib.AEGet, false, true, http.MethodGet)
 	handleRefRoute(m, routeParams, s.Middleware(GetHandler(s.Instance, lib.AEGet.String())))
-	m.Handle(lib.AEUnpack.String(), s.Middleware(UnpackHandler(lib.AEUnpack.NoTrailingSlash())))
+	m.Handle(AEUnpack.String(), s.Middleware(UnpackHandler(AEUnpack.NoTrailingSlash())))
 
 	// sync/protocol endpoints
 	if cfg.Remote != nil && cfg.Remote.Enabled {
