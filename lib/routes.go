@@ -13,6 +13,9 @@ func (inst *Instance) GiveAPIServer(middleware func(handler http.HandlerFunc) ht
 		if arrayContainsString(ignoreMethods, methodName) {
 			continue
 		}
+		if call.Endpoint == DenyHTTP {
+			continue
+		}
 		handler := middleware(NewHTTPRequestHandler(inst, methodName))
 		// All endpoints use POST verb
 		httpVerb := http.MethodPost
