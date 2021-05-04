@@ -1,7 +1,7 @@
 
 default: build
 
-QRI_VERSION?="0.9.14-dev"
+QRI_VERSION?="0.10.0"
 
 BUILD_FLAGS?=CGO_ENABLED=0
 PKG=$(shell go list ./version)
