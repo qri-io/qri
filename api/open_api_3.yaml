@@ -2,1535 +2,3266 @@ openapi: 3.0.0
 info:
   title: Qri API
   description: Qri API used to communicate with a Qri node.
-  version: 0.5.1
-
+  version: n/a
 paths:
-  /get/{username}/{datasetName}:
-    get:
-      summary: Get dataset info from a peer’s dataset using the `username` and `dataset_name`
-      operationId: getDataset
-      parameters:
-        - $ref: '#/components/parameters/username'
-        - $ref: '#/components/parameters/datasetName'
-        - name: rawDownload
-          in: query 
-          description: download the dataset body
-          required: false 
-          schema:
-            type: boolean
-        - name: format
-          in: query 
-          description: dataset format, default is json
-          required: false
-          schema:
-            type: string
-        - name: component 
-          in: query 
-          description: dataset component
-          required: false 
-          schema:
-            type: string
-            enum: [body]
-        - name: all
-          in: query 
-          description: fetch all results without pagination
-          required: false
-          schema:
-            type: boolean
-        - name: remote
-          in: query 
-          description: Remote name, e.g. registry or local
-          required: false 
-          schema: 
-            type: string
-        - $ref: '#/components/parameters/page'
-        - $ref: '#/components/parameters/pageSize'
-        - name: Accept
-          in: header 
-          description: file type to download from API, e.g. "text/csv"
-          required: false 
-          schema:
-            type: string
+  '/access/token':
+    post:
+      operationId: 'access.CreateAuthToken'
+      tags:
+      - access
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/CreateAuthTokenParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /get/{username}/{datasetName}/body.csv:
-    get:
-      summary: Get dataset body as raw csv for download
-      operationId: getDatasetBody
-      parameters:
-        - $ref: '#/components/parameters/username'
-        - $ref: '#/components/parameters/datasetName'
-        - name: all
-          in: query 
-          description: fetch all results without pagination
-          required: false
-          schema:
-            type: boolean
-        - name: remote
-          description: Remote name, e.g. registry or local
-          in: query 
-          required: false 
-          schema: 
-            type: string
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /status:
-    get:
-      summary: A basic ok response for load balancers & co. Returns the version of qri this node is running, pulled from the qri/lib package
-      operationId: status
-      responses:
-        '200':
-          description: Status OK response
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  meta:
-                    type: object
-                    properties:
-                      code:
-                        type: integer
-                        enum: [200]
-                      status:
-                        type: string
-                        enum: [ok]
-                      version:
-                        type: string
-                  data:
-                    type: array
-                    items: {}
-                    minItems: 0
-                    maxItems: 0
-  /me:
-    get: 
-      summary: Get this Qri node’s profile
-      operationId: getMyProfile
-      responses:
-        '200':
-          $ref: '#/components/responses/ProfileResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/RawResponse'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/list':
     post:
-      summary: Save changes to this peer’s profile
-      operationId: saveMyProfile
+      operationId: 'collection.List'
+      tags:
+      - collection
       requestBody:
-        description: required profile described in json
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Profile'
+              '$ref': '#/components/schemas/ListParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/ProfileResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+
+                        type: array
+                        items:
+                          allOf:
+                            - $ref: '#/components/schemas/VersionInfo'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError' 
-  /profile:
-    get: 
-      summary: Get this Qri node’s profile
-      operationId: getProfile
-      responses:
-        '200':
-          $ref: '#/components/responses/ProfileResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/activity':
     post:
-      summary: Save changes to this peer’s profile
-      operationId: saveProfile
+      operationId: 'dataset.Activity'
+      tags:
+      - dataset
       requestBody:
-        description: Profile with changes
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Profile'
+              '$ref': '#/components/schemas/ActivityParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/ProfileResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+
+                        type: array
+                        items:
+                          allOf:
+                            - $ref: '#/components/schemas/VersionInfo'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError' 
-  /peers:
-    get:
-      summary: Get the list of this node’s peers
-      operationId: getPeersList
-      responses:
-        '200':
-          $ref: '#/components/responses/PeersResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'  
-  /peers/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
-    get:
-      summary: Get the head of a specific dataset
-      operationId: getPeersDatasetInfo
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'  
-  /list:
-    parameters: 
-      - $ref: '#/components/parameters/page'
-      - $ref: '#/components/parameters/pageSize'
-      - name: term
-        in: query 
-        description: Search term for listed datasets
-        required: false 
-        schema:
-          type: string
-    get:
-      summary: Get the list of this peer’s datasets
-      operationId: getDatasetList
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetsResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'   
-  /save:
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/componentstatus':
     post:
-      summary: Save and update to a dataset head
-      operationId: saveDatasetFromRoot
+      operationId: 'dataset.ComponentStatus'
+      tags:
+      - dataset
       requestBody:
-        description: Updated dataset head
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Dataset'       
+              '$ref': '#/components/schemas/LinkParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+
+                        type: array
+                        items:
+                          allOf:
+                            - $ref: '#/components/schemas/StatusItem'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-    put:
-      summary: Save and update to a dataset head
-      operationId: saveDatasetFromRoot
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/daginfo':
+    post:
+      operationId: 'dataset.DAGInfo'
+      tags:
+      - dataset
       requestBody:
-        description: Updated dataset head
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Dataset'       
+              '$ref': '#/components/schemas/DAGInfoParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/DAGInfo'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /save/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/get':
     post:
-      summary: Save and update to a dataset head
-      operationId: saveDataset
+      operationId: 'dataset.Get'
+      tags:
+      - dataset
       requestBody:
-        description: Updated dataset head
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Dataset'       
+              '$ref': '#/components/schemas/GetParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/GetResult'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-    put:
-      summary: Save and update to a dataset head
-      operationId: saveDataset
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/manifest':
+    post:
+      operationId: 'dataset.Manifest'
+      tags:
+      - dataset
       requestBody:
-        description: Updated dataset head
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Dataset'       
+              '$ref': '#/components/schemas/ManifestParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/DAGManifest'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /remove/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/manifest/missing':
     post:
-      summary: Remove a dataset
-      operationId: removeDatasetPost
+      operationId: 'dataset.ManifestMissing'
+      tags:
+      - dataset
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DatasetRemove'
+              '$ref': '#/components/schemas/ManifestMissingParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/DAGManifest'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-    delete:
-      summary: Remove a dataset
-      operationId: removeDatasetDelete
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/pull':
+    post:
+      operationId: 'dataset.Pull'
+      tags:
+      - dataset
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DatasetRemove'
+              '$ref': '#/components/schemas/PullParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Dataset'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /me/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
-    get:
-      summary: Get the head of your own dataset
-      operationId: getMyDataset
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /add/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
-    put:
-      summary: Add a peer’s dataset to your node
-      operationId: addDatasetPut
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/push':
     post:
-      summary: Add a peer’s dataset to your node
-      operationId: addDatasetPost
+      operationId: 'dataset.Push'
+      tags:
+      - dataset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/PushParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Ref'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /history/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
-    get:
-      summary: Get the version history of a dataset
-      operationId: datasetHistory
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetsResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /registry/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
-    put:
-      summary: Publish this dataset to the registry
-      operationId: publishDatasetPut
-      responses:
-        '200':
-          $ref: '#/components/responses/RegistryResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/remove':
     post:
-      summary: Publish this dataset to the registry
-      operationId: publishDatasetPost
+      operationId: 'dataset.Remove'
+      tags:
+      - dataset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/RemoveParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/RegistryResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/RemoveResponse'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-    delete:
-      summary: Publish this dataset to the registry
-      operationId: unpublishDataset
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/rename':
+    post:
+      operationId: 'dataset.Rename'
+      tags:
+      - dataset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/RenameParams'
+      
+      
       responses:
         '200':
-          $ref: '#/components/responses/RegistryResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/VersionInfo'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'  
-  /render/{datasetRef}:
-    parameters:
-      - $ref: '#/components/parameters/datasetRef'
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/render':
+    post:
+      operationId: 'dataset.Render'
+      tags:
+      - dataset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/RenderParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/RawResponse'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/save':
+    post:
+      operationId: 'dataset.Save'
+      tags:
+      - dataset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/SaveParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Dataset'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/validate':
+    post:
+      operationId: 'dataset.Validate'
+      tags:
+      - dataset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/ValidateParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ValidateResponse'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/changes':
+    post:
+      operationId: 'diff.Changes'
+      tags:
+      - diff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/ChangeReportParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ChangeReport'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/diff':
+    post:
+      operationId: 'diff.Diff'
+      tags:
+      - diff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/DiffParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/DiffResponse'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/wd/caninitworkdir':
+    post:
+      operationId: 'fsi.CanInitDatasetWorkDir'
+      tags:
+      - fsi
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Nil'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/wd/checkout':
+    post:
+      operationId: 'fsi.Checkout'
+      tags:
+      - fsi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/LinkParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Nil'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/wd/createlink':
+    post:
+      operationId: 'fsi.CreateLink'
+      tags:
+      - fsi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/LinkParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/VersionInfo'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/wd/ensureref':
+    post:
+      operationId: 'fsi.EnsureRef'
+      tags:
+      - fsi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/LinkParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/VersionInfo'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/wd/init':
+    post:
+      operationId: 'fsi.Init'
+      tags:
+      - fsi
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/RawResponse'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/wd/restore':
+    post:
+      operationId: 'fsi.Restore'
+      tags:
+      - fsi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/RestoreParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Nil'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/wd/status':
+    post:
+      operationId: 'fsi.Status'
+      tags:
+      - fsi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/LinkParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+
+                        type: array
+                        items:
+                          allOf:
+                            - $ref: '#/components/schemas/StatusItem'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/wd/unlink':
+    post:
+      operationId: 'fsi.Unlink'
+      tags:
+      - fsi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/LinkParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/RawResponse'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/wd/write':
+    post:
+      operationId: 'fsi.Write'
+      tags:
+      - fsi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/FSIWriteParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+
+                        type: array
+                        items:
+                          allOf:
+                            - $ref: '#/components/schemas/StatusItem'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/peer/connect':
+    post:
+      operationId: 'peer.Connect'
+      tags:
+      - peer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/ConnectParamsPod'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Profile'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/connections/qri':
+    post:
+      operationId: 'peer.ConnectedQriProfiles'
+      tags:
+      - peer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/ConnectionsParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+
+                        type: array
+                        items:
+                          allOf:
+                            - $ref: '#/components/schemas/Profile'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/connections':
+    post:
+      operationId: 'peer.Connections'
+      tags:
+      - peer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/ConnectionsParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/RawResponse'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/peer/disconnect':
+    post:
+      operationId: 'peer.Disconnect'
+      tags:
+      - peer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/ConnectParamsPod'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Nil'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/peer':
+    post:
+      operationId: 'peer.Info'
+      tags:
+      - peer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/PeerInfoParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Profile'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/peer/list':
+    post:
+      operationId: 'peer.List'
+      tags:
+      - peer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/PeerListParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+
+                        type: array
+                        items:
+                          allOf:
+                            - $ref: '#/components/schemas/Profile'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/profile':
+    post:
+      operationId: 'profile.GetProfile'
+      tags:
+      - profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/ProfileParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Profile'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/profile/poster':
+    post:
+      operationId: 'profile.SetPosterPhoto'
+      tags:
+      - profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/FileParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Profile'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/profile/set':
+    post:
+      operationId: 'profile.SetProfile'
+      tags:
+      - profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/SetProfileParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Profile'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/profile/photo':
+    post:
+      operationId: 'profile.SetProfilePhoto'
+      tags:
+      - profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/FileParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Profile'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/remote/feeds':
+    post:
+      operationId: 'remote.Feeds'
+      tags:
+      - remote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/EmptyParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/MappedArraysOfVersionInfo'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/remote/preview':
+    post:
+      operationId: 'remote.Preview'
+      tags:
+      - remote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/PreviewParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Dataset'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/remote/remove':
+    post:
+      operationId: 'remote.Remove'
+      tags:
+      - remote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/PushParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Ref'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/remote/search':
+    post:
+      operationId: 'search.Search'
+      tags:
+      - search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/SearchParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+
+                        type: array
+                        items:
+                          allOf:
+                            - $ref: '#/components/schemas/SearchResult'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/sql':
+    post:
+      operationId: 'sql.Exec'
+      tags:
+      - sql
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/SQLQueryParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/RawResponse'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/auto/apply':
+    post:
+      operationId: 'automation.Apply'
+      tags:
+      - automation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              '$ref': '#/components/schemas/ApplyParams'
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ApplyResult'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/unpack':
+    post:
+      operationId: 'api.unpack'
+      tags:
+      - api
+      requestBody:
+        required: true
+        content:
+          application/zip:
+            schema:
+              type: string
+              format: binary
+      
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/NotDefined'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/':
     get:
-      summary: Get a visualized version of your dataset in html. Visualiztions taken from a golang/html template
-      operationId: renderDataset
+      operationId: 'api.home'
+      tags:
+      - api
+      
       responses:
         '200':
-          $ref: '#/components/responses/RenderResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/StatusOK'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /connect/{address}:
-    parameters:
-      - name: address
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/health':
+    get:
+      operationId: 'api.health'
+      tags:
+      - api
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/StatusOK'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/webui':
+    get:
+      operationId: 'api.webui'
+      tags:
+      - api
+      
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/RawResponse'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/qfs/ipfs/{path:.*}':
+    get:
+      operationId: 'api.ipfs'
+      tags:
+      - api
+      parameters: 
+      - name: 'path:.*'
         in: path
         required: true
         schema:
           type: string
-          enum:
-            - $ref: '#/components/schemas/Path'
-            - $ref: '#/components/schemas/ID'
-            - $ref: '#/components/schemas/Username'
-            - $ref: '#/components/schemas/Multiaddr'
-    get:
-      summary: Create an explicit connection to another peer
-      operationId: ConnectToPeer
+      
       responses:
         '200':
-          $ref: '#/components/responses/ProfileResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'        
-  /ipfs/{hash}/{filename}:
-    parameters:
-      - $ref: '#/components/parameters/hash'
-      - $ref: '#/components/parameters/filename'
-    get:
-      summary: Get file straight from ipfs
-      operationId: ipfs
-      responses:
-        '200':
-          description: get file or data straight from ipfs
           content:
             application/json:
               schema:
-                oneOf:
-                  - type: object
-                  - type: array
-            text/csv:
-              schema:
-                type: array
-                items: {}
-            text/plain; charset=utf-8:
-              schema:
-                type: string
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError' 
-  /ipns/{hash}:
-    parameters:
-      - $ref: '#/components/parameters/hash'
-    get:
-      summary: Resolve ipns hash
-      operationId: ipns
-      responses:
-        '200':
-          description: get file or data straight from ipfs
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/RawResponse'
+
+          description: OK
+        '400':
           content:
             application/json:
               schema:
-                oneOf:
-                  - type: object
-                  - type: array
-            text/csv:
-              schema:
-                type: array
-                items: {}
-            text/plain; charset=utf-8:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
+        '500':
+          content:
+            application/json:
               schema:
                 type: string
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError' 
-  /profile/photo:
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/get/{dsref}':
     get:
-      parameters:
-        - name: username
-          in: query
-          description: username
-          schema:
-            $ref: '#/components/schemas/Username'
-        - name: id
-          in: query
-          description: peer id
-          schema:
-            $ref: '#/components/schemas/ID'
-      summary: Get your profile photo or a peer’s profile photo
-      operationId: getProfilePhoto
+      operationId: 'api.get_ref'
+      tags:
+      - api
+      parameters: 
+      - name: 'dsref'
+        in: path
+        required: true
+        schema:
+          type: string
+      
       responses:
         '200':
-          $ref: '#/components/responses/PhotoResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/GetResult'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'  
-    put:
-      summary: Set your profile photo
-      operationId: setProfilePhotoPut
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              properties:
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '200':
-          $ref: '#/components/responses/ProfileResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-    post:
-      summary: Set your profile photo
-      operationId: setProfilePhotoPost
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              properties:
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '200':
-          $ref: '#/components/responses/ProfileResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError' 
-  /profile/poster:
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
+  '/ds/get/{dsref}/{selector}':
     get:
-      parameters:
-        - name: username
-          in: query
-          description: username
-          schema:
-            $ref: '#/components/schemas/Username'
-        - name: id
-          in: query
-          description: peer id
-          schema:
-            $ref: '#/components/schemas/ID'
-      summary: Get your profile poster or a peer’s profile poster
-      operationId: getProfilePoster
+      operationId: 'api.get_ref_selector'
+      tags:
+      - api
+      parameters: 
+      - name: 'dsref'
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: 'selector'
+        in: path
+        required: true
+        schema:
+          type: string
+      
       responses:
         '200':
-          $ref: '#/components/responses/PhotoResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/RawResponse'
+
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Bad request
         '500':
-          $ref: '#/components/responses/StatusInternalServerError'  
-    put:
-      summary: Set your profile poster
-      operationId: setProfilePosterPut
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              properties:
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '200':
-          $ref: '#/components/responses/ProfileResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-    post:
-      summary: Set your profile poster
-      operationId: setProfilePosterPost
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              properties:
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '200':
-          $ref: '#/components/responses/ProfileResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError' 
-  /diff:
-    post:
-      summary: Get the diff between two datasets
-      operationId: diffDatasets
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                LeftSide:
-                  description: a dataset reference
-                  type: string
-                RightSide:
-                  description: a dataset reference
-                  type: string
-                Selector:
-                  $ref: '#/components/schemas/DatasetComponent'
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                left_path:
-                  description: a dataset reference
-                  type: string
-                right_path:
-                  type: string
-                  description: a dataset reference
-                selector:
-                  $ref: '#/components/schemas/DatasetComponent'
-      responses:
-        '200':
-          $ref: '#/components/responses/DiffResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError' 
-  /export/{datasetRef}:
-    get:
-      summary: Export a dataset header and body as a zip
-      operationId: zipDataset
-      parameters:
-        - $ref: '#/components/parameters/datasetRef'
-        - name: zipped
-          description: defaults to true. When true, data payload is a zipped file.
-          in: query
-          schema:
-            type: boolean
-        - name: format
-          description: format the dataset should be converted to. Options are json, yaml, xlsx
-          in: query
-          schema:
-            type: string
-      responses:
-        '200':
-          $ref: '#/components/responses/ZipResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /rename:
-    put:
-      summary: Rename a dataset
-      operationId: renameDatasetPut
-      parameters:
-        - $ref: '#/components/parameters/current'
-        - $ref: '#/components/parameters/new'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DatasetRename'
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-    post:
-      summary: Rename a dataset
-      operationId: renameDatasetPost
-      parameters:
-        - $ref: '#/components/parameters/current'
-        - $ref: '#/components/parameters/new'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DatasetRename'
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /new:
-    put:
-      summary: Create a new dataset
-      operationId: newDatasetPut
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Dataset'
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                username:
-                  $ref: '#/components/schemas/Username'
-                name:
-                  type: string
-                  description: name of the dataset
-                body_path:
-                  type: string
-                  description: Path to the body file
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError' 
-    post:
-      summary: Create a new dataset
-      operationId: newDatasetPost
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Dataset'
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                username:
-                  $ref: '#/components/schemas/Username'
-                name:
-                  type: string
-                  description: name of the dataset
-                body_path:
-                  type: string
-                  description: Path to the body file
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError' 
-  /connections:
-    get:
-      summary: Get list of connections available to this Qri node
-      operationId: getConnections
-      responses:
-        '200':
-          $ref: '#/components/responses/ConnectionsResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError' 
-  /search:
-    get:
-      summary: Search the Qri registry for datasets
-      operationId: search
-      parameters:
-        - name: search
-          in: query
-          description: Search Query
-          required: true
-          schema:
-            type: string
-        - name: limit
-          in: query
-          description: Max number of search results to return
-          schema:
-            type: integer
-        - name: offset
-          in: query
-          description: Number of entries to skip before returning search results
-          schema:
-            type: integer
-      responses:
-        '200':
-          $ref: '#/components/responses/SearchResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /stats/{username}/{datasetName}:
-    get:
-      summary: Get dataset stats
-      operationId: stats
-      parameters:
-        - $ref: '#/components/parameters/username'
-        - $ref: '#/components/parameters/datasetName'
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-  /unpack:
-    post:
-      summary: Unpack a zip file and return its contents as json
-      operationId: unpack
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              properties:
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '200':
-          $ref: '#/components/responses/DatasetResponse'
-        '403':
-          $ref: '#/components/responses/StatusForbidden'
-        '404':
-          $ref: '#/components/responses/StatusNotFound'
-        '500':
-          $ref: '#/components/responses/StatusInternalServerError'
-          
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+          description: Server error
+        default:
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - properties:
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/APIMetaError'
+          description: Error
 components:
   schemas:
-    Dataset:
+    PeerInfoParams:
       type: object
-      description: Dataset is a document for describing & storing structured data. Dataset documents are designed to satisfy the FAIR principle of being Findable, Accessible, Interoperable, and Reproducible, in relation to other dataset documents, and related-but-separate technologies such as data catalogs, HTTP APIs, and data package formats Datasets are designed to be stored and distributed on content-addressed (identify-by-hash) systems The dataset document definition is built from a research-first principle, valuing direct interoperability with existing standards over novel definitions or specifications
+      properties: 
+        Peername:
+          type: string
+
+        ProfileID:
+          type: string
+
+        Verbose:
+          type: boolean
+          description: "Verbose adds network details from the p2p Peerstore "
+    ProfileParams:
+      type: object
+    PushParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+
+        Remote:
+          type: string
+
+        All:
+          type: boolean
+          description: "All indicates all versions of a dataset and the dataset namespace should be either published or removed "
+    RestoreParams:
+      type: object
+      properties: 
+        Dir:
+          type: string
+
+        Ref:
+          type: string
+
+        Version:
+          type: string
+
+        Selector:
+          type: string
+
+    TeardownParams:
+      type: object
+      properties: 
+        Config:
+          type: object
+        RepoPath:
+          type: string
+
+        ConfigFilepath:
+          type: string
+
+    PreviewParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+
+    ValidateParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+
+        BodyFilename:
+          type: string
+
+        SchemaFilename:
+          type: string
+
+        StructureFilename:
+          type: string
+
+    ActivityParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+          description: "Reference to data to fetch history for "
+        Pull:
+          type: boolean
+
+    DiffResponse:
+      type: object
+      properties: 
+        Stat:
+          type: object
+        SchemaStat:
+          type: object
+        Schema:
+          type: object
+        Diff:
+          type: object
+    RemoveResponse:
+      type: object
+      properties: 
+        Ref:
+          type: string
+
+        NumDeleted:
+          type: number
+
+        Message:
+          type: string
+
+        Unlinked:
+          type: boolean
+
+    ChangeReportParams:
+      type: object
+      properties: 
+        LeftRef:
+          type: string
+
+        RightRef:
+          type: string
+
+    ConnectionsParams:
+      type: object
+      properties: 
+        Limit:
+          type: number
+
+        Offset:
+          type: number
+
+    CreateAuthTokenParams:
+      type: object
+      properties: 
+        GranteeUsername:
+          type: string
+
+        GranteeProfileID:
+          type: string
+
+        TTL:
+          type: object
+    GetConfigParams:
+      type: object
+      properties: 
+        Field:
+          type: string
+
+        WithPrivateKey:
+          type: boolean
+
+        Format:
+          type: string
+
+        Concise:
+          type: boolean
+
+    PeerListParams:
+      type: object
+      properties: 
+        Limit:
+          type: number
+
+        Cached:
+          type: boolean
+          description: "Cached == true will return offline peers from the repo as well as online peers, default is to list connected peers only "
+    SearchResult:
+      type: object
+      properties: 
+        Type:
+          type: string
+
+        URL:
+          type: string
+
+        Value:
+          type: object
+    SaveParams:
+      type: object
+      properties: 
+        Dataset:
+          type: object
+          description: "dataset supplies params directly, all other param fields override values supplied by dataset "
+        Ref:
+          type: string
+          description: "dataset reference string, the name to save to "
+        Title:
+          type: string
+          description: "commit title, defaults to a generated string based on diff "
+        Message:
+          type: string
+          description: "commit message, defaults to blank "
+        BodyPath:
+          type: string
+          description: "path to body data "
+        FilePaths:
+          type: object
+          description: "absolute path or URL to the list of dataset files or components to load "
+        Secrets:
+          type: object
+          description: "secrets for transform execution "
+        ScriptOutput:
+          type: object
+          description: "optional writer to have transform script record standard output to note: this won't work over RPC, only on local calls "
+        Apply:
+          type: boolean
+          description: "Apply runs a transform script to create the next version to save "
+        Replace:
+          type: boolean
+          description: "Replace writes the entire given dataset as a new snapshot instead of applying save params as augmentations to the existing history "
+        Private:
+          type: boolean
+          description: "option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates "
+        ConvertFormatToPrev:
+          type: boolean
+          description: "if true, convert body to the format of the previous version, if applicable "
+        Drop:
+          type: string
+          description: "comma separated list of component names to delete before saving "
+        Force:
+          type: boolean
+          description: "force a new commit, even if no changes are detected "
+        ShouldRender:
+          type: boolean
+          description: "save a rendered version of the template along with the dataset "
+        NewName:
+          type: boolean
+          description: "new dataset only, don't create a commit on an existing dataset, name will be unused "
+    SetProfileParams:
+      type: object
+      properties: 
+        Pro:
+          type: object
+    FileParams:
+      type: object
+      properties: 
+        Filename:
+          type: string
+          description: "url to download data from. either Url or Data is required Url      string Filename of data file. extension is used for filetype detection "
+        Data:
+          type: object
+          description: "Data is the file as slice of bytes "
+    GetParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+
+        Selector:
+          type: string
+          description: "selector is a component or nested field names to extract from the dataset "
+        Limit:
+          type: number
+
+        Offset:
+          type: number
+
+        All:
+          type: boolean
+          description: "TODO(dustmop): Remove `All` once `Cursor` is in use. Instead, callers should loop over their `Cursor` in order to get all rows. "
+    RemoveParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+
+        Revision:
+          type: object
+        KeepFiles:
+          type: boolean
+
+        Force:
+          type: boolean
+
+    SQLQueryParams:
+      type: object
+      properties: 
+        Query:
+          type: string
+
+        Format:
+          type: string
+
+    RenderParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+          description: "Ref is a string reference to the dataset to render "
+        Dataset:
+          type: object
+          description: "Optionally pass an entire dataset in for rendering, if providing a dataset, the Ref field must be empty "
+        Template:
+          type: object
+          description: "Optional template override "
+        UseFSI:
+          type: boolean
+          description: "If true, "
+        Format:
+          type: string
+          description: "Output format. defaults to 'html' "
+        Selector:
+          type: string
+          description: "Selector "
+    DAGInfoParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+
+        Label:
+          type: string
+
+    SearchParams:
+      type: object
+      properties: 
+        Query:
+          type: string
+
+        Limit:
+          type: number
+
+        Offset:
+          type: number
+
+    RawLogbookParams:
+      type: object
+    ApplyParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+
+        Transform:
+          type: object
+        Secrets:
+          type: object
+        Wait:
+          type: boolean
+
+        ScriptOutput:
+          type: object
+          description: "TODO(arqu): substitute with websockets when working over the wire "
+    EmptyParams:
+      type: object
+    ListParams:
+      type: object
+      properties: 
+        ProfileID:
+          type: object
+        Term:
+          type: string
+
+        Username:
+          type: string
+
+        OrderBy:
+          type: string
+
+        Limit:
+          type: number
+
+        Offset:
+          type: number
+
+        Public:
+          type: boolean
+          description: "Public only applies to listing datasets, shows only datasets that are set to visible "
+        ShowNumVersions:
+          type: boolean
+          description: "ShowNumVersions only applies to listing datasets "
+        EnsureFSIExists:
+          type: boolean
+          description: "EnsureFSIExists controls whether to ensure references in the repo have correct FSIPaths "
+    ManifestMissingParams:
+      type: object
+      properties: 
+        Manifest:
+          type: object
+    ManifestParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+
+    ApplyResult:
+      type: object
+      properties: 
+        Data:
+          type: object
+        RunID:
+          type: string
+
+    LinkParams:
+      type: object
+      properties: 
+        Dir:
+          type: string
+
+        Ref:
+          type: string
+
+    RenameParams:
+      type: object
+      properties: 
+        Current:
+          type: string
+
+    ValidateResponse:
+      type: object
+      properties: 
+        Structure:
+          type: object
+          description: "Structure used to perform validation "
+        Errors:
+          type: object
+          description: "Validation Errors "
+    RegistryProfileParams:
+      type: object
+      properties: 
+        Profile:
+          type: object
+    SetupParams:
+      type: object
+      properties: 
+        Config:
+          type: object
+          description: "a configuration is required. defaults to config.DefaultConfig() "
+        RepoPath:
+          type: string
+          description: "where to initialize qri repository "
+        Register:
+          type: boolean
+          description: "submit new username to the configured registry "
+        Overwrite:
+          type: boolean
+          description: "overwrite any existing repo, erasing all data and deleting private keys this is almost always a bad idea "
+        SetupIPFS:
+          type: boolean
+          description: "attempt to setup an IFPS repo "
+        SetupIPFSConfigData:
+          type: object
+        Generator:
+          type: object
+          description: "setup requires a crypto source "
+    DiffParams:
+      type: object
+      properties: 
+        LeftSide:
+          type: string
+          description: "File paths or reference to datasets "
+        RightSide:
+          type: string
+
+        WorkingDir:
+          type: string
+          description: "If not null, the working directory that the diff is using "
+        UseLeftPrevVersion:
+          type: boolean
+          description: "Whether to get the previous version of the left parameter "
+        Selector:
+          type: string
+          description: "Which component or part of a dataset to compare "
+    PullParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+
+        LinkDir:
+          type: string
+
+        LogsOnly:
+          type: boolean
+
+    GetResult:
+      type: object
+      properties: 
+        Value:
+          type: object
+        Bytes:
+          type: object
+    FSIWriteParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+
+        Dataset:
+          type: object
+    RefListParams:
+      type: object
+      properties: 
+        Ref:
+          type: string
+          description: "String value of a reference "
+        Offset:
+          type: number
+          description: "Pagination Parameters "
+    ConnectParamsPod:
+      type: object
+      properties: 
+        Peername:
+          type: string
+
+        ProfileID:
+          type: string
+
+        NetworkID:
+          type: string
+
+        Multiaddr:
+          type: string
+
+### Response Schemas
+## Base
+    APIResponse:
+      type: object
       properties:
-        commit:
-          $ref: '#/components/schemas/Commit'
-        bodyPath:
-          type: string
-          description: BodyPath is the path to the hash of raw data as it resolves on the network. Datasets have at most one body
-        name:
-          type: string
-        path:
-          $ref: '#/components/schemas/Path'
-        username:
-          $ref: '#/components/schemas/Username'
-        profileID:
-          $ref: '#/components/schemas/ID'
+        data:
+          type: object
+          nullable: true
         meta:
-          $ref: '#/components/schemas/Meta'
-        previousPath: 
+          type: object
+          nullable: true
+    StatusOK:
+      type: object
+    String:
+      type: string
+    Nil:
+      type: object
+      nullable: true
+    NotDefined:
+      type: object
+      nullable: true
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        resultCount:
+          type: integer
+        nextUrl:
           type: string
-          description: PreviousPath connects datasets to form a historical merkle-DAG of snapshots of this document, creating a version history
-        qri:
-          $ref: '#/components/schemas/Qri'
-        structure:
-          $ref: '#/components/schemas/Structure'
-        transform:
-          $ref: '#/components/schemas/Transform'
-        viz:
-          $ref: '#/components/schemas/Viz'
+        prevUrl:
+          type: string
+    RawResponse:
+      # supports all string formats: string, binary, byte
+      type: string
+## Qri
+    Dataset:
+      type: object 
+    VersionInfo:
+      type: object
+    StatusItem:
+      type: object
     Profile:
       type: object
-      properties:
-        id:
-          $ref: '#/components/schemas/ID'
-        privKey:
-          type: string
-        username:
-          $ref: '#/components/schemas/Username'
-        created:
-          $ref: '#/components/schemas/Created'
-        updated:
-          $ref: '#/components/schemas/Updated'
-        type:
-          type: string
-          enum: [peer, organization]
-        email:
-          $ref: '#/components/schemas/Email'
-        name:
-          type: string
-        description:
-          type: string
-        homeurl:
-          $ref: '#/components/schemas/URI'
-        color:
-          type: string
-        thumb:
-          $ref: '#/components/schemas/Path'
-        photo:
-          $ref: '#/components/schemas/Path'
-        poster:
-          $ref: '#/components/schemas/Path'
-        twitter:
-          type: string
-        Online:
-          type: boolean
-        peerIDs:
-          type: array
-          items:
-            $ref: '#/components/schemas/Path'
-    Commit:
+    Ref:
       type: object
-      properties:
-        author:
-          $ref: '#/components/schemas/User'
-        message:
-          type: string
-        path:
-          $ref: '#/components/schemas/Path'
-        qri:
-          $ref: '#/components/schemas/Qri'
-        signature:
-          type: string
-          minLength: 344
-          maxLength: 344
-          pattern: '^[a-zA-Z0-9\/+]+=='
-        timestamp:
-          $ref: '#/components/schemas/Datetime'
-        title:
-          type: string
-    Meta:
-      description: Dataset metadata.
+    DAGManifest:
       type: object
-      properties:
-        qri:
-          $ref: '#/components/schemas/Qri'
-        accessPath:
-          $ref: '#/components/schemas/URI'
-        accrualPeriodicity:
-          description: Frequency at which his dataset should be updated.
-          type: string
-        citations:
-          description: List of citations for this dataset.
-          type: array
-          items:
-            type: object
-            properties:
-              name:
-                type: string
-              url:
-                $ref: '#/components/schemas/URI'
-              email:
-                $ref: '#/components/schemas/Email'
-        contributors:
-          description: List of contributors on this dataset.
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                $ref: '#/components/schemas/ID'
-              fullname:
-                type: string
-              email:
-                $ref: '#/components/schemas/Email'
-        description:
-          description: Human-readable description of the dataset.
-          type: string
-        downloadPath:
-          $ref: '#/components/schemas/URI'
-        homePath:
-          $ref: '#/components/schemas/URI'
-        identifier:
-          type: string
-        keywords:
-          description: Keywords or tags that should be associated with the dataset.
-          type: array
-          items:
-            type: string
-        language:
-          description: Language or languages the dataset is available in.
-          type: array
-          items:
-            type: string
-        license:
-          description: License under which the dataset is authorized to be used.
-          type: object
-          properties:
-            type:
-              type: string
-              description: Name or kind of license.
-            url:
-              $ref: '#/components/schemas/URI'
-        readmePath:
-          $ref: '#/components/schemas/URI'
-        title:
-          description: Human-readable title of the dataset.
-          type: string
-        theme:
-          description: List of categories to which this dataset should belong.
-          type: array
-          items:
-            type: string
-        version:
-          description: The semantic version of this dataset.
-          type: string
-    Structure:
-      description: Defines the characteristics of a dataset document necessary for a machine to interpret the dataset body.
+    DAGInfo:
       type: object
-      properties:
-        checksum:
-          $ref: '#/components/schemas/ID'
-        compression:
-          description: Compression specifies any compression on the source data, if empty assume no compression
-          type: integer
-        encoding:
-          description: Encoding specifics character encoding, assume utf-8 if not specified
-          type: string
-        errCount:
-          description: ErrCount is the number of errors returned by validating data against this schema. required
-          type: integer
-        entries:
-          description: Entries is number of top-level entries in the dataset. With tabular data this is the same as the number of `rows`
-          type: integer
-        format:
-          description: Format specifies the format of the raw data MIME type
-          type: integer
-        formatConfig:
-          description: FormatConfig removes as much ambiguity as possible about how to interpret the specified format.
-          type: object
-        length: 
-          description: Length is the length of the data object in bytes. Must always match & be present.
-          type: integer
-        path:
-          $ref: '#/components/schemas/Path'
-        qri:
-          $ref: '#/components/schemas/Qri'
-        schema:
-          $ref: '#/components/schemas/Schema'
-    Viz:
+    ChangeReport:
       type: object
-      description: Viz stores configuration data related to representing a dataset as a visualization
-      properties:
-        qri:
-          $ref: '#/components/schemas/Qri'
-        format:
-          type: string
-          enum: [html]
-        scriptPath:
-          type: string
-          description: the path to the script that created this visualization
-    Transform:
+    MappedArraysOfVersionInfo:
       type: object
-      description: Transform is a record of executing a transformation on data. Transforms can theoretically be anything for an SQL query, a jupyter notebook, the state of an ETL pipeline, etc, so long as the input is zero or more datasets, and the output is a single dataset. Ideally, transforms should contain all the machine-necessary bits to deterministically execute the algorithm referenced in ScriptPath
-      properties:
-        qri:
-          $ref: '#/components/schemas/Qri'
-        path:
-          $ref: '#/components/schemas/Path'
-        scriptPath:
-          type: string
-        syntax:
-          type: string
-        syntaxVersion:
-          type: string
-        structure:
-          $ref: '#/components/schemas/Structure'
-        config:
-          type: object
-        secrets:
-          type: object
-        resources:
-          type: object
-    ID:
-      type: string
-      description: The base58 encoded ID unique to this peer
-      maxLength: 46
-      minLength: 46
-      pattern: '^[a-zA-Z0-9]{46}'
-    Username:
-      type: string
-      description: The username associated with a particular qri node
-      not:
-        enum: [me, status, at, add, history, remove, export, profile, list, peers, connections, new, log, registry, diff, validate]
-    Created:
-      type: string
-      format: date-time
-      description: Date and time created.
-    Updated:
-      type: string
-      format: date-time
-      description: Date and time updated.
-    Path:
-      type: string
-      pattern: '^\/[a-zA-Z]+\/[a-zA-Z0-9]{46}$'
-      description: Path to an asset, in the format of '/network/hash'
-    Error:
-      type: object
-      properties:
-        meta:
-          type: object
-          properties:
-            code:
-              type: string
-            message:
-              type: string
-          required:
-            - code
-            - message
-      required:
-        - meta
-    URI:
-      type: string
-      format: uri
-    Email:
-      type: string
-      format: email
-    Datetime:
-      type: string
-      format: date-time
-    Qri:
-      description: Internal notation to ensure the Qri dataset is being handled according to the correct version.
-      type: string
-    User:
-      description: User is a placeholder for talking about people, groups, organizations
-      type: object
-      properties:
-        ID:
-          $ref: '#/components/schemas/ID'
-        Fullname:
-          type: string
-          description: First and last name, or full name of the organizations
-        Email:
-          $ref: '#/components/schemas/Email'
-    Schema:
-      type: object
-      description: Schema contains the schema definition for the underlying data, schemas are defined using the IETF json-schema specification. for more info on json-schema see https://json-schema.org
-      properties: 
-        type:
-          type: string
-          description: dataset body’s top level structure, either object or array
-          enum: [array, object]
-    MetaResponse:
+      additionalProperties: true
+## Error
+    APIMetaError:
       type: object
       properties:
         code:
           type: integer
-    Pagination:
-      type: object
-      properties:
-        nextUrl:
+        error:
           type: string
-    Multiaddr:
-      type: string
-      pattern: '^(\/[0-9A-Za-z:.]+\/[0-9A-Za-z:.]+)+\/([^\/]\S)+$'
-      description: Path to an asset, in the form of a multiaddress
-    SearchItem:
-      description: Single search result
-      type: object
-      properties:
-        type:
-          type: string
-          enum: [dataset, profile]
-        id:
-          type: string
-        value:
-          oneOf:
-            - $ref: '#/components/schemas/Dataset'
-            - $ref: '#/components/schemas/Profile'
-    DatasetComponent:
-      type: string 
-      enum: [body, readme, meta, commit, structure, transform]
-    DatasetRename:
-      description: The fields required to rename a dataset
-      type: object
-      properties:
-        current:
-          description: Dataset name (<username>/<dataset_name>)
-          type: string
-        next:
-          description: Dataset name (<username>/<dataset_name>)
-          type: string
-    DatasetRemove:
-      type: object
-      properties:
-        remote:
-          description: Remote name, e.g. registry or local
-          type: string
-        keep-files:
-          type: boolean
-        force:
-          description: Force a delete of dataset
-          type: boolean
-        all:
-          description: Indicates all versions of a dataset
-          type: boolean
-
-  parameters:
-    datasetRef:
-      name: datasetRef
-      in: path
-      description: Dataset Reference (<username>/<dataset_name> or <username>/<dataset_name>/at/<some_hash>)
-      required: true
-      schema:
-        type: string
-    username:
-      name: username
-      in: path
-      description: Username
-      required: true
-      schema:
-        type: string
-    datasetName:
-      name: datasetName
-      in: path
-      description: Dataset name
-      required: true
-      schema:
-        type: string
-    filename:
-      name: filename
-      in: path
-      required: true
-      schema:
-        type: string
-        pattern: '^[\w,\s-]+\.[\w]+$'
-    hash:
-      name: hash
-      in: path
-      required: true
-      schema:
-        $ref: '#/components/schemas/ID'
-    page:
-      name: page 
-      in: query 
-      description: Page number
-      required: false 
-      schema:
-        type: integer
-    pageSize:
-      name: pageSize
-      in: query 
-      description: Page size
-      required: false 
-      schema:
-        type: integer
-    current:
-      name: current
-      in: query
-      description: Dataset name (<username>/<dataset_name>)
-      schema:
-        type: string
-    new:
-      name: new
-      in: query
-      description: Dataset name (<username>/<dataset_name>)
-      schema:
-        type: string
-          
-  responses:
-    StatusInternalServerError:
-      description: Server error.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    StatusNotFound:
-      description: Not found.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    StatusForbidden:
-      description: Forbidden
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    ProfileResponse:
-      description: Profile Response
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              data:
-                $ref: '#/components/schemas/Profile'
-              meta:
-                $ref: '#/components/schemas/MetaResponse'
-    DatasetResponse:
-      description: Dataset Reponse
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              data:
-                $ref: '#/components/schemas/Dataset'
-              meta:
-                $ref: '#/components/schemas/MetaResponse'
-    PeersResponse:
-      description: Peers List Response
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Profile'
-              meta:
-                $ref: '#/components/schemas/MetaResponse'
-    DatasetsResponse:
-      description: Response with list of datasets 
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Dataset'
-              meta:
-                $ref: '#/components/schemas/MetaResponse'
-              pagination:
-                $ref: '#/components/schemas/Pagination'
-    BodyResponse:
-      description: Dataset Body Response
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  path:
-                    $ref: '#/components/schemas/Path'
-                  data:
-                    oneOf:
-                      - type: object
-                      - type: array
-              meta:
-                $ref: '#/components/schemas/MetaResponse'
-              pagination:
-                $ref: '#/components/schemas/Pagination'
-    RegistryResponse:
-      description: Publish and unpublish dataset to registry response
-      content:
-        application/json:
-          schema: 
-            type: object
-            properties:
-              data:
-                type: string
-              meta:
-                $ref: '#/components/schemas/MetaResponse'
-    RenderResponse:
-      description: HTML render response
-      content:
-        text/html:
-          schema:
-            type: string
-    PhotoResponse:
-      description: Response with an image
-      content:
-        image/jpeg:
-          schema:
-            type: string
-            format: binary
-    DiffResponse:
-      description: Diff between two datasets
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                properties:
-                  a: 
-                    $ref: '#/components/schemas/Dataset'
-                  b:
-                    $ref: '#/components/schemas/Dataset'
-                  diff:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        path:
-                          type: string
-                        type:
-                          type: string
-                        value: 
-                          type: object
-                          properties:
-                            title:
-                              type: string
-                            type:
-                              type: string
-              stat:
-                type: object
-                properties:
-                  deletes:
-                    type: integer
-                  inserts:
-                    type: integer
-                  leftNodes:
-                    type: integer
-                  leftWeight:
-                    type: integer
-                  rightNodes: 
-                    type: integer
-                  rightWeight:
-                    type: integer
-                  updates:
-                    type: integer
-              meta:
-                $ref: '#/components/schemas/MetaResponse'
-    ZipResponse:
-      description: Zip Response
-      content:
-        application/zip:
-          schema:
-            type: string
-            format: binary
-    ConnectionsResponse:
-      description: Connections Response
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  type: string
-              meta:
-                $ref: '#/components/schemas/MetaResponse'
-    SearchResponse:
-      description: Search Response
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SearchItem'
-              meta:
-                $ref: '#/components/schemas/MetaResponse'
-              pagination:
-                $ref: '#/components/schemas/Pagination' 
