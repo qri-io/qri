@@ -40,14 +40,14 @@ require (
 	github.com/multiformats/go-multihash v0.0.14
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pkg/errors v0.9.1
-	github.com/qri-io/dag v0.2.2-0.20201208212257-ae00241c4b48
-	github.com/qri-io/dataset v0.2.1-0.20210317143526-3e9020e68b0e
-	github.com/qri-io/deepdiff v0.2.1-0.20200807143746-d02d9f531f5b
-	github.com/qri-io/didmod v0.0.0-20201123165422-8b2e224c993a
+	github.com/qri-io/dag v0.2.2
+	github.com/qri-io/dataset v0.3.0
+	github.com/qri-io/deepdiff v0.2.1
+	github.com/qri-io/didmod v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/jsonschema v0.2.0
-	github.com/qri-io/qfs v0.5.1-0.20201119141805-fb13393b2d1f
+	github.com/qri-io/qfs v0.6.0
 	github.com/qri-io/starlib v0.4.2
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.1.0
