@@ -15,7 +15,7 @@ import (
 type Service struct{}
 
 // New returns a new Service
-func New(r repo.Repo, loadDataset dsref.ParseResolveLoad) *Service {
+func New(r repo.Repo, loader dsref.Loader) *Service {
 	return &Service{}
 }
 
