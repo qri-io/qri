@@ -94,28 +94,35 @@ on the distributed web.
 
 |Command | Description |
 |--------|-------------|
-|[qri add](#qri_add)  | Add a dataset from another peer   |
-|[qri body](#qri_body)  | Get the body of a dataset   |
+|[qri access](#qri_access_token)  | Create an access token   |
+|[qri apply](#qri_apply)  | Apply a transform to a dataset   |
+|[qri checkout](#qri_checkout)  | Create a directory linked to a dataset   |
+|[qri completion](#qri_completion)  | Generate shell auto-completion scripts   |
 |[qri config](#qri_config)  | Get and set local configuration information   |
 |[qri connect](#qri_connect)  | Connect to the distributed web by spinning up a Qri node   |
 |[qri diff](#qri_diff)  | Compare differences between two datasets   |
-|[qri export](#qri_export)  | Copy datasets to your local filenamesystem   |
 |[qri get](#qri_get)  | Get elements of qri datasets   |
-|[qri info](#qri_info)  | Show summarized description of a dataset   |
+|[qri init](#qri_init)  | Initialize a dataset directory   |
 |[qri list](#qri_list)  | Show a list of datasets   |
 |[qri log](#qri_log)  | Show log of dataset history   |
-|[qri new](#qri_new)  | Create a new dataset   |
 |[qri peers](#qri_peers)  | Commands for working with peers   |
+|[qri preview](#qri_preview)  | Fetch a dataset preview   |
+|[qri pull](#qri_pull)  | Fetch and store datasets from other peers   |
+|[qri push](#qri_push)  | Send a dataset to a remote   |
 |[qri registry](#qri_registry)  | Commands for working with a qri registry   |
 |[qri remove](#qri_remove)  | Remove a dataset from your local repository   |
 |[qri rename](#qri_rename)  | Change the name of a dataset   |
 |[qri render](#qri_render)  | Execute a template against a dataset   |
+|[qri restore](#qri_restore)  | Restore a checked out dataset's files to a previous state   |
 |[qri save](#qri_save)  | Save changes to a dataset   |
 |[qri search](#qri_search)  | Search qri   |
 |[qri setup](#qri_setup)  | Initialize qri and IPFS repositories, provision a new qri ID   |
+|[qri sql](#qri_sql)  | Experimental: Run an SQL query on local dataset(s)   |
+|[qri status](#qri_status)  | Show what components of a dataset have been changed   |
 |[qri use](#qri_use)  | Select datasets for use with the qri get command   |
 |[qri validate](#qri_validate)  | Show schema validation errors   |
 |[qri version](#qri_version)  | Print the version number   |
+|[qri workdir](#qri_workdir)  | File system integration tools   |
 
 ________
 
