@@ -1,4 +1,4 @@
-// +build arm
+// +build arm 386
 
 package sql
 
