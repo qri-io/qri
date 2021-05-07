@@ -1,3 +1,257 @@
+<a name="v0.10.0"></a>
+# [v0.10.0](https://github.com/qri-io/qri/compare/v0.9.13...v) (2021-05-04)
+
+Welcome to the long awaited `0.10.0` Qri release! We've focused on usability and bug fixes, specifically surrounding massive improvements to saving a dataset, the  HTTP API, and the `lib` package interface. We've got a few new features (step-based transform execution, change reports over the api, progress bars on save, and a new component: Stats) and you should see an obvious change based on the speed, reliability, and usability in Qri, especially when saving a new version of a dataset.
+
+## Massive Improvements to Save performance
+We've drastically improved the reliability and scalability of saving a dataset on Qri. Qri uses a bounded block of memory while saving, meaning it will only consume roughly a MAX of 150MB of memory while saving, regardless of how large your dataset is. This means the max size of dataset you can save is no longer tied to your available memory.
+
+We've had to change some underlying functionality to get the scalability we want, to that end we no longer calculate `Structure.Checksum`, we no longer calculate commit messages for datasets over a certain size, and we no longer store all the error values found when validating the body of a dataset.
+
+## API Overhaul
+Our biggest change has been a complete overhaul of our API.
+
+We wanted to make our API easier to work with by making it more consistent across endpoints. After a great deal of review & discussion, this overhaul introduces an RPC-style centric API that expects JSON `POST` requests, plus a few `GET` requests we're calling "sugar" endpoints.
+
+The RPC part of our api is an HTTP pass-through to our lib methods. This makes working with qri over HTTP the _same_ as working with Qri as a library. We've spent a lot of time building & organizing qri's `lib` interface, and now all of that same functionality is exposed over HTTP. The intended audience for the RPC API are folks who want to automate qri across process boundaries, and still have very fine grained control. Think "command line over HTTP".
+
+At the same time, however, we didn't want to lose a number of important-to-have endpoints, like being able to `GET` a dataset body via just a URL string, so we've moved all of these into a "sugar" API, and made lots of room to grow. We'll continue to add convenience-oriented endpoints that make it easy to work with Qri. The "sugar" API will be oriented to users who are prioritizing fetching data from Qri to use elsewhere.
+
+We also noticed how quickly our open api spec fell out of date, so we decided to start generating our spec using the code itself. Take a look at our [open api spec](https://github.com/qri-io/qri/blob/master/api/open_api_3.yaml), for a full list of supported JSON endpoints.
+
+Here is our full API spec, supported in this release:
+
+## API Spec
+
+### Sugar
+
+The purpose of the API package is to expose the lib.RPC api *and* add syntatic sugar for mapping RESTful HTTP requests to lib method calls
+
+| endpoint                                                       | HTTP methods    | Lib Method Name                  |
+| -------------------------------------------------------------- | --------------- | -------------------------------- |
+| "/"                                                            | GET             | api.HealthCheckHandler           |
+| "/health"                                                      | GET             | api.HealthCheckHandler           |
+| "/qfs/ipfs/{path:.*}"                                          | GET             | qfs.Get                          |
+| "/webui"                                                       | GET             | api.WebuiHandler                 |
+| /ds/get/{username}/{name}                                      | GET             | api.GetHandler                   |
+| /ds/get/{username}/{name}/at/{path}                            | GET             | api.GetHandler                   |
+| /ds/get/{username}/{name}/at/{path}/{component}                | GET             | api.GetHandler                   |
+| /ds/get/{username}/{name}/at/{path}/body.csv                   | GET             | api.GetHandler                   |
+
+
+### RPC
+
+The purpose of the lib package is to expose a uniform interface for interacting with a qri instance
+
+| endpoint                                 | Return Type         | Lib Method Name                  |
+| ---------------------------------------- | ------------------- | -------------------------------- |
+|                                          |                     |                                  |
+| Aggregate Endpoints                      |                     |                                  |
+| "/list"                                  | []VersionInfo       | collection.List?                 |
+| "/sql"                                   | [][]any             | sql.Exec                         |
+| "/diff"                                  | Diff                | diff.Diff                        |
+| "/changes"                               | ChangeReport        | diff.Changes                     |
+|                                          |                     |                                  |
+| Access Endpoints                         |                     |                                  |
+| "/access/token"                          | JSON Web Token      | access.Token                     |
+|                                          |                     |                                  |
+| Automation Endpoints                     |                     |                                  |
+| "/auto/apply"                            | ApplyResult         | automation.apply                 |
+|                                          |                     |                                  |
+| Dataset Endpoints                        |                     |                                  |
+| "/ds/componentstatus"                    | []Status            | dataset.ComponentStatus          |
+| "/ds/get                                 | GetResult           | dataset.Get                      |
+| "/ds/activity"                           | []VersionInfo       | dataset.History                  |
+| "/ds/rename"                             | VersionInfo         | dataset.Rename                   |
+| "/ds/save"                               | dataset.Dataset     | dataset.Save                     |
+| "/ds/pull"                               | dataset.Dataset     | dataset.Pull                     |
+| "/ds/push"                               | DSRef               | dataset.Push                     |
+| "/ds/render"                             | []byte              | dataset.Render                   |
+| "/ds/remove"                             | RemoveResponse      | dataset.Remove                   |
+| "/ds/validate"                           | ValidateRes         | dataset.Validate                 |
+| "/ds/unpack"                             | Dataset             | dataset.Unpack                   |
+| "/ds/manifest"                           | Manifest            | dataset.Manifest                 |
+| "/ds/manifestmissing"                    | Manifest            | dataset.ManifestMissing          |
+| "/ds/daginfo"                            | DagInfo             | dataset.DagInfo	            |
+|                                          |                     |                                  |
+| Peer Endpoints                           |                     |                                  |
+| "/peer"                                  | Profile             | peer.Info                        |
+| "/peer/connect"                          | Profile             | peer.Connect                     |
+| "/peer/disconnect"                       | Profile             | peer.Disconnect                  |
+| "/peer/list"                             | []Profile           | peer.Profiles                    |
+|                                          |                     |                                  |
+| Profile Endpoints                        |                     |                                  |
+| "/profile"                               | Profile             | profile.GetProfile               |
+| "/profile/set"                           | Profile             | profile.SetProfile               |
+| "/profile/photo"                         | Profile             | profile.ProfilePhoto             |
+| "/profile/poster"                        | Profile             | profile.PosterPhoto              |
+|                                          |                     |                                  |
+| Remote Endpoints                         |                     |                                  |
+| "/remote/feeds"                          | Feed                | remote.Feeds                     |
+| "/remote/preview"                        | Dataset             | remote.Preview                   |
+| "/remote/remove"                         |  -                  | remote.Remove                    |
+| "/remote/registry/profile/new"           | Profile             | registry.CreateProfile           |
+| "/remote/registry/profile/prove"         | Profile             | registry.ProveProfile            |
+| "/remote/search"                         | SearchResult        | remote.Search                    |
+|                                          |                     |                                  |
+|                                          |                     |                                  |
+| Working Directory Endpoints              |                     |                                  |
+| "/wd/status"                             | []StatusItem        | fsi.Status                       |
+| "/wd/init"                               | DSRef               | fsi.Init                         |
+| "/wd/caninitworkdir"                     | --                  | fsi.CanInitworkdir               |
+| "/wd/checkout"                           | --                  | fsi.Checkout                     |
+| "/wd/restore"                            | --                  | fsi.Restore                      |
+| "/wd/write"                              | []StatusItem        | fsi.Write                        |
+| "/wd/createlink"                         | VersionInfo         | fsi.CreateLink                   |
+| "/wd/unlink"                             | string              | fsi.Unlink                       |
+| "/wd/ensureref"                          | --                  | fsi.EnsureRefNotLinked           |
+|                                          |                     |                                  |
+
+## Redesigned lib interface
+In general, we've streamlined the core functionality and reconciled input params in the `lib` package (which contain the methods and params that power both the api and cmd), so that no matter how you are accessing functionality in qri, whether using `lib` as a package,  using the HTTP API, or using the command line, you can expect consistent inputs and–more importantly–consistent behavior. We're also utilizing our new `dispatch` pattern to replace our old rpc client with the _same_ JSON HTTP API exposed to users. That way all our API's, HTTP or otherwise have the same expectations. If something is broke in one place, it is broken in all places, consequently, when it is fixed in one place it will be fixed in all places!
+
+These changes will also help us in our upcoming challenges to refine expand the notion of identity inside of Qri.
+
+## Stats Component!
+We've added a new component: Stats! Stats is a component that contains statistical metadata about the body of a dataset. Stats are now automatically calculated and saved with each new version.
+
+Its purpose is to provide an "at a glance" summary of a dataset, calculating statistics on columns (ok, on "compound data types", but it's much easier to think about column stats). In order to remain fast for very large dataset sizes, we have opted to calculate the stats using probabilistic structures. Stats are an important part of change reports, and allow you to get a sense of what is different in a dataset body without having to examine that body line by line. 
+
+For earlier versions that don't have stats calculated, we've added a `qri stats` command that will calculate the new stats component for you.
+
+## Other features:
+### Change report over API
+We've added an endpoint to get the change report via the api: `/changes`, laying the groundwork for future User Interfaces that can report on changes between versions.
+
+### Access and Oauth
+We're working towards making qri-core able to handle multiple users on the same node (AKA multi-tenancy). In preparation for multi-tenancy, we are adding support for generating JSON web tokens (JWTs) that will help ensure identity on the network. You can generate an access token via the cmd using the `qri access` command, or over the api using the `/access/token` endpoint.
+
+### Apply Command
+You can now use the `qri apply` command to "dry run" and de-bug transforms! Use the `--file` flag to apply a new `transform.star` file, use a dataset reference to re-run an already existing transform on an already existing dataset, or use both to apply a new tranform to an already existing dataset. The resulting dataset is output to the terminal. To run the transform and save the results as a new commit, use the `--apply` flag in the `qri save` command.
+
+### Progress bars
+Qri has been fine tuned to handle larger datasets faster. Regardless of how fast your dataset is saving, we want to be able to track any progress. Now, when saving a new dataset or a new version of a dataset, the command line will show you a progress bar.
+
+### `qri version`
+To help with debugging, the `qri version` command now comes chock full of details, including the qri version, the build time, and the git summary. (developers: you need to use `make build` now instead of `go build`!)
+
+### dependancy updates:
+We've also released updated to our dependencies: [dag](https://github.com/qri-io/dag/releases/tag/v0.2.2), [qfs](https://github.com/qri-io/qfs/releases/tag/v0.6.0), [deepdiff](https://github.com/qri-io/deepdiff/releases/tag/v0.2.1), [dataset](https://github.com/qri-io/dataset/releases/tag/v0.3.0). Take a look at those release notes to learn about other bug fixes and stability enhancements that Qri is inheriting.
+
+### BREAKING CHANGES
+* **api:** complete API overhaul. Check out the full api spec for all changes(https://github.com/qri-io/qri/issues/1731)
+
+### Bug Fixes
+
+* **api:** `handleRefRoutes` should refer to `username` rather than ([644f706](https://github.com/qri-io/qri/commit/644f706))
+* **api:** Allow OPTIONS header so that CORS is available ([e067500](https://github.com/qri-io/qri/commit/e067500))
+* **api:** denyRPC only affects RPC, HTTP can still be used ([b6298ce](https://github.com/qri-io/qri/commit/b6298ce))
+* **api:** Fix unmarshal bug in api test ([0234f30](https://github.com/qri-io/qri/commit/0234f30))
+* **api:** fix vet error ([afbe53e](https://github.com/qri-io/qri/commit/afbe53e))
+* **api:** handle OPTIONS requests on refRoute handlers ([395d5ae](https://github.com/qri-io/qri/commit/395d5ae))
+* **api:** health & root endpoints use middleware, which handles OPTIONS ([5f421eb](https://github.com/qri-io/qri/commit/5f421eb))
+* **apply:** bad API endpoint for apply over HTTP ([c5cc840](https://github.com/qri-io/qri/commit/c5cc840))
+* **base.ListDatasets:** support -1 limit to list all datasets ([bd2f831](https://github.com/qri-io/qri/commit/bd2f831))
+* **base.SaveDataset:** move logbook write operation back down from lib ([a00f1b8](https://github.com/qri-io/qri/commit/a00f1b8))
+* **changes:** "left" side of report should be the previous path ([32b46ff](https://github.com/qri-io/qri/commit/32b46ff))
+* **changes:** column renames are properly handled now ([c306e41](https://github.com/qri-io/qri/commit/c306e41))
+* **cmd:** nil pointer dereference in `PrintProgressBarsOnEvents` ([b0a2ec0](https://github.com/qri-io/qri/commit/b0a2ec0))
+* **dispatch:** Add default source resolver to Attributes ([e074bf4](https://github.com/qri-io/qri/commit/e074bf4))
+* **dispatch:** Calls that return only 1 value can work across RPC ([ceefeaa](https://github.com/qri-io/qri/commit/ceefeaa))
+* **dispatch:** Comments clarifying Methods and Attributes ([33222c6](https://github.com/qri-io/qri/commit/33222c6))
+* **dispatch:** Dispatch for transform. Transformer instead of Service ([24562c5](https://github.com/qri-io/qri/commit/24562c5))
+* **dispatch:** Fix code style and get tests passing ([4cdb3f5](https://github.com/qri-io/qri/commit/4cdb3f5))
+* **dispatch:** Fix for fsi plumbing commands, to work over http ([8070537](https://github.com/qri-io/qri/commit/8070537))
+* **dispatch:** MethodSet interface to get name for dispatch ([9b73d4b](https://github.com/qri-io/qri/commit/9b73d4b))
+* **dispatch:** send source over wire and cleanup attr definitions ([8a2ddf8](https://github.com/qri-io/qri/commit/8a2ddf8))
+* **dispatch:** Use dispatcher interface for DatasetMethods ([201edda](https://github.com/qri-io/qri/commit/201edda))
+* **dispatch:** When registering, compare methods to impl ([c004812](https://github.com/qri-io/qri/commit/c004812))
+* **dsfs:** fix adjustments to meta prior to commit message generation ([365cbb9](https://github.com/qri-io/qri/commit/365cbb9))
+* **dsfs:** LoadDataset using the mux filesystem. Error if nil ([75215be](https://github.com/qri-io/qri/commit/75215be))
+* **dsfs:** remove dataset field computing deadlock ([ef615a9](https://github.com/qri-io/qri/commit/ef615a9))
+* **dsfs:** set script paths before generating commit messages ([8174996](https://github.com/qri-io/qri/commit/8174996))
+* **fill:** Map keys are case-insensitive, handle maps recursively ([ab27f1b](https://github.com/qri-io/qri/commit/ab27f1b))
+* **fsi:** fsi.ReadDir sets the '/fsi' path prefix ([3d64468](https://github.com/qri-io/qri/commit/3d64468))
+* **http:** expect json requests to decode, if the body is not empty ([c50ea28](https://github.com/qri-io/qri/commit/c50ea28))
+* **http:** fix httpClient error checking ([6f4567e](https://github.com/qri-io/qri/commit/6f4567e))
+* **init:** TargetDir for init, can be absolute, is created if needed ([55c9ff6](https://github.com/qri-io/qri/commit/55c9ff6))
+* **key:** fix local keystore key.ID encoding, require ID match keys ([a469b6e](https://github.com/qri-io/qri/commit/a469b6e))
+* **lib:** Align input params across all lib methods ([7ba26b6](https://github.com/qri-io/qri/commit/7ba26b6))
+* **lib:** don't ignore serialization errors when getting full datasets ([64abb7e](https://github.com/qri-io/qri/commit/64abb7e))
+* **lib:** Improve context passing and visibility of internal structs ([8f6509b](https://github.com/qri-io/qri/commit/8f6509b))
+* **list:** List datasets even if some refs have bad profileIDs ([11b6763](https://github.com/qri-io/qri/commit/11b6763))
+* **load:** Fix spec test to exercise LoadDataset ([f978ec7](https://github.com/qri-io/qri/commit/f978ec7))
+* **logbook:** commit timestamps overwrite run timestamps in logs ([2ab44d0](https://github.com/qri-io/qri/commit/2ab44d0))
+* **logbook:** Logsync validates that ref has correct profileID ([153c4b9](https://github.com/qri-io/qri/commit/153c4b9))
+* **logbook:** remove 'stranded' log histories on new dataset creation ([2412a40](https://github.com/qri-io/qri/commit/2412a40))
+* **mux:** allow api mux override ([eccdf9b](https://github.com/qri-io/qri/commit/eccdf9b))
+* **oas:** add open api spec tests to CI and makefile ([e91b50b](https://github.com/qri-io/qri/commit/e91b50b))
+* **p2p:** dag `MissingManifest` sigfaults if there is a nil manifest ([04ec5b2](https://github.com/qri-io/qri/commit/04ec5b2))
+* **p2p:** qri bootstrap addrs config migration ([0680097](https://github.com/qri-io/qri/commit/0680097))
+* **prove:** Prove command updates local logbook as needed ([b09a2eb](https://github.com/qri-io/qri/commit/b09a2eb))
+* **prove:** Store the original KeyID on config.profile ([88214a4](https://github.com/qri-io/qri/commit/88214a4))
+* **pull:** Pull uses network resolver. Fixes integration test. ([d049958](https://github.com/qri-io/qri/commit/d049958))
+* **remote:** always send progress completion on client push/pull events ([afcb2f8](https://github.com/qri-io/qri/commit/afcb2f8))
+* **repo:** Don't use blank path for new repo in tests ([1ec8e74](https://github.com/qri-io/qri/commit/1ec8e74))
+* **routes:** skip over endpoints that are DenyHTTP ([ee7d882](https://github.com/qri-io/qri/commit/ee7d882))
+* **rpc:** unregister dataset methods ([6a2b213](https://github.com/qri-io/qri/commit/6a2b213))
+* **run:** fix unixnano -> *time.Time conversion, clean up transform logging ([c903657](https://github.com/qri-io/qri/commit/c903657))
+* **save:** Remove dry-run, recall, return-body from save path ([fac37da](https://github.com/qri-io/qri/commit/fac37da))
+* **search:** Dispatch for search ([8570abf](https://github.com/qri-io/qri/commit/8570abf))
+* **sql:** Fix sql command for arm build ([#1783](https://github.com/qri-io/qri/issues/1783)) ([2ae1541](https://github.com/qri-io/qri/commit/2ae1541))
+* **sql:** Fix sql command for other 32-bit platforms ([704d9fb](https://github.com/qri-io/qri/commit/704d9fb))
+* **startf/ds.set_body:** infer structure when ds.set_body is called ([a8a3492](https://github.com/qri-io/qri/commit/a8a3492))
+* **stats:** close accumulator to finalize output ([1b7f4f1](https://github.com/qri-io/qri/commit/1b7f4f1))
+* **test:** fix api tests to consume refstr ([e03ef3a](https://github.com/qri-io/qri/commit/e03ef3a))
+* **token:** `claim` now includes `ProfileID` ([8dd40e4](https://github.com/qri-io/qri/commit/8dd40e4))
+* **transform:** don't duplicate transform steps on save ([8ace963](https://github.com/qri-io/qri/commit/8ace963))
+* **transform:** don't write to out streams when nil, use updated preview.Create ([28651cb](https://github.com/qri-io/qri/commit/28651cb))
+* **version:** add warning when built with 'go install' ([1063a71](https://github.com/qri-io/qri/commit/1063a71))
+
+
+### Features
+
+* **api:** change report API ([ca16f3c](https://github.com/qri-io/qri/commit/ca16f3c))
+* **api:** GiveAPIServer attachs all routes to api ([ea2d4ad](https://github.com/qri-io/qri/commit/ea2d4ad))
+* **api:** read oauth tokens to request context ([f024b26](https://github.com/qri-io/qri/commit/f024b26))
+* **apply:** Apply command, and --apply flag for save ([c01a4bf](https://github.com/qri-io/qri/commit/c01a4bf))
+* **bus:** Subscribe to all, or by ID. "Type" -> "Topic" ([cc139bc](https://github.com/qri-io/qri/commit/cc139bc))
+* **cmd:** add access command ([1c56680](https://github.com/qri-io/qri/commit/1c56680))
+* **dispatch:** Abs paths on inputs to dispatch methods ([a19efcc](https://github.com/qri-io/qri/commit/a19efcc))
+* **dispatch:** Dispatch func can return 1-3 values, 2 being Cursor ([304f7c5](https://github.com/qri-io/qri/commit/304f7c5))
+* **dispatch:** Method attributes contain http endpoint and verb ([0036cb7](https://github.com/qri-io/qri/commit/0036cb7))
+* **dsfs:** compute & store stats component at save time ([3ff3b75](https://github.com/qri-io/qri/commit/3ff3b75))
+* **httpClient:** introducing an httpClient ([#1629](https://github.com/qri-io/qri/issues/1629)) ([8ecde53](https://github.com/qri-io/qri/commit/8ecde53))
+* **keystore:** keystore implmenetation ([#1602](https://github.com/qri-io/qri/issues/1602)) ([205165a](https://github.com/qri-io/qri/commit/205165a))
+* **lib:** attach active user to scope ([608540a](https://github.com/qri-io/qri/commit/608540a))
+* **lib:** Create Auth tokens using inst.Access() ([3be7af2](https://github.com/qri-io/qri/commit/3be7af2))
+* **lib:** Dispatch methods call, used by FSI ([afaf06d](https://github.com/qri-io/qri/commit/afaf06d))
+* **list:** Add ProfileID restriction option to List ([774fa06](https://github.com/qri-io/qri/commit/774fa06))
+* **logbook:** add methods for writing transform run ops ([7d0cb91](https://github.com/qri-io/qri/commit/7d0cb91))
+* **profile:** ResolveProfile replaces CanonicalizeProfile ([7bd848b](https://github.com/qri-io/qri/commit/7bd848b))
+* **prove:** Prove a new keypair for an account, set original profileID ([6effbea](https://github.com/qri-io/qri/commit/6effbea))
+* **run:** run package defines state of a transform run ([8e69e5e](https://github.com/qri-io/qri/commit/8e69e5e))
+* **save:** emit save events. Print progress bars on save ([3c979ed](https://github.com/qri-io/qri/commit/3c979ed))
+* **save:** recall transform on empty --apply, write run operations ([3949be9](https://github.com/qri-io/qri/commit/3949be9))
+* **save:** support custom timestamps on commit ([e8c18fa](https://github.com/qri-io/qri/commit/e8c18fa))
+* **sql:** Disable sql command on 32-bit arm to fix compilation ([190b5cb](https://github.com/qri-io/qri/commit/190b5cb))
+* **stats:** overhaul stats service interface, implement os stats cache ([2128a0c](https://github.com/qri-io/qri/commit/2128a0c))
+* **stats:** stats based on sketch/probabalistic data structures ([f6191c8](https://github.com/qri-io/qri/commit/f6191c8))
+* **transform:** Add runID to transform. Publish some events. ([5ceac77](https://github.com/qri-io/qri/commit/5ceac77))
+* **transform:** emit DatasetPreview event after startf transform step ([28bb8b0](https://github.com/qri-io/qri/commit/28bb8b0))
+* **validate:** Parameters to methods will Validate automatically ([7bb1515](https://github.com/qri-io/qri/commit/7bb1515))
+* **version:** add details reported by "qri version" ([e6a0a67](https://github.com/qri-io/qri/commit/e6a0a67))
+* **vesrion:** add json format output for version command ([ad4dcc7](https://github.com/qri-io/qri/commit/ad4dcc7))
+* **websocket:** publish dataset save events to websocket event connections ([378e922](https://github.com/qri-io/qri/commit/378e922))
+
+
+### Performance Improvements
+
+* **dsfs:** don't calculate commit descriptions if title and message are set ([f5ec420](https://github.com/qri-io/qri/commit/f5ec420))
+* **save:** improve save performance, using bounded memory ([7699f02](https://github.com/qri-io/qri/commit/7699f02))
+
+
+
 <a name="v0.9.13"></a>
 # [v0.9.13](https://github.com/qri-io/qri/compare/v0.9.12...v0.9.13) (2020-10-12)
 
