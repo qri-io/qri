@@ -30,7 +30,7 @@ ifeq (,$(shell which govvv))
 endif
 
 build: require-goversion require-govvv
-	$(BUILD_FLAGS) go build -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} $(shell govvv -flags -pkg $(PKG) -version $(QRI_VERSION))" .
+	$(BUILD_FLAGS) go build -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} $(shell govvv -flags -pkg $(PKG) -version $(QRI_VERSION))"
 
 install: require-goversion require-govvv
 	$(BUILD_FLAGS) go install -ldflags="-X ${PKG}.GolangVersion=${GOLANG_VERSION} $(shell govvv -flags -pkg $(PKG) -version $(QRI_VERSION))" .
