@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/qri-io/qri/registry"
 	"github.com/sirupsen/logrus"
 )
@@ -37,7 +38,7 @@ func AddProtector(p MethodProtector) func(o *RouteOptions) {
 }
 
 // NewRoutes allocates server handlers along standard routes
-func NewRoutes(reg registry.Registry, opts ...func(o *RouteOptions)) *http.ServeMux {
+func NewRoutes(reg registry.Registry, opts ...func(o *RouteOptions)) *mux.Router {
 	o := &RouteOptions{
 		Protector: NoopProtector(0),
 	}
@@ -46,25 +47,25 @@ func NewRoutes(reg registry.Registry, opts ...func(o *RouteOptions)) *http.Serve
 	}
 
 	pro := o.Protector
-	mux := http.NewServeMux()
-	mux.HandleFunc("/health", HealthCheckHandler)
+	m := mux.NewRouter()
+	m.HandleFunc("/health", HealthCheckHandler)
 
 	if rem := reg.Remote; rem != nil {
 		// add any "/remote" routes this remote provides
-		rem.AddDefaultRoutes(mux)
+		rem.AddDefaultRoutes(m)
 	}
 
 	if ps := reg.Profiles; ps != nil {
-		mux.HandleFunc("/registry/profile", logReq(NewProfileHandler(ps)))
-		mux.HandleFunc("/registry/profiles", pro.ProtectMethods("POST")(logReq(NewProfilesHandler(ps))))
-		mux.HandleFunc("/registry/provekey", NewProveKeyHandler(ps))
+		m.HandleFunc("/registry/profile", logReq(NewProfileHandler(ps)))
+		m.HandleFunc("/registry/profiles", pro.ProtectMethods("POST")(logReq(NewProfilesHandler(ps))))
+		m.HandleFunc("/registry/provekey", NewProveKeyHandler(ps))
 	}
 
 	if s := reg.Search; s != nil {
-		mux.HandleFunc("/registry/search", logReq(NewSearchHandler(s)))
+		m.HandleFunc("/registry/search", logReq(NewSearchHandler(s)))
 	}
 
-	return mux
+	return m
 }
 
 func logReq(h http.HandlerFunc) http.HandlerFunc {
