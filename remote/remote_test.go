@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/gorilla/mux"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
@@ -445,9 +445,9 @@ func (tr *testRunner) NodeARemote(t *testing.T, opts ...OptionsFunc) *Remote {
 }
 
 func (tr *testRunner) RemoteTestServer(rem *Remote) *httptest.Server {
-	mux := http.NewServeMux()
-	rem.AddDefaultRoutes(mux)
-	return httptest.NewServer(mux)
+	m := mux.NewRouter()
+	rem.AddDefaultRoutes(m)
+	return httptest.NewServer(m)
 }
 
 func (tr *testRunner) NodeBClient(t *testing.T) Client {

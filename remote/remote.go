@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
@@ -557,18 +558,18 @@ func (r *Remote) logPreCheckHook(name string, action string, h Hook) logsync.Hoo
 }
 
 // AddDefaultRoutes attaches routes a remote client will expect to an HTTP muxer
-func (r *Remote) AddDefaultRoutes(mux *http.ServeMux) {
-	mux.Handle("/remote/dsync", r.DsyncHTTPHandler())
-	mux.Handle("/remote/logsync", r.LogsyncHTTPHandler())
-	mux.Handle("/remote/refs", r.RefsHTTPHandler())
+func (r *Remote) AddDefaultRoutes(m *mux.Router) {
+	m.Handle("/remote/dsync", r.DsyncHTTPHandler())
+	m.Handle("/remote/logsync", r.LogsyncHTTPHandler())
+	m.Handle("/remote/refs", r.RefsHTTPHandler())
 
 	if fs := r.Feeds; fs != nil {
-		mux.Handle("/remote/feeds", r.FeedsHTTPHandler())
-		mux.Handle("/remote/feeds/", r.FeedHTTPHandler("/remote/feeds/"))
+		m.Handle("/remote/feeds", r.FeedsHTTPHandler())
+		m.Handle("/remote/feeds/{path:.*}", r.FeedHTTPHandler("/remote/feeds/"))
 	}
 	if ps := r.Previews; ps != nil {
-		mux.Handle("/remote/dataset/preview/", r.PreviewHTTPHandler("/remote/dataset/preview/"))
-		mux.Handle("/remote/dataset/component/", r.ComponentHTTPHandler("/remote/dataset/component/"))
+		m.Handle("/remote/dataset/preview/{path:.*}", r.PreviewHTTPHandler("/remote/dataset/preview/"))
+		m.Handle("/remote/dataset/component/{path:.*}", r.ComponentHTTPHandler("/remote/dataset/component/"))
 	}
 }
 
