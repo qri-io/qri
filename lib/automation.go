@@ -7,10 +7,10 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
+	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/transform"
-	"github.com/qri-io/qri/transform/run"
 )
 
 // AutomationMethods groups together methods for automations

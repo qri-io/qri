@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/base/dsfs"
@@ -34,7 +35,6 @@ import (
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/transform"
-	"github.com/qri-io/qri/transform/run"
 )
 
 // DatasetMethods encapsulates business logic for working with Datasets on Qri
