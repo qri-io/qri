@@ -8,5 +8,5 @@ import (
 )
 
 func TestLocalCollection(t *testing.T) {
-	spec.AssertCollectionSpec(t, collection.NewLocalCollection)
+	spec.AssertWritableCollectionSpec(t, collection.NewLocalCollection)
 }
