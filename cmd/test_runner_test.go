@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/auth/key"
+	run "github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -28,7 +29,6 @@ import (
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
-	tfrun "github.com/qri-io/qri/transform/run"
 	"github.com/qri-io/qri/transform/startf"
 	"github.com/spf13/cobra"
 )
@@ -108,10 +108,10 @@ func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *Tes
 	// option? that'd require re-thinking the way we do NewQriCommand
 	_, server := regserver.NewMockServerRegistry(*reg)
 
-	runner := newTestRunnerFromRoot(&root)
-	runner.Registry = reg
-	prevTeardown := runner.Teardown
-	runner.Teardown = func() {
+	tr := newTestRunnerFromRoot(&root)
+	tr.Registry = reg
+	prevTeardown := tr.Teardown
+	tr.Teardown = func() {
 		cancel()
 		teardownRegistry()
 		server.Close()
@@ -125,19 +125,19 @@ func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *Tes
 		t.Fatalf("writing config file: %s", err)
 	}
 
-	return runner
+	return tr
 }
 
 func useConsistentRunIDs() {
 	source := strings.NewReader(strings.Repeat("OmgZombies!?!?!", 200))
-	tfrun.SetIDRand(source)
+	run.SetIDRand(source)
 }
 
 func newTestRunnerFromRoot(root *repotest.TempRepo) *TestRunner {
 	ctx, cancel := context.WithCancel(context.Background())
 	useConsistentRunIDs()
 
-	run := TestRunner{
+	tr := TestRunner{
 		RepoRoot:    root,
 		RepoPath:    filepath.Join(root.RootPath, "qri"),
 		Context:     ctx,
@@ -146,12 +146,12 @@ func newTestRunnerFromRoot(root *repotest.TempRepo) *TestRunner {
 	}
 
 	// TmpDir will be removed recursively, only if it is non-empty
-	run.TmpDir = ""
+	tr.TmpDir = ""
 
 	// To keep hashes consistent, artificially specify the timestamp by overriding
 	// the dsfs.Timestamp func
 	dsfsCounter := 0
-	run.DsfsTsFunc = dsfs.Timestamp
+	tr.DsfsTsFunc = dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time {
 		dsfsCounter++
 		return time.Date(2001, 01, 01, 01, dsfsCounter, 01, 01, time.UTC)
@@ -159,67 +159,67 @@ func newTestRunnerFromRoot(root *repotest.TempRepo) *TestRunner {
 
 	// Do the same for logbook.NewTimestamp
 	bookCounter := 0
-	run.LogbookTsFunc = logbook.NewTimestamp
+	tr.LogbookTsFunc = logbook.NewTimestamp
 	logbook.NewTimestamp = func() int64 {
 		bookCounter++
 		return time.Date(2001, 01, 01, 01, bookCounter, 01, 01, time.UTC).Unix()
 	}
 
 	// Set IOStreams
-	run.Streams, run.InStream, run.OutStream, run.ErrStream = ioes.NewTestIOStreams()
+	tr.Streams, tr.InStream, tr.OutStream, tr.ErrStream = ioes.NewTestIOStreams()
 	setNoColor(true)
 	//setNoPrompt(true)
 
 	// Set the location to New York so that timezone printing is consistent
 	location, _ := time.LoadLocation("America/New_York")
-	run.LocOrig = StringerLocation
+	tr.LocOrig = StringerLocation
 	StringerLocation = location
 
 	// Stub the version of starlark, because it is output when transforms run
-	run.XformVersion = startf.Version
+	tr.XformVersion = startf.Version
 	startf.Version = "test_version"
 
-	return &run
+	return &tr
 }
 
 // Delete cleans up after a TestRunner is done being used.
-func (run *TestRunner) Delete() {
-	if run.Teardown != nil {
-		run.Teardown()
+func (runner *TestRunner) Delete() {
+	if runner.Teardown != nil {
+		runner.Teardown()
 	}
-	if run.TmpDir != "" {
-		os.RemoveAll(run.TmpDir)
+	if runner.TmpDir != "" {
+		os.RemoveAll(runner.TmpDir)
 	}
 	// restore random RunID generator
-	tfrun.SetIDRand(nil)
-	dsfs.Timestamp = run.DsfsTsFunc
-	logbook.NewTimestamp = run.LogbookTsFunc
-	StringerLocation = run.LocOrig
-	startf.Version = run.XformVersion
-	run.ContextDone()
-	run.RepoRoot.Delete()
+	run.SetIDRand(nil)
+	dsfs.Timestamp = runner.DsfsTsFunc
+	logbook.NewTimestamp = runner.LogbookTsFunc
+	StringerLocation = runner.LocOrig
+	startf.Version = runner.XformVersion
+	runner.ContextDone()
+	runner.RepoRoot.Delete()
 }
 
 // MakeTmpDir returns a temporary directory that runner will delete when done
-func (run *TestRunner) MakeTmpDir(t *testing.T, pattern string) string {
-	if run.TmpDir != "" {
+func (runner *TestRunner) MakeTmpDir(t *testing.T, pattern string) string {
+	if runner.TmpDir != "" {
 		t.Fatal("can only make one tmpDir at a time")
 	}
 	tmpDir, err := ioutil.TempDir("", pattern)
 	if err != nil {
 		t.Fatal(err)
 	}
-	run.TmpDir = tmpDir
+	runner.TmpDir = tmpDir
 	return tmpDir
 }
 
 // TODO(dustmop): Look into using options instead of multiple exec functions.
 
 // ExecCommand executes the given command string
-func (run *TestRunner) ExecCommand(cmdText string) error {
+func (runner *TestRunner) ExecCommand(cmdText string) error {
 	var shutdown func() <-chan error
-	run.CmdR, shutdown = run.CreateCommandRunner(run.Context)
-	if err := executeCommand(run.CmdR, cmdText); err != nil {
+	runner.CmdR, shutdown = runner.CreateCommandRunner(runner.Context)
+	if err := executeCommand(runner.CmdR, cmdText); err != nil {
 		timedShutdown(fmt.Sprintf("ExecCommand: %q\n", cmdText), shutdown)
 		return err
 	}
@@ -228,13 +228,13 @@ func (run *TestRunner) ExecCommand(cmdText string) error {
 }
 
 // ExecCommandWithStdin executes the given command string with the string as stdin content
-func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinText string) error {
+func (runner *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinText string) error {
 	setNoColor(true)
-	run.Streams.In = strings.NewReader(stdinText)
-	cmd, shutdown := NewQriCommand(ctx, run.RepoPath, run.RepoRoot.TestCrypto, run.Streams)
-	cmd.SetOutput(run.OutStream)
-	run.CmdR = cmd
-	if err := executeCommand(run.CmdR, cmdText); err != nil {
+	runner.Streams.In = strings.NewReader(stdinText)
+	cmd, shutdown := NewQriCommand(ctx, runner.RepoPath, runner.RepoRoot.TestCrypto, runner.Streams)
+	cmd.SetOutput(runner.OutStream)
+	runner.CmdR = cmd
+	if err := executeCommand(runner.CmdR, cmdText); err != nil {
 		return err
 	}
 
@@ -242,11 +242,11 @@ func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinT
 }
 
 // ExecCommandCombinedOutErr executes the command with a combined stdout and stderr stream
-func (run *TestRunner) ExecCommandCombinedOutErr(cmdText string) error {
-	ctx, cancel := context.WithCancel(run.Context)
+func (runner *TestRunner) ExecCommandCombinedOutErr(cmdText string) error {
+	ctx, cancel := context.WithCancel(runner.Context)
 	var shutdown func() <-chan error
-	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(ctx)
-	if err := executeCommand(run.CmdR, cmdText); err != nil {
+	runner.CmdR, shutdown = runner.CreateCommandRunnerCombinedOutErr(ctx)
+	if err := executeCommand(runner.CmdR, cmdText); err != nil {
 		shutDownErr := <-shutdown()
 		if shutDownErr != nil {
 			log.Errorf("error shutting down %q: %q", cmdText, shutDownErr)
@@ -294,21 +294,21 @@ func shutdownRepoGraceful(cancel context.CancelFunc, r repo.Repo) error {
 }
 
 // ExecCommandWithContext executes the given command with a context
-func (run *TestRunner) ExecCommandWithContext(ctx context.Context, cmdText string) error {
+func (runner *TestRunner) ExecCommandWithContext(ctx context.Context, cmdText string) error {
 	var shutdown func() <-chan error
-	run.CmdR, shutdown = run.CreateCommandRunner(ctx)
-	if err := executeCommand(run.CmdR, cmdText); err != nil {
+	runner.CmdR, shutdown = runner.CreateCommandRunner(ctx)
+	if err := executeCommand(runner.CmdR, cmdText); err != nil {
 		return err
 	}
 
 	return timedShutdown(fmt.Sprintf("ExecCommandWithContext: %q\n", cmdText), shutdown)
 }
 
-func (run *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText string) string {
+func (runner *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText string) string {
 	var shutdown func() <-chan error
-	run.CmdR, shutdown = run.CreateCommandRunner(run.Context)
+	runner.CmdR, shutdown = runner.CreateCommandRunner(runner.Context)
 
-	if err := executeQuotedCommand(run.CmdR, quotedCmdText); err != nil {
+	if err := executeQuotedCommand(runner.CmdR, quotedCmdText); err != nil {
 		_, callerFile, callerLine, ok := runtime.Caller(1)
 		if !ok {
 			t.Fatal(err)
@@ -319,52 +319,52 @@ func (run *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText stri
 	if err := timedShutdown(fmt.Sprintf("MustExecuteQuotedCommand: %q\n", quotedCmdText), shutdown); err != nil {
 		t.Error(err)
 	}
-	return run.GetCommandOutput()
+	return runner.GetCommandOutput()
 }
 
 // CreateCommandRunner returns a cobra runable command.
-func (run *TestRunner) CreateCommandRunner(ctx context.Context) (*cobra.Command, func() <-chan error) {
-	return run.newCommandRunner(ctx, false)
+func (runner *TestRunner) CreateCommandRunner(ctx context.Context) (*cobra.Command, func() <-chan error) {
+	return runner.newCommandRunner(ctx, false)
 }
 
 // CreateCommandRunnerCombinedOutErr returns a cobra command that combines stdout and stderr
-func (run *TestRunner) CreateCommandRunnerCombinedOutErr(ctx context.Context) (*cobra.Command, func() <-chan error) {
-	cmd, shutdown := run.newCommandRunner(ctx, true)
+func (runner *TestRunner) CreateCommandRunnerCombinedOutErr(ctx context.Context) (*cobra.Command, func() <-chan error) {
+	cmd, shutdown := runner.newCommandRunner(ctx, true)
 	return cmd, shutdown
 }
 
-func (run *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool) (*cobra.Command, func() <-chan error) {
-	run.IOReset()
-	streams := run.Streams
+func (runner *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bool) (*cobra.Command, func() <-chan error) {
+	runner.IOReset()
+	streams := runner.Streams
 	if combineOutErr {
-		streams = ioes.NewIOStreams(run.InStream, run.OutStream, run.OutStream)
+		streams = ioes.NewIOStreams(runner.InStream, runner.OutStream, runner.OutStream)
 	}
-	if run.RepoRoot.UseMockRemoteClient {
+	if runner.RepoRoot.UseMockRemoteClient {
 		// Set this context value, which is used in lib.NewInstance to construct a
 		// remote.MockClient instead. Using context.Value is discouraged, but it's difficult
 		// to pipe parameters into cobra.Command without doing it like this.
 		key := lib.InstanceContextKey("RemoteClient")
 		ctx = context.WithValue(ctx, key, "mock")
 	}
-	cmd, shutdown := NewQriCommand(ctx, run.RepoPath, run.RepoRoot.TestCrypto, streams)
-	cmd.SetOutput(run.OutStream)
+	cmd, shutdown := NewQriCommand(ctx, runner.RepoPath, runner.RepoRoot.TestCrypto, streams)
+	cmd.SetOutput(runner.OutStream)
 	return cmd, shutdown
 }
 
 // Username returns the test username from the config's profile
-func (run *TestRunner) Username() string {
-	return run.RepoRoot.GetConfig().Profile.Peername
+func (runner *TestRunner) Username() string {
+	return runner.RepoRoot.GetConfig().Profile.Peername
 }
 
 // IOReset resets the io streams
-func (run *TestRunner) IOReset() {
-	run.InStream.Reset()
-	run.OutStream.Reset()
-	run.ErrStream.Reset()
+func (runner *TestRunner) IOReset() {
+	runner.InStream.Reset()
+	runner.OutStream.Reset()
+	runner.ErrStream.Reset()
 }
 
 // FileExists returns whether the file exists
-func (run *TestRunner) FileExists(file string) bool {
+func (runner *TestRunner) FileExists(file string) bool {
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return false
 	}
@@ -372,10 +372,10 @@ func (run *TestRunner) FileExists(file string) bool {
 }
 
 // LookupVersionInfo returns a versionInfo for the ref, or nil if not found
-func (run *TestRunner) LookupVersionInfo(t *testing.T, refStr string) *dsref.VersionInfo {
+func (runner *TestRunner) LookupVersionInfo(t *testing.T, refStr string) *dsref.VersionInfo {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, err := run.RepoRoot.Repo(ctx)
+	r, err := runner.RepoRoot.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -426,7 +426,7 @@ func (run *TestRunner) LookupVersionInfo(t *testing.T, refStr string) *dsref.Ver
 // ClearFSIPath clears the FSIPath for a reference in the refstore
 // Note: ClearFSIPAth doesn't do reference resoultion, cannot use "me" in
 // dataset names
-func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
+func (runner *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
 	t.Helper()
 	dr, err := dsref.Parse(refStr)
 	if err != nil {
@@ -435,7 +435,7 @@ func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, err := run.RepoRoot.Repo(ctx)
+	r, err := runner.RepoRoot.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -466,8 +466,8 @@ func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
 }
 
 // GetPathForDataset fetches a path for dataset index
-func (run *TestRunner) GetPathForDataset(t *testing.T, index int) string {
-	path, err := run.RepoRoot.GetPathForDataset(index)
+func (runner *TestRunner) GetPathForDataset(t *testing.T, index int) string {
+	path, err := runner.RepoRoot.GetPathForDataset(index)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -475,8 +475,8 @@ func (run *TestRunner) GetPathForDataset(t *testing.T, index int) string {
 }
 
 // ReadBodyFromIPFS reads body data from an IPFS repo by path string,
-func (run *TestRunner) ReadBodyFromIPFS(t *testing.T, path string) string {
-	body, err := run.RepoRoot.ReadBodyFromIPFS(path)
+func (runner *TestRunner) ReadBodyFromIPFS(t *testing.T, path string) string {
+	body, err := runner.RepoRoot.ReadBodyFromIPFS(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -484,8 +484,8 @@ func (run *TestRunner) ReadBodyFromIPFS(t *testing.T, path string) string {
 }
 
 // DatasetMarshalJSON reads the dataset head and marshals it as json
-func (run *TestRunner) DatasetMarshalJSON(t *testing.T, ref string) string {
-	data, err := run.RepoRoot.DatasetMarshalJSON(ref)
+func (runner *TestRunner) DatasetMarshalJSON(t *testing.T, ref string) string {
+	data, err := runner.RepoRoot.DatasetMarshalJSON(ref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -493,8 +493,8 @@ func (run *TestRunner) DatasetMarshalJSON(t *testing.T, ref string) string {
 }
 
 // MustLoadDataset loads the dataset or fails
-func (run *TestRunner) MustLoadDataset(t *testing.T, ref string) *dataset.Dataset {
-	ds, err := run.RepoRoot.LoadDataset(ref)
+func (runner *TestRunner) MustLoadDataset(t *testing.T, ref string) *dataset.Dataset {
+	ds, err := runner.RepoRoot.LoadDataset(ref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -502,8 +502,8 @@ func (run *TestRunner) MustLoadDataset(t *testing.T, ref string) *dataset.Datase
 }
 
 // MustExec runs a command, returning standard output, failing the test if there's an error
-func (run *TestRunner) MustExec(t *testing.T, cmdText string) string {
-	if err := run.ExecCommand(cmdText); err != nil {
+func (runner *TestRunner) MustExec(t *testing.T, cmdText string) string {
+	if err := runner.ExecCommand(cmdText); err != nil {
 		_, callerFile, callerLine, ok := runtime.Caller(1)
 		if !ok {
 			t.Fatal(err)
@@ -511,16 +511,16 @@ func (run *TestRunner) MustExec(t *testing.T, cmdText string) string {
 			t.Fatalf("executing command: %q\n%s:%d: %s", cmdText, callerFile, callerLine, err)
 		}
 	}
-	return run.GetCommandOutput()
+	return runner.GetCommandOutput()
 }
 
 // MustExec runs a command, returning combined standard output and standard err
-func (run *TestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
+func (runner *TestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
 	t.Helper()
-	ctx, cancel := context.WithCancel(run.Context)
+	ctx, cancel := context.WithCancel(runner.Context)
 	var shutdown func() <-chan error
-	run.CmdR, shutdown = run.CreateCommandRunnerCombinedOutErr(ctx)
-	err := executeCommand(run.CmdR, cmdText)
+	runner.CmdR, shutdown = runner.CreateCommandRunnerCombinedOutErr(ctx)
+	err := executeCommand(runner.CmdR, cmdText)
 	if err != nil {
 		cancel()
 		_, callerFile, callerLine, ok := runtime.Caller(1)
@@ -536,18 +536,18 @@ func (run *TestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) stri
 	if err != nil {
 		t.Fatal(err)
 	}
-	return run.GetCommandOutput()
+	return runner.GetCommandOutput()
 }
 
 // MustWriteFile writes to a file, failing the test if there's an error
-func (run *TestRunner) MustWriteFile(t *testing.T, filename, contents string) {
+func (runner *TestRunner) MustWriteFile(t *testing.T, filename, contents string) {
 	if err := ioutil.WriteFile(filename, []byte(contents), os.FileMode(0644)); err != nil {
 		t.Fatal(err)
 	}
 }
 
 // MustReadFile reads a file, failing the test if there's an error
-func (run *TestRunner) MustReadFile(t *testing.T, filename string) string {
+func (runner *TestRunner) MustReadFile(t *testing.T, filename string) string {
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Fatal(err)
@@ -556,7 +556,7 @@ func (run *TestRunner) MustReadFile(t *testing.T, filename string) string {
 }
 
 // Must asserts that the function result passed to it is not an error
-func (run *TestRunner) Must(t *testing.T, err error) {
+func (runner *TestRunner) Must(t *testing.T, err error) {
 	if err != nil {
 		_, callerFile, callerLine, ok := runtime.Caller(1)
 		if !ok {
@@ -569,27 +569,27 @@ func (run *TestRunner) Must(t *testing.T, err error) {
 
 // GetCommandOutput returns the standard output from the previously executed
 // command
-func (run *TestRunner) GetCommandOutput() string {
+func (runner *TestRunner) GetCommandOutput() string {
 	outputText := ""
-	if buffer, ok := run.Streams.Out.(*bytes.Buffer); ok {
-		outputText = run.niceifyTempDirs(buffer.String())
+	if buffer, ok := runner.Streams.Out.(*bytes.Buffer); ok {
+		outputText = runner.niceifyTempDirs(buffer.String())
 	}
 	return outputText
 }
 
 // GetCommandErrOutput fetches the stderr value from the previously executed
 // command
-func (run *TestRunner) GetCommandErrOutput() string {
+func (runner *TestRunner) GetCommandErrOutput() string {
 	errOutText := ""
-	if buffer, ok := run.Streams.ErrOut.(*bytes.Buffer); ok {
-		errOutText = run.niceifyTempDirs(buffer.String())
+	if buffer, ok := runner.Streams.ErrOut.(*bytes.Buffer); ok {
+		errOutText = runner.niceifyTempDirs(buffer.String())
 	}
 	return errOutText
 }
 
-func (run *TestRunner) niceifyTempDirs(text string) string {
-	text = strings.Replace(text, run.RepoRoot.RootPath, "/root", -1)
-	realRoot, err := filepath.EvalSymlinks(run.RepoRoot.RootPath)
+func (runner *TestRunner) niceifyTempDirs(text string) string {
+	text = strings.Replace(text, runner.RepoRoot.RootPath, "/root", -1)
+	realRoot, err := filepath.EvalSymlinks(runner.RepoRoot.RootPath)
 	if err == nil {
 		text = strings.Replace(text, realRoot, "/root", -1)
 	}
@@ -630,7 +630,7 @@ func executeCommandC(root *cobra.Command, args ...string) (err error) {
 // AddDatasetToRefstore adds a dataset to the test runner's refstore. It ignores the upper-levels
 // of our stack, namely cmd/ and lib/, which means it can be used to add a dataset with a name
 // that is using upper-case characters.
-func (run *TestRunner) AddDatasetToRefstore(t *testing.T, refStr string, ds *dataset.Dataset) {
+func (runner *TestRunner) AddDatasetToRefstore(t *testing.T, refStr string, ds *dataset.Dataset) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -642,7 +642,7 @@ func (run *TestRunner) AddDatasetToRefstore(t *testing.T, refStr string, ds *dat
 	ds.Peername = ref.Username
 	ds.Name = ref.Name
 
-	r, err := run.RepoRoot.Repo(ctx)
+	r, err := runner.RepoRoot.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
