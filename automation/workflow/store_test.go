@@ -22,25 +22,24 @@ func TestMemStoreIntegration(t *testing.T) {
 func AssertStore(t *testing.T, store Store) {
 	aliceDatasetID := "alice_dataset_id"
 	aliceProID := profile.ID("alice_pro_id")
-	aliceSeedStr := "alice workflow assert store seed string"
+	aliceSeedStr := "alice workflow assert store seed string used for testing in the workflow package"
 	SetIDRand(strings.NewReader(aliceSeedStr))
 	aliceID := NewID()
-	// aliceMemTrigger := NewMemTrigger()
-	// aliceMemHook := NewMemHook()
+	aliceTestTrigger := NewTestTrigger(aliceID)
+	aliceTestHook := NewTestHook("hook payload")
 	alice := &Workflow{
 		ID:        aliceID,
 		DatasetID: aliceDatasetID,
 		OwnerID:   aliceProID,
-		// Triggers:  []Trigger{aliceMemTrigger},
-		// Hooks:     []Hook{aliceMemHook},
+		Triggers:  []Trigger{aliceTestTrigger},
+		Hooks:     []Hook{aliceTestHook},
 	}
-	// got, err := store.Create(aliceDatasetID, aliceProID, []Trigger{aliceMemTrigger}, []Hook{aliceMemHook})
 	SetIDRand(strings.NewReader(aliceSeedStr))
-	got, err := store.Create(aliceDatasetID, aliceProID)
+	got, err := store.Create(aliceDatasetID, aliceProID, []Trigger{aliceTestTrigger}, []Hook{aliceTestHook})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(alice, got, cmpopts.IgnoreFields(Workflow{}, "Created")); diff != "" {
+	if diff := cmp.Diff(alice, got, cmpopts.IgnoreFields(Workflow{}, "Created"), cmp.AllowUnexported(TestTrigger{}, TestHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -48,7 +47,7 @@ func AssertStore(t *testing.T, store Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(alice, got, cmpopts.IgnoreFields(Workflow{}, "Created")); diff != "" {
+	if diff := cmp.Diff(alice, got, cmpopts.IgnoreFields(Workflow{}, "Created"), cmp.AllowUnexported(TestTrigger{}, TestHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -56,38 +55,36 @@ func AssertStore(t *testing.T, store Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(alice, got, cmpopts.IgnoreFields(Workflow{}, "Created")); diff != "" {
+	if diff := cmp.Diff(alice, got, cmpopts.IgnoreFields(Workflow{}, "Created"), cmp.AllowUnexported(TestTrigger{}, TestHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
-	// _, err = store.Create(aliceDatasetID, "new_profile_ID", []Trigger{}, []Hook{})
-	_, err = store.Create(aliceDatasetID, "new_profile_ID")
+	_, err = store.Create(aliceDatasetID, "new_profile_ID", []Trigger{}, []Hook{})
 	if !errors.Is(err, ErrWorkflowForDatasetExists) {
 		t.Errorf("store.Create error mismatch, expected %q, got %q", ErrWorkflowForDatasetExists, err)
 	}
 
 	brittDatasetID := "britt_dataset_id"
 	brittProID := profile.ID("britt_pro_id")
-	brittSeedStr := "britt workflow assert store seed string"
+	brittSeedStr := "britt workflow assert store seed string used for testing in the workflow package"
 	SetIDRand(strings.NewReader(brittSeedStr))
 	brittID := NewID()
-	// brittMemTrigger .:= NewMemTrigger()
-	// britMemHook := NewMemHook()
+	brittTestTrigger := NewTestTrigger(brittID)
+	brittTestHook := NewTestHook("hook payload")
 	britt := &Workflow{
 		ID:        brittID,
 		DatasetID: brittDatasetID,
 		OwnerID:   brittProID,
-		// Triggers:  []Trigger{brittMemTrigger},
-		// Hooks:     []Hook{brittMemTrigger},
+		Triggers:  []Trigger{brittTestTrigger},
+		Hooks:     []Hook{brittTestHook},
 	}
-	// got, err = store.Create(brittDatasetID, brittProID, []Trigger{brittMemTrigger}, []Hook{brittMemHook})
 	SetIDRand(strings.NewReader(brittSeedStr))
-	got, err = store.Create(brittDatasetID, brittProID)
+	got, err = store.Create(brittDatasetID, brittProID, []Trigger{brittTestTrigger}, []Hook{brittTestHook})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if diff := cmp.Diff(britt, got, cmpopts.IgnoreFields(Workflow{}, "Created")); diff != "" {
+	if diff := cmp.Diff(britt, got, cmpopts.IgnoreFields(Workflow{}, "Created"), cmp.AllowUnexported(TestTrigger{}, TestHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -104,8 +101,8 @@ func AssertStore(t *testing.T, store Store) {
 		ID:        aliceID,
 		DatasetID: alice.DatasetID,
 		OwnerID:   alice.OwnerID,
-		// Triggers:  []Trigger{aliceMemTrigger, brittMemTrigger},
-		// Hooks:     []Hook{aliceMemHook, brittMemHook},
+		Triggers:  []Trigger{aliceTestTrigger, brittTestTrigger},
+		Hooks:     []Hook{aliceTestHook, brittTestHook},
 	}
 	err = store.Update(aliceUpdated)
 	if err != nil {
@@ -116,7 +113,7 @@ func AssertStore(t *testing.T, store Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(aliceUpdated, got, cmpopts.IgnoreFields(Workflow{}, "Created")); diff != "" {
+	if diff := cmp.Diff(aliceUpdated, got, cmpopts.IgnoreFields(Workflow{}, "Created"), cmp.AllowUnexported(TestTrigger{}, TestHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -134,7 +131,7 @@ func AssertStore(t *testing.T, store Store) {
 		t.Fatalf("store.ListDeployed count mismatch, expected 1 workflow, got %d", len(deployed))
 	}
 	britt.Deployed = true
-	if diff := cmp.Diff(britt, deployed[0], cmpopts.IgnoreFields(Workflow{}, "Created")); diff != "" {
+	if diff := cmp.Diff(britt, deployed[0], cmpopts.IgnoreFields(Workflow{}, "Created"), cmp.AllowUnexported(TestTrigger{}, TestHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -158,8 +155,7 @@ func AssertStore(t *testing.T, store Store) {
 	}
 
 	_, err = store.Get(brittID)
-	// TODO (ramfox): replace with errors.Is?
-	if err != ErrNotFound {
+	if !errors.Is(err, ErrNotFound) {
 		t.Errorf("store.Get error mistmatch, expected %q, got %q", ErrNotFound, err)
 	}
 }

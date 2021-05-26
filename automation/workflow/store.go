@@ -18,7 +18,7 @@ type Store interface {
 	// Create creates a new Workflow and adds it to the Store. If a workflow
 	// with that dataset id already exists, it emits an
 	// `ErrWorkflowForDatasetExists` error
-	Create(did string, pid profile.ID) (*Workflow, error)
+	Create(did string, pid profile.ID, triggers []Trigger, hooks []Hook) (*Workflow, error)
 	Get(wid ID) (*Workflow, error)
 	GetDatasetWorkflow(did string) (*Workflow, error)
 	Remove(id ID) error
@@ -52,7 +52,7 @@ func NewMemStore() *MemStore {
 // Create creates a new Workflow and adds it to the Store. It does not check that
 // the given dataset or peer ids are valid, beyond that they are not empty
 // There should only be one workflow per dataset id
-func (m *MemStore) Create(did string, pid profile.ID) (*Workflow, error) {
+func (m *MemStore) Create(did string, pid profile.ID, triggers []Trigger, hooks []Hook) (*Workflow, error) {
 	if did == "" {
 		return nil, fmt.Errorf("dataset ID required")
 	}
@@ -69,6 +69,8 @@ func (m *MemStore) Create(did string, pid profile.ID) (*Workflow, error) {
 		DatasetID: did,
 		OwnerID:   pid,
 		Created:   &now,
+		Triggers:  triggers,
+		Hooks:     hooks,
 	}
 	m.mu.Lock()
 	m.workflows[wf.ID] = wf

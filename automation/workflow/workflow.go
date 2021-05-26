@@ -51,4 +51,6 @@ type Workflow struct {
 	OwnerID   profile.ID
 	Created   *time.Time
 	Deployed  bool
+	Triggers  []Trigger
+	Hooks     []Hook
 }
