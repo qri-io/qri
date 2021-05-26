@@ -14,7 +14,7 @@ import (
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	qerr "github.com/qri-io/qri/errors"
-	"github.com/theckman/go-flock"
+	"github.com/gofrs/flock"
 )
 
 var (
@@ -311,7 +311,7 @@ func NewLocalStore(filename string, owner *Profile, ks key.Store) (Store, error)
 		owner:    owner,
 		keyStore: ks,
 		filename: filename,
-		flock:    flock.NewFlock(lockPath(filename)),
+		flock:    flock.New(lockPath(filename)),
 	}
 
 	err := s.PutProfile(owner)
