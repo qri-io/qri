@@ -3,7 +3,12 @@ package collection
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/qri-io/qri/event"
@@ -73,8 +78,13 @@ type Item struct {
 	RunDuration string // duration of run execution in nanoseconds
 }
 
+const collectionsDirName = "collections"
+
 type collection struct {
-	items map[profile.ID][]Item
+	basePath string
+
+	sync.Mutex  // collections map lock
+	collections map[profile.ID][]Item
 }
 
 var (
@@ -82,24 +92,75 @@ var (
 	_ Writable   = (*collection)(nil)
 )
 
-// NewLocalCollection constructs a node-local collection
-func NewLocalCollection(ctx context.Context, bus event.Bus) Collection {
-	return &collection{
-		items: make(map[profile.ID][]Item),
+// NewLocalCollection constructs a node-local collection, if repoDir is not the
+// empty string, localCollection will create a "collections" directory to
+// persist collections. providing an empty repoDir value will create an
+// in-memory collection
+func NewLocalCollection(ctx context.Context, bus event.Bus, repoDir string) (Collection, error) {
+	if repoDir == "" {
+		// in-memory only collection
+		return &collection{
+			collections: make(map[profile.ID][]Item),
+		}, nil
 	}
+
+	repoDir = filepath.Join(repoDir, collectionsDirName)
+	fi, err := os.Stat(repoDir)
+	if os.IsNotExist(err) {
+		if err := os.Mkdir(repoDir, 0755); err != nil {
+			return nil, fmt.Errorf("creating collection directory: %w", err)
+		}
+		return &collection{
+			basePath:    repoDir,
+			collections: make(map[profile.ID][]Item),
+		}, nil
+	}
+	if !fi.IsDir() {
+		return nil, fmt.Errorf("collection is not a directory")
+	}
+
+	c := &collection{basePath: repoDir}
+	err = c.loadAll()
+	return c, err
 }
 
-func (c collection) List(ctx context.Context, pid profile.ID, lp params.List) ([]Item, error) {
-	return nil, fmt.Errorf("not finished")
+func (c *collection) List(ctx context.Context, pid profile.ID, lp params.List) ([]Item, error) {
+	c.Lock()
+	defer c.Unlock()
+
+	col, ok := c.collections[pid]
+	if !ok {
+		return []Item{}, nil
+	}
+
+	if lp.Limit < 0 {
+		lp.Limit = len(col)
+	}
+
+	results := make([]Item, 0, lp.Limit)
+
+	for _, item := range col {
+		lp.Offset--
+		if lp.Offset > 0 {
+			continue
+		}
+
+		results = append(results, item)
+	}
+
+	return results, nil
 }
 
 func (c *collection) Put(ctx context.Context, pid profile.ID, items ...Item) error {
+	c.Lock()
+	defer c.Unlock()
+
 	for _, item := range items {
 		if err := c.putOne(pid, item); err != nil {
 			return err
 		}
 	}
-	return nil
+	return c.saveProfileCollection(pid)
 }
 
 func (c *collection) putOne(pid profile.ID, item Item) error {
@@ -116,10 +177,82 @@ func (c *collection) putOne(pid profile.ID, item Item) error {
 		return fmt.Errorf("name is required")
 	}
 
-	c.items[pid] = append(c.items[pid], item)
+	c.collections[pid] = append(c.collections[pid], item)
 	return nil
 }
 
-func (c collection) Delete(ctx context.Context, pid profile.ID, ids ...string) error {
+func (c *collection) Delete(ctx context.Context, pid profile.ID, ids ...string) error {
+	c.Lock()
+	defer c.Unlock()
+
 	return fmt.Errorf("not finished")
+}
+
+func (c *collection) loadAll() error {
+	f, err := os.Open(c.basePath)
+	if err != nil {
+		return err
+	}
+
+	names, err := f.Readdirnames(-1)
+	if err != nil {
+		return err
+	}
+
+	c.collections = make(map[profile.ID][]Item)
+
+	for _, filename := range names {
+		if isCollectionFilename(filename) {
+			if err := c.loadProfileCollection(filename); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *collection) loadProfileCollection(filename string) error {
+	pid, err := profile.IDB58Decode(strings.TrimSuffix(filename, ".json"))
+	if err != nil {
+		return fmt.Errorf("decoding profile ID: %w", err)
+	}
+
+	f, err := os.Open(filepath.Join(c.basePath, filename))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	items := []Item{}
+	if err := json.NewDecoder(f).Decode(&items); err != nil {
+		return err
+	}
+
+	c.collections[pid] = items
+	return nil
+}
+
+func (c *collection) saveProfileCollection(pid profile.ID) error {
+	if c.basePath == "" {
+		return nil
+	}
+
+	items := c.collections[pid]
+	if items == nil {
+		return fmt.Errorf("cannot save empty collection")
+	}
+
+	path := filepath.Join(c.basePath, fmt.Sprintf("%s.json", pid.String()))
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0655)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return json.NewEncoder(f).Encode(items)
+}
+
+func isCollectionFilename(filename string) bool {
+	return strings.HasSuffix(filename, ".json")
 }
