@@ -24,6 +24,7 @@ import (
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
@@ -71,16 +72,17 @@ type InstanceOptions struct {
 	Cfg     *config.Config
 	Streams ioes.IOStreams
 
-	statsCache stats.Cache
-	node       *p2p.QriNode
-	repo       repo.Repo
-	qfs        *muxfs.Mux
-	dscache    *dscache.Dscache
-	regclient  *regclient.Client
-	logbook    *logbook.Book
-	profiles   profile.Store
-	bus        event.Bus
-	logAll     bool
+	statsCache    stats.Cache
+	node          *p2p.QriNode
+	repo          repo.Repo
+	qfs           *muxfs.Mux
+	dscache       *dscache.Dscache
+	regclient     *regclient.Client
+	logbook       *logbook.Book
+	profiles      profile.Store
+	bus           event.Bus
+	collectionSet collection.Set
+	logAll        bool
 
 	remoteMockClient bool
 	// use OptRemoteOptions to set this
@@ -266,6 +268,14 @@ func OptStatsCache(statsCache stats.Cache) Option {
 	}
 }
 
+// OptCollectionSet provides a collection implementation
+func OptCollectionSet(c collection.Set) Option {
+	return func(o *InstanceOptions) error {
+		o.collectionSet = c
+		return nil
+	}
+}
+
 // OptLogbook overrides the configured logbook with a manually provided one
 func OptLogbook(bk *logbook.Book) Option {
 	return func(o *InstanceOptions) error {
@@ -388,16 +398,17 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		repoPath: repoPath,
 		cfg:      cfg,
 
-		qfs:      o.qfs,
-		repo:     o.repo,
-		node:     o.node,
-		streams:  o.Streams,
-		registry: o.regclient,
-		logbook:  o.logbook,
-		dscache:  o.dscache,
-		profiles: o.profiles,
-		bus:      o.bus,
-		appCtx:   ctx,
+		qfs:           o.qfs,
+		repo:          o.repo,
+		node:          o.node,
+		streams:       o.Streams,
+		registry:      o.regclient,
+		logbook:       o.logbook,
+		collectionSet: o.collectionSet,
+		dscache:       o.dscache,
+		profiles:      o.profiles,
+		bus:           o.bus,
+		appCtx:        ctx,
 	}
 	qri = inst
 
@@ -732,20 +743,21 @@ type Instance struct {
 
 	regMethods *regMethodSet
 
-	streams      ioes.IOStreams
-	repo         repo.Repo
-	node         *p2p.QriNode
-	qfs          *muxfs.Mux
-	fsi          *fsi.FSI
-	remote       *remote.Remote
-	remoteClient remote.Client
-	registry     *regclient.Client
-	stats        *stats.Service
-	logbook      *logbook.Book
-	dscache      *dscache.Dscache
-	bus          event.Bus
-	watcher      *watchfs.FilesysWatcher
-	appCtx       context.Context
+	streams       ioes.IOStreams
+	repo          repo.Repo
+	node          *p2p.QriNode
+	qfs           *muxfs.Mux
+	fsi           *fsi.FSI
+	remote        *remote.Remote
+	remoteClient  remote.Client
+	registry      *regclient.Client
+	stats         *stats.Service
+	logbook       *logbook.Book
+	dscache       *dscache.Dscache
+	collectionSet collection.Set
+	bus           event.Bus
+	watcher       *watchfs.FilesysWatcher
+	appCtx        context.Context
 
 	profiles profile.Store
 	keystore key.Store

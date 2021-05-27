@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
@@ -77,6 +78,11 @@ func (s *scope) Context() context.Context {
 // AppContext returns the context of the top-level application, to enable graceful shutdowns
 func (s *scope) AppContext() context.Context {
 	return s.inst.appCtx
+}
+
+// Collection returns the Instance collection subsystem
+func (s *scope) CollectionSet() collection.Set {
+	return s.inst.collectionSet
 }
 
 // Dscache returns the dscache
