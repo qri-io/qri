@@ -90,7 +90,7 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 		)
 
 		if err != nil {
-			t.Fatal("error adding items: %s", err)
+			t.Fatalf("error adding items: %s", err)
 		}
 
 		err = ec.Put(ctx, missPiggy.ID,
@@ -117,7 +117,7 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 			})
 
 		if err != nil {
-			t.Fatal("error adding items: %s", err)
+			t.Fatalf("error adding items: %s", err)
 		}
 	})
 
@@ -179,7 +179,7 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 
 		for _, bad := range badCases {
 			t.Run(fmt.Sprintf("bad_case_%s", bad.reason), func(t *testing.T) {
-				if err := ec.Delete(ctx, bad.profileID, bad.ids...); err != nil {
+				if err := ec.Delete(ctx, bad.profileID, bad.ids...); err == nil {
 					t.Errorf("expected bad case to error. got nil")
 				}
 			})

@@ -120,6 +120,10 @@ func (c *collection) Put(ctx context.Context, pid profile.ID, items ...dsref.Ver
 			return err
 		}
 	}
+
+	agg, _ := dsref.NewVersionInfoAggregator([]string{"name"})
+	agg.Sort(c.collections[pid])
+
 	return c.saveProfileCollection(pid)
 }
 
@@ -141,11 +145,36 @@ func (c *collection) putOne(pid profile.ID, item dsref.VersionInfo) error {
 	return nil
 }
 
-func (c *collection) Delete(ctx context.Context, pid profile.ID, ids ...string) error {
+func (c *collection) Delete(ctx context.Context, pid profile.ID, initID ...string) error {
 	c.Lock()
 	defer c.Unlock()
 
-	return fmt.Errorf("not finished")
+	col, ok := c.collections[pid]
+	if !ok {
+		return fmt.Errorf("no collection for profile")
+	}
+
+	for _, removeID := range initID {
+		found := false
+		for i, item := range col {
+			if item.InitID == removeID {
+				found = true
+				copy(col[i:], col[i+1:])              // Shift a[i+1:] left one index.
+				col[len(col)-1] = dsref.VersionInfo{} // Erase last element (write zero value).
+				col = col[:len(col)-1]                // Truncate slice.
+				break
+			}
+		}
+
+		if !found {
+			fmt.Println("can't find id", removeID)
+			return fmt.Errorf("no dataset in collection with initID %q", removeID)
+		}
+	}
+
+	c.collections[pid] = col
+
+	return c.saveProfileCollection(pid)
 }
 
 func (c *collection) loadAll() error {

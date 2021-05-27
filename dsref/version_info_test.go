@@ -80,3 +80,30 @@ func TestConvertToVersionInfo(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
+
+func TestVersionInfoAggregator(t *testing.T) {
+	agg, err := NewVersionInfoAggregator([]string{"name", "size"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	infos := []VersionInfo{
+		{Username: "user_a", Name: "a", BodySize: 200},
+		{Username: "user_a", Name: "a", BodySize: 100},
+		{Username: "user_b", Name: "a", BodySize: 300},
+		{Username: "user", Name: "word", BodySize: 400},
+	}
+
+	agg.Sort(infos)
+
+	expect := []VersionInfo{
+		{Username: "user", Name: "word", BodySize: 400},
+		{Username: "user_a", Name: "a", BodySize: 100},
+		{Username: "user_a", Name: "a", BodySize: 200},
+		{Username: "user_b", Name: "a", BodySize: 300},
+	}
+
+	if diff := cmp.Diff(expect, expect); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}

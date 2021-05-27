@@ -1,4 +1,4 @@
-// package params defines generic input parameter structures
+// Package params defines generic input parameter structures
 package params
 
 // ListAll uses a limit of -1 & offset of 0 as a sentinel value for listing
