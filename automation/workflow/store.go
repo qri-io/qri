@@ -171,17 +171,18 @@ func (m *MemStore) List(ctx context.Context, limit, offset int) ([]*Workflow, er
 		wfs.Add(wf)
 	}
 
-	if fetchAll {
-		limit = wfs.Len()
-	}
 	if offset > wfs.Len() {
-		return nil, fmt.Errorf("offset of %d is out of bounds", offset)
+		return []*Workflow{}, nil
 	}
+
+	start := offset
+	end := offset + limit
+	if end > wfs.Len() || fetchAll {
+		end = wfs.Len()
+	}
+
 	sort.Sort(wfs)
-	if offset+limit > wfs.Len() {
-		limit = wfs.Len()
-	}
-	return wfs.Slice(offset, limit), nil
+	return wfs.Slice(start, end), nil
 }
 
 // ListDeployed lists all the workflows in the store that are deployed, by
@@ -207,17 +208,18 @@ func (m *MemStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Work
 		}
 	}
 
-	if fetchAll {
-		limit = wfs.Len()
-	}
 	if offset > wfs.Len() {
-		return nil, fmt.Errorf("offset of %d is out of bounds", offset)
+		return []*Workflow{}, nil
 	}
+
+	start := offset
+	end := offset + limit
+	if end > wfs.Len() || fetchAll {
+		end = wfs.Len()
+	}
+
 	sort.Sort(wfs)
-	if offset+limit > wfs.Len() {
-		limit = wfs.Len()
-	}
-	return wfs.Slice(offset, limit), nil
+	return wfs.Slice(start, end), nil
 }
 
 // WorkflowSet is a collection of Workflows that implements the sort.Interface,
@@ -268,14 +270,14 @@ func (js *WorkflowSet) Remove(id ID) (removed bool) {
 	return false
 }
 
-func (js *WorkflowSet) Slice(start, stop int) []*Workflow {
-	if start < 0 || stop < 0 {
+func (js *WorkflowSet) Slice(start, end int) []*Workflow {
+	if start < 0 || end < 0 {
 		return []*Workflow{}
 	}
-	if stop > js.Len() {
-		stop = js.Len()
+	if end > js.Len() {
+		end = js.Len()
 	}
-	return js.set[start:stop]
+	return js.set[start:end]
 }
 
 // MarshalJSON serializes WorkflowSet to an array of Workflows
