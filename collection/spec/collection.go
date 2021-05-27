@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/collection"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/params"
 	"github.com/qri-io/qri/profile"
@@ -55,32 +56,32 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 
 		badItems := []struct {
 			problem string
-			item    collection.Item
+			item    dsref.VersionInfo
 		}{
-			{"empty", collection.Item{}},
-			{"no InitID", collection.Item{ProfileID: kermit.ID}},
-			{"no profileID", collection.Item{InitID: "init_id"}},
-			{"no name", collection.Item{InitID: "init_id", ProfileID: kermit.ID}},
+			{"empty", dsref.VersionInfo{}},
+			{"no InitID", dsref.VersionInfo{ProfileID: kermit.ID.String()}},
+			{"no profileID", dsref.VersionInfo{InitID: "init_id"}},
+			{"no name", dsref.VersionInfo{InitID: "init_id", ProfileID: kermit.ID.String()}},
 		}
 
 		for _, bad := range badItems {
 			t.Run(fmt.Sprintf("bad_item_%s", bad.problem), func(t *testing.T) {
 				if err := ec.Put(ctx, kermit.ID, bad.item); err == nil {
-					t.Errorf("expected error, got nil", bad.problem)
+					t.Error("expected error, got nil")
 				}
 			})
 		}
 
 		err := ec.Put(ctx, kermit.ID,
-			collection.Item{
-				ProfileID:  kermit.ID,
+			dsref.VersionInfo{
+				ProfileID:  kermit.ID.String(),
 				InitID:     "muppet_names_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names",
 				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			collection.Item{
-				ProfileID:  kermit.ID,
+			dsref.VersionInfo{
+				ProfileID:  kermit.ID.String(),
 				InitID:     "muppet_names_and_ages_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names_and_ages",
@@ -93,22 +94,22 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 		}
 
 		err = ec.Put(ctx, missPiggy.ID,
-			collection.Item{
-				ProfileID:  missPiggy.ID,
+			dsref.VersionInfo{
+				ProfileID:  missPiggy.ID.String(),
 				InitID:     "secret_muppet_friends_init_id",
 				Username:   "miss_piggy",
 				Name:       "secret_muppet_friends",
 				CommitTime: time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC),
 			},
-			collection.Item{
-				ProfileID:  missPiggy.ID,
+			dsref.VersionInfo{
+				ProfileID:  missPiggy.ID.String(),
 				InitID:     "muppet_names_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names",
 				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
-			collection.Item{
-				ProfileID:  missPiggy.ID,
+			dsref.VersionInfo{
+				ProfileID:  missPiggy.ID.String(),
 				InitID:     "famous_muppets_init_id",
 				Username:   "famous_muppets",
 				Name:       "famous_muppets",
@@ -121,16 +122,16 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 	})
 
 	t.Run("list", func(t *testing.T) {
-		assertCollectionList(ctx, t, kermit, params.ListAll, ec, []collection.Item{
+		assertCollectionList(ctx, t, kermit, params.ListAll, ec, []dsref.VersionInfo{
 			{
-				ProfileID:  kermit.ID,
+				ProfileID:  kermit.ID.String(),
 				InitID:     "muppet_names_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names",
 				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			{
-				ProfileID:  kermit.ID,
+				ProfileID:  kermit.ID.String(),
 				InitID:     "muppet_names_and_ages_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names_and_ages",
@@ -138,23 +139,23 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 			},
 		})
 
-		assertCollectionList(ctx, t, missPiggy, params.ListAll, ec, []collection.Item{
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, ec, []dsref.VersionInfo{
 			{
-				ProfileID:  missPiggy.ID,
+				ProfileID:  missPiggy.ID.String(),
 				InitID:     "famous_muppets_init_id",
 				Username:   "famous_muppets",
 				Name:       "famous_muppets",
 				CommitTime: time.Date(2021, 1, 4, 0, 0, 0, 0, time.UTC),
 			},
 			{
-				ProfileID:  missPiggy.ID,
+				ProfileID:  missPiggy.ID.String(),
 				InitID:     "muppet_names_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names",
 				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			{
-				ProfileID:  missPiggy.ID,
+				ProfileID:  missPiggy.ID.String(),
 				InitID:     "secret_muppet_friends_init_id",
 				Username:   "miss_piggy",
 				Name:       "secret_muppet_friends",
@@ -193,7 +194,7 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 			t.Errorf("unexpected error deleting items: %s", err)
 		}
 
-		assertCollectionList(ctx, t, missPiggy, params.ListAll, ec, []collection.Item{})
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, ec, []dsref.VersionInfo{})
 	})
 }
 
@@ -222,7 +223,7 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 		}
 
 		// new collection should return an empty list when listing a valid profileID
-		assertCollectionList(ctx, t, kermit, params.ListAll, c, []collection.Item{})
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, []dsref.VersionInfo{})
 	})
 
 	t.Run("user_1_manual_datasets", func(t *testing.T) {
@@ -238,10 +239,10 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 			PrettyName: muppetNamesName1,
 		})
 
-		expect := []collection.Item{
+		expect := []dsref.VersionInfo{
 			{
 				InitID:    muppetNamesInitID,
-				ProfileID: kermit.ID,
+				ProfileID: kermit.ID.String(),
 				Username:  kermit.Peername,
 				Name:      muppetNamesName1,
 			},
@@ -257,14 +258,14 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 			// Info:     &info,
 		})
 
-		expect = []collection.Item{
+		expect = []dsref.VersionInfo{
 			{
 				InitID:    muppetNamesInitID,
-				ProfileID: kermit.ID,
+				ProfileID: kermit.ID.String(),
 				Username:  kermit.Peername,
 				Name:      muppetNamesName1,
-				TopIndex:  2,
-				HeadRef:   "/mem/PathToMuppetNamesVersionOne",
+				// TopIndex:  2,
+				// HeadRef:   "/mem/PathToMuppetNamesVersionOne",
 			},
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
@@ -275,14 +276,14 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 			PrettyName: muppetNamesName2,
 		})
 
-		expect = []collection.Item{
+		expect = []dsref.VersionInfo{
 			{
 				InitID:    muppetNamesInitID,
-				ProfileID: kermit.ID,
+				ProfileID: kermit.ID.String(),
 				Username:  kermit.Peername,
 				Name:      muppetNamesName2,
-				TopIndex:  2,
-				HeadRef:   "/mem/PathToMuppetNamesVersionOne",
+				// TopIndex:  2,
+				// HeadRef:   "/mem/PathToMuppetNamesVersionOne",
 			},
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
@@ -298,7 +299,7 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 	t.Run("user_2_automated_datasets", func(t *testing.T) {
 		// miss piggy's collection should be empty. Kermit's collection is non-empty,
 		// proving basic multi-tenancy
-		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, []collection.Item{})
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, []dsref.VersionInfo{})
 
 		muppetTweetsInitID := "muppetTweetsInitID"
 		muppetTweetsName := "muppet_tweets"
@@ -319,14 +320,14 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 			// Info:     &info,
 		})
 
-		expect := []collection.Item{
+		expect := []dsref.VersionInfo{
 			{
 				InitID:    muppetTweetsInitID,
-				ProfileID: kermit.ID,
+				ProfileID: kermit.ID.String(),
 				Username:  kermit.Peername,
 				Name:      muppetTweetsName,
-				TopIndex:  2,
-				HeadRef:   "/mem/PathToMuppetTweetsVersionOne",
+				// TopIndex:  2,
+				// HeadRef:   "/mem/PathToMuppetTweetsVersionOne",
 			},
 		}
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
@@ -336,7 +337,7 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 	})
 }
 
-func assertCollectionList(ctx context.Context, t *testing.T, p *profile.Profile, lp params.List, c collection.Collection, expect []collection.Item) {
+func assertCollectionList(ctx context.Context, t *testing.T, p *profile.Profile, lp params.List, c collection.Collection, expect []dsref.VersionInfo) {
 	t.Helper()
 	res, err := c.List(ctx, p.ID, lp)
 	if err != nil {
@@ -345,7 +346,7 @@ func assertCollectionList(ctx context.Context, t *testing.T, p *profile.Profile,
 	expectItems(t, p.Peername, res, expect)
 }
 
-func expectItems(t *testing.T, username string, got, expect []collection.Item) {
+func expectItems(t *testing.T, username string, got, expect []dsref.VersionInfo) {
 	t.Helper()
 	if diff := cmp.Diff(expect, got); diff != "" {
 		t.Errorf("collection mismatch for user %q (-want +got):\n%s", username, diff)

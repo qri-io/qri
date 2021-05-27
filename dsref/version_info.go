@@ -9,7 +9,9 @@ import (
 
 // VersionInfo is an aggregation of fields from a dataset version for caching &
 // listing purposes. VersionInfos are typically used when showing a list of
-// datasets or a list of dataset versions ("qri list" and "qri log").
+// datasets or a list of dataset versions ("qri list" and "qri log"). Fields on
+// VersionInfo are focused on being the minimum set of values required to drive
+// user interfaces that list datasets.
 //
 // VersionInfos can also describe dataset versions that are being created or
 // failed to create. In these cases the calculated VersionInfo.Path value must

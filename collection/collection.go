@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/params"
 	"github.com/qri-io/qri/profile"
@@ -27,55 +27,15 @@ const RootUserKeyID = profile.ID("root")
 // fields in a collection item are cached values gathered from other subsystems,
 // and must be kept in sync as subsystems mutate their state.
 type Collection interface {
-	List(ctx context.Context, pid profile.ID, lp params.List) ([]Item, error)
+	List(ctx context.Context, pid profile.ID, lp params.List) ([]dsref.VersionInfo, error)
 }
 
 // Writable is an extension interface for collection that adds methods for
 // adding and removing items
 type Writable interface {
 	Collection
-	Put(ctx context.Context, profileID profile.ID, items ...Item) error
+	Put(ctx context.Context, profileID profile.ID, items ...dsref.VersionInfo) error
 	Delete(ctx context.Context, profileID profile.ID, initIDs ...string) error
-}
-
-// Item is a cache of values gathered from other subsystems
-// it's a slightly-modified version of the flatbuffer defined in dscache.fbs
-type Item struct {
-	ProfileID profile.ID // profileID for the author of the dataset
-	InitID    string     // init-id derived from logbook, never changes for the same dataset
-
-	TopIndex int // point to logbook entry for newest commit for this dataset
-	// CursorIndex int // point to logbook entry for data that is currently in use
-	Username string
-	Name     string // human readable name for a dataset, can be changed over time
-
-	// Meta fields
-	MetaTitle string   // metadata title of the dataset
-	ThemeList []string // metadata theme of the dataset, comma separated list
-
-	// Structure fields
-	BodySize   int    // size of the body in bytes
-	BodyRows   int    // number of row in the body
-	BodyFormat string // format of the body, such as "csv" or "json"
-	NumErrors  int    // number of errors in the structure
-
-	// Commit fields
-	CommitTime    time.Time // commit timestamp of the dataset version
-	CommitTitle   string    // title field from the commit.
-	CommitMessage string
-
-	// About the dataset's history and location
-	NumVersions int    // number of versions
-	HeadRef     string // the IPFS hash for the dataset
-	FSIPath     string // path to checked out working directory for this dataset
-
-	// Automation fields
-	WorkflowID     string
-	WorkflowStatus string
-	// info about applied transform script during ref creation
-	RunID string // either Commit.RunID, or the ID of a failed run when no path value (version is present)
-	// RunStatus string     // RunStatus is a string version of the run.Status enumeration eg "running", "failed"
-	RunDuration string // duration of run execution in nanoseconds
 }
 
 const collectionsDirName = "collections"
@@ -84,7 +44,7 @@ type collection struct {
 	basePath string
 
 	sync.Mutex  // collections map lock
-	collections map[profile.ID][]Item
+	collections map[profile.ID][]dsref.VersionInfo
 }
 
 var (
@@ -100,7 +60,7 @@ func NewLocalCollection(ctx context.Context, bus event.Bus, repoDir string) (Col
 	if repoDir == "" {
 		// in-memory only collection
 		return &collection{
-			collections: make(map[profile.ID][]Item),
+			collections: make(map[profile.ID][]dsref.VersionInfo),
 		}, nil
 	}
 
@@ -112,7 +72,7 @@ func NewLocalCollection(ctx context.Context, bus event.Bus, repoDir string) (Col
 		}
 		return &collection{
 			basePath:    repoDir,
-			collections: make(map[profile.ID][]Item),
+			collections: make(map[profile.ID][]dsref.VersionInfo),
 		}, nil
 	}
 	if !fi.IsDir() {
@@ -124,20 +84,20 @@ func NewLocalCollection(ctx context.Context, bus event.Bus, repoDir string) (Col
 	return c, err
 }
 
-func (c *collection) List(ctx context.Context, pid profile.ID, lp params.List) ([]Item, error) {
+func (c *collection) List(ctx context.Context, pid profile.ID, lp params.List) ([]dsref.VersionInfo, error) {
 	c.Lock()
 	defer c.Unlock()
 
 	col, ok := c.collections[pid]
 	if !ok {
-		return []Item{}, nil
+		return []dsref.VersionInfo{}, nil
 	}
 
 	if lp.Limit < 0 {
 		lp.Limit = len(col)
 	}
 
-	results := make([]Item, 0, lp.Limit)
+	results := make([]dsref.VersionInfo, 0, lp.Limit)
 
 	for _, item := range col {
 		lp.Offset--
@@ -151,7 +111,7 @@ func (c *collection) List(ctx context.Context, pid profile.ID, lp params.List) (
 	return results, nil
 }
 
-func (c *collection) Put(ctx context.Context, pid profile.ID, items ...Item) error {
+func (c *collection) Put(ctx context.Context, pid profile.ID, items ...dsref.VersionInfo) error {
 	c.Lock()
 	defer c.Unlock()
 
@@ -163,7 +123,7 @@ func (c *collection) Put(ctx context.Context, pid profile.ID, items ...Item) err
 	return c.saveProfileCollection(pid)
 }
 
-func (c *collection) putOne(pid profile.ID, item Item) error {
+func (c *collection) putOne(pid profile.ID, item dsref.VersionInfo) error {
 	if item.ProfileID == "" {
 		return fmt.Errorf("profileID is required")
 	}
@@ -199,7 +159,7 @@ func (c *collection) loadAll() error {
 		return err
 	}
 
-	c.collections = make(map[profile.ID][]Item)
+	c.collections = make(map[profile.ID][]dsref.VersionInfo)
 
 	for _, filename := range names {
 		if isCollectionFilename(filename) {
@@ -224,7 +184,7 @@ func (c *collection) loadProfileCollection(filename string) error {
 	}
 	defer f.Close()
 
-	items := []Item{}
+	items := []dsref.VersionInfo{}
 	if err := json.NewDecoder(f).Decode(&items); err != nil {
 		return err
 	}

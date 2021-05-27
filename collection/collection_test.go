@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/collection/spec"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/params"
 	profiletest "github.com/qri-io/qri/profile/test"
@@ -41,8 +42,8 @@ func TestCollectionPersistence(t *testing.T) {
 	kermit := profiletest.GetProfile("kermit")
 	missPiggy := profiletest.GetProfile("miss_piggy")
 
-	item1 := collection.Item{
-		ProfileID:  kermit.ID,
+	item1 := dsref.VersionInfo{
+		ProfileID:  kermit.ID.String(),
 		InitID:     "muppet_names_init_id",
 		Username:   "kermit",
 		Name:       "muppet_names",
@@ -52,8 +53,8 @@ func TestCollectionPersistence(t *testing.T) {
 		t.Error(err)
 	}
 
-	item2 := collection.Item{
-		ProfileID:  missPiggy.ID,
+	item2 := dsref.VersionInfo{
+		ProfileID:  missPiggy.ID.String(),
 		InitID:     "secret_muppet_friends_init_id",
 		Username:   "miss_piggy",
 		Name:       "secret_muppet_friends",
@@ -73,7 +74,7 @@ func TestCollectionPersistence(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if diff := cmp.Diff([]collection.Item{item1}, got); diff != "" {
+	if diff := cmp.Diff([]dsref.VersionInfo{item1}, got); diff != "" {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
 
@@ -81,7 +82,7 @@ func TestCollectionPersistence(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if diff := cmp.Diff([]collection.Item{item2}, got); diff != "" {
+	if diff := cmp.Diff([]dsref.VersionInfo{item2}, got); diff != "" {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
 }
