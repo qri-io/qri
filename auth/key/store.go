@@ -10,7 +10,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/config"
-	"github.com/theckman/go-flock"
+	"github.com/gofrs/flock"
 )
 
 // ErrKeyAndIDMismatch occurs when a key identifier doesn't match it's public
@@ -64,7 +64,7 @@ type localStore struct {
 func NewLocalStore(filename string) (Store, error) {
 	return &localStore{
 		filename: filename,
-		flock:    flock.NewFlock(lockPath(filename)),
+		flock:    flock.New(lockPath(filename)),
 	}, nil
 }
 

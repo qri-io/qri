@@ -10,7 +10,7 @@ require (
 	github.com/fatih/color v1.9.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
-	github.com/gofrs/flock v0.7.1 // indirect
+	github.com/gofrs/flock v0.7.1
 	github.com/google/flatbuffers v1.12.1-0.20200706154056-969d0f7a6317
 	github.com/google/go-cmp v0.5.3
 	github.com/google/uuid v1.1.1
