@@ -11,6 +11,8 @@ import (
 // HookType is the type of hook
 type HookType string
 
+func (h HookType) String() string { return string(h) }
+
 // A Hook determines under what circumstances its `hook.Event()` should be
 // emitted, and what the event payload should be.
 type Hook interface {

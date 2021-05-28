@@ -1,13 +1,15 @@
 package workflow
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // A TestTrigger implements the Trigger interface & keeps track of the number
 // of times it had been advanced
 type TestTrigger struct {
-	enabled      bool        `json:"enabled"`
-	triggerType  TriggerType `json:"type"`
-	AdvanceCount int         `json:"advanceCount"`
+	enabled      bool
+	triggerType  TriggerType
+	AdvanceCount int
 }
 
 var _ Trigger = (*TestTrigger)(nil)
@@ -42,13 +44,34 @@ func (tt *TestTrigger) Advance() error {
 	return nil
 }
 
-func (tt *TestTrigger) MarshalJSON() ([]byte, error) {
-	return json.Marshal(tt)
+type testTrigger struct {
+	Enabled      bool        `json:"enabled"`
+	TriggerType  TriggerType `json:"type"`
+	AdvanceCount int         `json:"advanceCount"`
 }
 
-func (tt *TestTrigger) UnmarshalJSON(d []byte) error {
+func (tt *TestTrigger) MarshalJSON() ([]byte, error) {
 	if tt == nil {
 		tt = &TestTrigger{}
 	}
-	return json.Unmarshal(d, tt)
+	return json.Marshal(testTrigger{
+		Enabled:      tt.enabled,
+		TriggerType:  tt.triggerType,
+		AdvanceCount: tt.AdvanceCount,
+	})
+}
+
+func (tt *TestTrigger) UnmarshalJSON(d []byte) error {
+	t := &testTrigger{}
+	err := json.Unmarshal(d, t)
+	if err != nil {
+		return err
+	}
+	tt.enabled = t.Enabled
+	tt.triggerType = t.TriggerType
+	tt.AdvanceCount = t.AdvanceCount
+	if tt == nil {
+		tt = &TestTrigger{}
+	}
+	return nil
 }

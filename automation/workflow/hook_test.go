@@ -29,7 +29,6 @@ func NewTestHook(payload interface{}) *TestHook {
 	return &TestHook{
 		enabled:      true,
 		hookType:     TestHookType,
-		event:        ETTestHook,
 		AdvanceCount: 0,
 		payload:      payload,
 	}
@@ -54,16 +53,40 @@ func (th *TestHook) Advance() error {
 }
 
 func (th *TestHook) Event() (event.Type, interface{}) {
-	return th.event, th.payload
+	return ETTestHook, th.payload
+}
+
+type testHook struct {
+	Enabled      bool        `json:"enabled"`
+	HookType     HookType    `json:"type"`
+	AdvanceCount int         `json:"advancedCount"`
+	Payload      interface{} `json:"payload"`
 }
 
 func (th *TestHook) MarshalJSON() ([]byte, error) {
-	return json.Marshal(th)
-}
-
-func (th *TestHook) UnmarshalJSON(d []byte) error {
 	if th == nil {
 		th = &TestHook{}
 	}
-	return json.Unmarshal(d, th)
+	return json.Marshal(testHook{
+		Enabled:      th.enabled,
+		HookType:     th.hookType,
+		AdvanceCount: th.AdvanceCount,
+		Payload:      th.payload,
+	})
+}
+
+func (th *TestHook) UnmarshalJSON(d []byte) error {
+	h := &testHook{}
+	err := json.Unmarshal(d, h)
+	if err != nil {
+		return err
+	}
+	if th == nil {
+		th = &TestHook{}
+	}
+	th.enabled = h.Enabled
+	th.hookType = h.HookType
+	th.AdvanceCount = h.AdvanceCount
+	th.payload = h.Payload
+	return nil
 }
