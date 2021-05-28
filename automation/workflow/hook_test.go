@@ -1,6 +1,10 @@
 package workflow
 
-import "github.com/qri-io/qri/event"
+import (
+	"encoding/json"
+
+	"github.com/qri-io/qri/event"
+)
 
 // A TestHook implements the Hook interface & keeps track of the number
 // of times it had been advanced
@@ -51,4 +55,15 @@ func (th *TestHook) Advance() error {
 
 func (th *TestHook) Event() (event.Type, interface{}) {
 	return th.event, th.payload
+}
+
+func (th *TestHook) MarshalJSON() ([]byte, error) {
+	return json.Marshal(th)
+}
+
+func (th *TestHook) UnmarshalJSON(d []byte) error {
+	if th == nil {
+		th = &TestHook{}
+	}
+	return json.Unmarshal(d, th)
 }

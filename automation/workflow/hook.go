@@ -1,6 +1,10 @@
 package workflow
 
-import "github.com/qri-io/qri/event"
+import (
+	"encoding/json"
+
+	"github.com/qri-io/qri/event"
+)
 
 // "encoding/json"
 
@@ -10,8 +14,8 @@ type HookType string
 // A Hook determines under what circumstances its `hook.Event()` should be
 // emitted, and what the event payload should be.
 type Hook interface {
-	// json.Marshaler
-	// json.Unmarshaler
+	json.Marshaler
+	json.Unmarshaler
 	Enabled() bool
 	SetEnabled(enabled bool) error
 	Type() HookType

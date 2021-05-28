@@ -12,6 +12,14 @@ import (
 )
 
 func TestIntegration(t *testing.T) {
+	// mock time
+	prevNow := NowFunc
+	defer func() {
+		NowFunc = prevNow
+	}()
+	now := time.Now()
+	NowFunc = func() *time.Time { return &now }
+
 	ctx := context.Background()
 	ran := make(chan string)
 	runFuncFactory := func(ctx context.Context) Run {
@@ -43,6 +51,7 @@ func TestIntegration(t *testing.T) {
 	expected := &workflow.Workflow{
 		DatasetID: "dataset_id",
 		OwnerID:   "profile_id",
+		Created:   NowFunc(),
 	}
 
 	got, err := o.CreateWorkflow("dataset_id", "profile_id")
