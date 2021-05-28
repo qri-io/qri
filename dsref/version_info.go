@@ -11,9 +11,9 @@ import (
 
 // VersionInfo is an aggregation of fields from a dataset version for caching &
 // listing purposes. VersionInfos are typically used when showing a list of
-// datasets or a list of dataset versions ("qri list" and "qri log"). Fields on
-// VersionInfo are focused on being the minimum set of values required to drive
-// user interfaces that list datasets.
+// datasets or a list of dataset versions ("qri list"). Fields on VersionInfo
+// are focused on being the minimum set of values required to drive user
+// interfaces that list datasets.
 //
 // VersionInfos can also describe dataset versions that are being created or
 // failed to create. In these cases the calculated VersionInfo.Path value must
@@ -204,15 +204,15 @@ func ConvertVersionInfoToDataset(info *VersionInfo) *dataset.Dataset {
 
 type lessFunc func(a, b *VersionInfo) bool
 
-func newLessFunc(name string) (lessFunc, error) {
-	switch name {
+func newLessFunc(key string) (lessFunc, error) {
+	switch key {
 	case "name":
 		return func(a, b *VersionInfo) bool { return (a.Username < b.Username && a.Name < b.Name) }, nil
 	case "size":
 		return func(a, b *VersionInfo) bool { return a.BodySize < b.BodySize }, nil
 	}
 
-	return nil, fmt.Errorf("unrecognized sorting field: %q", name)
+	return nil, fmt.Errorf("unrecognized sorting key %q", key)
 }
 
 // VersionInfoAggregator sorts slices of VersionInfos according to a provided

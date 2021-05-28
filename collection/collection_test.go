@@ -8,17 +8,17 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/collection/spec"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/params"
 	profiletest "github.com/qri-io/qri/profile/test"
 )
 
 func TestLocalCollection(t *testing.T) {
-	spec.AssertWritableCollectionSpec(t, func(ctx context.Context, bus event.Bus) (collection.Collection, error) {
-		return collection.NewLocalCollection(ctx, bus, "")
+	spec.AssertWritableCollectionSpec(t, func(ctx context.Context, bus event.Bus) (collection.Set, error) {
+		return collection.NewLocalSet(ctx, bus, "")
 	})
 }
 
@@ -32,12 +32,12 @@ func TestCollectionPersistence(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	c, err := collection.NewLocalCollection(ctx, event.NilBus, dir)
+	c, err := collection.NewLocalSet(ctx, event.NilBus, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	wc := c.(collection.Writable)
+	wc := c.(collection.WritableSet)
 
 	kermit := profiletest.GetProfile("kermit")
 	missPiggy := profiletest.GetProfile("miss_piggy")
@@ -65,7 +65,7 @@ func TestCollectionPersistence(t *testing.T) {
 	}
 
 	// create a new collection to rely on persistence
-	c, err = collection.NewLocalCollection(ctx, event.NilBus, dir)
+	c, err = collection.NewLocalSet(ctx, event.NilBus, dir)
 	if err != nil {
 		t.Error(err)
 	}

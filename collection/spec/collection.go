@@ -7,16 +7,16 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/params"
 	"github.com/qri-io/qri/profile"
 	profiletest "github.com/qri-io/qri/profile/test"
 )
 
 // Constructor is a function for creating collections, used by spec tests
-type Constructor func(ctx context.Context, bus event.Bus) (collection.Collection, error)
+type Constructor func(ctx context.Context, bus event.Bus) (collection.Set, error)
 
 // AssertWritableCollectionSpec defines expected behaviours for a Writable
 // collection implementation
@@ -30,9 +30,9 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 		t.Fatal(err)
 	}
 
-	ec, ok := c.(collection.Writable)
+	ec, ok := c.(collection.WritableSet)
 	if !ok {
-		t.Fatal("construtor did not return an editable collection")
+		t.Fatal("construtor did not return a writable collection set")
 	}
 
 	kermit := profiletest.GetProfile("kermit")
@@ -40,8 +40,8 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 
 	t.Run("empty_list", func(t *testing.T) {
 		res, err := ec.List(ctx, missPiggy.ID, params.ListAll)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
+		if err == nil {
+			t.Fatalf("expected error listing unknown profile, got nil")
 		}
 
 		if len(res) != 0 {
@@ -337,7 +337,7 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 	})
 }
 
-func assertCollectionList(ctx context.Context, t *testing.T, p *profile.Profile, lp params.List, c collection.Collection, expect []dsref.VersionInfo) {
+func assertCollectionList(ctx context.Context, t *testing.T, p *profile.Profile, lp params.List, c collection.Set, expect []dsref.VersionInfo) {
 	t.Helper()
 	res, err := c.List(ctx, p.ID, lp)
 	if err != nil {
