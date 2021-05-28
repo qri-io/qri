@@ -1,6 +1,8 @@
 package dsref
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -9,7 +11,9 @@ import (
 
 // VersionInfo is an aggregation of fields from a dataset version for caching &
 // listing purposes. VersionInfos are typically used when showing a list of
-// datasets or a list of dataset versions ("qri list" and "qri log").
+// datasets or a list of dataset versions ("qri list"). Fields on VersionInfo
+// are focused on being the minimum set of values required to drive user
+// interfaces that list datasets.
 //
 // VersionInfos can also describe dataset versions that are being created or
 // failed to create. In these cases the calculated VersionInfo.Path value must
@@ -196,4 +200,79 @@ func ConvertVersionInfoToDataset(info *VersionInfo) *dataset.Dataset {
 			ErrCount: info.NumErrors,
 		},
 	}
+}
+
+type lessFunc func(a, b *VersionInfo) bool
+
+func newLessFunc(key string) (lessFunc, error) {
+	switch key {
+	case "name":
+		return func(a, b *VersionInfo) bool { return (a.Username < b.Username && a.Name < b.Name) }, nil
+	case "size":
+		return func(a, b *VersionInfo) bool { return a.BodySize < b.BodySize }, nil
+	}
+
+	return nil, fmt.Errorf("unrecognized sorting key %q", key)
+}
+
+// VersionInfoAggregator sorts slices of VersionInfos according to a provided
+// string configuration. Call its Sort method to sort the data
+// TODO(b5): add support for filtering
+type VersionInfoAggregator struct {
+	infos []VersionInfo
+	less  []lessFunc
+}
+
+// Sort sorts the argument slice according to the less functions passed to OrderedBy.
+func (agg *VersionInfoAggregator) Sort(infos []VersionInfo) {
+	agg.infos = infos
+	sort.Sort(agg)
+}
+
+// NewVersionInfoAggregator returns a Sorter that sorts using the less functions
+// in order.
+func NewVersionInfoAggregator(orderBy []string) (*VersionInfoAggregator, error) {
+	less := []lessFunc{}
+	for _, o := range orderBy {
+		fn, err := newLessFunc(o)
+		if err != nil {
+			return nil, err
+		}
+		less = append(less, fn)
+	}
+
+	return &VersionInfoAggregator{
+		less: less,
+	}, nil
+}
+
+// Len is part of sort.Interface.
+func (agg *VersionInfoAggregator) Len() int {
+	return len(agg.infos)
+}
+
+// Swap is part of sort.Interface.
+func (agg *VersionInfoAggregator) Swap(i, j int) {
+	agg.infos[i], agg.infos[j] = agg.infos[j], agg.infos[i]
+}
+
+func (agg *VersionInfoAggregator) Less(i, j int) bool {
+	p, q := &agg.infos[i], &agg.infos[j]
+	// Try all but the last comparison.
+	var k int
+	for k = 0; k < len(agg.less)-1; k++ {
+		less := agg.less[k]
+		switch {
+		case less(p, q):
+			// p < q, so we have a decision.
+			return true
+		case less(q, p):
+			// p > q, so we have a decision.
+			return false
+		}
+		// p == q; try the next comparison.
+	}
+	// All comparisons to here said "equal", so just return whatever
+	// the final comparison reports.
+	return agg.less[k](p, q)
 }
