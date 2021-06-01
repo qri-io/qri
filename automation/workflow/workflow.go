@@ -9,6 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/qri/automation/hook"
+	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/profile"
 )
 
@@ -24,8 +26,6 @@ var (
 	ErrNoOwnerID = fmt.Errorf("invalid workflow: empty OwnerID")
 	// ErrNilCreated indicates the workflow is invalid because the Created field is empty
 	ErrNilCreated = fmt.Errorf("invalid workflow: nil Created")
-	// ErrTriggerIDMismatch indicates the workflow id stored in the trigger does not match the workflow id
-	ErrTriggerIDMismatch = fmt.Errorf("invalid workflow: trigger ID mismatch")
 )
 
 // ID is a string identifier for a workflow
@@ -58,8 +58,8 @@ type Workflow struct {
 	OwnerID   profile.ID
 	Created   *time.Time
 	Deployed  bool
-	Triggers  []Trigger
-	Hooks     []Hook
+	Triggers  []trigger.Trigger
+	Hooks     []hook.Hook
 }
 
 func (w *Workflow) Validate() error {

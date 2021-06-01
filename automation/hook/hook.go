@@ -1,12 +1,10 @@
-package workflow
+package hook
 
 import (
 	"encoding/json"
 
 	"github.com/qri-io/qri/event"
 )
-
-// "encoding/json"
 
 // HookType is the type of hook
 type HookType string

@@ -1,4 +1,4 @@
-package workflow
+package trigger
 
 import "encoding/json"
 

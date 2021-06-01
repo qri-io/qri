@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/qri/automation/hook"
+	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/profile"
 )
@@ -20,14 +22,14 @@ func AssertStore(t *testing.T, store workflow.Store) {
 
 	aliceDatasetID := "alice_dataset_id"
 	aliceProID := profile.ID("alice_pro_id")
-	aliceTestTrigger := workflow.NewTestTrigger()
-	aliceTestHook := workflow.NewTestHook("hook payload")
+	aliceTrigger := trigger.NewRuntimeTrigger()
+	aliceHook := hook.NewRuntimeHook("hook payload")
 	alice := &workflow.Workflow{
 		DatasetID: aliceDatasetID,
 		OwnerID:   aliceProID,
 		Created:   &now,
-		Triggers:  []workflow.Trigger{aliceTestTrigger},
-		Hooks:     []workflow.Hook{aliceTestHook},
+		Triggers:  []trigger.Trigger{aliceTrigger},
+		Hooks:     []hook.Hook{aliceHook},
 	}
 	got, err := store.Put(alice)
 	if err != nil {
@@ -38,7 +40,7 @@ func AssertStore(t *testing.T, store workflow.Store) {
 	}
 	alice.ID = got.ID
 	aliceID := alice.ID
-	if diff := cmp.Diff(alice, got, cmp.AllowUnexported(workflow.TestTrigger{}, workflow.TestHook{})); diff != "" {
+	if diff := cmp.Diff(alice, got, cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -46,7 +48,7 @@ func AssertStore(t *testing.T, store workflow.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(alice, got, cmp.AllowUnexported(workflow.TestTrigger{}, workflow.TestHook{})); diff != "" {
+	if diff := cmp.Diff(alice, got, cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -54,7 +56,7 @@ func AssertStore(t *testing.T, store workflow.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(alice, got, cmp.AllowUnexported(workflow.TestTrigger{}, workflow.TestHook{})); diff != "" {
+	if diff := cmp.Diff(alice, got, cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -75,14 +77,14 @@ func AssertStore(t *testing.T, store workflow.Store) {
 
 	brittDatasetID := "britt_dataset_id"
 	brittProID := profile.ID("britt_pro_id")
-	brittTestTrigger := workflow.NewTestTrigger()
-	brittTestHook := workflow.NewTestHook("hook payload")
+	brittTrigger := trigger.NewRuntimeTrigger()
+	brittHook := hook.NewRuntimeHook("hook payload")
 	britt := &workflow.Workflow{
 		DatasetID: brittDatasetID,
 		OwnerID:   brittProID,
 		Created:   &now,
-		Triggers:  []workflow.Trigger{brittTestTrigger},
-		Hooks:     []workflow.Hook{brittTestHook},
+		Triggers:  []trigger.Trigger{brittTrigger},
+		Hooks:     []hook.Hook{brittHook},
 	}
 	got, err = store.Put(britt)
 	if err != nil {
@@ -90,7 +92,7 @@ func AssertStore(t *testing.T, store workflow.Store) {
 	}
 
 	britt.ID = got.ID
-	if diff := cmp.Diff(britt, got, cmp.AllowUnexported(workflow.TestTrigger{}, workflow.TestHook{})); diff != "" {
+	if diff := cmp.Diff(britt, got, cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -118,8 +120,8 @@ func AssertStore(t *testing.T, store workflow.Store) {
 		OwnerID:   alice.OwnerID,
 		Deployed:  true,
 		Created:   &now,
-		Triggers:  []workflow.Trigger{aliceTestTrigger, brittTestTrigger},
-		Hooks:     []workflow.Hook{aliceTestHook, brittTestHook},
+		Triggers:  []trigger.Trigger{aliceTrigger, brittTrigger},
+		Hooks:     []hook.Hook{aliceHook, brittHook},
 	}
 	_, err = store.Put(aliceUpdated)
 	if err != nil {
@@ -130,7 +132,7 @@ func AssertStore(t *testing.T, store workflow.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(aliceUpdated, got, cmp.AllowUnexported(workflow.TestTrigger{}, workflow.TestHook{})); diff != "" {
+	if diff := cmp.Diff(aliceUpdated, got, cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -142,7 +144,7 @@ func AssertStore(t *testing.T, store workflow.Store) {
 	if len(deployed) != 1 {
 		t.Fatalf("store.ListDeployed count mismatch, expected 1 workflow, got %d", len(deployed))
 	}
-	if diff := cmp.Diff(aliceUpdated, deployed[0], cmp.AllowUnexported(workflow.TestTrigger{}, workflow.TestHook{})); diff != "" {
+	if diff := cmp.Diff(aliceUpdated, deployed[0], cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
