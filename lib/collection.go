@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi/linkfile"
@@ -58,6 +59,14 @@ type collectionImpl struct{}
 
 // List gets the reflist for either the local repo or a peer
 func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error) {
+	if s := scope.CollectionSet(); s != nil {
+		lp := params.List{
+			OrderBy: []string{p.OrderBy},
+			Offset:  p.Offset,
+			Limit:   p.Limit,
+		}
+		return s.List(scope.ctx, scope.ActiveProfile().ID, lp)
+	}
 	// TODO(dustmop): When List is converted to use scope, get the ProfileID from
 	// the scope if the user is authorized to only view their own datasets, as opposed
 	// to the full collection that exists in this node's repository.

@@ -13,11 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
@@ -25,6 +27,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
+	profiletest "github.com/qri-io/qri/profile/test"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/remote/access"
 	"github.com/qri-io/qri/repo"
@@ -58,7 +61,6 @@ func init() {
 }
 
 func TestNewInstance(t *testing.T) {
-
 	if _, err := NewInstance(context.Background(), ""); err == nil {
 		t.Error("expected NewInstance to error when provided no repo path")
 	}
@@ -320,6 +322,56 @@ func TestNewInstanceWithAccessControlPolicy(t *testing.T) {
 	}
 	if err := p.Enforce(&profile.Profile{ID: proID, Peername: "foo"}, "dataset:foo:bar", "remote:pull"); err != nil {
 		t.Errorf("expected no policy enforce error, got: %s", err)
+	}
+}
+
+func TestNewInstanceWithCollectionOption(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tr, err := repotest.NewTempRepo("test_collections", "TestNewInstanceWithCollectionOption", repotest.NewTestCrypto())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tr.Delete()
+
+	bus := event.NewBus(ctx)
+
+	s, err := collection.NewLocalSet(ctx, bus, tr.RootPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kermit := profiletest.GetProfile("kermit")
+
+	expect := []dsref.VersionInfo{
+		{
+			InitID:    "init_id",
+			Username:  kermit.Peername,
+			Name:      "dataset",
+			ProfileID: kermit.ID.String(),
+		},
+	}
+
+	err = s.(collection.WritableSet).Put(ctx, kermit.ID, expect...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inst, err := NewInstance(ctx, tr.QriPath,
+		OptCollectionSet(s),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := inst.Collection().List(ctx, &ListParams{Limit: -1})
+	if err != nil {
+		t.Error(err)
+	}
+
+	if diff := cmp.Diff(expect, got); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
 
