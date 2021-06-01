@@ -2,13 +2,17 @@ package spec
 
 import (
 	"encoding/json"
-	"github.com/qri-io/qri/automation/trigger"
+	"errors"
 	"testing"
+
+	"github.com/qri-io/qri/automation/trigger"
 )
 
+// AssertTrigger confirms the expected behavior of a trigger.Trigger Interface
+// implementation
 func AssertTrigger(t *testing.T, trig trigger.Trigger) {
 	if trig.Type() == "" {
-		t.Error("Type method must return a non-empty TriggerType")
+		t.Error("Type method must return a non-empty trigger.Type")
 	}
 	if err := trig.SetEnabled(true); err != nil {
 		t.Fatalf("trigger.SetEnabled unexpected error: %s", err)
@@ -37,17 +41,16 @@ func AssertTrigger(t *testing.T, trig trigger.Trigger) {
 	if triggerType != trig.Type().String() {
 		t.Fatalf("json.Marshal error, expected marshalled type %q to match trigger.Type() %q", triggerType, trig.Type())
 	}
-	triggerObj["type"] = "assert test trigger type"
-	triggerBytes, err = json.Marshal(triggerObj)
-	if err != nil {
+	if err := json.Unmarshal(triggerBytes, &triggerObj); err != nil {
 		t.Fatalf("json.Unmarshal unexpected error: %s", err)
 	}
-	if err := json.Unmarshal(triggerBytes, trig); err != nil {
-		if err != nil {
-			t.Fatalf("json.Unmarshal unexpected error: %s", err)
-		}
+
+	triggerObj["type"] = "bad trigger type"
+	triggerBytes, err = json.Marshal(triggerObj)
+	if err != nil {
+		t.Fatalf("json.Marshal unexpected error: %s", err)
 	}
-	if triggerObj["type"] != trig.Type().String() {
-		t.Fatalf("json.Unmarshal error, expected unmarshaled type %s to match %s", trig.Type(), triggerObj["type"])
+	if err := json.Unmarshal(triggerBytes, trig); !errors.Is(err, trigger.ErrUnexpectedType) {
+		t.Fatalf("json.Unmarshal should emit a `trigger.ErrUnexpectedType` error if the given type does not match the trigger.Type of the Trigger")
 	}
 }

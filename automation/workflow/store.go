@@ -25,15 +25,28 @@ var (
 // Store manages & stores workflows, allowing listing and updating of workflows
 type Store interface {
 	Lister
+	// Get fetches a Workflow from the Store using the workflow.ID
 	Get(wid ID) (*Workflow, error)
+	// GetByDatasetID fetches a Workflow from the Store using the dataset.ID
 	GetByDatasetID(did string) (*Workflow, error)
+	// Remove removes a Workflow from the Store using the workflow.ID
 	Remove(id ID) error
+	// Put adds a Workflow to the Store. If there is no ID in the Workflow,
+	// Put will create a new ID and add the new Workflow to the Store,
+	// ensuring that the associated Workflow.DatasetID is unique. If there
+	// is an existing ID, Put will update the entry in the Store. It first
+	// ensures that the Workflow.DatasetID and Workflow.OwnerID have not
+	// been altered.
 	Put(wf *Workflow) (*Workflow, error)
 }
 
 // A Lister lists entries from a workflow store
 type Lister interface {
+	// List lists the Workflows in the Store in reverse chronological order
+	// by Workflow.Created time
 	List(ctx context.Context, limit, offset int) ([]*Workflow, error)
+	// ListDeployed lists the deployed Workflows in the Store in reverse
+	// chronological order by Workflow.Created time
 	ListDeployed(ctx context.Context, limit, offset int) ([]*Workflow, error)
 }
 
@@ -53,6 +66,7 @@ func NewMemStore() *MemStore {
 	}
 }
 
+// Put adds a Workflow to a MemStore
 func (m *MemStore) Put(wf *Workflow) (*Workflow, error) {
 	if wf == nil {
 		return nil, ErrNilWorkflow
@@ -95,7 +109,7 @@ func (m *MemStore) Get(wid ID) (*Workflow, error) {
 	return wf, nil
 }
 
-// GetByDatasetID fetches a workflow using the dataset ID
+// GetByDatasetID fetches a Workflow using the dataset ID
 func (m *MemStore) GetByDatasetID(did string) (*Workflow, error) {
 	if did == "" {
 		return nil, ErrNotFound
@@ -110,7 +124,7 @@ func (m *MemStore) GetByDatasetID(did string) (*Workflow, error) {
 	return nil, ErrNotFound
 }
 
-// Remove removes a workflow from a store
+// Remove removes a Workflow from a Store
 func (m *MemStore) Remove(id ID) error {
 	m.mu.Lock()
 	_, ok := m.workflows[id]
@@ -125,7 +139,7 @@ func (m *MemStore) Remove(id ID) error {
 // List lists all the workflows in the store, by decending order from time of
 // creation
 func (m *MemStore) List(ctx context.Context, limit, offset int) ([]*Workflow, error) {
-	wfs := NewWorkflowSet()
+	wfs := NewSet()
 	fetchAll := false
 	switch {
 	case limit == -1 && offset == 0:
@@ -160,7 +174,7 @@ func (m *MemStore) List(ctx context.Context, limit, offset int) ([]*Workflow, er
 // ListDeployed lists all the workflows in the store that are deployed, by
 // decending order from time of creation
 func (m *MemStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Workflow, error) {
-	wfs := NewWorkflowSet()
+	wfs := NewSet()
 	fetchAll := false
 	switch {
 	case limit == -1 && offset == 0:

@@ -2,7 +2,6 @@ package workflow
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -27,7 +26,7 @@ func TestWorkflowValidate(t *testing.T) {
 	for _, c := range cases {
 		got := c.workflow.Validate()
 		if !errors.Is(c.expected, got) {
-			fmt.Errorf("validate workflow case %q: expected %q, got %q", c.description, c.expected, got)
+			t.Errorf("validate workflow case %q: expected %q, got %q", c.description, c.expected, got)
 		}
 	}
 }

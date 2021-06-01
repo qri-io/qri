@@ -15,6 +15,8 @@ import (
 	"github.com/qri-io/qri/profile"
 )
 
+// AssertStore confirms the expected behavior of a workflow.Store Interface
+// implementation
 func AssertStore(t *testing.T, store workflow.Store) {
 	seedStr := "workflow assert store seed string used for testing in the workflow package"
 	workflow.SetIDRand(strings.NewReader(seedStr))
@@ -159,6 +161,8 @@ func AssertStore(t *testing.T, store workflow.Store) {
 	}
 }
 
+// AssertLister confirms the expected behavior of a workflow.Lister Interface
+// implementation
 func AssertLister(t *testing.T, store workflow.Store) {
 	// set up
 	workflow.SetIDRand(strings.NewReader(strings.Repeat("Lorem ipsum dolor sit amet", 20)))
@@ -190,8 +194,8 @@ func AssertLister(t *testing.T, store workflow.Store) {
 		{"negative offset", 0, -1, "offset of -1 is out of bounds"},
 	}
 
-	runListErrTestCases(t, ctx, "List", store.List, errCases)
-	runListErrTestCases(t, ctx, "ListDeployed", store.ListDeployed, errCases)
+	runListErrTestCases(ctx, t, "List", store.List, errCases)
+	runListErrTestCases(ctx, t, "ListDeployed", store.ListDeployed, errCases)
 
 	// empty list cases
 	emptyCases := []emptyTestCase{
@@ -199,8 +203,8 @@ func AssertLister(t *testing.T, store workflow.Store) {
 		{"zero limit", 0, 0},
 	}
 
-	runListEmptyTestCases(t, ctx, "List", store.List, emptyCases)
-	runListEmptyTestCases(t, ctx, "ListDeployed", store.ListDeployed, emptyCases)
+	runListEmptyTestCases(ctx, t, "List", store.List, emptyCases)
+	runListEmptyTestCases(ctx, t, "ListDeployed", store.ListDeployed, emptyCases)
 
 	// working cases
 	cases := []expectedTestCase{
@@ -210,7 +214,7 @@ func AssertLister(t *testing.T, store workflow.Store) {
 		{"get last 2", 4, 8, expectedAllWorkflows[8:]},
 	}
 
-	runListExpectedTestCases(t, ctx, "List", store.List, cases)
+	runListExpectedTestCases(ctx, t, "List", store.List, cases)
 
 	cases = []expectedTestCase{
 		{"get all", -1, 0, expectedDeployedWorkflows[:]},
@@ -218,7 +222,7 @@ func AssertLister(t *testing.T, store workflow.Store) {
 		{"get next 2", 2, 2, expectedDeployedWorkflows[2:4]},
 		{"get last 1", 2, 4, expectedDeployedWorkflows[4:]},
 	}
-	runListExpectedTestCases(t, ctx, "ListDeployed", store.ListDeployed, cases)
+	runListExpectedTestCases(ctx, t, "ListDeployed", store.ListDeployed, cases)
 }
 
 type expectedTestCase struct {
@@ -228,7 +232,7 @@ type expectedTestCase struct {
 	expected    []*workflow.Workflow
 }
 
-func runListExpectedTestCases(t *testing.T, ctx context.Context, fnName string, fn ListFunc, cases []expectedTestCase) {
+func runListExpectedTestCases(ctx context.Context, t *testing.T, fnName string, fn listFunc, cases []expectedTestCase) {
 	for _, c := range cases {
 		got, err := fn(ctx, c.limit, c.offset)
 		if err != nil {
@@ -241,7 +245,7 @@ func runListExpectedTestCases(t *testing.T, ctx context.Context, fnName string, 
 	}
 }
 
-type ListFunc func(ctx context.Context, limit, offset int) ([]*workflow.Workflow, error)
+type listFunc func(ctx context.Context, limit, offset int) ([]*workflow.Workflow, error)
 
 type errTestCase struct {
 	description string
@@ -250,7 +254,7 @@ type errTestCase struct {
 	errMsg      string
 }
 
-func runListErrTestCases(t *testing.T, ctx context.Context, fnName string, fn ListFunc, cases []errTestCase) {
+func runListErrTestCases(ctx context.Context, t *testing.T, fnName string, fn listFunc, cases []errTestCase) {
 	for _, c := range cases {
 		_, err := fn(ctx, c.limit, c.offset)
 		if err == nil {
@@ -269,7 +273,7 @@ type emptyTestCase struct {
 	offset      int
 }
 
-func runListEmptyTestCases(t *testing.T, ctx context.Context, fnName string, fn ListFunc, cases []emptyTestCase) {
+func runListEmptyTestCases(ctx context.Context, t *testing.T, fnName string, fn listFunc, cases []emptyTestCase) {
 	expected := []*workflow.Workflow{}
 	for _, c := range cases {
 		got, err := fn(ctx, c.limit, c.offset)

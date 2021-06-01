@@ -1,13 +1,20 @@
 package trigger
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
-// "encoding/json"
+var (
+	// ErrUnexpectedType indicates the trigger type is unexpected
+	ErrUnexpectedType = fmt.Errorf("unexpected trigger type")
+)
 
-// TriggerType is the type of trigger
-type TriggerType string
+// Type is the type of the Trigger
+type Type string
 
-func (tt TriggerType) String() string {
+// String returns the underlying string associated with the Type
+func (tt Type) String() string {
 	return string(tt)
 }
 
@@ -16,8 +23,12 @@ func (tt TriggerType) String() string {
 type Trigger interface {
 	json.Marshaler
 	json.Unmarshaler
+	// Enabled returns whether the Trigger is enabled
 	Enabled() bool
+	// SetEnabled sets the enabled status
 	SetEnabled(enabled bool) error
-	Type() TriggerType
+	// Type returns the Type of this Trigger
+	Type() Type
+	// Advance adjusts the Trigger once it has been triggered
 	Advance() error
 }

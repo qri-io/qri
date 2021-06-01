@@ -17,6 +17,8 @@ var (
 	log = golog.Logger("automation")
 )
 
+// NowFunc returns a pointer to the current time. Can be overridden in
+// tests to create determinism
 var NowFunc = func() *time.Time {
 	now := time.Now()
 	return &now

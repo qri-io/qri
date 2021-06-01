@@ -62,6 +62,7 @@ type Workflow struct {
 	Hooks     []hook.Hook
 }
 
+// Validate errors if the workflow is not valid
 func (w *Workflow) Validate() error {
 	if w == nil {
 		return ErrNilWorkflow
@@ -81,76 +82,84 @@ func (w *Workflow) Validate() error {
 	return nil
 }
 
-// WorkflowSet is a collection of Workflows that implements the sort.Interface,
-// sorting a list of WorkflowSet in reverse-chronological-then-alphabetical order
-type WorkflowSet struct {
+// Set is a collection of Workflows that implements the sort.Interface,
+// sorting a list of Set in reverse-chronological-then-alphabetical order
+type Set struct {
 	set []*Workflow
 }
 
-// NewWorkflowSet constructs a workflow set.
-func NewWorkflowSet() *WorkflowSet {
-	return &WorkflowSet{}
+// NewSet constructs a workflow set.
+func NewSet() *Set {
+	return &Set{}
 }
 
-func (js WorkflowSet) Len() int { return len(js.set) }
-func (js WorkflowSet) Less(i, j int) bool {
-	return lessNilTime(js.set[i].Created, js.set[j].Created)
-}
-func (js WorkflowSet) Swap(i, j int) { js.set[i], js.set[j] = js.set[j], js.set[i] }
+// Len part of the `sort.Interface`
+func (s Set) Len() int { return len(s.set) }
 
-func (js *WorkflowSet) Add(j *Workflow) {
-	if js == nil {
-		*js = WorkflowSet{set: []*Workflow{j}}
+// Less part of the `sort.Interface`
+func (s Set) Less(i, j int) bool {
+	return lessNilTime(s.set[i].Created, s.set[j].Created)
+}
+
+// Swap is part of the `sort.Interface`
+func (s Set) Swap(i, j int) { s.set[i], s.set[j] = s.set[j], s.set[i] }
+
+// Add adds a Workflow to a Set
+func (s *Set) Add(j *Workflow) {
+	if s == nil {
+		*s = Set{set: []*Workflow{j}}
 		return
 	}
 
-	for i, workflow := range js.set {
+	for i, workflow := range s.set {
 		if workflow.ID == j.ID {
-			js.set[i] = j
+			s.set[i] = j
 			return
 		}
 	}
-	js.set = append(js.set, j)
-	sort.Sort(js)
+	s.set = append(s.set, j)
+	sort.Sort(s)
 }
 
-func (js *WorkflowSet) Remove(id ID) (removed bool) {
-	for i, workflow := range js.set {
+// Remove removes a Workflow from a Set
+func (s *Set) Remove(id ID) (removed bool) {
+	for i, workflow := range s.set {
 		if workflow.ID == id {
-			if i+1 == len(js.set) {
-				js.set = js.set[:i]
+			if i+1 == len(s.set) {
+				s.set = s.set[:i]
 				return true
 			}
 
-			js.set = append(js.set[:i], js.set[i+1:]...)
+			s.set = append(s.set[:i], s.set[i+1:]...)
 			return true
 		}
 	}
 	return false
 }
 
-func (js *WorkflowSet) Slice(start, end int) []*Workflow {
+// Slice returns a slice of Workflows from position `start` to position `end`
+func (s *Set) Slice(start, end int) []*Workflow {
 	if start < 0 || end < 0 {
 		return []*Workflow{}
 	}
-	if end > js.Len() {
-		end = js.Len()
+	if end > s.Len() {
+		end = s.Len()
 	}
-	return js.set[start:end]
+	return s.set[start:end]
 }
 
-// MarshalJSON serializes WorkflowSet to an array of Workflows
-func (js WorkflowSet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(js.set)
+// MarshalJSON satisfies the `json.Marshaller` interface
+func (s Set) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.set)
 }
 
-// UnmarshalJSON deserializes from a JSON array
-func (js *WorkflowSet) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON satisfies the `json.Unmarshaller` interface
+func (s *Set) UnmarshalJSON(data []byte) error {
 	set := []*Workflow{}
 	if err := json.Unmarshal(data, &set); err != nil {
 		return err
 	}
-	js.set = set
+	s.set = set
 	return nil
 }
 
