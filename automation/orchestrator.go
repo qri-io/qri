@@ -3,6 +3,7 @@ package automation
 import (
 	"context"
 	"fmt"
+	"time"
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/ioes"
@@ -15,6 +16,13 @@ import (
 var (
 	log = golog.Logger("automation")
 )
+
+// NowFunc returns a pointer to the current time. Can be overridden in
+// tests to create determinism
+var NowFunc = func() *time.Time {
+	now := time.Now()
+	return &now
+}
 
 // OrchestratorOptions encapsulate runtime configuration for NewOrchestrator
 type OrchestratorOptions struct {
@@ -147,7 +155,12 @@ func (o *Orchestrator) CreateWorkflow(did string, pid profile.ID) (*workflow.Wor
 	// any that it doesn't know about
 	// it should convert each TriggerOption into a Trigger & pass them down to `workflow.Create`
 	// TODO (ramfox): same goes for HookOptions & hooks
-	return o.workflows.Create(did, pid)
+	wf := &workflow.Workflow{
+		DatasetID: did,
+		OwnerID:   pid,
+		Created:   NowFunc(),
+	}
+	return o.workflows.Put(wf)
 }
 
 // GetWorkflow fetches an existing workflow from the WorkflowStore
