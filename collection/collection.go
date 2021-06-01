@@ -59,9 +59,11 @@ var (
 func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string) (Set, error) {
 	if repoDir == "" {
 		// in-memory only collection
-		return &localSet{
+		s := &localSet{
 			collections: make(map[profile.ID][]dsref.VersionInfo),
-		}, nil
+		}
+		s.subscribe(bus)
+		return s, nil
 	}
 
 	repoDir = filepath.Join(repoDir, collectionsDirName)
@@ -70,16 +72,20 @@ func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string) (Set, error
 		if err := os.Mkdir(repoDir, 0755); err != nil {
 			return nil, fmt.Errorf("creating collection directory: %w", err)
 		}
-		return &localSet{
+		s := &localSet{
 			basePath:    repoDir,
 			collections: make(map[profile.ID][]dsref.VersionInfo),
-		}, nil
+		}
+		s.subscribe(bus)
+		return s, nil
 	}
 	if !fi.IsDir() {
 		return nil, fmt.Errorf("collection is not a directory")
 	}
 
 	s := &localSet{basePath: repoDir}
+	s.subscribe(bus)
+
 	err = s.loadAll()
 	return s, err
 }
@@ -139,6 +145,13 @@ func (s *localSet) putOne(pid profile.ID, item dsref.VersionInfo) error {
 	}
 	if item.Name == "" {
 		return fmt.Errorf("name is required")
+	}
+
+	for i, ds := range s.collections[pid] {
+		if ds.InitID == item.InitID {
+			s.collections[pid][i] = item
+			return nil
+		}
 	}
 
 	s.collections[pid] = append(s.collections[pid], item)
@@ -238,6 +251,69 @@ func (s *localSet) saveProfileCollection(pid profile.ID) error {
 	defer f.Close()
 
 	return json.NewEncoder(f).Encode(items)
+}
+
+func (s *localSet) subscribe(bus event.Bus) {
+	bus.SubscribeTypes(s.handleEvent,
+		event.ETDatasetNameInit,
+		event.ETDatasetCommitChange,
+		event.ETDatasetRename,
+		event.ETDatasetDeleteAll,
+	)
+}
+
+func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
+	switch e.Type {
+	case event.ETDatasetNameInit:
+		if change, ok := e.Payload.(event.DsChange); ok {
+			if vi := change.Info; vi != nil {
+				pid, err := profile.NewB58ID(vi.ProfileID)
+				if err != nil {
+					fmt.Printf("error parsing profile ID in name init: %s\n", err)
+					return err
+				}
+				if err := s.putOne(pid, *change.Info); err != nil {
+					fmt.Printf("error putting one: %s\n", err)
+					return err
+				}
+			}
+		}
+	case event.ETDatasetCommitChange:
+		if change, ok := e.Payload.(event.DsChange); ok {
+			s.updateOneAcrossAllCollections(change.InitID, func(vi *dsref.VersionInfo) {
+				vi.Path = change.HeadRef
+			})
+		}
+	case event.ETDatasetRename:
+		if change, ok := e.Payload.(event.DsChange); ok {
+			s.updateOneAcrossAllCollections(change.InitID, func(vi *dsref.VersionInfo) {
+				vi.Name = change.PrettyName
+			})
+		}
+	case event.ETDatasetDeleteAll:
+		// TODO(b5): need user-scoped events for this, unless we want one user
+		// removing a dataset to remove it from all collections of all users
+	}
+	return nil
+}
+
+func (s *localSet) updateOneAcrossAllCollections(initID string, mutate func(vi *dsref.VersionInfo)) error {
+	s.Lock()
+	defer s.Unlock()
+
+	for pid, col := range s.collections {
+		for i, vi := range col {
+			if vi.InitID == initID {
+				mutate(&vi)
+				col[i] = vi
+				if err := s.saveProfileCollection(pid); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func isCollectionFilename(filename string) bool {
