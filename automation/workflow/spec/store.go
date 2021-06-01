@@ -58,6 +58,21 @@ func AssertStore(t *testing.T, store workflow.Store) {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
+	// store.Put error checking
+	badAlice := &workflow.Workflow{
+		ID: aliceID,
+	}
+	if _, err := store.Put(badAlice); !errors.Is(err, workflow.ErrPutDatasetIDMismatch) {
+		t.Errorf("Put method must emit `workflow.ErrPutDatasetIDMismatch` if the DatasetID of the given workflow does not match the DatasetID of the workflow stored")
+	}
+	badAlice.DatasetID = aliceDatasetID
+	if _, err := store.Put(badAlice); !errors.Is(err, workflow.ErrPutOwnerIDMismatch) {
+		t.Errorf("Put method must emit `workflow.ErrPutOwnerIDMistmatch` error if the OwnerID of the given workflow does not match the OWnerID of the workflow stored")
+	}
+	if _, err := store.Put(&workflow.Workflow{DatasetID: aliceDatasetID}); !errors.Is(err, workflow.ErrWorkflowForDatasetExists) {
+		t.Errorf("Put method must emit `workflow.ErrWorkflowForDatasetExists` error if a workflow for the given DatasetID already exists")
+	}
+
 	brittDatasetID := "britt_dataset_id"
 	brittProID := profile.ID("britt_pro_id")
 	brittTestTrigger := workflow.NewTestTrigger()

@@ -14,6 +14,12 @@ var (
 	// ErrWorkflowForDatasetExists indicates that a workflow associated
 	// with the given dataset already exists
 	ErrWorkflowForDatasetExists = fmt.Errorf("a workflow associated with the given dataset ID already exists")
+	// ErrPutDatasetIDMismatch indicates the given workflow's DatasetID does
+	// not match the one currently stored
+	ErrPutDatasetIDMismatch = fmt.Errorf("the workflow's DatasetID does not match the DatasetID of the associated workflow currently in the store")
+	// ErrPutOwnerIDMismatch indicates the given workflow's OwnerID does
+	// not match the one currently stored
+	ErrPutOwnerIDMismatch = fmt.Errorf("the given workflow's OwnerID does not match the OwnerID of the associated workflow currently in the store")
 )
 
 // Store manages & stores workflows, allowing listing and updating of workflows
@@ -52,8 +58,15 @@ func (m *MemStore) Put(wf *Workflow) (*Workflow, error) {
 		return nil, ErrNilWorkflow
 	}
 	if wf.ID != "" {
-		if _, err := m.Get(wf.ID); errors.Is(err, ErrNotFound) {
+		fetchedWF, err := m.Get(wf.ID)
+		if errors.Is(err, ErrNotFound) {
 			return nil, ErrNotFound
+		}
+		if fetchedWF.DatasetID != wf.DatasetID {
+			return nil, ErrPutDatasetIDMismatch
+		}
+		if fetchedWF.OwnerID != wf.OwnerID {
+			return nil, ErrPutOwnerIDMismatch
 		}
 	}
 	if wf.ID == "" {
