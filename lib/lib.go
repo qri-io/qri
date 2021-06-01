@@ -609,6 +609,13 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	if o.collectionSet == nil && inst.repo != nil {
+		inst.collectionSet, err = collection.MigrateRepoStoreToLocalCollection(ctx, inst.bus, repoPath, inst.repo)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	go inst.waitForAllDone()
 	go func() {
 		if err := inst.bus.Publish(ctx, event.ETInstanceConstructed, nil); err != nil {
