@@ -985,7 +985,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		// allocate an ID for the transform, subscribe to print output & build up
 		// runState
 		runID := run.NewID()
-		runState = run.NewState(runID)
+		runState = &run.State{ID: runID}
 
 		scope.Bus().SubscribeID(func(ctx context.Context, e event.Event) error {
 			runState.AddTransformEvent(e)

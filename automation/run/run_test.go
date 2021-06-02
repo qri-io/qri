@@ -116,7 +116,7 @@ func TestStateAddTransformEvent(t *testing.T) {
 
 	for i, s := range states {
 		t.Run(fmt.Sprintf("after_event_%d", i), func(t *testing.T) {
-			got := NewState(runID)
+			got := &State{ID: runID}
 			for j := 0; j <= i; j++ {
 				if err := got.AddTransformEvent(states[j].e); err != nil {
 					t.Fatal(err)
