@@ -12,7 +12,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/flock v0.7.1
 	github.com/google/flatbuffers v1.12.1-0.20200706154056-969d0f7a6317
-	github.com/google/go-cmp v0.5.3
+	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/schema v1.2.0
@@ -46,7 +46,7 @@ require (
 	github.com/qri-io/didmod v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
-	github.com/qri-io/iso8601 v0.1.0
+	github.com/qri-io/iso8601 v0.1.1-0.20201221213213-f31ee4cdc38b
 	github.com/qri-io/jsonschema v0.2.0
 	github.com/qri-io/qfs v0.6.1-0.20210610133154-676ac303918e
 	github.com/qri-io/starlib v0.4.2

@@ -630,10 +630,15 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	wfs, err := workflow.NewFileStore(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
 	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus,
 		func(ctx context.Context) automation.Run {
 			return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
-				fmt.Println("hey run this workflow mmk?")
+				log.Errorw("hey run this workflow mmk?", "workflowID", w.ID)
 				return nil
 			}
 		},
@@ -641,7 +646,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			return inst.apply
 		},
 		automation.OrchestratorOptions{
-			WorkflowStore: workflow.NewMemStore(),
+			WorkflowStore: wfs,
 			TriggerListeners: []automation.TriggerListener{
 				trigger.NewCronListener(inst.bus),
 			},

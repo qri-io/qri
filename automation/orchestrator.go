@@ -13,7 +13,6 @@ import (
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/profile"
 )
 
 var (
@@ -149,27 +148,44 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 			return fmt.Errorf("handleTrigger: expected event.Payload to be a workflow.ID: %v", e.Payload)
 		}
 
-		return o.RunWorkflow(ctx, wid)
+		_, err := o.RunWorkflow(ctx, wid)
+		return err
 	}
 	return nil
 }
 
 // RunWorkflow runs the given workflow
-func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) error {
+func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) (string, error) {
 	log.Debugw("RunWorkflow, workflow", "id", wid)
 	runFunc := o.runFactory(ctx)
-	wf, err := o.GetWorkflow(wid)
+
+	wf, err := o.workflows.Get(wid)
 	if err != nil {
-		log.Debugw("RunWorkflow: getting workflow from store", "err", err)
-		return fmt.Errorf("getting workflow from store: %w", err)
+		log.Debugw("RunWorkflow: getting workflow from store", "wid", wid, "err", err)
+		return "", fmt.Errorf("getting workflow from store: %w", err)
 	}
 	// need to replace w/ log collector
 	streams := ioes.NewDiscardIOStreams()
 
+	runID := run.NewID()
+
+	go func(wf *workflow.Workflow) {
+		if err := o.bus.Publish(ctx, event.ETWorkflowStarted, wf); err != nil {
+			log.Debug(err)
+		}
+	}(wf)
+
 	// TODO (ramfox): when hooks/completors are added, this should wait for the err, iterate through the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
-	runID := run.NewID()
-	return runFunc(ctx, streams, wf, runID)
+	err = runFunc(ctx, streams, wf, runID)
+
+	go func(j *workflow.Workflow) {
+		if err := o.bus.Publish(ctx, event.ETWorkflowCompleted, j); err != nil {
+			log.Debug(err)
+		}
+	}(wf)
+
+	return runID, err
 }
 
 // ApplyWorkflow runs the given workflow, but does not record the output
@@ -201,18 +217,35 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 }
 
 // CreateWorkflow creates a new workflow and adds it to the WorkflowStore
-func (o *Orchestrator) CreateWorkflow(did string, pid profile.ID) (*workflow.Workflow, error) {
-	// TODO (ramfox): when we add triggers in a follow up, this function should receive TriggerOptions as a param
-	// it should iterate over the triggers this orchestrator understands, and err if the workflow references
-	// any that it doesn't know about
-	// it should convert each TriggerOption into a Trigger & pass them down to `workflow.Create`
-	// TODO (ramfox): same goes for HookOptions & hooks
-	wf := &workflow.Workflow{
-		DatasetID: did,
-		OwnerID:   pid,
-		Created:   NowFunc(),
+func (o *Orchestrator) SaveWorkflow(ctx context.Context, wf *workflow.Workflow) (*workflow.Workflow, error) {
+	if wf.ID == "" {
+		wf.Created = NowFunc()
 	}
-	return o.workflows.Put(wf)
+
+	wf, err := o.workflows.Put(wf)
+	if err != nil {
+		return nil, err
+	}
+
+	if wf.Deployed {
+		go func() {
+			if err := o.bus.PublishID(ctx, event.ETWorkflowDeployStarted, wf.ID.String(), wf); err != nil {
+				log.Debugw("async event error", "evt", event.ETWorkflowDeployStarted, "workflowID", wf.ID, "err", err)
+			}
+		}()
+
+		for _, l := range o.listeners {
+			l.Listen(wf)
+		}
+
+		go func() {
+			if err := o.bus.PublishID(ctx, event.ETWorkflowDeployStopped, wf.ID.String(), wf); err != nil {
+				log.Debugw("async event error", "evt", event.ETWorkflowDeployStopped, "workflowID", wf.ID, "err", err)
+			}
+		}()
+	}
+
+	return wf, err
 }
 
 // GetWorkflow fetches an existing workflow from the WorkflowStore

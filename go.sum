@@ -271,6 +271,8 @@ github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/go-cmp v0.5.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.3 h1:x95R7cp+rSeeqAMI2knLtQ0DKlaBhv2NrtrOvafPHRo=
 github.com/google/go-cmp v0.5.3/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
+github.com/google/go-cmp v0.5.5 h1:Khx7svrCpmxxtHBq5j2mp/xVjsi8hQMfNLvJFAlrGgU=
+github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-github v17.0.0+incompatible/go.mod h1:zLgOLi98H3fifZn+44m+umXrS52loVEgC2AApnigrVQ=
 github.com/google/go-querystring v1.0.0/go.mod h1:odCYkC5MyYFN7vkCjXpyrEuKhc/BUO6wN/zVPAxq5ck=
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
@@ -1148,6 +1150,8 @@ github.com/qri-io/go-ipfs-http-client v0.0.6-0.20200623125303-7a2eee881baa/go.mo
 github.com/qri-io/ioes v0.1.1 h1:IdtLfuZfl9DHoojzcAPpHjdNlJVR6hXDmhDjwouOpOw=
 github.com/qri-io/ioes v0.1.1/go.mod h1:Yi/2rnDSmjVeV4Oqhg0AZbLwGcR73KkiwgHX1IRBzxs=
 github.com/qri-io/iso8601 v0.1.0/go.mod h1:/FnpV8t2e9M+3/USDcNO/ee0sRWLakUyufJqBtkHu1U=
+github.com/qri-io/iso8601 v0.1.1-0.20201221213213-f31ee4cdc38b h1:5IK+uxTr5W4fSBgWDeF1INwx1kzaGOYr0FZOuSBnfLI=
+github.com/qri-io/iso8601 v0.1.1-0.20201221213213-f31ee4cdc38b/go.mod h1:/FnpV8t2e9M+3/USDcNO/ee0sRWLakUyufJqBtkHu1U=
 github.com/qri-io/jsonpointer v0.1.1 h1:prVZBZLL6TW5vsSB9fFHFAMBLI4b0ri5vribQlTJiBA=
 github.com/qri-io/jsonpointer v0.1.1/go.mod h1:DnJPaYgiKu56EuDp8TU5wFLdZIcAnb/uH9v37ZaMV64=
 github.com/qri-io/jsonschema v0.2.0 h1:is8lirh3HYwTkC0e+4jL/vWEHwzPLojnl4FWkUoeEPU=

@@ -13,12 +13,22 @@ const CronTriggerType = Type("cron")
 
 type CronTrigger struct {
 	enabled      bool
-	start        time.Time
-	perodicity   iso8601.RepeatingInterval
+	triggerCount int
+	periodicity  iso8601.RepeatingInterval
 	nextRunStart *time.Time
 }
 
 var _ Trigger = (*CronTrigger)(nil)
+
+func NewCronTrigger(vals map[string]interface{}) (*CronTrigger, error) {
+	data, err := json.Marshal(vals)
+	if err != nil {
+		return nil, err
+	}
+	ct := &CronTrigger{}
+	err = ct.UnmarshalJSON(data)
+	return ct, err
+}
 
 func (ct *CronTrigger) MarshalJSON() ([]byte, error) {
 	return json.Marshal(ct.ToMap())
@@ -27,8 +37,8 @@ func (ct *CronTrigger) MarshalJSON() ([]byte, error) {
 func (ct *CronTrigger) UnmarshalJSON(p []byte) error {
 	v := struct {
 		Enabled      bool
-		Start        time.Time
-		Perodicity   iso8601.RepeatingInterval
+		TriggerCount int
+		Periodicity  iso8601.RepeatingInterval
 		NextRunStart *time.Time
 	}{}
 
@@ -37,9 +47,9 @@ func (ct *CronTrigger) UnmarshalJSON(p []byte) error {
 	}
 
 	ct.enabled = v.Enabled
-	ct.start = v.Start
-	ct.perodicity = v.Perodicity
+	ct.periodicity = v.Periodicity
 	ct.nextRunStart = v.NextRunStart
+	ct.triggerCount = v.TriggerCount
 	return nil
 }
 
@@ -52,9 +62,10 @@ func (ct *CronTrigger) Type() Type { return CronTriggerType }
 
 func (ct *CronTrigger) ToMap() map[string]interface{} {
 	v := map[string]interface{}{
-		"enabled":     ct.enabled,
-		"start":       ct.start.Format(time.RFC3339),
-		"periodicity": ct.perodicity.String(),
+		"enabled":      ct.enabled,
+		"type":         CronTriggerType,
+		"periodicity":  ct.periodicity.String(),
+		"triggerCount": ct.triggerCount,
 	}
 
 	if ct.nextRunStart != nil {
@@ -65,6 +76,11 @@ func (ct *CronTrigger) ToMap() map[string]interface{} {
 }
 
 func (ct *CronTrigger) Advance() error {
+	ct.periodicity = ct.periodicity.NextRep()
+	if ct.nextRunStart != nil {
+		*ct.nextRunStart = ct.periodicity.After(*ct.nextRunStart)
+	}
+	*ct.nextRunStart = ct.periodicity.After(time.Now())
 	return nil
 }
 
@@ -128,7 +144,6 @@ func (c *CronListener) Start(ctx context.Context) error {
 			return nil
 		}
 	}
-	return nil
 }
 
 func (c *CronListener) Stop() error {
