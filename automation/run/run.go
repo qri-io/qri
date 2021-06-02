@@ -7,13 +7,32 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
+)
+
+var (
+	// ErrNoID indicates the run.State has no run ID
+	ErrNoID = fmt.Errorf("no run ID")
+	// ErrNoWorkflowID indicates the run.State has no workflow.ID
+	ErrNoWorkflowID = fmt.Errorf("no workflow ID")
 )
 
 // NewID creates a run identifier
 func NewID() string {
 	return uuid.New().String()
 }
+
+// // ID is a run identifier
+// type ID string
+
+// // NewID creates a run identifier
+// func NewID() ID {
+// 	return ID(uuid.New().String())
+// }
+
+// // String returns the ID as the underlying string
+// func (id ID) String() string { return string(id) }
 
 // SetIDRand sets the random reader that NewID uses as a source of random bytes
 // passing in nil will default to crypto.Rand. This can be used to make ID
@@ -54,23 +73,42 @@ const (
 // a transform. State structs can act as a sink of transform events, collapsing
 // the state transition of multiple transform events into a single structure
 type State struct {
-	ID        string       `json:"id"`
-	Number    int          `json:"number"`
-	Status    Status       `json:"status"`
-	Message   string       `json:"message"`
-	StartTime *time.Time   `json:"startTime"`
-	StopTime  *time.Time   `json:"stopTime"`
-	Duration  int          `json:"duration"`
-	Steps     []*StepState `json:"steps"`
+	ID         string       `json:"id"`
+	WorkflowID workflow.ID  `json:"workflowID"`
+	Number     int          `json:"number"`
+	Status     Status       `json:"status"`
+	Message    string       `json:"message"`
+	StartTime  *time.Time   `json:"startTime"`
+	StopTime   *time.Time   `json:"stopTime"`
+	Duration   int          `json:"duration"`
+	Steps      []*StepState `json:"steps"`
 }
 
-// NewState is a simple constructor to remind package consumers that state
-// structs must be initialized with an identifier to act as a sink of transform
-// events
-func NewState(id string) *State {
-	return &State{
-		ID: id,
+// Validate errors if the run is not valid
+func (rs *State) Validate() error {
+	if rs.ID == "" {
+		return ErrNoID
 	}
+	if rs.WorkflowID.String() == "" {
+		return ErrNoWorkflowID
+	}
+	return nil
+}
+
+// Copy shallowly copies the contents of run parameter into the receiver
+func (rs *State) Copy(run *State) {
+	if rs == nil {
+		rs = &State{}
+	}
+	rs.ID = run.ID
+	rs.WorkflowID = run.WorkflowID
+	rs.Number = run.Number
+	rs.Status = run.Status
+	rs.Message = run.Message
+	rs.StartTime = run.StartTime
+	rs.StopTime = run.StopTime
+	rs.Duration = run.Duration
+	rs.Steps = run.Steps
 }
 
 // AddTransformEvent alters state based on a given event

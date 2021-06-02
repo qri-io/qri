@@ -15,9 +15,9 @@ import (
 	"github.com/qri-io/qri/profile"
 )
 
-// AssertStore confirms the expected behavior of a workflow.Store Interface
+// AssertWorkflowStore confirms the expected behavior of a workflow.Store Interface
 // implementation
-func AssertStore(t *testing.T, store workflow.Store) {
+func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 	seedStr := "workflow assert store seed string used for testing in the workflow package"
 	workflow.SetIDRand(strings.NewReader(seedStr))
 	now := time.Now()
@@ -161,9 +161,9 @@ func AssertStore(t *testing.T, store workflow.Store) {
 	}
 }
 
-// AssertLister confirms the expected behavior of a workflow.Lister Interface
+// AssertWorkflowLister confirms the expected behavior of a workflow.Lister Interface
 // implementation
-func AssertLister(t *testing.T, store workflow.Store) {
+func AssertWorkflowLister(t *testing.T, store workflow.Store) {
 	// set up
 	workflow.SetIDRand(strings.NewReader(strings.Repeat("Lorem ipsum dolor sit amet", 20)))
 	ctx := context.Background()
