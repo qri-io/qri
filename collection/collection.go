@@ -11,7 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	logger "github.com/ipfs/go-log"
+	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -19,10 +20,14 @@ import (
 )
 
 var (
+	log = golog.Logger("collection")
 	// ErrNotFound indicates a query for an unknown value
 	ErrNotFound = fmt.Errorf("not found")
-	log         = logger.Logger("collection")
 )
+
+func init() {
+	golog.SetLogLevel("collection", "debug")
+}
 
 // Set maintains lists of datasets, with each list scoped to a user profile.
 // A user's collection may consist of datasets they have created and datasets
@@ -71,14 +76,14 @@ func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string) (Set, error
 		return s, nil
 	}
 
-	repoDir = filepath.Join(repoDir, collectionsDirName)
-	fi, err := os.Stat(repoDir)
+	collectionDir := filepath.Join(repoDir, collectionsDirName)
+	fi, err := os.Stat(collectionDir)
 	if os.IsNotExist(err) {
-		if err := os.Mkdir(repoDir, 0755); err != nil {
+		if err := os.Mkdir(collectionDir, 0755); err != nil {
 			return nil, fmt.Errorf("creating collection directory: %w", err)
 		}
 		s := &localSet{
-			basePath:    repoDir,
+			basePath:    collectionDir,
 			collections: make(map[profile.ID][]dsref.VersionInfo),
 		}
 		s.subscribe(bus)
@@ -88,7 +93,7 @@ func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string) (Set, error
 		return nil, fmt.Errorf("collection is not a directory")
 	}
 
-	s := &localSet{basePath: repoDir}
+	s := &localSet{basePath: collectionDir}
 	s.subscribe(bus)
 
 	err = s.loadAll()
@@ -263,24 +268,34 @@ func (s *localSet) subscribe(bus event.Bus) {
 		event.ETDatasetCommitChange,
 		event.ETDatasetRename,
 		event.ETDatasetDeleteAll,
+
+		event.ETWorkflowDeployStarted,
 	)
 }
 
 func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
+	log.Debugw("handle event", "type", e.Type, "payload", e.Payload)
 	switch e.Type {
 	case event.ETDatasetNameInit:
 		if change, ok := e.Payload.(event.DsChange); ok {
-			if vi := change.Info; vi != nil {
-				pid, err := profile.NewB58ID(vi.ProfileID)
-				if err != nil {
-					fmt.Printf("error parsing profile ID in name init: %s\n", err)
-					return err
-				}
-				if err := s.putOne(pid, *change.Info); err != nil {
-					fmt.Printf("error putting one: %s\n", err)
-					return err
-				}
+			vi := dsref.VersionInfo{
+				InitID:    change.InitID,
+				ProfileID: change.ProfileID,
+				Username:  change.Username,
+				Name:      change.PrettyName,
 			}
+			// if vi := change.Info; vi = nil {
+			// }
+			pid, err := profile.NewB58ID(vi.ProfileID)
+			if err != nil {
+				log.Debugw("parsing profile ID in name init", "err", err)
+				return err
+			}
+			if err := s.Put(ctx, pid, vi); err != nil {
+				log.Debugw("putting one:", "err", err)
+				return err
+			}
+			log.Debugw("finished putting new name", "name", change.PrettyName, "initID", change.InitID)
 		}
 	case event.ETDatasetCommitChange:
 		if change, ok := e.Payload.(event.DsChange); ok {
@@ -303,6 +318,14 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 				log.Debugw("removing dataset across all collections", "initID", change.InitID, "err", err)
 			}
 		}
+	case event.ETWorkflowDeployStarted:
+		if wf, ok := e.Payload.(*workflow.Workflow); ok {
+			s.updateOneAcrossAllCollections(wf.DatasetID, func(vi *dsref.VersionInfo) {
+				vi.WorkflowID = wf.ID.String()
+				// vi.RunStatus =
+			})
+		}
+
 	}
 	return nil
 }
@@ -316,6 +339,7 @@ func (s *localSet) updateOneAcrossAllCollections(initID string, mutate func(vi *
 			if vi.InitID == initID {
 				mutate(&vi)
 				col[i] = vi
+				s.collections[pid] = col
 				if err := s.saveProfileCollection(pid); err != nil {
 					return err
 				}
@@ -335,7 +359,8 @@ func (s *localSet) deleteAcrossAllCollections(removeID string) error {
 			if item.InitID == removeID {
 				copy(col[i:], col[i+1:])              // Shift a[i+1:] left one index.
 				col[len(col)-1] = dsref.VersionInfo{} // Erase last element (write zero value).
-				s.collections[pid] = col[:len(col)-1] // Truncate slice.
+				col = col[:len(col)-1]                // Truncate slice.
+				s.collections[pid] = col
 				if err := s.saveProfileCollection(pid); err != nil {
 					return err
 				}
