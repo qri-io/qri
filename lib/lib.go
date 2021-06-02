@@ -23,6 +23,9 @@ import (
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/auth/token"
+	"github.com/qri-io/qri/automation"
+	"github.com/qri-io/qri/automation/trigger"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
@@ -610,11 +613,28 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if o.collectionSet == nil && inst.repo != nil {
-		inst.collectionSet, err = collection.MigrateRepoStoreToLocalCollection(ctx, inst.bus, repoPath, inst.repo)
+		inst.collectionSet, err = collection.MigrateRepoStoreToLocalCollectionSet(ctx, inst.bus, repoPath, inst.repo)
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus,
+		func(ctx context.Context) automation.Run {
+			return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
+				fmt.Println("hey run this workflow mmk?")
+				return nil
+			}
+		},
+		func(ctx context.Context) automation.Apply {
+			return inst.apply
+		},
+		automation.OrchestratorOptions{
+			WorkflowStore: workflow.NewMemStore(),
+			Listeners: []trigger.Listener{
+				trigger.NewCronListener(inst.bus),
+			},
+		})
 
 	go inst.waitForAllDone()
 	go func() {
@@ -781,6 +801,7 @@ type Instance struct {
 	tokenProvider token.Provider
 	bus           event.Bus
 	watcher       *watchfs.FilesysWatcher
+	automation    *automation.Orchestrator
 	appCtx        context.Context
 
 	profiles profile.Store
@@ -808,6 +829,12 @@ func (inst *Instance) ConnectP2P(ctx context.Context) (err error) {
 	if err = inst.node.GoOnline(ctx); err != nil {
 		log.Debugw("connecting instance p2p node", "err", err.Error())
 		return
+	}
+
+	if inst.automation != nil {
+		if err := inst.automation.Start(ctx); err != nil {
+
+		}
 	}
 
 	// for now if we have an IPFS node instance, node.GoOnline has to make a new

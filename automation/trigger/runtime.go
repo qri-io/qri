@@ -253,7 +253,8 @@ func (l *RuntimeListener) Stop() error {
 	return nil
 }
 
-// TriggerExists returns true if there is a record of a trigger for the given workflow id
+// TriggerExists returns true if there is a record of a trigger for the given
+// workflow id
 func (l *RuntimeListener) TriggerExists(source Source) bool {
 	l.activeTriggersLock.Lock()
 	defer l.activeTriggersLock.Unlock()

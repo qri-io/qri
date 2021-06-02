@@ -7,9 +7,8 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
-	"github.com/qri-io/qri/automation/run"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/transform"
 )
 
@@ -71,6 +70,7 @@ type automationImpl struct{}
 // Apply runs a transform script
 func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	ctx := scope.Context()
+	log.Debugw("applying transform", "ref", p.Ref, "wait", p.Wait)
 
 	var err error
 	ref := dsref.Ref{}
@@ -92,26 +92,10 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 		ds.Transform.OpenScriptFile(ctx, scope.Filesystem())
 	}
 
-	// allocate an ID for the transform, for now just log the events it produces
-	runID := run.NewID()
-	scope.Bus().SubscribeID(func(ctx context.Context, e event.Event) error {
-		go func() {
-			log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
-			if e.Type == event.ETTransformPrint {
-				if msg, ok := e.Payload.(event.TransformMessage); ok {
-					if p.ScriptOutput != nil {
-						io.WriteString(p.ScriptOutput, msg.Msg)
-						io.WriteString(p.ScriptOutput, "\n")
-					}
-				}
-			}
-		}()
-		return nil
-	}, runID)
+	wf := &workflow.Workflow{}
 
-	scriptOut := p.ScriptOutput
-	transformer := transform.NewTransformer(scope.AppContext(), scope.Loader(), scope.Bus())
-	if err = transformer.Apply(ctx, ds, runID, p.Wait, scriptOut, p.Secrets); err != nil {
+	runID, err := scope.Automation().ApplyWorkflow(ctx, p.Wait, p.ScriptOutput, wf, ds, p.Secrets)
+	if err != nil {
 		return nil, err
 	}
 
@@ -125,4 +109,13 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	}
 	res.RunID = runID
 	return res, nil
+}
+
+func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
+	// TODO(b5): hack to get a loader for apply
+	username := inst.cfg.Profile.Peername
+	loader := newDatasetLoader(inst, username, "", false)
+
+	transformer := transform.NewTransformer(inst.appCtx, loader, inst.bus)
+	return transformer.Apply(ctx, ds, runID, wait, nil, secrets)
 }

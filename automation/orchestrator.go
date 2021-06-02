@@ -3,10 +3,12 @@ package automation
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/trigger"
@@ -40,7 +42,7 @@ type Run func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow,
 type RunFactory func(ctx context.Context) Run
 
 // Apply executes an ephemeral workflow transform
-type Apply func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow) error
+type Apply func(ctx context.Context, wait bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error
 
 // ApplyFactory is function that produces an Apply function
 type ApplyFactory func(ctx context.Context) Apply
@@ -242,21 +244,34 @@ func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) error {
 }
 
 // ApplyWorkflow runs the given workflow, but does not record the output
-func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wid workflow.ID) error {
+// func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) (string, error) {
+func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) (string, error) {
 	o.runLock.Lock()
 	defer o.runLock.Unlock()
-	log.Debugw("ApplyWorkflow, workflow", "id", wid)
+	log.Debugw("ApplyWorkflow, workflow", "id", wf.ID)
 	apply := o.applyFactory(ctx)
-	wf, err := o.GetWorkflow(wid)
-	if err != nil {
-		log.Debugw("ApplyWorkflow: getting workflow from store", "err", err)
-		return fmt.Errorf("getting workflow from store: %w", err)
+
+	runID := run.NewID()
+	if scriptOutput != nil {
+		o.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
+			go func() {
+				log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
+				if e.Type == event.ETTransformPrint {
+					if msg, ok := e.Payload.(event.TransformMessage); ok {
+						if scriptOutput != nil {
+							io.WriteString(scriptOutput, msg.Msg)
+							io.WriteString(scriptOutput, "\n")
+						}
+					}
+				}
+			}()
+			return nil
+		}, runID)
 	}
-	streams := ioes.NewDiscardIOStreams()
 
 	// TODO (ramfox): when we understand what it means to dryrun a hook, this should wait for the err, iterator thought the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
-	return apply(ctx, streams, wf)
+	return runID, apply(ctx, wait, runID, wf, ds, secrets)
 }
 
 // CreateWorkflow creates a new workflow and adds it to the WorkflowStore

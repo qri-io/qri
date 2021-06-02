@@ -62,6 +62,11 @@ type Workflow struct {
 	Hooks     []hook.Hook
 }
 
+var (
+	_ trigger.Source = (*Workflow)(nil)
+	_ hook.Source    = (*Workflow)(nil)
+)
+
 // Validate errors if the workflow is not valid
 func (w *Workflow) Validate() error {
 	if w == nil {
@@ -118,6 +123,21 @@ func (w *Workflow) ActiveTriggers(triggerType string) []trigger.Trigger {
 		}
 	}
 	return activeTriggers
+}
+
+// ActiveHooks returns a list of hooks that are currently enabled
+func (w *Workflow) ActiveHooks(hookType string) []hook.Hook {
+	if !w.Deployed {
+		return nil
+	}
+	active := make([]hook.Hook, 0, len(w.Hooks))
+	for _, h := range w.Hooks {
+		if h.Enabled() && h.Type() == hookType {
+			active = append(active, h)
+		}
+	}
+
+	return active
 }
 
 // Set is a collection of Workflows that implements the sort.Interface,
