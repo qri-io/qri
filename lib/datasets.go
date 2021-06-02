@@ -1113,6 +1113,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 
 	success = true
 	*res = *savedDs
+	res.ID = ref.InitID
 
 	// TODO (b5) - this should be integrated into base.SaveDataset
 	if fsiPath != "" {

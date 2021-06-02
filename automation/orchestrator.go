@@ -203,7 +203,7 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 			return fmt.Errorf("handleTrigger: expected event.Payload to be a string: %v", e.Payload)
 		}
 		go func() {
-			if err := o.RunWorkflow(ctx, workflow.ID(wid)); err != nil {
+			if _, err := o.RunWorkflow(ctx, workflow.ID(wid)); err != nil {
 				log.Errorf("%s", err)
 			}
 		}()
@@ -212,26 +212,34 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 }
 
 // RunWorkflow runs the given workflow
-func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) error {
+func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) (string, error) {
 	o.runLock.Lock()
 	defer o.runLock.Unlock()
 	log.Debugw("RunWorkflow, workflow", "id", wid)
 	runFunc := o.runFactory(ctx)
-	wf, err := o.GetWorkflow(wid)
+
+	wf, err := o.workflows.Get(wid)
 	if err != nil {
-		log.Debugw("RunWorkflow: getting workflow from store", "err", err)
-		return fmt.Errorf("getting workflow from store: %w", err)
+		log.Debugw("RunWorkflow: getting workflow from store", "wid", wid, "err", err)
+		return "", fmt.Errorf("getting workflow from store: %w", err)
 	}
 	// need to replace w/ log collector
 	streams := ioes.NewDiscardIOStreams()
 
+	runID := run.NewID()
+
+	go func(wf *workflow.Workflow) {
+		if err := o.bus.Publish(ctx, event.ETWorkflowStarted, wf); err != nil {
+			log.Debug(err)
+		}
+	}(wf)
+
 	// TODO (ramfox): when hooks/completors are added, this should wait for the err, iterate through the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
-	runID := run.NewID()
 	if o.runs != nil {
 		r := &run.State{ID: runID, WorkflowID: wid}
 		if _, err := o.runs.Create(r); err != nil {
-			return err
+			return "", err
 		}
 
 		handler := runEventsHandler(o.runs)
@@ -240,7 +248,15 @@ func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) error {
 		// defer o.bus.UnsubscribeID(runID)
 	}
 
-	return runFunc(ctx, streams, wf, runID)
+	err = runFunc(ctx, streams, wf, runID)
+
+	go func(wf *workflow.Workflow) {
+		if err := o.bus.Publish(ctx, event.ETWorkflowCompleted, wf); err != nil {
+			log.Debug(err)
+		}
+	}(wf)
+
+	return runID, err
 }
 
 // ApplyWorkflow runs the given workflow, but does not record the output
@@ -332,6 +348,37 @@ func (o *Orchestrator) UndeployWorkflow(id workflow.ID) error {
 	_, err = o.workflows.Put(wf)
 	o.updateListeners(wf)
 	return err
+}
+
+func (o *Orchestrator) SaveWorkflow(ctx context.Context, wf *workflow.Workflow) (*workflow.Workflow, error) {
+	if wf.ID == "" {
+		wf.Created = NowFunc()
+	}
+
+	wf, err := o.workflows.Put(wf)
+	if err != nil {
+		return nil, err
+	}
+
+	if wf.Deployed {
+		go func() {
+			if err := o.bus.PublishID(ctx, event.ETWorkflowDeployStarted, wf.ID.String(), wf); err != nil {
+				log.Debugw("async event error", "evt", event.ETWorkflowDeployStarted, "workflowID", wf.ID, "err", err)
+			}
+		}()
+
+		for _, l := range o.listeners {
+			l.Listen(wf)
+		}
+
+		go func() {
+			if err := o.bus.PublishID(ctx, event.ETWorkflowDeployStopped, wf.ID.String(), wf); err != nil {
+				log.Debugw("async event error", "evt", event.ETWorkflowDeployStopped, "workflowID", wf.ID, "err", err)
+			}
+		}()
+	}
+
+	return wf, err
 }
 
 // GetWorkflow fetches an existing workflow from the WorkflowStore

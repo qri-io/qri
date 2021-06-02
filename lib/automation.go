@@ -2,12 +2,15 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/transform"
 )
@@ -25,7 +28,8 @@ func (m AutomationMethods) Name() string {
 // Attributes defines attributes for each method
 func (m AutomationMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apply": {Endpoint: AEApply, HTTPVerb: "POST"},
+		"apply":  {Endpoint: AEApply, HTTPVerb: "POST"},
+		"deploy": {Endpoint: AEDeploy, HTTPVerb: "POST"},
 	}
 }
 
@@ -57,6 +61,40 @@ type ApplyResult struct {
 func (m AutomationMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "apply"), p)
 	if res, ok := got.(*ApplyResult); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// type DeployParams = scheduler.DeployParams
+// type DeployResponse = scheduler.DeployResponse
+
+type DeployParams struct {
+	Apply    bool
+	Workflow *workflow.Workflow
+	Ref      string
+	Dataset  *dataset.Dataset
+}
+
+func (p *DeployParams) Validate() error {
+	if p.Workflow == nil {
+		return fmt.Errorf("deploy: workflow not set")
+	}
+	if p.Workflow.DatasetID == "" && p.Dataset == nil {
+		return fmt.Errorf("deploy: either dataset or workflow.DatasetID are required")
+	}
+	return nil
+}
+
+type DeployResponse struct {
+	Ref      string
+	RunID    string
+	Workflow *workflow.Workflow
+}
+
+func (m AutomationMethods) Deploy(ctx context.Context, p *DeployParams) (*DeployResponse, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "deploy"), p)
+	if res, ok := got.(*DeployResponse); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -109,6 +147,61 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	}
 	res.RunID = runID
 	return res, nil
+}
+
+func (automationImpl) Deploy(scope scope, p *DeployParams) (*DeployResponse, error) {
+	log.Debugw("deploying dataset", "datasetID", p.Workflow.DatasetID)
+
+	var (
+		runID string
+		err   error
+	)
+
+	// TODO(b5): calling apply *first* allows us to supply datasets that only have
+	// a transform function. This should also let us remove apply from the save
+	// path
+	if p.Apply {
+		runID, err = scope.Automation().ApplyWorkflow(scope.ctx, true, os.Stdout, p.Workflow, p.Dataset, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		p.Dataset.Commit = &dataset.Commit{
+			RunID: runID,
+		}
+	}
+
+	res, err := datasetImpl{}.Save(scope, &SaveParams{
+		Ref:     p.Ref,
+		Dataset: p.Dataset,
+		Apply:   false, // explicityly NOT applying here, script is already run
+	})
+	if err != nil {
+		if errors.Is(err, dsfs.ErrNoChanges) {
+			err = nil
+		} else {
+			log.Errorw("deploy save dataset", "error", err)
+			return nil, err
+		}
+	}
+
+	p.Workflow.OwnerID = scope.ActiveProfile().ID
+	p.Workflow.DatasetID = res.ID
+	p.Workflow.Deployed = true
+	log.Warnw("saving workflow", "workflow", p.Workflow)
+
+	wf, err := scope.Automation().SaveWorkflow(scope.ctx, p.Workflow)
+	if err != nil {
+		return nil, err
+	}
+
+	ref := dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
+
+	return &DeployResponse{
+		Ref:      ref.String(),
+		RunID:    runID,
+		Workflow: wf,
+	}, nil
 }
 
 func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {

@@ -15,11 +15,21 @@ const CronTriggerType = "cron"
 type CronTrigger struct {
 	active       bool
 	start        time.Time
-	perodicity   iso8601.RepeatingInterval
+	periodicity  iso8601.RepeatingInterval
 	nextRunStart *time.Time
 }
 
 var _ Trigger = (*CronTrigger)(nil)
+
+func NewCronTrigger(vals map[string]interface{}) (*CronTrigger, error) {
+	data, err := json.Marshal(vals)
+	if err != nil {
+		return nil, err
+	}
+	ct := &CronTrigger{}
+	err = ct.UnmarshalJSON(data)
+	return ct, err
+}
 
 func (ct *CronTrigger) MarshalJSON() ([]byte, error) {
 	return json.Marshal(ct.ToMap())
@@ -39,7 +49,7 @@ func (ct *CronTrigger) UnmarshalJSON(p []byte) error {
 
 	ct.active = v.Active
 	ct.start = v.Start
-	ct.perodicity = v.Perodicity
+	ct.periodicity = v.Perodicity
 	ct.nextRunStart = v.NextRunStart
 	return nil
 }
@@ -55,7 +65,7 @@ func (ct *CronTrigger) ToMap() map[string]interface{} {
 	v := map[string]interface{}{
 		"active":      ct.active,
 		"start":       ct.start.Format(time.RFC3339),
-		"periodicity": ct.perodicity.String(),
+		"periodicity": ct.periodicity.String(),
 	}
 
 	if ct.nextRunStart != nil {
@@ -66,6 +76,11 @@ func (ct *CronTrigger) ToMap() map[string]interface{} {
 }
 
 func (ct *CronTrigger) Advance() error {
+	ct.periodicity = ct.periodicity.NextRep()
+	if ct.nextRunStart != nil {
+		*ct.nextRunStart = ct.periodicity.After(*ct.nextRunStart)
+	}
+	*ct.nextRunStart = ct.periodicity.After(time.Now())
 	return nil
 }
 
@@ -150,7 +165,6 @@ func (c *CronListener) Start(ctx context.Context) error {
 			return nil
 		}
 	}
-	return nil
 }
 
 func (c *CronListener) Stop() error {

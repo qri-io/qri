@@ -104,6 +104,55 @@ func (w *Workflow) Copy() *Workflow {
 	return workflow
 }
 
+type workflowJSON struct {
+	ID        ID
+	DatasetID string
+	OwnerID   profile.ID
+	Created   *time.Time
+	Deployed  bool
+	Triggers  []map[string]interface{}
+	Hooks     []map[string]interface{}
+}
+
+func (w *Workflow) UnmarshalJSON(data []byte) error {
+	v := &workflowJSON{}
+	if err := json.Unmarshal(data, v); err != nil {
+		return err
+	}
+
+	// TODO (b5): we'll need to register a pool of trigger constructors at runtime
+	// these should be provided via a method on the TriggerListener interface and
+	// passed to a Workflow constructor function defined in in this package
+	// that accepts []trigger.Trigger (ditto for hooks)
+	ts := make([]trigger.Trigger, 0, len(v.Triggers))
+	for i, triggerMap := range v.Triggers {
+		tt, ok := triggerMap["type"].(string)
+		if !ok {
+			return fmt.Errorf("triggers index %d 'type' field must be a string", i)
+		}
+		switch tt {
+		case string(trigger.CronTriggerType):
+			ct, err := trigger.NewCronTrigger(triggerMap)
+			if err != nil {
+				return fmt.Errorf("invalid %q trigger type: %w", trigger.CronTriggerType, err)
+			}
+			ts = append(ts, ct)
+		case string(trigger.RuntimeType):
+			ts = append(ts, trigger.NewRuntimeTrigger())
+		}
+	}
+
+	*w = Workflow{
+		ID:        v.ID,
+		DatasetID: v.DatasetID,
+		OwnerID:   v.OwnerID,
+		Created:   v.Created,
+		Triggers:  ts,
+	}
+
+	return nil
+}
+
 // Owner returns the owner id
 func (w *Workflow) Owner() profile.ID {
 	return w.OwnerID

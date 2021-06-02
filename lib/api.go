@@ -50,6 +50,8 @@ const (
 	// AEApply invokes a transform apply
 	AEApply = APIEndpoint("/auto/apply")
 
+	AEDeploy = APIEndpoint("/auto/deploy")
+
 	// dataset endpoints
 
 	// AEComponentStatus returns what changed for a specific commit
