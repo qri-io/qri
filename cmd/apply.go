@@ -118,6 +118,6 @@ func (o *ApplyOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	printSuccess(o.Out, string(data))
+	o.Out.Write(data)
 	return nil
 }

@@ -3,11 +3,14 @@ package automation
 import (
 	"context"
 	"fmt"
+	"io"
 	"time"
 
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/automation/run"
+	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/profile"
@@ -26,7 +29,16 @@ var NowFunc = func() *time.Time {
 
 // OrchestratorOptions encapsulate runtime configuration for NewOrchestrator
 type OrchestratorOptions struct {
-	WorkflowStore workflow.Store
+	WorkflowStore    workflow.Store
+	TriggerListeners []TriggerListener
+}
+
+// Listener emits a `event.ETTriggerWorkflow` when a specific stimulus is triggered
+// It knows how to start and stop itself, as well as how to create new triggers for its specific stimulus
+type TriggerListener interface {
+	Listen(sources ...trigger.Source)
+	Start(ctx context.Context) error
+	Stop() error
 }
 
 // Run persists the dataset that results from executing a workflow transform
@@ -36,7 +48,7 @@ type Run func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow,
 type RunFactory func(ctx context.Context) Run
 
 // Apply executes an ephemeral workflow transform
-type Apply func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow) error
+type Apply func(ctx context.Context, wait bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error
 
 // ApplyFactory is function that produces an Apply function
 type ApplyFactory func(ctx context.Context) Apply
@@ -48,6 +60,7 @@ type Orchestrator struct {
 	applyFactory ApplyFactory
 	bus          event.Bus
 	cancel       context.CancelFunc
+	listeners    []TriggerListener
 }
 
 // NewOrchestrator constructs an orchestrator, whose only responsibility,
@@ -80,6 +93,7 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 		runFactory:   runFactory,
 		applyFactory: applyFactory,
 		workflows:    opts.WorkflowStore,
+		listeners:    opts.TriggerListeners,
 	}
 
 	if o.workflows == nil {
@@ -95,6 +109,26 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 	return o, nil
 }
 
+func (o *Orchestrator) Start(ctx context.Context) error {
+	// iterate over listeners & call listener.Start(ctx)
+	wfs, err := o.workflows.List(ctx, 0, -1)
+	if err != nil {
+		return err
+	}
+
+	srcs := make([]trigger.Source, 0, len(wfs))
+	for _, wf := range wfs {
+		srcs = append(srcs, wf)
+	}
+
+	for _, l := range o.listeners {
+		l.Listen(srcs...)
+		go l.Start(ctx)
+	}
+
+	return nil
+}
+
 // Shutdown tears down the orchestrator system
 // must be called to ensure all processes have be closed correctly
 func (o *Orchestrator) Shutdown() {
@@ -105,10 +139,16 @@ func (o *Orchestrator) Shutdown() {
 // handleTrigger calls `RunWorkflow` when an `event.ETWorkflowTrigger` event is fired
 func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 	if e.Type == event.ETWorkflowTrigger {
-		wid, ok := e.Payload.(workflow.ID)
-		if !ok {
+		var wid workflow.ID
+		switch pl := e.Payload.(type) {
+		case string:
+			wid = workflow.ID(pl)
+		case workflow.ID:
+			wid = pl
+		default:
 			return fmt.Errorf("handleTrigger: expected event.Payload to be a workflow.ID: %v", e.Payload)
 		}
+
 		return o.RunWorkflow(ctx, wid)
 	}
 	return nil
@@ -133,19 +173,31 @@ func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) error {
 }
 
 // ApplyWorkflow runs the given workflow, but does not record the output
-func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wid workflow.ID) error {
-	log.Debugw("ApplyWorkflow, workflow", "id", wid)
+func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) (string, error) {
+
 	apply := o.applyFactory(ctx)
-	wf, err := o.GetWorkflow(wid)
-	if err != nil {
-		log.Debugw("ApplyWorkflow: getting workflow from store", "err", err)
-		return fmt.Errorf("getting workflow from store: %w", err)
+
+	runID := run.NewID()
+	if scriptOutput != nil {
+		o.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
+			go func() {
+				log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
+				if e.Type == event.ETTransformPrint {
+					if msg, ok := e.Payload.(event.TransformMessage); ok {
+						if scriptOutput != nil {
+							io.WriteString(scriptOutput, msg.Msg)
+							io.WriteString(scriptOutput, "\n")
+						}
+					}
+				}
+			}()
+			return nil
+		}, runID)
 	}
-	streams := ioes.NewDiscardIOStreams()
 
 	// TODO (ramfox): when we understand what it means to dryrun a hook, this should wait for the err, iterator thought the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
-	return apply(ctx, streams, wf)
+	return runID, apply(ctx, wait, runID, wf, ds, secrets)
 }
 
 // CreateWorkflow creates a new workflow and adds it to the WorkflowStore

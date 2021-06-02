@@ -46,6 +46,7 @@ require (
 	github.com/qri-io/didmod v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
+	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.2.0
 	github.com/qri-io/qfs v0.6.1-0.20210610133154-676ac303918e
 	github.com/qri-io/starlib v0.4.2

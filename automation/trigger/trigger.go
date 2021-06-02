@@ -32,3 +32,8 @@ type Trigger interface {
 	// Advance adjusts the Trigger once it has been triggered
 	Advance() error
 }
+
+type Source interface {
+	WorkflowIDString() string
+	ActiveTriggers(t Type) []Trigger
+}

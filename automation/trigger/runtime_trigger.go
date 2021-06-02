@@ -82,3 +82,11 @@ func (rt *RuntimeTrigger) UnmarshalJSON(d []byte) error {
 	}
 	return nil
 }
+
+func (rt *RuntimeTrigger) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"type":         string(RuntimeType),
+		"enabled":      rt.enabled,
+		"advanceCount": rt.AdvanceCount,
+	}
+}

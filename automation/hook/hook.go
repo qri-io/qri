@@ -35,3 +35,8 @@ type Hook interface {
 	// the payload that should be emitted along with the event
 	Event() (event.Type, interface{})
 }
+
+type Source interface {
+	WorkflowIDString() string
+	ActiveHooks(ht Type) []Hook
+}
