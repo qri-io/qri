@@ -53,13 +53,13 @@ func SetIDRand(r io.Reader) {
 
 // A Workflow associates automation with a dataset
 type Workflow struct {
-	ID        ID
-	DatasetID string
-	OwnerID   profile.ID
-	Created   *time.Time
-	Deployed  bool
-	Triggers  []trigger.Trigger
-	Hooks     []hook.Hook
+	ID        ID                `json:"id"`
+	DatasetID string            `json:"datasetID"`
+	OwnerID   profile.ID        `json:"ownerID"`
+	Created   *time.Time        `json:"created"`
+	Deployed  bool              `json:"deployed"`
+	Triggers  []trigger.Trigger `json:"triggers"`
+	Hooks     []hook.Hook       `json:"hooks"`
 }
 
 var (

@@ -252,3 +252,7 @@ func (o *Orchestrator) SaveWorkflow(ctx context.Context, wf *workflow.Workflow) 
 func (o *Orchestrator) GetWorkflow(id workflow.ID) (*workflow.Workflow, error) {
 	return o.workflows.Get(id)
 }
+
+func (o *Orchestrator) Workflows() workflow.Store {
+	return o.workflows
+}

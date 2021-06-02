@@ -301,6 +301,7 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 		if change, ok := e.Payload.(event.DsChange); ok {
 			s.updateOneAcrossAllCollections(change.InitID, func(vi *dsref.VersionInfo) {
 				vi.Path = change.HeadRef
+				vi.NumVersions++
 			})
 		}
 	case event.ETDatasetRename:

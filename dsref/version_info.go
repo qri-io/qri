@@ -88,9 +88,8 @@ type VersionInfo struct {
 	//
 	// Workflow fields
 	//
-	WorkflowID string `json:"workflowID,omitempty"`
-
-	TriggerDescription string `json:"triggerDescription,omitempty"`
+	WorkflowID                 string `json:"workflowID,omitempty"`
+	WorkflowTriggerDescription string `json:"workflowtriggerDescription,omitempty"`
 
 	//
 	// Run Fields
