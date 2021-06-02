@@ -86,6 +86,13 @@ type VersionInfo struct {
 	// FSIPath is this dataset's link to the local filesystem if one exists
 	FSIPath string `json:"fsiPath,omitempty"`
 	//
+	// Workflow fields
+	//
+	WorkflowID string `json:"workflowID,omitempty"`
+
+	TriggerDescription string `json:"triggerDescription,omitempty"`
+
+	//
 	// Run Fields
 	//
 	// RunID is derived from from either the Commit.RunID, field or the runID of a

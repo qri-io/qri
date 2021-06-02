@@ -228,21 +228,21 @@ func (o *Orchestrator) SaveWorkflow(ctx context.Context, wf *workflow.Workflow) 
 	}
 
 	if wf.Deployed {
-		go func() {
-			if err := o.bus.PublishID(ctx, event.ETWorkflowDeployStarted, wf.ID.String(), wf); err != nil {
-				log.Debugw("async event error", "evt", event.ETWorkflowDeployStarted, "workflowID", wf.ID, "err", err)
-			}
-		}()
+		// go func() {
+		if err := o.bus.PublishID(ctx, event.ETWorkflowDeployStarted, wf.ID.String(), wf); err != nil {
+			log.Debugw("async event error", "evt", event.ETWorkflowDeployStarted, "workflowID", wf.ID, "err", err)
+		}
+		// }()
 
 		for _, l := range o.listeners {
 			l.Listen(wf)
 		}
 
-		go func() {
-			if err := o.bus.PublishID(ctx, event.ETWorkflowDeployStopped, wf.ID.String(), wf); err != nil {
-				log.Debugw("async event error", "evt", event.ETWorkflowDeployStopped, "workflowID", wf.ID, "err", err)
-			}
-		}()
+		// go func() {
+		if err := o.bus.PublishID(ctx, event.ETWorkflowDeployStopped, wf.ID.String(), wf); err != nil {
+			log.Debugw("async event error", "evt", event.ETWorkflowDeployStopped, "workflowID", wf.ID, "err", err)
+		}
+		// }()
 	}
 
 	return wf, err
