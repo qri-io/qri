@@ -24,6 +24,7 @@ import (
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/automation"
+	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/dsfs"
@@ -635,6 +636,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			return inst.apply
 		},
 		automation.OrchestratorOptions{
+			RunStore:      run.NewMemStore(),
 			WorkflowStore: wfs,
 			Listeners: []trigger.Listener{
 				trigger.NewCronListener(inst.bus),

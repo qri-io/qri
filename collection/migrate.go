@@ -2,7 +2,6 @@ package collection
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -25,9 +24,18 @@ func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, bus event.Bus, re
 	for i, vi := range datasets {
 		ref := vi.SimpleRef()
 		if _, err := book.ResolveRef(ctx, &ref); err != nil {
-			return nil, fmt.Errorf("resolving dataset initID: %w", err)
+			log.Warnf("can't migrate dataset %s to collection. Error resolving dataset initID: %s", vi.SimpleRef(), err)
+			continue
 		}
+
 		datasets[i].InitID = ref.InitID
+	}
+
+	// remove any datasets that couldn't be resolved
+	for i := len(datasets) - 1; i >= 0; i-- {
+		if datasets[i].InitID == "" {
+			datasets = append(datasets[:i], datasets[i+1:]...)
+		}
 	}
 
 	s, err := NewLocalSet(ctx, bus, repoDir)

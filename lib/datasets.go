@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
+	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
@@ -640,6 +641,11 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 	}
 
 	res := &GetResult{}
+
+	if p.Selector == "" {
+		res.Value, err = preview.Create(scope.ctx, ds)
+		return res, err
+	}
 
 	if p.Selector == "body" {
 		// `qri get body` loads the body

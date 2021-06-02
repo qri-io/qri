@@ -350,6 +350,10 @@ func (o *Orchestrator) UndeployWorkflow(id workflow.ID) error {
 	return err
 }
 
+func (o *Orchestrator) Workflows() workflow.Store {
+	return o.workflows
+}
+
 func (o *Orchestrator) SaveWorkflow(ctx context.Context, wf *workflow.Workflow) (*workflow.Workflow, error) {
 	if wf.ID == "" {
 		wf.Created = NowFunc()

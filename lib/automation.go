@@ -28,9 +28,29 @@ func (m AutomationMethods) Name() string {
 // Attributes defines attributes for each method
 func (m AutomationMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apply":  {Endpoint: AEApply, HTTPVerb: "POST"},
-		"deploy": {Endpoint: AEDeploy, HTTPVerb: "POST"},
+		"apply":    {Endpoint: AEApply, HTTPVerb: "POST"},
+		"deploy":   {Endpoint: AEDeploy, HTTPVerb: "POST"},
+		"workflow": {Endpoint: AEWorkflow, HTTPVerb: "POST"},
 	}
+}
+
+type WorkflowParams struct {
+	Ref        string
+	WorkflowID string
+}
+
+type WorkflowResult struct {
+	Workflow *workflow.Workflow `json:"workflow"`
+	Dataset  *dataset.Dataset   `json:"dataset"`
+	Ref      string             `json:"ref"`
+}
+
+func (m AutomationMethods) Workflow(ctx context.Context, p *WorkflowParams) (*WorkflowResult, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "workflow"), p)
+	if res, ok := got.(*WorkflowResult); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
 }
 
 // ApplyParams are parameters for the apply command
@@ -66,9 +86,6 @@ func (m AutomationMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyRes
 	return nil, dispatchReturnError(got, err)
 }
 
-// type DeployParams = scheduler.DeployParams
-// type DeployResponse = scheduler.DeployResponse
-
 type DeployParams struct {
 	Apply    bool
 	Workflow *workflow.Workflow
@@ -87,9 +104,9 @@ func (p *DeployParams) Validate() error {
 }
 
 type DeployResponse struct {
-	Ref      string
-	RunID    string
-	Workflow *workflow.Workflow
+	Ref      string             `json:"ref"`
+	RunID    string             `json:"runID,omitempty"`
+	Workflow *workflow.Workflow `json:"workflow"`
 }
 
 func (m AutomationMethods) Deploy(ctx context.Context, p *DeployParams) (*DeployResponse, error) {
@@ -201,6 +218,52 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) (*DeployResponse, err
 		Ref:      ref.String(),
 		RunID:    runID,
 		Workflow: wf,
+	}, nil
+}
+
+func (automationImpl) Workflow(scope scope, p *WorkflowParams) (*WorkflowResult, error) {
+	if p.Ref != "" {
+		ref, _, err := scope.ParseAndResolveRef(scope.ctx, p.Ref)
+		if err != nil {
+			return nil, err
+		}
+
+		wf, err := scope.Automation().Workflows().GetByDatasetID(ref.InitID)
+		if err != nil {
+			return nil, err
+		}
+
+		res, err := datasetImpl{}.Get(scope, &GetParams{Ref: ref.String()})
+		if err != nil {
+			return nil, err
+		}
+
+		return &WorkflowResult{
+			Workflow: wf,
+			Dataset:  res.Value.(*dataset.Dataset),
+			Ref:      ref.Human(),
+		}, nil
+	}
+
+	wf, err := scope.Automation().Workflows().Get(workflow.ID(p.WorkflowID))
+	if err != nil {
+		return nil, err
+	}
+
+	ref, _, err := scope.ParseAndResolveRef(scope.ctx, dsref.Ref{InitID: wf.DatasetID}.String())
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := datasetImpl{}.Get(scope, &GetParams{Ref: dsref.Ref{InitID: wf.DatasetID}.String()})
+	if err != nil {
+		return nil, err
+	}
+
+	return &WorkflowResult{
+		Workflow: wf,
+		Dataset:  res.Value.(*dataset.Dataset),
+		Ref:      ref.Human(),
 	}, nil
 }
 
