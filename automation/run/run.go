@@ -2,8 +2,10 @@
 package run
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -215,4 +217,96 @@ func NewStepStateFromEvent(e event.Event) (*StepState, error) {
 func toTimePointer(unixnano int64) *time.Time {
 	t := time.Unix(0, unixnano)
 	return &t
+}
+
+// Set is a collection of run.States that implements the sort.Interface,
+// sorting a list of run.State in reverse-chronological order
+type Set struct {
+	set []*State
+}
+
+// NewSet constructs a run.State set
+func NewSet() *Set {
+	return &Set{}
+}
+
+// Len is part of the sort.Interface
+func (s Set) Len() int { return len(s.set) }
+
+// Less is part of the `sort.Interface`
+func (s Set) Less(i, j int) bool {
+	return lessNilTime(s.set[i].StartTime, s.set[j].StartTime)
+}
+
+// Swap is part of the `sort.Interface`
+func (s Set) Swap(i, j int) { s.set[i], s.set[j] = s.set[j], s.set[i] }
+
+// Add adds a run.State to a Set
+func (s *Set) Add(j *State) {
+	if s == nil {
+		*s = Set{set: []*State{j}}
+		return
+	}
+
+	for i, run := range s.set {
+		if run.ID == j.ID {
+			s.set[i] = j
+			return
+		}
+	}
+	s.set = append(s.set, j)
+	sort.Sort(s)
+}
+
+// Remove removes a run.State from a Set
+func (s *Set) Remove(id string) (removed bool) {
+	for i, run := range s.set {
+		if run.ID == id {
+			if i+1 == len(s.set) {
+				s.set = s.set[:i]
+				return true
+			}
+
+			s.set = append(s.set[:i], s.set[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+// Slice returns a slice of run.States from position `start` to position `end`
+func (s *Set) Slice(start, end int) []*State {
+	if start < 0 || end < 0 {
+		return []*State{}
+	}
+	if end > s.Len() {
+		end = s.Len()
+	}
+	return s.set[start:end]
+}
+
+// MarshalJSON satisfies the `json.Marshaller` interface
+func (s Set) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.set)
+}
+
+// UnmarshalJSON satisfies the `json.Unmarshaller` interface
+func (s *Set) UnmarshalJSON(data []byte) error {
+	set := []*State{}
+	if err := json.Unmarshal(data, &set); err != nil {
+		return err
+	}
+	s.set = set
+	return nil
+}
+
+func lessNilTime(a, b *time.Time) bool {
+	if a == nil && b != nil {
+		return true
+	} else if a != nil && b == nil {
+		return false
+	} else if a == nil && b == nil {
+		return false
+	}
+	return a.After(*b)
 }
