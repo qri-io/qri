@@ -15,7 +15,10 @@ func RenderReadme(ctx context.Context, file qfs.File) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	unsafe := blackfriday.Run(data)
+	r := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
+		Flags: blackfriday.CommonHTMLFlags | blackfriday.NoreferrerLinks | blackfriday.NoopenerLinks | blackfriday.HrefTargetBlank,
+	})
+	unsafe := blackfriday.Run(data, blackfriday.WithRenderer(r))
 	htmlBytes := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 	return htmlBytes, nil
 }

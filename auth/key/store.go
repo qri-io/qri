@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/gofrs/flock"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/config"
-	"github.com/gofrs/flock"
 )
 
 // ErrKeyAndIDMismatch occurs when a key identifier doesn't match it's public
