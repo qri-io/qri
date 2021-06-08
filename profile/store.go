@@ -10,11 +10,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gofrs/flock"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	qerr "github.com/qri-io/qri/errors"
-	"github.com/gofrs/flock"
 )
 
 var (
