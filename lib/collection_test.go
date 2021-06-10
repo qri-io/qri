@@ -236,9 +236,9 @@ func TestListRawRefs(t *testing.T) {
 		"ProfileID":      "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
 		"citiesPath":     "/mem/QmPWCzaxFoxAu5wS8qXkL6tSA7aR2Lpcwykfz1TbhhpuDp",
 		"counterPath":    "/mem/QmVN68yJdLCstVj7YiDjoDvbuxnWKL57D5EAszM7SxtXi3",
-		"craigslistPath": "/mem/Qmcph3Wc9LHBGxzt4JVXR4T5ZGD85FQKdMvHWg6aNzqFCD",
-		"moviesPath":     "/mem/QmQPS7Nf6dG8zosyAA8zYd64gaLBTAzYsVhMkaMCgCXJST",
-		"sitemapPath":    "/mem/QmPk94KBWhGpfSMrEk85fwuFhqfAU84uwrdnwqQf5EV2B5",
+		"craigslistPath": "/mem/QmTzSsKodVuQRBbcAnYhh8iHSnCA59CNsJzJxue9if9yXN",
+		"moviesPath":     "/mem/QmXkLt1xHqtJjjGoT2reGZLBFELsioWkJ24yDjchGpu63W",
+		"sitemapPath":    "/mem/QmdotsdAr5w32jToY13q4VR9CYdN9hTpkivJjwRELhGkxa",
 	})
 
 	if diff := cmp.Diff(expect, text); diff != "" {

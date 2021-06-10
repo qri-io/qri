@@ -102,16 +102,16 @@ stats:
       'Harry Potter and the Half-Blood Prince ': 1
       'John Carter ': 1
       'Man of Steel ': 1
-      'Pirates of the Caribbean: At World''s End ': 1
-      'Pirates of the Caribbean: Dead Man''s Chest ': 1
+      'Pirates of the Caribbean: At World''s End... 41 chars (6)': 1
+      'Pirates of the Caribbean: Dead Man''s Che... 43 chars (7)': 1
       'Quantum of Solace ': 1
       'Spectre ': 1
       'Spider-Man 3 ': 1
-      'Star Wars: Episode VII - The Force Awakens             ': 1
+      'Star Wars: Episode VII - The Force Awake... 55 chars (11)': 1
       'Superman Returns ': 1
       'Tangled ': 1
       'The Avengers ': 1
-      'The Chronicles of Narnia: Prince Caspian ': 1
+      'The Chronicles of Narnia: Prince Caspian... 41 chars (15)': 1
       'The Dark Knight Rises ': 1
       'The Lone Ranger ': 1
     maxLength: 55
@@ -204,10 +204,10 @@ stats:
     frequencies:
       'Avatar ': 1
       'John Carter ': 1
-      'Pirates of the Caribbean: At World''s End ': 1
+      'Pirates of the Caribbean: At World''s End... 41 chars (2)': 1
       'Spectre ': 1
       'Spider-Man 3 ': 1
-      'Star Wars: Episode VII - The Force Awakens             ': 1
+      'Star Wars: Episode VII - The Force Awake... 55 chars (5)': 1
       'Tangled ': 1
       'The Dark Knight Rises ': 1
     maxLength: 55
@@ -327,21 +327,21 @@ var (
 	currHeadRepoData = map[string]string{
 		"profileID":     "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 		"bodyPath":      "/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB",
-		"commitPath":    "/ipfs/QmYzMo7fTeBcEgxvpzaPUQ7H8uNK4DoLsrctctXKtWWKgk",
-		"signature":     "RpfICcCxUhtdKQsrM27V9hInmJlz/QscyFvPHLtCD+AWGkIJ+QYxyd9gaZ81N2VsADRTo1gFs1/yho9Nfp1HL+3+BiSrTtsirkyQahp6xrbDIeDsuxE0r372KSvk6isx8WhBEG26xs/s7kc8/3z+s3+9c8loVBuiwTsHI2WfMv7P6613+CQYLTYPaywus+aQxFUFikV3q6vAG6W7aydPLbgfLgop4swtfGfRcmqgWZ54Dm9wDXUjGLPAGCZ0qB8a6zYBmTSsy10p5F0E3L8gJmmFjRp8qNRZimnhJnrtHKs8ELSfftqBJ3ZhrIFGCp1OQdFfZudmx9e5kYtwzqOv9g==",
-		"path":          "/ipfs/QmdQzhLq9gJvM6bddihAnHqAyNHhECNoS3Kh87cSDYxGqM",
-		"previousPath":  "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
-		"statsPath":     "/ipfs/QmeTrXTwwTZLLxqwfdvAjbvSqzrWkkUKNefoS5GAsdcFXZ",
+		"commitPath":    "/ipfs/QmQb3AfjzFn5RWGkrcFHV4GEDWAt97P9q3JhM8qJm69wZ3",
+		"signature":     "hK9sMkmsRqH8xKDNxTwQX0IfDsHX8wB08SQA/tz0R8V0QaWfPgjPBhvFvWXKXtM+UqxKDp1YzGLyAcozk7BIgRLPEcQI+TMvjpqf9UKlu7f0pmtnT6w7Vj8hHcVk/yvG+MfpKLWIK+FLWqIj46aeYztjtweN2AC1Xebky7ISzkczaOg0rL6hcbWoxE96Eqw5mvcX3iO9l/zfbF6GkRAhzKVHkNdmwvqPaMRE/XTdR9+F5bIodwpqJGmqM7igewimGQAe/UTyFhOYi7Z7LJxCGKeKJ/7n8mk7CfRQPmhqk8hzcVm5yTNjTUOUueK9Os1g8b3z6FgnWpIaMOV0L/ARqg==",
+		"path":          "/ipfs/QmNmXT9m3zybzUttTu2qSbskuxgcs5iZxgaJo61pgCShSz",
+		"previousPath":  "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
+		"statsPath":     "/ipfs/Qmc3QsRMdo1rqY3F5Shr2Kd25yib6R4Ktgz3RdXTXwVjDU",
 		"structurePath": "/ipfs/QmcAfMfZ7qTNiCfQxnRJyDxEDM7tqDstvpgviT73PFbabZ",
 	}
 	prevHeadRepoData = map[string]string{
 		"profileID":     "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 		"bodyPath":      "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
-		"commitPath":    "/ipfs/QmbT3s3crr6RuzSxKiLXvPr21b2rQDJGyfXybfcepKycFx",
-		"signature":     "PKlAK2BwACWfYqvMN9meIZsA7Mr+KWU6QhC/VXKHdGvn1+AtchelSECiIrH9938yR55Hd6eIFGWwgM9i7EIRCenOdcvi10GOT/BZZ9iq0Z9Rd7U6Ey8xTh7X3wnlk1QAodlKjAkDADWwN9hZLKExtaoe3gqLeZoXYX4xwpOKd9GRsn49P4oWkiQTyT8TGTvmExnkkElBUMk11nroXZdzJ6ulAYX8k3qb8o5NCZYaJGTKnHqPKL/TPdUPdl4waxG3XaYhynjVwcla0+mG+5ndwDMn240CXjp00LRguT3vAM5Da/WUJF+SFrOFTRU9DrnVLsDJ6rLbccR8eHCX87QdbA==",
-		"path":          "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
+		"commitPath":    "/ipfs/QmRQo5ivNLbQdu1ps3iyEaVknyTYisUwsL152dwSorskJB",
+		"signature":     "iGs2R/GWE8f0YqRhTnaw6r/geX+5hSmTxOG68vdYbJ5dkqLXcp7nYkuezvs9aHPTLPgqoshJ6w0va8JthSSGkRkm6ue5iItLqN0Vbi2Ru/b7BAfvpJwoeb/FJCj41bFtqojs9S9flNJB7RmQl03usiaauUw/dkNE7KXZkT0DGA3Fo8cHKeAgyhYdZzPeXKu1RIp+rIMZMJOwj0Rw7oLBXjiWcqttwJQsvx8qAS72xhQZysGGicImdTPzeTK+7wwBnm99f2afjB1v3TD7h5XMmFRiOBtNx3U6snzTcUPvGeL895Q7ZBco9fEAPhgxgrV51b28IS0ci6qXyYfIOKNARg==",
+		"path":          "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
 		"previousPath":  "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
-		"statsPath":     "/ipfs/QmP3JJ7TGyKU7HnooajjfuEvFxpVigqcZQtajpsboPxeBz",
+		"statsPath":     "/ipfs/QmbJeH82n56LBGBsRWxmSctrUy1Urr1epePSpQ8bMgufsG",
 		"structurePath": "/ipfs/QmSxuAVwd9pPf9c7WMu1gjUsHSLBLRuxQcFjyu9mfsA2TQ",
 	}
 )

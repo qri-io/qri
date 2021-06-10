@@ -107,7 +107,7 @@ func TestRemoveRun(t *testing.T) {
 	}{
 		{[]string{}, -1, "", `"" is not a valid dataset reference: empty reference`, ""},
 		{[]string{"me/bad_dataset"}, -1, "", "reference not found", "could not find dataset 'me/bad_dataset'"},
-		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@7ptazaa3bwxvgmyfwq4pugzuvcdpqddhihir3f6gvdmfvdifzs3q/mem/QmQPS7Nf6dG8zosyAA8zYd64gaLBTAzYsVhMkaMCgCXJST'\n", "", ""},
+		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@7ptazaa3bwxvgmyfwq4pugzuvcdpqddhihir3f6gvdmfvdifzs3q/mem/QmXkLt1xHqtJjjGoT2reGZLBFELsioWkJ24yDjchGpu63W'\n", "", ""},
 		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@h5vhalefmhkuky5kqqbm22scxtm2bj2b7w2z63hlwiywi6hkbkoa/mem/QmPWCzaxFoxAu5wS8qXkL6tSA7aR2Lpcwykfz1TbhhpuDp'\n", "", ""},
 		{[]string{"me/movies"}, -1, "", "reference not found", "could not find dataset 'me/movies'"},
 	}

@@ -41,19 +41,18 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pkg/errors v0.9.1
 	github.com/qri-io/dag v0.2.2
-	github.com/qri-io/dataset v0.3.0
+	github.com/qri-io/dataset v0.3.1-0.20210611163416-f6059e0f298a
 	github.com/qri-io/deepdiff v0.2.1
 	github.com/qri-io/didmod v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/jsonschema v0.2.0
-	github.com/qri-io/qfs v0.6.0
+	github.com/qri-io/qfs v0.6.1-0.20210610133154-676ac303918e
 	github.com/qri-io/starlib v0.4.2
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.1.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
-	github.com/theckman/go-flock v0.7.1
 	github.com/ugorji/go/codec v1.1.7
 	github.com/vbauerster/mpb/v5 v5.3.0
 	go.starlark.net v0.0.0-20200619143648-50ca820fafb9

@@ -180,7 +180,7 @@ func TestCreateDataset(t *testing.T) {
 		{"cities_no_commit_title",
 			"/mem/QmVFBZpQ9k5w8jF9A1jTRfQ2YW5y4haSNjmqj5H9c23DqW", nil, 22},
 		{"craigslist",
-			"/mem/QmNiNcJ4dtG4GhZSGdYWZzL4ojvx3wndNQRCErG94ywfFP", nil, 28},
+			"/mem/QmXhRb415KTb3zxGDwk3iehZ8S8BFzsEM3YiPgkPQr6VKf", nil, 28},
 	}
 
 	for _, c := range good {
@@ -357,7 +357,7 @@ func TestDatasetSaveEvents(t *testing.T) {
 
 	expect := map[event.Type]int{
 		event.ETDatasetSaveStarted:   1,
-		event.ETDatasetSaveProgress:  2,
+		event.ETDatasetSaveProgress:  3,
 		event.ETDatasetSaveCompleted: 1,
 	}
 
