@@ -3,6 +3,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -60,19 +61,30 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	s.websocket = ws
 	s.Mux = NewServerRoutes(s)
 
-	if err := s.Instance.Connect(ctx); err != nil {
-		return err
+	p2pConnected := true
+	if err := s.Instance.ConnectP2P(ctx); err != nil {
+		if !errors.Is(err, lib.ErrP2PDisabled) {
+			return err
+		}
+		p2pConnected = false
 	}
 
 	server := &http.Server{
 		Handler: s.Mux,
 	}
 
-	info := "\n📡  Success! You are now connected to the d.web. Here's your connection details:\n"
+	info := "\n"
+	if p2pConnected {
+		info += "📡  Success! You are now connected to the d.web. Here's your connection details:\n"
+	} else {
+		info += "Running a qri node with no d.web connection"
+	}
 	info += cfg.SummaryString()
-	info += "IPFS Addresses:"
-	for _, a := range node.EncapsulatedAddresses() {
-		info = fmt.Sprintf("%s\n  %s", info, a.String())
+	if p2pConnected {
+		info += "IPFS Addresses:"
+		for _, a := range node.EncapsulatedAddresses() {
+			info = fmt.Sprintf("%s\n  %s", info, a.String())
+		}
 	}
 	info += fmt.Sprintf("\nYou are running Qri v%s", APIVersion)
 	info += "\n\n"

@@ -71,7 +71,7 @@ func TestFetchCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := remoteInst.Connect(ctx); err != nil {
+	if err := remoteInst.ConnectP2P(ctx); err != nil {
 		t.Fatal(err)
 	}
 
