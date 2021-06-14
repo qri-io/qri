@@ -772,10 +772,17 @@ type Instance struct {
 	releasers sync.WaitGroup
 }
 
-// Connect takes an instance online
-func (inst *Instance) Connect(ctx context.Context) (err error) {
+// ErrP2PDisabled error indicates p2p connectivity is disabled by configuration
+var ErrP2PDisabled = fmt.Errorf("peer-2-peer networking is disabled")
+
+// ConnectP2P connects an instance's peer-2-peer node
+func (inst *Instance) ConnectP2P(ctx context.Context) (err error) {
+	if inst.cfg.P2P == nil || !inst.cfg.P2P.Enabled {
+		return ErrP2PDisabled
+	}
+
 	if err = inst.node.GoOnline(ctx); err != nil {
-		log.Debugf("taking node online: %s", err.Error())
+		log.Debugw("connecting instance p2p node", "err", err.Error())
 		return
 	}
 

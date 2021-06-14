@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -35,6 +36,12 @@ func init() {
 	abide.SnapshotsDir = "testdata"
 }
 
+func TestMain(m *testing.M) {
+	exit := m.Run()
+	abide.Cleanup()
+	os.Exit(exit)
+}
+
 func TestApiSpec(t *testing.T) {
 	if err := confirmQriNotRunning(); err != nil {
 		t.Fatal(err.Error())
@@ -49,10 +56,27 @@ func TestApiSpec(t *testing.T) {
 	apispec.AssertHTTPAPISpec(t, ts.URL, "./spec")
 }
 
-func TestMain(m *testing.M) {
-	exit := m.Run()
-	abide.Cleanup()
-	os.Exit(exit)
+func TestConnectNoP2P(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	node, teardown := newTestNode(t)
+	defer teardown()
+
+	inst := newTestInstanceWithProfileFromNode(ctx, node)
+	cfg := inst.GetConfig()
+	cfg.P2P.Enabled = false
+	if err := inst.ChangeConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	s := New(inst)
+	ctx, cancel2 := context.WithTimeout(ctx, time.Millisecond*15)
+	defer cancel2()
+
+	if err := s.Serve(ctx); !errors.Is(err, http.ErrServerClosed) {
+		t.Fatal(err)
+	}
 }
 
 func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
