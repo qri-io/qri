@@ -222,6 +222,9 @@ func NewServerRoutes(s Server) *mux.Router {
 		m.Handle(AEWebUI.String(), s.Middleware(WebuiHandler))
 	}
 
+	// auth endpoints
+	m.Handle(AEToken.String(), s.Middleware(TokenHandler(s.Instance))).Methods(http.MethodPost, http.MethodOptions)
+
 	// non POST/json dataset endpoints
 	m.Handle(AEGetCSVFullRef.String(), s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
 	m.Handle(AEGetCSVShortRef.String(), s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
