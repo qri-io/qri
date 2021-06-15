@@ -21,7 +21,7 @@ type computeFieldsFile struct {
 	*sync.Mutex
 
 	fs  qfs.Filesystem  // filesystem we're writing to
-	pub event.Publisher // optional bus to publish progress events to
+	pub event.Publisher // bus to publish progress events to
 	pk  crypto.PrivKey  // key for signing version
 	sw  SaveSwitches
 
@@ -108,11 +108,11 @@ func newComputeFieldsFile(
 }
 
 func (cff *computeFieldsFile) FileName() string {
-	return fmt.Sprintf("/body.%s", cff.ds.Structure.Format)
+	return fmt.Sprintf("/%s", cff.ds.Structure.BodyFilename())
 }
 
 func (cff *computeFieldsFile) FullPath() string {
-	return fmt.Sprintf("/body.%s", cff.ds.Structure.Format)
+	return fmt.Sprintf("/%s", cff.ds.Structure.BodyFilename())
 }
 
 func (cff *computeFieldsFile) IsDirectory() bool {
