@@ -79,9 +79,11 @@ type InstanceOptions struct {
 	dscache       *dscache.Dscache
 	regclient     *regclient.Client
 	logbook       *logbook.Book
+	keyStore      key.Store
 	profiles      profile.Store
 	bus           event.Bus
 	collectionSet collection.Set
+	tokenProvider token.Provider
 	logAll        bool
 
 	remoteMockClient bool
@@ -276,6 +278,14 @@ func OptCollectionSet(c collection.Set) Option {
 	}
 }
 
+// OptTokenProvider provides a token provider implementation
+func OptTokenProvider(t token.Provider) Option {
+	return func(o *InstanceOptions) error {
+		o.tokenProvider = t
+		return nil
+	}
+}
+
 // OptLogbook overrides the configured logbook with a manually provided one
 func OptLogbook(bk *logbook.Book) Option {
 	return func(o *InstanceOptions) error {
@@ -302,6 +312,14 @@ func OptEventHandler(handler event.Handler, events ...event.Type) Option {
 func OptProfiles(pros profile.Store) Option {
 	return func(o *InstanceOptions) error {
 		o.profiles = pros
+		return nil
+	}
+}
+
+// OptKeyStore supplies a key store for the instance
+func OptKeyStore(keys key.Store) Option {
+	return func(o *InstanceOptions) error {
+		o.keyStore = keys
 		return nil
 	}
 }
@@ -405,6 +423,8 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		registry:      o.regclient,
 		logbook:       o.logbook,
 		collectionSet: o.collectionSet,
+		keystore:      o.keyStore,
+		tokenProvider: o.tokenProvider,
 		dscache:       o.dscache,
 		profiles:      o.profiles,
 		bus:           o.bus,
@@ -422,7 +442,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// if logAll is enabled, turn on debug level logging for all qri packages. Packages need to
 	// be explicitly enumerated here
 	if o.logAll {
-		allPackages := []string{"qriapi", "qrip2p", "base", "changes", "cmd", "config", "dsref", "dsfs", "friendly", "fsi", "lib", "logbook", "profile", "repo", "sql"}
+		allPackages := []string{"qriapi", "qrip2p", "base", "changes", "cmd", "config", "dsref", "dsfs", "friendly", "fsi", "lib", "logbook", "profile", "repo", "sql", "token"}
 		for _, name := range allPackages {
 			golog.SetLogLevel(name, "debug")
 		}
@@ -483,6 +503,12 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if inst.profiles == nil {
 		if inst.profiles, err = profile.NewStore(cfg, inst.keystore); err != nil {
 			return nil, fmt.Errorf("initializing profile service: %w", err)
+		}
+	}
+
+	if inst.tokenProvider == nil {
+		if inst.tokenProvider, err = token.NewProvider(inst.profiles, inst.keystore); err != nil {
+			return nil, fmt.Errorf("initializing token provider: %w", err)
 		}
 	}
 
@@ -755,6 +781,7 @@ type Instance struct {
 	logbook       *logbook.Book
 	dscache       *dscache.Dscache
 	collectionSet collection.Set
+	tokenProvider token.Provider
 	bus           event.Bus
 	watcher       *watchfs.FilesysWatcher
 	appCtx        context.Context
@@ -1063,6 +1090,14 @@ func (inst *Instance) Bus() event.Bus {
 	return inst.bus
 }
 
+// TokenProvider exposes the instance token provider
+func (inst *Instance) TokenProvider() token.Provider {
+	if inst == nil {
+		return nil
+	}
+	return inst.tokenProvider
+}
+
 // activeProfile tries to extract the current user from values embedded in the
 // passed-in context, falling back to the repo owner as a default active profile
 func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, err error) {
@@ -1082,7 +1117,11 @@ func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, 
 			// token. We either need ProfileID == KeyID, or we need a UCAN. we need to
 			// check for those, ideally in a method within the profile package that
 			// abstracts over profile & key agreement
-			pro, err := inst.profiles.GetProfile(profile.IDB58DecodeOrEmpty(claims.ProfileID))
+			pid, err := profile.IDB58Decode(claims.ProfileID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid request profile ID")
+			}
+			pro, err := inst.profiles.GetProfile(pid)
 			if errors.Is(err, profile.ErrNotFound) {
 				return nil, fmt.Errorf("request profile not sent")
 			}

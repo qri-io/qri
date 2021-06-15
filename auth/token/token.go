@@ -12,6 +12,7 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	golog "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qfs"
@@ -30,7 +31,13 @@ var (
 	ErrInvalidToken = errors.New("invalid access token")
 	// DefaultTokenTTL is the default
 	DefaultTokenTTL = time.Hour * 24 * 14
+
+	log = golog.Logger("token")
 )
+
+func init() {
+	golog.SetLogLevel("token", "error")
+}
 
 // Token abstracts a json web token
 type Token = jwt.Token
