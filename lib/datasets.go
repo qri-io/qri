@@ -982,9 +982,12 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 
 		scriptOut := p.ScriptOutput
 		secrets := p.Secrets
-		// allocate an ID for the transform, subscribe to print output & build up
-		// runState
-		runID := run.NewID()
+		runID := ds.Commit.RunID
+		if runID == "" {
+			// if there is no given runID, allocate an ID for the transform,
+			// subscribe to print output & build up the run.State
+			runID = run.NewID()
+		}
 		runState = &run.State{ID: runID}
 
 		scope.Bus().SubscribeID(func(ctx context.Context, e event.Event) error {
