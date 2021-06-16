@@ -1,6 +1,7 @@
 package run
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -47,20 +48,23 @@ type Store interface {
 	// looking only at the most recent run of each Workflow
 	ListByStatus(s Status, limit, offset int) ([]*State, error)
 
-	// // SubscribeID subscribes to events emitted w/ the given run id. Uses
-	// // `AddTransformEvent` to interpret/change the runState, and calls
-	// // Update on the Store
-	// SubscribeID(id string) error
+	// SubscribeID subscribes to events emitted w/ the given run id. Uses
+	// `AddTransformEvent` to interpret/change the runState, and calls
+	// Update on the Store
+	SubscribeID(id string) error
+	// Unsubscribe ID unsubscribes to events emitted w/ the given run id
+	UnsubscribeID(id string) error
 	// Bus returns the bus that the Store subscribes to
 	Bus() event.Bus
 }
 
 // MemStore is an in memory representation of a Store
 type MemStore struct {
-	mu        sync.Mutex
-	bus       event.Bus
-	workflows map[workflow.ID]*workflowMeta
-	runs      map[string]*State
+	mu              sync.Mutex
+	bus             event.Bus
+	workflows       map[workflow.ID]*workflowMeta
+	runs            map[string]*State
+	handleRunEvents event.Handler
 }
 
 type workflowMeta struct {
@@ -79,11 +83,14 @@ var _ Store = (*MemStore)(nil)
 
 // NewMemStore returns a MemStore
 func NewMemStore(bus event.Bus) *MemStore {
-	return &MemStore{
+	s := &MemStore{
 		bus:       bus,
 		workflows: map[workflow.ID]*workflowMeta{},
 		runs:      map[string]*State{},
 	}
+	s.handleRunEvents = HandleRunEventsFactory(s)
+	return s
+
 }
 
 // Put adds a run.State to a MemStore
@@ -262,4 +269,38 @@ func (s *MemStore) ListByStatus(status Status, limit, offset int) ([]*State, err
 // Bus returns the event.Bus
 func (s *MemStore) Bus() event.Bus {
 	return s.bus
+}
+
+// SubscribeID subscribes to events emitted w/ the given run id. Uses
+// `AddTransformEvent` to interpret/change the runState, and calls
+// Update on the Store
+func (s *MemStore) SubscribeID(id string) error {
+	s.bus.SubscribeID(s.handleRunEvents, id)
+	return nil
+}
+
+// UnsubscribeID unsubscribes the event bus from the run id
+// TODO(ramfox): UnsubscribeID requires a bus.UnsubscribeID method
+func (s *MemStore) UnsubscribeID(id string) error {
+	return fmt.Errorf("UnsubscribeID is not yet implemented")
+}
+
+// HandleRunEventsFactory returns a handler that will properly handle run
+// events for the given store
+func HandleRunEventsFactory(s Store) event.Handler {
+	return func(ctx context.Context, e event.Event) error {
+		id := e.SessionID
+		run, err := s.Get(id)
+		if err != nil {
+			return fmt.Errorf("store.SubscribeID - id %q: error fetching run.State, %w", id, err)
+		}
+		if err := run.AddTransformEvent(e); err != nil {
+			return fmt.Errorf("store.SubscribeID - id %q: error adding transform event to run, %w", id, err)
+		}
+		_, err = s.Put(run)
+		if err != nil {
+			return fmt.Errorf("store.SubscribeID - id %q: error updating run.State, %w", id, err)
+		}
+		return nil
+	}
 }
