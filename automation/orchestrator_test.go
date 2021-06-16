@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
 )
@@ -38,9 +39,11 @@ func TestIntegration(t *testing.T) {
 
 	bus := event.NewBus(ctx)
 
-	store := workflow.NewMemStore()
+	runStore := run.NewMemStore(bus)
+	workflowStore := workflow.NewMemStore()
 	opts := OrchestratorOptions{
-		WorkflowStore: store,
+		WorkflowStore: workflowStore,
+		RunStore:      runStore,
 	}
 	o, err := NewOrchestrator(ctx, bus, runFuncFactory, applyFuncFactory, opts)
 	if err != nil {

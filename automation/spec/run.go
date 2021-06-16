@@ -1,6 +1,7 @@
 package spec
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/event"
 )
 
 // AssertRunStore confirms the expected behavior of a run.Store interface
@@ -156,14 +158,178 @@ func assertPut(t *testing.T, store run.Store) {
 // AssertRunStoreSubscription confirms the expected behavior of the run.Store when
 // transform events are emitted on the event.Bus
 func AssertRunStoreSubscription(t *testing.T, store run.Store) {
-	// bus := store.Bus()
-	// emit ETTransformStart
-	// use s.Get() to check update between each update
-	// emit ETTransformStepStart
-	// emit ETTransformPrint
-	// emit ETTransformError
-	// emit ETTransformDatasetPreview
-	// emit ETTransformStepStop
-	// emit ETTransformStepSkip
-	// emit ETTransformStop
+	// mock time
+	prevNow := event.NowFunc
+	defer func() { event.NowFunc = prevNow }()
+
+	timestamps := []time.Time{}
+	totalEventsEmitted := 8
+	eventNumber := 0
+	for i := 0; i < totalEventsEmitted; i++ {
+		t := time.Unix(int64(i), 0)
+		timestamps = append(timestamps, t)
+	}
+	event.NowFunc = func() time.Time {
+		t := timestamps[eventNumber]
+		eventNumber++
+		return t
+	}
+
+	timestampNum := 0
+	nextTimestamp := func() *time.Time {
+		if timestampNum >= len(timestamps) {
+			t.Fatal("timestamp error, out of bounds")
+		}
+		t := timestamps[timestampNum]
+		timestampNum++
+		return &t
+	}
+
+	bus := store.Bus()
+	wid := workflow.ID("run store subscription test")
+	r := &run.State{WorkflowID: wid}
+	r, err := store.Put(r)
+	if err != nil {
+		t.Fatalf("store.Put unexpected error: %s", err)
+	}
+	if err := store.SubscribeID(r.ID); err != nil {
+		t.Fatalf("store.SubscriptID unexpected error: %s", err)
+	}
+	ctx := context.Background()
+
+	// event 0
+	bus.PublishID(ctx, event.ETTransformStart, r.ID, nil)
+	ts := nextTimestamp()
+	r.Status = run.RSRunning
+	r.StartTime = ts
+	got, err := store.Get(r.ID)
+	if err != nil {
+		t.Fatalf("store.Get unexpected error: %s", err)
+	}
+	if diff := cmp.Diff(r, got); diff != "" {
+		t.Errorf("event.ETTransformStart run (-want +got):\n%s", diff)
+	}
+
+	// event 1
+	bus.PublishID(ctx, event.ETTransformStepStart, r.ID, event.TransformStepLifecycle{
+		Name:     "step start",
+		Category: "step start category",
+	})
+	ts = nextTimestamp()
+	expectedStep := &run.StepState{
+		Name:      "step start",
+		Category:  "step start category",
+		Status:    run.RSRunning,
+		StartTime: ts,
+	}
+	r.Steps = append(r.Steps, expectedStep)
+
+	got, err = store.Get(r.ID)
+	if err != nil {
+		t.Fatalf("store.Get unexpected error: %s", err)
+	}
+	if diff := cmp.Diff(r, got); diff != "" {
+		t.Errorf("event.ETTransformStart run (-want +got):\n%s", diff)
+	}
+
+	// event 2
+	bus.PublishID(ctx, event.ETTransformPrint, r.ID, "transform print")
+	ts = nextTimestamp()
+	expectedPrintEvent := event.Event{
+		Type:      event.ETTransformPrint,
+		Timestamp: (*ts).UnixNano(),
+		SessionID: r.ID,
+		Payload:   "transform print",
+	}
+	r.Steps[0].Output = []event.Event{expectedPrintEvent}
+
+	got, err = store.Get(r.ID)
+	if err != nil {
+		t.Fatalf("store.Get unexpected error: %s", err)
+	}
+	if diff := cmp.Diff(r, got); diff != "" {
+		t.Errorf("event.ETTransformPrint run (-want +got):\n%s", diff)
+	}
+
+	// event 3
+	bus.PublishID(ctx, event.ETTransformError, r.ID, "transform error")
+	ts = nextTimestamp()
+	expectedErrorEvent := event.Event{
+		Type:      event.ETTransformError,
+		Timestamp: (*ts).UnixNano(),
+		SessionID: r.ID,
+		Payload:   "transform error",
+	}
+	r.Steps[0].Output = []event.Event{expectedPrintEvent, expectedErrorEvent}
+	got, err = store.Get(r.ID)
+	if err != nil {
+		t.Fatalf("store.Get unexpected error: %s", err)
+	}
+	if diff := cmp.Diff(r, got); diff != "" {
+		t.Errorf("event.ETTransformError run (-want +got):\n%s", diff)
+	}
+
+	// event 4
+	bus.PublishID(ctx, event.ETTransformDatasetPreview, r.ID, "transform dataset preview")
+	ts = nextTimestamp()
+	expectedDatasetPreviewEvent := event.Event{
+		Type:      event.ETTransformDatasetPreview,
+		Timestamp: (*ts).UnixNano(),
+		SessionID: r.ID,
+		Payload:   "transform dataset preview",
+	}
+	r.Steps[0].Output = []event.Event{expectedPrintEvent, expectedErrorEvent, expectedDatasetPreviewEvent}
+	got, err = store.Get(r.ID)
+	if err != nil {
+		t.Fatalf("store.Get unexpected error: %s", err)
+	}
+	if diff := cmp.Diff(r, got); diff != "" {
+		t.Errorf("event.ETTransformDatasetPreview run (-want +got):\n%s", diff)
+	}
+
+	// event 5
+	bus.PublishID(ctx, event.ETTransformStepStop, r.ID, event.TransformStepLifecycle{Status: "succeeded"})
+	ts = nextTimestamp()
+	expectedStep = r.Steps[0]
+	expectedStep.StopTime = ts
+	expectedStep.Status = run.RSSucceeded
+	expectedStep.Duration = int(expectedStep.StopTime.Sub(*expectedStep.StartTime))
+	got, err = store.Get(r.ID)
+	if err != nil {
+		t.Fatalf("store.Get unexpected error: %s", err)
+	}
+	if diff := cmp.Diff(r, got); diff != "" {
+		t.Errorf("event.ETTransformStepStop run (-want +got):\n%s", diff)
+	}
+
+	// event 6
+	bus.PublishID(ctx, event.ETTransformStepSkip, r.ID, event.TransformStepLifecycle{Name: "step skip", Category: "step skip category", Status: "skipped"})
+	ts = nextTimestamp()
+	expectedSkipStep := &run.StepState{
+		Name:     "step skip",
+		Category: "step skip category",
+		Status:   run.RSSkipped,
+	}
+	r.Steps = append(r.Steps, expectedSkipStep)
+	got, err = store.Get(r.ID)
+	if err != nil {
+		t.Fatalf("store.Get unexpected error: %s", err)
+	}
+	if diff := cmp.Diff(r, got); diff != "" {
+		t.Errorf("event.ETTransformStepSkip run (-want +got):\n%s", diff)
+	}
+
+	// event 7
+	bus.PublishID(ctx, event.ETTransformStop, r.ID, event.TransformLifecycle{Status: "succeeded"})
+	ts = nextTimestamp()
+	r.StopTime = ts
+	r.Status = run.RSSucceeded
+	r.Duration = int(r.StopTime.Sub(*r.StartTime))
+	got, err = store.Get(r.ID)
+	if err != nil {
+		t.Fatalf("store.Get unexpected error: %s", err)
+	}
+	if diff := cmp.Diff(r, got); diff != "" {
+		t.Errorf("event.ETTransformStop run (-want +got):\n%s", diff)
+	}
 }
