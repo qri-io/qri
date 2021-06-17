@@ -45,12 +45,17 @@ type Token = jwt.Token
 // Claims is a JWT Claims object
 type Claims struct {
 	*jwt.StandardClaims
-	ProfileID string `json:"profileID"`
+	ClientType ClientType `json:"clientType"`
 }
 
 // Parse will parse, validate and return a token
 func Parse(tokenString string, tokens Source) (*Token, error) {
 	return jwt.Parse(tokenString, tokens.VerificationKey)
+}
+
+// ParseWithClaims will parse, validate and return a token with claims
+func ParseWithClaims(tokenString string, claims *Claims, tokens Source) (*Token, error) {
+	return jwt.ParseWithClaims(tokenString, claims, tokens.VerificationKey)
 }
 
 // NewPrivKeyAuthToken creates a JWT token string suitable for making requests
@@ -86,12 +91,12 @@ func NewPrivKeyAuthToken(pk crypto.PrivKey, profileID string, ttl time.Duration)
 	t.Claims = &Claims{
 		StandardClaims: &jwt.StandardClaims{
 			Issuer:  id,
-			Subject: id,
+			Subject: profileID,
 			// set the expire time
 			// see http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-20#section-4.1.4
 			ExpiresAt: exp,
 		},
-		ProfileID: profileID,
+		ClientType: UserClient,
 	}
 
 	return t.SignedString(signKey)
@@ -134,7 +139,7 @@ func ParseAuthToken(tokenString string, keystore key.Store) (*Token, error) {
 // in the spec subpackage
 type Source interface {
 	CreateToken(pro *profile.Profile, ttl time.Duration) (string, error)
-	CreateTokenWithClaims(claims jwt.MapClaims, ttl time.Duration) (string, error)
+	CreateTokenWithClaims(claims *Claims, ttl time.Duration) (string, error)
 	// VerifyKey returns the verification key for a given token
 	VerificationKey(t *Token) (interface{}, error)
 }
@@ -190,31 +195,23 @@ func NewPrivKeySource(privKey crypto.PrivKey) (Source, error) {
 
 // CreateToken returns a new JWT token
 func (a *pkSource) CreateToken(pro *profile.Profile, ttl time.Duration) (string, error) {
-	// create a signer for rsa 256
-	t := jwt.New(a.signingMethod)
-
-	var exp int64
-	if ttl != time.Duration(0) {
-		exp = Timestamp().Add(ttl).In(time.UTC).Unix()
-	}
-
 	// set our claims
-	t.Claims = &Claims{
+	claims := &Claims{
 		StandardClaims: &jwt.StandardClaims{
 			Subject: pro.ID.String(),
-			// set the expire time
-			// see http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-20#section-4.1.4
-			ExpiresAt: exp,
+			Issuer:  pro.ID.String(),
 		},
-		ProfileID: pro.ID.String(),
+		ClientType: UserClient,
 	}
 
-	// Creat token string
-	return t.SignedString(a.signKey)
+	return a.CreateTokenWithClaims(claims, ttl)
 }
 
 // CreateToken returns a new JWT token from provided claims
-func (a *pkSource) CreateTokenWithClaims(claims jwt.MapClaims, ttl time.Duration) (string, error) {
+func (a *pkSource) CreateTokenWithClaims(claims *Claims, ttl time.Duration) (string, error) {
+	if claims == nil {
+		return "", fmt.Errorf("empty token claims")
+	}
 	// create a signer for rsa 256
 	t := jwt.New(a.signingMethod)
 
@@ -222,7 +219,9 @@ func (a *pkSource) CreateTokenWithClaims(claims jwt.MapClaims, ttl time.Duration
 	if ttl != time.Duration(0) {
 		exp = Timestamp().Add(ttl).In(time.UTC).Unix()
 	}
-	claims["exp"] = exp
+	// set the expire time
+	// see http://tools.ietf.org/html/draft-ietf-oauth-json-web-token-20#section-4.1.4
+	claims.StandardClaims.ExpiresAt = exp
 	t.Claims = claims
 
 	// Creat token string

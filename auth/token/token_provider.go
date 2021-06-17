@@ -20,6 +20,8 @@ const (
 	AccessTokenTTL = time.Hour * 2
 	// RefreshTokenTTL is the lifespan of a refresh token
 	RefreshTokenTTL = time.Hour * 24 * 30
+	// AccessCodeTTL is the lifespan of an access code
+	AccessCodeTTL = time.Minute * 2
 )
 
 var (
@@ -29,6 +31,18 @@ var (
 	ErrInvalidCredentials = fmt.Errorf("invalid user credentials")
 	// ErrNotFound is returned when no matching results exist for the provided credentials
 	ErrNotFound = fmt.Errorf("user not found")
+	// ErrServerError is returned on unexpected errors
+	ErrServerError = fmt.Errorf("server error")
+	// ErrInvalidAuthorizeCode is returned on parsing an invalid authorization code
+	ErrInvalidAuthorizeCode = fmt.Errorf("invalid authorize code")
+	// ErrInvalidAccessToken is returned on parsing an invalid access token
+	ErrInvalidAccessToken = fmt.Errorf("invalid access token")
+	// ErrCodeExpired is returned for expired authorization codes
+	ErrCodeExpired = fmt.Errorf("code expired")
+	// ErrTokenExpired is returned for expired tokens
+	ErrTokenExpired = fmt.Errorf("token expired")
+	// ErrInvalidRefreshToken is returned on parsing invalid refresh tokens
+	ErrInvalidRefreshToken = fmt.Errorf("invalid refresh token")
 )
 
 // Provider is a service that generates access & refresh tokens
@@ -82,6 +96,20 @@ func (gt GrantType) String() string {
 		return string(gt)
 	}
 	return ""
+}
+
+// ClientType is used to enumerate the user types to distingish them later from the token
+type ClientType string
+
+const (
+	// UserClient represents a human user that's authenticated with his own credentials
+	UserClient ClientType = "user"
+	// NodeClient represents a machine client that's authenticated with api client credentials
+	NodeClient ClientType = "node"
+)
+
+func (ct ClientType) String() string {
+	return string(ct)
 }
 
 // LocalProvider implements the Provider interface and
@@ -144,6 +172,9 @@ func (p *LocalProvider) Token(ctx context.Context, req *Request) (*Response, err
 		resp.AccessToken = accessToken
 		resp.RefreshToken = refreshToken
 	case Refreshing:
+		if req.RefreshToken == "" {
+			return nil, ErrInvalidRequest
+		}
 		tok, err := ParseAuthToken(req.RefreshToken, p.keys)
 		if err != nil {
 			log.Debugf("token.Provider error parsing refresh token: %q", err.Error())
@@ -151,7 +182,7 @@ func (p *LocalProvider) Token(ctx context.Context, req *Request) (*Response, err
 		}
 
 		if claims, ok := tok.Claims.(*Claims); ok {
-			pid, err := profile.IDB58Decode(claims.ProfileID)
+			pid, err := profile.IDB58Decode(claims.Subject)
 			if err != nil {
 				log.Debugf("token.Provider failed to parse profileID")
 				return nil, ErrInvalidRequest

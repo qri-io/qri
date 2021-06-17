@@ -12,7 +12,7 @@ import (
 
 const (
 	// AEToken is the token provider endpoint
-	AEToken = lib.APIEndpoint("/token")
+	AEToken = lib.APIEndpoint("/oauth/token")
 )
 
 // TokenHandler is a handler to authenticate and generate access & refresh tokens
