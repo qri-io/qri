@@ -5,19 +5,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
+	logger "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/profile"
 )
 
-// ErrNotFound indicates a query for an unknown value
-var ErrNotFound = fmt.Errorf("not found")
+var (
+	// ErrNotFound indicates a query for an unknown value
+	ErrNotFound = fmt.Errorf("not found")
+	log         = logger.Logger("collection")
+)
 
 // Set maintains lists of datasets, with each list scoped to a user profile.
 // A user's collection may consist of datasets they have created and datasets
@@ -243,14 +248,13 @@ func (s *localSet) saveProfileCollection(pid profile.ID) error {
 		return fmt.Errorf("saving collection: %w: profile ID %q", ErrNotFound, pid)
 	}
 
-	path := filepath.Join(s.basePath, fmt.Sprintf("%s.json", pid.String()))
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0644)
+	data, err := json.Marshal(items)
 	if err != nil {
-		return err
+		return fmt.Errorf("serializing user colletion: %w", err)
 	}
-	defer f.Close()
 
-	return json.NewEncoder(f).Encode(items)
+	path := filepath.Join(s.basePath, fmt.Sprintf("%s.json", pid.String()))
+	return ioutil.WriteFile(path, data, 0644)
 }
 
 func (s *localSet) subscribe(bus event.Bus) {
@@ -293,6 +297,12 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 	case event.ETDatasetDeleteAll:
 		// TODO(b5): need user-scoped events for this, unless we want one user
 		// removing a dataset to remove it from all collections of all users
+		if change, ok := e.Payload.(event.DsChange); ok {
+			if err := s.deleteAcrossAllCollections(change.InitID); err != nil {
+				// TODO(b5): log error
+				log.Debugw("removing dataset across all collections", "initID", change.InitID, "err", err)
+			}
+		}
 	}
 	return nil
 }
@@ -309,6 +319,27 @@ func (s *localSet) updateOneAcrossAllCollections(initID string, mutate func(vi *
 				if err := s.saveProfileCollection(pid); err != nil {
 					return err
 				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *localSet) deleteAcrossAllCollections(removeID string) error {
+	s.Lock()
+	defer s.Unlock()
+
+	for pid, col := range s.collections {
+		for i, item := range col {
+			if item.InitID == removeID {
+				copy(col[i:], col[i+1:])              // Shift a[i+1:] left one index.
+				col[len(col)-1] = dsref.VersionInfo{} // Erase last element (write zero value).
+				s.collections[pid] = col[:len(col)-1] // Truncate slice.
+				if err := s.saveProfileCollection(pid); err != nil {
+					return err
+				}
+				break
 			}
 		}
 	}

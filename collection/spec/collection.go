@@ -290,6 +290,14 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
 
+		mustPublish(ctx, t, bus, event.ETDatasetDeleteAll, event.DsChange{
+			InitID:     muppetNamesInitID,
+			PrettyName: muppetNamesName2,
+		})
+
+		expect = []dsref.VersionInfo{}
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+
 		// TODO (b5): create a second dataset, use different timestamps for both,
 		// assert default ordering of datasets
 	})
