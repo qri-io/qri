@@ -20,10 +20,10 @@ import (
 type computeFieldsFile struct {
 	*sync.Mutex
 
-	fs  qfs.Filesystem  // filesystem we're writing to
-	pub event.Publisher // bus to publish progress events to
-	pk  crypto.PrivKey  // key for signing version
-	sw  SaveSwitches
+	fs        qfs.Filesystem  // filesystem we're writing to
+	publisher event.Publisher // optional bus to publish progress events to
+	pk        crypto.PrivKey  // key for signing version
+	sw        SaveSwitches
 
 	ds, prev *dataset.Dataset
 
@@ -89,7 +89,7 @@ func newComputeFieldsFile(
 	cff := &computeFieldsFile{
 		Mutex:      dsLk,
 		fs:         fs,
-		pub:        pub,
+		publisher:  pub,
 		pk:         pk,
 		sw:         sw,
 		ds:         ds,
@@ -219,24 +219,26 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 		return
 	}
 
-	// publish here so we know that if the user sees the "processing body file"
-	// message, we know that a compute-fields-file has made it all the way through
-	// setup
-	go func() {
-		completion := 0.1
-		if cff.bodySize >= 0 {
-			completion = float64(cff.teeReader.BytesRead()) / float64(cff.bodySize)
-		}
-		evtErr := cff.pub.Publish(ctx, event.ETDatasetSaveProgress, event.DsSaveEvent{
-			Username:   cff.ds.Peername,
-			Name:       cff.ds.Name,
-			Message:    "processing body file",
-			Completion: completion,
-		})
-		if evtErr != nil {
-			log.Debugw("ignored error while publishing save progress", "evtErr", evtErr)
-		}
-	}()
+	if cff.publisher != nil {
+		// publish here so we know that if the user sees the "processing body file"
+		// message, we know that a compute-fields-file has made it all the way through
+		// setup
+		go func() {
+			completion := 0.1
+			if cff.bodySize >= 0 {
+				completion = float64(cff.teeReader.BytesRead()) / float64(cff.bodySize)
+			}
+			evtErr := cff.publisher.Publish(ctx, event.ETDatasetSaveProgress, event.DsSaveEvent{
+				Username:   cff.ds.Peername,
+				Name:       cff.ds.Name,
+				Message:    "processing body file",
+				Completion: completion,
+			})
+			if evtErr != nil {
+				log.Debugw("ignored error while publishing save progress", "evtErr", evtErr)
+			}
+		}()
+	}
 
 	go func() {
 		err = dsio.EachEntry(r, func(i int, ent dsio.Entry, err error) error {
@@ -367,10 +369,10 @@ func (cff *computeFieldsFile) flushBatch(ctx context.Context, buf *dsio.EntryBuf
 		return 0, fmt.Errorf("%w. found at least %d errors", ErrStrictMode, len(*validationState.Errs))
 	}
 
-	if cff.bodySize > 0 && cff.pub != nil {
+	if cff.publisher != nil && cff.bodySize > 0 {
 		go func() {
 			completion := float64(cff.teeReader.BytesRead()) / float64(cff.bodySize)
-			evtErr := cff.pub.Publish(ctx, event.ETDatasetSaveProgress, event.DsSaveEvent{
+			evtErr := cff.publisher.Publish(ctx, event.ETDatasetSaveProgress, event.DsSaveEvent{
 				Username:   cff.ds.Peername,
 				Name:       cff.ds.Name,
 				Message:    "processing body file",
