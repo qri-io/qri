@@ -250,7 +250,7 @@ func (s *localSet) saveProfileCollection(pid profile.ID) error {
 
 	data, err := json.Marshal(items)
 	if err != nil {
-		return fmt.Errorf("serializing user colletion: %w", err)
+		return fmt.Errorf("serializing user collection: %w", err)
 	}
 
 	path := filepath.Join(s.basePath, fmt.Sprintf("%s.json", pid.String()))

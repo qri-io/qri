@@ -13,7 +13,7 @@ import (
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
-func TestMigrateRepoStoreToLocalCollection(t *testing.T) {
+func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -31,7 +31,7 @@ func TestMigrateRepoStoreToLocalCollection(t *testing.T) {
 		t.Fatalf("test repo has no datasets")
 	}
 
-	set, err := MigrateRepoStoreToLocalCollection(ctx, event.NilBus, "", r)
+	set, err := MigrateRepoStoreToLocalCollectionSet(ctx, event.NilBus, "", r)
 	if err != nil {
 		t.Fatal(err)
 	}

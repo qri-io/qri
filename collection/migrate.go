@@ -8,7 +8,9 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-func MigrateRepoStoreToLocalCollection(ctx context.Context, bus event.Bus, repoDir string, r repo.Repo) (Set, error) {
+// MigrateRepoStoreToLocalCollectionSet constructs a local collection.Set from
+// legacy repo data
+func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, bus event.Bus, repoDir string, r repo.Repo) (Set, error) {
 	datasets, err := repo.ListVersionInfoShim(r, 0, 1000000)
 	if err != nil {
 		return nil, err
