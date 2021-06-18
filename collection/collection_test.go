@@ -25,7 +25,7 @@ func TestLocalCollection(t *testing.T) {
 }
 
 func TestLocalCollectionEvents(t *testing.T) {
-	spec.AssertCollectionEventSpec(t, constructor)
+	spec.AssertCollectionEventListenerSpec(t, constructor)
 }
 
 func TestCollectionPersistence(t *testing.T) {

@@ -198,9 +198,10 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 	})
 }
 
-// AssertCollectionEventSpec defines expected behaviours for collections
-// use events to update state
-func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
+// AssertCollectionEventListenerSpec defines expected behaviours for collections
+// that use event subscriptions to update state.
+// Event Listener specs are optional.
+func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	bus := event.NewBus(ctx)
