@@ -533,7 +533,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 
 	tmplData := map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
+		"path":      "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
 	}
 
 	// Create a dataset, using the "anonymous" generated username.
@@ -632,7 +632,7 @@ func TestListFormatJson(t *testing.T) {
   }
 ]`, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
+		"path":      "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {

@@ -5,9 +5,9 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "meta added\nbody:\n\tchanged by 54%",
-    "path": "/ipfs/QmVwbUnFvKnuv5rRfiwJHvLfJwkNo464gJsKd6cvdvFWHq",
+    "path": "/ipfs/QmQUtxguJdgMBV14NRuhaNpirzCNg1uMpLYJJC6gA18vkG",
     "qri": "cm:0",
-    "signature": "Fufc0GZw5xGnjspmY1bC+XVnzmZ9KiqHyKITgbSzvWklWBvxj4EEGi2BKB+2QX7gIlrO3EbVAm1C+syc4iSVLHKsuT5XhczQ5xx/rwaDBxN5d7AUelv+/z9bhx4KNHMMDIa6RAC07PFdtZUP/WSBjmPixeeniM8VbV7QCboixdAiev25GauGe71P2Dt2+8/FqLnsG+MPq3YvZ3XFX0Mgyy8BvztEBHFDIISgCzt0pMzEO+SL2BgxkyMqzCGGHrSZy42/45mrtyBen/tFQ+FIjnTfsGRirCMpV4Yr6QR8X40vXA71Mw1+TuI4q0M4wHwvO27wIWx8FatgBe81//6FKA==",
+    "signature": "RuzfOhuyxwqqgMnuPD4CcQ22pvaTnNduEkklfTIYyGguQvCQCeX1gu/5LEL5TiAqFIuq8Myz6kuuB0rCbrCBc+uqixEpWNAwzaJG0AEfKfFYJsswhrcI8tw9szo4UpIZfdyq0eVoNi+r9zsgBxdzStSObn/W5xEhsGpryUr3fE97H0Taj/eZQVvvF5KIwpjU/Wpye6DLt16bXGPltc/nl4XBKU8kbXnf2d4ezjKlN/4VEWF1FhWJaLFAsQp3qR0mxW+AijytNkgYaWMu4nGSOEobRLemDKjUUACLCieAou2rDIUGKnie0lRof3zqxHMThfKE0InUj/Z2paVjCgfYnw==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
     "title": "updated meta and body"
   },
@@ -16,8 +16,8 @@
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmWVpieb5vtTKs3EufHGzkdateucaq7su2cfYeAmGv8fkv",
-  "previousPath": "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
+  "path": "/ipfs/QmNxSSuszRkwKq6pUUVbX98CRhTajJnP55nXaEukF5D99g",
+  "previousPath": "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB",
@@ -50,7 +50,7 @@
     }
   },
   "stats": {
-    "path": "/ipfs/QmeTrXTwwTZLLxqwfdvAjbvSqzrWkkUKNefoS5GAsdcFXZ",
+    "path": "/ipfs/Qmc3QsRMdo1rqY3F5Shr2Kd25yib6R4Ktgz3RdXTXwVjDU",
     "qri": "sa:0",
     "stats": [
       {
@@ -62,16 +62,16 @@
           "Harry Potter and the Half-Blood Prince ": 1,
           "John Carter ": 1,
           "Man of Steel ": 1,
-          "Pirates of the Caribbean: At World's End ": 1,
-          "Pirates of the Caribbean: Dead Man's Chest ": 1,
+          "Pirates of the Caribbean: At World's End... 41 chars (6)": 1,
+          "Pirates of the Caribbean: Dead Man's Che... 43 chars (7)": 1,
           "Quantum of Solace ": 1,
           "Spectre ": 1,
           "Spider-Man 3 ": 1,
-          "Star Wars: Episode VII - The Force Awakens             ": 1,
+          "Star Wars: Episode VII - The Force Awake... 55 chars (11)": 1,
           "Superman Returns ": 1,
           "Tangled ": 1,
           "The Avengers ": 1,
-          "The Chronicles of Narnia: Prince Caspian ": 1,
+          "The Chronicles of Narnia: Prince Caspian... 41 chars (15)": 1,
           "The Dark Knight Rises ": 1,
           "The Lone Ranger ": 1
         },

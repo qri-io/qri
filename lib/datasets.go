@@ -561,11 +561,11 @@ func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
 		if ds.Structure == nil {
 			// TODO - this is silly and should move into base.PrepareDataset funcs
 			ds.Structure = &dataset.Structure{}
-			format, err := detect.ExtensionDataFormat(bodyHeader.Filename)
+			format, comp, err := detect.FormatFromFilename(bodyHeader.Filename)
 			if err != nil {
 				return err
 			}
-			st, _, err := detect.FromReader(format, bytes.NewReader(ds.BodyBytes))
+			st, _, err := detect.FromReader(format, comp, bytes.NewReader(ds.BodyBytes))
 			if err != nil {
 				return err
 			}

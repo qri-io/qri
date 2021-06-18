@@ -161,5 +161,5 @@ func ConvertBodyFormat(bodyFile qfs.File, fromSt, toSt *dataset.Structure) (qfs.
 		return nil, err
 	}
 
-	return qfs.NewMemfileReader(fmt.Sprintf("body.%s", toSt.Format), buffer), nil
+	return qfs.NewMemfileReader(toSt.BodyFilename(), buffer), nil
 }

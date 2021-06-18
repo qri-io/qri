@@ -90,16 +90,16 @@ func TestHTTPClient(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	body, err := json.Marshal(res)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	// Compare the API response to the expected zip file
 	expectBytes, err := ioutil.ReadFile("testdata/http_client/list.json")
 	if err != nil {
 		t.Fatalf("error reading expected bytes: %s", err)
 	}
-	if diff := cmp.Diff(string(expectBytes), string(body)); diff != "" {
+	var expect []dsref.VersionInfo
+	if err := json.Unmarshal(expectBytes, &expect); err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(expect, res); diff != "" {
 		t.Errorf("byte mismatch (-want +got):\n%s", diff)
 	}
 }

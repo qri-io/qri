@@ -5,9 +5,9 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.lazyQuotes\n\tupdated schema.items.items.0.title\nbody:\n\tadded row /",
-    "path": "/ipfs/QmVt2hxUzuRyiqzuA8nQX5iepxZYVucNHpPSG76EDzz8tz",
+    "path": "/ipfs/Qmf8LAtweyFDtH2y5Py9KgGvmBUE1SLcd3t5da1gxdEp4s",
     "qri": "cm:0",
-    "signature": "BklAS6xs3PXgnGn1hQQE2XxnvGcnPWJd1XH9Su2XNUwqKAMGwqqyOUk8VYC3RtYfGcILfnDJs/6NLqwCcAukNTpOaFu3UDbxA1lIsTtEaT9TSBwGg6IRaO2RG/UOn9u2bSImyI5FuPdOUhrqVq6/x8pRNy6wbiqNVKkQnKmrB7WgTr+CJCE5C10j92E6/iiGkHlfctWpxZJWWrsaxsW43oj0dvFE3W2sc7WYykjHz5ZROYOtCKXkAo5sVrUduRGIqDz4zIZ9qKqw3jz4TOt0PGQzEXUkQ6CTZjt3rCtSYVY8hl+F/G8jtC+hmPy3olgPdFYbAsb+WFdIZB4TmsM24g==",
+    "signature": "TbRg15nt0nGeSLMWMgM90GlOk9wZLhldcEsAquTw1OJX1b5qmZnm7UrTJSGDnLqhSqE9+e5DCINAhxY+PGayIp1hyWTTJX5694yfeN6650l/0z25a4Lhl0UerKkXxkHKvaaAR8tesllKdorYlsUGKMeAjh4QEMfkgakoE3FaJsFBEDUIiEijrIICUw77lKKe8YTyyKRFEsMcFXD0ZBK8AC3GTga9QE0ne66tiitSPWaZ39XYXYzuc+uR7jm55LG68SY9Luk/xfu4E8CUrmJvvoRBLym6gqFOq5Lfa1l8+2YShXzDN+ZeMR6T179YKQNNoWYsybCaoBR6fgU/JDsckQ==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
     "title": "updated meta, structure, and body"
   },
@@ -16,8 +16,8 @@
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmeD5mkDMJtMXqRUfWwETMwA7sMZbFzyHgXc14UK6g5Hn7",
-  "previousPath": "/ipfs/QmNeH3bPvUdir2vRH57TiiSmDKmsEPpdfV7bgqfUXZKa6v",
+  "path": "/ipfs/QmVZzGj2TujZuHE9XLSCJ4Wd49S9776v3VceWEhSUxNchg",
+  "previousPath": "/ipfs/QmZpWS4BxQkDFd3Vrsnex7EFmCU3zex9GpnfmTmyjCwbfE",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
@@ -49,7 +49,7 @@
     }
   },
   "stats": {
-    "path": "/ipfs/QmP3JJ7TGyKU7HnooajjfuEvFxpVigqcZQtajpsboPxeBz",
+    "path": "/ipfs/QmbJeH82n56LBGBsRWxmSctrUy1Urr1epePSpQ8bMgufsG",
     "qri": "sa:0",
     "stats": [
       {
@@ -57,10 +57,10 @@
         "frequencies": {
           "Avatar ": 1,
           "John Carter ": 1,
-          "Pirates of the Caribbean: At World's End ": 1,
+          "Pirates of the Caribbean: At World's End... 41 chars (2)": 1,
           "Spectre ": 1,
           "Spider-Man 3 ": 1,
-          "Star Wars: Episode VII - The Force Awakens             ": 1,
+          "Star Wars: Episode VII - The Force Awake... 55 chars (5)": 1,
           "Tangled ": 1,
           "The Dark Knight Rises ": 1
         },

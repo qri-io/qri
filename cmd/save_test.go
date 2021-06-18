@@ -142,10 +142,10 @@ func TestSaveRun(t *testing.T) {
 		{"no data", "me/bad_dataset", "", "", "", "", true, "", "no changes to save", ""},
 		{"bad dataset file", "me/cities", "bad/filpath.json", "", "", "", true, "", "open bad/filpath.json: no such file or directory", ""},
 		{"bad body file", "me/cities", "", "bad/bodypath.csv", "", "", true, "", "opening body file: opening dataset.bodyPath 'bad/bodypath.csv': path not found", ""},
-		{"good inputs", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@/mem/QmT7w7Lr2macJ33NA1aiPyCSpM4vPrNUuo4xGdGzwsmL6J\nthis dataset has 1 validation errors\n", "", ""},
-		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@/mem/QmTb4ZF9igbKz7ir6b9bbpBvqH7zAsWC1j2h8aaijzjQGA\nthis dataset has 1 validation errors\n", "", ""},
+		{"good inputs", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@/mem/QmU8LkXYdPtFQcqxYRxvSYVR8dYzR6i34HtwXYjDzBwWs9\nthis dataset has 1 validation errors\n", "", ""},
+		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@/mem/Qme77Bh4VSsZBbGHLon9YUHwqmQJQa6VYT9eGoVYSF3MZo\nthis dataset has 1 validation errors\n", "", ""},
 		{"no changes", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", true, "", "error saving: no changes", ""},
-		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, "dataset saved: peer/movies@/mem/QmXNfs9TeHN9rpyeUb2aABeTq6NKGhKEj94hjUff3YgkBT\nthis dataset has 1 validation errors\n", "", ""},
+		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, "dataset saved: peer/movies@/mem/QmT3RYgyjwdobD97pNtcMv3rpMUBiecVSP46kMPS95E9AP\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
 	for _, c := range cases {
@@ -241,7 +241,7 @@ Tangled ,100
     created dataset from body_ten.csv
 
 `, map[string]string{
-		"path": "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
+		"path": "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
 	})
 
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -270,8 +270,8 @@ func TestSaveBasicCommands(t *testing.T) {
 	os.Chdir(tmpPath)
 
 	tmplData := map[string]string{
-		"path1": "/ipfs/QmUb5np1F1Y4DUrBw3EiYTN9h2MSD4vm12ZDLftbG9vH61",
-		"path2": "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
+		"path1": "/ipfs/QmeW16M3mE8y3kGZzgSuWNnN3LZL8JFYZi1mHGCSQ1me3C",
+		"path2": "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
 	}
 
 	goodCases := []struct {
@@ -397,7 +397,7 @@ func TestSaveInferName(t *testing.T) {
 		"path3": "/ipfs/QmY5SfLwcT8QpjAvfx4TxTmsCVU8Um9BHNvPWH9AEKJ7Fe",
 		"path4": "/ipfs/QmZmqxZACZBUzyNR42L79kPzdxXzcVv9pRSkeMHtexGwom",
 		"path5": "/ipfs/QmVLg74dDmcuGc1FTJGcz415T1hWJHnsd1JbYm321n2cro",
-		"path6": "/ipfs/QmPh2rvRw3y54Ud8RfyvvXgJsesoVD8eoXHL96jB3tThPA",
+		"path6": "/ipfs/QmdeMGiLh3SyWTdDuvnuN1SKEB3u4TUft5HRKT1p3FXNug",
 		"path7": "/ipfs/QmT1yXvkYNJjC6GkmReLj5aKTQa4s1mR5hiAc3rZJbzQZZ",
 	}
 
@@ -1001,8 +1001,8 @@ func TestSaveLargeBodyIsSame(t *testing.T) {
     created dataset from body_ten.csv
 
 `, map[string]string{
-		"path1": "/ipfs/QmRNtKf1ruTX77zVhVEm4g8ZdfbyMLpoErJFJnQPreYw1u",
-		"path2": "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
+		"path1": "/ipfs/QmPZiHBFGxA4p53VfV29tXEZ667SiNkXamC9oCjFhPWVX4",
+		"path2": "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {

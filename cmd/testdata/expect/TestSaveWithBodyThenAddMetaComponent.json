@@ -5,9 +5,9 @@
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
     "message": "meta added\nbody:\n\tadded row /",
-    "path": "/ipfs/QmRTCqB5uULv6FRQG8bbUvA1VJFhNAC3i9yEFRdmcHeKYh",
+    "path": "/ipfs/QmUb9DKT2x8Cbe75sVdNKa3uEZzVaTo5B1NEpmUGpr87MU",
     "qri": "cm:0",
-    "signature": "lkWFeHT2iFYBpTyrOUcFmepfNXsZw85i/znFQ5XTcUHDySPUIna5e7Ogj35VErhh8O/fR3s30WfsK7PZGHki29dPqk3narfL5WYWDV0iTxT0nuw+1ewnjFszvgXOuEo+1+XkX+2CsXpEuzltyvbQ2x1QNVVVaVnnRUYCosxc3fComk00+ET5SW2oZbHCmU2F8/IOPN+/sDyyfk/dvsRfKl/adoNSJ/LjvMdWyB44gRr+m54HfAo9+5raBde2HcDyoHU4Vne865x+SRbEehJZCIdNjRssGWx4Lahz8R681dpZxhmiWj0IWWK+sXFoilVy2ydzOkL8CyG1DQ4JSJpYjg==",
+    "signature": "DLZfNN6+75R5Yxe3AHPpU1BBrgndN6pEZJTs2Hhy/5Q2MzIvH/pplz59RvUXoZVGkCJNKnSnQcIR7LxWuXjkqRtNLzOt7Pa47NL5THH56tlwLUiX8NyffhPPPiUPU6cURQi2kYr2jYALTqmMaymCXNDybbyl9Vy3MTDxQL6naNvA5WGLI5fcksDvTFSHnkRvcxjsxS4z5bPd0Xek2F4MsEdPmWB59W6S3Z56uwrdj07ttFGq8UeNoyV6+sijjI4CsACvjSjLQo4NQfLTMRWrg6pufjn4Z8JruILjvLymR0wnMldvZsiWC8ZI/MjfXfM6HsAWs2moe4jFJL+zdAPqMg==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
     "title": "updated meta and body"
   },
@@ -16,8 +16,8 @@
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmTcDd6yp9mEAuDQR2sUBoYh7LFuHMbpamu6T4kbM9TnqF",
-  "previousPath": "/ipfs/QmRQYDZMgrxE8SLQXKRxJRZRDshQwJBDdb2d27ZNFiVghM",
+  "path": "/ipfs/QmTA5KVatx92BktVb5pDo8cniME2g9sBS5rNBPnGdDD824",
+  "previousPath": "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
@@ -50,7 +50,7 @@
     }
   },
   "stats": {
-    "path": "/ipfs/QmP3JJ7TGyKU7HnooajjfuEvFxpVigqcZQtajpsboPxeBz",
+    "path": "/ipfs/QmbJeH82n56LBGBsRWxmSctrUy1Urr1epePSpQ8bMgufsG",
     "qri": "sa:0",
     "stats": [
       {
@@ -58,10 +58,10 @@
         "frequencies": {
           "Avatar ": 1,
           "John Carter ": 1,
-          "Pirates of the Caribbean: At World's End ": 1,
+          "Pirates of the Caribbean: At World's End... 41 chars (2)": 1,
           "Spectre ": 1,
           "Spider-Man 3 ": 1,
-          "Star Wars: Episode VII - The Force Awakens             ": 1,
+          "Star Wars: Episode VII - The Force Awake... 55 chars (5)": 1,
           "Tangled ": 1,
           "The Dark Knight Rises ": 1
         },

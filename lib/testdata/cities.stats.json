@@ -1,0 +1,70 @@
+[
+  {
+    "count": 5,
+    "frequencies": {
+      "chatham": 1,
+      "chicago": 1,
+      "new york": 1,
+      "raleigh": 1,
+      "toronto": 1
+    },
+    "maxLength": 8,
+    "minLength": 7,
+    "type": "string",
+    "unique": 5
+  },
+  {
+    "count": 5,
+    "histogram": {
+      "bins": [
+        35000,
+        250000,
+        300000,
+        8500000,
+        40000000,
+        40000001
+      ],
+      "frequencies": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    "max": 40000000,
+    "mean": 9817000,
+    "median": 300000,
+    "min": 35000,
+    "type": "numeric"
+  },
+  {
+    "count": 5,
+    "histogram": {
+      "bins": [
+        44.4,
+        50.65,
+        55.5,
+        65.25,
+        66.25
+      ],
+      "frequencies": [
+        2,
+        1,
+        1,
+        1
+      ]
+    },
+    "max": 65.25,
+    "mean": 52.04,
+    "median": 50.65,
+    "min": 44.4,
+    "type": "numeric"
+  },
+  {
+    "count": 5,
+    "falseCount": 1,
+    "trueCount": 4,
+    "type": "boolean"
+  }
+]

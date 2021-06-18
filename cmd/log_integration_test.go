@@ -133,7 +133,7 @@ func TestLogAndDeletes(t *testing.T) {
     created dataset from body_ten.csv
 
 `, map[string]string{
-		"path": "/ipfs/QmVomSiVLaHRThHffr32MqeTcstdBPiKrEQzn46ixoQR1Y",
+		"path": "/ipfs/QmRHxewn3GLFtkUMnuMycmb9CoR5qVTmKUdEPVcuJTXgxi",
 	})
 
 	if diff := cmpTextLines(expect, output); diff != "" {
