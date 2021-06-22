@@ -198,6 +198,8 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 	skyCtx := skyctx.NewContext(next.Transform.Config, o.Secrets)
 	thread := &starlark.Thread{Load: t.ModuleLoader}
 
+	analyzeScriptFile(thread, script.FileName())
+
 	// execute the transformation
 	t.globals, err = starlark.ExecFile(thread, pipeScript.FileName(), pipeScript, t.locals())
 	if err != nil {
