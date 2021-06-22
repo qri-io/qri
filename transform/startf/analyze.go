@@ -32,7 +32,16 @@ func doAnalyze(thread *starlark.Thread, filename string) error {
 	}
 
 	text := string(data)
-	fmt.Printf("%s\n", text)
+	fmt.Printf("%s\n================================\n\n", text)
+
+	for i, stmt := range f.Stmts {
+		switch item := stmt.(type) {
+		case *starlarkSyntax.DefStmt:
+			fmt.Printf("%d: def func: %q\n", i, item.Name.Name)
+		default:
+			fmt.Printf("%d: other top-level stmt\n", i)
+		}
+	}
 
 	return nil
 }
