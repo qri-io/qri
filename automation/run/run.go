@@ -25,17 +25,6 @@ func NewID() string {
 	return uuid.New().String()
 }
 
-// // ID is a run identifier
-// type ID string
-
-// // NewID creates a run identifier
-// func NewID() ID {
-// 	return ID(uuid.New().String())
-// }
-
-// // String returns the ID as the underlying string
-// func (id ID) String() string { return string(id) }
-
 // SetIDRand sets the random reader that NewID uses as a source of random bytes
 // passing in nil will default to crypto.Rand. This can be used to make ID
 // generation deterministic for tests. eg:
@@ -86,6 +75,11 @@ type State struct {
 	Steps      []*StepState `json:"steps"`
 }
 
+// NewState returns a new *State with the given runID
+func NewState(runID string) *State {
+	return &State{ID: runID}
+}
+
 // Validate errors if the run is not valid
 func (rs *State) Validate() error {
 	if rs.ID == "" {
@@ -97,20 +91,23 @@ func (rs *State) Validate() error {
 	return nil
 }
 
-// Copy shallowly copies the contents of run parameter into the receiver
-func (rs *State) Copy(run *State) {
+// Copy returns a shallow copy of the receiver
+func (rs *State) Copy() *State {
 	if rs == nil {
-		rs = &State{}
+		return nil
 	}
-	rs.ID = run.ID
-	rs.WorkflowID = run.WorkflowID
-	rs.Number = run.Number
-	rs.Status = run.Status
-	rs.Message = run.Message
-	rs.StartTime = run.StartTime
-	rs.StopTime = run.StopTime
-	rs.Duration = run.Duration
-	rs.Steps = run.Steps
+	run := &State{
+		ID:         rs.ID,
+		WorkflowID: rs.WorkflowID,
+		Number:     rs.Number,
+		Status:     rs.Status,
+		Message:    rs.Message,
+		StartTime:  rs.StartTime,
+		StopTime:   rs.StopTime,
+		Duration:   rs.Duration,
+		Steps:      rs.Steps,
+	}
+	return run
 }
 
 // AddTransformEvent alters state based on a given event

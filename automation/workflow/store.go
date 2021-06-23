@@ -71,8 +71,7 @@ func (m *MemStore) Put(wf *Workflow) (*Workflow, error) {
 	if wf == nil {
 		return nil, ErrNilWorkflow
 	}
-	w := &Workflow{}
-	w.Copy(wf)
+	w := wf.Copy()
 	if w.ID != "" {
 		fetchedWF, err := m.Get(w.ID)
 		if errors.Is(err, ErrNotFound) {
@@ -159,7 +158,7 @@ func (m *MemStore) List(ctx context.Context, limit, offset int) ([]*Workflow, er
 		wfs.Add(wf)
 	}
 
-	if offset > wfs.Len() {
+	if offset >= wfs.Len() {
 		return []*Workflow{}, nil
 	}
 
@@ -196,7 +195,7 @@ func (m *MemStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Work
 		}
 	}
 
-	if offset > wfs.Len() {
+	if offset >= wfs.Len() {
 		return []*Workflow{}, nil
 	}
 

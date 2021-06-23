@@ -32,7 +32,7 @@ type Store interface {
 	// creates a new run.State. If RunID is not empty, it updates the
 	// associated run.
 	Put(r *State) (*State, error)
-	// Get gets the assocaited run.State
+	// Get gets the associated run.State
 	Get(id string) (*State, error)
 	// Count returns the number of runs for a given workflow.ID
 	Count(wid workflow.ID) (int, error)
@@ -98,8 +98,7 @@ func (s *MemStore) Put(r *State) (*State, error) {
 	if r == nil {
 		return nil, ErrNilRun
 	}
-	run := &State{}
-	run.Copy(r)
+	run := r.Copy()
 	if run.ID != "" {
 		fetchedR, err := s.Get(run.ID)
 		if errors.Is(err, ErrNotFound) {
@@ -182,7 +181,7 @@ func (s *MemStore) List(wid workflow.ID, limit, offset int) ([]*State, error) {
 		runs = append(runs, run)
 	}
 
-	if offset > len(runs) {
+	if offset >= len(runs) {
 		return []*State{}, nil
 	}
 
@@ -252,7 +251,7 @@ func (s *MemStore) ListByStatus(status Status, limit, offset int) ([]*State, err
 		}
 	}
 
-	if offset > set.Len() {
+	if offset >= set.Len() {
 		return []*State{}, nil
 	}
 
