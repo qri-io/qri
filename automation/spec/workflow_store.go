@@ -24,7 +24,7 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 
 	aliceDatasetID := "alice_dataset_id"
 	aliceProID := profile.ID("alice_pro_id")
-	aliceTrigger := trigger.NewRuntimeTrigger()
+	aliceTrigger := trigger.NewRuntimeTrigger(make(chan string))
 	aliceHook := hook.NewRuntimeHook("hook payload")
 	alice := &workflow.Workflow{
 		DatasetID: aliceDatasetID,
@@ -79,7 +79,7 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 
 	brittDatasetID := "britt_dataset_id"
 	brittProID := profile.ID("britt_pro_id")
-	brittTrigger := trigger.NewRuntimeTrigger()
+	brittTrigger := trigger.NewRuntimeTrigger(make(chan string))
 	brittHook := hook.NewRuntimeHook("hook payload")
 	britt := &workflow.Workflow{
 		DatasetID: brittDatasetID,
