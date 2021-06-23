@@ -82,18 +82,21 @@ func (w *Workflow) Validate() error {
 	return nil
 }
 
-// Copy shallowly copies the contents of the workflow parameter into the receiver
-func (w *Workflow) Copy(workflow *Workflow) {
+// Copy returns a shallow copy of the receiver
+func (w *Workflow) Copy() *Workflow {
 	if w == nil {
-		w = &Workflow{}
+		return nil
 	}
-	w.ID = workflow.ID
-	w.DatasetID = workflow.DatasetID
-	w.OwnerID = workflow.OwnerID
-	w.Created = workflow.Created
-	w.Deployed = workflow.Deployed
-	w.Triggers = workflow.Triggers
-	w.Hooks = workflow.Hooks
+	workflow := &Workflow{
+		ID:        w.ID,
+		DatasetID: w.DatasetID,
+		OwnerID:   w.OwnerID,
+		Created:   w.Created,
+		Deployed:  w.Deployed,
+		Triggers:  w.Triggers,
+		Hooks:     w.Hooks,
+	}
+	return workflow
 }
 
 // Set is a collection of Workflows that implements the sort.Interface,

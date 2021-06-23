@@ -100,7 +100,7 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 	}
 
 	if o.runs == nil {
-		// TODO(ramfox): once we ahve a `config.Automation` specified, we will have a
+		// TODO(ramfox): once we have a `config.Automation` specified, we will have a
 		// specific `run.NewStore` function that takes a `config.RunStore` & will
 		// return a specified `run.Store`
 		return nil, fmt.Errorf("no run store specified")
