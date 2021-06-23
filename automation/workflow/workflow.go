@@ -99,6 +99,27 @@ func (w *Workflow) Copy() *Workflow {
 	return workflow
 }
 
+// ScopeID returns the owner id
+func (w *Workflow) ScopeID() profile.ID {
+	return w.OwnerID
+}
+
+// WorkflowID returns the workflow id as a string
+func (w *Workflow) WorkflowID() string {
+	return w.ID.String()
+}
+
+// ActiveTriggers returns a list of triggers that are currently enabled
+func (w *Workflow) ActiveTriggers() []trigger.Trigger {
+	activeTriggers := []trigger.Trigger{}
+	for _, t := range w.Triggers {
+		if t.Active() {
+			activeTriggers = append(activeTriggers, t)
+		}
+	}
+	return activeTriggers
+}
+
 // Set is a collection of Workflows that implements the sort.Interface,
 // sorting a list of Set in reverse-chronological-then-alphabetical order
 type Set struct {

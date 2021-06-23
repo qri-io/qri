@@ -3,9 +3,13 @@ package trigger
 import (
 	"encoding/json"
 	"fmt"
+
+	golog "github.com/ipfs/go-log"
 )
 
 var (
+	log = golog.Logger("trigger")
+
 	// ErrUnexpectedType indicates the trigger type is unexpected
 	ErrUnexpectedType = fmt.Errorf("unexpected trigger type")
 )
@@ -23,10 +27,10 @@ func (tt Type) String() string {
 type Trigger interface {
 	json.Marshaler
 	json.Unmarshaler
-	// Enabled returns whether the Trigger is enabled
-	Enabled() bool
-	// SetEnabled sets the enabled status
-	SetEnabled(enabled bool) error
+	// Active returns whether the Trigger is enabled
+	Active() bool
+	// SetActive sets the enabled status
+	SetActive(active bool) error
 	// Type returns the Type of this Trigger
 	Type() Type
 	// Advance adjusts the Trigger once it has been triggered
