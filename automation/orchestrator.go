@@ -154,7 +154,7 @@ func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) error {
 	runID := run.NewID()
 	if o.runs != nil {
 		r := &run.State{ID: runID, WorkflowID: wid}
-		if _, err := o.runs.Put(r); err != nil {
+		if _, err := o.runs.Create(r); err != nil {
 			return err
 		}
 

@@ -17,18 +17,15 @@ var (
 	// ErrUnknownWorkflowID indicates that the given workflow.ID has no
 	// associated run.State in the Store
 	ErrUnknownWorkflowID = fmt.Errorf("unknown workflow ID")
-	// ErrPutWorkflowIDMismatch indicates the given run.ID is associated with
-	// a different WorkflowID than the one in the run.State
-	ErrPutWorkflowIDMismatch = fmt.Errorf("run.State's WorkflowID does not match the WorkflowID of the associated run.State currently in the store")
 )
 
 // Store stores and updates run.States. It is also responsible for tracking the
 // number of times a workflow has run, as well as listening for transform
 // events and updating the associated the run.State accordingly
 type Store interface {
-	// Put adds a run state to the Store. If the given RunID is empty, it
-	// creates a new run.State. If RunID is not empty, it updates the
-	// associated run.
+	// Create adds a new run State to the Store
+	Create(r *State) (*State, error)
+	// Put puts a run State with an existing run ID into the Store
 	Put(r *State) (*State, error)
 	// Get gets the associated run.State
 	Get(id string) (*State, error)
@@ -94,20 +91,17 @@ func NewMemStore() *MemStore {
 	return s
 }
 
-// Put adds a run.State to a MemStore
-func (s *MemStore) Put(r *State) (*State, error) {
+// Create adds a new run.State to a MemStore
+func (s *MemStore) Create(r *State) (*State, error) {
 	if r == nil {
 		return nil, fmt.Errorf("run is nil")
 	}
 	run := r.Copy()
-	if run.ID != "" {
-		if fetchedR, err := s.Get(run.ID); !errors.Is(err, ErrNotFound) {
-			if fetchedR.WorkflowID != run.WorkflowID {
-				return nil, ErrPutWorkflowIDMismatch
-			}
-		}
-	} else {
+	if run.ID == "" {
 		run.ID = NewID()
+	}
+	if _, err := s.Get(run.ID); !errors.Is(err, ErrNotFound) {
+		return nil, fmt.Errorf("run with this ID already exists")
 	}
 	if err := run.Validate(); err != nil {
 		return nil, err
@@ -116,15 +110,37 @@ func (s *MemStore) Put(r *State) (*State, error) {
 	defer s.mu.Unlock()
 	_, ok := s.workflows[run.WorkflowID]
 	if !ok {
-		wf := newWorkflowMeta()
-		s.workflows[run.WorkflowID] = wf
+		wfm := newWorkflowMeta()
+		s.workflows[run.WorkflowID] = wfm
 	}
-	_, ok := s.runs[run.ID]
-	if !ok {
-		s.workflows[run.WorkflowID].count++
-		runIDs := s.workflows[run.WorkflowID].runIDs
-		s.workflows[run.WorkflowID].runIDs = append(runIDs, run.ID)
+	s.workflows[run.WorkflowID].count++
+	runIDs := s.workflows[run.WorkflowID].runIDs
+	s.workflows[run.WorkflowID].runIDs = append(runIDs, run.ID)
+	s.runs[run.ID] = run
+	return run, nil
+}
+
+// Put updates an existing run.State in a MemStore
+func (s *MemStore) Put(r *State) (*State, error) {
+	if r == nil {
+		return nil, fmt.Errorf("run is nil")
 	}
+	run := r.Copy()
+	if run.ID == "" {
+		return nil, fmt.Errorf("run has empty ID")
+	}
+	fetchedR, err := s.Get(run.ID)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	if fetchedR.WorkflowID != run.WorkflowID {
+		return nil, fmt.Errorf("run.State's WorkflowID does not match the WorkflowID of the associated run.State currently in the store")
+	}
+	if err := run.Validate(); err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.runs[run.ID] = run
 	return run, nil
 }
@@ -265,10 +281,6 @@ func (s *MemStore) AddEvent(id string, e event.Event) error {
 		return fmt.Errorf("adding transform event to run: %w", err)
 	}
 
-	if _, ok = s.workflows[run.WorkflowID]; !ok {
-		wf := newWorkflowMeta()
-		s.workflows[run.WorkflowID] = wf
-	}
 	s.runs[id] = run
 	return nil
 }
