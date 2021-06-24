@@ -152,11 +152,17 @@ func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) error {
 	// TODO (ramfox): when hooks/completors are added, this should wait for the err, iterate through the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
 	runID := run.NewID()
-	if err := o.runs.SubscribeID(runID); err != nil {
-		log.Debugw("RunWorkflow: subscribing the run store to events", "err", err)
-		return fmt.Errorf("subscribing run store to events for run id %q: %w", runID, err)
+	if o.runs != nil {
+		r := &run.State{ID: runID, WorkflowID: wid}
+		if _, err := o.runs.Put(r); err != nil {
+			return err
+		}
+
+		handler := runEventsHandler(o.runs)
+		o.bus.SubscribeID(handler, runID)
+		// TODO (b5): event bus needs an unsubscribe mechanism
+		// defer o.bus.UnsubscribeID(runID)
 	}
-	defer o.runs.UnsubscribeID(runID)
 
 	return runFunc(ctx, streams, wf, runID)
 }
@@ -197,4 +203,24 @@ func (o *Orchestrator) CreateWorkflow(did string, pid profile.ID) (*workflow.Wor
 // GetWorkflow fetches an existing workflow from the WorkflowStore
 func (o *Orchestrator) GetWorkflow(id workflow.ID) (*workflow.Workflow, error) {
 	return o.workflows.Get(id)
+}
+
+// runEventsHandler returns a handler that writes run events to a run store
+func runEventsHandler(store run.Store) event.Handler {
+	return func(ctx context.Context, e event.Event) error {
+		if adder, ok := store.(run.EventAdder); ok {
+			return adder.AddEvent(e.SessionID, e)
+		}
+
+		r, err := store.Get(e.SessionID)
+		if err != nil {
+			return err
+		}
+		if err := r.AddTransformEvent(e); err != nil {
+			return err
+		}
+
+		_, err = store.Put(r)
+		return err
+	}
 }
