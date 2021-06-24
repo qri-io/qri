@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base/params"
 )
 
 // AssertRunStore confirms the expected behavior of a run.Store interface
@@ -60,10 +61,10 @@ func AssertRunStore(t *testing.T, store run.Store) {
 		t.Errorf("store.Count count mismatch, expected 3, got %d", gotCount)
 	}
 
-	if _, err := store.List(badWID, -1, 0); !errors.Is(err, run.ErrUnknownWorkflowID) {
+	if _, err := store.List(badWID, params.ListAll); !errors.Is(err, run.ErrUnknownWorkflowID) {
 		t.Fatalf("store.List should emit a run.ErrUnknownWorkflowID error when given a workflow ID not associated with any runs in the Store")
 	}
-	gotRuns, err := store.List(wid, -1, 0)
+	gotRuns, err := store.List(wid, params.ListAll)
 	if err != nil {
 		t.Fatalf("store.List unexpected error: %s", err)
 	}
@@ -93,7 +94,7 @@ func AssertRunStore(t *testing.T, store run.Store) {
 		t.Errorf("store.GetStatus mismatch: expected %q, got %q", run.RSWaiting, gotStatus)
 	}
 
-	gotRuns, err = store.ListByStatus(run.RSWaiting, -1, 0)
+	gotRuns, err = store.ListByStatus(run.RSWaiting, params.ListAll)
 	if err != nil {
 		t.Fatalf("store.ListByStatus unexpected error: %s", err)
 	}
