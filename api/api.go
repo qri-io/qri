@@ -54,6 +54,8 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	node := s.Node()
 	cfg := s.GetConfig()
 
+	node.LocalStreams.Print(fmt.Sprintf("qri version v%s\nconnecting...\n", APIVersion))
+
 	ws, err := lib.NewWebsocketHandler(ctx, s.Instance)
 	if err != nil {
 		return err
@@ -73,11 +75,9 @@ func (s Server) Serve(ctx context.Context) (err error) {
 		Handler: s.Mux,
 	}
 
-	info := "\n"
-	if p2pConnected {
-		info += "📡  Success! You are now connected to the d.web. Here's your connection details:\n"
-	} else {
-		info += "Running a qri node with no d.web connection"
+	info := "qri is ready."
+	if !p2pConnected {
+		info += "running with no p2p connection"
 	}
 	info += cfg.SummaryString()
 	if p2pConnected {
@@ -86,8 +86,7 @@ func (s Server) Serve(ctx context.Context) (err error) {
 			info = fmt.Sprintf("%s\n  %s", info, a.String())
 		}
 	}
-	info += fmt.Sprintf("\nYou are running Qri v%s", APIVersion)
-	info += "\n\n"
+	info += "\n"
 
 	node.LocalStreams.Print(info)
 
