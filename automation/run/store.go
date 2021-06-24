@@ -119,10 +119,13 @@ func (s *MemStore) Put(r *State) (*State, error) {
 		wf := newWorkflowMeta()
 		s.workflows[run.WorkflowID] = wf
 	}
+	_, ok := s.runs[run.ID]
+	if !ok {
+		s.workflows[run.WorkflowID].count++
+		runIDs := s.workflows[run.WorkflowID].runIDs
+		s.workflows[run.WorkflowID].runIDs = append(runIDs, run.ID)
+	}
 	s.runs[run.ID] = run
-	s.workflows[run.WorkflowID].count++
-	runIDs := s.workflows[run.WorkflowID].runIDs
-	s.workflows[run.WorkflowID].runIDs = append(runIDs, run.ID)
 	return run, nil
 }
 
