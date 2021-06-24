@@ -15,10 +15,12 @@ type List struct {
 	Offset  int
 }
 
+// All returns true if List is attempting to list all available items
 func (lp List) All() bool {
 	return lp.Limit == -1 && lp.Offset == 0
 }
 
+// Validate returns an error if any fields or field combinations are invalid
 func (lp List) Validate() error {
 	if lp.Limit < 0 && lp.Limit != -1 {
 		return fmt.Errorf("limit of %d is out of bounds", lp.Limit)
