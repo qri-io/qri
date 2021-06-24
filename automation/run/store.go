@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/event"
 )
 
@@ -35,7 +36,7 @@ type Store interface {
 	Count(wid workflow.ID) (int, error)
 	// List lists all the runs associated with the workflow.ID in reverse
 	// chronological order
-	List(wid workflow.ID, limit, offset int) ([]*State, error)
+	List(wid workflow.ID, lp params.List) ([]*State, error)
 	// GetLatest returns the most recent run associated with the workflow id
 	GetLatest(wid workflow.ID) (*State, error)
 	// GetStatus returns the status of the latest run based on the
@@ -43,7 +44,7 @@ type Store interface {
 	GetStatus(wid workflow.ID) (Status, error)
 	// ListByStatus returns a list of run.State entries with a given status
 	// looking only at the most recent run of each Workflow
-	ListByStatus(s Status, limit, offset int) ([]*State, error)
+	ListByStatus(s Status, lp params.List) ([]*State, error)
 }
 
 // EventAdder is an extension interface that optimizes writing an event to a run
@@ -79,7 +80,10 @@ func newWorkflowMeta() *workflowMeta {
 	}
 }
 
-var _ Store = (*MemStore)(nil)
+var (
+	_ Store      = (*MemStore)(nil)
+	_ EventAdder = (*MemStore)(nil)
+)
 
 // NewMemStore returns a MemStore
 func NewMemStore() *MemStore {
@@ -146,18 +150,11 @@ func (s *MemStore) Count(wid workflow.ID) (int, error) {
 
 // List lists all the runs associated with the workflow.ID in reverse
 // chronological order
-func (s *MemStore) List(wid workflow.ID, limit, offset int) ([]*State, error) {
-	fetchAll := false
-	switch {
-	case limit == -1 && offset == 0:
-		fetchAll = true
-	case limit < 0:
-		return nil, fmt.Errorf("limit of %d is out of bounds", limit)
-	case offset < 0:
-		return nil, fmt.Errorf("offset of %d is out of bounds", offset)
-	case limit == 0:
-		return []*State{}, nil
+func (s *MemStore) List(wid workflow.ID, lp params.List) ([]*State, error) {
+	if err := lp.Validate(); err != nil {
+		return nil, err
 	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	wfm, ok := s.workflows[wid]
@@ -175,13 +172,13 @@ func (s *MemStore) List(wid workflow.ID, limit, offset int) ([]*State, error) {
 		runs = append(runs, run)
 	}
 
-	if offset >= len(runs) {
+	if lp.Offset >= len(runs) {
 		return []*State{}, nil
 	}
 
-	start := offset
-	end := offset + limit
-	if end > len(runs) || fetchAll {
+	start := lp.Offset
+	end := lp.Offset + lp.Limit
+	if end > len(runs) || lp.All() {
 		end = len(runs)
 	}
 	return runs[start:end], nil
@@ -217,17 +214,9 @@ func (s *MemStore) GetStatus(wid workflow.ID) (Status, error) {
 
 // ListByStatus returns a list of run.State entries with a given status
 // looking only at the most recent run of each Workflow
-func (s *MemStore) ListByStatus(status Status, limit, offset int) ([]*State, error) {
-	fetchAll := false
-	switch {
-	case limit == -1 && offset == 0:
-		fetchAll = true
-	case limit < 0:
-		return nil, fmt.Errorf("limit of %d is out of bounds", limit)
-	case offset < 0:
-		return nil, fmt.Errorf("offset of %d is out of bounds", offset)
-	case limit == 0:
-		return []*State{}, nil
+func (s *MemStore) ListByStatus(status Status, lp params.List) ([]*State, error) {
+	if err := lp.Validate(); err != nil {
+		return nil, err
 	}
 
 	set := NewSet()
@@ -245,13 +234,13 @@ func (s *MemStore) ListByStatus(status Status, limit, offset int) ([]*State, err
 		}
 	}
 
-	if offset >= set.Len() {
+	if lp.Offset >= set.Len() {
 		return []*State{}, nil
 	}
 
-	start := offset
-	end := offset + limit
-	if end > set.Len() || fetchAll {
+	start := lp.Offset
+	end := lp.Offset + lp.Limit
+	if end > set.Len() || lp.All() {
 		end = set.Len()
 	}
 
