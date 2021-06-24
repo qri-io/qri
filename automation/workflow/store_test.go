@@ -9,7 +9,7 @@ import (
 
 func TestMemStoreIntegration(t *testing.T) {
 	store := workflow.NewMemStore()
-	spec.AssertStore(t, store)
+	spec.AssertWorkflowStore(t, store)
 	store = workflow.NewMemStore()
-	spec.AssertLister(t, store)
+	spec.AssertWorkflowLister(t, store)
 }

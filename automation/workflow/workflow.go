@@ -82,6 +82,23 @@ func (w *Workflow) Validate() error {
 	return nil
 }
 
+// Copy returns a shallow copy of the receiver
+func (w *Workflow) Copy() *Workflow {
+	if w == nil {
+		return nil
+	}
+	workflow := &Workflow{
+		ID:        w.ID,
+		DatasetID: w.DatasetID,
+		OwnerID:   w.OwnerID,
+		Created:   w.Created,
+		Deployed:  w.Deployed,
+		Triggers:  w.Triggers,
+		Hooks:     w.Hooks,
+	}
+	return workflow
+}
+
 // Set is a collection of Workflows that implements the sort.Interface,
 // sorting a list of Set in reverse-chronological-then-alphabetical order
 type Set struct {

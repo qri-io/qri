@@ -2,12 +2,22 @@
 package run
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
+)
+
+var (
+	// ErrNoID indicates the run.State has no run ID
+	ErrNoID = fmt.Errorf("no run ID")
+	// ErrNoWorkflowID indicates the run.State has no workflow.ID
+	ErrNoWorkflowID = fmt.Errorf("no workflow ID")
 )
 
 // NewID creates a run identifier
@@ -54,23 +64,50 @@ const (
 // a transform. State structs can act as a sink of transform events, collapsing
 // the state transition of multiple transform events into a single structure
 type State struct {
-	ID        string       `json:"id"`
-	Number    int          `json:"number"`
-	Status    Status       `json:"status"`
-	Message   string       `json:"message"`
-	StartTime *time.Time   `json:"startTime"`
-	StopTime  *time.Time   `json:"stopTime"`
-	Duration  int          `json:"duration"`
-	Steps     []*StepState `json:"steps"`
+	ID         string       `json:"id"`
+	WorkflowID workflow.ID  `json:"workflowID"`
+	Number     int          `json:"number"`
+	Status     Status       `json:"status"`
+	Message    string       `json:"message"`
+	StartTime  *time.Time   `json:"startTime"`
+	StopTime   *time.Time   `json:"stopTime"`
+	Duration   int          `json:"duration"`
+	Steps      []*StepState `json:"steps"`
 }
 
-// NewState is a simple constructor to remind package consumers that state
-// structs must be initialized with an identifier to act as a sink of transform
-// events
-func NewState(id string) *State {
-	return &State{
-		ID: id,
+// NewState returns a new *State with the given runID
+func NewState(runID string) *State {
+	return &State{ID: runID}
+}
+
+// Validate errors if the run is not valid
+func (rs *State) Validate() error {
+	if rs.ID == "" {
+		return ErrNoID
 	}
+	if rs.WorkflowID.String() == "" {
+		return ErrNoWorkflowID
+	}
+	return nil
+}
+
+// Copy returns a shallow copy of the receiver
+func (rs *State) Copy() *State {
+	if rs == nil {
+		return nil
+	}
+	run := &State{
+		ID:         rs.ID,
+		WorkflowID: rs.WorkflowID,
+		Number:     rs.Number,
+		Status:     rs.Status,
+		Message:    rs.Message,
+		StartTime:  rs.StartTime,
+		StopTime:   rs.StopTime,
+		Duration:   rs.Duration,
+		Steps:      rs.Steps,
+	}
+	return run
 }
 
 // AddTransformEvent alters state based on a given event
@@ -177,4 +214,96 @@ func NewStepStateFromEvent(e event.Event) (*StepState, error) {
 func toTimePointer(unixnano int64) *time.Time {
 	t := time.Unix(0, unixnano)
 	return &t
+}
+
+// Set is a collection of run.States that implements the sort.Interface,
+// sorting a list of run.State in reverse-chronological order
+type Set struct {
+	set []*State
+}
+
+// NewSet constructs a run.State set
+func NewSet() *Set {
+	return &Set{}
+}
+
+// Len is part of the sort.Interface
+func (s Set) Len() int { return len(s.set) }
+
+// Less is part of the `sort.Interface`
+func (s Set) Less(i, j int) bool {
+	return lessNilTime(s.set[i].StartTime, s.set[j].StartTime)
+}
+
+// Swap is part of the `sort.Interface`
+func (s Set) Swap(i, j int) { s.set[i], s.set[j] = s.set[j], s.set[i] }
+
+// Add adds a run.State to a Set
+func (s *Set) Add(j *State) {
+	if s == nil {
+		*s = Set{set: []*State{j}}
+		return
+	}
+
+	for i, run := range s.set {
+		if run.ID == j.ID {
+			s.set[i] = j
+			return
+		}
+	}
+	s.set = append(s.set, j)
+	sort.Sort(s)
+}
+
+// Remove removes a run.State from a Set
+func (s *Set) Remove(id string) (removed bool) {
+	for i, run := range s.set {
+		if run.ID == id {
+			if i+1 == len(s.set) {
+				s.set = s.set[:i]
+				return true
+			}
+
+			s.set = append(s.set[:i], s.set[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+// Slice returns a slice of run.States from position `start` to position `end`
+func (s *Set) Slice(start, end int) []*State {
+	if start < 0 || end < 0 {
+		return []*State{}
+	}
+	if end > s.Len() {
+		end = s.Len()
+	}
+	return s.set[start:end]
+}
+
+// MarshalJSON satisfies the `json.Marshaller` interface
+func (s Set) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.set)
+}
+
+// UnmarshalJSON satisfies the `json.Unmarshaller` interface
+func (s *Set) UnmarshalJSON(data []byte) error {
+	set := []*State{}
+	if err := json.Unmarshal(data, &set); err != nil {
+		return err
+	}
+	s.set = set
+	return nil
+}
+
+func lessNilTime(a, b *time.Time) bool {
+	if a == nil && b != nil {
+		return true
+	} else if a != nil && b == nil {
+		return false
+	} else if a == nil && b == nil {
+		return false
+	}
+	return a.After(*b)
 }

@@ -58,7 +58,7 @@ type MemStore struct {
 
 var _ Store = (*MemStore)(nil)
 
-// NewMemStore return a MemStore
+// NewMemStore returns a MemStore
 func NewMemStore() *MemStore {
 	return &MemStore{
 		mu:        &sync.Mutex{},
@@ -71,31 +71,32 @@ func (m *MemStore) Put(wf *Workflow) (*Workflow, error) {
 	if wf == nil {
 		return nil, ErrNilWorkflow
 	}
-	if wf.ID != "" {
-		fetchedWF, err := m.Get(wf.ID)
+	w := wf.Copy()
+	if w.ID != "" {
+		fetchedWF, err := m.Get(w.ID)
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrNotFound
 		}
-		if fetchedWF.DatasetID != wf.DatasetID {
+		if fetchedWF.DatasetID != w.DatasetID {
 			return nil, ErrPutDatasetIDMismatch
 		}
-		if fetchedWF.OwnerID != wf.OwnerID {
+		if fetchedWF.OwnerID != w.OwnerID {
 			return nil, ErrPutOwnerIDMismatch
 		}
 	}
-	if wf.ID == "" {
-		if _, err := m.GetByDatasetID(wf.DatasetID); !errors.Is(err, ErrNotFound) {
+	if w.ID == "" {
+		if _, err := m.GetByDatasetID(w.DatasetID); !errors.Is(err, ErrNotFound) {
 			return nil, ErrWorkflowForDatasetExists
 		}
-		wf.ID = NewID()
+		w.ID = NewID()
 	}
-	if err := wf.Validate(); err != nil {
+	if err := w.Validate(); err != nil {
 		return nil, err
 	}
 	m.mu.Lock()
-	m.workflows[wf.ID] = wf
+	m.workflows[w.ID] = w
 	m.mu.Unlock()
-	return wf, nil
+	return w, nil
 }
 
 // Get fetches a Workflow using the associated ID
@@ -157,7 +158,7 @@ func (m *MemStore) List(ctx context.Context, limit, offset int) ([]*Workflow, er
 		wfs.Add(wf)
 	}
 
-	if offset > wfs.Len() {
+	if offset >= wfs.Len() {
 		return []*Workflow{}, nil
 	}
 
@@ -194,7 +195,7 @@ func (m *MemStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Work
 		}
 	}
 
-	if offset > wfs.Len() {
+	if offset >= wfs.Len() {
 		return []*Workflow{}, nil
 	}
 
