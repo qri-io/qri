@@ -123,6 +123,8 @@ func analyzeFuncBody(body []syntax.Stmt) (*FuncResult, error) {
 			fmt.Printf("%d: assign\n", k)
 			_ = item
 			// Is the rhs a function call?
+			calls := getFuncCallsInExpr(item.RHS)
+			result.calls = append(result.calls, calls...)
 
 		case *syntax.BranchStmt:
 			// pass
@@ -208,7 +210,7 @@ func getFuncCallsInExpr(expr syntax.Expr) []string {
 
 	case *syntax.Ident:
 		// I think that this is correct?
-		fmt.Printf("Ident is not a FuncCall I think?\n")
+		//fmt.Printf("Ident is not a FuncCall I think?\n")
 		return []string{}
 
 	case *syntax.IndexExpr:
