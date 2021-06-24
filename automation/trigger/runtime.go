@@ -25,7 +25,7 @@ var RuntimeType = Type("Runtime Trigger")
 // NewRuntimeTrigger returns an active `RuntimeTrigger`
 func NewRuntimeTrigger() *RuntimeTrigger {
 	return &RuntimeTrigger{
-		active:       true,
+		active:       false,
 		AdvanceCount: 0,
 	}
 }
@@ -124,12 +124,11 @@ func NewRuntimeListener(ctx context.Context, bus event.Bus) *RuntimeListener {
 
 // ConstructTrigger creates a RuntimeTrigger from a map string interface config
 // The map must have a field "type" of type RuntimeTrigger
-func (l *RuntimeListener) ConstructTrigger(m map[string]interface{}) (Trigger, error) {
-	triggerType := m["type"]
-	if triggerType != l.Type() {
-		return nil, fmt.Errorf("%w, expected %q but got %q", ErrTypeMismatch, l.Type(), triggerType)
+func (l *RuntimeListener) ConstructTrigger(opt *Options) (Trigger, error) {
+	if opt.Type != l.Type() {
+		return nil, fmt.Errorf("%w, expected %q but got %q", ErrTypeMismatch, l.Type(), opt.Type)
 	}
-	a, ok := m["active"]
+	a, ok := opt.Config["active"]
 	if !ok {
 		a = false
 	}
@@ -137,7 +136,7 @@ func (l *RuntimeListener) ConstructTrigger(m map[string]interface{}) (Trigger, e
 	if !ok {
 		return nil, fmt.Errorf("expected \"active\" field to be a boolean value")
 	}
-	c, ok := m["advanceCount"]
+	c, ok := opt.Config["advanceCount"]
 	if !ok {
 		c = 0
 	}
@@ -219,6 +218,7 @@ func (l *RuntimeListener) start(ctx context.Context) error {
 			select {
 			case id := <-l.TriggerCh:
 				if !l.listening {
+					log.Debugf("RuntimeListener: trigger ignored")
 					continue
 				}
 				if err := l.shouldTrigger(ctx, id); err != nil {
@@ -232,7 +232,6 @@ func (l *RuntimeListener) start(ctx context.Context) error {
 					continue
 				}
 			case <-ctx.Done():
-				fmt.Println("listener done")
 				return
 			}
 		}

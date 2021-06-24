@@ -20,7 +20,7 @@ var (
 // is triggered
 type Listener interface {
 	// ConstructTrigger returns a Trigger of the associated Type
-	ConstructTrigger(m map[string]interface{}) (Trigger, error)
+	ConstructTrigger(opt *Options) (Trigger, error)
 	// UpdateTriggers takes a source and updates the Listener's internal
 	// store to reflect the changed triggers associated with that source
 	UpdateTriggers(source Source) error

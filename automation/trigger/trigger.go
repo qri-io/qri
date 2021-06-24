@@ -36,3 +36,9 @@ type Trigger interface {
 	// Advance adjusts the Trigger once it has been triggered
 	Advance() error
 }
+
+// Options detail the configution of a Trigger of a particular Type
+type Options struct {
+	Type   Type
+	Config map[string]interface{}
+}

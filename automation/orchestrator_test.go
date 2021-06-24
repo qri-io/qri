@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/automation/run"
+	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
 )
@@ -41,9 +42,11 @@ func TestIntegration(t *testing.T) {
 
 	runStore := run.NewMemStore()
 	workflowStore := workflow.NewMemStore()
+	runtimeListener := trigger.NewRuntimeListener(ctx, bus)
 	opts := OrchestratorOptions{
 		WorkflowStore: workflowStore,
 		RunStore:      runStore,
+		Listeners:     []trigger.Listener{runtimeListener},
 	}
 	o, err := NewOrchestrator(ctx, bus, runFuncFactory, applyFuncFactory, opts)
 	if err != nil {
@@ -51,18 +54,34 @@ func TestIntegration(t *testing.T) {
 	}
 	defer o.Shutdown()
 
+	rtt1 := trigger.NewRuntimeTrigger()
+	rtt2 := trigger.NewRuntimeTrigger()
+	rtt2.SetActive(true)
 	expected := &workflow.Workflow{
 		DatasetID: "dataset_id",
 		OwnerID:   "profile_id",
 		Created:   NowFunc(),
+		Triggers:  []trigger.Trigger{rtt1, rtt2},
 	}
 
-	got, err := o.CreateWorkflow("dataset_id", "profile_id")
+	triggerOpts := []*trigger.Options{
+		&trigger.Options{
+			Type:   trigger.RuntimeType,
+			Config: map[string]interface{}{},
+		},
+		&trigger.Options{
+			Type:   trigger.RuntimeType,
+			Config: map[string]interface{}{"active": true},
+		},
+	}
+
+	allowUnexported := cmp.AllowUnexported(trigger.RuntimeTrigger{})
+	got, err := o.CreateWorkflow("dataset_id", "profile_id", triggerOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
 	expected.ID = got.ID
-	if diff := cmp.Diff(expected, got); diff != "" {
+	if diff := cmp.Diff(expected, got, allowUnexported); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -70,7 +89,7 @@ func TestIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(expected, got); diff != "" {
+	if diff := cmp.Diff(expected, got, allowUnexported); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -89,7 +108,20 @@ func TestIntegration(t *testing.T) {
 	<-done
 
 	done = errOnTimeout(t, ran, "o.handleTrigger error: time out before run function called")
-	bus.Publish(ctx, event.ETWorkflowTrigger, expected.ID)
+	bus.Publish(ctx, event.ETWorkflowTrigger, expected.WorkflowID())
+	<-done
+
+	err = o.StartListeners(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	done = errOnTimeout(t, ran, "manual trigger error: time out before orchestrator ran a workflow from a trigger")
+	rtt2.Trigger(runtimeListener.TriggerCh, expected.WorkflowID())
+	<-done
+
+	o.StopListeners()
+	done = shouldTimeout(t, ran, "StopListeners error: orchestrator that has stopped listening should not respond to triggers")
+	rtt2.Trigger(runtimeListener.TriggerCh, expected.WorkflowID())
 	<-done
 }
 
@@ -100,7 +132,21 @@ func errOnTimeout(t *testing.T, c chan string, errMsg string) <-chan struct{} {
 		case msg := <-c:
 			t.Log(msg)
 		case <-time.After(200 * time.Millisecond):
-			t.Errorf(errMsg)
+			t.Error(errMsg)
+		}
+		done <- struct{}{}
+	}()
+	return done
+}
+
+func shouldTimeout(t *testing.T, c chan string, errMsg string) <-chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-c:
+			t.Error(errMsg)
+		case <-time.After(200 * time.Millisecond):
+			t.Log("expected timeout")
 		}
 		done <- struct{}{}
 	}()

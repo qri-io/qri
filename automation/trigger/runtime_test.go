@@ -19,12 +19,14 @@ func TestRuntimeListener(t *testing.T) {
 	ctx := context.Background()
 	bus := event.NewBus(ctx)
 	rl := trigger.NewRuntimeListener(ctx, bus)
-	triggerCfg := map[string]interface{}{
-		"type":   trigger.RuntimeType,
-		"active": true,
+	triggerOpts := &trigger.Options{
+		Type: trigger.RuntimeType,
+		Config: map[string]interface{}{
+			"active": true,
+		},
 	}
 
-	trig, err := rl.ConstructTrigger(triggerCfg)
+	trig, err := rl.ConstructTrigger(triggerOpts)
 	if err != nil {
 		t.Fatalf("RuntimeListener.ConstructTrigger unexpected error: %s", err)
 	}
