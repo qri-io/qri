@@ -106,7 +106,9 @@ func (c Client) doJSONSearchReq(method string, s *registry.SearchParams) (result
 	}
 	// add response to an envelope
 	env := struct {
-		Data []*dataset.Dataset
+		Data []struct {
+			Value *dataset.Dataset
+		}
 		Meta struct {
 			Error  string
 			Status string
@@ -121,5 +123,14 @@ func (c Client) doJSONSearchReq(method string, s *registry.SearchParams) (result
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error %d: %s", res.StatusCode, env.Meta.Error)
 	}
-	return env.Data, nil
+
+	datasets := []*dataset.Dataset{}
+	for _, d := range env.Data {
+		if d.Value != nil {
+			datasets = append(datasets, d.Value)
+		} else {
+			log.Errorf("failed parsing dataset response")
+		}
+	}
+	return datasets, nil
 }
