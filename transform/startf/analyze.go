@@ -59,6 +59,9 @@ func doAnalyze(filename string) error {
 	callGraph := buildCallGraph(functions)
 	displayCallGraph(callGraph)
 
+	fmt.Printf("----------------------------------------\n")
+
+	analyzeSingleFunction(callGraph, "first_func")
 /*
 	fmt.Printf("----------------------------------------\n")
 	for _, f := range functions {
@@ -91,6 +94,7 @@ func analyzeFunction(def *syntax.DefStmt) (*FuncResult, error) {
 	}
 	res.name = def.Name.Name
 	res.params = strings.Join(params, ",")
+	res.body = def.Body
 
 	fmt.Printf("\n")
 
@@ -109,6 +113,7 @@ type FuncResult struct {
 	name   string
 	params string
 	calls  []string
+	body   []syntax.Stmt
 }
 
 func NewFuncResult() *FuncResult {
@@ -415,3 +420,153 @@ func displayFuncNode(node *FuncNode, depth int) {
 	}
 }
 
+func analyzeSingleFunction(graph *CallGraph, fname string) {
+	f := graph.lookup[fname]
+	body := f.fn.body
+	controlFlow := []*CodeBlock{}
+	for _, line := range body {
+		controlFlow = append(controlFlow, buildControlFlow(line))
+	}
+
+	data, err := json.MarshalIndent(controlFlow, "", " ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf(string(data))
+}
+
+type CodeBlock struct {
+	Code []string
+	Outs []*CodeBlock
+}
+
+func newCodeBlock() *CodeBlock {
+	return &CodeBlock{
+		Code: []string{},
+		Outs: []*CodeBlock{},
+	}
+}
+
+func buildControlFlow(stmt syntax.Stmt) *CodeBlock {
+	currBlock := newCodeBlock()
+
+	switch item := stmt.(type) {
+	case *syntax.AssignStmt:
+		// TODO: Also record vars in LHS and RHS
+		assignLine := assignmentToText(item)
+		currBlock.Code = append(currBlock.Code, assignLine)
+
+	case *syntax.BranchStmt:
+		fmt.Printf("~~~ TODO: branch stmt\n")
+
+	case *syntax.DefStmt:
+		fmt.Printf("~~~ TODO: def stmt\n")
+
+	case *syntax.ExprStmt:
+
+		// TODO: Also record vars in Params
+		funcCallLine := funcCallToText(item)
+		currBlock.Code = append(currBlock.Code, funcCallLine)
+
+	case *syntax.ForStmt:
+		// Add new block, connect old one here
+		newBlock := newCodeBlock()
+		currBlock.Outs = append(currBlock.Outs, newBlock)
+		currBlock = newBlock
+
+		//
+		// TODO: Iterate the body for the For block
+		//
+
+
+	case *syntax.WhileStmt:
+		fmt.Printf("~~~ TODO: while stmt\n")
+
+	case *syntax.IfStmt:
+		fmt.Printf("~~~ TODO: if stmt\n")
+
+	case *syntax.LoadStmt:
+		fmt.Printf("~~~ TODO: load stmt\n")
+
+	case *syntax.ReturnStmt:
+		fmt.Printf("~~~ TODO: return stmt\n")
+
+	}
+
+	return currBlock
+}
+
+func assignmentToText(assign *syntax.AssignStmt) string {
+	result := "set! "
+	if ident, ok := assign.LHS.(*syntax.Ident); ok {
+		result = result + ident.Name
+	} else {
+		result = result + "???"
+	}
+	result = result + " = "
+	if ident, ok := assign.RHS.(*syntax.Ident); ok {
+		result = result + ident.Name
+	} else if val, ok := assign.RHS.(*syntax.Literal); ok {
+		result = result + val.Raw
+	} else {
+		result = result + "???"
+	}
+	return result
+}
+
+func funcCallToText(expr *syntax.ExprStmt) string {
+	e := expr.X
+	switch item := e.(type) {
+	case *syntax.BinaryExpr:
+		return "binary()"
+
+	case *syntax.CallExpr:
+		fn := item.Fn
+		funcCallIdent := fn.(*syntax.Ident)
+		return fmt.Sprintf("%s()", funcCallIdent.Name)
+
+	case *syntax.Comprehension:
+		return "comp()"
+
+	case *syntax.CondExpr:
+		return "cond()"
+
+	case *syntax.DictEntry:
+		return "dictEntry()"
+
+	case *syntax.DictExpr:
+		return "dict()"
+
+	case *syntax.DotExpr:
+		return "dot()"
+
+	case *syntax.Ident:
+		return fmt.Sprintf("%s()", item.Name)
+
+	case *syntax.IndexExpr:
+		return "index()"
+
+	case *syntax.LambdaExpr:
+		return "lambda()"
+
+	case *syntax.ListExpr:
+		return "list()"
+
+	case *syntax.Literal:
+		return "literal()"
+
+	case *syntax.ParenExpr:
+		return "paren()"
+
+	case *syntax.SliceExpr:
+		return "slice()"
+
+	case *syntax.TupleExpr:
+		return "tuple()"
+
+	case *syntax.UnaryExpr:
+		return "unary()"
+
+	}
+	return "????()"
+}
