@@ -198,10 +198,10 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 	})
 }
 
-// AssertCollectionEventSpec defines expected behaviours for collection
-// implementations & subscribed events
-// TODO(b5): this is a planned spec, has no implementations
-func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
+// AssertCollectionEventListenerSpec defines expected behaviours for collections
+// that use event subscriptions to update state.
+// Event Listener specs are optional.
+func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	bus := event.NewBus(ctx)
@@ -214,16 +214,10 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 	missPiggy := profiletest.GetProfile("miss_piggy")
 
 	t.Run("empty_unlimited_list", func(t *testing.T) {
-		res, err := c.List(ctx, profile.ID(""), params.ListAll)
-		if err != nil {
+		_, err := c.List(ctx, profile.ID(""), params.ListAll)
+		if err == nil {
 			t.Fatalf("listing without providing any keyIDs should error: %q", err)
 		}
-		if res != nil {
-			t.Errorf("expected nil items response when listing errors")
-		}
-
-		// new collection should return an empty list when listing a valid profileID
-		assertCollectionList(ctx, t, kermit, params.ListAll, c, []dsref.VersionInfo{})
 	})
 
 	t.Run("user_1_manual_datasets", func(t *testing.T) {
@@ -237,6 +231,12 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 			Username:   kermit.Peername,
 			ProfileID:  kermit.ID.String(),
 			PrettyName: muppetNamesName1,
+			Info: &dsref.VersionInfo{
+				InitID:    muppetNamesInitID,
+				ProfileID: kermit.ID.String(),
+				Username:  kermit.Peername,
+				Name:      muppetNamesName1,
+			},
 		})
 
 		expect := []dsref.VersionInfo{
@@ -251,11 +251,14 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 
 		// simulate version creation, normally emitted by logbook
 		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, event.DsChange{
-			InitID:   muppetNamesInitID,
-			TopIndex: 2,
-			HeadRef:  "/mem/PathToMuppetNamesVersionOne",
-			// TODO (b5): real event includes a VersionInfo:
-			// Info:     &info,
+			ProfileID: kermit.ID.String(),
+			TopIndex:  2,
+			Info: &dsref.VersionInfo{
+				InitID:    muppetNamesInitID,
+				ProfileID: kermit.ID.String(),
+				Path:      "/mem/PathToMuppetNamesVersionOne",
+				Name:      muppetNamesName1,
+			},
 		})
 
 		expect = []dsref.VersionInfo{
@@ -288,6 +291,14 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
 
+		mustPublish(ctx, t, bus, event.ETDatasetDeleteAll, event.DsChange{
+			InitID:     muppetNamesInitID,
+			PrettyName: muppetNamesName2,
+		})
+
+		expect = []dsref.VersionInfo{}
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+
 		// TODO (b5): create a second dataset, use different timestamps for both,
 		// assert default ordering of datasets
 	})
@@ -299,17 +310,32 @@ func AssertCollectionEventSpec(t *testing.T, constructor Constructor) {
 	t.Run("user_2_automated_datasets", func(t *testing.T) {
 		// miss piggy's collection should be empty. Kermit's collection is non-empty,
 		// proving basic multi-tenancy
-		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, []dsref.VersionInfo{})
+		if _, err := c.List(ctx, missPiggy.ID, params.ListAll); err == nil {
+			t.Fatalf("listing without providing any keyIDs should error: %q", err)
+		}
 
 		muppetTweetsInitID := "muppetTweetsInitID"
 		muppetTweetsName := "muppet_tweets"
 
-		// simulate name initialization, normally emitted by logbook
-		mustPublish(ctx, t, bus, event.ETDatasetNameInit, event.DsChange{
-			InitID:     muppetTweetsInitID,
-			Username:   kermit.Peername,
-			ProfileID:  kermit.ID.String(),
-			PrettyName: muppetTweetsName,
+		t.Skip("TODO (b5): need user-scoped events to make this work")
+
+		// // simulate name initialization, normally emitted by logbook
+		// mustPublish(ctx, t, bus, event.ETDatasetNameInit, event.DsChange{
+		// 	InitID:     muppetTweetsInitID,
+		// 	Username:   kermit.Peername,
+		// 	ProfileID:  kermit.ID.String(),
+		// 	PrettyName: muppetTweetsName,
+		// 	Info: &dsref.VersionInfo{
+		// 		InitID: muppetTweetsInitID,
+		// 		Username: kermit,
+		// 	},
+		// })
+		mustPublish(ctx, t, bus, event.ETRemoteClientPullDatasetCompleted, event.RemoteEvent{
+			Ref: dsref.Ref{
+				InitID:    muppetTweetsInitID,
+				Username:  kermit.Peername,
+				ProfileID: kermit.ID.String(),
+			},
 		})
 		// simulate version creation, normally emitted by logbook
 		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, event.DsChange{

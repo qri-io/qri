@@ -16,10 +16,16 @@ import (
 	profiletest "github.com/qri-io/qri/profile/test"
 )
 
+var constructor = func(ctx context.Context, bus event.Bus) (collection.Set, error) {
+	return collection.NewLocalSet(ctx, bus, "")
+}
+
 func TestLocalCollection(t *testing.T) {
-	spec.AssertWritableCollectionSpec(t, func(ctx context.Context, bus event.Bus) (collection.Set, error) {
-		return collection.NewLocalSet(ctx, bus, "")
-	})
+	spec.AssertWritableCollectionSpec(t, constructor)
+}
+
+func TestLocalCollectionEvents(t *testing.T) {
+	spec.AssertCollectionEventListenerSpec(t, constructor)
 }
 
 func TestCollectionPersistence(t *testing.T) {
