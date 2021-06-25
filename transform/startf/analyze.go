@@ -52,6 +52,8 @@ func doAnalyze(filename string) error {
 		}
 	}
 
+	fmt.Printf("----------------------------------------\n")
+
 	// Build a graph of all calls
 	// Detect unused functions
 	callGraph := buildCallGraph(functions)
@@ -311,14 +313,89 @@ func simpleExprToFuncName(expr syntax.Expr) string {
 */
 
 type CallGraph struct {
-
+	root   *FuncNode
+	nodes  []*FuncNode
+	lookup map[string]*FuncNode
 }
 
-func buildCallGraph(functions []*FuncResult{}) *CallGraph {
-
+type FuncNode struct {
+	name   string
+	fn     *FuncResult
+	outs   []*FuncNode
+	reach  bool
+	height int
 }
 
-func displayCallGraph(callGraph *CallGraph) {
+func buildCallGraph(functions []*FuncResult) *CallGraph {
+	symtable := map[string]*FuncResult{}
+	for _, f := range functions {
+		symtable[f.name] = f
+	}
 
+	graph := &CallGraph{
+		nodes:  make([]*FuncNode, 0, len(functions)),
+		lookup: make(map[string]*FuncNode),
+	}
+	for _, f := range functions {
+		addToCallGraph(f, graph, symtable)
+	}
+
+	for _, n := range graph.nodes {
+		addCallHeight(n)
+	}
+
+	return graph
 }
 
+func addToCallGraph(f *FuncResult, graph *CallGraph, symtable map[string]*FuncResult) *FuncNode {
+	me, ok := graph.lookup[f.name]
+	if ok {
+		return me
+	}
+	me = &FuncNode{
+		name: f.name,
+		fn:   f,
+		outs: make([]*FuncNode, 0),
+	}
+	for _, call := range f.calls {
+		child, ok := symtable[call]
+		if !ok {
+			//panic(fmt.Sprintf("not found: %s", call))
+			fmt.Printf("not found: %s\n", call)
+			continue
+		}
+		n := addToCallGraph(child, graph, symtable)
+		me.outs = append(me.outs, n)
+	}
+	graph.lookup[f.name] = me
+	graph.nodes = append(graph.nodes, me)
+	return me
+}
+
+func addCallHeight(node *FuncNode) {
+	maxChild := -1
+	for _, fn := range node.outs {
+		addCallHeight(fn)
+		if fn.height > maxChild {
+			maxChild = fn.height
+		}
+	}
+	node.height = maxChild + 1
+}
+
+func displayCallGraph(graph *CallGraph) {
+	fmt.Printf("Call Graph...\n")
+	fmt.Printf("nodes: %d\n", len(graph.nodes))
+
+	for _, f := range graph.nodes {
+		displayFuncNode(f, 0)
+	}
+}
+
+func displayFuncNode(node *FuncNode, depth int) {
+	padding := strings.Repeat("  ", depth)
+	fmt.Printf("%s%s @ %d\n", padding, node.name, node.height)
+	for _, call := range node.outs {
+		displayFuncNode(call, depth+1)
+	}
+}
