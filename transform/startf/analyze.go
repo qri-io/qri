@@ -52,6 +52,12 @@ func doAnalyze(filename string) error {
 		}
 	}
 
+	// Build a graph of all calls
+	// Detect unused functions
+	callGraph := buildCallGraph(functions)
+	displayCallGraph(callGraph)
+
+/*
 	fmt.Printf("----------------------------------------\n")
 	for _, f := range functions {
 		fmt.Printf("def %s(%s)\n", f.name, f.params)
@@ -60,6 +66,7 @@ func doAnalyze(filename string) error {
 		}
 		fmt.Printf("\n")
 	}
+*/
 
 	return nil
 }
@@ -302,3 +309,16 @@ func simpleExprToFuncName(expr syntax.Expr) string {
 	}
 }
 */
+
+type CallGraph struct {
+
+}
+
+func buildCallGraph(functions []*FuncResult{}) *CallGraph {
+
+}
+
+func displayCallGraph(callGraph *CallGraph) {
+
+}
+
