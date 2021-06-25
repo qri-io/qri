@@ -347,6 +347,9 @@ func buildCallGraph(functions []*FuncResult) *CallGraph {
 		addCallHeight(n)
 	}
 
+	graph.root = graph.lookup["transform"]
+	markReachable(graph.root)
+
 	return graph
 }
 
@@ -386,6 +389,13 @@ func addCallHeight(node *FuncNode) {
 	node.height = maxChild + 1
 }
 
+func markReachable(node *FuncNode) {
+	node.reach = true
+	for _, call := range node.outs {
+		markReachable(call)
+	}
+}
+
 func displayCallGraph(graph *CallGraph) {
 	fmt.Printf("Call Graph...\n")
 	fmt.Printf("nodes: %d\n", len(graph.nodes))
@@ -397,8 +407,13 @@ func displayCallGraph(graph *CallGraph) {
 
 func displayFuncNode(node *FuncNode, depth int) {
 	padding := strings.Repeat("  ", depth)
-	fmt.Printf("%s%s @ %d\n", padding, node.name, node.height)
+	extra := ""
+	if !node.reach {
+		extra = " *** DEAD CODE"
+	}
+	fmt.Printf("%s%s @ %d%s\n", padding, node.name, node.height, extra)
 	for _, call := range node.outs {
 		displayFuncNode(call, depth+1)
 	}
 }
+
