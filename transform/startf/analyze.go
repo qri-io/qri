@@ -331,6 +331,9 @@ func buildCallGraph(functions []*FuncResult) *CallGraph {
 	for _, f := range functions {
 		symtable[f.name] = f
 	}
+	symtable["print"] = &FuncResult{
+		name: "print",
+	}
 
 	graph := &CallGraph{
 		nodes:  make([]*FuncNode, 0, len(functions)),
