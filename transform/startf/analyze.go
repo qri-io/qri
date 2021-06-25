@@ -128,41 +128,39 @@ func analyzeFuncBody(body []syntax.Stmt) (*FuncResult, error) {
 
 		switch item := stmt.(type) {
 		case *syntax.AssignStmt:
-			// pass
-			fmt.Printf("%d: assign\n", k)
-			_ = item
-			// Is the rhs a function call?
+			// Is the rhs a function call
 			calls := getFuncCallsInExpr(item.RHS)
 			result.calls = append(result.calls, calls...)
 
 		case *syntax.BranchStmt:
 			// pass
-			fmt.Printf("%d: branch\n", k)
+			fmt.Printf("TODO func body %d: branch\n", k)
 		case *syntax.DefStmt:
 			// pass
-			fmt.Printf("%d: def\n", k)
+			fmt.Printf("TODO func body %d: def\n", k)
 		case *syntax.ExprStmt:
 			// pass
-			fmt.Printf("%d: expr\n", k)
 			// Is this a function call? (almost *certainly* it is)
 			calls := getFuncCallsInExpr(item.X)
 			result.calls = append(result.calls, calls...)
 
 		case *syntax.ForStmt:
 			// pass
-			fmt.Printf("%d: for\n", k)
+			fmt.Printf("TODO func body %d: for\n", k)
 		case *syntax.WhileStmt:
 			// pass
-			fmt.Printf("%d: while\n", k)
+			fmt.Printf("TODO func body %d: while\n", k)
 		case *syntax.IfStmt:
 			// pass
-			fmt.Printf("%d: if\n", k)
+			fmt.Printf("TODO func body %d: if\n", k)
 		case *syntax.LoadStmt:
 			// pass
-			fmt.Printf("%d: load\n", k)
+			fmt.Printf("TODO func body %d: load\n", k)
 		case *syntax.ReturnStmt:
 			// pass
-			fmt.Printf("%d: return\n", k)
+			calls := getFuncCallsInExpr(item.Result)
+			result.calls = append(result.calls, calls...)
+
 		default:
 			// pass
 		}
