@@ -115,7 +115,7 @@ const (
 	// user on the registry
 	AERegistryProve = APIEndpoint("/remote/registry/profile/prove")
 	// AESearch returns a list of dataset search results
-	AESearch = APIEndpoint("/remote/search")
+	AESearch = APIEndpoint("/registry/search")
 
 	// fsi endpoints
 

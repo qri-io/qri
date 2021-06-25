@@ -220,29 +220,33 @@ func TestSearchRun(t *testing.T) {
 
 var mockResponse = []byte(`{"data":[
 	{
-		"commit": {
-			"qri": "cm:0",
-			"timestamp": "2019-08-31T12:07:56.212858Z",
-			"title": "change to 10"
-		},
-		"meta": {
-			"keywords": [
-				"joke"
-			],
-			"qri": "md:0",
-			"title": "this is a d"
-		},
-		"name": "nuun",
-		"path": "/ipfs/QmZEnjt3Y5RxXsoZyufJfFzcogicBEwfaimJSyDuC7nySA",
-		"peername": "nuun",
-		"qri": "ds:0",
-		"structure": {
-			"entries": 3,
-			"format": "csv",
-			"length": 36,
-			"qri": "st:0"
-		}
-	}
+      "type": "dataset",
+      "id": "/ipfs/QmZEnjt3Y5RxXsoZyufJfFzcogicBEwfaimJSyDuC7nySA",
+      "value": {
+        "commit": {
+          "qri": "cm:0",
+          "timestamp": "2019-08-31T12:07:56.212858Z",
+          "title": "change to 10"
+        },
+        "meta": {
+          "keywords": [
+            "joke"
+          ],
+          "qri": "md:0",
+          "title": "this is a d"
+        },
+        "name": "nuun",
+        "path": "/ipfs/QmZEnjt3Y5RxXsoZyufJfFzcogicBEwfaimJSyDuC7nySA",
+        "peername": "nuun",
+        "qri": "ds:0",
+        "structure": {
+          "entries": 3,
+          "format": "csv",
+          "length": 36,
+          "qri": "st:0"
+        }
+      }
+    }
 ],"meta":{"code":200}}`)
 
 var textSearchResponse = `showing 1 results for 'test'
@@ -255,10 +259,10 @@ var textSearchResponse = `showing 1 results for 'test'
 
 var jsonSearchResponse = `[
   {
-    "Type": "dataset",
-    "ID": "/ipfs/QmZEnjt3Y5RxXsoZyufJfFzcogicBEwfaimJSyDuC7nySA",
-    "URL": "",
-    "Value": {
+    "type": "dataset",
+    "id": "/ipfs/QmZEnjt3Y5RxXsoZyufJfFzcogicBEwfaimJSyDuC7nySA",
+    "url": "",
+    "value": {
       "commit": {
         "qri": "cm:0",
         "timestamp": "2019-08-31T12:07:56.212858Z",

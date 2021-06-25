@@ -34,9 +34,10 @@ type SearchParams struct {
 
 // SearchResult struct
 type SearchResult struct {
-	Type, ID string
-	URL      string
-	Value    *dataset.Dataset
+	Type  string           `json:"type"`
+	ID    string           `json:"id"`
+	URL   string           `json:"url"`
+	Value *dataset.Dataset `json:"value"`
 }
 
 // Search queries for items on qri related to given parameters

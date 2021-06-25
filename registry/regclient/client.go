@@ -4,6 +4,8 @@ package regclient
 import (
 	"errors"
 	"net/http"
+
+	golog "github.com/ipfs/go-log"
 )
 
 var (
@@ -19,6 +21,8 @@ var (
 	// HTTPClient is hoisted here in case you'd like to use a different client instance
 	// by default we just use http.DefaultClient
 	HTTPClient = http.DefaultClient
+
+	log = golog.Logger("registry")
 )
 
 // Client wraps a registry configuration with methods for interacting
