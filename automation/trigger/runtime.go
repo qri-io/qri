@@ -151,45 +151,45 @@ func (l *RuntimeListener) ConstructTrigger(opt *Options) (Trigger, error) {
 	}, nil
 }
 
-// UpdateTriggers updates the RuntimeListener's internal store to ensure it has
-// the most up-to-date information on the particular trigger Source and it's
-// triggers
-func (l *RuntimeListener) UpdateTriggers(source Source) error {
+// Listen takes a list of sources and adds or updates the Listener's
+// store to include all the active triggers of the correct type
+func (l *RuntimeListener) Listen(sources ...Source) error {
 	l.activeTriggersLock.Lock()
 	defer l.activeTriggersLock.Unlock()
 
-	scopeID := source.ScopeID()
-	if scopeID == "" {
-		return ErrEmptyScopeID
-	}
-	workflowID := source.WorkflowID()
-	if workflowID == "" {
-		return ErrEmptyWorkflowID
-	}
-	triggers := []Trigger{}
-	for _, t := range source.ActiveTriggers() {
-		if t.Type() == RuntimeType {
-			triggers = append(triggers, t)
+	for _, s := range sources {
+		workflowID := s.WorkflowID()
+		if workflowID == "" {
+			return ErrEmptyWorkflowID
 		}
-	}
-	if l.activeTriggers[scopeID] == nil {
-		if len(triggers) == 0 {
-			return nil
+		scopeID := s.ScopeID()
+		if scopeID == "" {
+			return ErrEmptyScopeID
 		}
-		l.activeTriggers[scopeID] = []string{}
-	}
-	if len(triggers) == 0 {
+		triggers := s.ActiveTriggers(RuntimeType)
+		wids, ok := l.activeTriggers[scopeID]
+		if !ok {
+			if len(triggers) == 0 {
+				continue
+			}
+			l.activeTriggers[scopeID] = []string{}
+			wids = l.activeTriggers[scopeID]
+		}
 		index := -1
-		for i, wid := range l.activeTriggers[scopeID] {
+		for i, wid := range wids {
 			if wid == workflowID {
 				index = i
 				break
 			}
 		}
-		l.activeTriggers[scopeID] = remove(l.activeTriggers[scopeID], index)
-		return nil
+		if len(triggers) == 0 {
+			l.activeTriggers[scopeID] = remove(l.activeTriggers[scopeID], index)
+			continue
+		}
+		if index == -1 {
+			l.activeTriggers[scopeID] = append(wids, workflowID)
+		}
 	}
-	l.activeTriggers[scopeID] = append(l.activeTriggers[scopeID], workflowID)
 	return nil
 }
 
@@ -269,4 +269,20 @@ func (l *RuntimeListener) Start(ctx context.Context) error {
 func (l *RuntimeListener) Stop() error {
 	l.listening = false
 	return nil
+}
+
+// TriggerExists returns true if there is a record of a trigger for the given workflow id
+func (l *RuntimeListener) TriggerExists(source Source) bool {
+	l.activeTriggersLock.Lock()
+	defer l.activeTriggersLock.Unlock()
+	ids, ok := l.activeTriggers[source.ScopeID()]
+	if !ok {
+		return false
+	}
+	for _, id := range ids {
+		if id == source.WorkflowID() {
+			return true
+		}
+	}
+	return false
 }

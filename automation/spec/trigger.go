@@ -10,7 +10,6 @@ import (
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/profile"
 )
 
 // AssertTrigger confirms the expected behavior of a trigger.Trigger Interface
@@ -61,23 +60,23 @@ func AssertTrigger(t *testing.T, trig trigger.Trigger) {
 }
 
 // AssertListener confirms the expected behavior of a trigger.Listener
-// NOTE: this does not confirm behavior of the `UpdateTriggers` functionality
+// NOTE: this does not confirm behavior of the `Listen` functionality
 // beyond the basic usage of adding a trigger using a `trigger.Source`
 func AssertListener(t *testing.T, listener trigger.Listener, source trigger.Source, activateTrigger func()) {
-	triggers := source.ActiveTriggers()
+	triggers := source.ActiveTriggers(listener.Type())
 	if len(triggers) == 0 {
-		t.Fatal("expected the given trigger Source to have at least one active trigger")
+		t.Fatal("expected the given trigger Source to have at least one active trigger of the same type as the listener")
 	}
 	wf := &workflow.Workflow{}
-	if err := listener.UpdateTriggers(wf); !errors.Is(err, trigger.ErrEmptyScopeID) {
-		t.Fatal("listener.UpdateTriggers should emit a trigger.ErrEmptyScopeID if the ScopeID (known as the OwnerID in other systems) of the trigger.Source is emtpy")
+	if err := listener.Listen(wf); !errors.Is(err, trigger.ErrEmptyWorkflowID) {
+		t.Fatal("listener.Listen should emit a trigger.ErrEmptyWorkflowID if the WorkflowID of the trigger.Source is empty")
 	}
-	wf = &workflow.Workflow{OwnerID: profile.ID("test profile id")}
-	if err := listener.UpdateTriggers(wf); !errors.Is(err, trigger.ErrEmptyWorkflowID) {
-		t.Fatal("listener.UpdateTriggers should emit a trigger.ErrEmptyWorkflowID if the WorkflowID of the trigger.Source is empty")
+	wf = &workflow.Workflow{ID: "workflow_id"}
+	if err := listener.Listen(wf); !errors.Is(err, trigger.ErrEmptyScopeID) {
+		t.Fatal("listener.Listen should emit a trigger.ErrEmptyScopeID if the ScopeID (known as the OwnerID in other systems) of the trigger.Source is emtpy")
 	}
-	if err := listener.UpdateTriggers(source); err != nil {
-		t.Fatalf("listener.UpdateTriggers error, could not update triggers for the given trigger Source: %s", err)
+	if err := listener.Listen(source); err != nil {
+		t.Fatalf("listener.Listen error, could not update triggers for the given trigger Source: %s", err)
 	}
 
 	ctx := context.Background()

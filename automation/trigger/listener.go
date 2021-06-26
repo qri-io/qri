@@ -21,9 +21,9 @@ var (
 type Listener interface {
 	// ConstructTrigger returns a Trigger of the associated Type
 	ConstructTrigger(opt *Options) (Trigger, error)
-	// UpdateTriggers takes a source and updates the Listener's internal
-	// store to reflect the changed triggers associated with that source
-	UpdateTriggers(source Source) error
+	// Listen takes a list of sources and adds or updates the Listener's
+	// store to include all the active triggers of the correct type
+	Listen(source ...Source) error
 	// Type returns the Type of Trigger that this Listener listens for
 	Type() Type
 	// Start puts the Listener in an active state of listening for triggers

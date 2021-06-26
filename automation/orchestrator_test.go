@@ -43,6 +43,19 @@ func TestIntegration(t *testing.T) {
 	runStore := run.NewMemStore()
 	workflowStore := workflow.NewMemStore()
 	runtimeListener := trigger.NewRuntimeListener(ctx, bus)
+	rttListenTest := trigger.NewRuntimeTrigger()
+	rttListenTest.SetActive(true)
+	wf := &workflow.Workflow{
+		DatasetID: "test_listeners",
+		OwnerID:   "profile_id",
+		Created:   NowFunc(),
+		Triggers:  []trigger.Trigger{rttListenTest},
+		Deployed:  true,
+	}
+	wf, err := workflowStore.Put(wf)
+	if err != nil {
+		t.Fatalf("workflowStore.Put unexpected error: %s", err)
+	}
 	opts := OrchestratorOptions{
 		WorkflowStore: workflowStore,
 		RunStore:      runStore,
@@ -85,6 +98,10 @@ func TestIntegration(t *testing.T) {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
+	if runtimeListener.TriggerExists(expected) {
+		t.Fatal("only triggers of active workflows should be added to the runtimeListener")
+	}
+
 	got, err = o.GetWorkflow(expected.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -107,20 +124,36 @@ func TestIntegration(t *testing.T) {
 	}
 	<-done
 
+	if err := o.DeployWorkflow(expected.ID); err != nil {
+		t.Fatalf("DeployWorkflow unexpected error: %s", err)
+	}
+	// give time for DeployWorkflow to update listeners
+	<-time.After(100 * time.Millisecond)
+	if !runtimeListener.TriggerExists(expected) {
+		t.Fatal("orchestrator must update the listeners when the workflow status changes")
+	}
+
 	done = errOnTimeout(t, ran, "o.handleTrigger error: time out before run function called")
 	bus.Publish(ctx, event.ETWorkflowTrigger, expected.WorkflowID())
 	<-done
 
-	err = o.StartListeners(ctx)
+	err = o.Start(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+	// give time for Start to start each listener
+	<-time.After(100 * time.Millisecond)
+
+	if !runtimeListener.TriggerExists(wf) {
+		t.Fatal("Existing workflow triggers must be added to the run store.")
+	}
+
 	done = errOnTimeout(t, ran, "manual trigger error: time out before orchestrator ran a workflow from a trigger")
 	rtt2.Trigger(runtimeListener.TriggerCh, expected.WorkflowID())
 	<-done
 
-	o.StopListeners()
-	done = shouldTimeout(t, ran, "StopListeners error: orchestrator that has stopped listening should not respond to triggers")
+	o.Stop()
+	done = shouldTimeout(t, ran, "o.Stop error: orchestrator that has stopped listening should not respond to triggers")
 	rtt2.Trigger(runtimeListener.TriggerCh, expected.WorkflowID())
 	<-done
 }
@@ -183,6 +216,7 @@ func TestRunStoreEvents(t *testing.T) {
 
 	ctx := context.Background()
 	bus := event.NewBus(ctx)
+	listener := trigger.NewRuntimeListener(ctx, bus)
 	runStore := run.NewMemStore()
 	workflowStore := workflow.NewMemStore()
 	wf, err := workflowStore.Put(&workflow.Workflow{
@@ -298,6 +332,7 @@ func TestRunStoreEvents(t *testing.T) {
 	opts := OrchestratorOptions{
 		WorkflowStore: workflowStore,
 		RunStore:      runStore,
+		Listeners:     []trigger.Listener{listener},
 	}
 	o, err := NewOrchestrator(ctx, bus, runFuncFactory, applyFuncFactory, opts)
 	if err != nil {

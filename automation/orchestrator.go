@@ -125,28 +125,48 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 	return o, nil
 }
 
-// StartListeners starts the orchestrator's trigger.Listeners to being listening
+// Start starts the listeners and completors listening for triggers and hooks
+func (o *Orchestrator) Start(ctx context.Context) error {
+	// TODO(ramfox): when hooks and completors are set up, start them here
+	return o.startListeners(ctx)
+}
+
+// Stop stops the listeners and completors from listening for triggers and hooks
+func (o *Orchestrator) Stop() {
+	o.stopListeners()
+}
+
+// startListeners starts the orchestrator's trigger.Listeners to being listening
 // for triggers
-func (o *Orchestrator) StartListeners(ctx context.Context) error {
-	ok := false
-	defer func() {
-		if !ok {
-			o.StopListeners()
-		}
-	}()
-	for _, listener := range o.listeners {
-		err := listener.Start(ctx)
-		if err != nil {
-			return fmt.Errorf("Orchestrator Start: error starting trigger listener:%w", err)
-		}
+func (o *Orchestrator) startListeners(ctx context.Context) error {
+	wfs, err := o.workflows.ListDeployed(ctx, -1, 0)
+	if err != nil {
+		return fmt.Errorf("error getting deployed workflows from the store: %w", err)
 	}
-	ok = true
+	srcs := make([]trigger.Source, 0, len(wfs))
+	for _, wf := range wfs {
+		srcs = append(srcs, wf)
+	}
+
+	for _, listener := range o.listeners {
+		go func(l trigger.Listener) {
+			err := l.Listen(srcs...)
+			if err != nil {
+				log.Debug(err)
+				return
+			}
+			err = l.Start(ctx)
+			if err != nil {
+				log.Debug(err)
+			}
+		}(listener)
+	}
 	return nil
 }
 
-// StopListeners stops the orchestrator's trigger.Listeners from listening for
+// stopListeners stops the orchestrator's trigger.Listeners from listening for
 // triggers
-func (o *Orchestrator) StopListeners() {
+func (o *Orchestrator) stopListeners() {
 	for _, listeners := range o.listeners {
 		err := listeners.Stop()
 		if err != nil {
@@ -155,12 +175,12 @@ func (o *Orchestrator) StopListeners() {
 	}
 }
 
-// Shutdown tears down the orchestrator system
+// Shutdown stops any currently running processes and tears down the orchestrator system
 // must be called to ensure all processes have be closed correctly
 func (o *Orchestrator) Shutdown() {
 	// TODO (ramfox): when we have added a way to unsubscribe from a bus, this is where we should do it
+	o.Stop()
 	o.cancel()
-	o.StopListeners()
 }
 
 // handleTrigger calls `RunWorkflow` when an `event.ETWorkflowTrigger` event is fired
@@ -262,20 +282,35 @@ func (o *Orchestrator) CreateWorkflow(did string, pid profile.ID, triggerOpts []
 		Created:   NowFunc(),
 		Triggers:  t,
 	}
-	defer func() {
-		for _, listener := range o.listeners {
-			err := listener.UpdateTriggers(wf)
-			if err != nil {
-				log.Debugf("Error updating Trigger Listener of type %q with trigger information for Workflow %q: %w", listener.Type(), wf.ID, err)
-			}
-		}
-		// iterate over hooks and update any hooks with the new workflow information
-	}()
 	wf, err := o.workflows.Put(wf)
 	if err != nil {
 		return nil, err
 	}
 	return wf, nil
+}
+
+// DeployWorkflow deploys a workflow
+func (o *Orchestrator) DeployWorkflow(id workflow.ID) error {
+	wf, err := o.workflows.Get(id)
+	if err != nil {
+		return err
+	}
+	wf.Deployed = true
+	_, err = o.workflows.Put(wf)
+	o.updateListeners(wf)
+	return err
+}
+
+// UndeployWorkflow undeploys a workflow
+func (o *Orchestrator) UndeployWorkflow(id workflow.ID) error {
+	wf, err := o.workflows.Get(id)
+	if err != nil {
+		return err
+	}
+	wf.Deployed = false
+	_, err = o.workflows.Put(wf)
+	o.updateListeners(wf)
+	return err
 }
 
 // GetWorkflow fetches an existing workflow from the WorkflowStore
@@ -300,5 +335,17 @@ func runEventsHandler(store run.Store) event.Handler {
 
 		_, err = store.Put(r)
 		return err
+	}
+}
+
+func (o *Orchestrator) updateListeners(sources ...trigger.Source) {
+	for _, listener := range o.listeners {
+		go func(l trigger.Listener) {
+			err := l.Listen(sources...)
+			if err != nil {
+				log.Debugf("error updating triggers for listener %q", l.Type())
+			}
+
+		}(listener)
 	}
 }

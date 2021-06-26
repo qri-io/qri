@@ -45,4 +45,12 @@ func TestRuntimeListener(t *testing.T) {
 		Triggers: []trigger.Trigger{rt},
 	}
 	spec.AssertListener(t, rl, wf, activateTrigger)
+
+	wf.Triggers = []trigger.Trigger{}
+	if err := rl.Listen(wf); err != nil {
+		t.Fatalf("RuntimeListener.Listen unexpected error: %s", err)
+	}
+	if rl.TriggerExists(wf) {
+		t.Errorf("RuntimeListener.Listen error: should remove triggers from its internal store when given an updated workflow with a no longer active trigger")
+	}
 }

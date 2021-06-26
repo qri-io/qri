@@ -110,10 +110,10 @@ func (w *Workflow) WorkflowID() string {
 }
 
 // ActiveTriggers returns a list of triggers that are currently enabled
-func (w *Workflow) ActiveTriggers() []trigger.Trigger {
+func (w *Workflow) ActiveTriggers(triggerType trigger.Type) []trigger.Trigger {
 	activeTriggers := []trigger.Trigger{}
 	for _, t := range w.Triggers {
-		if t.Active() {
+		if t.Active() && t.Type() == triggerType {
 			activeTriggers = append(activeTriggers, t)
 		}
 	}
