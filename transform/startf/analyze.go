@@ -571,33 +571,13 @@ func buildControlFlowSingleNode(control *ControlFlow, stmt syntax.Stmt) {
 		loopBody := newControlFlow()
 		buildControlFlow(loopBody, item.Body)
 		bodyIndex := control.concat(loopBody)
-		//done := control.get()
 
 		lastIndex := control.get()
 		afterIndex := control.makeNewNoArrow()
 
-
-		fmt.Printf("loop = %d, body = %d, last = %d, after = %d\n", loopIndex, bodyIndex, lastIndex, afterIndex)
-
-
 		control.poke(loopIndex, bodyIndex)
 		control.poke(loopIndex, afterIndex)
 		control.poke(lastIndex, loopIndex)
-
-		//restart := loop - 1
-		//fmt.Printf("poke %d -> %d\n", done, restart)
-		//fmt.Printf("poke %d -> %d\n", loop, after)
-		//control.poke(done, restart)
-		//control.poke(loop, after)
-
-		//newBlock := newCodeBlock()
-		//currBlock.Outs = append(currBlock.Outs, newBlock)
-		//currBlock = newBlock
-
-		//
-		// TODO: Iterate the body for the For block
-		//
-
 
 	case *syntax.WhileStmt:
 		fmt.Printf("~~~ TODO: while stmt\n")
