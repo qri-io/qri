@@ -30,6 +30,10 @@ var (
 	ErrMigrationSucceeded = errors.New("migration succeeded")
 )
 
+func init() {
+	logging.SetLogLevel("migrate", "debug")
+}
+
 // RunMigrations executes migrations. if a migration is required, the shouldRun
 // func is called, and exits without migrating if shouldRun returns false.
 // if errorOnSuccess is true, a completed migration will return
@@ -111,6 +115,7 @@ func ZeroToOne(cfg *config.Config) error {
 
 // OneToTwo migrates a configuration from Revision 1 to Revision 2
 func OneToTwo(cfg *config.Config) error {
+	log.Debug("migrating from version one to two")
 	qriPath := filepath.Dir(cfg.Path())
 	newIPFSPath := filepath.Join(qriPath, "ipfs")
 	oldIPFSPath := configVersionOneIPFSPath()
@@ -172,6 +177,7 @@ func oneToTwoConfig(cfg *config.Config) error {
 
 // TwoToThree migrates a configuration from Revision 2 to Revision 3
 func TwoToThree(cfg *config.Config) error {
+	log.Debugf("migrating from revision 2 to 3")
 	if cfg.P2P != nil {
 		removes := map[string]bool{
 			"/ip4/35.239.80.82/tcp/4001/ipfs/QmdpGkbqDYRPCcwLYnEm8oYGz2G9aUZn9WwPjqvqw3XUAc":   true, // red
@@ -214,14 +220,18 @@ func TwoToThree(cfg *config.Config) error {
 
 // ThreeToFour migrates a configuration from Revision 3 to Revision 4
 func ThreeToFour(cfg *config.Config) error {
-	ipfsRepoPath, err := configVersionThreeIPFSPath(cfg)
+	log.Debugf("migrating from revision 3 to 4")
+	ipfsRepoPath, err := maybeRelativizeIPFSPath(cfg)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
-	if err := qipfs.Migrate(ctx, ipfsRepoPath); err != nil {
-		return err
+	// migrate any existing IPFS repo
+	if _, err := os.Stat(ipfsRepoPath); !os.IsNotExist(err) {
+		ctx := context.Background()
+		if err := qipfs.Migrate(ctx, ipfsRepoPath); err != nil {
+			return err
+		}
 	}
 
 	cfg.Revision = 4
@@ -289,23 +299,6 @@ func configVersionOneIPFSPath() string {
 	return filepath.Join(home, ".ipfs")
 }
 
-func configVersionThreeIPFSPath(cfg *config.Config) (string, error) {
-	for _, fsCfg := range cfg.Filesystems {
-		if fsCfg.Type == "ipfs" {
-			if ipath, ok := fsCfg.Config["path"]; ok {
-				if path, ok := ipath.(string); ok {
-					if !filepath.IsAbs(path) {
-						path = filepath.Join(filepath.Dir(cfg.Path()), path)
-					}
-					return path, nil
-				}
-			}
-			return "", fmt.Errorf("IPFS path is not specified")
-		}
-	}
-	return "", fmt.Errorf("no IPFS filesystem is specified")
-}
-
 func confirm(w io.Writer, r io.Reader, message string) bool {
 	input := prompt(w, r, fmt.Sprintf("%s [Y/n]: ", message))
 	if input == "" {
@@ -320,6 +313,27 @@ func prompt(w io.Writer, r io.Reader, msg string) string {
 	fmt.Fprintf(w, msg)
 	fmt.Fscanln(r, &input)
 	return strings.TrimSpace(strings.ToLower(input))
+}
+
+func maybeRelativizeIPFSPath(cfg *config.Config) (string, error) {
+	cfgBasePath := filepath.Dir(cfg.Path())
+	for i, fsCfg := range cfg.Filesystems {
+		if fsCfg.Type == "ipfs" {
+			if ipath, ok := fsCfg.Config["path"]; ok {
+				if path, ok := ipath.(string); ok {
+					if filepath.IsAbs(path) {
+						if rel, err := filepath.Rel(cfgBasePath, path); err == nil {
+							cfg.Filesystems[i].Config["path"] = rel
+							return path, nil
+						}
+					}
+					return filepath.Join(cfgBasePath, path), nil
+				}
+			}
+			return "", fmt.Errorf("IPFS path is not specified")
+		}
+	}
+	return "", fmt.Errorf("no IPFS filesystem is specified")
 }
 
 func maybeRemoveIPFSRepo(cfg *config.Config, oldPath string) error {

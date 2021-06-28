@@ -482,7 +482,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
     created dataset from tf_123.star
 
 `, map[string]string{
-		"commit1": "/ipfs/QmYSxB13nw1PWk6Y2itXxRiE42cvK5zzC9v6saGcDu8PFw",
+		"commit1": "/ipfs/QmbwrkBnhCVNQjitkJeoqBbRYYWoJcmWLwM765acuKPyeG",
 		"commit2": "/ipfs/QmZx6mYranv8ZFgwq7QVFoVVje2vPueC3MJYPy1LVnANmJ",
 	})
 	if diff := cmp.Diff(expect, output); diff != "" {
