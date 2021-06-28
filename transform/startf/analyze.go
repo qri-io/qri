@@ -66,7 +66,8 @@ func doAnalyze(filename string) error {
 
 	fmt.Printf("----------------------------------------\n")
 
-	analyzeSingleFunction(callGraph, "main_func")
+	//analyzeSingleFunction(callGraph, "main_func")
+
 /*
 	fmt.Printf("----------------------------------------\n")
 	for _, f := range functions {
@@ -563,21 +564,31 @@ func buildControlFlowSingleNode(control *ControlFlow, stmt syntax.Stmt) {
 		condLine := condToText(item.X)
 		control.add(condLine)
 
-		loop := control.get()
+		loopIndex := control.get()
 
 		// TODO: item.Vars, item.Expr
 
 		loopBody := newControlFlow()
 		buildControlFlow(loopBody, item.Body)
-		done := control.concat(loopBody)
+		bodyIndex := control.concat(loopBody)
 		//done := control.get()
 
-		after := control.makeNewNoArrow()
+		lastIndex := control.get()
+		afterIndex := control.makeNewNoArrow()
 
-		fmt.Printf("poke %d -> %d\n", done, loop)
-		fmt.Printf("poke %d -> %d\n", loop, after)
-		control.poke(done, loop)
-		control.poke(loop, after)
+
+		fmt.Printf("loop = %d, body = %d, last = %d, after = %d\n", loopIndex, bodyIndex, lastIndex, afterIndex)
+
+
+		control.poke(loopIndex, bodyIndex)
+		control.poke(loopIndex, afterIndex)
+		control.poke(lastIndex, loopIndex)
+
+		//restart := loop - 1
+		//fmt.Printf("poke %d -> %d\n", done, restart)
+		//fmt.Printf("poke %d -> %d\n", loop, after)
+		//control.poke(done, restart)
+		//control.poke(loop, after)
 
 		//newBlock := newCodeBlock()
 		//currBlock.Outs = append(currBlock.Outs, newBlock)
