@@ -579,14 +579,7 @@ func buildControlFlowSingleNode(control *ControlFlow, stmt syntax.Stmt) {
 
 		u := control.makeNewNoArrow()
 
-		fmt.Printf("c=%d t=%d f=%d u=%d\n", c, t, f, u)
-		// want
-		// c = 1
-		// t = 2
-		// f = 3
-		// u = 4
-
-		control.poke(c, t) // 1 -> 1
+		control.poke(c, t)
 		control.poke(c, f)
 		control.poke(t, u)
 		control.poke(f, u)
