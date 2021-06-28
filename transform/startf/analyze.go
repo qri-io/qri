@@ -423,39 +423,72 @@ func displayFuncNode(node *FuncNode, depth int) {
 }
 
 type ControlFlow struct {
-	Root *CodeBlock
-	Curr *CodeBlock
+	Nodes []*CodeBlock
+	Curr  *CodeBlock
 }
 
 func newControlFlow() *ControlFlow {
 	return &ControlFlow{}
 }
 
+func (c *ControlFlow) display() {
+	for i, n := range c.Nodes {
+		fmt.Printf("---------------------\n")
+		fmt.Printf("%d:\n", i)
+		fmt.Printf("%s\n", n.Code)
+		fmt.Printf("out: %v\n", n.Outs)
+	}
+}
+
+func (c *ControlFlow) prepare() {
+	if c.Nodes == nil {
+		c.Nodes = append(c.Nodes, newCodeBlock())
+		c.Curr = c.Nodes[len(c.Nodes)-1]
+	}
+}
+
 func (c *ControlFlow) add(line string) {
-	if c.Curr == nil {
-		c.Curr = newCodeBlock()
-	}
-	if c.Root == nil {
-		c.Root = c.Curr
-	}
+	c.prepare()
 	c.Curr.Code = append(c.Curr.Code, line)
 }
 
-func (c *ControlFlow) makeNew() {
-	if c.Curr != nil {
-		prev := c.Curr
-		c.Curr = newCodeBlock()
-		prev.Outs = append(prev.Outs, c.Curr)
-	} else {
-		c.Curr = newCodeBlock()
-		c.Root = c.Curr
-	}
+func (c *ControlFlow) makeNew() int {
+	c.prepare()
+
+	nextIndex := len(c.Nodes)
+	c.Curr.Outs = append(c.Curr.Outs, nextIndex)
+
+	c.Nodes = append(c.Nodes, newCodeBlock())
+	c.Curr = c.Nodes[len(c.Nodes)-1]
+
+	return c.get()
 }
 
-func (c *ControlFlow) linkTo(other *ControlFlow) {
-	c.Curr.Outs = append(c.Curr.Outs, other.Root)
+func (c *ControlFlow) makeNewNoArrow() int {
+	c.prepare()
+
+	//nextIndex := len(c.Nodes)
+	c.Nodes = append(c.Nodes, newCodeBlock())
+	c.Curr = c.Nodes[len(c.Nodes)-1]
+
+	return c.get()
 }
 
+func (c *ControlFlow) get() int {
+	return len(c.Nodes) - 1
+}
+
+func (c *ControlFlow) poke(index, value int) {
+	c.Nodes[index].Outs = append(c.Nodes[index].Outs, value)
+}
+
+func (c *ControlFlow) concat(other *ControlFlow) int {
+	result := len(c.Nodes) // no -1
+	// TODO: Replace indexes?
+	c.Nodes = append(c.Nodes, other.Nodes...)
+	c.Curr = c.Nodes[len(c.Nodes)-1]
+	return result
+}
 
 func analyzeSingleFunction(graph *CallGraph, fname string) {
 	f := graph.lookup[fname]
@@ -464,22 +497,23 @@ func analyzeSingleFunction(graph *CallGraph, fname string) {
 	controlFlow := newControlFlow()
 	buildControlFlow(controlFlow, body)
 
-	data, err := json.MarshalIndent(controlFlow, "", " ")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Control Flow:\n%s\n", string(data))
+	//data, err := json.MarshalIndent(controlFlow, "", " ")
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Printf("Control Flow:\n%s\n", string(data))
+	controlFlow.display()
 }
 
 type CodeBlock struct {
 	Code []string
-	Outs []*CodeBlock
+	Outs []int
 }
 
 func newCodeBlock() *CodeBlock {
 	return &CodeBlock{
 		Code: []string{},
-		Outs: []*CodeBlock{},
+		Outs: []int{},
 	}
 }
 
@@ -531,16 +565,31 @@ func buildControlFlowSingleNode(control *ControlFlow, stmt syntax.Stmt) {
 		// Condition of If statement
 		condLine := condToText(item.Cond)
 		control.add(condLine)
+		c := control.get()
 
 		ifTrueBranch := newControlFlow()
 		buildControlFlow(ifTrueBranch, item.True)
-		control.linkTo(ifTrueBranch)
+		t := control.concat(ifTrueBranch)
+
+		// TODO: Handle false being empty (no `else`)
 
 		ifFalseBranch := newControlFlow()
-		buildControlFlow(ifTrueBranch, item.False)
-		control.linkTo(ifFalseBranch)
+		buildControlFlow(ifFalseBranch, item.False)
+		f := control.concat(ifFalseBranch)
 
-		control.makeNew()
+		u := control.makeNewNoArrow()
+
+		fmt.Printf("c=%d t=%d f=%d u=%d\n", c, t, f, u)
+		// want
+		// c = 1
+		// t = 2
+		// f = 3
+		// u = 4
+
+		control.poke(c, t) // 1 -> 1
+		control.poke(c, f)
+		control.poke(t, u)
+		control.poke(f, u)
 
 	case *syntax.LoadStmt:
 		fmt.Printf("~~~ TODO: load stmt\n")
