@@ -28,16 +28,16 @@ func doAnalyze(filename string) error {
 		return err
 	}
 
-	fmt.Printf("Parsed successfully!\n")
-	data, err := json.MarshalIndent(f, "", " ")
-	if err != nil {
-		return err
-	}
+	//fmt.Printf("Parsed successfully!\n")
+	//data, err := json.MarshalIndent(f, "", " ")
+	//if err != nil {
+	//	return err
+	//}
 
 	functions := []*FuncResult{}
 
-	text := string(data)
-	fmt.Printf("%s\n================================\n\n", text)
+	//text := string(data)
+	//fmt.Printf("%s\n================================\n\n", text)
 
 	for i, stmt := range f.Stmts {
 		switch item := stmt.(type) {
@@ -52,7 +52,8 @@ func doAnalyze(filename string) error {
 		}
 	}
 
-	fmt.Printf("----------------------------------------\n")
+	//fmt.Printf("----------------------------------------\n")
+	fmt.Printf("\n")
 
 	// Build a graph of all calls
 	// Detect unused functions
@@ -77,7 +78,7 @@ func doAnalyze(filename string) error {
 }
 
 func analyzeFunction(def *syntax.DefStmt) (*FuncResult, error) {
-	fmt.Printf("def func: %q\n", def.Name.Name)
+	//fmt.Printf("def func: %q\n", def.Name.Name)
 
 	numParams := len(def.Params)
 	_ = numParams
@@ -86,7 +87,7 @@ func analyzeFunction(def *syntax.DefStmt) (*FuncResult, error) {
 		p := parameterName(param)
 		params[k] = p
 	}
-	fmt.Printf(" params: (%s)\n", strings.Join(params, ","))
+	//fmt.Printf(" params: (%s)\n", strings.Join(params, ","))
 
 	res, err := analyzeFuncBody(def.Body)
 	if err != nil {
@@ -96,7 +97,7 @@ func analyzeFunction(def *syntax.DefStmt) (*FuncResult, error) {
 	res.params = strings.Join(params, ",")
 	res.body = def.Body
 
-	fmt.Printf("\n")
+	//fmt.Printf("\n")
 
 	return res, nil
 }
@@ -401,7 +402,7 @@ func markReachable(node *FuncNode) {
 
 func displayCallGraph(graph *CallGraph) {
 	fmt.Printf("Call Graph...\n")
-	fmt.Printf("nodes: %d\n", len(graph.nodes))
+	//fmt.Printf("nodes: %d\n", len(graph.nodes))
 
 	for _, f := range graph.nodes {
 		displayFuncNode(f, 0)
@@ -414,7 +415,7 @@ func displayFuncNode(node *FuncNode, depth int) {
 	if !node.reach {
 		extra = " *** DEAD CODE"
 	}
-	fmt.Printf("%s%s @ %d%s\n", padding, node.name, node.height, extra)
+	fmt.Printf("%s%s  h:%d%s\n", padding, node.name, node.height, extra)
 	for _, call := range node.outs {
 		displayFuncNode(call, depth+1)
 	}
