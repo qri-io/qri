@@ -62,7 +62,10 @@ func doAnalyze(filename string) error {
 
 	fmt.Printf("----------------------------------------\n")
 
-	//analyzeSingleFunction(callGraph, "first_func")
+	analyzeSingleFunction(callGraph, "first_func")
+
+	fmt.Printf("----------------------------------------\n")
+
 	analyzeSingleFunction(callGraph, "main_func")
 /*
 	fmt.Printf("----------------------------------------\n")
@@ -483,11 +486,20 @@ func (c *ControlFlow) poke(index, value int) {
 }
 
 func (c *ControlFlow) concat(other *ControlFlow) int {
-	result := len(c.Nodes) // no -1
+	size := len(c.Nodes) // no -1
 	// TODO: Replace indexes?
+
+	for _, n := range other.Nodes {
+		replace := make([]int, 0)
+		for _, out := range n.Outs {
+			replace = append(replace, out + size)
+		}
+		n.Outs = replace
+	}
+
 	c.Nodes = append(c.Nodes, other.Nodes...)
 	c.Curr = c.Nodes[len(c.Nodes)-1]
-	return result
+	return size
 }
 
 func analyzeSingleFunction(graph *CallGraph, fname string) {
@@ -547,6 +559,25 @@ func buildControlFlowSingleNode(control *ControlFlow, stmt syntax.Stmt) {
 
 		// Add new block, connect old one here
 		control.makeNew()
+
+		condLine := condToText(item.X)
+		control.add(condLine)
+
+		loop := control.get()
+
+		// TODO: item.Vars, item.Expr
+
+		loopBody := newControlFlow()
+		buildControlFlow(loopBody, item.Body)
+		done := control.concat(loopBody)
+		//done := control.get()
+
+		after := control.makeNewNoArrow()
+
+		fmt.Printf("poke %d -> %d\n", done, loop)
+		fmt.Printf("poke %d -> %d\n", loop, after)
+		control.poke(done, loop)
+		control.poke(loop, after)
 
 		//newBlock := newCodeBlock()
 		//currBlock.Outs = append(currBlock.Outs, newBlock)
