@@ -2,8 +2,6 @@ module github.com/qri-io/qri
 
 go 1.13
 
-replace github.com/qri-io/starlib => ../starlib
-
 require (
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
 	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe
@@ -57,10 +55,10 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/ugorji/go/codec v1.1.7
 	github.com/vbauerster/mpb/v5 v5.3.0
-	go.starlark.net v0.0.0-20210406145628-7a1108eaa012
+	go.starlark.net v0.0.0-20200619143648-50ca820fafb9
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
-	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
+	golang.org/x/sys v0.0.0-20200810151505-1b9f1253b3ed
 	golang.org/x/text v0.3.3
 	gopkg.in/yaml.v2 v2.3.0
 	nhooyr.io/websocket v1.8.6

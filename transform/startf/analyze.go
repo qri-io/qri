@@ -1,7 +1,6 @@
 package startf
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -18,26 +17,12 @@ func analyzeScriptFile(thread *starlark.Thread, filename string) {
 }
 
 func doAnalyze(filename string) error {
-	// ExecFile(thread *Thread, filename string, src interface{}, predeclared StringDict)
-	// SourceProgram(filename string, src interface{}, isPredeclared func(string) bool)
-	// f, err := syntax.Parse(filename string, src interface{}, 0 ?)
-	fmt.Printf("analyze: %s\n", filename)
-
 	f, err := syntax.Parse(filename, nil, 0)
 	if err != nil {
 		return err
 	}
 
-	//fmt.Printf("Parsed successfully!\n")
-	//data, err := json.MarshalIndent(f, "", " ")
-	//if err != nil {
-	//	return err
-	//}
-
 	functions := []*FuncResult{}
-
-	//text := string(data)
-	//fmt.Printf("%s\n================================\n\n", text)
 
 	for i, stmt := range f.Stmts {
 		switch item := stmt.(type) {
@@ -52,47 +37,24 @@ func doAnalyze(filename string) error {
 		}
 	}
 
-	//fmt.Printf("----------------------------------------\n")
-	fmt.Printf("\n")
-
-	// Build a graph of all calls
-	// Detect unused functions
+	// Build a graph of all calls, Detect unused functions
 	callGraph := buildCallGraph(functions)
 	displayCallGraph(callGraph)
 
 	fmt.Printf("----------------------------------------\n")
-
 	analyzeSingleFunction(callGraph, "first_func")
 
 	fmt.Printf("----------------------------------------\n")
-
 	//analyzeSingleFunction(callGraph, "main_func")
-
-/*
-	fmt.Printf("----------------------------------------\n")
-	for _, f := range functions {
-		fmt.Printf("def %s(%s)\n", f.name, f.params)
-		for _, c := range f.calls {
-			fmt.Printf(" %s()\n", c)
-		}
-		fmt.Printf("\n")
-	}
-*/
-
 	return nil
 }
 
 func analyzeFunction(def *syntax.DefStmt) (*FuncResult, error) {
-	//fmt.Printf("def func: %q\n", def.Name.Name)
-
-	numParams := len(def.Params)
-	_ = numParams
-	params := make([]string, numParams)
+	params := make([]string, len(def.Params))
 	for k, param := range def.Params {
 		p := parameterName(param)
 		params[k] = p
 	}
-	//fmt.Printf(" params: (%s)\n", strings.Join(params, ","))
 
 	res, err := analyzeFuncBody(def.Body)
 	if err != nil {
@@ -101,8 +63,6 @@ func analyzeFunction(def *syntax.DefStmt) (*FuncResult, error) {
 	res.name = def.Name.Name
 	res.params = strings.Join(params, ",")
 	res.body = def.Body
-
-	//fmt.Printf("\n")
 
 	return res, nil
 }
@@ -129,14 +89,6 @@ func NewFuncResult() *FuncResult {
 func analyzeFuncBody(body []syntax.Stmt) (*FuncResult, error) {
 	result := NewFuncResult()
 	for k, stmt := range body {
-		data, err := json.Marshal(stmt)
-		if err != nil {
-			return nil, err
-		}
-		text := string(data)
-		//fmt.Printf("%d: %s\n", k, text)
-		_ = text
-
 		switch item := stmt.(type) {
 		case *syntax.AssignStmt:
 			// Is the rhs a function call
@@ -151,7 +103,6 @@ func analyzeFuncBody(body []syntax.Stmt) (*FuncResult, error) {
 			fmt.Printf("TODO func body %d: def\n", k)
 		case *syntax.ExprStmt:
 			// pass
-			// Is this a function call? (almost *certainly* it is)
 			calls := getFuncCallsInExpr(item.X)
 			result.calls = append(result.calls, calls...)
 
@@ -178,17 +129,6 @@ func analyzeFuncBody(body []syntax.Stmt) (*FuncResult, error) {
 	}
 	return result, nil
 }
-
-// Stmt:
-//  AssignStmt step
-//  BranchStmt control-flow -> jump (BREAK | CONTINUE | PASS)
-//  DefStmt    ?
-//  ExprStmt   step
-//  ForStmt    control-flow -> loop
-//  WhileStmt  control-flow -> loop
-//  IfStmt     control-flow -> branch
-//  LoadStmt   ?
-//  ReturnStmt control-flow -> termination
 
 func getFuncCallsInExpr(expr syntax.Expr) []string {
 	switch item := expr.(type) {
@@ -227,8 +167,6 @@ func getFuncCallsInExpr(expr syntax.Expr) []string {
 		panic("not implemented")
 
 	case *syntax.Ident:
-		// I think that this is correct?
-		//fmt.Printf("Ident is not a FuncCall I think?\n")
 		return []string{}
 
 	case *syntax.IndexExpr:
@@ -282,44 +220,6 @@ func simpleExprToFuncName(expr syntax.Expr) string {
 	}
 	return fmt.Sprintf("<Unknown Name, Type: %q>", reflect.TypeOf(expr))
 }
-
-/*
-	switch item := expr.(type) {
-	case *syntax.BinaryExpr:
-		// pass
-	case *syntax.CallExpr:
-		// pass
-	case *syntax.ComprehensionExpr:
-		// pass
-	case *syntax.CondExpr:
-		// pass
-	case *syntax.DictEntry:
-		// pass
-	case *syntax.DictExpr:
-		// pass
-	case *syntax.DotExpr:
-		// pass
-	case *syntax.Ident:
-		return item.Name
-	case *syntax.IndexExpr:
-
-	case *syntax.LambdaExpr:
-
-	case *syntax.ListExpr:
-
-	case *syntax.Literal:
-
-	case *syntax.ParenExpr:
-
-	case *syntax.SliceExpr:
-
-	case *syntax.TupleExpr:
-
-	case *syntax.UnaryExpr:
-
-	}
-}
-*/
 
 type CallGraph struct {
 	root   *FuncNode
@@ -375,7 +275,6 @@ func addToCallGraph(f *FuncResult, graph *CallGraph, symtable map[string]*FuncRe
 	for _, call := range f.calls {
 		child, ok := symtable[call]
 		if !ok {
-			//panic(fmt.Sprintf("not found: %s", call))
 			fmt.Printf("not found: %s\n", call)
 			continue
 		}
@@ -407,8 +306,6 @@ func markReachable(node *FuncNode) {
 
 func displayCallGraph(graph *CallGraph) {
 	fmt.Printf("Call Graph...\n")
-	//fmt.Printf("nodes: %d\n", len(graph.nodes))
-
 	for _, f := range graph.nodes {
 		displayFuncNode(f, 0)
 	}
@@ -471,7 +368,6 @@ func (c *ControlFlow) makeNew() int {
 func (c *ControlFlow) makeNewNoArrow() int {
 	c.prepare()
 
-	//nextIndex := len(c.Nodes)
 	c.Nodes = append(c.Nodes, newCodeBlock())
 	c.Curr = c.Nodes[len(c.Nodes)-1]
 
@@ -487,8 +383,7 @@ func (c *ControlFlow) poke(index, value int) {
 }
 
 func (c *ControlFlow) concat(other *ControlFlow) int {
-	size := len(c.Nodes) // no -1
-	// TODO: Replace indexes?
+	size := len(c.Nodes)
 
 	for _, n := range other.Nodes {
 		replace := make([]int, 0)
@@ -510,11 +405,6 @@ func analyzeSingleFunction(graph *CallGraph, fname string) {
 	controlFlow := newControlFlow()
 	buildControlFlow(controlFlow, body)
 
-	//data, err := json.MarshalIndent(controlFlow, "", " ")
-	//if err != nil {
-	//	panic(err)
-	//}
-	//fmt.Printf("Control Flow:\n%s\n", string(data))
 	controlFlow.display()
 }
 
@@ -551,13 +441,11 @@ func buildControlFlowSingleNode(control *ControlFlow, stmt syntax.Stmt) {
 		fmt.Printf("~~~ TODO: def stmt\n")
 
 	case *syntax.ExprStmt:
-
 		// TODO: Also record vars in Params
 		funcCallLine := funcCallToText(item)
 		control.add(funcCallLine)
 
 	case *syntax.ForStmt:
-
 		// Add new block, connect old one here
 		control.makeNew()
 
@@ -745,62 +633,3 @@ func condToText(expr syntax.Expr) string {
 
 	return "if ????"
 }
-
-/*
-func condStmtToText(expr *syntax.ExprStmt) string {
-	e := expr.X
-	switch item := e.(type) {
-	case *syntax.BinaryExpr:
-		return "COND binary()"
-
-	case *syntax.CallExpr:
-		fn := item.Fn
-		funcCallIdent := fn.(*syntax.Ident)
-		return fmt.Sprintf("COND %s()", funcCallIdent.Name)
-
-	case *syntax.Comprehension:
-		return "COND comp()"
-
-	case *syntax.CondExpr:
-		return "COND cond()"
-
-	case *syntax.DictEntry:
-		return "COND dictEntry()"
-
-	case *syntax.DictExpr:
-		return "COND dict()"
-
-	case *syntax.DotExpr:
-		return "COND dot()"
-
-	case *syntax.Ident:
-		return fmt.Sprintf("COND %s()", item.Name)
-
-	case *syntax.IndexExpr:
-		return "COND index()"
-
-	case *syntax.LambdaExpr:
-		return "COND lambda()"
-
-	case *syntax.ListExpr:
-		return "COND list()"
-
-	case *syntax.Literal:
-		return "COND literal()"
-
-	case *syntax.ParenExpr:
-		return "COND paren()"
-
-	case *syntax.SliceExpr:
-		return "COND slice()"
-
-	case *syntax.TupleExpr:
-		return "COND tuple()"
-
-	case *syntax.UnaryExpr:
-		return "COND unary()"
-
-	}
-	return "????()"
-}
-*/
