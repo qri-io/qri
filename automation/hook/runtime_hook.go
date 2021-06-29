@@ -18,7 +18,7 @@ type RuntimeHook struct {
 var _ Hook = (*RuntimeHook)(nil)
 
 // RuntimeType denotes a `RuntimeHook`
-var RuntimeType = Type("Runtime Hook")
+const RuntimeType = "Runtime Hook"
 
 // ETRuntimeHook denotes a `RuntimeHook` event
 // TODO (ramfox): this will probably move to the `event` package
@@ -44,8 +44,8 @@ func (rh *RuntimeHook) SetEnabled(enabled bool) error {
 	return nil
 }
 
-// Type returns the Type
-func (rh *RuntimeHook) Type() Type {
+// Type returns the type of Hook
+func (rh *RuntimeHook) Type() string {
 	return RuntimeType
 }
 
@@ -62,7 +62,7 @@ func (rh *RuntimeHook) Event() (event.Type, interface{}) {
 
 type runtimeHook struct {
 	Enabled      bool        `json:"enabled"`
-	Type         Type        `json:"type"`
+	Type         string      `json:"type"`
 	AdvanceCount int         `json:"advancedCount"`
 	Payload      interface{} `json:"payload"`
 }
