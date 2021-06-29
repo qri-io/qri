@@ -77,15 +77,9 @@ func TestIntegration(t *testing.T) {
 		Triggers:  []trigger.Trigger{rtt1, rtt2},
 	}
 
-	triggerOpts := []*trigger.Options{
-		&trigger.Options{
-			Type:   trigger.RuntimeType,
-			Config: map[string]interface{}{},
-		},
-		&trigger.Options{
-			Type:   trigger.RuntimeType,
-			Config: map[string]interface{}{"active": true},
-		},
+	triggerOpts := []map[string]interface{}{
+		map[string]interface{}{"type": trigger.RuntimeType},
+		map[string]interface{}{"type": trigger.RuntimeType, "active": true},
 	}
 
 	allowUnexported := cmp.AllowUnexported(trigger.RuntimeTrigger{})

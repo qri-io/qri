@@ -20,7 +20,7 @@ type RuntimeTrigger struct {
 var _ Trigger = (*RuntimeTrigger)(nil)
 
 // RuntimeType denotes a `RuntimeTrigger`
-var RuntimeType = Type("Runtime Trigger")
+const RuntimeType = "Runtime Trigger"
 
 // NewRuntimeTrigger returns an active `RuntimeTrigger`
 func NewRuntimeTrigger() *RuntimeTrigger {
@@ -42,7 +42,7 @@ func (rt *RuntimeTrigger) SetActive(active bool) error {
 }
 
 // Type returns the RuntimeType
-func (rt *RuntimeTrigger) Type() Type {
+func (rt *RuntimeTrigger) Type() string {
 	return RuntimeType
 }
 
@@ -61,9 +61,9 @@ func (rt *RuntimeTrigger) Trigger(t chan string, workflowID string) {
 }
 
 type runtimeTrigger struct {
-	Active       bool `json:"active"`
-	Type         Type `json:"type"`
-	AdvanceCount int  `json:"advanceCount"`
+	Active       bool   `json:"active"`
+	Type         string `json:"type"`
+	AdvanceCount int    `json:"advanceCount"`
 }
 
 // MarshalJSON implements the json.Marshaller interface
@@ -124,31 +124,19 @@ func NewRuntimeListener(ctx context.Context, bus event.Bus) *RuntimeListener {
 
 // ConstructTrigger creates a RuntimeTrigger from a map string interface config
 // The map must have a field "type" of type RuntimeTrigger
-func (l *RuntimeListener) ConstructTrigger(opt *Options) (Trigger, error) {
-	if opt.Type != l.Type() {
-		return nil, fmt.Errorf("%w, expected %q but got %q", ErrTypeMismatch, l.Type(), opt.Type)
-	}
-	a, ok := opt.Config["active"]
-	if !ok {
-		a = false
-	}
-	active, ok := a.(bool)
-	if !ok {
-		return nil, fmt.Errorf("expected \"active\" field to be a boolean value")
-	}
-	c, ok := opt.Config["advanceCount"]
-	if !ok {
-		c = 0
-	}
-	count, ok := c.(int)
-	if !ok {
-		return nil, fmt.Errorf("expected \"advanceCount\" field to be an int value")
+func (l *RuntimeListener) ConstructTrigger(opt map[string]interface{}) (Trigger, error) {
+	t := opt["type"]
+	if t != l.Type() {
+		return nil, fmt.Errorf("%w, expected %q but got %q", ErrTypeMismatch, l.Type(), t)
 	}
 
-	return &RuntimeTrigger{
-		AdvanceCount: int(count),
-		active:       active,
-	}, nil
+	data, err := json.Marshal(opt)
+	if err != nil {
+		return nil, err
+	}
+	rt := &RuntimeTrigger{}
+	err = rt.UnmarshalJSON(data)
+	return rt, err
 }
 
 // Listen takes a list of sources and adds or updates the Listener's
@@ -162,18 +150,18 @@ func (l *RuntimeListener) Listen(sources ...Source) error {
 		if workflowID == "" {
 			return ErrEmptyWorkflowID
 		}
-		scopeID := s.ScopeID()
-		if scopeID == "" {
-			return ErrEmptyScopeID
+		ownerID := s.Owner()
+		if ownerID == "" {
+			return ErrEmptyOwnerID
 		}
 		triggers := s.ActiveTriggers(RuntimeType)
-		wids, ok := l.activeTriggers[scopeID]
+		wids, ok := l.activeTriggers[ownerID]
 		if !ok {
 			if len(triggers) == 0 {
 				continue
 			}
-			l.activeTriggers[scopeID] = []string{}
-			wids = l.activeTriggers[scopeID]
+			l.activeTriggers[ownerID] = []string{}
+			wids = l.activeTriggers[ownerID]
 		}
 		index := -1
 		for i, wid := range wids {
@@ -183,11 +171,11 @@ func (l *RuntimeListener) Listen(sources ...Source) error {
 			}
 		}
 		if len(triggers) == 0 {
-			l.activeTriggers[scopeID] = remove(l.activeTriggers[scopeID], index)
+			l.activeTriggers[ownerID] = remove(l.activeTriggers[ownerID], index)
 			continue
 		}
 		if index == -1 {
-			l.activeTriggers[scopeID] = append(wids, workflowID)
+			l.activeTriggers[ownerID] = append(wids, workflowID)
 		}
 	}
 	return nil
@@ -201,14 +189,8 @@ func remove(wids []string, i int) []string {
 	return wids[:len(wids)-1]
 }
 
-// Bus returns the underlying `event.Bus` that the RuntimeListener will emit
-// an `event.ETTriggerWorkflow` event
-func (l *RuntimeListener) Bus() event.Bus {
-	return l.bus
-}
-
 // Type returns the Type `RuntimeType`
-func (l *RuntimeListener) Type() Type {
+func (l *RuntimeListener) Type() string {
 	return RuntimeType
 }
 
@@ -275,7 +257,7 @@ func (l *RuntimeListener) Stop() error {
 func (l *RuntimeListener) TriggerExists(source Source) bool {
 	l.activeTriggersLock.Lock()
 	defer l.activeTriggersLock.Unlock()
-	ids, ok := l.activeTriggers[source.ScopeID()]
+	ids, ok := l.activeTriggers[source.Owner()]
 	if !ok {
 		return false
 	}

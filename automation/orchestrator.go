@@ -54,7 +54,7 @@ type Orchestrator struct {
 	// cancelling runs that haven't happened yet
 	runLock      sync.Mutex
 	workflows    workflow.Store
-	listeners    []trigger.Listener
+	listeners    map[string]trigger.Listener
 	runs         run.Store
 	runFactory   RunFactory
 	applyFactory ApplyFactory
@@ -93,9 +93,17 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 		applyFactory: applyFactory,
 		workflows:    opts.WorkflowStore,
 		runs:         opts.RunStore,
-		listeners:    opts.Listeners,
 	}
 
+	for _, l := range opts.Listeners {
+		if o.listeners == nil {
+			o.listeners = map[string]trigger.Listener{}
+		}
+		if _, ok := o.listeners[l.Type()]; ok {
+			return nil, fmt.Errorf("multiple trigger listeners of type %q specified - can only have one of each type of listener", l.Type())
+		}
+		o.listeners[l.Type()] = l
+	}
 	if o.workflows == nil {
 		// TODO(ramfox): once we have a `config.Automation` specified, we will have a
 		// specific `workflow.NewStore` function that takes a `config.Workflow` & will
@@ -136,8 +144,8 @@ func (o *Orchestrator) Stop() {
 	o.stopListeners()
 }
 
-// startListeners starts the orchestrator's trigger.Listeners to being listening
-// for triggers
+// startListeners passes a list of deployed Workflows to configured trigger
+// Listeners
 func (o *Orchestrator) startListeners(ctx context.Context) error {
 	wfs, err := o.workflows.ListDeployed(ctx, -1, 0)
 	if err != nil {
@@ -190,7 +198,7 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 	if e.Type == event.ETWorkflowTrigger {
 		wid, ok := e.Payload.(string)
 		if !ok {
-			return fmt.Errorf("handleTrigger: expected event.Payload to be a workflow.ID: %v", e.Payload)
+			return fmt.Errorf("handleTrigger: expected event.Payload to be a string: %v", e.Payload)
 		}
 		go func() {
 			if err := o.RunWorkflow(ctx, workflow.ID(wid)); err != nil {
@@ -252,24 +260,22 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wid workflow.ID) error
 }
 
 // CreateWorkflow creates a new workflow and adds it to the WorkflowStore
-func (o *Orchestrator) CreateWorkflow(did string, pid profile.ID, triggerOpts []*trigger.Options) (*workflow.Workflow, error) {
+func (o *Orchestrator) CreateWorkflow(did string, pid profile.ID, triggerOpts []map[string]interface{}) (*workflow.Workflow, error) {
 	t := []trigger.Trigger{}
 	for _, opt := range triggerOpts {
-		found := false
-		for _, listener := range o.listeners {
-			if opt.Type == listener.Type() {
-				trig, err := listener.ConstructTrigger(opt)
-				if err != nil {
-					return nil, fmt.Errorf("Error constructing trigger: %w", err)
-				}
-				t = append(t, trig)
-				found = true
-				break
-			}
+		triggerType, ok := opt["type"].(string)
+		if !ok {
+			return nil, fmt.Errorf("trigger options map must include a %q field with the trigger type given as a string", "type")
 		}
-		if !found {
-			return nil, fmt.Errorf("Unknown TriggerType: %q", opt.Type)
+		listener, ok := o.listeners[triggerType]
+		if !ok {
+			return nil, fmt.Errorf("CreateWorkflow unknown trigger type: %q", triggerType)
 		}
+		trig, err := listener.ConstructTrigger(opt)
+		if err != nil {
+			return nil, fmt.Errorf("CreateWorkflow error constructing trigger: %w", err)
+		}
+		t = append(t, trig)
 	}
 	// TODO (ramfox): when we add hooks in a follow up, this function should receive HookrOptions as a param
 	// it should iterate over the hooks this orchestrator understands, and err if the workflow references

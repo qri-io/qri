@@ -42,7 +42,7 @@ func AssertHook(t *testing.T, h hook.Hook) {
 	if !ok {
 		t.Fatal("json.Marshal error, expected Type field to exist")
 	}
-	if hType != h.Type().String() {
+	if hType != h.Type() {
 		t.Fatalf("json.Marshal error, expected marshalled type %q to match hook.Type() %q", hType, h.Type())
 	}
 
