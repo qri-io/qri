@@ -153,6 +153,12 @@ const (
 	AEConnections = APIEndpoint("/connections")
 	// AEConnectedQriProfiles lists qri profile connections
 	AEConnectedQriProfiles = APIEndpoint("/connections/qri")
+	// AEListFlags lists qri feature flags
+	AEListFlags = APIEndpoint("/config/flags")
+	// AEGetFlag return a qri feature flag
+	AEGetFlag = APIEndpoint("/config/flag")
+	// AESetFlag updates a qri feature flag
+	AESetFlag = APIEndpoint("/config/flag/set")
 
 	// DenyHTTP will disable HTTP access to a method
 	DenyHTTP = APIEndpoint("")

@@ -279,6 +279,7 @@ func (inst *Instance) RegisterMethods() {
 	inst.registerOne("automation", inst.Automation(), automationImpl{}, reg)
 	inst.registerOne("collection", inst.Collection(), collectionImpl{}, reg)
 	inst.registerOne("config", inst.Config(), configImpl{}, reg)
+	inst.registerOne("feature", inst.FeatureFlags(), featureFlagsImpl{}, reg)
 	inst.registerOne("dataset", inst.Dataset(), datasetImpl{}, reg)
 	inst.registerOne("diff", inst.Diff(), diffImpl{}, reg)
 	inst.registerOne("fsi", inst.Filesys(), fsiImpl{}, reg)
