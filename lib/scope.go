@@ -6,6 +6,7 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/config/feature"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -66,6 +67,11 @@ func (s *scope) ChangeConfig(ctg *config.Config) error {
 // Config returns the config
 func (s *scope) Config() *config.Config {
 	return s.inst.cfg
+}
+
+// FeatureFlags returns the instance FeatureFlags Store
+func (s *scope) FeatureFlags() feature.Store {
+	return s.inst.featureFlags
 }
 
 // Context returns the context for this scope. Though this pattern is usually discouraged,

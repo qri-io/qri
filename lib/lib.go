@@ -26,6 +26,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/config/feature"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
@@ -84,6 +85,7 @@ type InstanceOptions struct {
 	bus           event.Bus
 	collectionSet collection.Set
 	tokenProvider token.Provider
+	featureFlags  feature.Store
 	logAll        bool
 
 	remoteMockClient bool
@@ -105,6 +107,14 @@ type Option func(o *InstanceOptions) error
 func OptConfig(cfg *config.Config) Option {
 	return func(o *InstanceOptions) error {
 		o.Cfg = cfg
+		return nil
+	}
+}
+
+// OptFeatureFlags supplies a feature flag implementation
+func OptFeatureFlags(ff feature.Store) Option {
+	return func(o *InstanceOptions) error {
+		o.featureFlags = ff
 		return nil
 	}
 }
@@ -425,6 +435,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		collectionSet: o.collectionSet,
 		keystore:      o.keyStore,
 		tokenProvider: o.tokenProvider,
+		featureFlags:  o.featureFlags,
 		dscache:       o.dscache,
 		profiles:      o.profiles,
 		bus:           o.bus,
@@ -509,6 +520,14 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if inst.tokenProvider == nil {
 		if inst.tokenProvider, err = token.NewProvider(inst.profiles, inst.keystore); err != nil {
 			return nil, fmt.Errorf("initializing token provider: %w", err)
+		}
+	}
+
+	if inst.featureFlags == nil {
+		inst.featureFlags, err = feature.NewStore(cfg)
+		if err != nil {
+			log.Debugw("initializing feature flags", "err", err)
+			return nil, err
 		}
 	}
 
@@ -782,6 +801,7 @@ type Instance struct {
 	dscache       *dscache.Dscache
 	collectionSet collection.Set
 	tokenProvider token.Provider
+	featureFlags  feature.Store
 	bus           event.Bus
 	watcher       *watchfs.FilesysWatcher
 	appCtx        context.Context
@@ -867,6 +887,11 @@ func (inst *Instance) Collection() CollectionMethods {
 // Config returns the ConfigMethods that Instance has registered
 func (inst *Instance) Config() ConfigMethods {
 	return ConfigMethods{d: inst}
+}
+
+// FeatureFlags returns the FeatureFlagMethods that Instance has registered
+func (inst *Instance) FeatureFlags() FeatureFlagMethods {
+	return FeatureFlagMethods{d: inst}
 }
 
 // Dataset returns the DatasetMethods that Instance has registered
