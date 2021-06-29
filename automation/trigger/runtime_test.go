@@ -16,36 +16,45 @@ func TestRuntimeTrigger(t *testing.T) {
 }
 
 func TestRuntimeListener(t *testing.T) {
-	ctx := context.Background()
-	bus := event.NewBus(ctx)
-	rl := trigger.NewRuntimeListener(ctx, bus)
-	triggerOpts := &trigger.Options{
-		Type: trigger.RuntimeType,
-		Config: map[string]interface{}{
-			"active": true,
-		},
-	}
-
-	trig, err := rl.ConstructTrigger(triggerOpts)
-	if err != nil {
-		t.Fatalf("RuntimeListener.ConstructTrigger unexpected error: %s", err)
-	}
-	rt, ok := trig.(*trigger.RuntimeTrigger)
-	if !ok {
-		t.Fatal("RuntimeListener.ConstructTrigger did not return a RuntimeTrigger")
-	}
-	activateTrigger := func() {
-		rt.Trigger(rl.TriggerCh, "test workflow id")
-	}
-
 	wf := &workflow.Workflow{
 		ID:       workflow.ID("test workflow id"),
 		OwnerID:  "test Owner id",
 		Deployed: true,
-		Triggers: []trigger.Trigger{rt},
+		Triggers: []trigger.Trigger{},
 	}
-	spec.AssertListener(t, rl, wf, activateTrigger)
+	listenerConstructor := func(ctx context.Context, bus event.Bus) (trigger.Listener, func()) {
+		rl := trigger.NewRuntimeListener(ctx, bus)
+		triggerOpts := map[string]interface{}{
+			"active": true,
+			"type":   trigger.RuntimeType,
+		}
 
+		trig, err := rl.ConstructTrigger(triggerOpts)
+		if err != nil {
+			t.Fatalf("RuntimeListener.ConstructTrigger unexpected error: %s", err)
+		}
+		rt, ok := trig.(*trigger.RuntimeTrigger)
+		if !ok {
+			t.Fatal("RuntimeListener.ConstructTrigger did not return a RuntimeTrigger")
+		}
+		activateTrigger := func() {
+			rt.Trigger(rl.TriggerCh, "test workflow id")
+		}
+
+		wf.Triggers = []trigger.Trigger{rt}
+		if err := rl.Listen(wf); err != nil {
+			t.Fatalf("RuntimeListener.Listen unexpected error: %s", err)
+		}
+		return rl, activateTrigger
+	}
+	spec.AssertListener(t, listenerConstructor)
+
+	ctx := context.Background()
+	l, _ := listenerConstructor(ctx, event.NilBus)
+	rl, ok := l.(*trigger.RuntimeListener)
+	if !ok {
+		t.Fatal("RuntimeListener unexpected assertion error, listenerConstructor should return a runtimeListener")
+	}
 	wf.Triggers = []trigger.Trigger{}
 	if err := rl.Listen(wf); err != nil {
 		t.Fatalf("RuntimeListener.Listen unexpected error: %s", err)

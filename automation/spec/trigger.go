@@ -42,7 +42,7 @@ func AssertTrigger(t *testing.T, trig trigger.Trigger) {
 	if !ok {
 		t.Fatal("json.Marshal error, expected Type field to exist")
 	}
-	if triggerType != trig.Type().String() {
+	if triggerType != trig.Type() {
 		t.Fatalf("json.Marshal error, expected marshalled type %q to match trigger.Type() %q", triggerType, trig.Type())
 	}
 	if err := json.Unmarshal(triggerBytes, &triggerObj); err != nil {
@@ -59,28 +59,25 @@ func AssertTrigger(t *testing.T, trig trigger.Trigger) {
 	}
 }
 
+// ListenerConstructor creates a trigger listener and function that fires the listener when called
+type ListenerConstructor func(ctx context.Context, bus event.Bus) (listener trigger.Listener, activate func())
+
 // AssertListener confirms the expected behavior of a trigger.Listener
 // NOTE: this does not confirm behavior of the `Listen` functionality
 // beyond the basic usage of adding a trigger using a `trigger.Source`
-func AssertListener(t *testing.T, listener trigger.Listener, source trigger.Source, activateTrigger func()) {
-	triggers := source.ActiveTriggers(listener.Type())
-	if len(triggers) == 0 {
-		t.Fatal("expected the given trigger Source to have at least one active trigger of the same type as the listener")
-	}
+func AssertListener(t *testing.T, listenerConstructor ListenerConstructor) {
+	ctx := context.Background()
+	bus := event.NewBus(ctx)
+	listener, activateTrigger := listenerConstructor(ctx, bus)
 	wf := &workflow.Workflow{}
 	if err := listener.Listen(wf); !errors.Is(err, trigger.ErrEmptyWorkflowID) {
 		t.Fatal("listener.Listen should emit a trigger.ErrEmptyWorkflowID if the WorkflowID of the trigger.Source is empty")
 	}
 	wf = &workflow.Workflow{ID: "workflow_id"}
-	if err := listener.Listen(wf); !errors.Is(err, trigger.ErrEmptyScopeID) {
-		t.Fatal("listener.Listen should emit a trigger.ErrEmptyScopeID if the ScopeID (known as the OwnerID in other systems) of the trigger.Source is emtpy")
-	}
-	if err := listener.Listen(source); err != nil {
-		t.Fatalf("listener.Listen error, could not update triggers for the given trigger Source: %s", err)
+	if err := listener.Listen(wf); !errors.Is(err, trigger.ErrEmptyOwnerID) {
+		t.Fatal("listener.Listen should emit a trigger.ErrEmptyOwnerID if the OwnerID if the trigger.Source is emtpy")
 	}
 
-	ctx := context.Background()
-	bus := listener.Bus()
 	triggered := make(chan string)
 	handler := func(ctx context.Context, e event.Event) error {
 		if e.Type == event.ETWorkflowTrigger {
