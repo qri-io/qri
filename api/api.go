@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	golog "github.com/ipfs/go-log"
@@ -90,15 +89,6 @@ func (s Server) Serve(ctx context.Context) (err error) {
 
 	node.LocalStreams.Print(info)
 
-	if cfg.API.DisconnectAfter != 0 {
-		log.Infof("disconnecting after %d seconds", cfg.API.DisconnectAfter)
-		go func(s *http.Server, t int) {
-			<-time.After(time.Second * time.Duration(t))
-			log.Infof("disconnecting")
-			s.Close()
-		}(server, cfg.API.DisconnectAfter)
-	}
-
 	go func() {
 		<-ctx.Done()
 		log.Info("shutting down")
@@ -111,11 +101,6 @@ func (s Server) Serve(ctx context.Context) (err error) {
 
 // HandleIPFSPath responds to IPFS Hash requests with raw data
 func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
-	if s.GetConfig().API.ReadOnly {
-		readOnlyResponse(w, "/ipfs/")
-		return
-	}
-
 	file, err := s.Node().Repo.Filesystem().Get(r.Context(), r.URL.Path)
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -229,7 +214,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(AEHome.String(), s.NoLogMiddleware(s.HomeHandler))
 	m.Handle(AEHealth.String(), s.NoLogMiddleware(HealthCheckHandler))
 	m.Handle(AEIPFS.String(), s.Middleware(s.HandleIPFSPath))
-	if !cfg.API.DisableWebui {
+	if cfg.API.EnableWebui {
 		m.Handle(AEWebUI.String(), s.Middleware(WebuiHandler))
 	}
 

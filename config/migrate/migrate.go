@@ -30,10 +30,6 @@ var (
 	ErrMigrationSucceeded = errors.New("migration succeeded")
 )
 
-func init() {
-	logging.SetLogLevel("migrate", "debug")
-}
-
 // RunMigrations executes migrations. if a migration is required, the shouldRun
 // func is called, and exits without migrating if shouldRun returns false.
 // if errorOnSuccess is true, a completed migration will return
@@ -154,9 +150,11 @@ func oneToTwoConfig(cfg *config.Config) error {
 		if apiCfg.Address == "" {
 			apiCfg.Address = defaultAPICfg.Address
 		}
-		if apiCfg.WebsocketAddress == "" {
-			apiCfg.WebsocketAddress = defaultAPICfg.WebsocketAddress
-		}
+		// TODO(b5): need a strategy for setting config now that this field is removed
+		// in config revision 4
+		// if apiCfg.WebsocketAddress == "" {
+		// 	apiCfg.WebsocketAddress = defaultAPICfg.WebsocketAddress
+		// }
 	} else {
 		return qerr.New(fmt.Errorf("invalid config"), "config does not contain API configuration")
 	}
@@ -232,6 +230,10 @@ func ThreeToFour(cfg *config.Config) error {
 		if err := qipfs.Migrate(ctx, ipfsRepoPath); err != nil {
 			return err
 		}
+	}
+
+	if cfg.API != nil {
+		cfg.API.EnableWebui = true
 	}
 
 	cfg.Revision = 4

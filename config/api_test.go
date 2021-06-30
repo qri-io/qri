@@ -13,29 +13,28 @@ func TestAPIValidate(t *testing.T) {
 }
 
 func TestAPICopy(t *testing.T) {
-	cases := []struct {
-		description string
-		api         *API
-	}{
-		{"default", DefaultAPI()},
-		{"ensure boolean values copy", &API{
-			Enabled:            true,
-			ReadOnly:           true,
-			ServeRemoteTraffic: true,
-		}},
+	a := DefaultAPI()
+	b := a.Copy()
+
+	a.Enabled = !a.Enabled
+	a.Address = "foo"
+	a.EnableWebui = !a.EnableWebui
+	a.ServeRemoteTraffic = !a.ServeRemoteTraffic
+	a.AllowedOrigins = []string{"bar"}
+
+	if a.Enabled == b.Enabled {
+		t.Errorf("Enabled fields should not match")
 	}
-	for i, c := range cases {
-		cpy := c.api.Copy()
-		if !reflect.DeepEqual(cpy, c.api) {
-			t.Errorf("API Copy test case %d '%s', api structs are not equal: \ncopy: %v, \noriginal: %v", i, c.description, cpy, c.api)
-			continue
-		}
-		if cpy.AllowedOrigins != nil {
-			cpy.AllowedOrigins[0] = ""
-			if reflect.DeepEqual(cpy, c.api) {
-				t.Errorf("API Copy test case %d '%s', editing one api struct should not affect the other: \ncopy: %v, \noriginal: %v", i, c.description, cpy, c.api)
-				continue
-			}
-		}
+	if a.Address == b.Address {
+		t.Errorf("Address fields should not match")
+	}
+	if a.EnableWebui == b.EnableWebui {
+		t.Errorf("EnableWebui fields should not match")
+	}
+	if a.ServeRemoteTraffic == b.ServeRemoteTraffic {
+		t.Errorf("ServeRemoteTraffic fields should not match")
+	}
+	if reflect.DeepEqual(a.AllowedOrigins, b.AllowedOrigins) {
+		t.Errorf("AllowedOrigins fields should not match")
 	}
 }
