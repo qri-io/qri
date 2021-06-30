@@ -78,8 +78,7 @@ func TestHTTPClient(t *testing.T) {
 	httpClient.Address = sURL.Host
 	httpClient.Protocol = "http"
 
-	err = httpClient.CallRaw(ctx, AEHome, "", nil, &bytes.Buffer{})
-	if err != nil {
+	if err = httpClient.CallRaw(ctx, AEHome, "", nil, &bytes.Buffer{}); err != nil {
 		t.Fatal(err.Error())
 	}
 

@@ -437,7 +437,7 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 			Source:    methodAttrs.DefaultSource,
 			DenyRPC:   methodAttrs.DenyRPC,
 		}
-		log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
+		// log.Debugf("%d: registered %s(*%s) %v", k, funcName, inType, outType)
 	}
 
 	for k := range methodMap {

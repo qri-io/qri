@@ -14,10 +14,8 @@ cli:
 api:
   enabled: true
   address: "/ip4/tcp/2503"
-  websocketaddress: "/ip4/tcp/2506"
-  readonly: false
   allowedorigins:
-  - http://localhost:2505
+  - http://localhost:2503
 p2p:
   enabled: false
   peerid: !!binary EiCW5d0LrUQ3UfOXkfmuQW2zvl7yAq+7GwSLrD33Bgq6Og==

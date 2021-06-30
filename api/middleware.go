@@ -25,6 +25,8 @@ func (s Server) mwFunc(handler http.HandlerFunc, shouldLog bool) http.HandlerFun
 		if shouldLog {
 			log.Infof("%s %s %s", r.Method, r.URL.Path, time.Now())
 		}
+
+		handler.ServeHTTP(w, r)
 	}
 }
 
