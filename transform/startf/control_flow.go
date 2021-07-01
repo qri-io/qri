@@ -1,8 +1,11 @@
 package startf
 
 import (
+	//"encoding/json"
 	"fmt"
 	"go.starlark.net/syntax"
+	"strconv"
+	"strings"
 )
 
 type ControlFlow struct {
@@ -21,6 +24,30 @@ func (c *ControlFlow) display() {
 		fmt.Printf("%s\n", n.Code)
 		fmt.Printf("out: %v\n", n.Outs)
 	}
+}
+
+func (c *ControlFlow) stringify() string {
+	result := ""
+	for i, n := range c.Nodes {
+		result += fmt.Sprintf("%d: ", i)
+		for j, c := range n.Code {
+			if j == 0 {
+				result += fmt.Sprintf("%s\n", c)
+			} else {
+				padding := strings.Repeat(" ", 3)
+				result += fmt.Sprintf("%s%s\n", padding, c)
+			}
+		}
+		if len(n.Code) == 0 {
+			result += "-\n"
+		}
+		outPaths := make([]string, len(n.Outs))
+		for j, out := range n.Outs {
+			outPaths[j] = strconv.Itoa(out)
+		}
+		result += fmt.Sprintf("  out: %s\n", strings.Join(outPaths, ","))
+	}
+	return result
 }
 
 func (c *ControlFlow) prepare() {

@@ -39,7 +39,7 @@ func doAnalyze(filename string) error {
 
 	// Build a graph of all calls, Detect unused functions
 	callGraph := buildCallGraph(functions)
-	displayCallGraph(callGraph)
+	//displayCallGraph(callGraph)
 
 	fmt.Printf("----------------------------------------\n")
 	showControlFlowForFunction(callGraph, "first_func")
@@ -228,6 +228,6 @@ func showControlFlowForFunction(graph *CallGraph, fname string) {
 	controlFlow := newControlFlow()
 	buildControlFlow(controlFlow, body)
 
-	controlFlow.display()
+	fmt.Printf("%s\n", controlFlow.stringify())
 }
 
