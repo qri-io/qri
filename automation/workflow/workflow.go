@@ -110,8 +110,12 @@ func (w *Workflow) WorkflowID() string {
 }
 
 // ActiveTriggers returns a list of triggers that are currently enabled
+// an undeployed workflow, by definition, has no active triggers
 func (w *Workflow) ActiveTriggers(triggerType string) []trigger.Trigger {
 	activeTriggers := []trigger.Trigger{}
+	if !w.Deployed {
+		return activeTriggers
+	}
 	for _, t := range w.Triggers {
 		if t.Active() && t.Type() == triggerType {
 			activeTriggers = append(activeTriggers, t)

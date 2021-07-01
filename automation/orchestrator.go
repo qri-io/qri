@@ -60,6 +60,7 @@ type Orchestrator struct {
 	applyFactory ApplyFactory
 	bus          event.Bus
 	cancel       context.CancelFunc
+	running      bool
 }
 
 // NewOrchestrator constructs an orchestrator, whose only responsibility, right
@@ -127,7 +128,6 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 		// that this orchestrator will use, or if it must be one or the other.
 		return nil, fmt.Errorf("no listeners specified")
 	}
-	o.bus.SubscribeTypes(o.handleTrigger, event.ETWorkflowTrigger)
 	// TODO (ramfox): once hooks/completors are implemented, start the completor system here
 	ok = true
 	return o, nil
@@ -136,11 +136,15 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 // Start starts the listeners and completors listening for triggers and hooks
 func (o *Orchestrator) Start(ctx context.Context) error {
 	// TODO(ramfox): when hooks and completors are set up, start them here
+	o.running = true
+	o.bus.SubscribeTypes(o.handleTrigger, event.ETWorkflowTrigger)
 	return o.startListeners(ctx)
 }
 
 // Stop stops the listeners and completors from listening for triggers and hooks
 func (o *Orchestrator) Stop() {
+	// unsubscribe
+	o.running = false
 	o.stopListeners()
 }
 
@@ -196,13 +200,28 @@ func (o *Orchestrator) Shutdown() {
 // represented as a string
 func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 	if e.Type == event.ETWorkflowTrigger {
-		wid, ok := e.Payload.(string)
+		wtp, ok := e.Payload.(*event.WorkflowTriggerPayload)
 		if !ok {
-			return fmt.Errorf("handleTrigger: expected event.Payload to be a string: %v", e.Payload)
+			return fmt.Errorf("handleTrigger: expected event.Payload to be an `event.WorkflowTriggerPayload`: %v", e.Payload)
 		}
 		go func() {
-			if err := o.RunWorkflow(ctx, workflow.ID(wid)); err != nil {
-				log.Errorf("%s", err)
+			wf, err := o.GetWorkflow(workflow.ID(wtp.WorkflowID))
+			if err != nil {
+				log.Debugw("handleTrigger: error fetching workflow", "id", wtp.WorkflowID, "err", err)
+				return
+			}
+			for _, trig := range wf.Triggers {
+				if trig.ID() == wtp.TriggerID {
+					trig.Advance()
+					break
+				}
+			}
+			wf, err = o.UpdateWorkflow(wf)
+			if err != nil {
+				log.Debugw("handleTrigger: error saving workflow", "id", wtp.WorkflowID, "err", err)
+			}
+			if err := o.runWorkflow(ctx, wf); err != nil {
+				log.Debugw("handleTrigger: error running workflow", "err", err)
 			}
 		}()
 	}
@@ -211,15 +230,19 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 
 // RunWorkflow runs the given workflow
 func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) error {
+	wf, err := o.GetWorkflow(workflow.ID(wid))
+	if err != nil {
+		return err
+	}
+	return o.runWorkflow(ctx, wf)
+}
+
+func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow) error {
 	o.runLock.Lock()
 	defer o.runLock.Unlock()
-	log.Debugw("RunWorkflow, workflow", "id", wid)
+	wid := wf.ID
+	log.Debugw("runWorkflow, workflow", "id", wid)
 	runFunc := o.runFactory(ctx)
-	wf, err := o.GetWorkflow(wid)
-	if err != nil {
-		log.Debugw("RunWorkflow: getting workflow from store", "err", err)
-		return fmt.Errorf("getting workflow from store: %w", err)
-	}
 	// need to replace w/ log collector
 	streams := ioes.NewDiscardIOStreams()
 
@@ -295,33 +318,41 @@ func (o *Orchestrator) CreateWorkflow(did string, pid profile.ID, triggerOpts []
 	return wf, nil
 }
 
+// UpdateWorkflow updates a workflow in the workflow.Store
+func (o *Orchestrator) UpdateWorkflow(wf *workflow.Workflow) (*workflow.Workflow, error) {
+	return o.workflows.Put(wf)
+}
+
 // DeployWorkflow deploys a workflow
-func (o *Orchestrator) DeployWorkflow(id workflow.ID) error {
+func (o *Orchestrator) DeployWorkflow(id workflow.ID) (*workflow.Workflow, error) {
 	wf, err := o.workflows.Get(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	wf.Deployed = true
-	_, err = o.workflows.Put(wf)
-	o.updateListeners(wf)
-	return err
+	defer o.updateListeners(wf)
+	return o.workflows.Put(wf)
 }
 
 // UndeployWorkflow undeploys a workflow
-func (o *Orchestrator) UndeployWorkflow(id workflow.ID) error {
+func (o *Orchestrator) UndeployWorkflow(id workflow.ID) (*workflow.Workflow, error) {
 	wf, err := o.workflows.Get(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	wf.Deployed = false
-	_, err = o.workflows.Put(wf)
-	o.updateListeners(wf)
-	return err
+	defer o.updateListeners(wf)
+	return o.workflows.Put(wf)
 }
 
 // GetWorkflow fetches an existing workflow from the WorkflowStore
 func (o *Orchestrator) GetWorkflow(id workflow.ID) (*workflow.Workflow, error) {
 	return o.workflows.Get(id)
+}
+
+// RemoveWorkflow removes a workflow form the workflow.Store
+func (o *Orchestrator) RemoveWorkflow(id workflow.ID) error {
+	return o.workflows.Remove(id)
 }
 
 // runEventsHandler returns a handler that writes run events to a run store
@@ -345,6 +376,9 @@ func runEventsHandler(store run.Store) event.Handler {
 }
 
 func (o *Orchestrator) updateListeners(sources ...trigger.Source) {
+	if !o.running {
+		return
+	}
 	for _, listener := range o.listeners {
 		go func(l trigger.Listener) {
 			err := l.Listen(sources...)

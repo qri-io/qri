@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/trigger"
@@ -82,17 +83,20 @@ func TestIntegration(t *testing.T) {
 		map[string]interface{}{"type": trigger.RuntimeType, "active": true},
 	}
 
-	allowUnexported := cmp.AllowUnexported(trigger.RuntimeTrigger{})
+	cmpOpts := []cmp.Option{
+		cmpopts.IgnoreFields(trigger.RuntimeTrigger{}, "id"),
+		cmp.AllowUnexported(trigger.RuntimeTrigger{}),
+	}
 	got, err := o.CreateWorkflow("dataset_id", "profile_id", triggerOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
 	expected.ID = got.ID
-	if diff := cmp.Diff(expected, got, allowUnexported); diff != "" {
+	if diff := cmp.Diff(expected, got, cmpOpts...); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
-	if runtimeListener.TriggerExists(expected) {
+	if runtimeListener.TriggersExists(expected) {
 		t.Fatal("only triggers of active workflows should be added to the runtimeListener")
 	}
 
@@ -100,7 +104,7 @@ func TestIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(expected, got, allowUnexported); diff != "" {
+	if diff := cmp.Diff(expected, got, cmpOpts...); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -118,17 +122,27 @@ func TestIntegration(t *testing.T) {
 	}
 	<-done
 
-	if err := o.DeployWorkflow(expected.ID); err != nil {
+	expected, err = o.DeployWorkflow(expected.ID)
+	if err != nil {
 		t.Fatalf("DeployWorkflow unexpected error: %s", err)
 	}
 	// give time for DeployWorkflow to update listeners
 	<-time.After(100 * time.Millisecond)
-	if !runtimeListener.TriggerExists(expected) {
-		t.Fatal("orchestrator must update the listeners when the workflow status changes")
+	if runtimeListener.TriggersExists(expected) {
+		t.Fatal("orchestrator should not update listeners before the orchestrator has 'Started'.")
 	}
 
-	done = errOnTimeout(t, ran, "o.handleTrigger error: time out before run function called")
-	bus.Publish(ctx, event.ETWorkflowTrigger, expected.WorkflowID())
+	activeTriggers := expected.ActiveTriggers(trigger.RuntimeType)
+	if len(activeTriggers) == 0 {
+		t.Fatal("workflow unexpectedly has no active triggers")
+	}
+	wtp := &event.WorkflowTriggerPayload{
+		OwnerID:    expected.Owner(),
+		WorkflowID: expected.WorkflowID(),
+		TriggerID:  activeTriggers[0].ID(),
+	}
+	done = shouldTimeout(t, ran, "trigger should not trigger a workflow before the orchestrator has run `Start`")
+	bus.Publish(ctx, event.ETWorkflowTrigger, wtp)
 	<-done
 
 	err = o.Start(ctx)
@@ -138,17 +152,29 @@ func TestIntegration(t *testing.T) {
 	// give time for Start to start each listener
 	<-time.After(100 * time.Millisecond)
 
-	if !runtimeListener.TriggerExists(wf) {
-		t.Fatal("Existing workflow triggers must be added to the run store.")
+	if !runtimeListener.TriggersExists(wf) {
+		t.Fatalf("Existing workflow triggers for workflow %q must be added to the run store.", wf.ID)
+	}
+	if !runtimeListener.TriggersExists(expected) {
+		t.Fatalf("Existing workflow triggers for workflow %q must be added to the run store.", expected.ID)
+	}
+
+	wf, err = o.UndeployWorkflow(wf.ID)
+	if err != nil {
+		t.Fatalf("Undeployed unexpected error: %s", err)
+	}
+	// give time for UndeployWorkflow to update listeners
+	if runtimeListener.TriggersExists(wf) {
+		t.Fatalf("UndeployWorkflow should update listeners")
 	}
 
 	done = errOnTimeout(t, ran, "manual trigger error: time out before orchestrator ran a workflow from a trigger")
-	rtt2.Trigger(runtimeListener.TriggerCh, expected.WorkflowID())
+	runtimeListener.TriggerCh <- wtp
 	<-done
 
 	o.Stop()
 	done = shouldTimeout(t, ran, "o.Stop error: orchestrator that has stopped listening should not respond to triggers")
-	rtt2.Trigger(runtimeListener.TriggerCh, expected.WorkflowID())
+	runtimeListener.TriggerCh <- wtp
 	<-done
 }
 
