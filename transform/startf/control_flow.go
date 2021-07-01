@@ -6,6 +6,7 @@ import (
 	"go.starlark.net/syntax"
 	"strconv"
 	"strings"
+	"reflect"
 )
 
 type ControlFlow struct {
@@ -207,15 +208,18 @@ func assignmentToText(assign *syntax.AssignStmt) string {
 	if ident, ok := assign.LHS.(*syntax.Ident); ok {
 		result = result + ident.Name
 	} else {
-		result = result + "???"
+		result = result + fmt.Sprintf("? LHS:%s", reflect.TypeOf(assign.LHS))
 	}
 	result = result + " = "
 	if ident, ok := assign.RHS.(*syntax.Ident); ok {
 		result = result + ident.Name
 	} else if val, ok := assign.RHS.(*syntax.Literal); ok {
 		result = result + val.Raw
+	} else if binExp, ok := assign.RHS.(*syntax.BinaryExpr); ok {
+		tree := binaryOpToExprTree(binExp)
+		result = result + tree.String()
 	} else {
-		result = result + "???"
+		result = result + fmt.Sprintf("? RHS:%s", reflect.TypeOf(assign.RHS))
 	}
 	return result
 }
@@ -229,7 +233,11 @@ func funcCallToText(expr *syntax.ExprStmt) string {
 	case *syntax.CallExpr:
 		fn := item.Fn
 		funcCallIdent := fn.(*syntax.Ident)
-		return fmt.Sprintf("%s()", funcCallIdent.Name)
+		params := []string{}
+		for _, e := range item.Args {
+			params = append(params, exprToTree(e).String())
+		}
+		return fmt.Sprintf("%s(%s)", funcCallIdent.Name, strings.Join(params, " "))
 
 	case *syntax.Comprehension:
 		return "comp()"
@@ -281,7 +289,7 @@ func condToText(expr syntax.Expr) string {
 	switch item := expr.(type) {
 	case *syntax.BinaryExpr:
 		_ = item
-		return "if binary()"
+		return "if [< a b]"  //"if binary()"
 
 	case *syntax.CallExpr:
 		return "if call()"
@@ -331,4 +339,87 @@ func condToText(expr syntax.Expr) string {
 	}
 
 	return "if ????"
+}
+
+type ExprTree struct {
+	Op    string
+	Left  *ExprTree
+	Right *ExprTree
+}
+
+func binaryOpToExprTree(binExp *syntax.BinaryExpr) *ExprTree {
+	res := &ExprTree{}
+	res.Op = binExp.Op.String()
+	res.Left = exprToTree(binExp.X)
+	res.Right = exprToTree(binExp.Y)
+	return res
+}
+
+func exprToTree(expr syntax.Expr) *ExprTree {
+	res := &ExprTree{}
+
+	switch item := expr.(type) {
+	case *syntax.BinaryExpr:
+		return binaryOpToExprTree(item)
+
+	case *syntax.CallExpr:
+		res.Op = "{TODO:callExpr}"
+
+	case *syntax.Comprehension:
+		res.Op = "{TODO:comprehension}"
+
+	case *syntax.CondExpr:
+		res.Op = "{TODO:condExpr}"
+
+	case *syntax.DictEntry:
+		res.Op = "{TODO:dictEntry}"
+
+	case *syntax.DictExpr:
+		res.Op = "{TODO:dictExpr}"
+
+	case *syntax.DotExpr:
+		res.Op = "{TODO:dotExpr}"
+
+	case *syntax.Ident:
+		res.Op = item.Name
+
+	case *syntax.IndexExpr:
+		res.Op = "{TODO:indexExpr}"
+
+	case *syntax.LambdaExpr:
+		res.Op = "{TODO:lambdaExpr}"
+
+	case *syntax.ListExpr:
+		res.Op = "{TODO:listExpr}"
+
+	case *syntax.Literal:
+		res.Op = item.Raw
+
+	case *syntax.ParenExpr:
+		res.Op = "{TODO:parenExpr}"
+
+	case *syntax.SliceExpr:
+		res.Op = "{TODO:sliceExpr}"
+
+	case *syntax.TupleExpr:
+		res.Op = "{TODO:tupleExpr}"
+
+	case *syntax.UnaryExpr:
+		res.Op = "{TODO:unaryExpr}"
+
+	default:
+		res.Op = "{TODO:???}"
+	}
+
+	return res
+}
+
+func (e *ExprTree) String() string {
+	if e.Left != nil && e.Right != nil {
+		return fmt.Sprintf("[%s %s %s]", e.Op, e.Left.String(), e.Right.String())
+	}
+	if e.Left == nil && e.Right == nil {
+		return e.Op
+	}
+	return "{TODO:something-else}"
 }

@@ -30,13 +30,13 @@ func TestSimpleControlFlow(t *testing.T) {
 0: set! a = 1
    set! b = 2
   out: 1
-1: if binary()
+1: if [< a b]
   out: 2,3
-2: set! c = ???
+2: set! c = [+ b 1]
   out: 4
-3: set! c = ???
+3: set! c = [+ a 1]
   out: 4
-4: print()
+4: print([% '%d' c])
   out:
 `
 	actual = strings.Trim(actual, " \n")
