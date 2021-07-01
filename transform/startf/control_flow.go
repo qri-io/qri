@@ -181,8 +181,6 @@ func buildControlFlowSingleNode(control *ControlFlow, stmt syntax.Stmt) {
 		buildControlFlow(ifTrueBranch, item.True)
 		t := control.concat(ifTrueBranch)
 
-		// TODO: Handle false being empty (no `else`)
-
 		ifFalseBranch := newControlFlow()
 		buildControlFlow(ifFalseBranch, item.False)
 		f := control.concat(ifFalseBranch)
@@ -192,7 +190,10 @@ func buildControlFlowSingleNode(control *ControlFlow, stmt syntax.Stmt) {
 		control.poke(c, t)
 		control.poke(c, f)
 		control.poke(t, u)
-		control.poke(f, u)
+		// Only add an arrow for false case if there's an `else` branch
+		if len(item.False) > 0 {
+			control.poke(f, u)
+		}
 
 	case *syntax.LoadStmt:
 		fmt.Printf("~~~ TODO: load stmt\n")
