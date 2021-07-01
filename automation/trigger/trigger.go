@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"time"
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/profile"
@@ -20,13 +22,32 @@ var (
 	ErrEmptyOwnerID = fmt.Errorf("empty OwnerID")
 	// ErrEmptyWorkflowID indicates the given Source has an empty WorkflowID
 	ErrEmptyWorkflowID = fmt.Errorf("empty WorkflowID")
+	// ErrNotFound indicates that the trigger cannot be found
+	ErrNotFound = fmt.Errorf("trigger not found")
 )
+
+const charset = "abcdefghijklmnopqrstuvwxyz" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+// NewID returns a random string ID of alphanumeric characters
+// These IDs only have to be unique within a single workflow
+// This can be replaced by a determinate `NewID` function for testing
+var NewID = func() string {
+	b := make([]byte, 5)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
 
 // A Trigger determines under what circumstances an `event.ETWorkflowTrigger`
 // should be emitted on the given event.Bus. It knows how to `Advance` itself.
 type Trigger interface {
 	json.Marshaler
 	json.Unmarshaler
+	// ID returns the Trigger ID
+	ID() string
 	// Active returns whether the Trigger is enabled
 	Active() bool
 	// SetActive sets the enabled status
