@@ -12,7 +12,7 @@ import (
 func analyzeScriptFile(thread *starlark.Thread, filename string) {
 	err := doAnalyze(filename)
 	if err != nil {
-		panic(err)
+		fmt.Printf("analyzer error: %s\n", err)
 	}
 }
 
@@ -21,25 +21,12 @@ func doAnalyze(filename string) error {
 	if err != nil {
 		return err
 	}
-
-	functions := []*FuncResult{}
-
-	for i, stmt := range f.Stmts {
-		switch item := stmt.(type) {
-		case *syntax.DefStmt:
-			res, err := analyzeFunction(item)
-			if err != nil {
-				return err
-			}
-			functions = append(functions, res)
-		default:
-			fmt.Printf("%d: other top-level stmt\n", i)
-		}
+	funcs, err := collectFunctionDefs(f.Stmts)
+	if err != nil {
+		return err
 	}
-
 	// Build a graph of all calls, Detect unused functions
-	callGraph := buildCallGraph(functions)
-	//displayCallGraph(callGraph)
+	callGraph := buildCallGraph(funcs)
 
 	fmt.Printf("----------------------------------------\n")
 	showControlFlowForFunction(callGraph, "first_func")
@@ -47,6 +34,23 @@ func doAnalyze(filename string) error {
 	fmt.Printf("----------------------------------------\n")
 	//showControlFlowForFunction(callGraph, "main_func")
 	return nil
+}
+
+func collectFunctionDefs(stmts []syntax.Stmt) ([]*FuncResult, error) {
+	functions := []*FuncResult{}
+	for i, stmt := range stmts {
+		switch item := stmt.(type) {
+		case *syntax.DefStmt:
+			res, err := analyzeFunction(item)
+			if err != nil {
+				return nil, err
+			}
+			functions = append(functions, res)
+		default:
+			fmt.Printf("%d: other top-level stmt\n", i)
+		}
+	}
+	return functions, nil
 }
 
 func analyzeFunction(def *syntax.DefStmt) (*FuncResult, error) {

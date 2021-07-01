@@ -41,7 +41,9 @@ func buildCallGraph(functions []*FuncResult) *CallGraph {
 	}
 
 	graph.root = graph.lookup["transform"]
-	markReachable(graph.root)
+	if graph.root != nil {
+		markReachable(graph.root)
+	}
 
 	return graph
 }
