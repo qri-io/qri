@@ -249,6 +249,18 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow) e
 	// TODO (ramfox): when hooks/completors are added, this should wait for the err, iterate through the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
 	runID := run.NewID()
+
+	go func(wf *workflow.Workflow) {
+		if err := o.bus.Publish(ctx, event.ETWorkflowStarted, &event.WorkflowStartedPayload{
+			DatasetID:  wf.DatasetID,
+			OwnerID:    wf.OwnerID,
+			WorkflowID: wf.WorkflowID(),
+			RunID:      runID,
+		}); err != nil {
+			log.Debug(err)
+		}
+	}(wf)
+
 	if o.runs != nil {
 		r := &run.State{ID: runID, WorkflowID: wid}
 		if _, err := o.runs.Create(r); err != nil {
@@ -261,7 +273,26 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow) e
 		// defer o.bus.UnsubscribeID(runID)
 	}
 
-	return runFunc(ctx, streams, wf, runID)
+	err := runFunc(ctx, streams, wf, runID)
+
+	status, err := o.runs.GetStatus(wf.ID)
+	if err != nil {
+		log.Debugf("runWorkflow: error getting run status: %s", err)
+		return err
+	}
+	fmt.Println(status)
+	go func(wf *workflow.Workflow) {
+		if err := o.bus.Publish(ctx, event.ETWorkflowStopped, &event.WorkflowStoppedPayload{
+			DatasetID:  wf.DatasetID,
+			OwnerID:    wf.OwnerID,
+			WorkflowID: wf.WorkflowID(),
+			RunID:      runID,
+			Status:     string(status),
+		}); err != nil {
+			log.Debug(err)
+		}
+	}(wf)
+	return err
 }
 
 // ApplyWorkflow runs the given workflow, but does not record the output

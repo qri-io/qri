@@ -108,12 +108,49 @@ func TestIntegration(t *testing.T) {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
+	expectedWorkflowStartedPayload := &event.WorkflowStartedPayload{
+		DatasetID:  got.DatasetID,
+		OwnerID:    got.OwnerID,
+		WorkflowID: got.WorkflowID(),
+	}
+	expectedWorkflowStoppedPayload := &event.WorkflowStoppedPayload{
+		DatasetID:  got.DatasetID,
+		OwnerID:    got.OwnerID,
+		WorkflowID: got.WorkflowID(),
+	}
+	var gotWorkflowStartedPayload *event.WorkflowStartedPayload
+	var gotWorkflowStoppedPayload *event.WorkflowStoppedPayload
+	workflowEventsHandler := func(ctx context.Context, e event.Event) error {
+		ok := true
+		switch e.Type {
+		case event.ETWorkflowStarted:
+			gotWorkflowStartedPayload, ok = e.Payload.(*event.WorkflowStartedPayload)
+			if !ok {
+				t.Fatal("event.ETWorkflowStarted event should have payload *event.WorkflowStartedPayload")
+			}
+		case event.ETWorkflowStopped:
+			gotWorkflowStoppedPayload, ok = e.Payload.(*event.WorkflowStoppedPayload)
+			if !ok {
+				t.Fatal("event.ETWorkflowStopped event should have payload *event.WorkflowStoppedPayload")
+			}
+		}
+		return nil
+	}
+
+	bus.SubscribeTypes(workflowEventsHandler, event.ETWorkflowStarted, event.ETWorkflowStopped)
 	done := errOnTimeout(t, ran, "o.RunWorkflow error: timed out before run function called")
 	err = o.RunWorkflow(ctx, got.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	<-done
+
+	if diff := cmp.Diff(expectedWorkflowStartedPayload, gotWorkflowStartedPayload, cmpopts.IgnoreFields(event.WorkflowStartedPayload{}, "RunID")); diff != "" {
+		t.Errorf("WorkflowStartedPayload mismatch (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(expectedWorkflowStoppedPayload, gotWorkflowStoppedPayload, cmpopts.IgnoreFields(event.WorkflowStoppedPayload{}, "RunID")); diff != "" {
+		t.Errorf("WorkflowStoppedPayload mismatch (-want +got):\n%s", diff)
+	}
 
 	done = errOnTimeout(t, applied, "o.ApplyWorkflow error: timed out before apply function called")
 	err = o.ApplyWorkflow(ctx, got.ID)
@@ -171,6 +208,23 @@ func TestIntegration(t *testing.T) {
 	done = errOnTimeout(t, ran, "manual trigger error: time out before orchestrator ran a workflow from a trigger")
 	runtimeListener.TriggerCh <- wtp
 	<-done
+	expectedWorkflowStartedPayload = &event.WorkflowStartedPayload{
+		DatasetID:  expected.DatasetID,
+		OwnerID:    expected.OwnerID,
+		WorkflowID: expected.WorkflowID(),
+	}
+	expectedWorkflowStoppedPayload = &event.WorkflowStoppedPayload{
+		DatasetID:  expected.DatasetID,
+		OwnerID:    expected.OwnerID,
+		WorkflowID: expected.WorkflowID(),
+	}
+
+	if diff := cmp.Diff(expectedWorkflowStartedPayload, gotWorkflowStartedPayload, cmpopts.IgnoreFields(event.WorkflowStartedPayload{}, "RunID")); diff != "" {
+		t.Errorf("WorkflowStartedPayload mismatch (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(expectedWorkflowStoppedPayload, gotWorkflowStoppedPayload, cmpopts.IgnoreFields(event.WorkflowStoppedPayload{}, "RunID")); diff != "" {
+		t.Errorf("WorkflowStoppedPayload mismatch (-want +got):\n%s", diff)
+	}
 
 	o.Stop()
 	done = shouldTimeout(t, ran, "o.Stop error: orchestrator that has stopped listening should not respond to triggers")
