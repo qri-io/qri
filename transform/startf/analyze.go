@@ -227,6 +227,10 @@ func simpleExprToFuncName(expr syntax.Expr) string {
 
 func showControlFlowForFunction(graph *CallGraph, fname string) {
 	f := graph.lookup[fname]
+	if f == nil {
+		fmt.Printf("showing control flow, function %q not found", fname)
+		return
+	}
 	body := f.fn.body
 
 	controlFlow := newControlFlow()
