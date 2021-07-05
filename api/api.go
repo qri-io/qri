@@ -229,7 +229,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(AEUnpack.String(), s.Middleware(UnpackHandler(AEUnpack.NoTrailingSlash())))
 
 	// sync/protocol endpoints
-	if cfg.Remote != nil && cfg.Remote.Enabled {
+	if cfg.RemoteServer != nil && cfg.RemoteServer.Enabled {
 		log.Info("running in `remote` mode")
 
 		m.Handle(lib.AERemoteDSync.String(), s.Middleware(s.Instance.RemoteServer().DsyncHTTPHandler()))

@@ -40,7 +40,7 @@ func NewMockServerRegistry(reg registry.Registry) (*regclient.Client, *httptest.
 }
 
 // NewMemRegistry creates a new in-memory registry
-func NewMemRegistry(rem *remote.Remote) registry.Registry {
+func NewMemRegistry(rem *remote.Server) registry.Registry {
 	return registry.Registry{
 		Remote:   rem,
 		Profiles: registry.NewMemProfiles(),
@@ -76,7 +76,7 @@ func NewTempRegistry(ctx context.Context, peername, tmpDirPrefix string, g key.C
 		return nil, nil, err
 	}
 
-	remoteCfg := &config.Remote{
+	remoteCfg := &config.RemoteServer{
 		Enabled:          true,
 		AcceptSizeMax:    -1,
 		AcceptTimeoutMs:  -1,
@@ -84,7 +84,7 @@ func NewTempRegistry(ctx context.Context, peername, tmpDirPrefix string, g key.C
 		AllowRemoves:     true,
 	}
 
-	rem, err := remote.NewRemote(node, remoteCfg, node.Repo.Logbook())
+	rem, err := remote.NewServer(node, remoteCfg, node.Repo.Logbook())
 	if err != nil {
 		return nil, nil, err
 	}

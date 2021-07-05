@@ -232,14 +232,6 @@ func OptRemoteOptions(fns []remote.OptionsFunc) Option {
 	}
 }
 
-// OptEnableRemote enables the remote functionality in the node
-func OptEnableRemote() Option {
-	return func(o *InstanceOptions) error {
-		o.Cfg.Remote.Enabled = true
-		return nil
-	}
-}
-
 // OptQriNode configures bring-your-own qri node
 func OptQriNode(node *p2p.QriNode) Option {
 	return func(o *InstanceOptions) error {
@@ -599,7 +591,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			}()
 		}
 
-		if cfg.Remote != nil && cfg.Remote.Enabled {
+		if cfg.RemoteServer != nil && cfg.RemoteServer.Enabled {
 			if o.remoteOptsFuncs == nil {
 				o.remoteOptsFuncs = []remote.OptionsFunc{}
 			}
@@ -609,7 +601,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 				return nil, resolverErr
 			}
 
-			if inst.remote, err = remote.NewRemote(inst.node, cfg.Remote, localResolver, o.remoteOptsFuncs...); err != nil {
+			if inst.remoteServer, err = remote.NewServer(inst.node, cfg.RemoteServer, localResolver, o.remoteOptsFuncs...); err != nil {
 				log.Error("intializing remote:", err.Error())
 				return
 			}
@@ -774,7 +766,7 @@ type Instance struct {
 	node          *p2p.QriNode
 	qfs           *muxfs.Mux
 	fsi           *fsi.FSI
-	remote        *remote.Remote
+	remoteServer  *remote.Server
 	remoteClient  remote.Client
 	registry      *regclient.Client
 	stats         *stats.Service
@@ -836,17 +828,17 @@ func (inst *Instance) ConnectP2P(ctx context.Context) (err error) {
 		inst.releasers.Done()
 	}()
 
-	if inst.cfg.Remote != nil && inst.cfg.Remote.Enabled {
+	if inst.cfg.RemoteServer != nil && inst.cfg.RemoteServer.Enabled {
 		localResolver, err := inst.resolverForSource("local")
 		if err != nil {
 			return err
 		}
-		if inst.remote, err = remote.NewRemote(inst.node, inst.cfg.Remote, localResolver, inst.remoteOptsFuncs...); err != nil {
-			log.Debugf("remote.NewRemote error=%q", err)
+		if inst.remoteServer, err = remote.NewServer(inst.node, inst.cfg.RemoteServer, localResolver, inst.remoteOptsFuncs...); err != nil {
+			log.Debugw("remote.NewServer", "err", err)
 			return err
 		}
-		if err = inst.remote.GoOnline(ctx); err != nil {
-			log.Debugf("remote.GoOnline error=%q", err)
+		if err = inst.remoteServer.GoOnline(ctx); err != nil {
+			log.Debugw("remote.GoOnline", "err", err)
 			return err
 		}
 	}
@@ -1067,11 +1059,11 @@ func (inst *Instance) HTTPClient() *HTTPClient {
 }
 
 // RemoteServer accesses the remote subsystem if one exists
-func (inst *Instance) RemoteServer() *remote.Remote {
+func (inst *Instance) RemoteServer() *remote.Server {
 	if inst == nil {
 		return nil
 	}
-	return inst.remote
+	return inst.remoteServer
 }
 
 // RemoteClient exposes the instance client for making requests to remotes

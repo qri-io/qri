@@ -31,9 +31,9 @@ type Config struct {
 	P2P         *P2P
 	Stats       *Stats
 
-	Registry *Registry
-	Remotes  *Remotes
-	Remote   *Remote
+	Registry     *Registry
+	Remotes      *Remotes
+	RemoteServer *RemoteServer
 
 	CLI     *CLI
 	API     *API
@@ -263,11 +263,11 @@ func (cfg *Config) Copy() *Config {
 	if cfg.RPC != nil {
 		res.RPC = cfg.RPC.Copy()
 	}
-	if cfg.Remote != nil {
-		res.Remote = cfg.Remote.Copy()
-	}
 	if cfg.Remotes != nil {
 		res.Remotes = cfg.Remotes.Copy()
+	}
+	if cfg.RemoteServer != nil {
+		res.RemoteServer = cfg.RemoteServer.Copy()
 	}
 	if cfg.Logging != nil {
 		res.Logging = cfg.Logging.Copy()

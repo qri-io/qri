@@ -5,29 +5,29 @@ import (
 	"testing"
 )
 
-func TestRemoteValidate(t *testing.T) {
-	rem := &Remote{}
+func TestRemoteServerValidate(t *testing.T) {
+	rem := &RemoteServer{}
 	err := rem.Validate()
 	if err != nil {
-		t.Errorf("error validating default remote: %s", err)
+		t.Errorf("error validating remote: %s", err)
 	}
 }
 
-func TestRemoteCopy(t *testing.T) {
+func TestRemoteServerCopy(t *testing.T) {
 	cases := []struct {
-		remote *Remote
+		remote *RemoteServer
 	}{
-		{&Remote{}},
+		{&RemoteServer{}},
 	}
 	for i, c := range cases {
 		cpy := c.remote.Copy()
 		if !reflect.DeepEqual(cpy, c.remote) {
-			t.Errorf("Remote Copy test case %v, remote structs are not equal: \ncopy: %v, \noriginal: %v", i, cpy, c.remote)
+			t.Errorf("RemoteServer Copy test case %v, remote structs are not equal: \ncopy: %v, \noriginal: %v", i, cpy, c.remote)
 			continue
 		}
 		cpy.Enabled = true
 		if reflect.DeepEqual(cpy, c.remote) {
-			t.Errorf("Remote Copy test case %v, editing one remote struct should not affect the other: \ncopy: %v, \noriginal: %v", i, cpy, c.remote)
+			t.Errorf("RemoteServer Copy test case %v, editing one remote struct should not affect the other: \ncopy: %v, \noriginal: %v", i, cpy, c.remote)
 			continue
 		}
 	}

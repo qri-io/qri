@@ -44,7 +44,7 @@ func NewTestRunner(t *testing.T) (*TestRunner, func()) {
 		t.Fatal(err)
 	}
 
-	rem, err := remote.NewRemote(node, &config.Remote{
+	rem, err := remote.NewServer(node, &config.RemoteServer{
 		AcceptSizeMax: -1,
 		Enabled:       true,
 		AllowRemoves:  true,
