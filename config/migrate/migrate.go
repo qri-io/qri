@@ -235,7 +235,7 @@ func ThreeToFour(cfg *config.Config) error {
 	if cfg.API != nil {
 		cfg.API.EnableWebui = true
 	}
-
+	cfg.Automation = config.DefaultAutomation()
 	cfg.Revision = 4
 
 	if err := safeWriteConfig(cfg); err != nil {

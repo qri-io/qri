@@ -29,6 +29,7 @@ type Config struct {
 	Repo        *Repo
 	Filesystems []qfs.Config
 	P2P         *P2P
+	Automation  *Automation
 	Stats       *Stats
 
 	Registry     *Registry
@@ -64,6 +65,7 @@ func DefaultConfig() *Config {
 		Repo:        DefaultRepo(),
 		Filesystems: DefaultFilesystems(),
 		P2P:         DefaultP2P(),
+		Automation:  DefaultAutomation(),
 		Stats:       DefaultStats(),
 
 		Registry: DefaultRegistry(),
@@ -217,6 +219,7 @@ func (cfg Config) Validate() error {
 		cfg.API,
 		cfg.RPC,
 		cfg.Logging,
+		cfg.Automation,
 	}
 	for _, val := range validators {
 		// we need to check here because we're potentially calling methods on nil
@@ -274,6 +277,9 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.Stats != nil {
 		res.Stats = cfg.Stats.Copy()
+	}
+	if cfg.Automation != nil {
+		res.Automation = cfg.Automation.Copy()
 	}
 	if cfg.Filesystems != nil {
 		for _, fs := range cfg.Filesystems {
