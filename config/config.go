@@ -38,7 +38,6 @@ type Config struct {
 
 	CLI     *CLI
 	API     *API
-	RPC     *RPC
 	Logging *Logging
 }
 
@@ -73,7 +72,6 @@ func DefaultConfig() *Config {
 
 		CLI:     DefaultCLI(),
 		API:     DefaultAPI(),
-		RPC:     DefaultRPC(),
 		Logging: DefaultLogging(),
 	}
 }
@@ -196,15 +194,14 @@ func (cfg Config) Validate() error {
     "title": "config",
     "description": "qri configuration",
     "type": "object",
-    "required": ["Profile", "Repo", "Filesystems", "P2P", "CLI", "API", "RPC"],
+    "required": ["Profile", "Repo", "Filesystems", "P2P", "CLI", "API", "Automation"],
     "properties" : {
 			"Profile" : { "type":"object" },
 			"Repo" : { "type":"object" },
 			"Filesystems" : { "type":"array" },
 			"P2P" : { "type":"object" },
 			"CLI" : { "type":"object" },
-			"API" : { "type":"object" },
-			"RPC" : { "type":"object" }
+			"API" : { "type":"object" }
     }
   }`)
 	if err := validate(schema, &cfg); err != nil {
@@ -217,7 +214,6 @@ func (cfg Config) Validate() error {
 		cfg.P2P,
 		cfg.CLI,
 		cfg.API,
-		cfg.RPC,
 		cfg.Logging,
 		cfg.Automation,
 	}
@@ -262,9 +258,6 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.API != nil {
 		res.API = cfg.API.Copy()
-	}
-	if cfg.RPC != nil {
-		res.RPC = cfg.RPC.Copy()
 	}
 	if cfg.Remotes != nil {
 		res.Remotes = cfg.Remotes.Copy()

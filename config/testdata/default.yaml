@@ -28,9 +28,6 @@ p2p:
   - /ip4/35.226.92.45/tcp/4001/ipfs/QmP6sbnHXANXgQ7JeCCeCKdJrgpvUd8s75YNfzdkHf6Mpi
 automation:
   enabled: true
-rpc:
-  enabled: true
-  address: "/ip4/tcp/2504"
 logging:
   levels: {}
 stats:

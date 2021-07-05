@@ -451,14 +451,13 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	inst.RegisterMethods()
 
-	// check if we're operating over RPC
-	if cfg.RPC.Enabled {
+	if cfg.API != nil && cfg.API.Enabled {
+		// check if we're operating over RPC by dialing API.Address to check for a connection
 		addr, err := ma.NewMultiaddr(cfg.API.Address)
 		if err != nil {
 			return nil, qrierr.New(err, fmt.Sprintf("invalid config.api.address value: %q", cfg.API.Address))
 		}
-		_, err = manet.Dial(addr)
-		if err == nil {
+		if _, dialErr := manet.Dial(addr); dialErr == nil {
 			// we have a connection
 			inst.http, err = NewHTTPClient(cfg.API.Address)
 			if err != nil {

@@ -159,14 +159,16 @@ func oneToTwoConfig(cfg *config.Config) error {
 		return qerr.New(fmt.Errorf("invalid config"), "config does not contain API configuration")
 	}
 
-	if cfg.RPC != nil {
-		defaultRPCCfg := config.DefaultRPC()
-		if cfg.RPC.Address == "" {
-			cfg.RPC.Address = defaultRPCCfg.Address
-		}
-	} else {
-		return qerr.New(fmt.Errorf("invalid config"), "config does not contain RPC configuration")
-	}
+	// TODO(b5): need a strategy for setting config now that this field is removed
+	// in config revision 4
+	// if cfg.RPC != nil {
+	// 	defaultRPCCfg := config.DefaultRPC()
+	// 	if cfg.RPC.Address == "" {
+	// 		cfg.RPC.Address = defaultRPCCfg.Address
+	// 	}
+	// } else {
+	// 	return qerr.New(fmt.Errorf("invalid config"), "config does not contain RPC configuration")
+	// }
 
 	cfg.Filesystems = config.DefaultFilesystems()
 
