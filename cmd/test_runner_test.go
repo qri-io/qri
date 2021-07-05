@@ -27,6 +27,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
+	remotemock "github.com/qri-io/qri/remote/mock"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/transform/startf"
@@ -339,14 +340,11 @@ func (runner *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bo
 	if combineOutErr {
 		streams = ioes.NewIOStreams(runner.InStream, runner.OutStream, runner.OutStream)
 	}
+	var opts []lib.Option
 	if runner.RepoRoot.UseMockRemoteClient {
-		// Set this context value, which is used in lib.NewInstance to construct a
-		// remote.MockClient instead. Using context.Value is discouraged, but it's difficult
-		// to pipe parameters into cobra.Command without doing it like this.
-		key := lib.InstanceContextKey("RemoteClient")
-		ctx = context.WithValue(ctx, key, "mock")
+		opts = append(opts, lib.OptRemoteClientConstructor(remotemock.NewClient))
 	}
-	cmd, shutdown := NewQriCommand(ctx, runner.RepoPath, runner.RepoRoot.TestCrypto, streams)
+	cmd, shutdown := NewQriCommand(ctx, runner.RepoPath, runner.RepoRoot.TestCrypto, streams, opts...)
 	cmd.SetOutput(runner.OutStream)
 	return cmd, shutdown
 }

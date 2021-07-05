@@ -72,19 +72,20 @@ type InstanceOptions struct {
 	Cfg     *config.Config
 	Streams ioes.IOStreams
 
-	statsCache    stats.Cache
-	node          *p2p.QriNode
-	repo          repo.Repo
-	qfs           *muxfs.Mux
-	dscache       *dscache.Dscache
-	regclient     *regclient.Client
-	logbook       *logbook.Book
-	keyStore      key.Store
-	profiles      profile.Store
-	bus           event.Bus
-	collectionSet collection.Set
-	tokenProvider token.Provider
-	logAll        bool
+	statsCache              stats.Cache
+	node                    *p2p.QriNode
+	repo                    repo.Repo
+	qfs                     *muxfs.Mux
+	dscache                 *dscache.Dscache
+	regclient               *regclient.Client
+	remoteClientConstructor remote.ClientConstructor
+	logbook                 *logbook.Book
+	keyStore                key.Store
+	profiles                profile.Store
+	bus                     event.Bus
+	collectionSet           collection.Set
+	tokenProvider           token.Provider
+	logAll                  bool
 
 	remoteMockClient bool
 	// use OptRemoteOptions to set this
@@ -93,9 +94,6 @@ type InstanceOptions struct {
 	eventHandler event.Handler
 	events       []event.Type
 }
-
-// InstanceContextKey is used by context to set keys for constucting a lib.Instance
-type InstanceContextKey string
 
 // Option is a function that manipulates config details when fed to New(). Fields on
 // the o parameter may be null, functions cannot assume the Config is non-null.
@@ -222,10 +220,20 @@ func OptSetLogAll(logAll bool) Option {
 	}
 }
 
-// OptRemoteOptions provides options to the instance remote
-// the provided configuration function is called with the Qri configuration-derived
-// remote settings applied, allowing partial-overrides.
-func OptRemoteOptions(fns []remote.OptionsFunc) Option {
+// OptRemoteClientConstructor provides a constructor function for creating a
+// remote client, which will be used when creating the instance. Use this to
+// override the remoteClient implementation used by instance
+func OptRemoteClientConstructor(c remote.ClientConstructor) Option {
+	return func(o *InstanceOptions) error {
+		o.remoteClientConstructor = c
+		return nil
+	}
+}
+
+// OptRemoteServerOptions provides options to the remote server the provided
+// function is called with the Qri configuration-derived remote settings applied
+// allowing partial-overrides.
+func OptRemoteServerOptions(fns []remote.OptionsFunc) Option {
 	return func(o *InstanceOptions) error {
 		o.remoteOptsFuncs = fns
 		return nil
@@ -563,33 +571,23 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	// Check if this is coming from a test, which is requesting a MockRemoteClient.
-	key := InstanceContextKey("RemoteClient")
-	if v := ctx.Value(key); v != nil && v == "mock" && inst.node != nil {
+	if inst.node != nil {
 		inst.node.LocalStreams = inst.streams
-		if inst.remoteClient, err = remote.NewMockClient(ctx, inst.node, inst.logbook); err != nil {
-			return
+
+		newClient := remote.NewClient
+		if o.remoteClientConstructor != nil {
+			newClient = o.remoteClientConstructor
 		}
+
+		if inst.remoteClient, err = newClient(ctx, inst.node, inst.bus); err != nil {
+			return nil, err
+		}
+
 		go func() {
 			inst.releasers.Add(1)
 			<-inst.remoteClient.Done()
 			inst.releasers.Done()
 		}()
-
-	} else if inst.node != nil {
-		inst.node.LocalStreams = inst.streams
-
-		if _, e := inst.node.IPFSCoreAPI(); e == nil {
-			if inst.remoteClient, err = remote.NewClient(ctx, inst.node, inst.bus); err != nil {
-				log.Error("initializing remote client:", err.Error())
-				return
-			}
-			go func() {
-				inst.releasers.Add(1)
-				<-inst.remoteClient.Done()
-				inst.releasers.Done()
-			}()
-		}
 
 		if cfg.RemoteServer != nil && cfg.RemoteServer.Enabled {
 			if o.remoteOptsFuncs == nil {
@@ -740,8 +738,9 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		cancel()
 		panic(err)
 	}
+
+	inst.releasers.Add(1)
 	go func() {
-		inst.releasers.Add(1)
 		<-inst.remoteClient.Done()
 		inst.releasers.Done()
 	}()

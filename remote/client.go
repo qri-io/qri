@@ -36,6 +36,9 @@ var (
 	ErrRemoteNotFound = fmt.Errorf("remote not found")
 )
 
+// ClientConstructor is a factory function that creates client implementations
+type ClientConstructor func(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c Client, err error)
+
 // Client connects to remotes to perform synchronization tasks
 type Client interface {
 	// Feeds gets a named set of dataset feeds from a remote, for example a
@@ -115,7 +118,7 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 			return nil, err
 		}
 	} else {
-		log.Debug("cannot initialize dsync client, repo isn't using IPFS")
+		log.Warn("remote cannot initialize dsync client because this repo isn't using IPFS. Pushing & Pulling datasets won't function")
 	}
 
 	var ls *logsync.Logsync
@@ -394,6 +397,9 @@ func (c *client) PushDataset(ctx context.Context, ref dsref.Ref, addr string) er
 	if c == nil {
 		return ErrNoRemoteClient
 	}
+	if c.ds == nil {
+		return fmt.Errorf("remote: cannot push, missing dsync subsystem")
+	}
 
 	if err := c.pushLogs(ctx, ref, addr); err != nil {
 		return err
@@ -478,12 +484,13 @@ func (c *client) pushDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAd
 
 // PullDataset fetches & pins a dataset to the store, adding it to the list of
 // stored refs
-// TODO (b5) - remove all p2p calls from here into the p2p subsystem in a future
-// refactor
 func (c *client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr string) (ds *dataset.Dataset, err error) {
 	log.Debugf("client.PullDataset ref=%q addr=%q", ref, remoteAddr)
 	if c == nil {
 		return nil, ErrNoRemoteClient
+	}
+	if c.ds == nil {
+		return nil, fmt.Errorf("remote: cannot pull, missing dsync subsystem")
 	}
 
 	node := c.node

@@ -41,7 +41,7 @@ type Hook func(ctx context.Context, pid profile.ID, ref dsref.Ref) error
 // NewServer
 type OptionsFunc func(o *Options)
 
-// Options encapsulates runtime configuration for a remote
+// Options encapsulates runtime configuration for a remote server
 type Options struct {
 	// called when a client requests to push a dataset, before any data has been
 	// received

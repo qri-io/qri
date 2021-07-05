@@ -1,4 +1,4 @@
-package remote
+package mock
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
 )
@@ -20,7 +21,7 @@ import (
 // ErrNotImplemented is returned for methods that are not implemented
 var ErrNotImplemented = fmt.Errorf("not implemented")
 
-// OtherPeer represents another peer which the MockClient connects to
+// OtherPeer represents another peer which the Client connects to
 type OtherPeer struct {
 	keyData  *testkeys.KeyData
 	repoRoot *repotest.TempRepo
@@ -29,10 +30,9 @@ type OtherPeer struct {
 	dscache  map[string]string
 }
 
-// MockClient is a remote client suitable for tests
-type MockClient struct {
+// Client is a remote client suitable for tests
+type Client struct {
 	node *p2p.QriNode
-	book *logbook.Book
 
 	otherPeers map[string]*OtherPeer
 
@@ -41,17 +41,15 @@ type MockClient struct {
 	shutdown context.CancelFunc
 }
 
-var _ Client = (*MockClient)(nil)
+var _ remote.Client = (*Client)(nil)
 
-// NewMockClient returns a mock remote client. context passed to NewMockClient
+// NewClient returns a mock remote client. context passed to NewClient
 // MUST use the `Shutdown` method or cancel externally for proper cleanup
-func NewMockClient(ctx context.Context, node *p2p.QriNode, book *logbook.Book) (c Client, err error) {
-	log.Debug("creating mock remote client")
+func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c remote.Client, err error) {
 	ctx, cancel := context.WithCancel(ctx)
 
-	cli := &MockClient{
+	cli := &Client{
 		node:       node,
-		book:       book,
 		otherPeers: map[string]*OtherPeer{},
 		doneCh:     make(chan struct{}),
 		shutdown:   cancel,
@@ -68,27 +66,27 @@ func NewMockClient(ctx context.Context, node *p2p.QriNode, book *logbook.Book) (
 }
 
 // Feeds is not implemented
-func (c *MockClient) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsref.VersionInfo, error) {
+func (c *Client) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsref.VersionInfo, error) {
 	return nil, ErrNotImplemented
 }
 
 // Feed is not implemented
-func (c *MockClient) Feed(ctx context.Context, remoteAddr, feedName string, page, pageSize int) ([]dsref.VersionInfo, error) {
+func (c *Client) Feed(ctx context.Context, remoteAddr, feedName string, page, pageSize int) ([]dsref.VersionInfo, error) {
 	return nil, ErrNotImplemented
 }
 
 // PreviewDatasetVersion is not implemented
-func (c *MockClient) PreviewDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
+func (c *Client) PreviewDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
 	return nil, ErrNotImplemented
 }
 
 // FetchLogs is not implemented
-func (c *MockClient) FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) (*oplog.Log, error) {
+func (c *Client) FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) (*oplog.Log, error) {
 	return nil, ErrNotImplemented
 }
 
 // NewRemoteRefResolver mocks a ref resolver off a foreign logbook
-func (c *MockClient) NewRemoteRefResolver(addr string) dsref.Resolver {
+func (c *Client) NewRemoteRefResolver(addr string) dsref.Resolver {
 	// TODO(b5) - switch based on address input? it would make for a better mock
 	return &writeOnResolver{c: c}
 }
@@ -96,33 +94,30 @@ func (c *MockClient) NewRemoteRefResolver(addr string) dsref.Resolver {
 // writeOnResolver creates dataset histories on the fly when
 // ResolveRef is called, storing them for future
 type writeOnResolver struct {
-	c *MockClient
+	c *Client
 }
 
 func (r *writeOnResolver) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
-	log.Debugf("MockClient writeOnResolver.ResolveRef ref=%q", ref)
 	return "", r.c.createTheirDataset(ctx, ref)
 }
 
 // PushDataset is not implemented
-func (c *MockClient) PushDataset(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+func (c *Client) PushDataset(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
 // RemoveDataset is not implemented
-func (c *MockClient) RemoveDataset(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+func (c *Client) RemoveDataset(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
 // RemoveDatasetVersion is not implemented
-func (c *MockClient) RemoveDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+func (c *Client) RemoveDatasetVersion(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
 // PullDataset adds a reference to a dataset using test peer info
-func (c *MockClient) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
-	log.Debugf("MockClient.PullDataset ref=%q", ref)
-
+func (c *Client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
 	// Create the dataset on the foreign side.
 	if err := c.createTheirDataset(ctx, ref); err != nil {
 		return nil, err
@@ -142,7 +137,7 @@ func (c *MockClient) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr
 	return dsfs.LoadDataset(ctx, c.node.Repo.Filesystem(), vi.Path)
 }
 
-func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) error {
+func (c *Client) createTheirDataset(ctx context.Context, ref *dsref.Ref) error {
 	other := c.otherPeer(ref.Username)
 
 	// Check if the dataset already exists
@@ -207,7 +202,7 @@ func (c *MockClient) createTheirDataset(ctx context.Context, ref *dsref.Ref) err
 	return nil
 }
 
-func (c *MockClient) otherPeer(username string) *OtherPeer {
+func (c *Client) otherPeer(username string) *OtherPeer {
 	other, ok := c.otherPeers[username]
 	if !ok {
 		// Get test peer info, skipping 0th peer because many tests already use that one
@@ -242,9 +237,7 @@ func (c *MockClient) otherPeer(username string) *OtherPeer {
 
 // pullLogs creates a log from a temp logbook, and merges those into the
 // client's logbook
-func (c *MockClient) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
-	log.Debug("MockClient.pullLogs")
-
+func (c *Client) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	// Get other peer to retrieve its logbook
 	other := c.otherPeer(ref.Username)
 	theirBook := other.book
@@ -257,11 +250,11 @@ func (c *MockClient) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr str
 	if err = theirBook.SignLog(theirLog); err != nil {
 		return err
 	}
-	return c.book.MergeLog(ctx, theirBook.Author(), theirLog)
+	return c.node.Repo.Logbook().MergeLog(ctx, theirBook.Author(), theirLog)
 }
 
 // mockDagSync immitates a dagsync, pulling a dataset from a peer, and saving it with our refs
-func (c *MockClient) mockDagSync(ctx context.Context, ref dsref.Ref) (*dsref.VersionInfo, error) {
+func (c *Client) mockDagSync(ctx context.Context, ref dsref.Ref) (*dsref.VersionInfo, error) {
 	other := c.otherPeer(ref.Username)
 
 	// Resolve the ref using the other peer's information
@@ -287,32 +280,32 @@ func (c *MockClient) mockDagSync(ctx context.Context, ref dsref.Ref) (*dsref.Ver
 }
 
 // PushLogs is not implemented
-func (c *MockClient) PushLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+func (c *Client) PushLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
 // PullDatasetVersion is not implemented
-func (c *MockClient) PullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteAddr string) error {
+func (c *Client) PullDatasetVersion(ctx context.Context, ref *dsref.Ref, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
 // RemoveLogs is not implemented
-func (c *MockClient) RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+func (c *Client) RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
 // Done returns a channel that the client will send on when finished closing
-func (c *MockClient) Done() <-chan struct{} {
+func (c *Client) Done() <-chan struct{} {
 	return c.doneCh
 }
 
 // DoneErr gives an error that occurred during the shutdown process
-func (c *MockClient) DoneErr() error {
+func (c *Client) DoneErr() error {
 	return c.doneErr
 }
 
 // Shutdown allows you to close the client before the parent context closes
-func (c *MockClient) Shutdown() <-chan struct{} {
+func (c *Client) Shutdown() <-chan struct{} {
 	c.shutdown()
 	return c.Done()
 }

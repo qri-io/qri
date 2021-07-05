@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/profile"
+	remotemock "github.com/qri-io/qri/remote/mock"
 )
 
 type testRunner struct {
@@ -62,16 +63,14 @@ func newTestRunner(t *testing.T) *testRunner {
 	}
 	cfg := testcfg.DefaultMemConfigForTesting()
 
-	// ensure we create a mock registry client for testing
-	key := InstanceContextKey("RemoteClient")
-	ctx = context.WithValue(ctx, key, "mock")
-
 	// create new instance!
 	inst, err := NewInstance(
 		ctx,
 		// NewInstance requires a qriPath, even if the repo & all stores are in mem
 		qriPath,
 		OptConfig(cfg),
+		// ensure we create a mock registry client for testing
+		OptRemoteClientConstructor(remotemock.NewClient),
 	)
 	if err != nil {
 		t.Fatal(err)

@@ -303,7 +303,7 @@ func TestNewInstanceWithAccessControlPolicy(t *testing.T) {
 		ctx,
 		qriPath,
 		OptConfig(cfg),
-		OptRemoteOptions(
+		OptRemoteServerOptions(
 			[]remote.OptionsFunc{
 				remote.OptLoadPolicyFileIfExists(acpPath),
 			}),
