@@ -214,7 +214,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	m.Handle(AEHome.String(), s.NoLogMiddleware(s.HomeHandler))
 	m.Handle(AEHealth.String(), s.NoLogMiddleware(HealthCheckHandler))
 	m.Handle(AEIPFS.String(), s.Middleware(s.HandleIPFSPath))
-	if cfg.API.EnableWebui {
+	if cfg.API.Webui {
 		m.Handle(AEWebUI.String(), s.Middleware(WebuiHandler))
 	}
 

@@ -18,7 +18,7 @@ func TestAPICopy(t *testing.T) {
 
 	a.Enabled = !a.Enabled
 	a.Address = "foo"
-	a.EnableWebui = !a.EnableWebui
+	a.Webui = !a.Webui
 	a.ServeRemoteTraffic = !a.ServeRemoteTraffic
 	a.AllowedOrigins = []string{"bar"}
 
@@ -28,8 +28,8 @@ func TestAPICopy(t *testing.T) {
 	if a.Address == b.Address {
 		t.Errorf("Address fields should not match")
 	}
-	if a.EnableWebui == b.EnableWebui {
-		t.Errorf("EnableWebui fields should not match")
+	if a.Webui == b.Webui {
+		t.Errorf("Webui fields should not match")
 	}
 	if a.ServeRemoteTraffic == b.ServeRemoteTraffic {
 		t.Errorf("ServeRemoteTraffic fields should not match")

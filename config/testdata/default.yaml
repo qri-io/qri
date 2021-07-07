@@ -16,6 +16,7 @@ api:
   address: "/ip4/tcp/2503"
   allowedorigins:
   - http://localhost:2503
+  webui: true
 p2p:
   enabled: false
   peerid: !!binary EiCW5d0LrUQ3UfOXkfmuQW2zvl7yAq+7GwSLrD33Bgq6Og==

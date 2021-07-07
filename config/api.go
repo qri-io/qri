@@ -18,14 +18,14 @@ var (
 type API struct {
 	// APIAddress specifies the multiaddress to listen for JSON API calls
 	Address string `json:"address"`
-	// API is enabled
+	// should this node have an API? default is true.
 	Enabled bool `json:"enabled"`
 	// support CORS signing from a list of origins
 	AllowedOrigins []string `json:"allowedorigins"`
 	// whether to allow requests from addresses other than localhost
 	ServeRemoteTraffic bool `json:"serveremotetraffic"`
-	// should the api provide the /webui endpoint?
-	EnableWebui bool `json:"enablewebui"`
+	// should the api provide the /webui endpoint? default is true
+	Webui bool `json:"webui"`
 }
 
 // SetArbitrary is an interface implementation of base/fill/struct in order to
@@ -52,8 +52,8 @@ func (a API) Validate() error {
         "description": "The address on which to listen for JSON API calls",
         "type": "string"
       },
-      "enablewebui": {
-        "description": "when true a /webui endpoint will serve a frontend app",
+      "webui": {
+        "description": "when true the /webui endpoint will serve a frontend app",
         "type": "boolean"
       },
       "serveremotetraffic": {
@@ -80,7 +80,7 @@ func DefaultAPI() *API {
 		AllowedOrigins: []string{
 			fmt.Sprintf("http://localhost:%s", DefaultAPIPort),
 		},
-		EnableWebui: true,
+		Webui: true,
 	}
 }
 
@@ -90,7 +90,7 @@ func (a *API) Copy() *API {
 		Enabled:            a.Enabled,
 		Address:            a.Address,
 		ServeRemoteTraffic: a.ServeRemoteTraffic,
-		EnableWebui:        a.EnableWebui,
+		Webui:              a.Webui,
 	}
 	if a.AllowedOrigins != nil {
 		res.AllowedOrigins = make([]string, len(a.AllowedOrigins))
