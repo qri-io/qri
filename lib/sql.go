@@ -24,8 +24,8 @@ func (m SQLMethods) Attributes() map[string]AttributeSet {
 
 // SQLQueryParams defines paremeters for running a SQL query
 type SQLQueryParams struct {
-	Query  string
-	Format string
+	Query  string `json:"query"`
+	Format string `json:"format"`
 }
 
 // SetNonZeroDefaults sets format to "json" if it's value is an empty string

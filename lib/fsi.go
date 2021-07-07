@@ -43,22 +43,22 @@ func (m FSIMethods) Attributes() map[string]AttributeSet {
 
 // LinkParams encapsulate parameters for linked datasets
 type LinkParams struct {
-	Dir string `qri:"fspath"`
-	Ref string
+	Dir string `json:"dir" qri:"fspath"`
+	Ref string `json:"ref"`
 }
 
 // FSIWriteParams encapsultes arguments for writing to an FSI-linked directory
 type FSIWriteParams struct {
-	Ref     string
-	Dataset *dataset.Dataset
+	Ref     string           `json:"ref"`
+	Dataset *dataset.Dataset `json:"dataset"`
 }
 
 // RestoreParams provides parameters to the restore method.
 type RestoreParams struct {
-	Dir      string `qri:"fspath"`
-	Ref      string
-	Version  string
-	Selector string
+	Dir      string `json:"dir" qri:"fspath"`
+	Ref      string `json:"ref"`
+	Version  string `json:"version"`
+	Selector string `json:"selector"`
 }
 
 // InitDatasetParams proxies parameters to initialization

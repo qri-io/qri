@@ -28,9 +28,12 @@ func (m AccessMethods) Attributes() map[string]AttributeSet {
 
 // CreateAuthTokenParams are input parameters for Access().CreateAuthToken
 type CreateAuthTokenParams struct {
-	GranteeUsername  string
-	GranteeProfileID string
-	TTL              time.Duration
+	// username to grant auth; e.g. "keyboard_cat"
+	GranteeUsername string `json:"granteeUsername"`
+	// profile Identifier to grant token for; e.g. "QmemJQrK7PTQvD3n8gmo9JhyaByyLmETiNR1Y8wS7hv4sP"
+	GranteeProfileID string `json:"granteeProfileID"`
+	// lifespan of token in nanoseconds; e.g. 2000000000000
+	TTL time.Duration `json:"ttl"`
 }
 
 // SetNonZeroDefaults uses default token time-to-live if one isn't set
