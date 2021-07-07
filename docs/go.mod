@@ -2,7 +2,10 @@ module github.com/qri-io/qri/docs
 
 go 1.15
 
+replace github.com/qri-io/qri => ../
+
 require (
+	github.com/fsnotify/fsnotify v1.4.9
 	github.com/getkin/kin-openapi v0.55.0
 	github.com/iancoleman/orderedmap v0.2.0
 	github.com/qri-io/ioes v0.1.1
@@ -10,5 +13,3 @@ require (
 	github.com/spf13/cobra v1.1.3
 	gopkg.in/yaml.v2 v2.4.0
 )
-
-replace github.com/qri-io/qri => ../

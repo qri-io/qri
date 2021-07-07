@@ -516,12 +516,12 @@ func typeToString(fset *token.FileSet, exp ast.Expr) (typ string, isJSONSchemaTy
 	str = getMappedType(str)
 
 	_, isJSONSchemaType = map[string]struct{}{
-		"array":   struct{}{},
-		"boolean": struct{}{},
-		"integer": struct{}{},
-		"number":  struct{}{},
-		"object":  struct{}{},
-		"string":  struct{}{},
+		"array":   {},
+		"boolean": {},
+		"integer": {},
+		"number":  {},
+		"object":  {},
+		"string":  {},
 	}[str]
 
 	return str, isJSONSchemaType
