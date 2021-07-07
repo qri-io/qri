@@ -3,10 +3,12 @@ package automation
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/trigger"
@@ -40,7 +42,7 @@ type Run func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow,
 type RunFactory func(ctx context.Context) Run
 
 // Apply executes an ephemeral workflow transform
-type Apply func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow) error
+type Apply func(ctx context.Context, wait bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error
 
 // ApplyFactory is function that produces an Apply function
 type ApplyFactory func(ctx context.Context) Apply
@@ -94,6 +96,7 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 		applyFactory: applyFactory,
 		workflows:    opts.WorkflowStore,
 		runs:         opts.RunStore,
+		runLock:      sync.Mutex{},
 	}
 
 	for _, l := range opts.Listeners {
@@ -126,11 +129,22 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 		// Need to decide if a user can use a combination of the list of options given by
 		// the config & the list of listeners given by the options to define a list of listners
 		// that this orchestrator will use, or if it must be one or the other.
-		return nil, fmt.Errorf("no listeners specified")
+
+		o.listeners = map[string]trigger.Listener{}
 	}
 	// TODO (ramfox): once hooks/completors are implemented, start the completor system here
 	ok = true
 	return o, nil
+}
+
+// DefaultOrchestratorOptions is a temporary solution to supplying options to the orchestrator
+// TODO (ramfox): remove this in favor of using the automation configuration to
+// determing what the orchestrator should be configured as
+func DefaultOrchestratorOptions() OrchestratorOptions {
+	return OrchestratorOptions{
+		WorkflowStore: workflow.NewMemStore(),
+		RunStore:      run.NewMemStore(),
+	}
 }
 
 // Start starts the listeners and completors listening for triggers and hooks
@@ -242,9 +256,6 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow) e
 	defer o.runLock.Unlock()
 	wid := wf.ID
 	log.Debugw("runWorkflow, workflow", "id", wid)
-	runFunc := o.runFactory(ctx)
-	// need to replace w/ log collector
-	streams := ioes.NewDiscardIOStreams()
 
 	// TODO (ramfox): when hooks/completors are added, this should wait for the err, iterate through the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
@@ -273,21 +284,26 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow) e
 		// defer o.bus.UnsubscribeID(runID)
 	}
 
-	err := runFunc(ctx, streams, wf, runID)
+	runFunc := o.runFactory(ctx)
+	// need to replace w/ log collector
+	streams := ioes.NewDiscardIOStreams()
 
-	status, err := o.runs.GetStatus(wf.ID)
-	if err != nil {
-		log.Debugf("runWorkflow: error getting run status: %s", err)
-		return err
-	}
-	fmt.Println(status)
+	err := runFunc(ctx, streams, wf, runID)
 	go func(wf *workflow.Workflow) {
+		status := ""
+		if o.runs != nil {
+			runStatus, err := o.runs.GetStatus(wf.ID)
+			if err != nil {
+				log.Debugf("runWorkflow: error getting run status: %s", err)
+			}
+			status = string(runStatus)
+		}
 		if err := o.bus.Publish(ctx, event.ETWorkflowStopped, &event.WorkflowStoppedPayload{
 			DatasetID:  wf.DatasetID,
 			OwnerID:    wf.OwnerID,
 			WorkflowID: wf.WorkflowID(),
 			RunID:      runID,
-			Status:     string(status),
+			Status:     status,
 		}); err != nil {
 			log.Debug(err)
 		}
@@ -296,21 +312,34 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow) e
 }
 
 // ApplyWorkflow runs the given workflow, but does not record the output
-func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wid workflow.ID) error {
+func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) (string, error) {
 	o.runLock.Lock()
 	defer o.runLock.Unlock()
-	log.Debugw("ApplyWorkflow, workflow", "id", wid)
+	log.Debugw("ApplyWorkflow, workflow", "id", wf.ID)
 	apply := o.applyFactory(ctx)
-	wf, err := o.GetWorkflow(wid)
-	if err != nil {
-		log.Debugw("ApplyWorkflow: getting workflow from store", "err", err)
-		return fmt.Errorf("getting workflow from store: %w", err)
+
+	runID := run.NewID()
+	if scriptOutput != nil {
+		o.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
+			go func() {
+				log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
+				if e.Type == event.ETTransformPrint {
+					if msg, ok := e.Payload.(event.TransformMessage); ok {
+						if scriptOutput != nil {
+							io.WriteString(scriptOutput, msg.Msg)
+							io.WriteString(scriptOutput, "\n")
+						}
+					}
+				}
+			}()
+			return nil
+		}, runID)
+		// TODO (ramfox): defer unsubscribe to id
 	}
-	streams := ioes.NewDiscardIOStreams()
 
 	// TODO (ramfox): when we understand what it means to dryrun a hook, this should wait for the err, iterator thought the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
-	return apply(ctx, streams, wf)
+	return runID, apply(ctx, wait, runID, wf, ds, secrets)
 }
 
 // CreateWorkflow creates a new workflow and adds it to the WorkflowStore

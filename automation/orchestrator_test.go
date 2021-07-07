@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/trigger"
@@ -24,21 +25,6 @@ func TestIntegration(t *testing.T) {
 	NowFunc = func() *time.Time { return &now }
 
 	ctx := context.Background()
-	ran := make(chan string)
-	runFuncFactory := func(ctx context.Context) Run {
-		return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
-			ran <- "ran!"
-			return nil
-		}
-	}
-	applied := make(chan string)
-	applyFuncFactory := func(ctx context.Context) Apply {
-		return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow) error {
-			applied <- "applied"
-			return nil
-		}
-	}
-
 	bus := event.NewBus(ctx)
 
 	runStore := run.NewMemStore()
@@ -62,6 +48,29 @@ func TestIntegration(t *testing.T) {
 		RunStore:      runStore,
 		Listeners:     []trigger.Listener{runtimeListener},
 	}
+
+	ran := make(chan string)
+	runFuncFactory := func(ctx context.Context) Run {
+		return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
+			// since we don't actually run anything
+			// we need to mock the success of the run
+			runStore.Put(&run.State{
+				ID:         runID,
+				WorkflowID: w.ID,
+				Status:     run.RSSucceeded,
+			})
+			ran <- "ran!"
+			return nil
+		}
+	}
+	applied := make(chan string)
+	applyFuncFactory := func(ctx context.Context) Apply {
+		return func(ctx context.Context, wait bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
+			applied <- "applied"
+			return nil
+		}
+	}
+
 	o, err := NewOrchestrator(ctx, bus, runFuncFactory, applyFuncFactory, opts)
 	if err != nil {
 		t.Fatal(err)
@@ -117,6 +126,7 @@ func TestIntegration(t *testing.T) {
 		DatasetID:  got.DatasetID,
 		OwnerID:    got.OwnerID,
 		WorkflowID: got.WorkflowID(),
+		Status:     string(run.RSSucceeded),
 	}
 	var gotWorkflowStartedPayload *event.WorkflowStartedPayload
 	var gotWorkflowStoppedPayload *event.WorkflowStoppedPayload
@@ -153,7 +163,7 @@ func TestIntegration(t *testing.T) {
 	}
 
 	done = errOnTimeout(t, applied, "o.ApplyWorkflow error: timed out before apply function called")
-	err = o.ApplyWorkflow(ctx, got.ID)
+	_, err = o.ApplyWorkflow(ctx, false, nil, got, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,6 +227,7 @@ func TestIntegration(t *testing.T) {
 		DatasetID:  expected.DatasetID,
 		OwnerID:    expected.OwnerID,
 		WorkflowID: expected.WorkflowID(),
+		Status:     string(run.RSSucceeded),
 	}
 
 	if diff := cmp.Diff(expectedWorkflowStartedPayload, gotWorkflowStartedPayload, cmpopts.IgnoreFields(event.WorkflowStartedPayload{}, "RunID")); diff != "" {
@@ -261,33 +272,6 @@ func shouldTimeout(t *testing.T, c chan string, errMsg string) <-chan struct{} {
 }
 
 func TestRunStoreEvents(t *testing.T) {
-	// mock time
-	prevNow := event.NowFunc
-	defer func() { event.NowFunc = prevNow }()
-
-	timestamps := []time.Time{}
-	totalEventsEmitted := 8
-	eventNumber := 0
-	for i := 0; i < totalEventsEmitted; i++ {
-		t := time.Unix(int64(i), 0)
-		timestamps = append(timestamps, t)
-	}
-	event.NowFunc = func() time.Time {
-		t := timestamps[eventNumber]
-		eventNumber++
-		return t
-	}
-
-	timestampNum := 0
-	nextTimestamp := func() *time.Time {
-		if timestampNum >= len(timestamps) {
-			t.Fatal("timestamp error, out of bounds")
-		}
-		t := timestamps[timestampNum]
-		timestampNum++
-		return &t
-	}
-
 	ctx := context.Background()
 	bus := event.NewBus(ctx)
 	listener := trigger.NewRuntimeListener(ctx, bus)
@@ -303,9 +287,58 @@ func TestRunStoreEvents(t *testing.T) {
 	}
 	r := &run.State{WorkflowID: wf.ID}
 
+	// We are only interested in ensuring that the runEventsHandler is working
+	// properly. To make sure that the mock time only effects the events we
+	// are checking for, lets make sure to wait for the `ETWorkflowStarted` event
+	// to pass, before we mock the transform events sequence
+	workflowStarted := make(chan struct{})
+	handleWorkflowStarted := func(ctx context.Context, e event.Event) error {
+		if e.Type == event.ETWorkflowStarted {
+			workflowStarted <- struct{}{}
+		}
+		return nil
+	}
+	bus.SubscribeTypes(handleWorkflowStarted, event.ETWorkflowStarted)
 	// this runFunc simulates events emitted by the transform package
 	runFuncFactory := func(ctx context.Context) Run {
 		return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
+			select {
+			case <-workflowStarted:
+				break
+			case <-time.After(200 * time.Millisecond):
+				t.Fatal("RunWorkflow error: should have received `ETWorkflowStarted` event")
+			}
+
+			// mock time
+			prevNow := event.NowFunc
+			defer func() { event.NowFunc = prevNow }()
+
+			timestamps := []time.Time{}
+			totalEventsEmitted := 8
+			eventNumber := 0
+			for i := 0; i < totalEventsEmitted; i++ {
+				t := time.Unix(int64(i), 0)
+				timestamps = append(timestamps, t)
+			}
+			event.NowFunc = func() time.Time {
+				if len(timestamps) <= eventNumber {
+					t.Fatal("NowFunc error, more events than timestamps created")
+				}
+				t := timestamps[eventNumber]
+				eventNumber++
+				return t
+			}
+
+			timestampNum := 0
+			nextTimestamp := func() *time.Time {
+				if timestampNum >= len(timestamps) {
+					t.Fatal("timestamp error, out of bounds")
+				}
+				t := timestamps[timestampNum]
+				timestampNum++
+				return &t
+			}
+
 			r.ID = runID
 
 			// event 0
@@ -398,7 +431,7 @@ func TestRunStoreEvents(t *testing.T) {
 		}
 	}
 	applyFuncFactory := func(ctx context.Context) Apply {
-		return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow) error {
+		return func(ctx context.Context, wait bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
 			return nil
 		}
 	}
