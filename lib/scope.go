@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/automation"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
@@ -50,6 +51,11 @@ func newScope(ctx context.Context, inst *Instance, source string) (scope, error)
 
 func (s *scope) ActiveProfile() *profile.Profile {
 	return s.pro
+}
+
+// Orchestrator returns the automation orchestrator
+func (s *scope) AutomationOrchestrator() *automation.Orchestrator {
+	return s.inst.automation
 }
 
 // Bus returns the event bus

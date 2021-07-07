@@ -7,10 +7,9 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
-	"github.com/qri-io/qri/automation/run"
+	"github.com/qri-io/qri/automation/hook"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/transform"
 )
 
 // AutomationMethods groups together methods for automations
@@ -26,7 +25,8 @@ func (m AutomationMethods) Name() string {
 // Attributes defines attributes for each method
 func (m AutomationMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apply": {Endpoint: AEApply, HTTPVerb: "POST"},
+		"apply":  {Endpoint: AEApply, HTTPVerb: "POST"},
+		"deploy": {Endpoint: AEDeploy, HTTPVerb: "POST"},
 	}
 }
 
@@ -38,6 +38,7 @@ type ApplyParams struct {
 	Wait      bool               `json:"wait"`
 	// TODO(arqu): substitute with websockets when working over the wire
 	ScriptOutput io.Writer `json:"-"`
+	Hooks        []hook.Hook
 }
 
 // Validate returns an error if ApplyParams fields are in an invalid state
@@ -58,6 +59,42 @@ type ApplyResult struct {
 func (m AutomationMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyResult, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "apply"), p)
 	if res, ok := got.(*ApplyResult); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// DeployParams are parameters for the deploy command
+type DeployParams struct {
+	Apply    bool // when Apply is true, run the workflow after updating the dataset and workflow
+	Workflow *workflow.Workflow
+	Dataset  *dataset.Dataset
+}
+
+// Validate returns an error if DeployParams fields are in an invalid state
+func (p *DeployParams) Validate() error {
+	if p.Workflow == nil {
+		return fmt.Errorf("deploy: workflow not set")
+	}
+	if p.Workflow.DatasetID == "" && p.Dataset == nil {
+		return fmt.Errorf("deploy: either dataset or workflow.DatasetID are required")
+	}
+	if p.Dataset != nil && p.Workflow.DatasetID != "" && p.Workflow.DatasetID != p.Dataset.ID {
+		return fmt.Errorf("deploy: dataset id and the dataset id in the workflow must match")
+	}
+	return nil
+}
+
+// DeployResponse is the result of a deploy command
+type DeployResponse struct {
+	RunID    string             `json:"runID,omitempty"`
+	Workflow *workflow.Workflow `json:"workflow"`
+}
+
+// Deploy adds or updates a workflow
+func (m AutomationMethods) Deploy(ctx context.Context, p *DeployParams) (*DeployResponse, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "deploy"), p)
+	if res, ok := got.(*DeployResponse); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -92,26 +129,13 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 		ds.Transform.OpenScriptFile(ctx, scope.Filesystem())
 	}
 
-	// allocate an ID for the transform, for now just log the events it produces
-	runID := run.NewID()
-	scope.Bus().SubscribeID(func(ctx context.Context, e event.Event) error {
-		go func() {
-			log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
-			if e.Type == event.ETTransformPrint {
-				if msg, ok := e.Payload.(event.TransformMessage); ok {
-					if p.ScriptOutput != nil {
-						io.WriteString(p.ScriptOutput, msg.Msg)
-						io.WriteString(p.ScriptOutput, "\n")
-					}
-				}
-			}
-		}()
-		return nil
-	}, runID)
+	wf := &workflow.Workflow{}
+	if p.Hooks != nil {
+		wf.Hooks = p.Hooks
+	}
 
-	scriptOut := p.ScriptOutput
-	transformer := transform.NewTransformer(scope.AppContext(), scope.Loader(), scope.Bus())
-	if err = transformer.Apply(ctx, ds, runID, p.Wait, scriptOut, p.Secrets); err != nil {
+	runID, err := scope.AutomationOrchestrator().ApplyWorkflow(ctx, p.Wait, p.ScriptOutput, wf, ds, p.Secrets)
+	if err != nil {
 		return nil, err
 	}
 
@@ -125,4 +149,40 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	}
 	res.RunID = runID
 	return res, nil
+}
+
+// Deploy adds or updates a Dataset, creates or updates an associated Workflow, and, if deployParams.Apply is true, immediately runs the Workflow
+func (automationImpl) Deploy(scope scope, p *DeployParams) (*DeployResponse, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
+	ctxWithProfile := profile.AddIDToContext(ctx, w.OwnerID.String())
+	scope, err := newScope(ctxWithProfile, inst, "local")
+	if err != nil {
+		return err
+	}
+	p := &SaveParams{
+		Dataset: &dataset.Dataset{
+			ID: w.DatasetID,
+			Commit: &dataset.Commit{
+				RunID: runID,
+			},
+		},
+		Apply: true,
+	}
+	dImpl := &datasetImpl{}
+	_, err = dImpl.Save(scope, p)
+	return err
+}
+
+func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
+	ctxWithProfile := profile.AddIDToContext(ctx, wf.OwnerID.String())
+	scope, err := newScope(ctxWithProfile, inst, "local")
+	if err != nil {
+		return err
+	}
+
+	transformer := transform.NewTransformer(scope.AppContext(), scope.Loader(), scope.Bus())
+	return transformer.Apply(ctx, ds, runID, wait, nil, secrets)
 }

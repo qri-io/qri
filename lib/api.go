@@ -49,6 +49,8 @@ const (
 
 	// AEApply invokes a transform apply
 	AEApply = APIEndpoint("/auto/apply")
+	// AEDeploy creates, updates, or deploys a workflow
+	AEDeploy = APIEndpoint("/auto/deploy")
 
 	// dataset endpoints
 
