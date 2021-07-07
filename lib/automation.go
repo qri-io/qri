@@ -66,21 +66,18 @@ func (m AutomationMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyRes
 
 // DeployParams are parameters for the deploy command
 type DeployParams struct {
-	Apply    bool // when Apply is true, run the workflow after updating the dataset and workflow
-	Workflow *workflow.Workflow
-	Dataset  *dataset.Dataset
+	Apply      bool // when Apply is true, run the workflow after updating the dataset and workflow
+	WorkflowID string
+	Triggers   map[string]interface{}
+	Hooks      map[string]interface{}
+	Ref        string
+	Dataset    *dataset.Dataset
 }
 
 // Validate returns an error if DeployParams fields are in an invalid state
 func (p *DeployParams) Validate() error {
-	if p.Workflow == nil {
-		return fmt.Errorf("deploy: workflow not set")
-	}
-	if p.Workflow.DatasetID == "" && p.Dataset == nil {
-		return fmt.Errorf("deploy: either dataset or workflow.DatasetID are required")
-	}
-	if p.Dataset != nil && p.Workflow.DatasetID != "" && p.Workflow.DatasetID != p.Dataset.ID {
-		return fmt.Errorf("deploy: dataset id and the dataset id in the workflow must match")
+	if p.WorkflowID == "" && p.Dataset == nil {
+		return fmt.Errorf("deploy: dataset or workflow id required")
 	}
 	return nil
 }
@@ -153,7 +150,57 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 
 // Deploy adds or updates a Dataset, creates or updates an associated Workflow, and, if deployParams.Apply is true, immediately runs the Workflow
 func (automationImpl) Deploy(scope scope, p *DeployParams) (*DeployResponse, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	ds := p.Dataset
+	var err error
+	if p.Dataset != nil {
+		saveParams := &SaveParams{
+			Ref:     p.Ref,
+			Dataset: p.Dataset,
+			Apply:   false,
+		}
+		ds, err = datasetImpl{}.Save(scope, p)
+		if err != nil {
+			log.Errorw("deploy save dataset", "error", err)
+			return nil, err
+		}
+	}
+	wf := &workflow.Workflow{
+		ID: workflow.ID(p.WorkflowID),
+	}
+	if p.WorkflowID == "" || p.Triggers != nil || p.Hooks != nil {
+		datasetID := ds.ID
+		if p.WorkflowID != "" && DatasetID == "" {
+			wf, err := GetWorkflow(wf.ID)
+			if err != nil {
+				log.Errorw("deploy get workflow", "error", err)
+				return nil, err
+			}
+			datasetID = wf.DatasetID
+		}
+		wf, err = scope.AutomationOrchestrator().SaveWorkflow(wf.WorkflowID(), datasetID, scope.ActiveProfile().ID, p.Triggers)
+		if err != nil {
+			log.Errorw("deploy save workflow", "error", err)
+			return nil, err
+		}
+	} else {
+		wf, err := scope.AutomationOrchestrator().GetWorkflow(workflow.ID(p.WorkflowID))
+		if err != nil {
+			log.Errorw("deploy get workflow", "error", err)
+			return nil, err
+		}
+	}
+
+	if Apply {
+		// needs to return early to give runID
+		err = scope.AutomationOrchestrator().RunWorkflow(scope.Context(), wf.ID)
+		log.Errorw("deploy run workflow", "error", err)
+		return nil, err
+	}
+
+	return &DeployResponse{
+		Workflow: wf,
+		RunID:    "", // need to get from the RunWorkflow after RunWorkflow has been changed
+	}, nil
 }
 
 func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {

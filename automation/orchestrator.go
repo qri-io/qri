@@ -342,8 +342,9 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 	return runID, apply(ctx, wait, runID, wf, ds, secrets)
 }
 
-// CreateWorkflow creates a new workflow and adds it to the WorkflowStore
-func (o *Orchestrator) CreateWorkflow(did string, pid profile.ID, triggerOpts []map[string]interface{}) (*workflow.Workflow, error) {
+// SaveWorkflow creates a new workflow if the workflow id is empty, or updates
+// an existing workflow in the workflow Store
+func (o *Orchestrator) SaveWorkflow(wid string, did string, pid profile.ID, triggerOpts []map[string]interface{}) (*workflow.Workflow, error) {
 	t := []trigger.Trigger{}
 	for _, opt := range triggerOpts {
 		triggerType, ok := opt["type"].(string)
@@ -370,6 +371,9 @@ func (o *Orchestrator) CreateWorkflow(did string, pid profile.ID, triggerOpts []
 		OwnerID:   pid,
 		Created:   NowFunc(),
 		Triggers:  t,
+	}
+	if wid != "" {
+		wf.ID = workflow.ID(wid)
 	}
 	wf, err := o.workflows.Put(wf)
 	if err != nil {
