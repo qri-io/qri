@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -22,7 +23,14 @@ import (
 type docs struct {
 	QriVersion string
 	LibMethods []libMethod
+	MethodSets []methodSet
 	Types      []qriType
+}
+
+type methodSet struct {
+	Name        string
+	Doc         string
+	MethodCount int
 }
 
 type libMethod struct {
@@ -51,6 +59,7 @@ type field struct {
 	Doc          string
 	Tags         string
 	Comment      string
+	Example      string
 }
 
 type response struct {
@@ -65,15 +74,19 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 		return nil, err
 	}
 
-	var methods []libMethod
+	var (
+		methods    []libMethod
+		methodSets []methodSet
+	)
 
 	var nilInst *lib.Instance
-	for _, methodSet := range nilInst.AllMethods() {
-		msetType := reflect.TypeOf(methodSet)
-		methodAttributes := methodSet.Attributes()
+	for _, mSet := range nilInst.AllMethods() {
+		msetType := reflect.TypeOf(mSet)
+		methodAttributes := mSet.Attributes()
 
 		// Iterate methods on the implementation, register those that have the right signature
 		num := msetType.NumMethod()
+		validMethodCount := 0
 		for k := 0; k < num; k++ {
 			i := msetType.Method(k)
 			f := i.Type
@@ -97,6 +110,8 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 			if attrs.Endpoint == lib.DenyHTTP {
 				continue
 			}
+
+			validMethodCount++
 
 			// Validate the output values of the implementation
 			numOuts := f.NumOut()
@@ -157,7 +172,7 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 			}
 
 			if !isDefinedResponse(outTypeName, qriTypes) {
-				fmt.Printf("%s: '%s' output response type not defined (%s)\n", i.Name, outTypeName, inType.Name())
+				fmt.Printf("%s: %q output response type not defined (%s)\n", i.Name, outTypeName, inType.Name())
 				outTypeName = "NotDefined"
 			}
 
@@ -170,9 +185,16 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 				fmt.Printf("%s: is paginated", i.Name)
 			}
 
+			doc := ""
+			lookup := fmt.Sprintf("%s.%s", msetType.Name(), i.Name)
+			if t, ok := qriTypes[lookup]; ok {
+				doc = t.Doc
+			}
+
 			m := libMethod{
-				MethodSet:  methodSet.Name(),
+				MethodSet:  mSet.Name(),
 				MethodName: i.Name,
+				Doc:        doc,
 				Endpoint:   attrs.Endpoint,
 				HTTPVerb:   strings.ToLower(attrs.HTTPVerb),
 				Params:     qriTypes[inType.Name()],
@@ -183,6 +205,15 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 				},
 			}
 			methods = append(methods, m)
+		}
+
+		// add methodset to docs list
+		if qType, ok := qriTypes[msetType.Name()]; ok {
+			methodSets = append(methodSets, methodSet{
+				Name:        mSet.Name(),
+				Doc:         qType.Doc,
+				MethodCount: validMethodCount,
+			})
 		}
 	}
 
@@ -198,6 +229,7 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 	d := docs{
 		QriVersion: version.Version,
 		LibMethods: methods,
+		MethodSets: methodSets,
 		Types:      qriTypeSlice,
 	}
 
@@ -278,7 +310,7 @@ func addNonLibMethods(methods []libMethod) []libMethod {
 		Params: qriType{
 			Name: "pathParams",
 			Fields: []field{
-				field{Name: "path:.*"},
+				{Name: "path:.*"},
 			},
 		},
 		Paginated: false,
@@ -297,7 +329,7 @@ func addNonLibMethods(methods []libMethod) []libMethod {
 		Params: qriType{
 			Name: "pathParams",
 			Fields: []field{
-				field{Name: "dsref"},
+				{Name: "dsref"},
 			},
 		},
 		Paginated: false,
@@ -316,8 +348,8 @@ func addNonLibMethods(methods []libMethod) []libMethod {
 		Params: qriType{
 			Name: "pathParams",
 			Fields: []field{
-				field{Name: "dsref"},
-				field{Name: "selector"},
+				{Name: "dsref"},
+				{Name: "selector"},
 			},
 		},
 		Paginated: false,
@@ -401,6 +433,14 @@ func parseQriTypes() (map[string]qriType, error) {
 	}
 
 	for _, t := range p.Types {
+		for _, fn := range t.Methods {
+			name := fmt.Sprintf("%s.%s", t.Name, fn.Name)
+			params[name] = qriType{
+				Name: name,
+				Doc:  sanitizeDocString(fn.Doc),
+			}
+		}
+
 		for _, spec := range t.Decl.Specs {
 			if typeSpec, ok := spec.(*ast.TypeSpec); ok {
 				if structSpec, ok := typeSpec.Type.(*ast.StructType); ok {
@@ -410,12 +450,14 @@ func parseQriTypes() (map[string]qriType, error) {
 							continue
 						}
 
-						t, common := typeToString(fset, f.Type)
+						tStr, common := typeToString(fset, f.Type)
+						comment, example := parseFieldComment(f)
 						field := field{
-							Name:         f.Names[0].String(),
-							Type:         t,
+							Name:         fieldNamePrioritizeJSONTag(f),
+							Type:         tStr,
 							TypeIsCommon: common,
-							Comment:      f.Comment.Text(),
+							Comment:      comment,
+							Example:      example,
 						}
 						if f.Doc != nil {
 							field.Doc = sanitizeDocString(f.Doc.Text())
@@ -426,10 +468,15 @@ func parseQriTypes() (map[string]qriType, error) {
 						fields = append(fields, field)
 					}
 
+					doc := t.Doc
+					if typeSpec.Comment.Text() != "" {
+						doc = typeSpec.Comment.Text()
+					}
+
 					writeToSpec := strings.HasSuffix(typeSpec.Name.String(), "Params") || strings.HasSuffix(typeSpec.Name.String(), "ParamsPod")
 					p := qriType{
 						Name:        typeSpec.Name.String(),
-						Doc:         sanitizeDocString(typeSpec.Comment.Text()),
+						Doc:         sanitizeDocString(doc),
 						Fields:      fields,
 						WriteToSpec: writeToSpec,
 					}
@@ -451,9 +498,37 @@ func readASTFile(fset *token.FileSet, filepath string) (*ast.File, error) {
 }
 
 func sanitizeDocString(s string) string {
+	s = strings.Split(s, ";")[0]
 	s = strings.ReplaceAll(s, "\n", " ")
 	s = strings.ReplaceAll(s, "\"", "'")
 	return s
+}
+
+var jsonTagRe = regexp.MustCompile(`json:"(\w+)`)
+
+func fieldNamePrioritizeJSONTag(f *ast.Field) string {
+	if f.Tag != nil {
+		if matches := jsonTagRe.FindStringSubmatch(f.Tag.Value); len(matches) > 0 {
+			return matches[1]
+		}
+	}
+	return f.Names[0].String()
+}
+
+func parseFieldComment(f *ast.Field) (description, example string) {
+	strs := strings.Split(f.Doc.Text(), ";")
+	switch len(strs) {
+	case 1:
+		return strs[0], ""
+	case 2:
+		example = strings.TrimSpace(strs[1])
+		example = strings.TrimPrefix(example, "e.g.")
+		example = strings.TrimSpace(example)
+		example = strings.Trim(example, `"`)
+		return strs[0], example
+	default:
+		return "", ""
+	}
 }
 
 func getMappedType(f string) string {
