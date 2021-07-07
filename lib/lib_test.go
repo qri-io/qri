@@ -273,7 +273,7 @@ func TestNewInstanceWithAccessControlPolicy(t *testing.T) {
 		{Type: "http"},
 	}
 
-	cfg.Remote = &config.Remote{
+	cfg.RemoteServer = &config.RemoteServer{
 		Enabled: true,
 	}
 
@@ -303,7 +303,7 @@ func TestNewInstanceWithAccessControlPolicy(t *testing.T) {
 		ctx,
 		qriPath,
 		OptConfig(cfg),
-		OptRemoteOptions(
+		OptRemoteServerOptions(
 			[]remote.OptionsFunc{
 				remote.OptLoadPolicyFileIfExists(acpPath),
 			}),
@@ -312,7 +312,7 @@ func TestNewInstanceWithAccessControlPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p := got.remote.Policy()
+	p := got.remoteServer.Policy()
 	if p == nil {
 		t.Fatal("expected remote policy to exist, got nil")
 	}

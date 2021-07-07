@@ -18,7 +18,7 @@ import (
 
 // CurrentConfigRevision is the latest configuration revision configurations
 // that don't match this revision number should be migrated up
-const CurrentConfigRevision = 3
+const CurrentConfigRevision = 4
 
 // Config encapsulates all configuration details for qri
 type Config struct {
@@ -29,15 +29,15 @@ type Config struct {
 	Repo        *Repo
 	Filesystems []qfs.Config
 	P2P         *P2P
+	Automation  *Automation
 	Stats       *Stats
 
-	Registry *Registry
-	Remotes  *Remotes
-	Remote   *Remote
+	Registry     *Registry
+	Remotes      *Remotes
+	RemoteServer *RemoteServer
 
 	CLI     *CLI
 	API     *API
-	RPC     *RPC
 	Logging *Logging
 }
 
@@ -64,6 +64,7 @@ func DefaultConfig() *Config {
 		Repo:        DefaultRepo(),
 		Filesystems: DefaultFilesystems(),
 		P2P:         DefaultP2P(),
+		Automation:  DefaultAutomation(),
 		Stats:       DefaultStats(),
 
 		Registry: DefaultRegistry(),
@@ -71,7 +72,6 @@ func DefaultConfig() *Config {
 
 		CLI:     DefaultCLI(),
 		API:     DefaultAPI(),
-		RPC:     DefaultRPC(),
 		Logging: DefaultLogging(),
 	}
 }
@@ -194,15 +194,14 @@ func (cfg Config) Validate() error {
     "title": "config",
     "description": "qri configuration",
     "type": "object",
-    "required": ["Profile", "Repo", "Filesystems", "P2P", "CLI", "API", "RPC"],
+    "required": ["Profile", "Repo", "Filesystems", "P2P", "CLI", "API", "Automation"],
     "properties" : {
 			"Profile" : { "type":"object" },
 			"Repo" : { "type":"object" },
 			"Filesystems" : { "type":"array" },
 			"P2P" : { "type":"object" },
 			"CLI" : { "type":"object" },
-			"API" : { "type":"object" },
-			"RPC" : { "type":"object" }
+			"API" : { "type":"object" }
     }
   }`)
 	if err := validate(schema, &cfg); err != nil {
@@ -215,8 +214,8 @@ func (cfg Config) Validate() error {
 		cfg.P2P,
 		cfg.CLI,
 		cfg.API,
-		cfg.RPC,
 		cfg.Logging,
+		cfg.Automation,
 	}
 	for _, val := range validators {
 		// we need to check here because we're potentially calling methods on nil
@@ -260,20 +259,20 @@ func (cfg *Config) Copy() *Config {
 	if cfg.API != nil {
 		res.API = cfg.API.Copy()
 	}
-	if cfg.RPC != nil {
-		res.RPC = cfg.RPC.Copy()
-	}
-	if cfg.Remote != nil {
-		res.Remote = cfg.Remote.Copy()
-	}
 	if cfg.Remotes != nil {
 		res.Remotes = cfg.Remotes.Copy()
+	}
+	if cfg.RemoteServer != nil {
+		res.RemoteServer = cfg.RemoteServer.Copy()
 	}
 	if cfg.Logging != nil {
 		res.Logging = cfg.Logging.Copy()
 	}
 	if cfg.Stats != nil {
 		res.Stats = cfg.Stats.Copy()
+	}
+	if cfg.Automation != nil {
+		res.Automation = cfg.Automation.Copy()
 	}
 	if cfg.Filesystems != nil {
 		for _, fs := range cfg.Filesystems {

@@ -56,6 +56,11 @@ func RunMigrations(streams ioes.IOStreams, cfg *config.Config, shouldRun func() 
 				return err
 			}
 		}
+		if cfg.Revision == 3 {
+			if err := ThreeToFour(cfg); err != nil {
+				return err
+			}
+		}
 		streams.PrintErr("done!\n")
 
 		if errorOnSuccess {
@@ -106,11 +111,11 @@ func ZeroToOne(cfg *config.Config) error {
 
 // OneToTwo migrates a configuration from Revision 1 to Revision 2
 func OneToTwo(cfg *config.Config) error {
+	log.Debug("migrating from version one to two")
 	qriPath := filepath.Dir(cfg.Path())
 	newIPFSPath := filepath.Join(qriPath, "ipfs")
 	oldIPFSPath := configVersionOneIPFSPath()
 
-	// TODO(ramfox): qfs migration
 	if err := qipfs.InternalizeIPFSRepo(oldIPFSPath, newIPFSPath); err != nil {
 		return err
 	}
@@ -145,21 +150,25 @@ func oneToTwoConfig(cfg *config.Config) error {
 		if apiCfg.Address == "" {
 			apiCfg.Address = defaultAPICfg.Address
 		}
-		if apiCfg.WebsocketAddress == "" {
-			apiCfg.WebsocketAddress = defaultAPICfg.WebsocketAddress
-		}
+		// TODO(b5): need a strategy for setting config now that this field is removed
+		// in config revision 4
+		// if apiCfg.WebsocketAddress == "" {
+		// 	apiCfg.WebsocketAddress = defaultAPICfg.WebsocketAddress
+		// }
 	} else {
 		return qerr.New(fmt.Errorf("invalid config"), "config does not contain API configuration")
 	}
 
-	if cfg.RPC != nil {
-		defaultRPCCfg := config.DefaultRPC()
-		if cfg.RPC.Address == "" {
-			cfg.RPC.Address = defaultRPCCfg.Address
-		}
-	} else {
-		return qerr.New(fmt.Errorf("invalid config"), "config does not contain RPC configuration")
-	}
+	// TODO(b5): need a strategy for setting config now that this field is removed
+	// in config revision 4
+	// if cfg.RPC != nil {
+	// 	defaultRPCCfg := config.DefaultRPC()
+	// 	if cfg.RPC.Address == "" {
+	// 		cfg.RPC.Address = defaultRPCCfg.Address
+	// 	}
+	// } else {
+	// 	return qerr.New(fmt.Errorf("invalid config"), "config does not contain RPC configuration")
+	// }
 
 	cfg.Filesystems = config.DefaultFilesystems()
 
@@ -168,6 +177,7 @@ func oneToTwoConfig(cfg *config.Config) error {
 
 // TwoToThree migrates a configuration from Revision 2 to Revision 3
 func TwoToThree(cfg *config.Config) error {
+	log.Debugf("migrating from revision 2 to 3")
 	if cfg.P2P != nil {
 		removes := map[string]bool{
 			"/ip4/35.239.80.82/tcp/4001/ipfs/QmdpGkbqDYRPCcwLYnEm8oYGz2G9aUZn9WwPjqvqw3XUAc":   true, // red
@@ -199,6 +209,36 @@ func TwoToThree(cfg *config.Config) error {
 	}
 
 	cfg.Revision = 3
+
+	if err := safeWriteConfig(cfg); err != nil {
+		rollbackConfigWrite(cfg)
+		return err
+	}
+
+	return nil
+}
+
+// ThreeToFour migrates a configuration from Revision 3 to Revision 4
+func ThreeToFour(cfg *config.Config) error {
+	log.Debugf("migrating from revision 3 to 4")
+	ipfsRepoPath, err := maybeRelativizeIPFSPath(cfg)
+	if err != nil {
+		return err
+	}
+
+	// migrate any existing IPFS repo
+	if _, err := os.Stat(ipfsRepoPath); !os.IsNotExist(err) {
+		ctx := context.Background()
+		if err := qipfs.Migrate(ctx, ipfsRepoPath); err != nil {
+			return err
+		}
+	}
+
+	if cfg.API != nil {
+		cfg.API.Webui = true
+	}
+	cfg.Automation = config.DefaultAutomation()
+	cfg.Revision = 4
 
 	if err := safeWriteConfig(cfg); err != nil {
 		rollbackConfigWrite(cfg)
@@ -277,6 +317,27 @@ func prompt(w io.Writer, r io.Reader, msg string) string {
 	fmt.Fprintf(w, msg)
 	fmt.Fscanln(r, &input)
 	return strings.TrimSpace(strings.ToLower(input))
+}
+
+func maybeRelativizeIPFSPath(cfg *config.Config) (string, error) {
+	cfgBasePath := filepath.Dir(cfg.Path())
+	for i, fsCfg := range cfg.Filesystems {
+		if fsCfg.Type == "ipfs" {
+			if ipath, ok := fsCfg.Config["path"]; ok {
+				if path, ok := ipath.(string); ok {
+					if filepath.IsAbs(path) {
+						if rel, err := filepath.Rel(cfgBasePath, path); err == nil {
+							cfg.Filesystems[i].Config["path"] = rel
+							return path, nil
+						}
+					}
+					return filepath.Join(cfgBasePath, path), nil
+				}
+			}
+			return "", fmt.Errorf("IPFS path is not specified")
+		}
+	}
+	return "", fmt.Errorf("no IPFS filesystem is specified")
 }
 
 func maybeRemoveIPFSRepo(cfg *config.Config, oldPath string) error {

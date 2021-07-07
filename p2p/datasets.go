@@ -8,14 +8,14 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/qri-io/qri/base"
-	reporef "github.com/qri-io/qri/repo/ref"
-
 	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/qri-io/qri/base"
+	p2putil "github.com/qri-io/qri/p2p/p2putil"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // MtDatasets is a dataset list message
-const MtDatasets = MsgType("list_datasets")
+const MtDatasets = p2putil.MsgType("list_datasets")
 
 // listMax is the highest number of entries a list request should return
 const listMax = 30
@@ -40,7 +40,7 @@ func (n *QriNode) RequestDatasetsList(ctx context.Context, pid peer.ID, p Datase
 		return nil, fmt.Errorf("not connected to p2p network")
 	}
 
-	req, err := NewJSONBodyMessage(n.ID, MtDatasets, p)
+	req, err := p2putil.NewJSONBodyMessage(n.ID, MtDatasets, p)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, err
@@ -54,12 +54,12 @@ func (n *QriNode) RequestDatasetsList(ctx context.Context, pid peer.ID, p Datase
 	}
 	defer s.Close()
 
-	ws := WrapStream(s)
-	if err := ws.sendMessage(req); err != nil {
+	ws := p2putil.WrapStream(s)
+	if err := ws.SendMessage(req); err != nil {
 		return nil, err
 	}
 
-	res, err := ws.receiveMessage()
+	res, err := ws.ReceiveMessage()
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (n *QriNode) RequestDatasetsList(ctx context.Context, pid peer.ID, p Datase
 	return ref, err
 }
 
-func (n *QriNode) handleDatasetsList(ws *WrappedStream, msg Message) (hangup bool) {
+func (n *QriNode) handleDatasetsList(ws *p2putil.WrappedStream, msg p2putil.Message) (hangup bool) {
 	hangup = true
 	switch msg.Header("phase") {
 	case "request":
@@ -91,7 +91,7 @@ func (n *QriNode) handleDatasetsList(ws *WrappedStream, msg Message) (hangup boo
 
 		reply, err := msg.UpdateJSON(refs)
 		reply = reply.WithHeaders("phase", "response")
-		if err := ws.sendMessage(reply); err != nil {
+		if err := ws.SendMessage(reply); err != nil {
 			log.Debug(err.Error())
 			return
 		}

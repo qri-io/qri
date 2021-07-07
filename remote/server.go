@@ -38,10 +38,10 @@ var log = golog.Logger("remote")
 type Hook func(ctx context.Context, pid profile.ID, ref dsref.Ref) error
 
 // OptionsFunc adjusts the behavior of the a remote when passed to
-// NewRemote
+// NewServer
 type OptionsFunc func(o *Options)
 
-// Options encapsulates runtime configuration for a remote
+// Options encapsulates runtime configuration for a remote server
 type Options struct {
 	// called when a client requests to push a dataset, before any data has been
 	// received
@@ -89,9 +89,9 @@ type Options struct {
 	Policy *access.Policy
 }
 
-// Remote receives requests from other qri nodes to perform actions on their
+// Server receives requests from other qri nodes to perform actions on their
 // behalf
-type Remote struct {
+type Server struct {
 	node          *p2p.QriNode
 	logbook       *logbook.Book
 	localResolver dsref.Resolver
@@ -149,9 +149,9 @@ func OptLoadPolicyFileIfExists(filename string) OptionsFunc {
 	}
 }
 
-// NewRemote creates a remote
-func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolver, opts ...OptionsFunc) (*Remote, error) {
-	log.Debugf("NewRemote cfg=%v len(opts)=%d", cfg, len(opts))
+// NewServer creates a remote
+func NewServer(node *p2p.QriNode, cfg *config.RemoteServer, localResolver dsref.Resolver, opts ...OptionsFunc) (*Server, error) {
+	log.Debugf("NewServer cfg=%v len(opts)=%d", cfg, len(opts))
 	o := &Options{}
 	for _, opt := range opts {
 		opt(o)
@@ -161,7 +161,7 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolv
 		return nil, fmt.Errorf("remote requires a non-nil node")
 	}
 
-	r := &Remote{
+	r := &Server{
 		node:          node,
 		logbook:       node.Repo.Logbook(),
 		localResolver: localResolver,
@@ -242,7 +242,7 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, localResolver dsref.Resolv
 }
 
 // Node exposes this remote's QriNode
-func (r *Remote) Node() *p2p.QriNode {
+func (r *Server) Node() *p2p.QriNode {
 	if r == nil {
 		return nil
 	}
@@ -250,7 +250,7 @@ func (r *Remote) Node() *p2p.QriNode {
 }
 
 // Policy exposes this remote's access control policy
-func (r *Remote) Policy() *access.Policy {
+func (r *Server) Policy() *access.Policy {
 	if r == nil {
 		return nil
 	}
@@ -276,7 +276,7 @@ func Address(cfg *config.Config, name string) (addr string, err error) {
 
 // GoOnline abstracts startDsyncServer, which starts the remote http dsync server
 // and adds the dsync protocol to the underlying host
-func (r *Remote) GoOnline(ctx context.Context) error {
+func (r *Server) GoOnline(ctx context.Context) error {
 	return r.dsync.StartRemote(ctx)
 }
 
@@ -286,7 +286,7 @@ func (r *Remote) GoOnline(ctx context.Context) error {
 // with the most recent version, we should remove. This should remove the latest version of
 // the dataset ref from the refstore and add the (n + 1)th to the refstore
 // gen = -1 should indicate that we remove all the dataset versions
-func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) error {
+func (r *Server) RemoveDataset(ctx context.Context, params map[string]string) error {
 	subj, ref, err := r.subjAndRefFromMeta(params)
 	if err != nil {
 		return err
@@ -342,7 +342,7 @@ func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) er
 	return nil
 }
 
-func (r *Remote) dsPushPreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
+func (r *Server) dsPushPreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
 	subj, ref, err := r.subjAndRefFromMeta(meta)
 	if err != nil {
 		return err
@@ -384,7 +384,7 @@ func (r *Remote) dsPushPreCheck(ctx context.Context, info dag.Info, meta map[str
 	return nil
 }
 
-func (r *Remote) dsPushFinalCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
+func (r *Server) dsPushFinalCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
 	if r.datasetPushFinalCheck != nil {
 		subj, ref, err := r.subjAndRefFromMeta(meta)
 		if err != nil {
@@ -399,7 +399,7 @@ func (r *Remote) dsPushFinalCheck(ctx context.Context, info dag.Info, meta map[s
 	return nil
 }
 
-func (r *Remote) dsPushComplete(ctx context.Context, info dag.Info, meta map[string]string) error {
+func (r *Server) dsPushComplete(ctx context.Context, info dag.Info, meta map[string]string) error {
 	subj, ref, err := r.subjAndRefFromMeta(meta)
 	if err != nil {
 		return err
@@ -429,7 +429,7 @@ func (r *Remote) dsPushComplete(ctx context.Context, info dag.Info, meta map[str
 	return repo.PutVersionInfoShim(ctx, r.node.Repo, &vi)
 }
 
-func (r *Remote) dsRemovePreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
+func (r *Server) dsRemovePreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
 	subj, ref, err := r.subjAndRefFromMeta(meta)
 	if err != nil {
 		return err
@@ -451,7 +451,7 @@ func (r *Remote) dsRemovePreCheck(ctx context.Context, info dag.Info, meta map[s
 	return nil
 }
 
-func (r *Remote) dsGetDagInfo(ctx context.Context, into dag.Info, meta map[string]string) error {
+func (r *Server) dsGetDagInfo(ctx context.Context, into dag.Info, meta map[string]string) error {
 	subj, ref, err := r.subjAndRefFromMeta(meta)
 	if err != nil {
 		log.Errorf("ref from meta: %s", err.Error())
@@ -469,7 +469,7 @@ func (r *Remote) dsGetDagInfo(ctx context.Context, into dag.Info, meta map[strin
 	return nil
 }
 
-func (r *Remote) subjAndRefFromMeta(meta map[string]string) (*profile.Profile, dsref.Ref, error) {
+func (r *Server) subjAndRefFromMeta(meta map[string]string) (*profile.Profile, dsref.Ref, error) {
 	ref := dsref.Ref{
 		Username:  meta["username"],
 		Name:      meta["name"],
@@ -495,7 +495,7 @@ func (r *Remote) subjAndRefFromMeta(meta map[string]string) (*profile.Profile, d
 	return pro, ref, err
 }
 
-func (r *Remote) logHook(name string, h Hook) logsync.Hook {
+func (r *Server) logHook(name string, h Hook) logsync.Hook {
 	return func(ctx context.Context, author profile.Author, ref dsref.Ref, l *oplog.Log) error {
 		if h != nil {
 			log.Debugf("remote.logHook name=%q ref=%q", name, ref)
@@ -522,7 +522,7 @@ func (r *Remote) logHook(name string, h Hook) logsync.Hook {
 	}
 }
 
-func (r *Remote) logPreCheckHook(name string, action string, h Hook) logsync.Hook {
+func (r *Server) logPreCheckHook(name string, action string, h Hook) logsync.Hook {
 	return func(ctx context.Context, author profile.Author, ref dsref.Ref, l *oplog.Log) error {
 		log.Debugf("remote.logPreCheckHook hook=%q ref=%q", name, ref)
 		kid, err := key.IDFromPubKey(author.AuthorPubKey())
@@ -558,7 +558,7 @@ func (r *Remote) logPreCheckHook(name string, action string, h Hook) logsync.Hoo
 }
 
 // AddDefaultRoutes attaches routes a remote client will expect to an HTTP muxer
-func (r *Remote) AddDefaultRoutes(m *mux.Router) {
+func (r *Server) AddDefaultRoutes(m *mux.Router) {
 	m.Handle("/remote/dsync", r.DsyncHTTPHandler())
 	m.Handle("/remote/logsync", r.LogsyncHTTPHandler())
 	m.Handle("/remote/refs", r.RefsHTTPHandler())
@@ -574,17 +574,17 @@ func (r *Remote) AddDefaultRoutes(m *mux.Router) {
 }
 
 // DsyncHTTPHandler provides an http handler for dsync
-func (r *Remote) DsyncHTTPHandler() http.HandlerFunc {
+func (r *Server) DsyncHTTPHandler() http.HandlerFunc {
 	return dsync.HTTPRemoteHandler(r.dsync)
 }
 
 // LogsyncHTTPHandler provides an http handler for synchronizing logs
-func (r *Remote) LogsyncHTTPHandler() http.HandlerFunc {
+func (r *Server) LogsyncHTTPHandler() http.HandlerFunc {
 	return logsync.HTTPHandler(r.logsync)
 }
 
 // FeedsHTTPHandler provides access to the home feed
-func (r *Remote) FeedsHTTPHandler() http.HandlerFunc {
+func (r *Server) FeedsHTTPHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		if r.FeedPreCheck != nil {
@@ -613,7 +613,7 @@ func (r *Remote) FeedsHTTPHandler() http.HandlerFunc {
 const feedPageSize = 30
 
 // FeedHTTPHandler gives access a feed VersionInfos constructed by a remote
-func (r *Remote) FeedHTTPHandler(prefix string) http.HandlerFunc {
+func (r *Server) FeedHTTPHandler(prefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		if r.FeedPreCheck != nil {
@@ -639,7 +639,7 @@ func (r *Remote) FeedHTTPHandler(prefix string) http.HandlerFunc {
 }
 
 // PreviewHTTPHandler handles dataset preview requests over HTTP
-func (r *Remote) PreviewHTTPHandler(prefix string) http.HandlerFunc {
+func (r *Server) PreviewHTTPHandler(prefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		if r.PreviewPreCheck != nil {
@@ -665,14 +665,14 @@ func (r *Remote) PreviewHTTPHandler(prefix string) http.HandlerFunc {
 }
 
 // ComponentHTTPHandler handles dataset component requests over HTTP
-func (r *Remote) ComponentHTTPHandler(prefix string) http.HandlerFunc {
+func (r *Server) ComponentHTTPHandler(prefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("unfinished: ComponentHTTPHandler"))
 	}
 }
 
 // RefsHTTPHandler handles requests for dataset references
-func (r *Remote) RefsHTTPHandler() http.HandlerFunc {
+func (r *Server) RefsHTTPHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		switch req.Method {
 		case "GET":

@@ -26,11 +26,7 @@ func (s Server) mwFunc(handler http.HandlerFunc, shouldLog bool) http.HandlerFun
 			log.Infof("%s %s %s", r.Method, r.URL.Path, time.Now())
 		}
 
-		if ok := s.readOnlyCheck(r); ok {
-			handler(w, r)
-		} else {
-			util.WriteErrResponse(w, http.StatusForbidden, fmt.Errorf("qri server is in read-only mode, only certain GET requests are allowed"))
-		}
+		handler.ServeHTTP(w, r)
 	}
 }
 
@@ -58,10 +54,6 @@ func corsMiddleware(allowedOrigins []string) mux.MiddlewareFunc {
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-func (s *Server) readOnlyCheck(r *http.Request) bool {
-	return !s.GetConfig().API.ReadOnly || r.Method == "GET" || r.Method == "OPTIONS"
 }
 
 // muxVarsToQueryParamMiddleware moves all mux variables to query parameter

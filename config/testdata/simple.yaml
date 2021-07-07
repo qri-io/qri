@@ -1,4 +1,5 @@
 API: null
+Automation: null
 CLI: null
 Filesystems: null
 Logging: null
@@ -19,10 +20,9 @@ Profile:
   twitter: ""
   type: ""
   updated: "2009-02-13T23:31:30Z"
-RPC: null
 Registry: null
-Remote: null
+RemoteServer: null
 Remotes: null
 Repo: null
-Revision: 3
+Revision: 4
 Stats: null

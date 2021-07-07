@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/qri-io/qri/dsref"
+	p2putil "github.com/qri-io/qri/p2p/p2putil"
 )
 
 const (
@@ -83,10 +83,9 @@ func (rr *p2pRefResolver) resolveRefRequest(ctx context.Context, pid peer.ID, re
 
 	defer func() {
 		if s != nil {
-			// helpers.FullClose will close the stream from this end and wait until the other
-			// end has also closed
+			// close the stream from this end and wait until the other end has also closed
 			// This closes the stream not the underlying connection
-			go helpers.FullClose(s)
+			s.Close()
 		}
 	}()
 
@@ -113,13 +112,13 @@ func (rr *p2pRefResolver) resolveRefRequest(ctx context.Context, pid peer.ID, re
 }
 
 func sendRef(s network.Stream, ref *dsref.Ref) error {
-	ws := WrapStream(s)
+	ws := p2putil.WrapStream(s)
 
-	if err := ws.enc.Encode(&ref); err != nil {
+	if err := ws.Enc.Encode(&ref); err != nil {
 		return fmt.Errorf("error encoding dsref.Ref to wrapped stream: %s", err)
 	}
 
-	if err := ws.w.Flush(); err != nil {
+	if err := ws.W.Flush(); err != nil {
 		return fmt.Errorf("error flushing stream: %s", err)
 	}
 
@@ -127,9 +126,9 @@ func sendRef(s network.Stream, ref *dsref.Ref) error {
 }
 
 func receiveRef(s network.Stream) (*dsref.Ref, error) {
-	ws := WrapStream(s)
+	ws := p2putil.WrapStream(s)
 	ref := &dsref.Ref{}
-	if err := ws.dec.Decode(ref); err != nil {
+	if err := ws.Dec.Decode(ref); err != nil {
 		return nil, fmt.Errorf("error decoding dsref.Ref from wrapped stream: %s", err)
 	}
 	return ref, nil
@@ -156,7 +155,7 @@ func (q *QriNode) resolveRefHandler(s network.Stream) {
 		if s != nil {
 			// close the stream, and wait for the other end of the stream to close as well
 			// this won't close the underlying connection
-			helpers.FullClose(s)
+			s.Close()
 		}
 		cancel()
 	}()

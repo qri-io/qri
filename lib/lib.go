@@ -72,19 +72,20 @@ type InstanceOptions struct {
 	Cfg     *config.Config
 	Streams ioes.IOStreams
 
-	statsCache    stats.Cache
-	node          *p2p.QriNode
-	repo          repo.Repo
-	qfs           *muxfs.Mux
-	dscache       *dscache.Dscache
-	regclient     *regclient.Client
-	logbook       *logbook.Book
-	keyStore      key.Store
-	profiles      profile.Store
-	bus           event.Bus
-	collectionSet collection.Set
-	tokenProvider token.Provider
-	logAll        bool
+	statsCache              stats.Cache
+	node                    *p2p.QriNode
+	repo                    repo.Repo
+	qfs                     *muxfs.Mux
+	dscache                 *dscache.Dscache
+	regclient               *regclient.Client
+	remoteClientConstructor remote.ClientConstructor
+	logbook                 *logbook.Book
+	keyStore                key.Store
+	profiles                profile.Store
+	bus                     event.Bus
+	collectionSet           collection.Set
+	tokenProvider           token.Provider
+	logAll                  bool
 
 	remoteMockClient bool
 	// use OptRemoteOptions to set this
@@ -93,9 +94,6 @@ type InstanceOptions struct {
 	eventHandler event.Handler
 	events       []event.Type
 }
-
-// InstanceContextKey is used by context to set keys for constucting a lib.Instance
-type InstanceContextKey string
 
 // Option is a function that manipulates config details when fed to New(). Fields on
 // the o parameter may be null, functions cannot assume the Config is non-null.
@@ -222,20 +220,22 @@ func OptSetLogAll(logAll bool) Option {
 	}
 }
 
-// OptRemoteOptions provides options to the instance remote
-// the provided configuration function is called with the Qri configuration-derived
-// remote settings applied, allowing partial-overrides.
-func OptRemoteOptions(fns []remote.OptionsFunc) Option {
+// OptRemoteClientConstructor provides a constructor function for creating a
+// remote client, which will be used when creating the instance. Use this to
+// override the remoteClient implementation used by instance
+func OptRemoteClientConstructor(c remote.ClientConstructor) Option {
 	return func(o *InstanceOptions) error {
-		o.remoteOptsFuncs = fns
+		o.remoteClientConstructor = c
 		return nil
 	}
 }
 
-// OptEnableRemote enables the remote functionality in the node
-func OptEnableRemote() Option {
+// OptRemoteServerOptions provides options to the remote server the provided
+// function is called with the Qri configuration-derived remote settings applied
+// allowing partial-overrides.
+func OptRemoteServerOptions(fns []remote.OptionsFunc) Option {
 	return func(o *InstanceOptions) error {
-		o.Cfg.Remote.Enabled = true
+		o.remoteOptsFuncs = fns
 		return nil
 	}
 }
@@ -451,14 +451,13 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	inst.RegisterMethods()
 
-	// check if we're operating over RPC
-	if cfg.RPC.Enabled {
+	if cfg.API != nil && cfg.API.Enabled {
+		// check if we're operating over RPC by dialing API.Address to check for a connection
 		addr, err := ma.NewMultiaddr(cfg.API.Address)
 		if err != nil {
 			return nil, qrierr.New(err, fmt.Sprintf("invalid config.api.address value: %q", cfg.API.Address))
 		}
-		_, err = manet.Dial(addr)
-		if err == nil {
+		if _, dialErr := manet.Dial(addr); dialErr == nil {
 			// we have a connection
 			inst.http, err = NewHTTPClient(cfg.API.Address)
 			if err != nil {
@@ -571,35 +570,25 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	// Check if this is coming from a test, which is requesting a MockRemoteClient.
-	key := InstanceContextKey("RemoteClient")
-	if v := ctx.Value(key); v != nil && v == "mock" && inst.node != nil {
+	if inst.node != nil {
 		inst.node.LocalStreams = inst.streams
-		if inst.remoteClient, err = remote.NewMockClient(ctx, inst.node, inst.logbook); err != nil {
-			return
+
+		newClient := remote.NewClient
+		if o.remoteClientConstructor != nil {
+			newClient = o.remoteClientConstructor
 		}
+
+		if inst.remoteClient, err = newClient(ctx, inst.node, inst.bus); err != nil {
+			return nil, err
+		}
+
 		go func() {
 			inst.releasers.Add(1)
 			<-inst.remoteClient.Done()
 			inst.releasers.Done()
 		}()
 
-	} else if inst.node != nil {
-		inst.node.LocalStreams = inst.streams
-
-		if _, e := inst.node.IPFSCoreAPI(); e == nil {
-			if inst.remoteClient, err = remote.NewClient(ctx, inst.node, inst.bus); err != nil {
-				log.Error("initializing remote client:", err.Error())
-				return
-			}
-			go func() {
-				inst.releasers.Add(1)
-				<-inst.remoteClient.Done()
-				inst.releasers.Done()
-			}()
-		}
-
-		if cfg.Remote != nil && cfg.Remote.Enabled {
+		if cfg.RemoteServer != nil && cfg.RemoteServer.Enabled {
 			if o.remoteOptsFuncs == nil {
 				o.remoteOptsFuncs = []remote.OptionsFunc{}
 			}
@@ -609,7 +598,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 				return nil, resolverErr
 			}
 
-			if inst.remote, err = remote.NewRemote(inst.node, cfg.Remote, localResolver, o.remoteOptsFuncs...); err != nil {
+			if inst.remoteServer, err = remote.NewServer(inst.node, cfg.RemoteServer, localResolver, o.remoteOptsFuncs...); err != nil {
 				log.Error("intializing remote:", err.Error())
 				return
 			}
@@ -748,8 +737,9 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		cancel()
 		panic(err)
 	}
+
+	inst.releasers.Add(1)
 	go func() {
-		inst.releasers.Add(1)
 		<-inst.remoteClient.Done()
 		inst.releasers.Done()
 	}()
@@ -774,7 +764,7 @@ type Instance struct {
 	node          *p2p.QriNode
 	qfs           *muxfs.Mux
 	fsi           *fsi.FSI
-	remote        *remote.Remote
+	remoteServer  *remote.Server
 	remoteClient  remote.Client
 	registry      *regclient.Client
 	stats         *stats.Service
@@ -836,17 +826,17 @@ func (inst *Instance) ConnectP2P(ctx context.Context) (err error) {
 		inst.releasers.Done()
 	}()
 
-	if inst.cfg.Remote != nil && inst.cfg.Remote.Enabled {
+	if inst.cfg.RemoteServer != nil && inst.cfg.RemoteServer.Enabled {
 		localResolver, err := inst.resolverForSource("local")
 		if err != nil {
 			return err
 		}
-		if inst.remote, err = remote.NewRemote(inst.node, inst.cfg.Remote, localResolver, inst.remoteOptsFuncs...); err != nil {
-			log.Debugf("remote.NewRemote error=%q", err)
+		if inst.remoteServer, err = remote.NewServer(inst.node, inst.cfg.RemoteServer, localResolver, inst.remoteOptsFuncs...); err != nil {
+			log.Debugw("remote.NewServer", "err", err)
 			return err
 		}
-		if err = inst.remote.GoOnline(ctx); err != nil {
-			log.Debugf("remote.GoOnline error=%q", err)
+		if err = inst.remoteServer.GoOnline(ctx); err != nil {
+			log.Debugw("remote.GoOnline", "err", err)
 			return err
 		}
 	}
@@ -1067,11 +1057,11 @@ func (inst *Instance) HTTPClient() *HTTPClient {
 }
 
 // RemoteServer accesses the remote subsystem if one exists
-func (inst *Instance) RemoteServer() *remote.Remote {
+func (inst *Instance) RemoteServer() *remote.Server {
 	if inst == nil {
 		return nil
 	}
-	return inst.remote
+	return inst.remoteServer
 }
 
 // RemoteClient exposes the instance client for making requests to remotes

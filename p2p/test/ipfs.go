@@ -12,7 +12,6 @@ import (
 	corebs "github.com/ipfs/go-ipfs/core/bootstrap"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	mock "github.com/ipfs/go-ipfs/core/mock"
-	keystore "github.com/ipfs/go-ipfs/keystore"
 	repo "github.com/ipfs/go-ipfs/repo"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -122,7 +121,6 @@ func MakeIPFSSwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsN
 		r := &repo.Mock{
 			C: c,
 			D: syncds.MutexWrap(datastore.NewMapDatastore()),
-			K: keystore.NewMemKeystore(),
 		}
 
 		node, err := core.NewNode(ctx, &core.BuildCfg{

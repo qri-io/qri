@@ -226,13 +226,13 @@ func TestFeeds(t *testing.T) {
 	vvsRepoRef := reporef.RefFromDsref(vvs)
 	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, &vvsRepoRef)
 
-	aCfg := &config.Remote{
+	aCfg := &config.RemoteServer{
 		Enabled:       true,
 		AllowRemoves:  true,
 		AcceptSizeMax: 10000,
 	}
 
-	rem, err := NewRemote(tr.NodeA, aCfg, tr.NodeA.Repo.Logbook())
+	rem, err := NewServer(tr.NodeA, aCfg, tr.NodeA.Repo.Logbook())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -430,21 +430,21 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	return tr, cleanup
 }
 
-func (tr *testRunner) NodeARemote(t *testing.T, opts ...OptionsFunc) *Remote {
-	aCfg := &config.Remote{
+func (tr *testRunner) NodeARemote(t *testing.T, opts ...OptionsFunc) *Server {
+	aCfg := &config.RemoteServer{
 		Enabled:       true,
 		AllowRemoves:  true,
 		AcceptSizeMax: 10000,
 	}
 
-	rem, err := NewRemote(tr.NodeA, aCfg, tr.NodeA.Repo.Logbook(), opts...)
+	rem, err := NewServer(tr.NodeA, aCfg, tr.NodeA.Repo.Logbook(), opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return rem
 }
 
-func (tr *testRunner) RemoteTestServer(rem *Remote) *httptest.Server {
+func (tr *testRunner) RemoteTestServer(rem *Server) *httptest.Server {
 	m := mux.NewRouter()
 	rem.AddDefaultRoutes(m)
 	return httptest.NewServer(m)

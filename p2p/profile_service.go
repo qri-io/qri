@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/event"
+	p2putil "github.com/qri-io/qri/p2p/p2putil"
 	"github.com/qri-io/qri/profile"
 )
 
@@ -132,11 +132,9 @@ func (q *QriProfileService) Start(h host.Host) {
 func (q *QriProfileService) ProfileHandler(s network.Stream) {
 	p := s.Conn().RemotePeer()
 
-	defer func() {
-		// close the stream, and wait for the other end of the stream to close as well
-		// this won't close the underlying connection
-		helpers.FullClose(s)
-	}()
+	// close the stream, and wait for the other end of the stream to close as well
+	// this won't close the underlying connection
+	defer s.Close()
 
 	log.Debugf("%s received a profile request from %s %s", ProfileProtocolID, p, s.Conn().RemoteMultiaddr())
 
@@ -233,12 +231,10 @@ func (q *QriProfileService) profileRequest(ctx context.Context, pid peer.ID, sig
 // receiveAndStoreProfile takes a stream, receives a profile off the stream,
 // and stores it in the Repo's ProfileStore
 func (q *QriProfileService) receiveAndStoreProfile(ctx context.Context, s network.Stream) {
-	defer func() {
-		// helpers.FullClose will close the stream from this end and wait until the other
-		// end has also closed
-		// This closes the stream not the underlying connection
-		go helpers.FullClose(s)
-	}()
+	// helpers.FullClose will close the stream from this end and wait until the other
+	// end has also closed
+	// This closes the stream not the underlying connection
+	defer s.Close()
 
 	pro, err := receiveProfile(s)
 	if err != nil {
@@ -255,18 +251,18 @@ func (q *QriProfileService) receiveAndStoreProfile(ctx context.Context, s networ
 }
 
 func sendProfile(s network.Stream, pro *profile.Profile) error {
-	ws := WrapStream(s)
+	ws := p2putil.WrapStream(s)
 
 	pod, err := pro.Encode()
 	if err != nil {
 		return fmt.Errorf("error encoding profile.Profile to config.ProfilePod: %s", err)
 	}
 
-	if err := ws.enc.Encode(&pod); err != nil {
+	if err := ws.Enc.Encode(&pod); err != nil {
 		return fmt.Errorf("error encoding profile to wrapped stream: %s", err)
 	}
 
-	if err := ws.w.Flush(); err != nil {
+	if err := ws.W.Flush(); err != nil {
 		return fmt.Errorf("error flushing stream: %s", err)
 	}
 
@@ -274,9 +270,9 @@ func sendProfile(s network.Stream, pro *profile.Profile) error {
 }
 
 func receiveProfile(s network.Stream) (*profile.Profile, error) {
-	ws := WrapStream(s)
+	ws := p2putil.WrapStream(s)
 	pod := &config.ProfilePod{}
-	if err := ws.dec.Decode(&pod); err != nil {
+	if err := ws.Dec.Decode(&pod); err != nil {
 		return nil, fmt.Errorf("error decoding config.ProfilePod from wrapped stream: %s", err)
 	}
 	pro := &profile.Profile{}

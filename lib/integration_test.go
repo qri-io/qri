@@ -309,7 +309,7 @@ func (tr *NetworkIntegrationTestRunner) InitRegistry(t *testing.T) {
 
 	cfg := rr.GetConfig()
 	cfg.Registry.Location = ""
-	cfg.Remote = &config.Remote{
+	cfg.RemoteServer = &config.RemoteServer{
 		Enabled:          true,
 		AcceptSizeMax:    -1,
 		AcceptTimeoutMs:  -1,
@@ -329,7 +329,7 @@ func (tr *NetworkIntegrationTestRunner) InitRegistry(t *testing.T) {
 		t.Fatal("creating a Registry for NetworkIntegration test fails if `qri connect` is running")
 	}
 
-	rem, err := remote.NewRemote(node, cfg.Remote, node.Repo.Logbook())
+	rem, err := remote.NewServer(node, cfg.RemoteServer, node.Repo.Logbook())
 	if err != nil {
 		t.Fatal(err)
 	}

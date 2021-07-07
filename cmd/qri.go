@@ -20,8 +20,8 @@ import (
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(ctx context.Context, repoPath string, generator key.CryptoGenerator, ioStreams ioes.IOStreams) (*cobra.Command, func() <-chan error) {
-	opt := NewQriOptions(ctx, repoPath, generator, ioStreams)
+func NewQriCommand(ctx context.Context, repoPath string, generator key.CryptoGenerator, ioStreams ioes.IOStreams, libOpts ...lib.Option) (*cobra.Command, func() <-chan error) {
+	opt := NewQriOptions(ctx, repoPath, generator, ioStreams, libOpts)
 
 	cmd := &cobra.Command{
 		Use:   "qri",
@@ -106,18 +106,20 @@ type QriOptions struct {
 	// path to configuration object
 	ConfigPath string
 	// Whether to log all activity by enabling logging for all packages
-	LogAll bool
+	LogAll  bool
+	libOpts []lib.Option
 	// inst is the Instance that holds state needed by qri's methods
 	inst *lib.Instance
 }
 
 // NewQriOptions creates an options object
-func NewQriOptions(ctx context.Context, repoPath string, generator key.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
+func NewQriOptions(ctx context.Context, repoPath string, generator key.CryptoGenerator, ioStreams ioes.IOStreams, libOpts []lib.Option) *QriOptions {
 	return &QriOptions{
 		IOStreams: ioStreams,
 		ctx:       ctx,
 		doneCh:    make(chan struct{}),
 		repoPath:  repoPath,
+		libOpts:   libOpts,
 		generator: generator,
 	}
 }
@@ -138,10 +140,14 @@ func (o *QriOptions) Init() (err error) {
 		lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
 		lib.OptCheckConfigMigrations(o.migrationApproval, (!o.Migrate && !o.NoPrompt)),
 		lib.OptSetLogAll(o.LogAll),
-		lib.OptRemoteOptions([]remote.OptionsFunc{
+		lib.OptRemoteServerOptions([]remote.OptionsFunc{
 			// look for a remote policy
 			remote.OptLoadPolicyFileIfExists(filepath.Join(o.repoPath, access.DefaultAccessControlPolicyFilename)),
 		}),
+	}
+
+	if o.libOpts != nil {
+		opts = append(o.libOpts, o.libOpts...)
 	}
 
 	o.inst, err = lib.NewInstance(o.ctx, o.repoPath, opts...)
