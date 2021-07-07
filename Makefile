@@ -57,5 +57,8 @@ cli-docs:
 api-spec:
 	cd docs && go run . --dir ../temp --apiOnly
 
+serve-api-docs:
+	cd docs && go run . --http :2502
+
 update-changelog:
 	conventional-changelog -p angular -i CHANGELOG.md -s

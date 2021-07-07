@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -19,15 +20,19 @@ import (
 
 func main() {
 	var (
+		httpAddr   string
 		dir        string
 		api        bool
 		apiOnly    bool
+		jsonOutput bool
 		merge      string
 		filenames  []string
 		aggregator []byte
 	)
 
+	flag.StringVar(&httpAddr, "http", "", "serve api docs from an HTTP server")
 	flag.StringVar(&dir, "dir", "docs", "path to the docs directory")
+	flag.BoolVar(&jsonOutput, "json", false, "output json format")
 	flag.StringVar(&merge, "filename", "", "docs will be merged into one markdown file with this filename. default extension: markdown")
 	flag.BoolVar(&api, "api", false, "docs will generate the api spec")
 	flag.BoolVar(&apiOnly, "apiOnly", false, "docs will generate the api spec and stop")
@@ -36,6 +41,10 @@ func main() {
 	api = api || apiOnly
 
 	ctx := context.Background()
+
+	if httpAddr != "" {
+		serveDocs(ctx, httpAddr)
+	}
 
 	// generate markdown filenames
 	root, _ := qri.NewQriCommand(ctx, qri.StandardRepoPath(), key.NewCryptoSource(), ioes.NewStdIOStreams())
@@ -54,10 +63,13 @@ func main() {
 			log.Fatal(err)
 			os.Exit(1)
 		}
-		err = ioutil.WriteFile(filepath.Join(dir, "open_api_spec.yaml"), buf.Bytes(), 0777)
-		if err != nil {
+
+		path := filepath.Join(dir, "open_api_spec.yaml")
+		fmt.Printf("writing %s\n", path)
+		if err = ioutil.WriteFile(path, buf.Bytes(), 0644); err != nil {
 			panic(err)
 		}
+
 		if apiOnly {
 			os.Exit(0)
 		}
