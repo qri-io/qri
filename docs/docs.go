@@ -43,7 +43,10 @@ func main() {
 	ctx := context.Background()
 
 	if httpAddr != "" {
-		serveDocs(ctx, httpAddr)
+		if err := serveDocs(ctx, httpAddr); err != nil {
+			panic(err)
+		}
+		return
 	}
 
 	// generate markdown filenames

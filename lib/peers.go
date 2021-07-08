@@ -37,10 +37,11 @@ func (m PeerMethods) Attributes() map[string]AttributeSet {
 
 // PeerListParams defines parameters for the List method
 type PeerListParams struct {
-	Limit, Offset int
+	Limit  int `json:"limit"`
+	Offset int `json:"offset"`
 	// Cached == true will return offline peers from the repo
 	// as well as online peers, default is to list connected peers only
-	Cached bool
+	Cached bool `json:"cached"`
 }
 
 // List lists Peers on the qri network
@@ -54,10 +55,10 @@ func (m PeerMethods) List(ctx context.Context, p *PeerListParams) ([]*config.Pro
 
 // PeerInfoParams defines parameters for the Info method
 type PeerInfoParams struct {
-	Peername  string
-	ProfileID string
+	Peername  string `json:"peername"`
+	ProfileID string `json:"profileID"`
 	// Verbose adds network details from the p2p Peerstore
-	Verbose bool
+	Verbose bool `json:"verbose"`
 }
 
 // Info shows peer profile details
@@ -86,8 +87,8 @@ func (m PeerMethods) Disconnect(ctx context.Context, p *ConnectParamsPod) error 
 
 // ConnectionsParams defines parameters for the Connections method
 type ConnectionsParams struct {
-	Limit  int
-	Offset int
+	Limit  int `json:"limit"`
+	Offset int `json:"offset"`
 }
 
 // Connections lists PeerID's we're currently connected to. If running
@@ -112,10 +113,10 @@ func (m PeerMethods) ConnectedQriProfiles(ctx context.Context, p *ConnectionsPar
 // ConnectParamsPod defines parameters for defining a connection
 // to a peer as plain-old-data
 type ConnectParamsPod struct {
-	Peername  string
-	ProfileID string
-	NetworkID string
-	Multiaddr string
+	Peername  string `json:"peername"`
+	ProfileID string `json:"profileID"`
+	NetworkID string `json:"networkID"`
+	Multiaddr string `json:"multiaddr"`
 }
 
 // NewConnectParamsPod attempts to turn a string into peer connection parameters

@@ -44,7 +44,7 @@ func (m RemoteMethods) Feeds(ctx context.Context, p *EmptyParams) (map[string][]
 
 // PreviewParams provides arguments to the preview method
 type PreviewParams struct {
-	Ref string
+	Ref string `json:"ref"`
 }
 
 // Preview requests a dataset preview from a remote

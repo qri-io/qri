@@ -28,18 +28,18 @@ type NZDefaultSetter interface {
 // TODO - rename this to PageParams.
 type ListParams struct {
 	ProfileID profile.ID `json:"-"`
-	Term      string
-	Username  string
-	OrderBy   string
-	Limit     int
-	Offset    int
+	Term      string     `json:"term"`
+	Username  string     `json:"username"`
+	OrderBy   string     `json:"orderBy"`
+	Limit     int        `json:"limit"`
+	Offset    int        `json:"offset"`
 	// Public only applies to listing datasets, shows only datasets that are
 	// set to visible
-	Public bool
+	Public bool `json:"public"`
 	// ShowNumVersions only applies to listing datasets
-	ShowNumVersions bool
+	ShowNumVersions bool `json:"showNumVersions"`
 	// EnsureFSIExists controls whether to ensure references in the repo have correct FSIPaths
-	EnsureFSIExists bool
+	EnsureFSIExists bool `json:"ensureFSIExists"`
 }
 
 // SetNonZeroDefaults sets OrderBy to "created" if it's value is the empty string

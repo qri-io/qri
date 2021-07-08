@@ -51,7 +51,7 @@ func (m ProfileMethods) GetProfile(ctx context.Context, p *ProfileParams) (*conf
 // SetProfileParams defines parameters for setting parts of a profile
 // Cannot use this to set private keys, your peername, or peer id
 type SetProfileParams struct {
-	Pro *config.ProfilePod
+	Pro *config.ProfilePod `json:"pro"`
 }
 
 // SetProfile stores changes to the active peer's editable profile
@@ -69,9 +69,9 @@ type FileParams struct {
 	// url to download data from. either Url or Data is required
 	// Url      string
 	// Filename of data file. extension is used for filetype detection
-	Filename string `qri:"fspath"`
+	Filename string `json:"filename" qri:"fspath"`
 	// Data is the file as slice of bytes
-	Data []byte
+	Data []byte `json:"data"`
 }
 
 // SetProfilePhoto changes the active peer's profile image

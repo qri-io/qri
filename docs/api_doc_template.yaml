@@ -3,11 +3,19 @@ info:
   title: Qri API
   description: Qri API used to communicate with a Qri node.
   version: {{ .QriVersion }}
+tags:
+{{- range .MethodSets }}
+{{- if gt .MethodCount 0}}
+- name: {{ .Name }}
+  description: "{{ .Doc }}"
+{{ end -}}
+{{ end -}}
 paths:
 {{- range .LibMethods }}
 {{- if .Endpoint }}
   '{{ .Endpoint }}':
     {{ .HTTPVerb }}:
+{{ if .Doc }}      description: {{ .Doc }}{{end}}
       operationId: '{{ .MethodSet }}.{{ .MethodName }}'
       tags:
       - {{ .MethodSet }}
@@ -112,6 +120,7 @@ components:
 {{ if .TypeIsCommon }}          type: {{ .Type }}{{ end }}
 {{ if not .TypeIsCommon }}          type: object{{ end }}
 {{ if ne .Doc "" }}          description: "{{ .Doc }}"{{ end }}
+{{ if ne .Example "" }}          example: "{{ .Example }}"{{ end }}
 {{- end }}
 {{- end }}
 ### Response Schemas

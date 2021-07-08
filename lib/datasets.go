@@ -224,9 +224,10 @@ func scriptFileSelection(ds *dataset.Dataset, selector string) (qfs.File, bool) 
 // ActivityParams defines parameters for the Activity method
 type ActivityParams struct {
 	ListParams
-	// Reference to data to fetch history for
-	Ref  string
-	Pull bool
+	// Reference to data to fetch history for; e.g. "b5/world_bank_population"
+	Ref string `json:"ref"`
+	// if true, pull any datasets that aren't stored locally; e.g. false
+	Pull bool `json:"pull"`
 }
 
 // Activity returns the activity and changes for a given dataset
@@ -244,18 +245,18 @@ type SaveParams struct {
 	// supplied by dataset
 	Dataset *dataset.Dataset
 
-	// dataset reference string, the name to save to
-	Ref string
-	// commit title, defaults to a generated string based on diff
-	Title string
-	// commit message, defaults to blank
+	// dataset reference string, the name to save to; e.g. "b5/world_bank_population"
+	Ref string `json:"ref"`
+	// commit title, defaults to a generated string based on diff; e.g. "update dataset meta"
+	Title string `json:"title"`
+	// commit message, defaults to blank; e.g. "reaname title & fill in supported langages"
 	Message string
 	// path to body data
-	BodyPath string `qri:"fspath"`
+	BodyPath string `json:"bodyPath" qri:"fspath"`
 	// absolute path or URL to the list of dataset files or components to load
-	FilePaths []string `qri:"fspath"`
-	// secrets for transform execution
-	Secrets map[string]string
+	FilePaths []string `json:"filePaths" qri:"fspath"`
+	// secrets for transform execution. Should be a set of key: value pairs
+	Secrets map[string]string `json:"secrets"`
 	// optional writer to have transform script record standard output to
 	// note: this won't work over RPC, only on local calls
 	ScriptOutput io.Writer `json:"-"`
@@ -264,23 +265,23 @@ type SaveParams struct {
 	// and return events on the bus that provide the progress of the save operation
 
 	// Apply runs a transform script to create the next version to save
-	Apply bool
+	Apply bool `json:"apply"`
 	// Replace writes the entire given dataset as a new snapshot instead of
 	// applying save params as augmentations to the existing history
-	Replace bool
+	Replace bool `json:"replace"`
 	// option to make dataset private. private data is not currently implimented,
 	// see https://github.com/qri-io/qri/issues/291 for updates
-	Private bool
+	Private bool `json:"private"`
 	// if true, convert body to the format of the previous version, if applicable
-	ConvertFormatToPrev bool
+	ConvertFormatToPrev bool `json:"convertFormatToPrev"`
 	// comma separated list of component names to delete before saving
-	Drop string
+	Drop string `json:"drop"`
 	// force a new commit, even if no changes are detected
-	Force bool
+	Force bool `json:"force"`
 	// save a rendered version of the template along with the dataset
-	ShouldRender bool
+	ShouldRender bool `json:"shouldRender"`
 	// new dataset only, don't create a commit on an existing dataset, name will be unused
-	NewName bool
+	NewName bool `json:"newName"`
 }
 
 // SetNonZeroDefaults sets basic save path params to defaults
@@ -299,7 +300,8 @@ func (m DatasetMethods) Save(ctx context.Context, p *SaveParams) (*dataset.Datas
 
 // RenameParams defines parameters for Dataset renaming
 type RenameParams struct {
-	Current, Next string
+	Current string `json:"current"`
+	Next    string `json:"next"`
 }
 
 // Rename changes a user's given name for a dataset
@@ -313,18 +315,18 @@ func (m DatasetMethods) Rename(ctx context.Context, p *RenameParams) (*dsref.Ver
 
 // RemoveParams defines parameters for remove command
 type RemoveParams struct {
-	Ref       string
-	Revision  *dsref.Rev
-	KeepFiles bool
-	Force     bool
+	Ref       string     `json:"ref"`
+	Revision  *dsref.Rev `json:"revision"`
+	KeepFiles bool       `json:"keepFiles"`
+	Force     bool       `json:"force"`
 }
 
 // RemoveResponse gives the results of a remove
 type RemoveResponse struct {
-	Ref        string
-	NumDeleted int
-	Message    string
-	Unlinked   bool
+	Ref        string `json:"ref"`
+	NumDeleted int    `json:"numDeleted"`
+	Message    string `json:"message"`
+	Unlinked   bool   `json:"unlinked"`
 }
 
 // SetNonZeroDefaults assigns default values
@@ -348,9 +350,10 @@ func (m DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveRes
 
 // PullParams encapsulates parameters to the add command
 type PullParams struct {
-	Ref      string
-	LinkDir  string `qri:"fspath"`
-	LogsOnly bool   // only fetch logbook data
+	Ref     string `json:"ref"`
+	LinkDir string `json:"linkDir" qri:"fspath"`
+	// only fetch logbook data
+	LogsOnly bool `json:"logsOnly"`
 }
 
 // Pull downloads and stores an existing dataset to a peer's repository via
@@ -365,11 +368,11 @@ func (m DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Datas
 
 // PushParams encapsulates parmeters for dataset publication
 type PushParams struct {
-	Ref    string `schema:"ref" json:"ref"`
-	Remote string
+	Ref    string `json:"ref" schema:"ref"`
+	Remote string `json:"remote"`
 	// All indicates all versions of a dataset and the dataset namespace should
 	// be either published or removed
-	All bool
+	All bool `json:"all"`
 }
 
 // Push posts a dataset version to a remote
@@ -383,18 +386,18 @@ func (m DatasetMethods) Push(ctx context.Context, p *PushParams) (*dsref.Ref, er
 
 // ValidateParams defines parameters for dataset data validation
 type ValidateParams struct {
-	Ref               string
-	BodyFilename      string `qri:"fspath"`
-	SchemaFilename    string `qri:"fspath"`
-	StructureFilename string `qri:"fspath"`
+	Ref               string `json:"ref"`
+	BodyFilename      string `json:"bodyFilename" qri:"fspath"`
+	SchemaFilename    string `json:"schemaFilename" qri:"fspath"`
+	StructureFilename string `json:"structureFilename" qri:"fspath"`
 }
 
 // ValidateResponse is the result of running validate against a dataset
 type ValidateResponse struct {
 	// Structure used to perform validation
-	Structure *dataset.Structure
+	Structure *dataset.Structure `json:"structure"`
 	// Validation Errors
-	Errors []jsonschema.KeyError
+	Errors []jsonschema.KeyError `json:"errors"`
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
@@ -408,7 +411,7 @@ func (m DatasetMethods) Validate(ctx context.Context, p *ValidateParams) (*Valid
 
 // ManifestParams encapsulates parameters to the manifest command
 type ManifestParams struct {
-	Ref string
+	Ref string `json:"ref"`
 }
 
 // Manifest generates a manifest for a dataset path
@@ -422,7 +425,7 @@ func (m DatasetMethods) Manifest(ctx context.Context, p *ManifestParams) (*dag.M
 
 // ManifestMissingParams encapsulates parameters to the missing manifest command
 type ManifestMissingParams struct {
-	Manifest *dag.Manifest
+	Manifest *dag.Manifest `json:"manifest"`
 }
 
 // ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
@@ -436,8 +439,8 @@ func (m DatasetMethods) ManifestMissing(ctx context.Context, p *ManifestMissingP
 
 // DAGInfoParams defines parameters for the DAGInfo method
 type DAGInfoParams struct {
-	Ref   string
-	Label string
+	Ref   string `json:"ref"`
+	Label string `json:"label"`
 }
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
@@ -582,13 +585,13 @@ type RenderParams struct {
 	Ref string `json:"ref"`
 	// Optionally pass an entire dataset in for rendering, if providing a dataset,
 	// the Ref field must be empty
-	Dataset *dataset.Dataset
+	Dataset *dataset.Dataset `json:"dataset"`
 	// Optional template override
-	Template []byte
-	// If true,
-	UseFSI bool
+	Template []byte `json:"template"`
+	// TODO (b5): investigate if this field is still in use
+	UseFSI bool `json:"useFSI"`
 	// Output format. defaults to "html"
-	Format string
+	Format string `json:"format"`
 	// Selector
 	Selector string `json:"selector"`
 }
