@@ -21,7 +21,7 @@
   "peername": "peer",
   "readme": {
     "qri": "rm:0",
-    "scriptPath": "/mem/QmaozNR7DZHQK1ZcU9p7QdrshMvXqWK6gpu5rmrkPdT3L4"
+    "text": "hello world"
   },
   "qri": "ds:0",
   "structure": {

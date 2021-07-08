@@ -24,7 +24,7 @@ func TestGetZip(t *testing.T) {
 	// Save a version of the dataset
 	ds := run.BuildDataset("test_ds")
 	ds.Meta = &dataset.Meta{Title: "some title"}
-	ds.Readme = &dataset.Readme{ScriptBytes: []byte("# hi\n\nthis is a readme")}
+	ds.Readme = &dataset.Readme{Text: "# hi\n\nthis is a readme"}
 	run.SaveDataset(ds, "testdata/cities/data.csv")
 
 	// Get a zip file binary over the API
@@ -82,7 +82,7 @@ func TestDatasetGet(t *testing.T) {
 			Title: "title one",
 		},
 		Readme: &dataset.Readme{
-			ScriptBytes: []byte(`hello world`),
+			Text: "hello world",
 		},
 	}
 	run.SaveDataset(&ds, "testdata/cities/data.csv")

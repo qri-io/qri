@@ -596,7 +596,7 @@ func (rc *ReadmeComponent) WriteTo(dirPath string) (targetFile string, err error
 	}
 	if rc.Value != nil && !rc.Value.IsEmpty() {
 		targetFile = filepath.Join(dirPath, fmt.Sprintf("readme.%s", rc.Format))
-		if err = ioutil.WriteFile(targetFile, rc.Value.ScriptBytes, WritePerm); err != nil {
+		if err = ioutil.WriteFile(targetFile, []byte(rc.Value.Text), WritePerm); err != nil {
 			return
 		}
 	}
@@ -679,7 +679,7 @@ func (tc *TransformComponent) Compare(compare Component) (bool, error) {
 	// configuration won't be detected by things like status, What's more, because stored transforms include
 	// a starlark syntax and a "qri" key, comparing FSI to stored JSON won't be equal
 	// Let's clean this up
-	return bytes.Equal(tc.Value.ScriptBytes, other.Value.ScriptBytes), nil
+	return tc.Value.Text == other.Value.Text, nil
 }
 
 // WriteTo writes the component as a file to the directory
@@ -689,7 +689,7 @@ func (tc *TransformComponent) WriteTo(dirPath string) (targetFile string, err er
 	}
 	if tc.Value != nil && !tc.Value.IsEmpty() {
 		targetFile = filepath.Join(dirPath, fmt.Sprintf("transform.%s", tc.Format))
-		if err = ioutil.WriteFile(targetFile, tc.Value.ScriptBytes, WritePerm); err != nil {
+		if err = ioutil.WriteFile(targetFile, []byte(tc.Value.Text), WritePerm); err != nil {
 			return
 		}
 	}
@@ -782,7 +782,7 @@ func (bc *BaseComponent) LoadFile() (map[string]interface{}, error) {
 		}
 		return fields, nil
 	case "html", "md", "star":
-		fields["ScriptBytes"] = data
+		fields["text"] = string(data)
 		return fields, nil
 	}
 	return nil, fmt.Errorf("unknown local file format \"%s\"", bc.Format)

@@ -158,17 +158,17 @@ func testFSWithVizAndTransform() (qfs.Filesystem, map[string]string, error) {
 			},
 		},
 		Transform: &dataset.Transform{
-			ScriptPath:  "/transform_script",
-			ScriptBytes: []byte("def transform(ds):\nreturn ds\n"),
+			ScriptPath: "/transform_script",
+			Text:       "def transform(ds):\nreturn ds\n",
 		},
 		Viz: &dataset.Viz{
-			ScriptPath:  dsfs.PackageFileVizScript.Filename(),
-			ScriptBytes: []byte("<html>template</html>\n"),
+			ScriptPath: dsfs.PackageFileVizScript.Filename(),
+			Text:       "<html>template</html>\n",
 		},
 	}
 	// load scripts into file pointers, time for a NewDataset function?
 	// ds.Transform.OpenScriptFile(ctx, nil)
-	ds.Transform.SetScriptFile(qfs.NewMemfileBytes(ds.Viz.ScriptPath, ds.Viz.ScriptBytes))
+	ds.Transform.SetScriptFile(qfs.NewMemfileBytes(ds.Transform.ScriptPath, []byte(ds.Transform.Text)))
 	ds.Viz.OpenScriptFile(ctx, nil)
 	ds.Viz.SetRenderedFile(qfs.NewMemfileBytes("index.html", []byte("<html>rendered</html<\n")))
 

@@ -525,7 +525,7 @@ func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
 			ds.Transform = &dataset.Transform{}
 		}
 		ds.Transform.Syntax = "starlark"
-		ds.Transform.ScriptBytes = tfData
+		ds.Transform.Text = string(tfData)
 		ds.Transform.ScriptPath = tfHeader.Filename
 	}
 
@@ -545,7 +545,7 @@ func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
 			ds.Viz = &dataset.Viz{}
 		}
 		ds.Viz.Format = "html"
-		ds.Viz.ScriptBytes = vizData
+		ds.Viz.Text = string(vizData)
 		ds.Viz.ScriptPath = vizHeader.Filename
 	}
 
@@ -680,6 +680,10 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 		return res, nil
 	}
 
+	if err := inlineAllScriptFiles(scope.Context(), ds, scope.Filesystem()); err != nil {
+		return nil, err
+	}
+
 	// `qri get <selector>` loads only the applicable component / field
 	res.Value, err = base.ApplyPath(ds, p.Selector)
 	if err != nil {
@@ -706,6 +710,25 @@ func openAndLoadFSIEnabledDataset(scope scope, p *GetParams) (*dsref.Ref, *datas
 		return nil, nil, err
 	}
 	return &ref, ds, nil
+}
+
+func inlineAllScriptFiles(ctx context.Context, ds *dataset.Dataset, resolver qfs.PathResolver) error {
+	if ds.Readme != nil {
+		if err := ds.Readme.InlineScriptFile(ctx, resolver); err != nil {
+			return err
+		}
+	}
+	if ds.Transform != nil {
+		if err := ds.Transform.InlineScriptFile(ctx, resolver); err != nil {
+			return err
+		}
+	}
+	if ds.Viz != nil {
+		if err := ds.Viz.InlineScriptFile(ctx, resolver); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (datasetImpl) GetCSV(scope scope, p *GetParams) ([]byte, error) {

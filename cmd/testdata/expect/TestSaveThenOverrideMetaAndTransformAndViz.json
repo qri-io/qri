@@ -17,7 +17,7 @@
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmamrdwTa3x6woBPpwTpvFFGHAJ2bJudPokTn9jn1kFsiu",
+  "path": "/ipfs/Qmc8F9NbT41btv5LiTojfZRhDDhFMXNf2gjAhgUKncSBto",
   "previousPath": "/ipfs/QmZpWS4BxQkDFd3Vrsnex7EFmCU3zex9GpnfmTmyjCwbfE",
   "qri": "ds:0",
   "structure": {
@@ -104,7 +104,7 @@
   },
   "transform": {
     "qri": "tf:0",
-    "scriptBytes": "IyB0cmFuc2Zvcm0gdGhhdCBkb2Vzbid0IGNoYW5nZSBhbnl0aGluZy4KZGVmIHRyYW5zZm9ybShkcywgY3R4KToKICBwcmludCgiaGVsbG8gUXJpISBcbiIp",
+    "text": "# transform that doesn't change anything.\ndef transform(ds, ctx):\n  print(\"hello Qri! \\n\")",
     "scriptPath": "/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN",
     "syntax": "starlark",
     "syntaxVersion": "test_version"
