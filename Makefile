@@ -8,18 +8,17 @@ PKG=$(shell go list ./version)
 GOLANG_VERSION=$(shell go version | awk '{print $$3}')
 
 require-goversion:
-	$(eval minver := go1.13)
-# Get the version of the current go binary
-	$(eval havever := $(shell go version | awk '{print $$3}'))
+# Parse version from go.mod, remove space so it matches `go version`
+	$(eval minver := $(shell grep "^go" go.mod | tr -s 'go ' 'go'))
 # Magic happens. Sort using "." as the tab, keyed by groups of numbers,
 # take the smallest.
-	$(eval match := $(shell echo "$(minver)\n$(havever)" | sort -t '.' -k 1,1 -k 2,2 -g -r | head -n 1))
+	$(eval match := $(shell echo "$(minver)\n$(GOLANG_VERSION)" | sort -t '.' -k 1,1 -k 2,2 -g -r | head -n 1))
 # If the minimum version either matches exactly what we have, or does not match
 # the result of the magic sort above, we're okay. Otherwise, our binary's
 # version isn't good enough: error.
-	@if [ "$(havever)" != "$(minver)" ]; then \
+	@if [ "$(GOLANG_VERSION)" != "$(minver)" ]; then \
 		if [ "$(match)" == "$(minver)" ]; then \
-			echo "Error: invalid go version $(havever), need $(minver)"; exit 1; \
+			echo "Error: invalid go version $(GOLAND_VERSION), need $(minver)"; exit 1; \
 		fi; \
 	fi;
 
