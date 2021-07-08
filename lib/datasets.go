@@ -224,9 +224,9 @@ func scriptFileSelection(ds *dataset.Dataset, selector string) (qfs.File, bool) 
 // ActivityParams defines parameters for the Activity method
 type ActivityParams struct {
 	ListParams
-	// Reference to data to fetch history for; eg b5/world_bank_population
+	// Reference to data to fetch history for; e.g. "b5/world_bank_population"
 	Ref string `json:"ref"`
-	// if true, pull any datasets that aren't stored locally; eg false
+	// if true, pull any datasets that aren't stored locally; e.g. false
 	Pull bool `json:"pull"`
 }
 
@@ -368,7 +368,7 @@ func (m DatasetMethods) Pull(ctx context.Context, p *PullParams) (*dataset.Datas
 
 // PushParams encapsulates parmeters for dataset publication
 type PushParams struct {
-	Ref    string `json:"ref" schema:"ref" `
+	Ref    string `json:"ref" schema:"ref"`
 	Remote string `json:"remote"`
 	// All indicates all versions of a dataset and the dataset namespace should
 	// be either published or removed
@@ -588,7 +588,7 @@ type RenderParams struct {
 	Dataset *dataset.Dataset `json:"dataset"`
 	// Optional template override
 	Template []byte `json:"template"`
-	// If true,
+	// TODO (b5): investigate if this field is still in use
 	UseFSI bool `json:"useFSI"`
 	// Output format. defaults to "html"
 	Format string `json:"format"`

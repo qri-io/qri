@@ -522,6 +522,12 @@ func parseFieldComment(f *ast.Field) (description, example string) {
 		return strs[0], ""
 	case 2:
 		example = strings.TrimSpace(strs[1])
+
+		if !strings.HasPrefix(example, "e.g.") {
+			fmt.Printf("example must start with 'e.g.', got %q\ncomment:\n%s\n", example, f.Doc.Text())
+			return strs[0], ""
+		}
+
 		example = strings.TrimPrefix(example, "e.g.")
 		example = strings.TrimSpace(example)
 		example = strings.Trim(example, `"`)
