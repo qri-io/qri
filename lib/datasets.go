@@ -658,6 +658,9 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 			}
 			return res, nil
 		}
+		if err := ensureValidGetSize(ds, p.Limit, p.All); err != nil {
+			return nil, err
+		}
 		res.Value, err = base.GetBody(ds, p.Limit, p.Offset, p.All)
 		if err != nil {
 			log.Debugf("Get dataset, base.GetBody %q failed, error: %s", ds, err)
@@ -732,20 +735,17 @@ func inlineAllScriptFiles(ctx context.Context, ds *dataset.Dataset, resolver qfs
 }
 
 func (datasetImpl) GetCSV(scope scope, p *GetParams) ([]byte, error) {
-	return getBodyBytes(scope, p, dataset.CSVDataFormat, nil)
-}
-
-func getBodyBytes(scope scope, p *GetParams, format dataset.DataFormat, fc dataset.FormatConfig) ([]byte, error) {
 	ref, ds, err := openAndLoadFSIEnabledDataset(scope, p)
 	if err != nil {
 		return nil, err
 	}
 
-	if fc == nil && ds.Structure != nil {
-		// if we aren't given any format configuration &
-		// the format given matches the format of the body, pull in any known format configuration
-		if ds.Structure.DataFormat() == format {
-			fc, err = dataset.ParseFormatConfigMap(format, ds.Structure.FormatConfig)
+	var fc dataset.FormatConfig
+
+	if ds.Structure != nil {
+		// Get format configuration if one exists on the dataset's structure
+		if ds.Structure.DataFormat() == dataset.CSVDataFormat {
+			fc, err = dataset.ParseFormatConfigMap(dataset.CSVDataFormat, ds.Structure.FormatConfig)
 			if err != nil {
 				log.Debugf("getBodyBytes: dataset.ParseFormatConfigMap failed: %s", err)
 				return nil, err
@@ -765,6 +765,11 @@ func getBodyBytes(scope scope, p *GetParams, format dataset.DataFormat, fc datas
 		}
 		return bodyBytes, nil
 	}
+
+	if err := ensureValidGetSize(ds, p.Limit, p.All); err != nil {
+		return nil, err
+	}
+
 	bodyBytes, err := base.ReadBodyBytes(ds, dataset.CSVDataFormat, fc, p.Limit, p.Offset, p.All)
 	if err != nil {
 		log.Debugf("lib.getBodyBytes, body, base.GetBody %q failed, error: %s", ds, err)
@@ -797,6 +802,27 @@ func (datasetImpl) GetZip(scope scope, p *GetParams) (*GetZipResults, error) {
 		return nil, err
 	}
 	return &GetZipResults{Bytes: outBuf.Bytes(), GeneratedName: filename}, nil
+}
+
+// maximum size of the body that is allowed to be returned by get. A variable
+// is used instead of a constant so that tests can override it.
+// TODO(dustmop): Move this to configuration so that users can override it or
+// customize their own limit
+var maxBodySizeToGetAll = 200 * 1024 * 1024
+
+func ensureValidGetSize(ds *dataset.Dataset, limit int, all bool) error {
+	if ds.Structure == nil {
+		return nil
+	}
+
+	if limit == -1 || all {
+		bodySize := ds.Structure.Length
+		if bodySize >= maxBodySizeToGetAll {
+			return fmt.Errorf("body is too large to get all: %d larger than %d",
+				bodySize, maxBodySizeToGetAll)
+		}
+	}
+	return nil
 }
 
 // Activity returns the activity and changes for a given dataset
