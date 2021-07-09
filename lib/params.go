@@ -27,19 +27,26 @@ type NZDefaultSetter interface {
 // ListParams define limits & offsets, not pages & page sizes.
 // TODO - rename this to PageParams.
 type ListParams struct {
-	ProfileID profile.ID `json:"-"`
-	Term      string     `json:"term"`
-	Username  string     `json:"username"`
-	OrderBy   string     `json:"orderBy"`
-	Limit     int        `json:"limit"`
-	Offset    int        `json:"offset"`
+	// TODO(b5): what is this being used for?
+	ProfileID profile.ID `json:"-" docs:"hidden"`
+	// term to filter list by; e.g. "population"
+	Term string `json:"term"`
+	// username to filter collection by; e.g. "ramfox"
+	Username string `json:"username"`
+	// field name to order list by; e.g. "created"
+	OrderBy string `json:"orderBy"`
+	// maximum number of datasets to use. use -1 to list all datasets; e.g. 50
+	Limit int `json:"limit"`
+	// number of items to skip; e.g. 0
+	Offset int `json:"offset"`
 	// Public only applies to listing datasets, shows only datasets that are
 	// set to visible
 	Public bool `json:"public"`
 	// ShowNumVersions only applies to listing datasets
-	ShowNumVersions bool `json:"showNumVersions"`
+	// TODO (b5): deprecate this once collection subsystem is up to speed
+	ShowNumVersions bool `json:"showNumVersions" docs:"hidden"`
 	// EnsureFSIExists controls whether to ensure references in the repo have correct FSIPaths
-	EnsureFSIExists bool `json:"ensureFSIExists"`
+	EnsureFSIExists bool `json:"ensureFSIExists" docs:"hidden"`
 }
 
 // SetNonZeroDefaults sets OrderBy to "created" if it's value is the empty string
