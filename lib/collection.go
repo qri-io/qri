@@ -15,7 +15,12 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// CollectionMethods encapsulates business logic for working with aggregate methods
+// CollectionMethods lists a user's datasets. Datasets in a collection consist
+// of datasets the user has created and other datasets the user has pulled.
+//
+// Collections are local. The same user's collection on one qri node will
+// often be different from another node, depending on what datasets have been
+// created, pushed, or pulled to that node
 type CollectionMethods struct {
 	d dispatcher
 }

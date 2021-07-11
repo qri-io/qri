@@ -54,7 +54,7 @@ func (p *CreateAuthTokenParams) Validate() error {
 // CreateAuthToken constructs a JWT string token suitable for making OAuth
 // requests as the grantee user. Creating an access token requires a stored
 // private key for the grantee.
-// Callers can provide either GranteeUsername OR GranteeProfileID
+// Callers can provide either granteeUsername OR granteeProfileID
 func (m AccessMethods) CreateAuthToken(ctx context.Context, p *CreateAuthTokenParams) (string, error) {
 	res, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "createauthtoken"), p)
 	if s, ok := res.(string); ok {

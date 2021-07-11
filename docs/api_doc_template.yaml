@@ -23,11 +23,13 @@ paths:
       {{- if eq .Params.Name "pathParams" }}
 {{ if .Params.Fields }}      parameters: {{end}}
 {{- range .Params.Fields }}
+{{- if not .Hidden }}
       - name: '{{ .Name }}'
         in: path
         required: true
         schema:
           type: string
+{{ end -}}
 {{ end -}}
       {{ end }}
       {{ end -}}
@@ -116,11 +118,13 @@ components:
       type: object
 {{ if .Fields }}      properties: {{end}}
         {{- range .Fields }}
+        {{ if not .Hidden }}
         {{ .Name }}:
 {{ if .TypeIsCommon }}          type: {{ .Type }}{{ end }}
 {{ if not .TypeIsCommon }}          type: object{{ end }}
 {{ if ne .Doc "" }}          description: "{{ .Doc }}"{{ end }}
 {{ if ne .Example "" }}          example: "{{ .Example }}"{{ end }}
+{{- end }}
 {{- end }}
 {{- end }}
 ### Response Schemas

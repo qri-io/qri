@@ -37,7 +37,9 @@ import (
 	"github.com/qri-io/qri/transform"
 )
 
-// DatasetMethods encapsulates business logic for working with Datasets on Qri
+// DatasetMethods work with datasets, creating new versions (save), reading
+// dataset data (get), deleting versions (remove), and moving datasets over
+// network connections (push & pull)
 type DatasetMethods struct {
 	d dispatcher
 }
@@ -70,16 +72,17 @@ func (m DatasetMethods) Attributes() map[string]AttributeSet {
 
 // GetParams defines parameters for looking up the head or body of a dataset
 type GetParams struct {
+	// dataset reference to fetch; e.g. "b5/world_bank_population"
 	Ref string `json:"ref"`
-
-	// selector is a component or nested field names to extract from the dataset
+	// a component or nested field names to extract from the dataset; e.g. "body"
 	Selector string `json:"selector"`
-
-	Limit  int `json:"limit"`
+	// number of results to limit to. only applies when selector is "body"
+	Limit int `json:"limit"`
+	// number of results to skip. only applies when selector is "body"
 	Offset int `json:"offset"`
 	// TODO(dustmop): Remove `All` once `Cursor` is in use. Instead, callers should
 	// loop over their `Cursor` in order to get all rows.
-	All bool `json:"all"`
+	All bool `json:"all" docs:"hidden"`
 }
 
 // SetNonZeroDefaults assigns default values

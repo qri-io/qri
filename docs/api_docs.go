@@ -57,7 +57,7 @@ type field struct {
 	Type         string
 	TypeIsCommon bool
 	Doc          string
-	Tags         string
+	Hidden       bool
 	Comment      string
 	Example      string
 }
@@ -451,19 +451,18 @@ func parseQriTypes() (map[string]qriType, error) {
 						}
 
 						tStr, common := typeToString(fset, f.Type)
+						docsTags := fieldDocsTags(f)
 						comment, example := parseFieldComment(f)
 						field := field{
 							Name:         fieldNamePrioritizeJSONTag(f),
 							Type:         tStr,
 							TypeIsCommon: common,
+							Hidden:       hasHiddenTag(docsTags),
 							Comment:      comment,
 							Example:      example,
 						}
 						if f.Doc != nil {
 							field.Doc = sanitizeDocString(f.Doc.Text())
-						}
-						if f.Tag != nil {
-							field.Tags = f.Tag.Value
 						}
 						fields = append(fields, field)
 					}
@@ -502,6 +501,28 @@ func sanitizeDocString(s string) string {
 	s = strings.ReplaceAll(s, "\n", " ")
 	s = strings.ReplaceAll(s, "\"", "'")
 	return s
+}
+
+var docsTagRe = regexp.MustCompile(`docs:"(\w+)"`)
+
+func fieldDocsTags(f *ast.Field) []string {
+	if f.Tag != nil {
+		if matches := docsTagRe.FindStringSubmatch(f.Tag.Value); len(matches) > 0 {
+			return strings.Split(matches[1], ",")
+		}
+	}
+
+	return nil
+}
+
+func hasHiddenTag(tags []string) bool {
+	for _, tag := range tags {
+		if strings.TrimSpace(tag) == "hidden" {
+			return true
+		}
+	}
+
+	return false
 }
 
 var jsonTagRe = regexp.MustCompile(`json:"(\w+)`)
