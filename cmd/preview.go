@@ -110,9 +110,9 @@ func datasetPreview(ds *dataset.Dataset) *bytes.Buffer {
 	}
 	b.WriteString("\n")
 
-	if ds.Readme.ScriptBytes != nil {
+	if ds.Readme.Text != "" {
 		b.WriteString("Readme:\n")
-		b.WriteString(fmt.Sprintf("  %s", strings.ReplaceAll(string(ds.Readme.ScriptBytes), "\n", "\n  ")))
+		b.WriteString(fmt.Sprintf("  %s", strings.ReplaceAll(ds.Readme.Text, "\n", "\n  ")))
 	}
 
 	return b

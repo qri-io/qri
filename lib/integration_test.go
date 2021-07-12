@@ -377,8 +377,8 @@ func InitWorldBankDataset(ctx context.Context, t *testing.T, inst *Instance) dsr
 			BodyBytes: []byte(`a,b,c,true,2
 d,e,f,false,3`),
 			Readme: &dataset.Readme{
-				ScriptPath:  "readme.md",
-				ScriptBytes: []byte("#World Bank Population\nhow many people live on this planet?"),
+				ScriptPath: "readme.md",
+				Text:       "#World Bank Population\nhow many people live on this planet?",
 			},
 		},
 	})

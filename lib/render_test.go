@@ -162,7 +162,7 @@ func TestRenderReadme(t *testing.T) {
 		"me/my_dataset",
 		&dataset.Dataset{
 			Readme: &dataset.Readme{
-				ScriptBytes: []byte("# hi\n\nhello\n"),
+				Text: "# hi\n\nhello\n",
 			},
 		},
 		"testdata/jobs_by_automation/body.csv")
@@ -185,7 +185,7 @@ func TestRenderReadme(t *testing.T) {
 	params = RenderParams{
 		Dataset: &dataset.Dataset{
 			Readme: &dataset.Readme{
-				ScriptBytes: []byte("# hi\n\nhello"),
+				Text: "# hi\n\nhello",
 			},
 		},
 		Selector: "readme",
@@ -203,7 +203,7 @@ func TestRenderReadme(t *testing.T) {
 		Ref: "foo/bar",
 		Dataset: &dataset.Dataset{
 			Readme: &dataset.Readme{
-				ScriptBytes: []byte("# hi\n\nhello"),
+				Text: "# hi\n\nhello",
 			},
 		},
 		Selector: "readme",

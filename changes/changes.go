@@ -484,12 +484,12 @@ func (svc *service) Report(ctx context.Context, leftRef, rightRef string) (*Chan
 	if leftDs.Readme != nil || rightDs.Readme != nil {
 		res.Readme = &ChangeReportComponent{}
 		if leftDs.Readme != nil {
-			res.Readme.Left = string(leftDs.Readme.ScriptBytes)
+			res.Readme.Left = leftDs.Readme.Text
 		} else {
 			res.Readme.Left = ""
 		}
 		if rightDs.Readme != nil {
-			res.Readme.Right = string(rightDs.Readme.ScriptBytes)
+			res.Readme.Right = rightDs.Readme.Text
 		} else {
 			res.Readme.Right = ""
 		}
@@ -548,12 +548,12 @@ func (svc *service) Report(ctx context.Context, leftRef, rightRef string) (*Chan
 	if leftDs.Transform != nil || rightDs.Transform != nil {
 		res.Transform = &ChangeReportComponent{}
 		if leftDs.Transform != nil {
-			res.Transform.Left = string(leftDs.Transform.ScriptBytes)
+			res.Transform.Left = leftDs.Transform.Text
 		} else {
 			res.Transform.Left = ""
 		}
 		if rightDs.Transform != nil {
-			res.Transform.Right = string(rightDs.Transform.ScriptBytes)
+			res.Transform.Right = rightDs.Transform.Text
 		} else {
 			res.Transform.Right = ""
 		}

@@ -46,14 +46,14 @@ func TestApplyTransform(t *testing.T) {
 	p := &ApplyParams{
 		Wait: true,
 		Transform: &dataset.Transform{
-			ScriptBytes: []byte(`
+			Text: `
 body = """a,b,c
 1,2,3
 4,5,6
 """
 def transform(ds,ctx):
 	ds.set_body(body, parse_as="csv")
-`),
+`,
 		},
 	}
 	res, err = tr.ApplyWithParams(tr.Ctx, p)

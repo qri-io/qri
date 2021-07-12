@@ -50,7 +50,7 @@ func TestListDirectoryComponents(t *testing.T) {
 	readmeComponent := components.Base().GetSubcomponent("readme").(*ReadmeComponent)
 	readmeComponent.LoadAndFill(nil)
 	expectStr = "# Readme\n\nDescribes this dataset.\n"
-	if diff := cmp.Diff(expectStr, string(readmeComponent.Value.ScriptBytes)); diff != "" {
+	if diff := cmp.Diff(expectStr, readmeComponent.Value.Text); diff != "" {
 		t.Errorf("readme component (-want +got):\n%s", diff)
 	}
 }

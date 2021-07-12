@@ -8,7 +8,7 @@
     "body": {
       "ref": "peer/movies",
       "transform": {
-        "scriptBytes": "ZGVmIHRyYW5zZm9ybShkcyxjdHgpOlxucmV0dXJu"
+        "text": "def transform(ds,ctx):\nreturn"
       }
     },
     "expect": {

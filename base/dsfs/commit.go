@@ -245,10 +245,11 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 			log.Error("prev.Transform.ScriptPath %q open err: %s", prev.Transform.ScriptPath, err)
 		} else {
 			tfFile := prev.Transform.ScriptFile()
-			prev.Transform.ScriptBytes, err = ioutil.ReadAll(tfFile)
+			content, err := ioutil.ReadAll(tfFile)
 			if err != nil {
 				log.Error("prev.Transform.ScriptPath %q read err: %s", prev.Transform.ScriptPath, err)
 			}
+			prev.Transform.Text = string(content)
 		}
 	}
 	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
@@ -258,10 +259,11 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 			log.Errorf("ds.Transform.ScriptPath %q open err: %s", ds.Transform.ScriptPath, err)
 		} else {
 			tfFile := ds.Transform.ScriptFile()
-			ds.Transform.ScriptBytes, err = ioutil.ReadAll(tfFile)
+			content, err := ioutil.ReadAll(tfFile)
 			if err != nil {
 				log.Errorf("ds.Transform.ScriptPath %q read err: %s", ds.Transform.ScriptPath, err)
 			}
+			ds.Transform.Text = string(content)
 		}
 		// Reopen the transform file so that WriteDataset will be able to write it to the store.
 		if reopenErr := ds.Transform.OpenScriptFile(ctx, fs); reopenErr != nil {
@@ -278,10 +280,11 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 			log.Error("prev.Readme.ScriptPath %q open err: %s", prev.Readme.ScriptPath, err)
 		} else {
 			tfFile := prev.Readme.ScriptFile()
-			prev.Readme.ScriptBytes, err = ioutil.ReadAll(tfFile)
+			content, err := ioutil.ReadAll(tfFile)
 			if err != nil {
 				log.Error("prev.Readme.ScriptPath %q read err: %s", prev.Readme.ScriptPath, err)
 			}
+			prev.Readme.Text = string(content)
 		}
 	}
 	if ds.Readme != nil && ds.Readme.ScriptPath != "" {
@@ -292,10 +295,11 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 			err = nil
 		} else {
 			tfFile := ds.Readme.ScriptFile()
-			ds.Readme.ScriptBytes, err = ioutil.ReadAll(tfFile)
+			content, err := ioutil.ReadAll(tfFile)
 			if err != nil {
 				log.Errorf("ds.Readme.ScriptPath %q read err: %s", ds.Readme.ScriptPath, err)
 			}
+			ds.Readme.Text = string(content)
 		}
 		if reopenErr := ds.Readme.OpenScriptFile(ctx, fs); reopenErr != nil {
 			log.Debugf("error reopening readme script file: %q", reopenErr)

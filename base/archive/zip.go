@@ -158,7 +158,7 @@ func UnzipDataset(r io.ReaderAt, size int64, ds *dataset.Dataset) error {
 		if ds.Transform == nil {
 			ds.Transform = &dataset.Transform{}
 		}
-		ds.Transform.ScriptBytes = tfScriptData
+		ds.Transform.Text = string(tfScriptData)
 		ds.Transform.ScriptPath = ""
 	}
 
@@ -166,7 +166,7 @@ func UnzipDataset(r io.ReaderAt, size int64, ds *dataset.Dataset) error {
 		if ds.Viz == nil {
 			ds.Viz = &dataset.Viz{}
 		}
-		ds.Viz.ScriptBytes = vizScriptData
+		ds.Viz.Text = string(vizScriptData)
 		ds.Viz.ScriptPath = ""
 	}
 

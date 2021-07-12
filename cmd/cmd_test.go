@@ -470,9 +470,9 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
     Storage: local
     Size:    7 B
 
-    transform updated scriptBytes
+    transform updated text
     transform:
-    	updated scriptBytes
+    	updated text
 
 2   Commit:  {{ .commit2 }}
     Date:    Sun Dec 31 20:01:01 EST 2000
@@ -482,7 +482,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
     created dataset from tf_123.star
 
 `, map[string]string{
-		"commit1": "/ipfs/QmbwrkBnhCVNQjitkJeoqBbRYYWoJcmWLwM765acuKPyeG",
+		"commit1": "/ipfs/QmYiwHLqQHMBaut6QVHqSpvmL7a7kHoFNB13NNCFiykoT7",
 		"commit2": "/ipfs/QmZx6mYranv8ZFgwq7QVFoVVje2vPueC3MJYPy1LVnANmJ",
 	})
 	if diff := cmp.Diff(expect, output); diff != "" {
@@ -501,14 +501,14 @@ func TestSaveReadmeFromFile(t *testing.T) {
 
 	// Verify we can get the readme back
 	actual := run.MustExec(t, "qri get readme me/save_readme_file")
-	expect := dstest.Template(t, `format: md
+	expect := `format: md
 qri: rm:0
-scriptBytes: IyBUaXRsZQoKVGhpcyBpcyBhIGRhdGFzZXQgYWJvdXQgbW92aWVzCg==
-scriptPath: {{ .scriptPath }}
+text: |
+  # Title
 
-`, map[string]string{
-		"scriptPath": "/ipfs/QmQPbLdDwyAzCmKayuHGeNGx5eboDv5aXTMuw2daUuneCb",
-	})
+  This is a dataset about movies
+
+`
 
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("readme.md contents (-want +got):\n%s", diff)
