@@ -720,6 +720,73 @@ func TestGetFSI(t *testing.T) {
 	}
 }
 
+func TestGetBodySize(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	prevMaxBodySize := maxBodySizeToGetAll
+	maxBodySizeToGetAll = 160
+	defer func() {
+		maxBodySizeToGetAll = prevMaxBodySize
+	}()
+
+	// Save a dataset with a body smaller than our test limit
+	_, err := run.SaveWithParams(&SaveParams{
+		Ref:      "me/small_ds",
+		BodyPath: "testdata/cities_2/body.csv",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Save a dataset with a body larger than our test limit
+	_, err = run.SaveWithParams(&SaveParams{
+		Ref:      "me/large_ds",
+		BodyPath: "testdata/cities_2/body_more.csv",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inst := run.Instance
+	ctx := run.Ctx
+
+	// Get the small dataset's body, which is okay
+	params := GetParams{Ref: "me/small_ds", Selector: "body", Limit: -1, All: true}
+	_, err = inst.Dataset().Get(ctx, &params)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+
+	// Get the large dataset's body, which will return an error
+	params = GetParams{Ref: "me/large_ds", Selector: "body", Limit: -1, All: true}
+	_, err = inst.Dataset().Get(ctx, &params)
+	if err == nil {
+		t.Errorf("expected error, did not get one")
+	}
+	expectErr := `body is too large to get all: 217 larger than 160`
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch, expected: %s, got: %s", expectErr, err)
+	}
+
+	// Get the small dataset's body in CSV format, which is okay
+	params = GetParams{Ref: "me/small_ds", Selector: "body", Limit: -1, All: true}
+	_, err = inst.Dataset().GetCSV(ctx, &params)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+
+	// Get the large dataset's body in CSV format, which will return an error
+	params = GetParams{Ref: "me/large_ds", Selector: "body", Limit: -1, All: true}
+	_, err = inst.Dataset().GetCSV(ctx, &params)
+	if err == nil {
+		t.Errorf("expected error, did not get one")
+	}
+	if err.Error() != expectErr {
+		t.Errorf("error mismatch, expected: %s, got: %s", expectErr, err)
+	}
+}
+
 func setDatasetName(ds *dataset.Dataset, name string) *dataset.Dataset {
 	parts := strings.Split(name, "/")
 	ds.Peername = parts[0]
