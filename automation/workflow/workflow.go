@@ -9,8 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/qri/automation/hook"
-	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/profile"
 )
 
@@ -57,9 +55,9 @@ type Workflow struct {
 	DatasetID string
 	OwnerID   profile.ID
 	Created   *time.Time
-	Deployed  bool
-	Triggers  []trigger.Trigger
-	Hooks     []hook.Hook
+	Active    bool
+	Triggers  []map[string]interface{}
+	Hooks     []map[string]interface{}
 }
 
 // Validate errors if the workflow is not valid
@@ -92,7 +90,7 @@ func (w *Workflow) Copy() *Workflow {
 		DatasetID: w.DatasetID,
 		OwnerID:   w.OwnerID,
 		Created:   w.Created,
-		Deployed:  w.Deployed,
+		Active:    w.Active,
 		Triggers:  w.Triggers,
 		Hooks:     w.Hooks,
 	}
@@ -111,13 +109,29 @@ func (w *Workflow) WorkflowID() string {
 
 // ActiveTriggers returns a list of triggers that are currently enabled
 // an undeployed workflow, by definition, has no active triggers
-func (w *Workflow) ActiveTriggers(triggerType string) []trigger.Trigger {
-	activeTriggers := []trigger.Trigger{}
-	if !w.Deployed {
+// Any misshaped trigger options will be ignored
+func (w *Workflow) ActiveTriggers(triggerType string) []map[string]interface{} {
+	activeTriggers := []map[string]interface{}{}
+	if !w.Active {
 		return activeTriggers
 	}
-	for _, t := range w.Triggers {
-		if t.Active() && t.Type() == triggerType {
+	for i, t := range w.Triggers {
+		id, ok := t["id"].(string)
+		if !ok {
+			log.Debugw("workflow.ActiveTriggers trigger not added to ActiveTriggers list - does not have string 'id' field", "trigger index", i)
+			continue
+		}
+		active, ok := t["active"].(bool)
+		if !ok {
+			log.Debugw("workflow.ActiveTriggers trigger not added to ActiveTriggers list - does not have boolean 'active' field", "trigger id", id)
+			continue
+		}
+		trigType, ok := t["type"].(string)
+		if !ok {
+			log.Debugw("workflow.ActiveTriggers trigger not added to ActiveTriggers list - does not have string 'type' field", "trigger id", id)
+			continue
+		}
+		if active && trigType == triggerType {
 			activeTriggers = append(activeTriggers, t)
 		}
 	}

@@ -59,6 +59,16 @@ func (rt *RuntimeTrigger) Advance() error {
 	return nil
 }
 
+// ToMap returns the trigger as a map[string]interface{}
+func (rt *RuntimeTrigger) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"id":           rt.id,
+		"active":       rt.active,
+		"type":         RuntimeType,
+		"advanceCount": rt.AdvanceCount,
+	}
+}
+
 type runtimeTrigger struct {
 	ID           string `json:"id"`
 	Active       bool   `json:"active"`
@@ -159,7 +169,15 @@ func (l *RuntimeListener) Listen(sources ...Source) error {
 		if ownerID == "" {
 			return ErrEmptyOwnerID
 		}
-		triggers := s.ActiveTriggers(RuntimeType)
+		triggerOpts := s.ActiveTriggers(RuntimeType)
+		triggers := []Trigger{}
+		for _, triggerOpt := range triggerOpts {
+			t, err := l.ConstructTrigger(triggerOpt)
+			if err != nil {
+				return err
+			}
+			triggers = append(triggers, t)
+		}
 		wids, ok := l.activeTriggers[ownerID]
 		if !ok {
 			if len(triggers) == 0 {
@@ -275,11 +293,16 @@ func (l *RuntimeListener) TriggersExists(source Source) bool {
 	if !ok {
 		return false
 	}
-	triggers := source.ActiveTriggers(RuntimeType)
-	if len(triggers) != len(tids) {
+	triggerOpts := source.ActiveTriggers(RuntimeType)
+	if len(triggerOpts) != len(tids) {
 		return false
 	}
-	for i, t := range triggers {
+	for i, opt := range triggerOpts {
+		t, err := l.ConstructTrigger(opt)
+		if err != nil {
+			log.Errorw("runtimeListener.TriggersExist", "error", err)
+			return false
+		}
 		if t.ID() != tids[i] {
 			return false
 		}

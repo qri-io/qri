@@ -57,6 +57,28 @@ func AssertTrigger(t *testing.T, trig trigger.Trigger) {
 	if err := json.Unmarshal(triggerBytes, trig); !errors.Is(err, trigger.ErrUnexpectedType) {
 		t.Fatalf("json.Unmarshal should emit a `trigger.ErrUnexpectedType` error if the given type does not match the trigger.Type of the Trigger")
 	}
+	triggerObj = trig.ToMap()
+	triggerType, ok = triggerObj["type"]
+	if !ok {
+		t.Fatal("trigger.ToMap() error, expected 'type' field to exist")
+	}
+	if triggerType != trig.Type() {
+		t.Fatalf("trigger.ToMap() error, expected map type %q to match trigger.Type() %q", triggerType, trig.Type())
+	}
+	triggerActive, ok := triggerObj["active"]
+	if !ok {
+		t.Fatal("trigger.ToMap() error, expected 'active' field to exist")
+	}
+	if triggerActive != trig.Active() {
+		t.Fatalf("trigger.ToMap() error, expected map field 'active' to match trig.Active() value ")
+	}
+	triggerID, ok := triggerObj["id"]
+	if !ok {
+		t.Fatal("trigger.ToMap() error, expected 'id' field to exist")
+	}
+	if triggerID != trig.ID() {
+		t.Fatal("trigger.ToMap() error, expected map field 'id' to match trig.ID() value")
+	}
 }
 
 // ListenerConstructor creates a trigger listener and function that fires the listener when called

@@ -56,6 +56,8 @@ type Trigger interface {
 	Type() string
 	// Advance adjusts the Trigger once it has been triggered
 	Advance() error
+	// ToMap returns the trigger as a map[string]interface
+	ToMap() map[string]interface{}
 }
 
 // A Listener emits a `event.ETTriggerWorkflow` event when a specific stimulus
@@ -77,6 +79,6 @@ type Listener interface {
 // Source is an abstraction for a `workflow.Workflow`
 type Source interface {
 	WorkflowID() string
-	ActiveTriggers(triggerType string) []Trigger
+	ActiveTriggers(triggerType string) []map[string]interface{}
 	Owner() profile.ID
 }

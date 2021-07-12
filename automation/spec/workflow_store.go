@@ -24,14 +24,14 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 
 	aliceDatasetID := "alice_dataset_id"
 	aliceProID := profile.ID("alice_pro_id")
-	aliceTrigger := trigger.NewRuntimeTrigger()
-	aliceHook := hook.NewRuntimeHook("hook payload")
+	aliceTrigger := map[string]interface{}{"type": trigger.RuntimeType}
+	aliceHook := map[string]interface{}{"type": hook.RuntimeType}
 	alice := &workflow.Workflow{
 		DatasetID: aliceDatasetID,
 		OwnerID:   aliceProID,
 		Created:   &now,
-		Triggers:  []trigger.Trigger{aliceTrigger},
-		Hooks:     []hook.Hook{aliceHook},
+		Triggers:  []map[string]interface{}{aliceTrigger},
+		Hooks:     []map[string]interface{}{aliceHook},
 	}
 	got, err := store.Put(alice)
 	if err != nil {
@@ -42,7 +42,7 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 	}
 	alice.ID = got.ID
 	aliceID := alice.ID
-	if diff := cmp.Diff(alice, got, cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
+	if diff := cmp.Diff(alice, got); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -50,7 +50,7 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(alice, got, cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
+	if diff := cmp.Diff(alice, got); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -58,35 +58,25 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(alice, got, cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
+	if diff := cmp.Diff(alice, got); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
 	// store.Put error checking
-	badAlice := &workflow.Workflow{
-		ID: aliceID,
-	}
-	if _, err := store.Put(badAlice); !errors.Is(err, workflow.ErrPutDatasetIDMismatch) {
-		t.Errorf("Put method must emit `workflow.ErrPutDatasetIDMismatch` if the DatasetID of the given workflow does not match the DatasetID of the workflow stored")
-	}
-	badAlice.DatasetID = aliceDatasetID
-	if _, err := store.Put(badAlice); !errors.Is(err, workflow.ErrPutOwnerIDMismatch) {
-		t.Errorf("Put method must emit `workflow.ErrPutOwnerIDMistmatch` error if the OwnerID of the given workflow does not match the OWnerID of the workflow stored")
-	}
 	if _, err := store.Put(&workflow.Workflow{DatasetID: aliceDatasetID}); !errors.Is(err, workflow.ErrWorkflowForDatasetExists) {
 		t.Errorf("Put method must emit `workflow.ErrWorkflowForDatasetExists` error if a workflow for the given DatasetID already exists")
 	}
 
 	brittDatasetID := "britt_dataset_id"
 	brittProID := profile.ID("britt_pro_id")
-	brittTrigger := trigger.NewRuntimeTrigger()
-	brittHook := hook.NewRuntimeHook("hook payload")
+	brittTrigger := map[string]interface{}{"type": trigger.RuntimeType}
+	brittHook := map[string]interface{}{"type": hook.RuntimeType}
 	britt := &workflow.Workflow{
 		DatasetID: brittDatasetID,
 		OwnerID:   brittProID,
 		Created:   &now,
-		Triggers:  []trigger.Trigger{brittTrigger},
-		Hooks:     []hook.Hook{brittHook},
+		Triggers:  []map[string]interface{}{brittTrigger},
+		Hooks:     []map[string]interface{}{brittHook},
 	}
 	got, err = store.Put(britt)
 	if err != nil {
@@ -94,7 +84,7 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 	}
 
 	britt.ID = got.ID
-	if diff := cmp.Diff(britt, got, cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
+	if diff := cmp.Diff(britt, got); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -120,10 +110,10 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 		ID:        aliceID,
 		DatasetID: alice.DatasetID,
 		OwnerID:   alice.OwnerID,
-		Deployed:  true,
+		Active:    true,
 		Created:   &now,
-		Triggers:  []trigger.Trigger{aliceTrigger, brittTrigger},
-		Hooks:     []hook.Hook{aliceHook, brittHook},
+		Triggers:  []map[string]interface{}{aliceTrigger, brittTrigger},
+		Hooks:     []map[string]interface{}{aliceHook, brittHook},
 	}
 	_, err = store.Put(aliceUpdated)
 	if err != nil {
@@ -134,7 +124,7 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(aliceUpdated, got, cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
+	if diff := cmp.Diff(aliceUpdated, got); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -146,7 +136,7 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 	if len(deployed) != 1 {
 		t.Fatalf("store.ListDeployed count mismatch, expected 1 workflow, got %d", len(deployed))
 	}
-	if diff := cmp.Diff(aliceUpdated, deployed[0], cmp.AllowUnexported(trigger.RuntimeTrigger{}, hook.RuntimeHook{})); diff != "" {
+	if diff := cmp.Diff(aliceUpdated, deployed[0]); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -182,7 +172,7 @@ func AssertWorkflowLister(t *testing.T, store workflow.Store) {
 			t.Fatal(err)
 		}
 		if i%2 == 0 {
-			wf.Deployed = true
+			wf.Active = true
 			expectedDeployedWorkflows[4-(i/2)] = wf
 		}
 		expectedAllWorkflows[9-i] = wf

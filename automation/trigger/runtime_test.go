@@ -21,7 +21,6 @@ func TestRuntimeListener(t *testing.T) {
 		ID:       workflow.ID("test workflow id"),
 		OwnerID:  "test Owner id",
 		Deployed: true,
-		Triggers: []trigger.Trigger{},
 	}
 	listenerConstructor := func(ctx context.Context, bus event.Bus) (trigger.Listener, func()) {
 		rl := trigger.NewRuntimeListener(ctx, bus)
@@ -50,7 +49,7 @@ func TestRuntimeListener(t *testing.T) {
 			rl.TriggerCh <- wtp
 		}
 
-		wf.Triggers = []trigger.Trigger{rt}
+		wf.Triggers = []map[string]interface{}{rt.ToMap()}
 		if err := rl.Listen(wf); err != nil {
 			t.Fatalf("RuntimeListener.Listen unexpected error: %s", err)
 		}
@@ -64,7 +63,7 @@ func TestRuntimeListener(t *testing.T) {
 	if !ok {
 		t.Fatal("RuntimeListener unexpected assertion error, listenerConstructor should return a runtimeListener")
 	}
-	wf.Triggers = []trigger.Trigger{}
+	wf.Triggers = []map[string]interface{}{}
 	if err := rl.Listen(wf); err != nil {
 		t.Fatalf("RuntimeListener.Listen unexpected error: %s", err)
 	}
@@ -98,7 +97,7 @@ func TestRuntimeListenerListen(t *testing.T) {
 	}
 	trig1 := trigger.NewRuntimeTrigger()
 	trig2 := trigger.NewRuntimeTrigger()
-	wfA1.Triggers = []trigger.Trigger{trig1, trig2}
+	wfA1.Triggers = []map[string]interface{}{trig1.ToMap(), trig2.ToMap()}
 	if err := rl.Listen([]trigger.Source{wfA1}...); err != nil {
 		t.Fatal(err)
 	}
@@ -106,6 +105,7 @@ func TestRuntimeListenerListen(t *testing.T) {
 		t.Fatal("workflow with no active triggers should not exist in the Listener")
 	}
 	trig1.SetActive(true)
+	wfA1.Triggers = []map[string]interface{}{trig1.ToMap(), trig2.ToMap()}
 	if err := rl.Listen([]trigger.Source{wfA1}...); err != nil {
 		t.Fatal(err)
 	}
@@ -113,6 +113,7 @@ func TestRuntimeListenerListen(t *testing.T) {
 		t.Fatal("workflow with an active trigger should exist in the listener")
 	}
 	trig2.SetActive(true)
+	wfA1.Triggers = []map[string]interface{}{trig1.ToMap(), trig2.ToMap()}
 
 	if rl.TriggersExists(wfA1) {
 		t.Fatal("workflow with non matching trigger list should not exist in the listener")
@@ -128,11 +129,11 @@ func TestRuntimeListenerListen(t *testing.T) {
 	wfA2 := &workflow.Workflow{
 		OwnerID:  aID,
 		ID:       workflow.ID("workflow 2"),
-		Triggers: []trigger.Trigger{trig1, trig2},
+		Triggers: []map[string]interface{}{trig1.ToMap(), trig2.ToMap()},
 		Deployed: true,
 	}
 
-	wfB1.Triggers = []trigger.Trigger{trig1}
+	wfB1.Triggers = []map[string]interface{}{trig1.ToMap()}
 	if err := rl.Listen([]trigger.Source{wfB1, wfA2}...); err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +146,7 @@ func TestRuntimeListenerListen(t *testing.T) {
 	if !rl.TriggersExists(wfB1) {
 		t.Fatal("Listen did not add wfB1")
 	}
-	wfA1.Triggers = []trigger.Trigger{}
+	wfA1.Triggers = []map[string]interface{}{}
 	if err := rl.Listen([]trigger.Source{wfA1}...); err != nil {
 		t.Fatal(err)
 	}

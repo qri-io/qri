@@ -14,12 +14,6 @@ var (
 	// ErrWorkflowForDatasetExists indicates that a workflow associated
 	// with the given dataset already exists
 	ErrWorkflowForDatasetExists = fmt.Errorf("a workflow associated with the given dataset ID already exists")
-	// ErrPutDatasetIDMismatch indicates the given workflow's DatasetID does
-	// not match the one currently stored
-	ErrPutDatasetIDMismatch = fmt.Errorf("the workflow's DatasetID does not match the DatasetID of the associated workflow currently in the store")
-	// ErrPutOwnerIDMismatch indicates the given workflow's OwnerID does
-	// not match the one currently stored
-	ErrPutOwnerIDMismatch = fmt.Errorf("the given workflow's OwnerID does not match the OwnerID of the associated workflow currently in the store")
 )
 
 // Store manages & stores workflows, allowing listing and updating of workflows
@@ -32,11 +26,10 @@ type Store interface {
 	// Remove removes a Workflow from the Store using the workflow.ID
 	Remove(id ID) error
 	// Put adds a Workflow to the Store. If there is no ID in the Workflow,
-	// Put will create a new ID and add the new Workflow to the Store,
-	// ensuring that the associated Workflow.DatasetID is unique. If there
-	// is an existing ID, Put will update the entry in the Store. It first
-	// ensures that the Workflow.DatasetID and Workflow.OwnerID have not
-	// been altered.
+	// Put will create a new ID, record the time in the `Created` field
+	// and put the workflow in the store, ensuring that the associated
+	// Workflow.DatasetID is unique. If there is an existing ID, Put will
+	// update the entry in the Store, if the given workflow is valid
 	Put(wf *Workflow) (*Workflow, error)
 }
 
@@ -72,18 +65,6 @@ func (m *MemStore) Put(wf *Workflow) (*Workflow, error) {
 		return nil, ErrNilWorkflow
 	}
 	w := wf.Copy()
-	if w.ID != "" {
-		fetchedWF, err := m.Get(w.ID)
-		if errors.Is(err, ErrNotFound) {
-			return nil, ErrNotFound
-		}
-		if fetchedWF.DatasetID != w.DatasetID {
-			return nil, ErrPutDatasetIDMismatch
-		}
-		if fetchedWF.OwnerID != w.OwnerID {
-			return nil, ErrPutOwnerIDMismatch
-		}
-	}
 	if w.ID == "" {
 		if _, err := m.GetByDatasetID(w.DatasetID); !errors.Is(err, ErrNotFound) {
 			return nil, ErrWorkflowForDatasetExists
@@ -190,7 +171,7 @@ func (m *MemStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Work
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, wf := range m.workflows {
-		if wf.Deployed {
+		if wf.Active {
 			wfs.Add(wf)
 		}
 	}
