@@ -410,62 +410,76 @@ func TestSaveInferName(t *testing.T) {
 	}
 
 	// Save again, get an error because the inferred name already exists.
-	err := run.ExecCommand("qri save --body testdata/movies/body_four.json")
-	expectErr := `inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference "test_peer_save_infer_name/body_four". To create a new dataset, use --new flag`
-	if err == nil {
-		t.Errorf("error expected, did not get one")
-	}
-	if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
-		t.Errorf("result mismatch (-want +got):%s\n", diff)
-	}
+	t.Run("second_save_name_error", func(t *testing.T) {
+		err := run.ExecCommand("qri save --body testdata/movies/body_four.json")
+		expectErr := `inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference "test_peer_save_infer_name/body_four". To create a new dataset, use --new flag`
+		if err == nil {
+			t.Errorf("error expected, did not get one")
+		}
+		if diff := cmp.Diff(expectErr, errorMessage(err)); diff != "" {
+			t.Errorf("result mismatch (-want +got):%s\n", diff)
+		}
+	})
 
 	// Save but ensure a new dataset is created.
-	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
-	actual = parseDatasetRefFromOutput(output)
-	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/body_four_2@{{ .path2 }}\n", tmplData)
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("result mismatch (-want +got):%s\n", diff)
-	}
+	t.Run("save_expect_new", func(t *testing.T) {
+		output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
+		actual = parseDatasetRefFromOutput(output)
+		expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/body_four_2@{{ .path2 }}\n", tmplData)
+		if diff := cmp.Diff(expect, actual); diff != "" {
+			t.Errorf("result mismatch (-want +got):%s\n", diff)
+		}
+	})
 
 	// Save once again.
-	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
-	actual = parseDatasetRefFromOutput(output)
-	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/body_four_3@{{ .path3 }}\n", tmplData)
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("result mismatch (-want +got):%s\n", diff)
-	}
+	t.Run("save_expect_new_again", func(t *testing.T) {
+		output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/body_four.json --new")
+		actual = parseDatasetRefFromOutput(output)
+		expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/body_four_3@{{ .path3 }}\n", tmplData)
+		if diff := cmp.Diff(expect, actual); diff != "" {
+			t.Errorf("result mismatch (-want +got):%s\n", diff)
+		}
+	})
 
 	// Save a dataset whose body filename starts with a number
-	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/2018_winners.csv")
-	actual = parseDatasetRefFromOutput(output)
-	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/dataset_2018_winners@{{ .path4 }}\n", tmplData)
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("result mismatch (-want +got):%s\n", diff)
-	}
+	t.Run("save_body_file_starts_with_number", func(t *testing.T) {
+		output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/2018_winners.csv")
+		actual = parseDatasetRefFromOutput(output)
+		expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/dataset_2018_winners@{{ .path4 }}\n", tmplData)
+		if diff := cmp.Diff(expect, actual); diff != "" {
+			t.Errorf("result mismatch (-want +got):%s\n", diff)
+		}
+	})
 
 	// Save a dataset whose body filename is non-alphabetic
-	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/2015-09-16--2016-09-30.csv")
-	actual = parseDatasetRefFromOutput(output)
-	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/dataset_2015-09-16--2016-09-30@{{ .path5 }}\n", tmplData)
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("result mismatch (-want +got):%s\n", diff)
-	}
+	t.Run("save_non_alpha_name", func(t *testing.T) {
+		output = run.MustExecCombinedOutErr(t, "qri save --body testdata/2015-09-16--2016-09-30.csv")
+		actual = parseDatasetRefFromOutput(output)
+		expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/dataset_2015-09-16--2016-09-30@{{ .path5 }}\n", tmplData)
+		if diff := cmp.Diff(expect, actual); diff != "" {
+			t.Errorf("result mismatch (-want +got):%s\n", diff)
+		}
+	})
 
 	// Save using a CamelCased body filename
-	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/TenMoviesAndLengths.csv")
-	actual = parseDatasetRefFromOutput(output)
-	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/ten_movies_and_lengths@{{ .path6 }}\nthis dataset has 1 validation errors\n", tmplData)
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("result mismatch (-want +got):%s\n", diff)
-	}
+	t.Run("save_camel_case_body", func(t *testing.T) {
+		output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/TenMoviesAndLengths.csv")
+		actual = parseDatasetRefFromOutput(output)
+		expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/ten_movies_and_lengths@{{ .path6 }}\nthis dataset has 1 validation errors\n", tmplData)
+		if diff := cmp.Diff(expect, actual); diff != "" {
+			t.Errorf("result mismatch (-want +got):%s\n", diff)
+		}
+	})
 
 	// Save using a body filename that contains unicode
-	output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/pira\u00f1a_data.csv")
-	actual = parseDatasetRefFromOutput(output)
-	expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/pirana_data@{{ .path7 }}\n", tmplData)
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("result mismatch (-want +got):%s\n", diff)
-	}
+	t.Run("save_with_unicode_body", func(t *testing.T) {
+		output = run.MustExecCombinedOutErr(t, "qri save --body testdata/movies/pira\u00f1a_data.csv")
+		actual = parseDatasetRefFromOutput(output)
+		expect = dstest.Template(t, "dataset saved: test_peer_save_infer_name/pirana_data@{{ .path7 }}\n", tmplData)
+		if diff := cmp.Diff(expect, actual); diff != "" {
+			t.Errorf("result mismatch (-want +got):%s\n", diff)
+		}
+	})
 }
 
 func TestSaveFilenameUsedForCommitMessage(t *testing.T) {
