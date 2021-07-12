@@ -104,6 +104,16 @@ func (r *Repo) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 		return "", fmt.Errorf("cannot resolve local references without logbook")
 	}
 
+	if ref.InitID != "" {
+		res, err := r.logbook.Ref(ctx, ref.InitID)
+		if err != nil {
+			return "", err
+		}
+
+		*ref = res
+		return "", nil
+	}
+
 	// Preserve the input ref path, and convert to the old style dataset ref for repo.
 	origPath := ref.Path
 	datasetRef := reporef.DatasetRef{

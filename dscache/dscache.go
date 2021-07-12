@@ -181,12 +181,17 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	return refs, nil
 }
 
-// ResolveRef finds the identifier for a dataset reference
+// ResolveRef completes a reference using available data, filling in either
+// missing initID or human fields
 // implements dsref.Resolver interface
 func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	// NOTE: isEmpty is nil-callable. important b/c ResolveRef must be nil-callable
 	if d.IsEmpty() {
 		return "", dsref.ErrRefNotFound
+	}
+
+	if ref.InitID != "" {
+		return d.completeRef(ctx, ref)
 	}
 
 	vi, err := d.LookupByName(*ref)
@@ -201,6 +206,35 @@ func (d *Dscache) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 	}
 
 	return "", nil
+}
+
+func (d *Dscache) completeRef(ctx context.Context, ref *dsref.Ref) (string, error) {
+
+	r := dscachefb.RefEntryInfo{}
+	for i := 0; i < d.Root.RefsLength(); i++ {
+		d.Root.Refs(&r, i)
+		if string(r.InitID()) == ref.InitID {
+			ref.Path = string(r.HeadRef())
+			ref.ProfileID = string(r.ProfileID())
+			ref.Name = string(r.PrettyName())
+
+			// Convert profileID into a username
+			for i := 0; i < d.Root.UsersLength(); i++ {
+				userAssoc := dscachefb.UserAssoc{}
+				d.Root.Users(&userAssoc, i)
+				username := userAssoc.Username()
+				profileID := userAssoc.ProfileID()
+				if string(profileID) == ref.ProfileID {
+					ref.Username = string(username)
+					break
+				}
+			}
+
+			return "", nil
+		}
+	}
+
+	return "", dsref.ErrRefNotFound
 }
 
 // LookupByName looks up a dataset by dsref and returns the latest VersionInfo if found

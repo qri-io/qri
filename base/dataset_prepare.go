@@ -117,11 +117,10 @@ func PrepareSaveRef(
 // use. Generated names start with _2, implying the "_1" file is the original
 // no-suffix name.
 func GenerateAvailableName(ctx context.Context, pro *profile.Profile, resolver dsref.Resolver, prefix string) string {
-	lookup := &dsref.Ref{Username: pro.Peername, Name: prefix}
 	counter := 1
 	for {
 		counter++
-		lookup.Name = fmt.Sprintf("%s_%d", prefix, counter)
+		lookup := &dsref.Ref{Username: pro.Peername, Name: fmt.Sprintf("%s_%d", prefix, counter)}
 		if _, err := resolver.ResolveRef(ctx, lookup); errors.Is(err, dsref.ErrRefNotFound) {
 			return lookup.Name
 		}

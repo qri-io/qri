@@ -48,6 +48,10 @@ func (m *MemResolver) ResolveRef(ctx context.Context, ref *Ref) (string, error) 
 		return "", ErrRefNotFound
 	}
 
+	if ref.InitID != "" {
+		return m.completeRef(ctx, ref)
+	}
+
 	id := m.RefMap[ref.Alias()]
 	resolved, ok := m.IDMap[id]
 	if !ok {
@@ -60,5 +64,18 @@ func (m *MemResolver) ResolveRef(ctx context.Context, ref *Ref) (string, error) 
 		ref.Path = resolved.Path
 	}
 
+	return "", nil
+}
+
+func (m *MemResolver) completeRef(ctx context.Context, ref *Ref) (string, error) {
+	info, ok := m.IDMap[ref.InitID]
+	if !ok {
+		return "", ErrRefNotFound
+	}
+
+	ref.ProfileID = info.ProfileID
+	ref.Path = info.Path
+	ref.Username = info.Username
+	ref.Name = info.Name
 	return "", nil
 }
