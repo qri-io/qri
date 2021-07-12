@@ -18,9 +18,9 @@ func TestRuntimeTrigger(t *testing.T) {
 
 func TestRuntimeListener(t *testing.T) {
 	wf := &workflow.Workflow{
-		ID:       workflow.ID("test workflow id"),
-		OwnerID:  "test Owner id",
-		Deployed: true,
+		ID:      workflow.ID("test workflow id"),
+		OwnerID: "test Owner id",
+		Active:  true,
 	}
 	listenerConstructor := func(ctx context.Context, bus event.Bus) (trigger.Listener, func()) {
 		rl := trigger.NewRuntimeListener(ctx, bus)
@@ -41,7 +41,7 @@ func TestRuntimeListener(t *testing.T) {
 			if rl.TriggerCh == nil {
 				return
 			}
-			wtp := &event.WorkflowTriggerPayload{
+			wtp := &event.WorkflowTriggerEvent{
 				OwnerID:    wf.OwnerID,
 				WorkflowID: wf.ID.String(),
 				TriggerID:  rt.ID(),
@@ -79,15 +79,15 @@ func TestRuntimeListenerListen(t *testing.T) {
 
 	aID := profile.ID("a")
 	wfA1 := &workflow.Workflow{
-		OwnerID:  aID,
-		ID:       workflow.ID("workflow 1"),
-		Deployed: true,
+		OwnerID: aID,
+		ID:      workflow.ID("workflow 1"),
+		Active:  true,
 	}
 	bID := profile.ID("b")
 	wfB1 := &workflow.Workflow{
-		OwnerID:  bID,
-		ID:       workflow.ID("workflow 1"),
-		Deployed: true,
+		OwnerID: bID,
+		ID:      workflow.ID("workflow 1"),
+		Active:  true,
 	}
 	if err := rl.Listen([]trigger.Source{wfA1, wfB1}...); err != nil {
 		t.Fatal(err)
@@ -130,7 +130,7 @@ func TestRuntimeListenerListen(t *testing.T) {
 		OwnerID:  aID,
 		ID:       workflow.ID("workflow 2"),
 		Triggers: []map[string]interface{}{trig1.ToMap(), trig2.ToMap()},
-		Deployed: true,
+		Active:   true,
 	}
 
 	wfB1.Triggers = []map[string]interface{}{trig1.ToMap()}

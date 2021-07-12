@@ -238,9 +238,9 @@ func (o *Orchestrator) advanceTrigger(wf *workflow.Workflow, triggerID string) *
 // represented as a string
 func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 	if e.Type == event.ETWorkflowTrigger {
-		wtp, ok := e.Payload.(*event.WorkflowTriggerPayload)
+		wtp, ok := e.Payload.(*event.WorkflowTriggerEvent)
 		if !ok {
-			return fmt.Errorf("handleTrigger: expected event.Payload to be an `event.WorkflowTriggerPayload`: %v", e.Payload)
+			return fmt.Errorf("handleTrigger: expected event.Payload to be an `event.WorkflowTriggerEvent`: %v", e.Payload)
 		}
 		go func() {
 			wf, err := o.GetWorkflow(workflow.ID(wtp.WorkflowID))
@@ -285,7 +285,7 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 	// for this workflow, and emit the events for hooks that this orchestrator understands
 
 	go func(wf *workflow.Workflow) {
-		if err := o.bus.Publish(ctx, event.ETWorkflowStarted, &event.WorkflowStartedPayload{
+		if err := o.bus.Publish(ctx, event.ETWorkflowStarted, &event.WorkflowStartedEvent{
 			DatasetID:  wf.DatasetID,
 			OwnerID:    wf.OwnerID,
 			WorkflowID: wf.WorkflowID(),
@@ -321,7 +321,7 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 			}
 			status = string(runStatus)
 		}
-		if err := o.bus.Publish(ctx, event.ETWorkflowStopped, &event.WorkflowStoppedPayload{
+		if err := o.bus.Publish(ctx, event.ETWorkflowStopped, &event.WorkflowStoppedEvent{
 			DatasetID:  wf.DatasetID,
 			OwnerID:    wf.OwnerID,
 			WorkflowID: wf.WorkflowID(),

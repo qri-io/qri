@@ -37,7 +37,7 @@ func TestIntegration(t *testing.T) {
 		OwnerID:   "profile_id",
 		Created:   NowFunc(),
 		Triggers:  []map[string]interface{}{rttListenTest.ToMap()},
-		Deployed:  true,
+		Active:    true,
 	}
 	wf, err := workflowStore.Put(wf)
 	if err != nil {
@@ -140,31 +140,31 @@ func TestIntegration(t *testing.T) {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
-	expectedWorkflowStartedPayload := &event.WorkflowStartedPayload{
+	expectedWorkflowStartedEvent := &event.WorkflowStartedEvent{
 		DatasetID:  got.DatasetID,
 		OwnerID:    got.OwnerID,
 		WorkflowID: got.WorkflowID(),
 	}
-	expectedWorkflowStoppedPayload := &event.WorkflowStoppedPayload{
+	expectedWorkflowStoppedEvent := &event.WorkflowStoppedEvent{
 		DatasetID:  got.DatasetID,
 		OwnerID:    got.OwnerID,
 		WorkflowID: got.WorkflowID(),
 		Status:     string(run.RSSucceeded),
 	}
-	var gotWorkflowStartedPayload *event.WorkflowStartedPayload
-	var gotWorkflowStoppedPayload *event.WorkflowStoppedPayload
+	var gotWorkflowStartedEvent *event.WorkflowStartedEvent
+	var gotWorkflowStoppedEvent *event.WorkflowStoppedEvent
 	workflowEventsHandler := func(ctx context.Context, e event.Event) error {
 		ok := true
 		switch e.Type {
 		case event.ETWorkflowStarted:
-			gotWorkflowStartedPayload, ok = e.Payload.(*event.WorkflowStartedPayload)
+			gotWorkflowStartedEvent, ok = e.Payload.(*event.WorkflowStartedEvent)
 			if !ok {
-				t.Fatal("event.ETWorkflowStarted event should have payload *event.WorkflowStartedPayload")
+				t.Fatal("event.ETWorkflowStarted event should have payload *event.WorkflowStartedEvent")
 			}
 		case event.ETWorkflowStopped:
-			gotWorkflowStoppedPayload, ok = e.Payload.(*event.WorkflowStoppedPayload)
+			gotWorkflowStoppedEvent, ok = e.Payload.(*event.WorkflowStoppedEvent)
 			if !ok {
-				t.Fatal("event.ETWorkflowStopped event should have payload *event.WorkflowStoppedPayload")
+				t.Fatal("event.ETWorkflowStopped event should have payload *event.WorkflowStoppedEvent")
 			}
 		}
 		return nil
@@ -172,17 +172,17 @@ func TestIntegration(t *testing.T) {
 
 	bus.SubscribeTypes(workflowEventsHandler, event.ETWorkflowStarted, event.ETWorkflowStopped)
 	done := errOnTimeout(t, ran, "o.RunWorkflow error: timed out before run function called")
-	err = o.RunWorkflow(ctx, got.ID)
+	_, err = o.RunWorkflow(ctx, got.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	<-done
 
-	if diff := cmp.Diff(expectedWorkflowStartedPayload, gotWorkflowStartedPayload, cmpopts.IgnoreFields(event.WorkflowStartedPayload{}, "RunID")); diff != "" {
-		t.Errorf("WorkflowStartedPayload mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(expectedWorkflowStartedEvent, gotWorkflowStartedEvent, cmpopts.IgnoreFields(event.WorkflowStartedEvent{}, "RunID")); diff != "" {
+		t.Errorf("WorkflowStartedEvent mismatch (-want +got):\n%s", diff)
 	}
-	if diff := cmp.Diff(expectedWorkflowStoppedPayload, gotWorkflowStoppedPayload, cmpopts.IgnoreFields(event.WorkflowStoppedPayload{}, "RunID")); diff != "" {
-		t.Errorf("WorkflowStoppedPayload mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(expectedWorkflowStoppedEvent, gotWorkflowStoppedEvent, cmpopts.IgnoreFields(event.WorkflowStoppedEvent{}, "RunID")); diff != "" {
+		t.Errorf("WorkflowStoppedEvent mismatch (-want +got):\n%s", diff)
 	}
 
 	done = errOnTimeout(t, applied, "o.ApplyWorkflow error: timed out before apply function called")
@@ -207,7 +207,7 @@ func TestIntegration(t *testing.T) {
 		t.Fatal("workflow unexpectedly has no active triggers")
 	}
 	triggerID := activeTriggers[0]["id"].(string)
-	wtp := &event.WorkflowTriggerPayload{
+	wtp := &event.WorkflowTriggerEvent{
 		OwnerID:    expected.Owner(),
 		WorkflowID: expected.WorkflowID(),
 		TriggerID:  triggerID,
@@ -242,23 +242,23 @@ func TestIntegration(t *testing.T) {
 	done = errOnTimeout(t, ran, "manual trigger error: time out before orchestrator ran a workflow from a trigger")
 	runtimeListener.TriggerCh <- wtp
 	<-done
-	expectedWorkflowStartedPayload = &event.WorkflowStartedPayload{
+	expectedWorkflowStartedEvent = &event.WorkflowStartedEvent{
 		DatasetID:  expected.DatasetID,
 		OwnerID:    expected.OwnerID,
 		WorkflowID: expected.WorkflowID(),
 	}
-	expectedWorkflowStoppedPayload = &event.WorkflowStoppedPayload{
+	expectedWorkflowStoppedEvent = &event.WorkflowStoppedEvent{
 		DatasetID:  expected.DatasetID,
 		OwnerID:    expected.OwnerID,
 		WorkflowID: expected.WorkflowID(),
 		Status:     string(run.RSSucceeded),
 	}
 
-	if diff := cmp.Diff(expectedWorkflowStartedPayload, gotWorkflowStartedPayload, cmpopts.IgnoreFields(event.WorkflowStartedPayload{}, "RunID")); diff != "" {
-		t.Errorf("WorkflowStartedPayload mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(expectedWorkflowStartedEvent, gotWorkflowStartedEvent, cmpopts.IgnoreFields(event.WorkflowStartedEvent{}, "RunID")); diff != "" {
+		t.Errorf("WorkflowStartedEvent mismatch (-want +got):\n%s", diff)
 	}
-	if diff := cmp.Diff(expectedWorkflowStoppedPayload, gotWorkflowStoppedPayload, cmpopts.IgnoreFields(event.WorkflowStoppedPayload{}, "RunID")); diff != "" {
-		t.Errorf("WorkflowStoppedPayload mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(expectedWorkflowStoppedEvent, gotWorkflowStoppedEvent, cmpopts.IgnoreFields(event.WorkflowStoppedEvent{}, "RunID")); diff != "" {
+		t.Errorf("WorkflowStoppedEvent mismatch (-want +got):\n%s", diff)
 	}
 
 	o.Stop()
@@ -471,7 +471,7 @@ func TestRunStoreEvents(t *testing.T) {
 	}
 	defer o.Shutdown()
 
-	if err := o.RunWorkflow(ctx, wf.ID); err != nil {
+	if _, err := o.RunWorkflow(ctx, wf.ID); err != nil {
 		t.Fatal(err)
 	}
 }

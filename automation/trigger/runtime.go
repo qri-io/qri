@@ -110,7 +110,7 @@ func (rt *RuntimeTrigger) UnmarshalJSON(d []byte) error {
 // RuntimeListener listens for RuntimeTriggers to fire
 type RuntimeListener struct {
 	bus                event.Bus
-	TriggerCh          chan *event.WorkflowTriggerPayload
+	TriggerCh          chan *event.WorkflowTriggerEvent
 	listening          bool
 	activeTriggersLock sync.Mutex
 	activeTriggers     map[profile.ID]map[string][]string
@@ -122,7 +122,7 @@ type RuntimeListener struct {
 func NewRuntimeListener(ctx context.Context, bus event.Bus) *RuntimeListener {
 	rl := &RuntimeListener{
 		bus:            bus,
-		TriggerCh:      make(chan *event.WorkflowTriggerPayload),
+		TriggerCh:      make(chan *event.WorkflowTriggerEvent),
 		activeTriggers: map[profile.ID]map[string][]string{},
 	}
 	// start ensures that if a RuntimeTrigger attempts to trigger a workflow,
@@ -239,7 +239,7 @@ func (l *RuntimeListener) start(ctx context.Context) error {
 	return nil
 }
 
-func (l *RuntimeListener) shouldTrigger(ctx context.Context, wtp *event.WorkflowTriggerPayload) error {
+func (l *RuntimeListener) shouldTrigger(ctx context.Context, wtp *event.WorkflowTriggerEvent) error {
 	l.activeTriggersLock.Lock()
 	defer l.activeTriggersLock.Unlock()
 
