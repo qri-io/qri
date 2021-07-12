@@ -34,7 +34,8 @@ jobs:
       - run:
           name: Run OAS Spec Tests
           command: |
-            cd docs && go test ./...
+            cd ../ && git clone https://github.com/qri-io/dataset.git &&\
+            cd qri/docs && go test ./...
       - save_cache:
           key: dependency-cache-{{ checksum "go.sum" }}
           paths:

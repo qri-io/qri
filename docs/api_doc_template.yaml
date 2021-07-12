@@ -118,15 +118,15 @@ components:
       type: object
 {{ if .Fields }}      properties: {{end}}
         {{- range .Fields }}
-        {{ if not .Hidden }}
+        {{- if not .Hidden }}
         {{ .Name }}:
 {{ if .TypeIsCommon }}          type: {{ .Type }}{{ end }}
-{{ if not .TypeIsCommon }}          type: object{{ end }}
+{{ if not .TypeIsCommon }}          type: object {{ end }}
 {{ if ne .Doc "" }}          description: "{{ .Doc }}"{{ end }}
 {{ if ne .Example "" }}          example: "{{ .Example }}"{{ end }}
-{{- end }}
-{{- end }}
-{{- end }}
+{{- end -}}
+{{- end -}}
+{{- end -}}
 ### Response Schemas
 ## Base
     APIResponse:
@@ -165,15 +165,9 @@ components:
       # supports all string formats: string, binary, byte
       type: string
 ## Qri
-    Dataset:
-      type: object 
-    VersionInfo:
-      type: object
     StatusItem:
       type: object
     Profile:
-      type: object
-    Ref:
       type: object
     DAGManifest:
       type: object
