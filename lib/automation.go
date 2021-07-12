@@ -2,14 +2,19 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
-	"github.com/qri-io/qri/automation/hook"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/profile"
+	"github.com/qri-io/qri/transform"
 )
 
 // AutomationMethods groups together methods for automations
@@ -38,7 +43,7 @@ type ApplyParams struct {
 	Wait      bool               `json:"wait"`
 	// TODO(arqu): substitute with websockets when working over the wire
 	ScriptOutput io.Writer `json:"-"`
-	Hooks        []hook.Hook
+	Hooks        []map[string]interface{}
 }
 
 // Validate returns an error if ApplyParams fields are in an invalid state
@@ -66,35 +71,29 @@ func (m AutomationMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyRes
 
 // DeployParams are parameters for the deploy command
 type DeployParams struct {
-	Apply      bool // when Apply is true, run the workflow after updating the dataset and workflow
-	WorkflowID string
-	Triggers   map[string]interface{}
-	Hooks      map[string]interface{}
-	Ref        string
-	Dataset    *dataset.Dataset
+	Run      bool // when Run is true, run the workflow after updating the dataset and workflow
+	Workflow *workflow.Workflow
+	Dataset  *dataset.Dataset
 }
 
 // Validate returns an error if DeployParams fields are in an invalid state
 func (p *DeployParams) Validate() error {
-	if p.WorkflowID == "" && p.Dataset == nil {
-		return fmt.Errorf("deploy: dataset or workflow id required")
+	if p.Workflow == nil {
+		return fmt.Errorf("deploy: workflow required")
+	}
+	if p.Dataset == nil {
+		return fmt.Errorf("deploy: dataset required")
+	}
+	if p.Dataset.Name == "" || p.Dataset.Peername == "" {
+		return fmt.Errorf("deploy: dataset name and peername required")
 	}
 	return nil
 }
 
-// DeployResponse is the result of a deploy command
-type DeployResponse struct {
-	RunID    string             `json:"runID,omitempty"`
-	Workflow *workflow.Workflow `json:"workflow"`
-}
-
 // Deploy adds or updates a workflow
-func (m AutomationMethods) Deploy(ctx context.Context, p *DeployParams) (*DeployResponse, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "deploy"), p)
-	if res, ok := got.(*DeployResponse); ok {
-		return res, err
-	}
-	return nil, dispatchReturnError(got, err)
+func (m AutomationMethods) Deploy(ctx context.Context, p *DeployParams) error {
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "deploy"), p)
+	return dispatchReturnError(nil, err)
 }
 
 // Implementations for automation methods follow
@@ -149,58 +148,117 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 }
 
 // Deploy adds or updates a Dataset, creates or updates an associated Workflow, and, if deployParams.Apply is true, immediately runs the Workflow
-func (automationImpl) Deploy(scope scope, p *DeployParams) (*DeployResponse, error) {
+func (automationImpl) Deploy(scope scope, p *DeployParams) error {
+	log.Debugw("deploy", "dataset name", p.Dataset.Name, "peername", p.Dataset.Peername, "workflow id", p.Workflow.ID)
+	if p.Workflow.ID != "" {
+		wf, err := scope.AutomationOrchestrator().GetWorkflow(p.Workflow.ID)
+		if err != nil {
+			return nil
+		}
+		if p.Workflow.DatasetID != wf.DatasetID {
+			return fmt.Errorf("deploy: given workflow and workflow on record have different DatasetIDs")
+		}
+		if p.Workflow.OwnerID != wf.OwnerID {
+			return fmt.Errorf("deploy: given workflow and workflow on record have different OwnerIDs")
+		}
+	}
+	go deploy(scope, p)
+	return nil
+}
+
+func deploy(scope scope, p *DeployParams) {
+	vi := dsref.ConvertDatasetToVersionInfo(p.Dataset)
+	ref := vi.SimpleRef().String()
+	deployPayload := event.DeployEvent{
+		Ref:        ref,
+		DatasetID:  p.Dataset.ID,
+		WorkflowID: p.Workflow.ID.String(),
+	}
+	log.Debugw("deploy started", "payload", deployPayload)
+	if scope.Bus() != nil {
+		scope.Bus().PublishID(scope.Context(), event.ETDeployStart, ref, deployPayload)
+	}
+	rollback := true
+	defer func(dp *event.DeployEvent) {
+		if rollback {
+			rp := &RemoveParams{
+				Ref: ref,
+				Revision: &dsref.Rev{
+					Field: "ds",
+					Gen:   1,
+				},
+			}
+			_, err := datasetImpl{}.Remove(scope, rp)
+			if err != nil {
+				log.Debugw("deploy rollback", "error", err)
+				if scope.Bus() != nil {
+					scope.Bus().PublishID(scope.Context(), event.ETDeployError, ref, event.DeployErrorEvent{DeployEvent: deployPayload, Error: err.Error()})
+				}
+			}
+		}
+		log.Debug("deploy ended")
+		if scope.Bus() != nil {
+			scope.Bus().PublishID(scope.Context(), event.ETDeployEnd, ref, deployPayload)
+		}
+	}(&deployPayload)
 	ds := p.Dataset
 	var err error
-	if p.Dataset != nil {
-		saveParams := &SaveParams{
-			Ref:     p.Ref,
-			Dataset: p.Dataset,
-			Apply:   false,
-		}
-		ds, err = datasetImpl{}.Save(scope, p)
-		if err != nil {
-			log.Errorw("deploy save dataset", "error", err)
-			return nil, err
-		}
+
+	if scope.Bus() != nil {
+		scope.Bus().PublishID(scope.Context(), event.ETDeploySaveDatasetStart, ref, deployPayload)
 	}
-	wf := &workflow.Workflow{
-		ID: workflow.ID(p.WorkflowID),
+	saveParams := &SaveParams{
+		Ref:     vi.SimpleRef().String(),
+		Dataset: p.Dataset,
+		Apply:   false,
 	}
-	if p.WorkflowID == "" || p.Triggers != nil || p.Hooks != nil {
-		datasetID := ds.ID
-		if p.WorkflowID != "" && DatasetID == "" {
-			wf, err := GetWorkflow(wf.ID)
-			if err != nil {
-				log.Errorw("deploy get workflow", "error", err)
-				return nil, err
-			}
-			datasetID = wf.DatasetID
+	ds, err = datasetImpl{}.Save(scope, saveParams)
+	if err != nil && !errors.Is(err, dsfs.ErrNoChanges) {
+		log.Errorw("deploy save dataset", "error", err)
+		if scope.Bus() != nil {
+			scope.Bus().PublishID(scope.Context(), event.ETDeployError, ref, event.DeployErrorEvent{DeployEvent: deployPayload, Error: err.Error()})
 		}
-		wf, err = scope.AutomationOrchestrator().SaveWorkflow(wf.WorkflowID(), datasetID, scope.ActiveProfile().ID, p.Triggers)
-		if err != nil {
-			log.Errorw("deploy save workflow", "error", err)
-			return nil, err
-		}
-	} else {
-		wf, err := scope.AutomationOrchestrator().GetWorkflow(workflow.ID(p.WorkflowID))
-		if err != nil {
-			log.Errorw("deploy get workflow", "error", err)
-			return nil, err
-		}
+		return
+	}
+	deployPayload.DatasetID = ds.ID
+	if scope.Bus() != nil {
+		scope.Bus().PublishID(scope.Context(), event.ETDeploySaveDatasetEnd, ref, deployPayload)
 	}
 
-	if Apply {
+	wf := p.Workflow.Copy()
+	wf.DatasetID = ds.ID
+	wf.OwnerID = scope.ActiveProfile().ID
+	if scope.Bus() != nil {
+		scope.Bus().PublishID(scope.Context(), event.ETDeploySaveWorkflowStart, ref, deployPayload)
+	}
+	wf, err = scope.AutomationOrchestrator().SaveWorkflow(wf)
+	if err != nil {
+		log.Errorw("deploy save workflow", "error", err)
+		if scope.Bus() != nil {
+			scope.Bus().PublishID(scope.Context(), event.ETDeployError, ref, event.DeployErrorEvent{DeployEvent: deployPayload, Error: err.Error()})
+		}
+		return
+	}
+	deployPayload.WorkflowID = wf.ID.String()
+	if scope.Bus() != nil {
+		scope.Bus().PublishID(scope.Context(), event.ETDeploySaveWorkflowEnd, ref, deployPayload)
+	}
+	if p.Run {
 		// needs to return early to give runID
-		err = scope.AutomationOrchestrator().RunWorkflow(scope.Context(), wf.ID)
-		log.Errorw("deploy run workflow", "error", err)
-		return nil, err
+		runID, err := scope.AutomationOrchestrator().RunWorkflow(scope.Context(), wf.ID)
+		if err != nil {
+			log.Errorw("deploy run workflow", "error", err)
+			if scope.Bus() != nil {
+				scope.Bus().PublishID(scope.Context(), event.ETDeployError, ref, event.DeployErrorEvent{DeployEvent: deployPayload, Error: err.Error()})
+			}
+			return
+		}
+		deployPayload.RunID = runID
+		if scope.Bus() != nil {
+			scope.Bus().PublishID(scope.Context(), event.ETDeployRun, ref, deployPayload)
+		}
 	}
-
-	return &DeployResponse{
-		Workflow: wf,
-		RunID:    "", // need to get from the RunWorkflow after RunWorkflow has been changed
-	}, nil
+	// rollback = false
 }
 
 func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {

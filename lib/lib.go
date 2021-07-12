@@ -17,7 +17,6 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
@@ -25,7 +24,6 @@ import (
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/automation"
-	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
@@ -45,7 +43,6 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/stats"
-	"github.com/qri-io/qri/transform"
 )
 
 var (
@@ -957,6 +954,11 @@ func (inst *Instance) WithSource(source string) *InstanceSourceWrap {
 type InstanceSourceWrap struct {
 	source string
 	inst   *Instance
+}
+
+// Automation returns the AutomationMethods that Instance has registered
+func (isw *InstanceSourceWrap) Automation() AutomationMethods {
+	return AutomationMethods{d: isw}
 }
 
 // Dataset returns the DatasetMethods that Instance has registered

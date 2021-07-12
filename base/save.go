@@ -114,6 +114,7 @@ func SaveDataset(
 	if err = r.Logbook().WriteVersionSave(ctx, initID, ds, runState); err != nil {
 		return nil, err
 	}
+	ds.ID = initID
 	return ds, nil
 }
 
