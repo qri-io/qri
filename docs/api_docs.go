@@ -69,10 +69,37 @@ type response struct {
 
 // OpenAPIYAML generates the OpenAPI Spec for the Qri API
 func OpenAPIYAML() (*bytes.Buffer, error) {
-	qriTypes, err := parseQriTypes()
+	writeToSpec := func(typeSpec *ast.TypeSpec) bool {
+		return strings.HasSuffix(typeSpec.Name.String(), "Params") || strings.HasSuffix(typeSpec.Name.String(), "ParamsPod")
+	}
+	qriTypes, err := parsePackageTypes("../lib/", "github.com/qri-io/qri/lib", writeToSpec)
 	if err != nil {
 		return nil, err
 	}
+
+	dsrefTypes, err := parsePackageTypes("../dsref/", "github.com/qri-io/qri/dsref", func(typeSpec *ast.TypeSpec) bool {
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for k, val := range dsrefTypes {
+		qriTypes[k] = val
+	}
+
+	datasetTypes, err := parsePackageTypes("../../dataset/", "github.com/qri-io/dataset", func(typeSpec *ast.TypeSpec) bool {
+		return true
+	})
+	if err == nil {
+		for k, val := range datasetTypes {
+			qriTypes[k] = val
+		}
+	} else {
+		fmt.Printf("WARNING: couldn't parse types for dataset package: %s\n", err)
+		fmt.Println("to add the dataset pacakge to docs, place the dataset repo as a sibling folder of the qri repo")
+	}
+	err = nil
 
 	var (
 		methods    []libMethod
@@ -401,12 +428,12 @@ func isDefinedResponse(r string, qriTypes map[string]qriType) bool {
 	return false
 }
 
-func parseQriTypes() (map[string]qriType, error) {
+func parsePackageTypes(pkgDir, pkgName string, writeToSpec func(typeSpec *ast.TypeSpec) bool) (map[string]qriType, error) {
 	params := map[string]qriType{}
 	// Create the AST by parsing src and test.
 	fset := token.NewFileSet()
 
-	libFiles, err := ioutil.ReadDir("../lib/")
+	libFiles, err := ioutil.ReadDir(pkgDir)
 	if err != nil {
 		return nil, err
 	}
@@ -418,7 +445,7 @@ func parseQriTypes() (map[string]qriType, error) {
 			continue
 		}
 
-		path := filepath.Join("../lib/", fInfo.Name())
+		path := filepath.Join(pkgDir, fInfo.Name())
 		astFile, err := readASTFile(fset, path)
 		if err != nil {
 			return nil, fmt.Errorf("reading AST from go file %q %w: ", path, err)
@@ -427,7 +454,7 @@ func parseQriTypes() (map[string]qriType, error) {
 	}
 
 	// Compute package documentation
-	p, err := doc.NewFromFiles(fset, files, "github.com/qri-io/qri/lib", doc.PreserveAST)
+	p, err := doc.NewFromFiles(fset, files, pkgName, doc.PreserveAST)
 	if err != nil {
 		panic(err)
 	}
@@ -472,12 +499,11 @@ func parseQriTypes() (map[string]qriType, error) {
 						doc = typeSpec.Comment.Text()
 					}
 
-					writeToSpec := strings.HasSuffix(typeSpec.Name.String(), "Params") || strings.HasSuffix(typeSpec.Name.String(), "ParamsPod")
 					p := qriType{
 						Name:        typeSpec.Name.String(),
 						Doc:         sanitizeDocString(doc),
 						Fields:      fields,
-						WriteToSpec: writeToSpec,
+						WriteToSpec: writeToSpec(typeSpec),
 					}
 					params[typeSpec.Name.String()] = p
 				}
