@@ -2,6 +2,7 @@ package automation
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -14,7 +15,6 @@ import (
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/profile"
 )
 
 var (
@@ -209,6 +209,30 @@ func (o *Orchestrator) Shutdown() {
 	o.cancel()
 }
 
+// advanceTrigger may emit log errors
+func (o *Orchestrator) advanceTrigger(wf *workflow.Workflow, triggerID string) *workflow.Workflow {
+	for i, triggerOpt := range wf.Triggers {
+		trigType := triggerOpt["type"].(string)
+		listener, ok := o.listeners[trigType]
+		if !ok {
+			log.Debugw("advanceTrigger: listener not found", "type", trigType)
+			return wf
+		}
+		trig, err := listener.ConstructTrigger(triggerOpt)
+		if err != nil {
+			log.Debugw("advanceTrigger: error constructing trigger", "error", err)
+			return wf
+		}
+		if trig.ID() == triggerID {
+			trig.Advance()
+			w := wf.Copy()
+			w.Triggers[i] = trig.ToMap()
+			return w
+		}
+	}
+	return wf
+}
+
 // handleTrigger calls `RunWorkflow` when an `event.ETWorkflowTrigger` event is fired
 // it expects the payload for the `event.ETWorkflowTrigger` to be a workflow.ID
 // represented as a string
@@ -224,17 +248,13 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 				log.Debugw("handleTrigger: error fetching workflow", "id", wtp.WorkflowID, "err", err)
 				return
 			}
-			for _, trig := range wf.Triggers {
-				if trig.ID() == wtp.TriggerID {
-					trig.Advance()
-					break
-				}
-			}
-			wf, err = o.UpdateWorkflow(wf)
+			wf = o.advanceTrigger(wf, wtp.TriggerID)
+			wf, err = o.SaveWorkflow(wf)
 			if err != nil {
 				log.Debugw("handleTrigger: error saving workflow", "id", wtp.WorkflowID, "err", err)
 			}
-			if err := o.runWorkflow(ctx, wf); err != nil {
+			runID := run.NewID()
+			if err := o.runWorkflow(ctx, wf, runID); err != nil {
 				log.Debugw("handleTrigger: error running workflow", "err", err)
 			}
 		}()
@@ -243,15 +263,19 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 }
 
 // RunWorkflow runs the given workflow
-func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) error {
+func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) (string, error) {
+	runID := run.NewID()
 	wf, err := o.GetWorkflow(workflow.ID(wid))
 	if err != nil {
-		return err
+		return "", err
 	}
-	return o.runWorkflow(ctx, wf)
+	go func() {
+		o.runWorkflow(ctx, wf, runID)
+	}()
+	return runID, nil
 }
 
-func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow) error {
+func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, runID string) error {
 	o.runLock.Lock()
 	defer o.runLock.Unlock()
 	wid := wf.ID
@@ -259,7 +283,6 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow) e
 
 	// TODO (ramfox): when hooks/completors are added, this should wait for the err, iterate through the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
-	runID := run.NewID()
 
 	go func(wf *workflow.Workflow) {
 		if err := o.bus.Publish(ctx, event.ETWorkflowStarted, &event.WorkflowStartedPayload{
@@ -344,46 +367,47 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 
 // SaveWorkflow creates a new workflow if the workflow id is empty, or updates
 // an existing workflow in the workflow Store
-func (o *Orchestrator) SaveWorkflow(wid string, did string, pid profile.ID, triggerOpts []map[string]interface{}) (*workflow.Workflow, error) {
-	t := []trigger.Trigger{}
-	for _, opt := range triggerOpts {
+func (o *Orchestrator) SaveWorkflow(wf *workflow.Workflow) (*workflow.Workflow, error) {
+	if wf.ID != "" {
+		fetchedWF, err := o.workflows.Get(wf.ID)
+		if errors.Is(err, workflow.ErrNotFound) {
+			return nil, fmt.Errorf("SaveWorkflow error: workflow %q, %w", wf.ID, err)
+		}
+		if fetchedWF.DatasetID != wf.DatasetID {
+			return nil, fmt.Errorf("SaveWorkflow error: given workflow %q has a different DatasetID than the workflow on record", wf.ID)
+		}
+		if fetchedWF.OwnerID != wf.OwnerID {
+			return nil, fmt.Errorf("SaveWorkflow error: given workflow %q has a different OwnerID than the workflow on record", wf.ID)
+		}
+		if fetchedWF.Created != wf.Created {
+			return nil, fmt.Errorf("SaveWorkflow error: given workflow %q has a different Created time than the workflow on record", wf.ID)
+		}
+	}
+	triggers := []map[string]interface{}{}
+	for _, opt := range wf.Triggers {
 		triggerType, ok := opt["type"].(string)
 		if !ok {
-			return nil, fmt.Errorf("trigger options map must include a %q field with the trigger type given as a string", "type")
+			return nil, fmt.Errorf("SaveWorkflow error: trigger options map must include a %q field with the trigger type given as a string", "type")
 		}
 		listener, ok := o.listeners[triggerType]
 		if !ok {
-			return nil, fmt.Errorf("CreateWorkflow unknown trigger type: %q", triggerType)
+			return nil, fmt.Errorf("SaveWorkflow error: unknown trigger type: %q", triggerType)
 		}
-		trig, err := listener.ConstructTrigger(opt)
+		t, err := listener.ConstructTrigger(opt)
 		if err != nil {
-			return nil, fmt.Errorf("CreateWorkflow error constructing trigger: %w", err)
+			return nil, fmt.Errorf("SaveWorkflow error: constructing trigger: %w", err)
 		}
-		t = append(t, trig)
+		triggers = append(triggers, t.ToMap())
 	}
+	wf.Triggers = triggers
 	// TODO (ramfox): when we add hooks in a follow up, this function should receive HookrOptions as a param
+
 	// it should iterate over the hooks this orchestrator understands, and err if the workflow references
 	// any that it doesn't know about
 
-	// it should convert each HookOption into a Hook & pass them down to `workflow.Create`
-	wf := &workflow.Workflow{
-		DatasetID: did,
-		OwnerID:   pid,
-		Created:   NowFunc(),
-		Triggers:  t,
+	if wf.ID == "" {
+		wf.Created = NowFunc()
 	}
-	if wid != "" {
-		wf.ID = workflow.ID(wid)
-	}
-	wf, err := o.workflows.Put(wf)
-	if err != nil {
-		return nil, err
-	}
-	return wf, nil
-}
-
-// UpdateWorkflow updates a workflow in the workflow.Store
-func (o *Orchestrator) UpdateWorkflow(wf *workflow.Workflow) (*workflow.Workflow, error) {
 	return o.workflows.Put(wf)
 }
 
@@ -393,7 +417,7 @@ func (o *Orchestrator) DeployWorkflow(id workflow.ID) (*workflow.Workflow, error
 	if err != nil {
 		return nil, err
 	}
-	wf.Deployed = true
+	wf.Active = true
 	defer o.updateListeners(wf)
 	return o.workflows.Put(wf)
 }
@@ -404,7 +428,7 @@ func (o *Orchestrator) UndeployWorkflow(id workflow.ID) (*workflow.Workflow, err
 	if err != nil {
 		return nil, err
 	}
-	wf.Deployed = false
+	wf.Active = false
 	defer o.updateListeners(wf)
 	return o.workflows.Put(wf)
 }

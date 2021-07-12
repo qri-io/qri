@@ -36,7 +36,7 @@ func TestIntegration(t *testing.T) {
 		DatasetID: "test_listeners",
 		OwnerID:   "profile_id",
 		Created:   NowFunc(),
-		Triggers:  []trigger.Trigger{rttListenTest},
+		Triggers:  []map[string]interface{}{rttListenTest.ToMap()},
 		Deployed:  true,
 	}
 	wf, err := workflowStore.Put(wf)
@@ -77,31 +77,54 @@ func TestIntegration(t *testing.T) {
 	}
 	defer o.Shutdown()
 
-	rtt1 := trigger.NewRuntimeTrigger()
-	rtt2 := trigger.NewRuntimeTrigger()
-	rtt2.SetActive(true)
+	prevTriggerNewID := trigger.NewID
+	defer func() {
+		trigger.NewID = prevTriggerNewID
+	}()
+	triggerIDIndex := 0
+	triggerIDs := [2]string{
+		"id1",
+		"id2",
+	}
+	trigger.NewID = func() string {
+		if triggerIDIndex >= len(triggerIDs) {
+			t.Fatal("trigger.NewID called more times then expected")
+		}
+		id := triggerIDs[triggerIDIndex]
+		triggerIDIndex++
+		return id
+	}
 	expected := &workflow.Workflow{
 		DatasetID: "dataset_id",
 		OwnerID:   "profile_id",
 		Created:   NowFunc(),
-		Triggers:  []trigger.Trigger{rtt1, rtt2},
+		Triggers: []map[string]interface{}{
+			map[string]interface{}{
+				"id":           triggerIDs[0],
+				"type":         trigger.RuntimeType,
+				"active":       false,
+				"advanceCount": 0,
+			},
+			map[string]interface{}{
+				"id":           triggerIDs[1],
+				"type":         trigger.RuntimeType,
+				"active":       true,
+				"advanceCount": 0,
+			}},
 	}
 
-	triggerOpts := []map[string]interface{}{
-		map[string]interface{}{"type": trigger.RuntimeType},
-		map[string]interface{}{"type": trigger.RuntimeType, "active": true},
-	}
-
-	cmpOpts := []cmp.Option{
-		cmpopts.IgnoreFields(trigger.RuntimeTrigger{}, "id"),
-		cmp.AllowUnexported(trigger.RuntimeTrigger{}),
-	}
-	got, err := o.CreateWorkflow("dataset_id", "profile_id", triggerOpts)
+	got, err := o.SaveWorkflow(&workflow.Workflow{
+		DatasetID: "dataset_id",
+		OwnerID:   "profile_id",
+		Triggers: []map[string]interface{}{
+			map[string]interface{}{"type": trigger.RuntimeType},
+			map[string]interface{}{"type": trigger.RuntimeType, "active": true},
+		}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	expected.ID = got.ID
-	if diff := cmp.Diff(expected, got, cmpOpts...); diff != "" {
+	if diff := cmp.Diff(expected, got); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -113,7 +136,7 @@ func TestIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(expected, got, cmpOpts...); diff != "" {
+	if diff := cmp.Diff(expected, got); diff != "" {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
@@ -183,10 +206,11 @@ func TestIntegration(t *testing.T) {
 	if len(activeTriggers) == 0 {
 		t.Fatal("workflow unexpectedly has no active triggers")
 	}
+	triggerID := activeTriggers[0]["id"].(string)
 	wtp := &event.WorkflowTriggerPayload{
 		OwnerID:    expected.Owner(),
 		WorkflowID: expected.WorkflowID(),
-		TriggerID:  activeTriggers[0].ID(),
+		TriggerID:  triggerID,
 	}
 	done = shouldTimeout(t, ran, "trigger should not trigger a workflow before the orchestrator has run `Start`")
 	bus.Publish(ctx, event.ETWorkflowTrigger, wtp)
