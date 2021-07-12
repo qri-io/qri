@@ -140,15 +140,18 @@ func TestIntegration(t *testing.T) {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
+	runID := "runID_1"
 	expectedWorkflowStartedEvent := &event.WorkflowStartedEvent{
 		DatasetID:  got.DatasetID,
 		OwnerID:    got.OwnerID,
 		WorkflowID: got.WorkflowID(),
+		RunID:      runID,
 	}
 	expectedWorkflowStoppedEvent := &event.WorkflowStoppedEvent{
 		DatasetID:  got.DatasetID,
 		OwnerID:    got.OwnerID,
 		WorkflowID: got.WorkflowID(),
+		RunID:      runID,
 		Status:     string(run.RSSucceeded),
 	}
 	var gotWorkflowStartedEvent *event.WorkflowStartedEvent
@@ -172,16 +175,16 @@ func TestIntegration(t *testing.T) {
 
 	bus.SubscribeTypes(workflowEventsHandler, event.ETWorkflowStarted, event.ETWorkflowStopped)
 	done := errOnTimeout(t, ran, "o.RunWorkflow error: timed out before run function called")
-	_, err = o.RunWorkflow(ctx, got.ID)
+	err = o.RunWorkflow(ctx, got.ID, runID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	<-done
 
-	if diff := cmp.Diff(expectedWorkflowStartedEvent, gotWorkflowStartedEvent, cmpopts.IgnoreFields(event.WorkflowStartedEvent{}, "RunID")); diff != "" {
+	if diff := cmp.Diff(expectedWorkflowStartedEvent, gotWorkflowStartedEvent); diff != "" {
 		t.Errorf("WorkflowStartedEvent mismatch (-want +got):\n%s", diff)
 	}
-	if diff := cmp.Diff(expectedWorkflowStoppedEvent, gotWorkflowStoppedEvent, cmpopts.IgnoreFields(event.WorkflowStoppedEvent{}, "RunID")); diff != "" {
+	if diff := cmp.Diff(expectedWorkflowStoppedEvent, gotWorkflowStoppedEvent); diff != "" {
 		t.Errorf("WorkflowStoppedEvent mismatch (-want +got):\n%s", diff)
 	}
 
@@ -470,8 +473,7 @@ func TestRunStoreEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer o.Shutdown()
-
-	if _, err := o.RunWorkflow(ctx, wf.ID); err != nil {
+	if err := o.RunWorkflow(ctx, wf.ID, ""); err != nil {
 		t.Fatal(err)
 	}
 }

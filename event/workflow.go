@@ -47,13 +47,10 @@ const (
 	// This event should not block
 	ETDeployRun = Type("deploy:run")
 	// ETDeployEnd signals the deploy has finished
-	// Payload will be a DeployEvent
+	// Payload will be a DeployEvent, if the `Error` field is filled,
+	// the deploy ended in error
 	// This event should not block
 	ETDeployEnd = Type("deploy:end")
-	// ETDeployError signals the deploy has errored
-	// Payload will be a DeployEvent
-	// This event should not block
-	ETDeployError = Type("deploy:error")
 )
 
 // WorkflowTriggerEvent is the expected payload of the `ETWorkflowTrigger`
@@ -86,10 +83,5 @@ type DeployEvent struct {
 	DatasetID  string
 	WorkflowID string
 	RunID      string
-}
-
-// DeployErrorEvent is the expected payload for deploy error events
-type DeployErrorEvent struct {
-	DeployEvent
-	Error string
+	Error      string
 }

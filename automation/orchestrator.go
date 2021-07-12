@@ -263,16 +263,15 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 }
 
 // RunWorkflow runs the given workflow
-func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID) (string, error) {
-	runID := run.NewID()
+func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID, runID string) error {
+	if runID == "" {
+		runID = run.NewID()
+	}
 	wf, err := o.GetWorkflow(workflow.ID(wid))
 	if err != nil {
-		return "", err
+		return err
 	}
-	go func() {
-		o.runWorkflow(ctx, wf, runID)
-	}()
-	return runID, nil
+	return o.runWorkflow(ctx, wf, runID)
 }
 
 func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, runID string) error {
@@ -285,7 +284,7 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 	// for this workflow, and emit the events for hooks that this orchestrator understands
 
 	go func(wf *workflow.Workflow) {
-		if err := o.bus.Publish(ctx, event.ETWorkflowStarted, &event.WorkflowStartedEvent{
+		if err := o.bus.PublishID(ctx, event.ETWorkflowStarted, wf.ID.String(), &event.WorkflowStartedEvent{
 			DatasetID:  wf.DatasetID,
 			OwnerID:    wf.OwnerID,
 			WorkflowID: wf.WorkflowID(),
@@ -321,7 +320,7 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 			}
 			status = string(runStatus)
 		}
-		if err := o.bus.Publish(ctx, event.ETWorkflowStopped, &event.WorkflowStoppedEvent{
+		if err := o.bus.PublishID(ctx, event.ETWorkflowStopped, wf.ID.String(), &event.WorkflowStoppedEvent{
 			DatasetID:  wf.DatasetID,
 			OwnerID:    wf.OwnerID,
 			WorkflowID: wf.WorkflowID(),

@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -167,6 +168,7 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 }
 
 func deploy(scope scope, p *DeployParams) {
+	ctx := profile.AddIDToContext(scope.AppContext(), scope.ActiveProfile().ID.String())
 	vi := dsref.ConvertDatasetToVersionInfo(p.Dataset)
 	ref := vi.SimpleRef().String()
 	deployPayload := event.DeployEvent{
@@ -175,11 +177,13 @@ func deploy(scope scope, p *DeployParams) {
 		WorkflowID: p.Workflow.ID.String(),
 	}
 	log.Debugw("deploy started", "payload", deployPayload)
-	if scope.Bus() != nil {
-		scope.Bus().PublishID(scope.Context(), event.ETDeployStart, ref, deployPayload)
-	}
+	go func() {
+		if err := scope.Bus().PublishID(ctx, event.ETDeployStart, ref, deployPayload); err != nil {
+			log.Debug(err)
+		}
+	}()
 	rollback := true
-	defer func(dp *event.DeployEvent) {
+	defer func() {
 		if rollback {
 			rp := &RemoveParams{
 				Ref: ref,
@@ -188,77 +192,107 @@ func deploy(scope scope, p *DeployParams) {
 					Gen:   1,
 				},
 			}
-			_, err := datasetImpl{}.Remove(scope, rp)
-			if err != nil {
+			if _, err := (datasetImpl{}).Remove(scope, rp); err != nil {
 				log.Debugw("deploy rollback", "error", err)
-				if scope.Bus() != nil {
-					scope.Bus().PublishID(scope.Context(), event.ETDeployError, ref, event.DeployErrorEvent{DeployEvent: deployPayload, Error: err.Error()})
-				}
 			}
 		}
-		log.Debug("deploy ended")
-		if scope.Bus() != nil {
-			scope.Bus().PublishID(scope.Context(), event.ETDeployEnd, ref, deployPayload)
-		}
-	}(&deployPayload)
+	}()
 	ds := p.Dataset
 	var err error
 
-	if scope.Bus() != nil {
-		scope.Bus().PublishID(scope.Context(), event.ETDeploySaveDatasetStart, ref, deployPayload)
-	}
+	go func() {
+		if err := scope.Bus().PublishID(scope.Context(), event.ETDeploySaveDatasetStart, ref, deployPayload); err != nil {
+			log.Debug(err)
+		}
+	}()
+
 	saveParams := &SaveParams{
 		Ref:     vi.SimpleRef().String(),
 		Dataset: p.Dataset,
 		Apply:   false,
 	}
+	// TODO(ramfox): bandaid! remove when save can handle having saving a dataset with no body/structure
+	if p.Dataset.ID == "" && p.Dataset.BodyFile() == nil {
+		saveParams.Apply = true
+	}
 	ds, err = datasetImpl{}.Save(scope, saveParams)
 	if err != nil && !errors.Is(err, dsfs.ErrNoChanges) {
-		log.Errorw("deploy save dataset", "error", err)
-		if scope.Bus() != nil {
-			scope.Bus().PublishID(scope.Context(), event.ETDeployError, ref, event.DeployErrorEvent{DeployEvent: deployPayload, Error: err.Error()})
-		}
+		log.Debugw("deploy save dataset", "error", err)
+		deployPayload.Error = err.Error()
+		go func() {
+			if err := scope.Bus().PublishID(scope.Context(), event.ETDeployEnd, ref, deployPayload); err != nil {
+				log.Debug(err)
+			}
+		}()
 		return
 	}
+
 	deployPayload.DatasetID = ds.ID
-	if scope.Bus() != nil {
-		scope.Bus().PublishID(scope.Context(), event.ETDeploySaveDatasetEnd, ref, deployPayload)
-	}
+	go func() {
+		if err := scope.Bus().PublishID(scope.Context(), event.ETDeploySaveDatasetEnd, ref, deployPayload); err != nil {
+			log.Debug(err)
+		}
+	}()
 
 	wf := p.Workflow.Copy()
 	wf.DatasetID = ds.ID
 	wf.OwnerID = scope.ActiveProfile().ID
-	if scope.Bus() != nil {
-		scope.Bus().PublishID(scope.Context(), event.ETDeploySaveWorkflowStart, ref, deployPayload)
-	}
+
+	go func() {
+		if err := scope.Bus().PublishID(scope.Context(), event.ETDeploySaveWorkflowStart, ref, deployPayload); err != nil {
+			log.Debug(err)
+		}
+	}()
+
 	wf, err = scope.AutomationOrchestrator().SaveWorkflow(wf)
 	if err != nil {
-		log.Errorw("deploy save workflow", "error", err)
-		if scope.Bus() != nil {
-			scope.Bus().PublishID(scope.Context(), event.ETDeployError, ref, event.DeployErrorEvent{DeployEvent: deployPayload, Error: err.Error()})
-		}
+		log.Debugw("deploy save workflow", "error", err)
+		deployPayload.Error = err.Error()
+		go func() {
+			if err := scope.Bus().PublishID(scope.Context(), event.ETDeployEnd, ref, deployPayload); err != nil {
+				log.Debug(err)
+			}
+		}()
 		return
 	}
+
 	deployPayload.WorkflowID = wf.ID.String()
-	if scope.Bus() != nil {
-		scope.Bus().PublishID(scope.Context(), event.ETDeploySaveWorkflowEnd, ref, deployPayload)
-	}
-	if p.Run {
-		// needs to return early to give runID
-		runID, err := scope.AutomationOrchestrator().RunWorkflow(scope.Context(), wf.ID)
-		if err != nil {
-			log.Errorw("deploy run workflow", "error", err)
-			if scope.Bus() != nil {
-				scope.Bus().PublishID(scope.Context(), event.ETDeployError, ref, event.DeployErrorEvent{DeployEvent: deployPayload, Error: err.Error()})
+	go func() {
+		if err := scope.Bus().PublishID(scope.Context(), event.ETDeploySaveWorkflowEnd, ref, deployPayload); err != nil {
+			log.Debug(err)
+		}
+	}()
+
+	if p.Run && !saveParams.Apply {
+		runID := run.NewID()
+
+		deployPayload.RunID = runID
+		go func() {
+			if err := scope.Bus().PublishID(scope.Context(), event.ETDeployRun, ref, deployPayload); err != nil {
+				log.Debug(err)
 			}
+		}()
+
+		err := scope.AutomationOrchestrator().RunWorkflow(scope.Context(), wf.ID, runID)
+		if err != nil {
+			log.Debugw("deploy run workflow", "error", err)
+			deployPayload.Error = err.Error()
+			go func() {
+				if err := scope.Bus().PublishID(scope.Context(), event.ETDeployEnd, ref, deployPayload); err != nil {
+					log.Debug(err)
+				}
+			}()
 			return
 		}
-		deployPayload.RunID = runID
-		if scope.Bus() != nil {
-			scope.Bus().PublishID(scope.Context(), event.ETDeployRun, ref, deployPayload)
-		}
+
 	}
-	// rollback = false
+	log.Debug("deploy ended")
+	go func() {
+		if err := scope.Bus().PublishID(scope.Context(), event.ETDeployEnd, ref, deployPayload); err != nil {
+			log.Debug(err)
+		}
+	}()
+	rollback = false
 }
 
 func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {

@@ -115,14 +115,11 @@ def transform(ds,ctx):
 		Workflow: wf,
 		Run:      true,
 	}
-	deployEnded := make(chan struct{})
-	deployError := make(chan string)
+	deployEnded := make(chan string)
 	done := make(chan string)
 	go func() {
 		select {
-		case <-deployEnded:
-			done <- ""
-		case errMsg := <-deployError:
+		case errMsg := <-deployEnded:
 			done <- errMsg
 		case <-time.After(200 * time.Millisecond):
 			done <- "timeout occured before deploy finished"
@@ -132,17 +129,15 @@ def transform(ds,ctx):
 	handleDeploy := func(ctx context.Context, e event.Event) error {
 		switch e.Type {
 		case event.ETDeployEnd:
-			deployEnded <- struct{}{}
-		case event.ETDeployError:
-			payload, ok := e.Payload.(event.DeployErrorEvent)
+			payload, ok := e.Payload.(event.DeployEvent)
 			if !ok {
-				deployError <- "event.ETDeployError payload not of type event.DeployErrorEvent"
+				deployEnded <- "event.ETDeployEnd payload not of type event.DeployEvent"
 			}
-			deployError <- payload.Error
+			deployEnded <- payload.Error
 		}
 		return nil
 	}
-	bus.SubscribeTypes(handleDeploy, event.ETDeployEnd, event.ETDeployError)
+	bus.SubscribeTypes(handleDeploy, event.ETDeployEnd)
 	if err := tr.Instance.WithSource("local").Automation().Deploy(tr.Ctx, p); err != nil {
 		t.Fatalf("deploy unexpected error: %s", err)
 	}
