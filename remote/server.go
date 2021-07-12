@@ -677,6 +677,7 @@ func (r *Server) RefsHTTPHandler() http.HandlerFunc {
 		switch req.Method {
 		case "GET":
 			ref := &dsref.Ref{
+				InitID:   req.FormValue("initid"),
 				Username: req.FormValue("username"),
 				Name:     req.FormValue("name"),
 				Path:     req.FormValue("path"),

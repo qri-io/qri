@@ -343,6 +343,7 @@ func resolveRefHTTP(ctx context.Context, ref *dsref.Ref, remoteAddr string) erro
 	u.Path = "/remote/refs"
 
 	q := u.Query()
+	q.Set("initid", ref.InitID)
 	q.Set("username", ref.Username)
 	q.Set("name", ref.Name)
 	q.Set("path", ref.Path)

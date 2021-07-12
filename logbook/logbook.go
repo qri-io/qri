@@ -9,6 +9,7 @@ package logbook
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -904,11 +905,22 @@ func (book Book) Log(ctx context.Context, id string) (*oplog.Log, error) {
 	return book.store.Get(ctx, id)
 }
 
-// ResolveRef finds the identifier & head path for a dataset reference
+// ResolveRef completes missing data in a dataset reference, populating
+// the human alias if given an initID, or an initID if given a human alias
 // implements resolve.NameResolver interface
 func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error) {
 	if book == nil {
 		return "", dsref.ErrRefNotFound
+	}
+
+	// if given an initID, populate the rest of the reference
+	if ref.InitID != "" {
+		got, err := book.Ref(ctx, ref.InitID)
+		if err != nil {
+			return "", err
+		}
+		*ref = got
+		return "", nil
 	}
 
 	initID, err := book.RefToInitID(*ref)
@@ -944,6 +956,39 @@ func (book *Book) ResolveRef(ctx context.Context, ref *dsref.Ref) (string, error
 	}
 
 	return "", nil
+}
+
+// Ref looks up a reference by InitID
+func (book *Book) Ref(ctx context.Context, initID string) (dsref.Ref, error) {
+	ref := dsref.Ref{
+		InitID: initID,
+	}
+
+	datasetLog, err := book.datasetLog(ctx, initID)
+	if err != nil {
+		if errors.Is(err, oplog.ErrNotFound) {
+			return ref, dsref.ErrRefNotFound
+		}
+		return ref, err
+	}
+	ref.Name = datasetLog.l.Name()
+
+	branchLog, err := book.branchLog(ctx, initID)
+	if err != nil {
+		if errors.Is(err, oplog.ErrNotFound) {
+			return ref, dsref.ErrRefNotFound
+		}
+		return ref, err
+	}
+	ref.Path = book.latestSavePath(branchLog.l)
+
+	authorLog, err := book.store.Get(ctx, branchLog.l.Author())
+	if err != nil {
+		return ref, err
+	}
+	ref.ProfileID = authorLog.Ops[0].AuthorID
+	ref.Username = authorLog.Head().Name
+	return ref, nil
 }
 
 func (book *Book) latestSavePath(branchLog *oplog.Log) string {
