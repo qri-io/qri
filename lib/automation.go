@@ -197,8 +197,6 @@ func deploy(scope scope, p *DeployParams) {
 			}
 		}
 	}()
-	ds := p.Dataset
-	var err error
 
 	go func() {
 		if err := scope.Bus().PublishID(scope.Context(), event.ETDeploySaveDatasetStart, ref, deployPayload); err != nil {
@@ -215,7 +213,7 @@ func deploy(scope scope, p *DeployParams) {
 	if p.Dataset.ID == "" && p.Dataset.BodyFile() == nil {
 		saveParams.Apply = true
 	}
-	ds, err = datasetImpl{}.Save(scope, saveParams)
+	ds, err := datasetImpl{}.Save(scope, saveParams)
 	if err != nil && !errors.Is(err, dsfs.ErrNoChanges) {
 		log.Debugw("deploy save dataset", "error", err)
 		deployPayload.Error = err.Error()
@@ -301,7 +299,13 @@ func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workfl
 	if err != nil {
 		return err
 	}
+	ref := &dsref.Ref{InitID: w.DatasetID}
+	_, err = scope.ResolveReference(ctx, ref)
+	if err != nil {
+		return fmt.Errorf("run error: %w", err)
+	}
 	p := &SaveParams{
+		Ref: ref.Human(),
 		Dataset: &dataset.Dataset{
 			ID: w.DatasetID,
 			Commit: &dataset.Commit{

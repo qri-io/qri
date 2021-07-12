@@ -95,14 +95,21 @@ func TestDeploy(t *testing.T) {
 		Name:     "test",
 		Peername: tr.MustOwner(t).Peername,
 		Transform: &dataset.Transform{
-			ScriptBytes: []byte(`
+			Steps: []*dataset.TransformStep{
+				&dataset.TransformStep{
+					Name:     "transform",
+					Syntax:   "starlark",
+					Category: "transform",
+					Script: `
 body = """a,b,c
 1,2,3
 4,5,6
 """
 def transform(ds,ctx):
 	ds.set_body(body, parse_as="csv")
-`),
+`,
+				},
+			},
 		},
 	}
 	ds.SetBodyFile(bodyFile)
