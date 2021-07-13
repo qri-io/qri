@@ -110,7 +110,7 @@ func (rt *RuntimeTrigger) UnmarshalJSON(d []byte) error {
 // RuntimeListener listens for RuntimeTriggers to fire
 type RuntimeListener struct {
 	bus                event.Bus
-	TriggerCh          chan *event.WorkflowTriggerEvent
+	TriggerCh          chan event.WorkflowTriggerEvent
 	listening          bool
 	activeTriggersLock sync.Mutex
 	activeTriggers     map[profile.ID]map[string][]string
@@ -122,7 +122,7 @@ type RuntimeListener struct {
 func NewRuntimeListener(ctx context.Context, bus event.Bus) *RuntimeListener {
 	rl := &RuntimeListener{
 		bus:            bus,
-		TriggerCh:      make(chan *event.WorkflowTriggerEvent),
+		TriggerCh:      make(chan event.WorkflowTriggerEvent),
 		activeTriggers: map[profile.ID]map[string][]string{},
 	}
 	// start ensures that if a RuntimeTrigger attempts to trigger a workflow,
@@ -226,9 +226,9 @@ func (l *RuntimeListener) start(ctx context.Context) error {
 					continue
 				}
 
-				err := l.bus.Publish(ctx, event.ETWorkflowTrigger, wtp)
+				err := l.bus.Publish(ctx, event.ETAutomationWorkflowTrigger, wtp)
 				if err != nil {
-					log.Debugf("RuntimeListener error publishing event.ETWorkflowTrigger: %s", err)
+					log.Debugf("RuntimeListener error publishing event.ETAutomationWorkflowTrigger: %s", err)
 					continue
 				}
 			case <-ctx.Done():
@@ -239,7 +239,7 @@ func (l *RuntimeListener) start(ctx context.Context) error {
 	return nil
 }
 
-func (l *RuntimeListener) shouldTrigger(ctx context.Context, wtp *event.WorkflowTriggerEvent) error {
+func (l *RuntimeListener) shouldTrigger(ctx context.Context, wtp event.WorkflowTriggerEvent) error {
 	l.activeTriggersLock.Lock()
 	defer l.activeTriggersLock.Unlock()
 

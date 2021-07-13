@@ -41,7 +41,7 @@ func TestRuntimeListener(t *testing.T) {
 			if rl.TriggerCh == nil {
 				return
 			}
-			wtp := &event.WorkflowTriggerEvent{
+			wtp := event.WorkflowTriggerEvent{
 				OwnerID:    wf.OwnerID,
 				WorkflowID: wf.ID.String(),
 				TriggerID:  rt.ID(),

@@ -41,7 +41,7 @@ var NewID = func() string {
 	return string(b)
 }
 
-// A Trigger determines under what circumstances an `event.ETWorkflowTrigger`
+// A Trigger determines under what circumstances an `event.ETAutomationWorkflowTrigger`
 // should be emitted on the given event.Bus. It knows how to `Advance` itself.
 type Trigger interface {
 	json.Marshaler

@@ -151,7 +151,7 @@ func DefaultOrchestratorOptions() OrchestratorOptions {
 func (o *Orchestrator) Start(ctx context.Context) error {
 	// TODO(ramfox): when hooks and completors are set up, start them here
 	o.running = true
-	o.bus.SubscribeTypes(o.handleTrigger, event.ETWorkflowTrigger)
+	o.bus.SubscribeTypes(o.handleTrigger, event.ETAutomationWorkflowTrigger)
 	return o.startListeners(ctx)
 }
 
@@ -233,12 +233,12 @@ func (o *Orchestrator) advanceTrigger(wf *workflow.Workflow, triggerID string) *
 	return wf
 }
 
-// handleTrigger calls `RunWorkflow` when an `event.ETWorkflowTrigger` event is fired
-// it expects the payload for the `event.ETWorkflowTrigger` to be a workflow.ID
+// handleTrigger calls `RunWorkflow` when an `event.ETAutomationWorkflowTrigger` event is fired
+// it expects the payload for the `event.ETAutomationWorkflowTrigger` to be a workflow.ID
 // represented as a string
 func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
-	if e.Type == event.ETWorkflowTrigger {
-		wtp, ok := e.Payload.(*event.WorkflowTriggerEvent)
+	if e.Type == event.ETAutomationWorkflowTrigger {
+		wtp, ok := e.Payload.(event.WorkflowTriggerEvent)
 		if !ok {
 			return fmt.Errorf("handleTrigger: expected event.Payload to be an `event.WorkflowTriggerEvent`: %v", e.Payload)
 		}
@@ -284,7 +284,7 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 	// for this workflow, and emit the events for hooks that this orchestrator understands
 
 	go func(wf *workflow.Workflow) {
-		if err := o.bus.PublishID(ctx, event.ETWorkflowStarted, wf.ID.String(), &event.WorkflowStartedEvent{
+		if err := o.bus.PublishID(ctx, event.ETAutomationWorkflowStarted, wf.ID.String(), event.WorkflowStartedEvent{
 			DatasetID:  wf.DatasetID,
 			OwnerID:    wf.OwnerID,
 			WorkflowID: wf.WorkflowID(),
@@ -320,7 +320,7 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 			}
 			status = string(runStatus)
 		}
-		if err := o.bus.PublishID(ctx, event.ETWorkflowStopped, wf.ID.String(), &event.WorkflowStoppedEvent{
+		if err := o.bus.PublishID(ctx, event.ETAutomationWorkflowStopped, wf.ID.String(), event.WorkflowStoppedEvent{
 			DatasetID:  wf.DatasetID,
 			OwnerID:    wf.OwnerID,
 			WorkflowID: wf.WorkflowID(),

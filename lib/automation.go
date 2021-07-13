@@ -178,7 +178,7 @@ func deploy(scope scope, p *DeployParams) {
 	}
 	log.Debugw("deploy started", "payload", deployPayload)
 	go func() {
-		if err := scope.Bus().PublishID(ctx, event.ETDeployStart, ref, deployPayload); err != nil {
+		if err := scope.Bus().PublishID(ctx, event.ETAutomationDeployStart, ref, deployPayload); err != nil {
 			log.Debug(err)
 		}
 	}()
@@ -199,7 +199,7 @@ func deploy(scope scope, p *DeployParams) {
 	}()
 
 	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETDeploySaveDatasetStart, ref, deployPayload); err != nil {
+		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeploySaveDatasetStart, ref, deployPayload); err != nil {
 			log.Debug(err)
 		}
 	}()
@@ -218,7 +218,7 @@ func deploy(scope scope, p *DeployParams) {
 		log.Debugw("deploy save dataset", "error", err)
 		deployPayload.Error = err.Error()
 		go func() {
-			if err := scope.Bus().PublishID(scope.Context(), event.ETDeployEnd, ref, deployPayload); err != nil {
+			if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployEnd, ref, deployPayload); err != nil {
 				log.Debug(err)
 			}
 		}()
@@ -227,7 +227,7 @@ func deploy(scope scope, p *DeployParams) {
 
 	deployPayload.DatasetID = ds.ID
 	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETDeploySaveDatasetEnd, ref, deployPayload); err != nil {
+		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeploySaveDatasetEnd, ref, deployPayload); err != nil {
 			log.Debug(err)
 		}
 	}()
@@ -237,7 +237,7 @@ func deploy(scope scope, p *DeployParams) {
 	wf.OwnerID = scope.ActiveProfile().ID
 
 	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETDeploySaveWorkflowStart, ref, deployPayload); err != nil {
+		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeploySaveWorkflowStart, ref, deployPayload); err != nil {
 			log.Debug(err)
 		}
 	}()
@@ -247,7 +247,7 @@ func deploy(scope scope, p *DeployParams) {
 		log.Debugw("deploy save workflow", "error", err)
 		deployPayload.Error = err.Error()
 		go func() {
-			if err := scope.Bus().PublishID(scope.Context(), event.ETDeployEnd, ref, deployPayload); err != nil {
+			if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployEnd, ref, deployPayload); err != nil {
 				log.Debug(err)
 			}
 		}()
@@ -256,7 +256,7 @@ func deploy(scope scope, p *DeployParams) {
 
 	deployPayload.WorkflowID = wf.ID.String()
 	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETDeploySaveWorkflowEnd, ref, deployPayload); err != nil {
+		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeploySaveWorkflowEnd, ref, deployPayload); err != nil {
 			log.Debug(err)
 		}
 	}()
@@ -266,7 +266,7 @@ func deploy(scope scope, p *DeployParams) {
 
 		deployPayload.RunID = runID
 		go func() {
-			if err := scope.Bus().PublishID(scope.Context(), event.ETDeployRun, ref, deployPayload); err != nil {
+			if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployRun, ref, deployPayload); err != nil {
 				log.Debug(err)
 			}
 		}()
@@ -276,7 +276,7 @@ func deploy(scope scope, p *DeployParams) {
 			log.Debugw("deploy run workflow", "error", err)
 			deployPayload.Error = err.Error()
 			go func() {
-				if err := scope.Bus().PublishID(scope.Context(), event.ETDeployEnd, ref, deployPayload); err != nil {
+				if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployEnd, ref, deployPayload); err != nil {
 					log.Debug(err)
 				}
 			}()
@@ -286,7 +286,7 @@ func deploy(scope scope, p *DeployParams) {
 	}
 	log.Debug("deploy ended")
 	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETDeployEnd, ref, deployPayload); err != nil {
+		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployEnd, ref, deployPayload); err != nil {
 			log.Debug(err)
 		}
 	}()

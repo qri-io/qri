@@ -102,12 +102,12 @@ func AssertListener(t *testing.T, listenerConstructor ListenerConstructor) {
 
 	triggered := make(chan string)
 	handler := func(ctx context.Context, e event.Event) error {
-		if e.Type == event.ETWorkflowTrigger {
+		if e.Type == event.ETAutomationWorkflowTrigger {
 			triggered <- "triggered!"
 		}
 		return nil
 	}
-	bus.SubscribeTypes(handler, event.ETWorkflowTrigger)
+	bus.SubscribeTypes(handler, event.ETAutomationWorkflowTrigger)
 	done := shouldTimeout(t, triggered, "listener should not emit events until the listener has been started by running `listener.Start()`")
 	activateTrigger()
 	<-done
@@ -115,7 +115,7 @@ func AssertListener(t *testing.T, listenerConstructor ListenerConstructor) {
 	if err := listener.Start(ctx); err != nil {
 		t.Fatalf("listener.Start unexpected error: %s", err)
 	}
-	done = errOnTimeout(t, triggered, "listener did not emit an event.ETWorkflowTrigger event when the trigger was activated")
+	done = errOnTimeout(t, triggered, "listener did not emit an event.ETAutomationWorkflowTrigger event when the trigger was activated")
 	activateTrigger()
 	<-done
 

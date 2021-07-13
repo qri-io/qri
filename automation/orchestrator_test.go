@@ -49,7 +49,6 @@ func TestIntegration(t *testing.T) {
 		Listeners:     []trigger.Listener{runtimeListener},
 	}
 
-	ran := make(chan string)
 	runFuncFactory := func(ctx context.Context) Run {
 		return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
 			// since we don't actually run anything
@@ -59,7 +58,8 @@ func TestIntegration(t *testing.T) {
 				WorkflowID: w.ID,
 				Status:     run.RSSucceeded,
 			})
-			ran <- "ran!"
+			<-time.After(50 * time.Millisecond)
+			t.Log("ran!")
 			return nil
 		}
 	}
@@ -141,52 +141,54 @@ func TestIntegration(t *testing.T) {
 	}
 
 	runID := "runID_1"
-	expectedWorkflowStartedEvent := &event.WorkflowStartedEvent{
-		DatasetID:  got.DatasetID,
-		OwnerID:    got.OwnerID,
-		WorkflowID: got.WorkflowID(),
-		RunID:      runID,
+	expectedWorkflowEvents := []interface{}{
+		event.WorkflowStartedEvent{
+			DatasetID:  got.DatasetID,
+			OwnerID:    got.OwnerID,
+			WorkflowID: got.WorkflowID(),
+			RunID:      runID,
+		},
+		event.WorkflowStoppedEvent{
+			DatasetID:  got.DatasetID,
+			OwnerID:    got.OwnerID,
+			WorkflowID: got.WorkflowID(),
+			RunID:      runID,
+			Status:     string(run.RSSucceeded),
+		},
 	}
-	expectedWorkflowStoppedEvent := &event.WorkflowStoppedEvent{
-		DatasetID:  got.DatasetID,
-		OwnerID:    got.OwnerID,
-		WorkflowID: got.WorkflowID(),
-		RunID:      runID,
-		Status:     string(run.RSSucceeded),
-	}
-	var gotWorkflowStartedEvent *event.WorkflowStartedEvent
-	var gotWorkflowStoppedEvent *event.WorkflowStoppedEvent
+	gotWorkflowEvents := []interface{}{}
+	workflowStoppedEventFired := make(chan string)
 	workflowEventsHandler := func(ctx context.Context, e event.Event) error {
-		ok := true
 		switch e.Type {
-		case event.ETWorkflowStarted:
-			gotWorkflowStartedEvent, ok = e.Payload.(*event.WorkflowStartedEvent)
+		case event.ETAutomationWorkflowStarted:
+			gotWorkflowStartedEvent, ok := e.Payload.(event.WorkflowStartedEvent)
 			if !ok {
-				t.Fatal("event.ETWorkflowStarted event should have payload *event.WorkflowStartedEvent")
+				t.Fatal("event.ETAutomationWorkflowStarted event should have payload event.WorkflowStartedEvent")
 			}
-		case event.ETWorkflowStopped:
-			gotWorkflowStoppedEvent, ok = e.Payload.(*event.WorkflowStoppedEvent)
+			gotWorkflowEvents = append(gotWorkflowEvents, gotWorkflowStartedEvent)
+		case event.ETAutomationWorkflowStopped:
+			gotWorkflowStoppedEvent, ok := e.Payload.(event.WorkflowStoppedEvent)
 			if !ok {
-				t.Fatal("event.ETWorkflowStopped event should have payload *event.WorkflowStoppedEvent")
+				t.Fatal("event.ETAutomationWorkflowStopped event should have payload event.WorkflowStoppedEvent")
 			}
+			gotWorkflowEvents = append(gotWorkflowEvents, gotWorkflowStoppedEvent)
+			workflowStoppedEventFired <- "workflow finished"
 		}
 		return nil
 	}
 
-	bus.SubscribeTypes(workflowEventsHandler, event.ETWorkflowStarted, event.ETWorkflowStopped)
-	done := errOnTimeout(t, ran, "o.RunWorkflow error: timed out before run function called")
+	bus.SubscribeTypes(workflowEventsHandler, event.ETAutomationWorkflowStarted, event.ETAutomationWorkflowStopped)
+	done := errOnTimeout(t, workflowStoppedEventFired, "o.RunWorkflow error: timed out before `ETAutomationWorkflowStopped` event fired")
 	err = o.RunWorkflow(ctx, got.ID, runID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	<-done
 
-	if diff := cmp.Diff(expectedWorkflowStartedEvent, gotWorkflowStartedEvent); diff != "" {
-		t.Errorf("WorkflowStartedEvent mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(expectedWorkflowEvents, gotWorkflowEvents); diff != "" {
+		t.Errorf("Workflow events mismatch (-want +got):\n%s", diff)
 	}
-	if diff := cmp.Diff(expectedWorkflowStoppedEvent, gotWorkflowStoppedEvent); diff != "" {
-		t.Errorf("WorkflowStoppedEvent mismatch (-want +got):\n%s", diff)
-	}
+	gotWorkflowEvents = []interface{}{}
 
 	done = errOnTimeout(t, applied, "o.ApplyWorkflow error: timed out before apply function called")
 	_, err = o.ApplyWorkflow(ctx, false, nil, got, nil, nil)
@@ -210,13 +212,13 @@ func TestIntegration(t *testing.T) {
 		t.Fatal("workflow unexpectedly has no active triggers")
 	}
 	triggerID := activeTriggers[0]["id"].(string)
-	wtp := &event.WorkflowTriggerEvent{
+	wtp := event.WorkflowTriggerEvent{
 		OwnerID:    expected.Owner(),
 		WorkflowID: expected.WorkflowID(),
 		TriggerID:  triggerID,
 	}
-	done = shouldTimeout(t, ran, "trigger should not trigger a workflow before the orchestrator has run `Start`")
-	bus.Publish(ctx, event.ETWorkflowTrigger, wtp)
+	done = shouldTimeout(t, workflowStoppedEventFired, "trigger should not trigger a workflow before the orchestrator has run `Start`")
+	bus.Publish(ctx, event.ETAutomationWorkflowTrigger, wtp)
 	<-done
 
 	err = o.Start(ctx)
@@ -241,31 +243,30 @@ func TestIntegration(t *testing.T) {
 	if runtimeListener.TriggersExists(wf) {
 		t.Fatalf("UndeployWorkflow should update listeners")
 	}
+	expectedWorkflowEvents = []interface{}{
+		event.WorkflowStartedEvent{
+			DatasetID:  expected.DatasetID,
+			OwnerID:    expected.OwnerID,
+			WorkflowID: expected.WorkflowID(),
+		},
+		event.WorkflowStoppedEvent{
+			DatasetID:  expected.DatasetID,
+			OwnerID:    expected.OwnerID,
+			WorkflowID: expected.WorkflowID(),
+			Status:     string(run.RSSucceeded),
+		},
+	}
 
-	done = errOnTimeout(t, ran, "manual trigger error: time out before orchestrator ran a workflow from a trigger")
+	done = errOnTimeout(t, workflowStoppedEventFired, "manual trigger error: time out before orchestrator published the `ETAutomationWorkflowStopped` event")
 	runtimeListener.TriggerCh <- wtp
 	<-done
-	expectedWorkflowStartedEvent = &event.WorkflowStartedEvent{
-		DatasetID:  expected.DatasetID,
-		OwnerID:    expected.OwnerID,
-		WorkflowID: expected.WorkflowID(),
-	}
-	expectedWorkflowStoppedEvent = &event.WorkflowStoppedEvent{
-		DatasetID:  expected.DatasetID,
-		OwnerID:    expected.OwnerID,
-		WorkflowID: expected.WorkflowID(),
-		Status:     string(run.RSSucceeded),
-	}
 
-	if diff := cmp.Diff(expectedWorkflowStartedEvent, gotWorkflowStartedEvent, cmpopts.IgnoreFields(event.WorkflowStartedEvent{}, "RunID")); diff != "" {
-		t.Errorf("WorkflowStartedEvent mismatch (-want +got):\n%s", diff)
-	}
-	if diff := cmp.Diff(expectedWorkflowStoppedEvent, gotWorkflowStoppedEvent, cmpopts.IgnoreFields(event.WorkflowStoppedEvent{}, "RunID")); diff != "" {
-		t.Errorf("WorkflowStoppedEvent mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(expectedWorkflowEvents, gotWorkflowEvents, cmpopts.IgnoreFields(event.WorkflowStartedEvent{}, "RunID"), cmpopts.IgnoreFields(event.WorkflowStoppedEvent{}, "RunID")); diff != "" {
+		t.Errorf("Workflow events mismatch (-want +got):\n%s", diff)
 	}
 
 	o.Stop()
-	done = shouldTimeout(t, ran, "o.Stop error: orchestrator that has stopped listening should not respond to triggers")
+	done = shouldTimeout(t, workflowStoppedEventFired, "o.Stop error: orchestrator that has stopped listening should not respond to triggers")
 	runtimeListener.TriggerCh <- wtp
 	<-done
 }
@@ -316,16 +317,16 @@ func TestRunStoreEvents(t *testing.T) {
 
 	// We are only interested in ensuring that the runEventsHandler is working
 	// properly. To make sure that the mock time only effects the events we
-	// are checking for, lets make sure to wait for the `ETWorkflowStarted` event
+	// are checking for, lets make sure to wait for the `ETAutomationWorkflowStarted` event
 	// to pass, before we mock the transform events sequence
 	workflowStarted := make(chan struct{})
 	handleWorkflowStarted := func(ctx context.Context, e event.Event) error {
-		if e.Type == event.ETWorkflowStarted {
+		if e.Type == event.ETAutomationWorkflowStarted {
 			workflowStarted <- struct{}{}
 		}
 		return nil
 	}
-	bus.SubscribeTypes(handleWorkflowStarted, event.ETWorkflowStarted)
+	bus.SubscribeTypes(handleWorkflowStarted, event.ETAutomationWorkflowStarted)
 	// this runFunc simulates events emitted by the transform package
 	runFuncFactory := func(ctx context.Context) Run {
 		return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
@@ -333,7 +334,7 @@ func TestRunStoreEvents(t *testing.T) {
 			case <-workflowStarted:
 				break
 			case <-time.After(200 * time.Millisecond):
-				t.Fatal("RunWorkflow error: should have received `ETWorkflowStarted` event")
+				t.Fatal("RunWorkflow error: should have received `ETAutomationWorkflowStarted` event")
 			}
 
 			// mock time

@@ -135,16 +135,16 @@ def transform(ds,ctx):
 	bus := tr.Instance.Bus()
 	handleDeploy := func(ctx context.Context, e event.Event) error {
 		switch e.Type {
-		case event.ETDeployEnd:
+		case event.ETAutomationDeployEnd:
 			payload, ok := e.Payload.(event.DeployEvent)
 			if !ok {
-				deployEnded <- "event.ETDeployEnd payload not of type event.DeployEvent"
+				deployEnded <- "event.ETAutomationDeployEnd payload not of type event.DeployEvent"
 			}
 			deployEnded <- payload.Error
 		}
 		return nil
 	}
-	bus.SubscribeTypes(handleDeploy, event.ETDeployEnd)
+	bus.SubscribeTypes(handleDeploy, event.ETAutomationDeployEnd)
 	if err := tr.Instance.WithSource("local").Automation().Deploy(tr.Ctx, p); err != nil {
 		t.Fatalf("deploy unexpected error: %s", err)
 	}
