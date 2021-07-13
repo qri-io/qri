@@ -74,7 +74,14 @@ func (s Server) Serve(ctx context.Context) (err error) {
 		Handler: s.Mux,
 	}
 
+	// TODO(ramfox): check config to see if automation is active
+	automationCancel, err := s.Instance.AutomationListen(ctx)
+	if err != nil {
+		return err
+	}
+
 	info := "qri is ready."
+	info += "\nlistening for triggers"
 	if !p2pConnected {
 		info += "running with no p2p connection"
 	}
@@ -92,6 +99,7 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	go func() {
 		<-ctx.Done()
 		log.Info("shutting down")
+		automationCancel()
 		server.Close()
 	}()
 

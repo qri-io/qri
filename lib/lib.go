@@ -1115,6 +1115,16 @@ func (inst *Instance) TokenProvider() token.Provider {
 	return inst.tokenProvider
 }
 
+// AutomationListen starts the automation orchestrator listening for automation
+// trigger
+func (inst *Instance) AutomationListen(ctx context.Context) (cancel func(), err error) {
+	err = inst.automation.Start(ctx)
+	if err != nil {
+		return
+	}
+	return inst.automation.Stop, nil
+}
+
 // activeProfile tries to extract the current user from values embedded in the
 // passed-in context, falling back to the repo owner as a default active profile
 func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, err error) {
