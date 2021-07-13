@@ -32,7 +32,7 @@ var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // NewID returns a random string ID of alphanumeric characters
 // These IDs only have to be unique within a single workflow
-// This can be replaced by a determinate `NewID` function for testing
+// This can be replaced with a determinate `NewID` function for testing
 var NewID = func() string {
 	b := make([]byte, 5)
 	for i := range b {
