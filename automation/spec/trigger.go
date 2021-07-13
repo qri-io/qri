@@ -57,6 +57,28 @@ func AssertTrigger(t *testing.T, trig trigger.Trigger) {
 	if err := json.Unmarshal(triggerBytes, trig); !errors.Is(err, trigger.ErrUnexpectedType) {
 		t.Fatalf("json.Unmarshal should emit a `trigger.ErrUnexpectedType` error if the given type does not match the trigger.Type of the Trigger")
 	}
+	triggerObj = trig.ToMap()
+	triggerType, ok = triggerObj["type"]
+	if !ok {
+		t.Fatal("trigger.ToMap() error, expected 'type' field to exist")
+	}
+	if triggerType != trig.Type() {
+		t.Fatalf("trigger.ToMap() error, expected map type %q to match trigger.Type() %q", triggerType, trig.Type())
+	}
+	triggerActive, ok := triggerObj["active"]
+	if !ok {
+		t.Fatal("trigger.ToMap() error, expected 'active' field to exist")
+	}
+	if triggerActive != trig.Active() {
+		t.Fatalf("trigger.ToMap() error, expected map field 'active' to match trig.Active() value ")
+	}
+	triggerID, ok := triggerObj["id"]
+	if !ok {
+		t.Fatal("trigger.ToMap() error, expected 'id' field to exist")
+	}
+	if triggerID != trig.ID() {
+		t.Fatal("trigger.ToMap() error, expected map field 'id' to match trig.ID() value")
+	}
 }
 
 // ListenerConstructor creates a trigger listener and function that fires the listener when called
@@ -80,12 +102,12 @@ func AssertListener(t *testing.T, listenerConstructor ListenerConstructor) {
 
 	triggered := make(chan string)
 	handler := func(ctx context.Context, e event.Event) error {
-		if e.Type == event.ETWorkflowTrigger {
+		if e.Type == event.ETAutomationWorkflowTrigger {
 			triggered <- "triggered!"
 		}
 		return nil
 	}
-	bus.SubscribeTypes(handler, event.ETWorkflowTrigger)
+	bus.SubscribeTypes(handler, event.ETAutomationWorkflowTrigger)
 	done := shouldTimeout(t, triggered, "listener should not emit events until the listener has been started by running `listener.Start()`")
 	activateTrigger()
 	<-done
@@ -93,7 +115,7 @@ func AssertListener(t *testing.T, listenerConstructor ListenerConstructor) {
 	if err := listener.Start(ctx); err != nil {
 		t.Fatalf("listener.Start unexpected error: %s", err)
 	}
-	done = errOnTimeout(t, triggered, "listener did not emit an event.ETWorkflowTrigger event when the trigger was activated")
+	done = errOnTimeout(t, triggered, "listener did not emit an event.ETAutomationWorkflowTrigger event when the trigger was activated")
 	activateTrigger()
 	<-done
 

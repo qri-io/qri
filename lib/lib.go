@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/auth/token"
+	"github.com/qri-io/qri/automation"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
@@ -608,7 +609,16 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			inst.remoteOptsFuncs = o.remoteOptsFuncs
 		}
 	}
-
+	runFactory := func(ctx context.Context) automation.Run {
+		return inst.run
+	}
+	applyFactory := func(ctx context.Context) automation.Apply {
+		return inst.apply
+	}
+	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
+	// basic orchestrator options. When we get the automation configuration settled
+	// we will build a more robust solution
+	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, automation.DefaultOrchestratorOptions())
 	go inst.waitForAllDone()
 	go func() {
 		if err := inst.bus.Publish(ctx, event.ETInstanceConstructed, nil); err != nil {
@@ -731,7 +741,18 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		inst.qfs = r.Filesystem()
 	}
 
+	runFactory := func(ctx context.Context) automation.Run {
+		return inst.run
+	}
+	applyFactory := func(ctx context.Context) automation.Apply {
+		return inst.apply
+	}
+
 	var err error
+	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
+	// basic orchestrator options. When we get the automation configuration settled
+	// we will build a more robust solution
+	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, automation.DefaultOrchestratorOptions())
 	inst.remoteClient, err = remote.NewClient(ctx, node, inst.bus)
 	if err != nil {
 		cancel()
@@ -771,6 +792,7 @@ type Instance struct {
 	logbook       *logbook.Book
 	dscache       *dscache.Dscache
 	collectionSet collection.Set
+	automation    *automation.Orchestrator
 	tokenProvider token.Provider
 	bus           event.Bus
 	watcher       *watchfs.FilesysWatcher
@@ -849,6 +871,11 @@ func (inst *Instance) Access() AccessMethods {
 	return AccessMethods{d: inst}
 }
 
+// Automation returns the AutomationMethods that Instance has registered
+func (inst *Instance) Automation() AutomationMethods {
+	return AutomationMethods{d: inst}
+}
+
 // Collection returns the CollectionMethods that Instance has registered
 func (inst *Instance) Collection() CollectionMethods {
 	return CollectionMethods{d: inst}
@@ -909,11 +936,6 @@ func (inst *Instance) SQL() SQLMethods {
 	return SQLMethods{d: inst}
 }
 
-// Automation returns the AutomationMethods that Instance has registered
-func (inst *Instance) Automation() AutomationMethods {
-	return AutomationMethods{d: inst}
-}
-
 // WithSource returns a wrapped instance that will resolve refs from the given source
 func (inst *Instance) WithSource(source string) *InstanceSourceWrap {
 	return &InstanceSourceWrap{
@@ -932,6 +954,11 @@ func (inst *Instance) WithSource(source string) *InstanceSourceWrap {
 type InstanceSourceWrap struct {
 	source string
 	inst   *Instance
+}
+
+// Automation returns the AutomationMethods that Instance has registered
+func (isw *InstanceSourceWrap) Automation() AutomationMethods {
+	return AutomationMethods{d: isw}
 }
 
 // Dataset returns the DatasetMethods that Instance has registered
@@ -1095,39 +1122,43 @@ func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, 
 		return nil, fmt.Errorf("no instance")
 	}
 
-	if tokenString := token.FromCtx(ctx); tokenString != "" {
-		tok, err := token.ParseAuthToken(tokenString, inst.keystore)
-		if err != nil {
-			return nil, err
-		}
-
-		if claims, ok := tok.Claims.(*token.Claims); ok {
-			// TODO(b5): at this point we have a valid signature of a profileID string
-			// but no proof that this profile is owned by the key that signed the
-			// token. We either need ProfileID == KeyID, or we need a UCAN. we need to
-			// check for those, ideally in a method within the profile package that
-			// abstracts over profile & key agreement
-			pid, err := profile.IDB58Decode(claims.Subject)
+	// try to get the profileID from the context
+	profileIDString := profile.IDFromCtx(ctx)
+	if profileIDString == "" {
+		if tokenString := token.FromCtx(ctx); tokenString != "" {
+			tok, err := token.ParseAuthToken(tokenString, inst.keystore)
 			if err != nil {
-				return nil, fmt.Errorf("invalid request profile ID")
+				return nil, err
 			}
-			pro, err := inst.profiles.GetProfile(pid)
-			if errors.Is(err, profile.ErrNotFound) {
-				return nil, fmt.Errorf("request profile not sent")
+
+			if claims, ok := tok.Claims.(*token.Claims); ok {
+				// TODO(b5): at this point we have a valid signature of a profileID string
+				// but no proof that this profile is owned by the key that signed the
+				// token. We either need ProfileID == KeyID, or we need a UCAN. we need to
+				// check for those, ideally in a method within the profile package that
+				// abstracts over profile & key agreement
+				profileIDString = claims.Subject
 			}
-			return pro, err
 		}
+	}
+
+	if profileIDString != "" {
+		pid, err := profile.IDB58Decode(profileIDString)
+		if err != nil {
+			return nil, fmt.Errorf("invalid profile ID")
+		}
+		pro, err := inst.profiles.GetProfile(pid)
+		if errors.Is(err, profile.ErrNotFound) {
+			return nil, fmt.Errorf("profile not found")
+		}
+		return pro, err
 	}
 
 	if inst.profiles != nil {
 		return inst.profiles.Owner(), nil
 	}
 
-	if pro == nil {
-		return nil, fmt.Errorf("no active profile")
-	}
-
-	return pro, err
+	return nil, fmt.Errorf("no active profile")
 }
 
 // checkRPCError validates RPC errors and in case of EOF returns a

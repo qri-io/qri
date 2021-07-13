@@ -1,11 +1,16 @@
 package lib
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/event"
 )
 
 func TestApplyTransform(t *testing.T) {
@@ -80,5 +85,71 @@ func TestApplyTransformValidationFailure(t *testing.T) {
 	expectErr := "one or both of Reference, Transform are required"
 	if err.Error() != expectErr {
 		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
+	}
+}
+
+func TestDeploy(t *testing.T) {
+	tr := newTestRunner(t)
+	bodyFile := qfs.NewMemfileBytes("body.csv", []byte("1,2,3\n4,5,6"))
+	ds := &dataset.Dataset{
+		Name:     "test",
+		Peername: tr.MustOwner(t).Peername,
+		Transform: &dataset.Transform{
+			Steps: []*dataset.TransformStep{
+				&dataset.TransformStep{
+					Name:     "transform",
+					Syntax:   "starlark",
+					Category: "transform",
+					Script: `
+body = """a,b,c
+1,2,3
+4,5,6
+"""
+def transform(ds,ctx):
+	ds.set_body(body, parse_as="csv")
+`,
+				},
+			},
+		},
+	}
+	ds.SetBodyFile(bodyFile)
+	wf := &workflow.Workflow{
+		OwnerID: tr.MustOwner(t).ID,
+		Active:  true,
+	}
+	p := &DeployParams{
+		Dataset:  ds,
+		Workflow: wf,
+		Run:      true,
+	}
+	deployEnded := make(chan string)
+	done := make(chan string)
+	go func() {
+		select {
+		case errMsg := <-deployEnded:
+			done <- errMsg
+		case <-time.After(200 * time.Millisecond):
+			done <- "timeout occured before deploy finished"
+		}
+	}()
+	bus := tr.Instance.Bus()
+	handleDeploy := func(ctx context.Context, e event.Event) error {
+		switch e.Type {
+		case event.ETAutomationDeployEnd:
+			payload, ok := e.Payload.(event.DeployEvent)
+			if !ok {
+				deployEnded <- "event.ETAutomationDeployEnd payload not of type event.DeployEvent"
+			}
+			deployEnded <- payload.Error
+		}
+		return nil
+	}
+	bus.SubscribeTypes(handleDeploy, event.ETAutomationDeployEnd)
+	if err := tr.Instance.WithSource("local").Automation().Deploy(tr.Ctx, p); err != nil {
+		t.Fatalf("deploy unexpected error: %s", err)
+	}
+	errMsg := <-done
+	if errMsg != "" {
+		t.Errorf(errMsg)
 	}
 }

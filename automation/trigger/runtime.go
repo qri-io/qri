@@ -13,6 +13,7 @@ import (
 // A RuntimeTrigger implements the Trigger interface & keeps track of the number
 // of times it had been advanced
 type RuntimeTrigger struct {
+	id           string
 	active       bool
 	AdvanceCount int
 }
@@ -25,9 +26,15 @@ const RuntimeType = "Runtime Trigger"
 // NewRuntimeTrigger returns an active `RuntimeTrigger`
 func NewRuntimeTrigger() *RuntimeTrigger {
 	return &RuntimeTrigger{
+		id:           NewID(),
 		active:       false,
 		AdvanceCount: 0,
 	}
+}
+
+// ID return the trigger.ID
+func (rt *RuntimeTrigger) ID() string {
+	return rt.id
 }
 
 // Active returns if the RuntimeTrigger is active
@@ -52,15 +59,18 @@ func (rt *RuntimeTrigger) Advance() error {
 	return nil
 }
 
-// Trigger sends the workflowID over the trigger channel
-func (rt *RuntimeTrigger) Trigger(t chan string, workflowID string) {
-	if t == nil {
-		log.Debugf("RuntimeTrigger: given trigger channel is nil")
+// ToMap returns the trigger as a map[string]interface{}
+func (rt *RuntimeTrigger) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"id":           rt.id,
+		"active":       rt.active,
+		"type":         RuntimeType,
+		"advanceCount": rt.AdvanceCount,
 	}
-	t <- workflowID
 }
 
 type runtimeTrigger struct {
+	ID           string `json:"id"`
 	Active       bool   `json:"active"`
 	Type         string `json:"type"`
 	AdvanceCount int    `json:"advanceCount"`
@@ -72,6 +82,7 @@ func (rt *RuntimeTrigger) MarshalJSON() ([]byte, error) {
 		rt = &RuntimeTrigger{}
 	}
 	return json.Marshal(runtimeTrigger{
+		ID:           rt.ID(),
 		Active:       rt.active,
 		Type:         rt.Type(),
 		AdvanceCount: rt.AdvanceCount,
@@ -88,10 +99,10 @@ func (rt *RuntimeTrigger) UnmarshalJSON(d []byte) error {
 	if t.Type != RuntimeType {
 		return fmt.Errorf("%w, got %s, expected %s", ErrUnexpectedType, t.Type, RuntimeType)
 	}
-	rt.active = t.Active
-	rt.AdvanceCount = t.AdvanceCount
-	if rt == nil {
-		rt = &RuntimeTrigger{}
+	*rt = RuntimeTrigger{
+		id:           t.ID,
+		active:       t.Active,
+		AdvanceCount: t.AdvanceCount,
 	}
 	return nil
 }
@@ -99,10 +110,10 @@ func (rt *RuntimeTrigger) UnmarshalJSON(d []byte) error {
 // RuntimeListener listens for RuntimeTriggers to fire
 type RuntimeListener struct {
 	bus                event.Bus
-	TriggerCh          chan string
+	TriggerCh          chan event.WorkflowTriggerEvent
 	listening          bool
 	activeTriggersLock sync.Mutex
-	activeTriggers     map[profile.ID][]string
+	activeTriggers     map[profile.ID]map[string][]string
 }
 
 // NewRuntimeListener creates a RuntimeListener, and begin receiving on the
@@ -111,8 +122,8 @@ type RuntimeListener struct {
 func NewRuntimeListener(ctx context.Context, bus event.Bus) *RuntimeListener {
 	rl := &RuntimeListener{
 		bus:            bus,
-		TriggerCh:      make(chan string),
-		activeTriggers: map[profile.ID][]string{},
+		TriggerCh:      make(chan event.WorkflowTriggerEvent),
+		activeTriggers: map[profile.ID]map[string][]string{},
 	}
 	// start ensures that if a RuntimeTrigger attempts to trigger a workflow,
 	// but the RuntimeListener has not been told to start listening for
@@ -136,6 +147,10 @@ func (l *RuntimeListener) ConstructTrigger(opt map[string]interface{}) (Trigger,
 	}
 	rt := &RuntimeTrigger{}
 	err = rt.UnmarshalJSON(data)
+
+	if rt.id == "" {
+		rt.id = NewID()
+	}
 	return rt, err
 }
 
@@ -154,39 +169,42 @@ func (l *RuntimeListener) Listen(sources ...Source) error {
 		if ownerID == "" {
 			return ErrEmptyOwnerID
 		}
-		triggers := s.ActiveTriggers(RuntimeType)
+		triggerOpts := s.ActiveTriggers(RuntimeType)
+		triggers := []Trigger{}
+		for _, triggerOpt := range triggerOpts {
+			t, err := l.ConstructTrigger(triggerOpt)
+			if err != nil {
+				return err
+			}
+			triggers = append(triggers, t)
+		}
 		wids, ok := l.activeTriggers[ownerID]
 		if !ok {
 			if len(triggers) == 0 {
 				continue
 			}
-			l.activeTriggers[ownerID] = []string{}
+			l.activeTriggers[ownerID] = map[string][]string{}
 			wids = l.activeTriggers[ownerID]
 		}
-		index := -1
-		for i, wid := range wids {
-			if wid == workflowID {
-				index = i
-				break
+		tids, ok := wids[workflowID]
+		if !ok {
+			if len(triggers) == 0 {
+				continue
 			}
+			l.activeTriggers[ownerID][workflowID] = []string{}
+			tids = l.activeTriggers[ownerID][workflowID]
 		}
 		if len(triggers) == 0 {
-			l.activeTriggers[ownerID] = remove(l.activeTriggers[ownerID], index)
+			delete(l.activeTriggers[ownerID], workflowID)
 			continue
 		}
-		if index == -1 {
-			l.activeTriggers[ownerID] = append(wids, workflowID)
+		tids = []string{}
+		for _, t := range triggers {
+			tids = append(tids, t.ID())
 		}
+		l.activeTriggers[ownerID][workflowID] = tids
 	}
 	return nil
-}
-
-func remove(wids []string, i int) []string {
-	if i < 0 || i > len(wids)-1 {
-		return wids
-	}
-	wids[i] = wids[len(wids)-1]
-	return wids[:len(wids)-1]
 }
 
 // Type returns the Type `RuntimeType`
@@ -198,19 +216,19 @@ func (l *RuntimeListener) start(ctx context.Context) error {
 	go func() {
 		for {
 			select {
-			case id := <-l.TriggerCh:
+			case wtp := <-l.TriggerCh:
 				if !l.listening {
 					log.Debugf("RuntimeListener: trigger ignored")
 					continue
 				}
-				if err := l.shouldTrigger(ctx, id); err != nil {
+				if err := l.shouldTrigger(ctx, wtp); err != nil {
 					log.Debugf("RuntimeListener error: %s", err)
 					continue
 				}
 
-				err := l.bus.Publish(ctx, event.ETWorkflowTrigger, id)
+				err := l.bus.Publish(ctx, event.ETAutomationWorkflowTrigger, wtp)
 				if err != nil {
-					log.Debugf("RuntimeListener error publishing event.ETWorkflowTrigger: %s", err)
+					log.Debugf("RuntimeListener error publishing event.ETAutomationWorkflowTrigger: %s", err)
 					continue
 				}
 			case <-ctx.Done():
@@ -221,18 +239,24 @@ func (l *RuntimeListener) start(ctx context.Context) error {
 	return nil
 }
 
-func (l *RuntimeListener) shouldTrigger(ctx context.Context, id string) error {
+func (l *RuntimeListener) shouldTrigger(ctx context.Context, wtp event.WorkflowTriggerEvent) error {
 	l.activeTriggersLock.Lock()
 	defer l.activeTriggersLock.Unlock()
 
-	for _, widsForOwner := range l.activeTriggers {
-		for _, wid := range widsForOwner {
-			if wid == id {
-				return nil
-			}
+	workflowIDs, ok := l.activeTriggers[wtp.OwnerID]
+	if !ok {
+		return ErrNotFound
+	}
+	triggerIDs, ok := workflowIDs[wtp.WorkflowID]
+	if !ok {
+		return ErrNotFound
+	}
+	for _, tid := range triggerIDs {
+		if tid == wtp.TriggerID {
+			return nil
 		}
 	}
-	return fmt.Errorf("no active Runtime trigger associated with the given workflow ID %q", id)
+	return ErrNotFound
 }
 
 // Start tells the RuntimeListener to begin actively listening for RuntimeTriggers
@@ -253,18 +277,35 @@ func (l *RuntimeListener) Stop() error {
 	return nil
 }
 
-// TriggerExists returns true if there is a record of a trigger for the given workflow id
-func (l *RuntimeListener) TriggerExists(source Source) bool {
+// TriggersExists returns true if triggers in the source match the triggers stored in
+// the runtime listener
+func (l *RuntimeListener) TriggersExists(source Source) bool {
 	l.activeTriggersLock.Lock()
 	defer l.activeTriggersLock.Unlock()
-	ids, ok := l.activeTriggers[source.Owner()]
+
+	ownerID := source.Owner()
+	workflowID := source.WorkflowID()
+	wids, ok := l.activeTriggers[ownerID]
 	if !ok {
 		return false
 	}
-	for _, id := range ids {
-		if id == source.WorkflowID() {
-			return true
+	tids, ok := wids[workflowID]
+	if !ok {
+		return false
+	}
+	triggerOpts := source.ActiveTriggers(RuntimeType)
+	if len(triggerOpts) != len(tids) {
+		return false
+	}
+	for i, opt := range triggerOpts {
+		t, err := l.ConstructTrigger(opt)
+		if err != nil {
+			log.Errorw("runtimeListener.TriggersExist", "error", err)
+			return false
+		}
+		if t.ID() != tids[i] {
+			return false
 		}
 	}
-	return false
+	return true
 }
