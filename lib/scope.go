@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/automation"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
@@ -153,6 +154,10 @@ func (s *scope) RemoteClient() remote.Client {
 // Repo returns the repo store
 func (s *scope) Repo() repo.Repo {
 	return s.inst.repo
+}
+
+func (s *scope) Automation() *automation.Orchestrator {
+	return s.inst.automation
 }
 
 // RepoPath returns the path to the repo

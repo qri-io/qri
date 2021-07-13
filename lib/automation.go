@@ -2,14 +2,16 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
-	"github.com/qri-io/qri/automation/run"
+	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/transform"
 )
 
@@ -26,8 +28,29 @@ func (m AutomationMethods) Name() string {
 // Attributes defines attributes for each method
 func (m AutomationMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apply": {Endpoint: AEApply, HTTPVerb: "POST"},
+		"apply":    {Endpoint: AEApply, HTTPVerb: "POST"},
+		"deploy":   {Endpoint: AEDeploy, HTTPVerb: "POST"},
+		"workflow": {Endpoint: AEWorkflow, HTTPVerb: "POST"},
 	}
+}
+
+type WorkflowParams struct {
+	Ref        string
+	WorkflowID string
+}
+
+type WorkflowResult struct {
+	Workflow *workflow.Workflow `json:"workflow"`
+	Dataset  *dataset.Dataset   `json:"dataset"`
+	Ref      string             `json:"ref"`
+}
+
+func (m AutomationMethods) Workflow(ctx context.Context, p *WorkflowParams) (*WorkflowResult, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "workflow"), p)
+	if res, ok := got.(*WorkflowResult); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
 }
 
 // ApplyParams are parameters for the apply command
@@ -63,6 +86,37 @@ func (m AutomationMethods) Apply(ctx context.Context, p *ApplyParams) (*ApplyRes
 	return nil, dispatchReturnError(got, err)
 }
 
+type DeployParams struct {
+	Apply    bool
+	Workflow *workflow.Workflow
+	Ref      string
+	Dataset  *dataset.Dataset
+}
+
+func (p *DeployParams) Validate() error {
+	if p.Workflow == nil {
+		return fmt.Errorf("deploy: workflow not set")
+	}
+	if p.Workflow.DatasetID == "" && p.Dataset == nil {
+		return fmt.Errorf("deploy: either dataset or workflow.DatasetID are required")
+	}
+	return nil
+}
+
+type DeployResponse struct {
+	Ref      string             `json:"ref"`
+	RunID    string             `json:"runID,omitempty"`
+	Workflow *workflow.Workflow `json:"workflow"`
+}
+
+func (m AutomationMethods) Deploy(ctx context.Context, p *DeployParams) (*DeployResponse, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "deploy"), p)
+	if res, ok := got.(*DeployResponse); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
 // Implementations for automation methods follow
 
 // automationImpl holds the method implementations for automations
@@ -71,6 +125,7 @@ type automationImpl struct{}
 // Apply runs a transform script
 func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	ctx := scope.Context()
+	log.Debugw("applying transform", "ref", p.Ref, "wait", p.Wait)
 
 	var err error
 	ref := dsref.Ref{}
@@ -92,26 +147,10 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 		ds.Transform.OpenScriptFile(ctx, scope.Filesystem())
 	}
 
-	// allocate an ID for the transform, for now just log the events it produces
-	runID := run.NewID()
-	scope.Bus().SubscribeID(func(ctx context.Context, e event.Event) error {
-		go func() {
-			log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
-			if e.Type == event.ETTransformPrint {
-				if msg, ok := e.Payload.(event.TransformMessage); ok {
-					if p.ScriptOutput != nil {
-						io.WriteString(p.ScriptOutput, msg.Msg)
-						io.WriteString(p.ScriptOutput, "\n")
-					}
-				}
-			}
-		}()
-		return nil
-	}, runID)
+	wf := &workflow.Workflow{}
 
-	scriptOut := p.ScriptOutput
-	transformer := transform.NewTransformer(scope.AppContext(), scope.Loader(), scope.Bus())
-	if err = transformer.Apply(ctx, ds, runID, p.Wait, scriptOut, p.Secrets); err != nil {
+	runID, err := scope.Automation().ApplyWorkflow(ctx, p.Wait, p.ScriptOutput, wf, ds, p.Secrets)
+	if err != nil {
 		return nil, err
 	}
 
@@ -125,4 +164,114 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	}
 	res.RunID = runID
 	return res, nil
+}
+
+func (automationImpl) Deploy(scope scope, p *DeployParams) (*DeployResponse, error) {
+	log.Debugw("deploying dataset", "datasetID", p.Workflow.DatasetID)
+
+	var (
+		runID string
+		err   error
+	)
+
+	// TODO(b5): calling apply *first* allows us to supply datasets that only have
+	// a transform function. This should also let us remove apply from the save
+	// path
+	if p.Apply {
+		runID, err = scope.Automation().ApplyWorkflow(scope.ctx, true, os.Stdout, p.Workflow, p.Dataset, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		p.Dataset.Commit = &dataset.Commit{
+			RunID: runID,
+		}
+	}
+
+	res, err := datasetImpl{}.Save(scope, &SaveParams{
+		Ref:     p.Ref,
+		Dataset: p.Dataset,
+		Apply:   false, // explicityly NOT applying here, script is already run
+	})
+	if err != nil {
+		if errors.Is(err, dsfs.ErrNoChanges) {
+			err = nil
+		} else {
+			log.Errorw("deploy save dataset", "error", err)
+			return nil, err
+		}
+	}
+
+	p.Workflow.OwnerID = scope.ActiveProfile().ID
+	p.Workflow.DatasetID = res.ID
+	p.Workflow.Deployed = true
+	log.Warnw("saving workflow", "workflow", p.Workflow)
+
+	wf, err := scope.Automation().SaveWorkflow(scope.ctx, p.Workflow)
+	if err != nil {
+		return nil, err
+	}
+
+	ref := dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
+
+	return &DeployResponse{
+		Ref:      ref.String(),
+		RunID:    runID,
+		Workflow: wf,
+	}, nil
+}
+
+func (automationImpl) Workflow(scope scope, p *WorkflowParams) (*WorkflowResult, error) {
+	if p.Ref != "" {
+		ref, _, err := scope.ParseAndResolveRef(scope.ctx, p.Ref)
+		if err != nil {
+			return nil, err
+		}
+
+		wf, err := scope.Automation().Workflows().GetByDatasetID(ref.InitID)
+		if err != nil {
+			return nil, err
+		}
+
+		res, err := datasetImpl{}.Get(scope, &GetParams{Ref: ref.String()})
+		if err != nil {
+			return nil, err
+		}
+
+		return &WorkflowResult{
+			Workflow: wf,
+			Dataset:  res.Value.(*dataset.Dataset),
+			Ref:      ref.Human(),
+		}, nil
+	}
+
+	wf, err := scope.Automation().Workflows().Get(workflow.ID(p.WorkflowID))
+	if err != nil {
+		return nil, err
+	}
+
+	ref, _, err := scope.ParseAndResolveRef(scope.ctx, dsref.Ref{InitID: wf.DatasetID}.String())
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := datasetImpl{}.Get(scope, &GetParams{Ref: dsref.Ref{InitID: wf.DatasetID}.String()})
+	if err != nil {
+		return nil, err
+	}
+
+	return &WorkflowResult{
+		Workflow: wf,
+		Dataset:  res.Value.(*dataset.Dataset),
+		Ref:      ref.Human(),
+	}, nil
+}
+
+func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
+	// TODO(b5): hack to get a loader for apply
+	username := inst.cfg.Profile.Peername
+	loader := newDatasetLoader(inst, username, "", false)
+
+	transformer := transform.NewTransformer(inst.appCtx, loader, inst.bus)
+	return transformer.Apply(ctx, ds, runID, wait, nil, secrets)
 }

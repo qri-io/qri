@@ -53,14 +53,19 @@ func SetIDRand(r io.Reader) {
 
 // A Workflow associates automation with a dataset
 type Workflow struct {
-	ID        ID
-	DatasetID string
-	OwnerID   profile.ID
-	Created   *time.Time
-	Deployed  bool
-	Triggers  []trigger.Trigger
-	Hooks     []hook.Hook
+	ID        ID                `json:"id"`
+	DatasetID string            `json:"datasetID"`
+	OwnerID   profile.ID        `json:"ownerID"`
+	Created   *time.Time        `json:"created"`
+	Deployed  bool              `json:"deployed"`
+	Triggers  []trigger.Trigger `json:"triggers"`
+	Hooks     []hook.Hook       `json:"hooks"`
 }
+
+var (
+	_ trigger.Source = (*Workflow)(nil)
+	_ hook.Source    = (*Workflow)(nil)
+)
 
 // Validate errors if the workflow is not valid
 func (w *Workflow) Validate() error {
@@ -99,6 +104,55 @@ func (w *Workflow) Copy() *Workflow {
 	return workflow
 }
 
+type workflowJSON struct {
+	ID        ID
+	DatasetID string
+	OwnerID   profile.ID
+	Created   *time.Time
+	Deployed  bool
+	Triggers  []map[string]interface{}
+	Hooks     []map[string]interface{}
+}
+
+func (w *Workflow) UnmarshalJSON(data []byte) error {
+	v := &workflowJSON{}
+	if err := json.Unmarshal(data, v); err != nil {
+		return err
+	}
+
+	// TODO (b5): we'll need to register a pool of trigger constructors at runtime
+	// these should be provided via a method on the TriggerListener interface and
+	// passed to a Workflow constructor function defined in in this package
+	// that accepts []trigger.Trigger (ditto for hooks)
+	ts := make([]trigger.Trigger, 0, len(v.Triggers))
+	for i, triggerMap := range v.Triggers {
+		tt, ok := triggerMap["type"].(string)
+		if !ok {
+			return fmt.Errorf("triggers index %d 'type' field must be a string", i)
+		}
+		switch tt {
+		case string(trigger.CronTriggerType):
+			ct, err := trigger.NewCronTrigger(triggerMap)
+			if err != nil {
+				return fmt.Errorf("invalid %q trigger type: %w", trigger.CronTriggerType, err)
+			}
+			ts = append(ts, ct)
+		case string(trigger.RuntimeType):
+			ts = append(ts, trigger.NewRuntimeTrigger())
+		}
+	}
+
+	*w = Workflow{
+		ID:        v.ID,
+		DatasetID: v.DatasetID,
+		OwnerID:   v.OwnerID,
+		Created:   v.Created,
+		Triggers:  ts,
+	}
+
+	return nil
+}
+
 // Owner returns the owner id
 func (w *Workflow) Owner() profile.ID {
 	return w.OwnerID
@@ -118,6 +172,21 @@ func (w *Workflow) ActiveTriggers(triggerType string) []trigger.Trigger {
 		}
 	}
 	return activeTriggers
+}
+
+// ActiveHooks returns a list of hooks that are currently enabled
+func (w *Workflow) ActiveHooks(hookType string) []hook.Hook {
+	if !w.Deployed {
+		return nil
+	}
+	active := make([]hook.Hook, 0, len(w.Hooks))
+	for _, h := range w.Hooks {
+		if h.Enabled() && h.Type() == hookType {
+			active = append(active, h)
+		}
+	}
+
+	return active
 }
 
 // Set is a collection of Workflows that implements the sort.Interface,
