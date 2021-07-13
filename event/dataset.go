@@ -8,7 +8,9 @@ const (
 	// ETDatasetNameInit is when a dataset is initialized
 	// payload is a DsChange
 	ETDatasetNameInit = Type("dataset:Init")
-	// ETDatasetCommitChange is when a dataset changes its newest commit
+	// ETDatasetCommitChange is when a dataset changes its newest commit, either
+	// when a vesrion is added or some number of versions less then all are
+	// removed
 	// payload is a DsChange
 	ETDatasetCommitChange = Type("dataset:CommitChange")
 	// ETDatasetDeleteAll is when a dataset is entirely deleted
