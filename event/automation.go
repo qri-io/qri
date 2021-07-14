@@ -55,33 +55,33 @@ const (
 
 // WorkflowTriggerEvent is the expected payload of the `ETAutomationWorkflowTrigger`
 type WorkflowTriggerEvent struct {
-	WorkflowID string
-	OwnerID    profile.ID
-	TriggerID  string
+	WorkflowID string     `json:"workflowID"`
+	OwnerID    profile.ID `json:"ownerID"`
+	TriggerID  string     `json:"triggerID"`
 }
 
 // WorkflowStartedEvent is the expected payload of the `ETAutomationWorkflowStarted`
 type WorkflowStartedEvent struct {
-	DatasetID  string
-	OwnerID    profile.ID
-	WorkflowID string
-	RunID      string
+	DatasetID  string     `json:"datasetID"`
+	OwnerID    profile.ID `json:"ownerID"`
+	WorkflowID string     `json:"workflowID"`
+	RunID      string     `json:"runID"`
 }
 
 // WorkflowStoppedEvent is the expected payload of the `ETAutomationWorkflowStopped`
 type WorkflowStoppedEvent struct {
-	DatasetID  string
-	OwnerID    profile.ID
-	WorkflowID string
-	RunID      string
-	Status     string
+	DatasetID  string     `json:"datasetID"`
+	OwnerID    profile.ID `json:"ownerID"`
+	WorkflowID string     `json:"workflowID"`
+	RunID      string     `json:"runID"`
+	Status     string     `json:"status"`
 }
 
 // DeployEvent is the expected payload for deploy events
 type DeployEvent struct {
-	Ref        string
-	DatasetID  string
-	WorkflowID string
-	RunID      string
-	Error      string
+	Ref        string `json:"ref"`
+	DatasetID  string `json:"datasetID"`
+	WorkflowID string `json:"workflowID"`
+	RunID      string `json:"runID"`
+	Error      string `json:"error"`
 }
