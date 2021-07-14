@@ -259,10 +259,17 @@ func (s *localSet) saveProfileCollection(pid profile.ID) error {
 
 func (s *localSet) subscribe(bus event.Bus) {
 	bus.SubscribeTypes(s.handleEvent,
+		// dataset events
 		event.ETDatasetNameInit,
 		event.ETDatasetCommitChange,
 		event.ETDatasetRename,
 		event.ETDatasetDeleteAll,
+
+		// automation events
+		event.ETAutomationDeployStart,
+		event.ETAutomationDeploySaveDatasetEnd,
+		event.ETAutomationDeploySaveWorkflowEnd,
+		event.ETAutomationDeployEnd,
 	)
 }
 
@@ -311,6 +318,35 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 				log.Debugw("removing dataset across all collections", "initID", change.InitID, "err", err)
 			}
 		}
+	case event.ETAutomationDeployStart:
+		if evt, ok := e.Payload.(event.DeployEvent); ok {
+			if evt.DatasetID != "" {
+				s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+					vi.WorkflowID = evt.WorkflowID
+					vi.RunStatus = "deploying"
+				})
+			}
+		}
+	case event.ETAutomationDeploySaveDatasetEnd:
+		if evt, ok := e.Payload.(event.DeployEvent); ok {
+			s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+				vi.WorkflowID = evt.WorkflowID
+				vi.RunStatus = "deploying"
+			})
+		}
+	case event.ETAutomationDeploySaveWorkflowEnd:
+		if evt, ok := e.Payload.(event.DeployEvent); ok {
+			s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+				vi.WorkflowID = evt.WorkflowID
+				vi.RunStatus = "deploying"
+			})
+		}
+	case event.ETAutomationDeployEnd:
+		if evt, ok := e.Payload.(event.DeployEvent); ok {
+			s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+				vi.RunStatus = ""
+			})
+		}
 	}
 	return nil
 }
@@ -327,6 +363,7 @@ func (s *localSet) updateOneAcrossAllCollections(initID string, mutate func(vi *
 				if err := s.saveProfileCollection(pid); err != nil {
 					return err
 				}
+				break
 			}
 		}
 	}

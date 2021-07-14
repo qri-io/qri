@@ -86,14 +86,18 @@ type VersionInfo struct {
 	// FSIPath is this dataset's link to the local filesystem if one exists
 	FSIPath string `json:"fsiPath,omitempty"`
 	//
-	// Run Fields
+	// Automation Fields
 	//
+	// WorkflowID is the identifier for a workflow
+	// the presence of workflowID indicates the dataset being described is
+	// automated
+	WorkflowID string `json:"workflowID,omitempty"`
 	// RunID is derived from from either the Commit.RunID, field or the runID of a
 	// failed run. In the latter case the Path value will be empty
 	RunID string `json:"runID,omitempty"`
 	// RunStatus is a string version of the run.Status enumeration. This value
 	// will always be one of:
-	//    ""|"waiting"|"running"|"succeeded"|"failed"|"unchanged"|"skipped"
+	//    ""|"waiting"|"deploying"|"running"|"succeeded"|"failed"|"unchanged"|"skipped"
 	// RunStatus is not stored on a dataset version, and instead must come from
 	// either run state or a cache of run state
 	// it's of type string to follow the "plain old data" pattern

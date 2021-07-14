@@ -305,11 +305,155 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		// assert default ordering of datasets
 	})
 
+	t.Run("user_1_automation", func(t *testing.T) {
+		muppetMutualFundsInitID := "muppetMutualfundsInitId"
+		muppetMutualFundsName := "muppet_mutual_funds"
+		muppetMutualFundsWorkflowID := "muppetMutualfundsInitId"
+		muppetMutualFundsHeadRef := "/mem/pathtoMuppetMutualFundsV1"
+
+		// simulate deploying a new dataset
+		mustPublish(ctx, t, bus, event.ETAutomationDeployStart, event.DeployEvent{
+			Ref:        fmt.Sprintf("%s/%s", kermit.Peername, muppetMutualFundsName),
+			DatasetID:  "",
+			WorkflowID: "",
+		})
+
+		// datsaet shouldn't be added, as we don't have an initID
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, []dsref.VersionInfo{})
+
+		// deploy runs normal save events
+		// simulate name initialization, normally emitted by logbook
+		mustPublish(ctx, t, bus, event.ETDatasetNameInit, event.DsChange{
+			InitID:     muppetMutualFundsInitID,
+			Username:   kermit.Peername,
+			ProfileID:  kermit.ID.String(),
+			PrettyName: muppetMutualFundsName,
+			Info: &dsref.VersionInfo{
+				InitID:    muppetMutualFundsInitID,
+				ProfileID: kermit.ID.String(),
+				Username:  kermit.Peername,
+				Name:      muppetMutualFundsName,
+			},
+		})
+
+		expect := []dsref.VersionInfo{
+			{
+				InitID:    muppetMutualFundsInitID,
+				ProfileID: kermit.ID.String(),
+				Username:  kermit.Peername,
+				Name:      muppetMutualFundsName,
+			},
+		}
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+
+		// simulate version creation, normally emitted by logbook
+		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, event.DsChange{
+			InitID:    muppetMutualFundsInitID,
+			ProfileID: kermit.ID.String(),
+			TopIndex:  2,
+			HeadRef:   muppetMutualFundsHeadRef,
+			Info: &dsref.VersionInfo{
+				InitID:    muppetMutualFundsInitID,
+				ProfileID: kermit.ID.String(),
+				Path:      muppetMutualFundsHeadRef,
+				Name:      muppetMutualFundsName,
+			},
+		})
+
+		mustPublish(ctx, t, bus, event.ETAutomationDeploySaveDatasetEnd, event.DeployEvent{
+			Ref:        fmt.Sprintf("%s/%s", kermit.Peername, muppetMutualFundsName),
+			DatasetID:  muppetMutualFundsInitID,
+			WorkflowID: "",
+		})
+
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, []dsref.VersionInfo{
+			{
+				Name:        muppetMutualFundsName,
+				Username:    kermit.Peername,
+				ProfileID:   kermit.ID.String(),
+				InitID:      muppetMutualFundsInitID,
+				Path:        muppetMutualFundsHeadRef,
+				RunStatus:   "deploying",
+				NumVersions: 2,
+			},
+		})
+
+		mustPublish(ctx, t, bus, event.ETAutomationDeploySaveWorkflowEnd, event.DeployEvent{
+			Ref:        fmt.Sprintf("%s/%s", kermit.Peername, muppetMutualFundsName),
+			DatasetID:  muppetMutualFundsInitID,
+			WorkflowID: muppetMutualFundsWorkflowID,
+		})
+
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, []dsref.VersionInfo{
+			{
+				Name:        muppetMutualFundsName,
+				Username:    kermit.Peername,
+				ProfileID:   kermit.ID.String(),
+				InitID:      muppetMutualFundsInitID,
+				Path:        muppetMutualFundsHeadRef,
+				RunStatus:   "deploying",
+				WorkflowID:  muppetMutualFundsWorkflowID,
+				NumVersions: 2,
+			},
+		})
+
+		mustPublish(ctx, t, bus, event.ETAutomationDeployEnd, event.DeployEvent{
+			Ref:        fmt.Sprintf("%s/%s", kermit.Peername, muppetMutualFundsName),
+			DatasetID:  muppetMutualFundsInitID,
+			WorkflowID: muppetMutualFundsWorkflowID,
+		})
+
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, []dsref.VersionInfo{
+			{
+				Name:        muppetMutualFundsName,
+				Username:    kermit.Peername,
+				ProfileID:   kermit.ID.String(),
+				InitID:      muppetMutualFundsInitID,
+				Path:        muppetMutualFundsHeadRef,
+				WorkflowID:  muppetMutualFundsWorkflowID,
+				NumVersions: 2,
+			},
+		})
+
+		// TODO(b5): need to figure out how events scoped to IDS make their way up
+		// into collections to make this work
+		t.Skip("need to think about how scoped events intersect with collection")
+
+		mustPublish(ctx, t, bus, event.ETAutomationWorkflowStarted, event.WorkflowStartedEvent{
+			DatasetID:  muppetMutualFundsInitID,
+			OwnerID:    kermit.ID,
+			WorkflowID: muppetMutualFundsWorkflowID,
+			RunID:      "runID2",
+		})
+
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, []dsref.VersionInfo{
+			{
+				Name:        muppetMutualFundsName,
+				Username:    kermit.Peername,
+				ProfileID:   kermit.ID.String(),
+				InitID:      muppetMutualFundsInitID,
+				Path:        muppetMutualFundsHeadRef,
+				WorkflowID:  muppetMutualFundsWorkflowID,
+				RunID:       "runID2",
+				RunStatus:   "running",
+				NumVersions: 2,
+			},
+		})
+
+		mustPublish(ctx, t, bus, event.ETAutomationWorkflowStopped, event.WorkflowStoppedEvent{
+			DatasetID:  muppetMutualFundsInitID,
+			OwnerID:    kermit.ID,
+			WorkflowID: muppetMutualFundsWorkflowID,
+			RunID:      "runID2",
+			Status:     "",
+		})
+	})
+
 	t.Run("user_1_ordering_and_filtering", func(t *testing.T) {
 		t.Skip("TODO (b5): add a third dataset")
 	})
 
-	t.Run("user_2_automated_datasets", func(t *testing.T) {
+	t.Run("user_2_pulling", func(t *testing.T) {
 		// miss piggy's collection should be empty. Kermit's collection is non-empty,
 		// proving basic multi-tenancy
 		if _, err := c.List(ctx, missPiggy.ID, params.ListAll); err == nil {
@@ -321,17 +465,6 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 
 		t.Skip("TODO (b5): need user-scoped events to make this work")
 
-		// // simulate name initialization, normally emitted by logbook
-		// mustPublish(ctx, t, bus, event.ETDatasetNameInit, event.DsChange{
-		// 	InitID:     muppetTweetsInitID,
-		// 	Username:   kermit.Peername,
-		// 	ProfileID:  kermit.ID.String(),
-		// 	PrettyName: muppetTweetsName,
-		// 	Info: &dsref.VersionInfo{
-		// 		InitID: muppetTweetsInitID,
-		// 		Username: kermit,
-		// 	},
-		// })
 		mustPublish(ctx, t, bus, event.ETRemoteClientPullDatasetCompleted, event.RemoteEvent{
 			Ref: dsref.Ref{
 				InitID:    muppetTweetsInitID,
@@ -359,9 +492,6 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 			},
 		}
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
-
-		// TODO (b5): simulate workflow creation, check that collection updates with
-		// workflow ID
 	})
 }
 
