@@ -154,7 +154,7 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 	if p.Workflow.ID != "" {
 		wf, err := scope.AutomationOrchestrator().GetWorkflow(p.Workflow.ID)
 		if err != nil {
-			return nil
+			return fmt.Errorf("deploy: %w", err)
 		}
 		if p.Workflow.DatasetID != wf.DatasetID {
 			return fmt.Errorf("deploy: given workflow and workflow on record have different DatasetIDs")
@@ -163,12 +163,23 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 			return fmt.Errorf("deploy: given workflow and workflow on record have different OwnerIDs")
 		}
 	}
+	// TODO(ramfox): if we decide that you can interact with the automation subsystem when
+	// qri connect is NOT running, we need a `wait` flag in DeployParams, that, when `true`,
+	// does NOT deploy in a go routine
 	go deploy(scope, p)
 	return nil
 }
 
-func deploy(scope scope, p *DeployParams) {
-	ctx := profile.AddIDToContext(scope.AppContext(), scope.ActiveProfile().ID.String())
+func deploy(s scope, p *DeployParams) {
+	ctx := profile.AddIDToContext(s.AppContext(), s.ActiveProfile().ID.String())
+	// TODO(ramfox): we need the scope context to last longer than the context
+	// that was passed to us. We are, for now, going to rely on the app context
+	// in the future we will probably want something more sophisticated so that
+	// the user can cancel a deploy or run themselves
+	scope, err := newScope(ctx, s.inst, s.source)
+	if err != nil {
+		log.Debugw("deploy: creating new scope", "error", err)
+	}
 	vi := dsref.ConvertDatasetToVersionInfo(p.Dataset)
 	ref := vi.SimpleRef().String()
 	deployPayload := event.DeployEvent{
@@ -178,7 +189,7 @@ func deploy(scope scope, p *DeployParams) {
 	}
 	log.Debugw("deploy started", "payload", deployPayload)
 	go func() {
-		if err := scope.Bus().PublishID(ctx, event.ETAutomationDeployStart, ref, deployPayload); err != nil {
+		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployStart, ref, deployPayload); err != nil {
 			log.Debug(err)
 		}
 	}()
