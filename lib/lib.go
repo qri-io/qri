@@ -609,6 +609,14 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			inst.remoteOptsFuncs = o.remoteOptsFuncs
 		}
 	}
+
+	if inst.collectionSet == nil {
+		inst.collectionSet, err = collection.NewLocalSet(ctx, inst.bus, repoPath)
+		if err != nil {
+			return nil, fmt.Errorf("constructing local dataset collection: %w", err)
+		}
+	}
+
 	runFactory := func(ctx context.Context) automation.Run {
 		return inst.run
 	}

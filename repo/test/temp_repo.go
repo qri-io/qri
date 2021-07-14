@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/auth/key"
@@ -223,6 +224,32 @@ func (r *TempRepo) WriteRootFile(filename, data string) (path string, err error)
 	path = filepath.Join(r.RootPath, filename)
 	err = ioutil.WriteFile(path, []byte(data), 0667)
 	return path, err
+}
+
+// AddDatasets writes datasets to a temp repo
+func (r *TempRepo) AddDatasets(ctx context.Context) (err error) {
+	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	tempRepo, err := r.Repo(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, dsDirName := range datasets {
+		tc, err := dstest.NewTestCaseFromDir(TestdataPath(dsDirName))
+		if err != nil {
+			return err
+		}
+		if _, err := createDataset(tempRepo, tc); err != nil {
+			return fmt.Errorf("%s error creating dataset: %s", dsDirName, err.Error())
+		}
+	}
+
+	cancel()
+	<-tempRepo.Done()
+	return tempRepo.DoneErr()
 }
 
 func gracefulShutdown(doneCh <-chan struct{}) chan error {

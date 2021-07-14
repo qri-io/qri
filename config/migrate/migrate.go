@@ -221,6 +221,9 @@ func TwoToThree(cfg *config.Config) error {
 // ThreeToFour migrates a configuration from Revision 3 to Revision 4
 func ThreeToFour(cfg *config.Config) error {
 	log.Debugf("migrating from revision 3 to 4")
+	ctx := context.Background()
+
+	// migrate IPFS first so we can open the repo
 	ipfsRepoPath, err := maybeRelativizeIPFSPath(cfg)
 	if err != nil {
 		return err
@@ -228,10 +231,16 @@ func ThreeToFour(cfg *config.Config) error {
 
 	// migrate any existing IPFS repo
 	if _, err := os.Stat(ipfsRepoPath); !os.IsNotExist(err) {
-		ctx := context.Background()
 		if err := qipfs.Migrate(ctx, ipfsRepoPath); err != nil {
 			return err
 		}
+	}
+
+	// migrate from repo Datasets to collection
+	repoDir := filepath.Dir(cfg.Path())
+	if err := MigrateRepoStoreToLocalCollectionSet(ctx, repoDir, cfg); err != nil {
+		rollbackConfigWrite(cfg)
+		return err
 	}
 
 	if cfg.API != nil {

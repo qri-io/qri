@@ -1,4 +1,4 @@
-package collection
+package migrate
 
 import (
 	"context"
@@ -7,8 +7,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/qri/base/params"
+	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
 )
@@ -17,7 +19,16 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	r, err := repotest.NewTestRepo()
+	tempRepo, err := repotest.NewTempRepo("migration_test", "collection_migration_test", repotest.NewTestCrypto())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := tempRepo.AddDatasets(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := tempRepo.Repo(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,12 +42,18 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 		t.Fatalf("test repo has no datasets")
 	}
 
-	set, err := MigrateRepoStoreToLocalCollectionSet(ctx, event.NilBus, "", r)
+	if err := MigrateRepoStoreToLocalCollectionSet(ctx, tempRepo.QriPath, tempRepo.GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+
+	set, err := collection.NewLocalSet(ctx, event.NilBus, tempRepo.QriPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := set.List(ctx, r.Profiles().Owner().ID, params.ListAll)
+	proID := profile.IDB58MustDecode(tempRepo.GetConfig().Profile.ID)
+
+	got, err := set.List(ctx, proID, params.ListAll)
 	if err != nil {
 		t.Error(err)
 	}
