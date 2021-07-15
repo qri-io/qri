@@ -1,6 +1,7 @@
 package ds
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -12,6 +13,14 @@ import (
 	"go.starlark.net/starlarktest"
 )
 
+func callMethod(thread *starlark.Thread, v starlark.HasAttrs, name string, tuple starlark.Tuple) (starlark.Value, error) {
+	method, err := v.Attr(name)
+	if err != nil {
+		return nil, err
+	}
+	return starlark.Call(thread, method, tuple, nil)
+}
+
 func TestCheckFields(t *testing.T) {
 	fieldErr := fmt.Errorf("can't mutate this field")
 	allErrCheck := func(fields ...string) error {
@@ -21,15 +30,15 @@ func TestCheckFields(t *testing.T) {
 	ds.SetMutable(&dataset.Dataset{})
 	thread := &starlark.Thread{}
 
-	if _, err := ds.SetBody(thread, nil, starlark.Tuple{starlark.String("data")}, nil); err != fieldErr {
+	if _, err := callMethod(thread, ds, "set_body", starlark.Tuple{starlark.String("data")}); !errors.Is(err, fieldErr) {
 		t.Errorf("expected fieldErr, got: %s", err)
 	}
 
-	if _, err := ds.SetMeta(thread, nil, starlark.Tuple{starlark.String("key"), starlark.String("value")}, nil); err != fieldErr {
+	if _, err := callMethod(thread, ds, "set_meta", starlark.Tuple{starlark.String("key"), starlark.String("value")}); !errors.Is(err, fieldErr) {
 		t.Errorf("expected fieldErr, got: %s", err)
 	}
 
-	if _, err := ds.SetStructure(thread, nil, starlark.Tuple{starlark.String("wut")}, nil); err != fieldErr {
+	if _, err := callMethod(thread, ds, "set_structure", starlark.Tuple{starlark.String("wut")}); !errors.Is(err, fieldErr) {
 		t.Errorf("expected fieldErr, got: %s", err)
 	}
 }
@@ -38,7 +47,7 @@ func TestCannotSetIfReadOnly(t *testing.T) {
 	ds := NewDataset(&dataset.Dataset{}, nil)
 	thread := &starlark.Thread{}
 	expect := "cannot call set_body on read-only dataset"
-	_, err := ds.SetBody(thread, nil, starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})}, nil)
+	_, err := callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
 	if err.Error() != expect {
 		t.Errorf("expected error: %s, got: %s", expect, err)
 	}
@@ -62,7 +71,7 @@ func TestSetMutable(t *testing.T) {
 	})
 	thread := &starlark.Thread{}
 
-	_, err := ds.SetBody(thread, nil, starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})}, nil)
+	_, err := callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
 	if err != nil {
 		t.Error(err)
 	}
@@ -70,7 +79,7 @@ func TestSetMutable(t *testing.T) {
 		t.Errorf("expected body to have been modified")
 	}
 
-	body, err := ds.GetBody(thread, nil, starlark.Tuple{}, nil)
+	body, err := callMethod(thread, ds, "get_body", starlark.Tuple{})
 	if err != nil {
 		t.Error(err)
 	}
@@ -99,7 +108,7 @@ func TestChangeBody(t *testing.T) {
 	})
 	thread := &starlark.Thread{}
 
-	body, err := ds.GetBody(thread, nil, starlark.Tuple{}, nil)
+	body, err := callMethod(thread, ds, "get_body", starlark.Tuple{})
 	if err != nil {
 		t.Error(err)
 	}
@@ -108,7 +117,7 @@ func TestChangeBody(t *testing.T) {
 		t.Errorf("expected body: %s, got: %s", expect, body)
 	}
 
-	_, err = ds.SetBody(thread, nil, starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})}, nil)
+	_, err = callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
 	if err != nil {
 		t.Error(err)
 	}
@@ -116,7 +125,7 @@ func TestChangeBody(t *testing.T) {
 		t.Errorf("expected body to have been modified")
 	}
 
-	body, err = ds.GetBody(thread, nil, starlark.Tuple{}, nil)
+	body, err = callMethod(thread, ds, "get_body", starlark.Tuple{})
 	if err != nil {
 		t.Error(err)
 	}
@@ -145,7 +154,7 @@ func TestChangeBodyEvenIfTheSame(t *testing.T) {
 	})
 	thread := &starlark.Thread{}
 
-	body, err := ds.GetBody(thread, nil, starlark.Tuple{}, nil)
+	body, err := callMethod(thread, ds, "get_body", starlark.Tuple{})
 	if err != nil {
 		t.Error(err)
 	}
@@ -154,7 +163,7 @@ func TestChangeBodyEvenIfTheSame(t *testing.T) {
 		t.Errorf("expected body: %s, got: %s", expect, body)
 	}
 
-	_, err = ds.SetBody(thread, nil, starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})}, nil)
+	_, err = callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
 	if err != nil {
 		t.Error(err)
 	}
@@ -162,7 +171,7 @@ func TestChangeBodyEvenIfTheSame(t *testing.T) {
 		t.Errorf("expected body to have been modified")
 	}
 
-	body, err = ds.GetBody(thread, nil, starlark.Tuple{}, nil)
+	body, err = callMethod(thread, ds, "get_body", starlark.Tuple{})
 	if err != nil {
 		t.Error(err)
 	}
@@ -179,7 +188,7 @@ func TestFile(t *testing.T) {
 
 	// Execute test file
 	_, err := starlark.ExecFile(thread, "testdata/test.star", nil, starlark.StringDict{
-		"csv_ds": csvDataset().Methods(),
+		"csv_ds": csvDataset(),
 	})
 	if err != nil {
 		if ee, ok := err.(*starlark.EvalError); ok {

@@ -11,8 +11,8 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	skyctx "github.com/qri-io/qri/transform/startf/context"
-	skyds "github.com/qri-io/qri/transform/startf/ds"
+	starctx "github.com/qri-io/qri/transform/startf/context"
+	stards "github.com/qri-io/qri/transform/startf/ds"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 )
@@ -24,7 +24,7 @@ var log = golog.Logger("startf")
 
 // StepRunner is able to run individual transform steps
 type StepRunner struct {
-	starCtx   *skyctx.Context
+	starCtx   *starctx.Context
 	dsLoader  dsref.Loader
 	prev      *dataset.Dataset
 	checkFunc func(path ...string) error
@@ -59,8 +59,7 @@ func NewStepRunner(prev *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunner
 
 	thread := &starlark.Thread{Load: o.ModuleLoader}
 
-	// starCtx := skyctx.NewContext(o.Config, o.Secrets)
-	starCtx := skyctx.NewContext(nil, o.Secrets)
+	starCtx := starctx.NewContext(nil, o.Secrets)
 
 	r := &StepRunner{
 		starCtx:   starCtx,
@@ -136,7 +135,7 @@ func (r *StepRunner) globalFunc(name string) (fn *starlark.Function, err error) 
 	return x.(*starlark.Function), nil
 }
 
-type specialFunc func(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (result starlark.Value, err error)
+type specialFunc func(t *transform, thread *starlark.Thread, ctx *starctx.Context) (result starlark.Value, err error)
 
 func (r *StepRunner) callDownloadFunc(thread *starlark.Thread, download *starlark.Function) (err error) {
 	httpGuard.EnableNtwk()
@@ -152,9 +151,9 @@ func (r *StepRunner) callDownloadFunc(thread *starlark.Thread, download *starlar
 }
 
 func (r *StepRunner) callTransformFunc(ctx context.Context, thread *starlark.Thread, transform *starlark.Function, ds *dataset.Dataset) (err error) {
-	d := skyds.NewDataset(r.prev, r.checkFunc)
+	d := stards.NewDataset(r.prev, r.checkFunc)
 	d.SetMutable(ds)
-	if _, err = starlark.Call(thread, transform, starlark.Tuple{d.Methods(), r.starCtx.Struct()}, nil); err != nil {
+	if _, err = starlark.Call(thread, transform, starlark.Tuple{d, r.starCtx.Struct()}, nil); err != nil {
 		return err
 	}
 
@@ -198,7 +197,7 @@ func (r *StepRunner) LoadDatasetFunc(ctx context.Context, target *dataset.Datase
 			Path: fmt.Sprintf("%s/%s@%s", ds.Peername, ds.Name, ds.Path),
 		}
 
-		return skyds.NewDataset(ds, nil).Methods(), nil
+		return stards.NewDataset(ds, nil), nil
 	}
 }
 

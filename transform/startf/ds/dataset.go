@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"sort"
 	"sync"
 
 	"github.com/qri-io/dataset"
@@ -45,11 +46,28 @@ type MutateFieldCheck func(path ...string) error
 
 // Dataset is a qri dataset starlark type
 type Dataset struct {
+	frozen    bool
 	read      *dataset.Dataset
 	write     *dataset.Dataset
 	bodyCache starlark.Iterable
 	check     MutateFieldCheck
 	modBody   bool
+}
+
+// compile-time interface assertions
+var (
+	_ starlark.Value    = (*Dataset)(nil)
+	_ starlark.HasAttrs = (*Dataset)(nil)
+)
+
+// methods defined on the dataset object
+var dsMethods = map[string]*starlark.Builtin{
+	"set_meta":      starlark.NewBuiltin("set_meta", dsSetMeta),
+	"get_meta":      starlark.NewBuiltin("get_meta", dsGetMeta),
+	"get_structure": starlark.NewBuiltin("get_structure", dsGetStructure),
+	"set_structure": starlark.NewBuiltin("set_structure", dsSetStructure),
+	"get_body":      starlark.NewBuiltin("get_body", dsGetBody),
+	"set_body":      starlark.NewBuiltin("set_body", dsSetBody),
 }
 
 // NewDataset creates a dataset object, intended to be called from go-land to prepare datasets
@@ -61,7 +79,38 @@ func NewDataset(ds *dataset.Dataset, check MutateFieldCheck) *Dataset {
 // New creates a new dataset from starlark land
 func New(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	d := &Dataset{read: &dataset.Dataset{}, write: &dataset.Dataset{}}
-	return d.Methods(), nil
+	return d, nil
+}
+
+// String returns the Dataset as a string
+func (d *Dataset) String() string {
+	return d.stringify()
+}
+
+// Type returns a short string describing the value's type.
+func (Dataset) Type() string { return fmt.Sprintf("%s.Dataset", "dataset") }
+
+// Freeze renders Dataset immutable.
+func (d *Dataset) Freeze() { d.frozen = true }
+
+// Hash cannot be used with Dataset
+func (d *Dataset) Hash() (uint32, error) {
+	return 0, fmt.Errorf("unhashable: %s", d.Type())
+}
+
+// Truth converts the dataset into a bool
+func (d *Dataset) Truth() starlark.Bool {
+	return true
+}
+
+// Attr gets a value for a string attribute
+func (d *Dataset) Attr(name string) (starlark.Value, error) {
+	return builtinAttr(d, name, dsMethods)
+}
+
+// AttrNames lists available attributes
+func (d *Dataset) AttrNames() []string {
+	return builtinAttrNames(dsMethods)
 }
 
 // SetMutable assigns an underlying dataset that can be mutated
@@ -74,18 +123,6 @@ func (d *Dataset) IsBodyModified() bool {
 	return d.modBody
 }
 
-// Methods exposes dataset methods as starlark values
-func (d *Dataset) Methods() *starlarkstruct.Struct {
-	return starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{
-		"set_meta":      starlark.NewBuiltin("set_meta", d.SetMeta),
-		"get_meta":      starlark.NewBuiltin("get_meta", d.GetMeta),
-		"get_structure": starlark.NewBuiltin("get_structure", d.GetStructure),
-		"set_structure": starlark.NewBuiltin("set_structure", d.SetStructure),
-		"get_body":      starlark.NewBuiltin("get_body", d.GetBody),
-		"set_body":      starlark.NewBuiltin("set_body", d.SetBody),
-	})
-}
-
 // checkCanMutateField runs the check function if one is defined
 func (d *Dataset) checkCanMutateField(path ...string) error {
 	if d.check != nil {
@@ -94,14 +131,38 @@ func (d *Dataset) checkCanMutateField(path ...string) error {
 	return nil
 }
 
-// GetMeta gets a dataset meta component
-func (d *Dataset) GetMeta(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var provider *dataset.Meta
-	if d.read != nil && d.read.Meta != nil {
-		provider = d.read.Meta
+func (d *Dataset) stringify() string {
+	// TODO(dustmop): Improve the stringification of a Dataset
+	return "<Dataset>"
+}
+
+func builtinAttr(recv starlark.Value, name string, methods map[string]*starlark.Builtin) (starlark.Value, error) {
+	b := methods[name]
+	if b == nil {
+		return nil, nil // no such method
 	}
-	if d.write != nil && d.write.Meta != nil {
-		provider = d.write.Meta
+	return b.BindReceiver(recv), nil
+}
+
+func builtinAttrNames(methods map[string]*starlark.Builtin) []string {
+	names := make([]string, 0, len(methods))
+	for name := range methods {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// dsGetMeta gets a dataset meta component
+func dsGetMeta(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	self := b.Receiver().(*Dataset)
+
+	var provider *dataset.Meta
+	if self.read != nil && self.read.Meta != nil {
+		provider = self.read.Meta
+	}
+	if self.write != nil && self.write.Meta != nil {
+		provider = self.write.Meta
 	}
 
 	if provider == nil {
@@ -121,8 +182,8 @@ func (d *Dataset) GetMeta(thread *starlark.Thread, _ *starlark.Builtin, args sta
 	return util.Marshal(jsonData)
 }
 
-// SetMeta sets a dataset meta field
-func (d *Dataset) SetMeta(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+// dsSetMeta sets a dataset meta field
+func dsSetMeta(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		keyx starlark.String
 		valx starlark.Value
@@ -130,14 +191,18 @@ func (d *Dataset) SetMeta(thread *starlark.Thread, _ *starlark.Builtin, args sta
 	if err := starlark.UnpackPositionalArgs("set_meta", args, kwargs, 2, &keyx, &valx); err != nil {
 		return nil, err
 	}
+	self := b.Receiver().(*Dataset)
 
-	if d.write == nil {
+	if self.frozen {
+		return starlark.None, fmt.Errorf("cannot call set_meta on frozen dataset")
+	}
+	if self.write == nil {
 		return starlark.None, fmt.Errorf("cannot call set_meta on read-only dataset")
 	}
 
 	key := keyx.GoString()
 
-	if err := d.checkCanMutateField("meta", "key"); err != nil {
+	if err := self.checkCanMutateField("meta", "key"); err != nil {
 		return starlark.None, err
 	}
 
@@ -146,21 +211,23 @@ func (d *Dataset) SetMeta(thread *starlark.Thread, _ *starlark.Builtin, args sta
 		return nil, err
 	}
 
-	if d.write.Meta == nil {
-		d.write.Meta = &dataset.Meta{}
+	if self.write.Meta == nil {
+		self.write.Meta = &dataset.Meta{}
 	}
 
-	return starlark.None, d.write.Meta.Set(key, val)
+	return starlark.None, self.write.Meta.Set(key, val)
 }
 
-// GetStructure gets a dataset structure component
-func (d *Dataset) GetStructure(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+// dsGetStructure gets a dataset structure component
+func dsGetStructure(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	self := b.Receiver().(*Dataset)
+
 	var provider *dataset.Structure
-	if d.read != nil && d.read.Structure != nil {
-		provider = d.read.Structure
+	if self.read != nil && self.read.Structure != nil {
+		provider = self.read.Structure
 	}
-	if d.write != nil && d.write.Structure != nil {
-		provider = d.write.Structure
+	if self.write != nil && self.write.Structure != nil {
+		provider = self.write.Structure
 	}
 
 	if provider == nil {
@@ -181,17 +248,22 @@ func (d *Dataset) GetStructure(thread *starlark.Thread, _ *starlark.Builtin, arg
 }
 
 // SetStructure sets the dataset structure component
-func (d *Dataset) SetStructure(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func dsSetStructure(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	self := b.Receiver().(*Dataset)
+
 	var valx starlark.Value
 	if err := starlark.UnpackPositionalArgs("set_structure", args, kwargs, 1, &valx); err != nil {
 		return nil, err
 	}
 
-	if d.write == nil {
+	if self.frozen {
+		return starlark.None, fmt.Errorf("cannot call set_structure on frozen dataset")
+	}
+	if self.write == nil {
 		return starlark.None, fmt.Errorf("cannot call set_structure on read-only dataset")
 	}
 
-	if err := d.checkCanMutateField("structure"); err != nil {
+	if err := self.checkCanMutateField("structure"); err != nil {
 		return starlark.None, err
 	}
 
@@ -200,8 +272,8 @@ func (d *Dataset) SetStructure(thread *starlark.Thread, _ *starlark.Builtin, arg
 		return starlark.None, err
 	}
 
-	if d.write.Structure == nil {
-		d.write.Structure = &dataset.Structure{}
+	if self.write.Structure == nil {
+		self.write.Structure = &dataset.Structure{}
 	}
 
 	data, err := json.Marshal(val)
@@ -209,15 +281,17 @@ func (d *Dataset) SetStructure(thread *starlark.Thread, _ *starlark.Builtin, arg
 		return starlark.None, err
 	}
 
-	err = json.Unmarshal(data, d.write.Structure)
+	err = json.Unmarshal(data, self.write.Structure)
 	return starlark.None, err
 }
 
-// GetBody returns the body of the dataset we're transforming. The read version is returned until
+// dsGetBody returns the body of the dataset we're transforming. The read version is returned until
 // the dataset is modified by set_body, then the write version is returned instead.
-func (d *Dataset) GetBody(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if d.bodyCache != nil {
-		return d.bodyCache, nil
+func dsGetBody(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	self := b.Receiver().(*Dataset)
+
+	if self.bodyCache != nil {
+		return self.bodyCache, nil
 	}
 
 	var valx starlark.Value
@@ -226,11 +300,11 @@ func (d *Dataset) GetBody(thread *starlark.Thread, _ *starlark.Builtin, args sta
 	}
 
 	var provider *dataset.Dataset
-	if d.read != nil {
-		provider = d.read
+	if self.read != nil {
+		provider = self.read
 	}
-	if d.modBody && d.write != nil {
-		provider = d.write
+	if self.modBody && self.write != nil {
+		provider = self.write
 	}
 
 	if provider.BodyFile() == nil {
@@ -269,31 +343,34 @@ func (d *Dataset) GetBody(thread *starlark.Thread, _ *starlark.Builtin, args sta
 	}
 
 	if iter, ok := w.Value().(starlark.Iterable); ok {
-		d.bodyCache = iter
-		return d.bodyCache, nil
+		self.bodyCache = iter
+		return self.bodyCache, nil
 	}
 	return starlark.None, fmt.Errorf("value is not iterable")
 }
 
-// SetBody assigns the dataset body. Future calls to GetBody will return this newly mutated body,
+// dsSetBody assigns the dataset body. Future calls to GetBody will return this newly mutated body,
 // even if assigned value is the same as what was already there.
-func (d *Dataset) SetBody(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func dsSetBody(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var (
 		data    starlark.Value
 		parseAs starlark.String
 	)
-
 	if err := starlark.UnpackArgs("set_body", args, kwargs, "data", &data, "parse_as?", &parseAs); err != nil {
 		return starlark.None, err
 	}
+	self := b.Receiver().(*Dataset)
 
-	if d.write == nil {
+	if self.frozen {
+		return starlark.None, fmt.Errorf("cannot call set_body on frozen dataset")
+	}
+	if self.write == nil {
 		return starlark.None, fmt.Errorf("cannot call set_body on read-only dataset")
 	}
-	if err := d.checkCanMutateField("body"); err != nil {
+	if err := self.checkCanMutateField("body"); err != nil {
 		return starlark.None, err
 	}
-	if err := d.checkCanMutateField("structure"); err != nil {
+	if err := self.checkCanMutateField("structure"); err != nil {
 		err = fmt.Errorf("cannot use a transform to set the body of a dataset and manually adjust structure at the same time")
 		return starlark.None, err
 	}
@@ -308,11 +385,11 @@ func (d *Dataset) SetBody(thread *starlark.Thread, _ *starlark.Builtin, args sta
 			return starlark.None, fmt.Errorf("expected data for %q format to be a string", df)
 		}
 
-		d.write.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", df), []byte(string(str))))
-		d.modBody = true
-		d.bodyCache = nil
+		self.write.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", df), []byte(string(str))))
+		self.modBody = true
+		self.bodyCache = nil
 
-		if err := detect.Structure(d.write); err != nil {
+		if err := detect.Structure(self.write); err != nil {
 			return nil, err
 		}
 
@@ -324,13 +401,13 @@ func (d *Dataset) SetBody(thread *starlark.Thread, _ *starlark.Builtin, args sta
 		return starlark.None, fmt.Errorf("expected body data to be iterable")
 	}
 
-	d.write.Structure = d.writeStructure(data)
+	self.write.Structure = self.writeStructure(data)
 
-	w, err := dsio.NewEntryBuffer(d.write.Structure)
+	w, err := dsio.NewEntryBuffer(self.write.Structure)
 	if err != nil {
 		return starlark.None, err
 	}
-	r := NewEntryReader(d.write.Structure, iter)
+	r := NewEntryReader(self.write.Structure, iter)
 	if err := dsio.Copy(r, w); err != nil {
 		return starlark.None, err
 	}
@@ -338,9 +415,9 @@ func (d *Dataset) SetBody(thread *starlark.Thread, _ *starlark.Builtin, args sta
 		return starlark.None, err
 	}
 
-	d.write.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", d.write.Structure.Format), w.Bytes()))
-	d.modBody = true
-	d.bodyCache = nil
+	self.write.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", self.write.Structure.Format), w.Bytes()))
+	self.modBody = true
+	self.bodyCache = nil
 
 	return starlark.None, nil
 }
