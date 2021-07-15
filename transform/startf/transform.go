@@ -308,7 +308,7 @@ func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Contex
 
 	d := skyds.NewDataset(t.prev, t.checkFunc)
 	d.SetMutable(t.next)
-	if _, err = starlark.Call(thread, transform, starlark.Tuple{d.Methods(), ctx.Struct()}, nil); err != nil {
+	if _, err = starlark.Call(thread, transform, starlark.Tuple{d, ctx.Struct()}, nil); err != nil {
 		return err
 	}
 	return nil
@@ -362,7 +362,7 @@ func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, ar
 		Path: fmt.Sprintf("%s/%s@%s", ds.Peername, ds.Name, ds.Path),
 	}
 
-	return skyds.NewDataset(ds, nil).Methods(), nil
+	return skyds.NewDataset(ds, nil), nil
 }
 
 func (t *transform) print(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
