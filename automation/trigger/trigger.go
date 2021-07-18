@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 
 	golog "github.com/ipfs/go-log"
@@ -81,4 +82,114 @@ type Source interface {
 	WorkflowID() string
 	ActiveTriggers(triggerType string) []map[string]interface{}
 	Owner() profile.ID
+}
+
+// MemTriggerStore stores triggers by ownerID, and workflowID
+type MemTriggerStore struct {
+	triggerType      string
+	activeLock       sync.Mutex
+	active           map[profile.ID]map[string][]Trigger
+	constructTrigger func(opt map[string]interface{}) (Trigger, error)
+}
+
+// NewMemTriggerStore creates a MemTriggerStore
+func NewMemTriggerStore(l Listener) *MemTriggerStore {
+	return &MemTriggerStore{
+		activeLock:       sync.Mutex{},
+		active:           map[profile.ID]map[string][]Trigger{},
+		triggerType:      l.Type(),
+		constructTrigger: l.ConstructTrigger,
+	}
+}
+
+// Put adds the Triggers from a Source into the MemTriggerStore
+func (t *MemTriggerStore) Put(sources ...Source) error {
+	t.activeLock.Lock()
+	defer t.activeLock.Unlock()
+	for _, s := range sources {
+		workflowID := s.WorkflowID()
+		if workflowID == "" {
+			return ErrEmptyWorkflowID
+		}
+		ownerID := s.Owner()
+		if ownerID == "" {
+			return ErrEmptyOwnerID
+		}
+		triggerOpts := s.ActiveTriggers(t.triggerType)
+		triggers := []Trigger{}
+		for _, triggerOpt := range triggerOpts {
+			t, err := t.constructTrigger(triggerOpt)
+			if err != nil {
+				return err
+			}
+			triggers = append(triggers, t)
+		}
+		// either we are not adding triggers or we are removing them
+		if len(triggers) == 0 {
+			wfs, ok := t.active[ownerID]
+			if !ok {
+				continue
+			}
+			if len(wfs) == 0 {
+				delete(t.active, ownerID)
+				continue
+			}
+			_, ok = wfs[workflowID]
+			if !ok {
+				continue
+			}
+			if ok && len(wfs) == 1 {
+				delete(t.active, ownerID)
+				continue
+			}
+			delete(t.active[ownerID], workflowID)
+			continue
+		}
+		_, ok := t.active[ownerID]
+		if !ok {
+			t.active[ownerID] = map[string][]Trigger{
+				workflowID: triggers,
+			}
+			continue
+		}
+		t.active[ownerID][workflowID] = triggers
+	}
+	return nil
+}
+
+// Exists returns true if all the triggers from the Source exist in the store
+func (t *MemTriggerStore) Exists(source Source) bool {
+	t.activeLock.Lock()
+	defer t.activeLock.Unlock()
+
+	ownerID := source.Owner()
+	workflowID := source.WorkflowID()
+	wids, ok := t.active[ownerID]
+	if !ok {
+		return false
+	}
+	triggers, ok := wids[workflowID]
+	if !ok {
+		return false
+	}
+	triggerOpts := source.ActiveTriggers(t.triggerType)
+	if len(triggerOpts) != len(triggers) {
+		return false
+	}
+	for i, opt := range triggerOpts {
+		sourceTrigger, err := t.constructTrigger(opt)
+		if err != nil {
+			log.Errorw("runtimeListener.TriggersExist", "error", err)
+			return false
+		}
+		if sourceTrigger.ID() != triggers[i].ID() {
+			return false
+		}
+	}
+	return true
+}
+
+// Active returns the map of active triggers, organized by OwnerID and WorkflowID
+func (t *MemTriggerStore) Active() map[profile.ID]map[string][]Trigger {
+	return t.active
 }
