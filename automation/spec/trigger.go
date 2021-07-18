@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
@@ -14,10 +15,18 @@ import (
 
 // AssertTrigger confirms the expected behavior of a trigger.Trigger Interface
 // implementation
-func AssertTrigger(t *testing.T, trig trigger.Trigger) {
+func AssertTrigger(t *testing.T, trig trigger.Trigger, advanced map[string]interface{}) {
 	if trig.Type() == "" {
 		t.Error("Type method must return a non-empty trigger.Type")
 	}
+	if err := trig.Advance(); err != nil {
+		t.Fatal("trigger.Advance() unexpected error")
+	}
+	triggerObj := trig.ToMap()
+	if diff := cmp.Diff(advanced, triggerObj); diff != "" {
+		t.Errorf("advanced trigger mismatch (-want +got):\n%s", diff)
+	}
+
 	if err := trig.SetActive(true); err != nil {
 		t.Fatalf("trigger.SetActive unexpected error: %s", err)
 	}
@@ -34,7 +43,7 @@ func AssertTrigger(t *testing.T, trig trigger.Trigger) {
 	if err != nil {
 		t.Fatalf("json.Marshal unexpected error: %s", err)
 	}
-	triggerObj := map[string]interface{}{}
+	triggerObj = map[string]interface{}{}
 	if err := json.Unmarshal(triggerBytes, &triggerObj); err != nil {
 		t.Fatalf("json.Unmarshal unexpected error: %s", err)
 	}
@@ -81,8 +90,9 @@ func AssertTrigger(t *testing.T, trig trigger.Trigger) {
 	}
 }
 
-// ListenerConstructor creates a trigger listener and function that fires the listener when called
-type ListenerConstructor func(ctx context.Context, bus event.Bus) (listener trigger.Listener, activate func())
+// ListenerConstructor creates a trigger listener and function that fires the listener when called, and a function that
+// advances the trigger & updates the source properly
+type ListenerConstructor func(ctx context.Context, bus event.Bus) (listener trigger.Listener, activate func(), advance func())
 
 // AssertListener confirms the expected behavior of a trigger.Listener
 // NOTE: this does not confirm behavior of the `Listen` functionality
@@ -90,7 +100,7 @@ type ListenerConstructor func(ctx context.Context, bus event.Bus) (listener trig
 func AssertListener(t *testing.T, listenerConstructor ListenerConstructor) {
 	ctx := context.Background()
 	bus := event.NewBus(ctx)
-	listener, activateTrigger := listenerConstructor(ctx, bus)
+	listener, activateTrigger, advanceTrigger := listenerConstructor(ctx, bus)
 	wf := &workflow.Workflow{}
 	if err := listener.Listen(wf); !errors.Is(err, trigger.ErrEmptyWorkflowID) {
 		t.Fatal("listener.Listen should emit a trigger.ErrEmptyWorkflowID if the WorkflowID of the trigger.Source is empty")
@@ -108,32 +118,33 @@ func AssertListener(t *testing.T, listenerConstructor ListenerConstructor) {
 		return nil
 	}
 	bus.SubscribeTypes(handler, event.ETAutomationWorkflowTrigger)
-	done := shouldTimeout(t, triggered, "listener should not emit events until the listener has been started by running `listener.Start()`")
+	done := shouldTimeout(t, triggered, "listener should not emit events until the listener has been started by running `listener.Start()`", time.Millisecond*500)
 	activateTrigger()
 	<-done
 
+	done = errOnTimeout(t, triggered, "listener did not emit an event.ETAutomationWorkflowTrigger event when the trigger was activated", time.Millisecond*500)
 	if err := listener.Start(ctx); err != nil {
 		t.Fatalf("listener.Start unexpected error: %s", err)
 	}
-	done = errOnTimeout(t, triggered, "listener did not emit an event.ETAutomationWorkflowTrigger event when the trigger was activated")
 	activateTrigger()
 	<-done
+	advanceTrigger()
 
+	done = shouldTimeout(t, triggered, "listener should not emit events once the listener has run `listener.Stop()`", time.Millisecond*500)
 	if err := listener.Stop(); err != nil {
 		t.Fatalf("listener.Stop unexpected error: %s", err)
 	}
-	done = shouldTimeout(t, triggered, "listener should not emit events once the listener has run `listener.Stop()`")
 	activateTrigger()
 	<-done
 }
 
-func errOnTimeout(t *testing.T, c chan string, errMsg string) <-chan struct{} {
+func errOnTimeout(t *testing.T, c chan string, errMsg string, timeoutDuration time.Duration) <-chan struct{} {
 	done := make(chan struct{})
 	go func() {
 		select {
 		case msg := <-c:
 			t.Log(msg)
-		case <-time.After(200 * time.Millisecond):
+		case <-time.After(timeoutDuration):
 			t.Errorf(errMsg)
 		}
 		done <- struct{}{}
@@ -141,13 +152,13 @@ func errOnTimeout(t *testing.T, c chan string, errMsg string) <-chan struct{} {
 	return done
 }
 
-func shouldTimeout(t *testing.T, c chan string, errMsg string) <-chan struct{} {
+func shouldTimeout(t *testing.T, c chan string, errMsg string, timeoutDuration time.Duration) <-chan struct{} {
 	done := make(chan struct{})
 	go func() {
 		select {
 		case badMsg := <-c:
 			t.Errorf(badMsg)
-		case <-time.After(200 * time.Millisecond):
+		case <-time.After(timeoutDuration):
 			t.Log("expected timeout")
 		}
 		done <- struct{}{}

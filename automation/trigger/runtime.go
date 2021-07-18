@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
 
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/profile"
 )
 
 // A RuntimeTrigger implements the Trigger interface & keeps track of the number
@@ -21,7 +19,7 @@ type RuntimeTrigger struct {
 var _ Trigger = (*RuntimeTrigger)(nil)
 
 // RuntimeType denotes a `RuntimeTrigger`
-const RuntimeType = "Runtime Trigger"
+const RuntimeType = "runtime"
 
 // NewRuntimeTrigger returns an active `RuntimeTrigger`
 func NewRuntimeTrigger() *RuntimeTrigger {
@@ -109,22 +107,23 @@ func (rt *RuntimeTrigger) UnmarshalJSON(d []byte) error {
 
 // RuntimeListener listens for RuntimeTriggers to fire
 type RuntimeListener struct {
-	bus                event.Bus
-	TriggerCh          chan event.WorkflowTriggerEvent
-	listening          bool
-	activeTriggersLock sync.Mutex
-	activeTriggers     map[profile.ID]map[string][]string
+	bus          event.Bus
+	TriggerCh    chan event.WorkflowTriggerEvent
+	listening    bool
+	triggerStore *MemTriggerStore
 }
+
+var _ Listener = (*RuntimeListener)(nil)
 
 // NewRuntimeListener creates a RuntimeListener, and begin receiving on the
 // trigger channel. Any triggers received before the RuntimeListener has been
 // started using `runtimeListener.Start(ctx)` will be ignored
 func NewRuntimeListener(ctx context.Context, bus event.Bus) *RuntimeListener {
 	rl := &RuntimeListener{
-		bus:            bus,
-		TriggerCh:      make(chan event.WorkflowTriggerEvent),
-		activeTriggers: map[profile.ID]map[string][]string{},
+		bus:       bus,
+		TriggerCh: make(chan event.WorkflowTriggerEvent),
 	}
+	rl.triggerStore = NewMemTriggerStore(rl)
 	// start ensures that if a RuntimeTrigger attempts to trigger a workflow,
 	// but the RuntimeListener has not been told to start listening for
 	// triggers, the RuntimeTrigger won't block waiting for the
@@ -157,54 +156,7 @@ func (l *RuntimeListener) ConstructTrigger(opt map[string]interface{}) (Trigger,
 // Listen takes a list of sources and adds or updates the Listener's
 // store to include all the active triggers of the correct type
 func (l *RuntimeListener) Listen(sources ...Source) error {
-	l.activeTriggersLock.Lock()
-	defer l.activeTriggersLock.Unlock()
-
-	for _, s := range sources {
-		workflowID := s.WorkflowID()
-		if workflowID == "" {
-			return ErrEmptyWorkflowID
-		}
-		ownerID := s.Owner()
-		if ownerID == "" {
-			return ErrEmptyOwnerID
-		}
-		triggerOpts := s.ActiveTriggers(RuntimeType)
-		triggers := []Trigger{}
-		for _, triggerOpt := range triggerOpts {
-			t, err := l.ConstructTrigger(triggerOpt)
-			if err != nil {
-				return err
-			}
-			triggers = append(triggers, t)
-		}
-		wids, ok := l.activeTriggers[ownerID]
-		if !ok {
-			if len(triggers) == 0 {
-				continue
-			}
-			l.activeTriggers[ownerID] = map[string][]string{}
-			wids = l.activeTriggers[ownerID]
-		}
-		tids, ok := wids[workflowID]
-		if !ok {
-			if len(triggers) == 0 {
-				continue
-			}
-			l.activeTriggers[ownerID][workflowID] = []string{}
-			tids = l.activeTriggers[ownerID][workflowID]
-		}
-		if len(triggers) == 0 {
-			delete(l.activeTriggers[ownerID], workflowID)
-			continue
-		}
-		tids = []string{}
-		for _, t := range triggers {
-			tids = append(tids, t.ID())
-		}
-		l.activeTriggers[ownerID][workflowID] = tids
-	}
-	return nil
+	return l.triggerStore.Put(sources...)
 }
 
 // Type returns the Type `RuntimeType`
@@ -240,19 +192,17 @@ func (l *RuntimeListener) start(ctx context.Context) error {
 }
 
 func (l *RuntimeListener) shouldTrigger(ctx context.Context, wtp event.WorkflowTriggerEvent) error {
-	l.activeTriggersLock.Lock()
-	defer l.activeTriggersLock.Unlock()
-
-	workflowIDs, ok := l.activeTriggers[wtp.OwnerID]
+	activeTriggers := l.triggerStore.Active()
+	workflowIDs, ok := activeTriggers[wtp.OwnerID]
 	if !ok {
 		return ErrNotFound
 	}
-	triggerIDs, ok := workflowIDs[wtp.WorkflowID]
+	triggers, ok := workflowIDs[wtp.WorkflowID]
 	if !ok {
 		return ErrNotFound
 	}
-	for _, tid := range triggerIDs {
-		if tid == wtp.TriggerID {
+	for _, t := range triggers {
+		if t.ID() == wtp.TriggerID {
 			return nil
 		}
 	}
@@ -280,32 +230,5 @@ func (l *RuntimeListener) Stop() error {
 // TriggersExists returns true if triggers in the source match the triggers stored in
 // the runtime listener
 func (l *RuntimeListener) TriggersExists(source Source) bool {
-	l.activeTriggersLock.Lock()
-	defer l.activeTriggersLock.Unlock()
-
-	ownerID := source.Owner()
-	workflowID := source.WorkflowID()
-	wids, ok := l.activeTriggers[ownerID]
-	if !ok {
-		return false
-	}
-	tids, ok := wids[workflowID]
-	if !ok {
-		return false
-	}
-	triggerOpts := source.ActiveTriggers(RuntimeType)
-	if len(triggerOpts) != len(tids) {
-		return false
-	}
-	for i, opt := range triggerOpts {
-		t, err := l.ConstructTrigger(opt)
-		if err != nil {
-			log.Errorw("runtimeListener.TriggersExist", "error", err)
-			return false
-		}
-		if t.ID() != tids[i] {
-			return false
-		}
-	}
-	return true
+	return l.triggerStore.Exists(source)
 }

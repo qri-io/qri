@@ -13,7 +13,9 @@ import (
 
 func TestRuntimeTrigger(t *testing.T) {
 	rt := trigger.NewRuntimeTrigger()
-	spec.AssertTrigger(t, rt)
+	adv := rt.ToMap()
+	adv["advanceCount"] = 1
+	spec.AssertTrigger(t, rt, adv)
 }
 
 func TestRuntimeListener(t *testing.T) {
@@ -22,7 +24,7 @@ func TestRuntimeListener(t *testing.T) {
 		OwnerID: "test Owner id",
 		Active:  true,
 	}
-	listenerConstructor := func(ctx context.Context, bus event.Bus) (trigger.Listener, func()) {
+	listenerConstructor := func(ctx context.Context, bus event.Bus) (trigger.Listener, func(), func()) {
 		rl := trigger.NewRuntimeListener(ctx, bus)
 		triggerOpts := map[string]interface{}{
 			"active": true,
@@ -48,17 +50,18 @@ func TestRuntimeListener(t *testing.T) {
 			}
 			rl.TriggerCh <- wtp
 		}
+		advanceTrigger := func() {}
 
 		wf.Triggers = []map[string]interface{}{rt.ToMap()}
 		if err := rl.Listen(wf); err != nil {
 			t.Fatalf("RuntimeListener.Listen unexpected error: %s", err)
 		}
-		return rl, activateTrigger
+		return rl, activateTrigger, advanceTrigger
 	}
 	spec.AssertListener(t, listenerConstructor)
 
 	ctx := context.Background()
-	l, _ := listenerConstructor(ctx, event.NilBus)
+	l, _, _ := listenerConstructor(ctx, event.NilBus)
 	rl, ok := l.(*trigger.RuntimeListener)
 	if !ok {
 		t.Fatal("RuntimeListener unexpected assertion error, listenerConstructor should return a runtimeListener")
