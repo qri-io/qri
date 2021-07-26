@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/remote/access"
@@ -225,7 +226,7 @@ func (o *QriOptions) CryptoGenerator() key.CryptoGenerator {
 }
 
 // HTTPClient returns a client for performing RPC over HTTP
-func (o *QriOptions) HTTPClient() *lib.HTTPClient {
+func (o *QriOptions) HTTPClient() *qhttp.Client {
 	if err := o.Init(); err != nil {
 		return nil
 	}

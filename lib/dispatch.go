@@ -18,6 +18,8 @@ var (
 	ErrDispatchNilInstance = errors.New("instance is nil, cannot dispatch")
 	// ErrDispatchNilParam indicates that the param passed to dispatch is nil
 	ErrDispatchNilParam = errors.New("param is nil, cannot dispatch")
+	// ErrUnsupportedRPC is an error for when running a method that is not supported via HTTP RPC
+	ErrUnsupportedRPC = errors.New("method is not supported over RPC")
 )
 
 // dispatcher isolates the dispatch method
@@ -130,7 +132,7 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 			// for it to reliably use GET. All POSTs w/ content type application json work, however.
 			// we may want to just flat out say that as an RPC layer, dispatch will only ever use
 			// json POST to communicate.
-			err = inst.http.CallMethod(ctx, c.Endpoint, "POST", source, param, res)
+			err = inst.http.CallMethod(ctx, c.Endpoint.String(), "POST", source, param, res)
 			if err != nil {
 				return nil, nil, err
 			}

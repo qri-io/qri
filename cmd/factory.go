@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/p2p"
 )
 
@@ -22,7 +23,7 @@ type Factory interface {
 	CryptoGenerator() key.CryptoGenerator
 
 	Init() error
-	HTTPClient() *lib.HTTPClient
+	HTTPClient() *qhttp.Client
 	ConnectionNode() (*p2p.QriNode, error)
 }
 

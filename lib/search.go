@@ -66,7 +66,7 @@ func (searchImpl) Search(scope scope, p *SearchParams) ([]SearchResult, error) {
 		Offset: p.Offset,
 	}
 
-	regResults, err := client.Search(params)
+	regResults, err := client.Search(scope.Context(), params)
 	if err != nil {
 		return nil, err
 	}

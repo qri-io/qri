@@ -1,11 +1,7 @@
 package regclient
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"strings"
+	"context"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/registry"
@@ -37,100 +33,21 @@ type SearchParams struct {
 }
 
 // Search makes a registry search request
-func (c Client) Search(p *SearchParams) ([]*dataset.Dataset, error) {
+func (c Client) Search(ctx context.Context, p *SearchParams) ([]*dataset.Dataset, error) {
+	if c.httpClient == nil {
+		return nil, ErrNoRegistry
+	}
+
 	params := &registry.SearchParams{
 		Q: p.Query,
 		//Filters: p.Filters,
 		Limit:  p.Limit,
 		Offset: p.Offset,
 	}
-	results, err := c.doJSONSearchReq("GET", params)
+	results := []*dataset.Dataset{}
+	err := c.httpClient.CallMethod(ctx, "registry/search", "GET", "", params, results)
 	if err != nil {
 		return nil, err
 	}
 	return results, nil
-}
-
-func (c Client) prepPostReq(s *registry.SearchParams) (*http.Request, error) {
-	data, err := json.Marshal(s)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/registry/search", c.cfg.Location), bytes.NewReader(data))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	return req, nil
-}
-
-func (c Client) prepGetReq(s *registry.SearchParams) (*http.Request, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/registry/search", c.cfg.Location), nil)
-	if err != nil {
-		return nil, err
-	}
-	q := req.URL.Query()
-	q.Add("q", s.Q)
-	if s.Limit > 0 {
-		q.Add("limit", fmt.Sprintf("%d", s.Limit))
-	}
-	if s.Offset > -1 {
-		q.Add("offset", fmt.Sprintf("%d", s.Offset))
-	}
-	req.URL.RawQuery = q.Encode()
-	return req, nil
-}
-
-func (c Client) doJSONSearchReq(method string, s *registry.SearchParams) (results []*dataset.Dataset, err error) {
-	if c.cfg.Location == "" {
-		return nil, ErrNoRegistry
-	}
-	// req := &http.Request{}
-	var req *http.Request
-	switch method {
-	case "POST":
-		req, err = c.prepPostReq(s)
-	case "GET":
-		req, err = c.prepGetReq(s)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := c.httpClient.Do(req)
-	if err != nil {
-		if strings.Contains(err.Error(), "no such host") {
-			return nil, ErrNoRegistry
-		}
-		return nil, err
-	}
-	// add response to an envelope
-	env := struct {
-		Data []struct {
-			Value *dataset.Dataset
-		}
-		Meta struct {
-			Error  string
-			Status string
-			Code   int
-		}
-	}{}
-
-	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
-		return nil, err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error %d: %s", res.StatusCode, env.Meta.Error)
-	}
-
-	datasets := []*dataset.Dataset{}
-	for _, d := range env.Data {
-		if d.Value != nil {
-			datasets = append(datasets, d.Value)
-		} else {
-			log.Errorf("failed parsing dataset response")
-		}
-	}
-	return datasets, nil
 }

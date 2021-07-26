@@ -35,6 +35,7 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/fsi/hiddenfile"
 	"github.com/qri-io/qri/fsi/watchfs"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
@@ -460,7 +461,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 		if _, dialErr := manet.Dial(addr); dialErr == nil {
 			// we have a connection
-			inst.http, err = NewHTTPClient(cfg.API.Address)
+			inst.http, err = qhttp.NewClient(cfg.API.Address)
 			if err != nil {
 				return nil, err
 			}
@@ -809,7 +810,7 @@ type Instance struct {
 
 	remoteOptsFuncs []remote.OptionsFunc
 
-	http *HTTPClient
+	http *qhttp.Client
 
 	cancel    context.CancelFunc
 	doneCh    chan struct{}
@@ -1105,7 +1106,7 @@ func (inst *Instance) Dscache() *dscache.Dscache {
 }
 
 // HTTPClient accesses the instance HTTP client if one exists
-func (inst *Instance) HTTPClient() *HTTPClient {
+func (inst *Instance) HTTPClient() *qhttp.Client {
 	if inst == nil {
 		return nil
 	}
