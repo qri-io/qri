@@ -31,7 +31,9 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 		t.Fatalf("test repo has no datasets")
 	}
 
-	set, err := MigrateRepoStoreToLocalCollectionSet(ctx, event.NilBus, "", r)
+	set, err := NewLocalSet(ctx, event.NilBus, "", func(o *LocalSetOptions) {
+		o.MigrateRepo = r
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

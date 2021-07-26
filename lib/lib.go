@@ -346,7 +346,7 @@ func OptDscache(dscache *dscache.Dscache) Option {
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
-	log.Debugf("NewInstance repoPath=%s opts=%v", repoPath, opts)
+	log.Debugw("NewInstance", "repoPath", repoPath, "opts", opts)
 	ctx, cancel := context.WithCancel(ctx)
 	ok := false
 	defer func() {
@@ -616,6 +616,16 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	applyFactory := func(ctx context.Context) automation.Apply {
 		return inst.apply
 	}
+
+	if o.collectionSet == nil && inst.repo != nil {
+		inst.collectionSet, err = collection.NewLocalSet(ctx, inst.bus, repoPath, func(o *collection.LocalSetOptions) {
+			o.MigrateRepo = inst.repo
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
 	// basic orchestrator options. When we get the automation configuration settled
 	// we will build a more robust solution

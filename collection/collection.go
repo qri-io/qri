@@ -16,7 +16,10 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/profile"
+	"github.com/qri-io/qri/repo"
 )
+
+const collectionsDirName = "collections"
 
 var (
 	// ErrNotFound indicates a query for an unknown value
@@ -42,7 +45,16 @@ type WritableSet interface {
 	Delete(ctx context.Context, profileID profile.ID, initIDs ...string) error
 }
 
-const collectionsDirName = "collections"
+// LocalSetOptionFunc is a function that modifies the provided
+type LocalSetOptionFunc func(o *LocalSetOptions)
+
+// LocalSetOptions configures the local set
+type LocalSetOptions struct {
+	// repo to migrate from if collectionSet does not exist. If provided the
+	// collection will migrate from the repo to create a collection set for the
+	// "root" user instead of createing a blank collection
+	MigrateRepo repo.Repo
+}
 
 type localSet struct {
 	basePath string
@@ -61,13 +73,23 @@ var (
 // persist collections, serializing to a directory of "profileID.json" files,
 // with one for each profileID in the set of collections. providing an empty
 // repoDir value will create an in-memory collection
-func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string) (Set, error) {
+func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string, options ...LocalSetOptionFunc) (Set, error) {
+	opt := &LocalSetOptions{}
+	for _, fn := range options {
+		fn(opt)
+	}
+
 	if repoDir == "" {
 		// in-memory only collection
 		s := &localSet{
 			collections: make(map[profile.ID][]dsref.VersionInfo),
 		}
 		s.subscribe(bus)
+		if opt.MigrateRepo != nil {
+			if err := MigrateRepoStoreToLocalCollectionSet(ctx, s, opt.MigrateRepo); err != nil {
+				return nil, err
+			}
+		}
 		return s, nil
 	}
 
@@ -82,9 +104,14 @@ func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string) (Set, error
 			collections: make(map[profile.ID][]dsref.VersionInfo),
 		}
 		s.subscribe(bus)
+
+		if opt.MigrateRepo != nil {
+			if err = MigrateRepoStoreToLocalCollectionSet(ctx, s, opt.MigrateRepo); err != nil {
+				return nil, err
+			}
+		}
 		return s, nil
-	}
-	if !fi.IsDir() {
+	} else if !fi.IsDir() {
 		return nil, fmt.Errorf("collection is not a directory")
 	}
 
@@ -245,7 +272,7 @@ func (s *localSet) saveProfileCollection(pid profile.ID) error {
 
 	items := s.collections[pid]
 	if items == nil {
-		return fmt.Errorf("saving collection: %w: profile ID %q", ErrNotFound, pid)
+		items = []dsref.VersionInfo{}
 	}
 
 	data, err := json.Marshal(items)
@@ -259,6 +286,7 @@ func (s *localSet) saveProfileCollection(pid profile.ID) error {
 
 func (s *localSet) subscribe(bus event.Bus) {
 	bus.SubscribeTypes(s.handleEvent,
+		// save events
 		event.ETDatasetNameInit,
 		event.ETDatasetCommitChange,
 		event.ETDatasetRename,
@@ -270,22 +298,31 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 	switch e.Type {
 	case event.ETDatasetNameInit:
 		if change, ok := e.Payload.(event.DsChange); ok {
-			if vi := change.Info; vi != nil {
-				pid, err := profile.NewB58ID(vi.ProfileID)
-				if err != nil {
-					fmt.Printf("error parsing profile ID in name init: %s\n", err)
-					return err
-				}
-				if err := s.putOne(pid, *change.Info); err != nil {
-					fmt.Printf("error putting one: %s\n", err)
-					return err
-				}
+			vi := dsref.VersionInfo{
+				InitID:    change.InitID,
+				ProfileID: change.ProfileID,
+				Username:  change.Username,
+				Name:      change.PrettyName,
 			}
+			// if vi := change.Info; vi = nil {
+			// }
+			pid, err := profile.NewB58ID(vi.ProfileID)
+			if err != nil {
+				log.Debugw("parsing profile ID in name init", "err", err)
+				return err
+			}
+			if err := s.Put(ctx, pid, vi); err != nil {
+				log.Debugw("putting one:", "err", err)
+				return err
+			}
+			log.Debugw("finished putting new name", "name", change.PrettyName, "initID", change.InitID)
 		}
 	case event.ETDatasetCommitChange:
+		// keep in mind commit changes can mean added OR removed versions
 		if change, ok := e.Payload.(event.DsChange); ok {
 			s.updateOneAcrossAllCollections(change.InitID, func(vi *dsref.VersionInfo) {
 				vi.Path = change.HeadRef
+				vi.NumVersions = change.TopIndex
 			})
 		}
 	case event.ETDatasetRename:

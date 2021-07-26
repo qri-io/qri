@@ -2,38 +2,40 @@ package collection
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
-	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 )
 
 // MigrateRepoStoreToLocalCollectionSet constructs a local collection.Set from
 // legacy repo data
-func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, bus event.Bus, repoDir string, r repo.Repo) (Set, error) {
+func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, s Set, r repo.Repo) error {
+	ws, ok := s.(WritableSet)
+	if !ok {
+		return errors.New("cannot migrate to CollectionSet. Provided CollectionSet is not writable")
+	}
+
 	datasets, err := repo.ListVersionInfoShim(r, 0, 1000000)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	book := r.Logbook()
 	for i, vi := range datasets {
 		ref := vi.SimpleRef()
 		if _, err := book.ResolveRef(ctx, &ref); err != nil {
-			return nil, fmt.Errorf("resolving dataset initID: %w", err)
+			log.Warnf("can't migrate dataset %s to collection. Error resolving dataset initID: %s", vi.SimpleRef(), err)
+			continue
 		}
 		datasets[i].InitID = ref.InitID
 	}
 
-	s, err := NewLocalSet(ctx, bus, repoDir)
-	if err != nil {
-		return nil, err
+	// remove any datasets that couldn't be resolved
+	for i := len(datasets) - 1; i >= 0; i-- {
+		if datasets[i].InitID == "" {
+			datasets = append(datasets[:i], datasets[i+1:]...)
+		}
 	}
 
-	ws := s.(WritableSet)
-	if err = ws.Put(ctx, r.Profiles().Owner().ID, datasets...); err != nil {
-		return nil, err
-	}
-
-	return ws, nil
+	return ws.Put(ctx, r.Profiles().Owner().ID, datasets...)
 }
