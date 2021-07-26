@@ -12,8 +12,10 @@ import (
 )
 
 func TestRuntimeTrigger(t *testing.T) {
-	rt := trigger.NewRuntimeTrigger()
-	spec.AssertTrigger(t, rt)
+	rt := trigger.NewEmptyRuntimeTrigger()
+	adv := rt.ToMap()
+	adv["advanceCount"] = 1
+	spec.AssertTrigger(t, rt, adv)
 }
 
 func TestRuntimeListener(t *testing.T) {
@@ -22,7 +24,7 @@ func TestRuntimeListener(t *testing.T) {
 		OwnerID: "test Owner id",
 		Active:  true,
 	}
-	listenerConstructor := func(ctx context.Context, bus event.Bus) (trigger.Listener, func()) {
+	listenerConstructor := func(ctx context.Context, bus event.Bus) (trigger.Listener, func(), func()) {
 		rl := trigger.NewRuntimeListener(ctx, bus)
 		triggerOpts := map[string]interface{}{
 			"active": true,
@@ -48,17 +50,18 @@ func TestRuntimeListener(t *testing.T) {
 			}
 			rl.TriggerCh <- wtp
 		}
+		advanceTrigger := func() {}
 
 		wf.Triggers = []map[string]interface{}{rt.ToMap()}
 		if err := rl.Listen(wf); err != nil {
 			t.Fatalf("RuntimeListener.Listen unexpected error: %s", err)
 		}
-		return rl, activateTrigger
+		return rl, activateTrigger, advanceTrigger
 	}
 	spec.AssertListener(t, listenerConstructor)
 
 	ctx := context.Background()
-	l, _ := listenerConstructor(ctx, event.NilBus)
+	l, _, _ := listenerConstructor(ctx, event.NilBus)
 	rl, ok := l.(*trigger.RuntimeListener)
 	if !ok {
 		t.Fatal("RuntimeListener unexpected assertion error, listenerConstructor should return a runtimeListener")
@@ -95,8 +98,8 @@ func TestRuntimeListenerListen(t *testing.T) {
 	if rl.TriggersExists(wfA1) || rl.TriggersExists(wfB1) {
 		t.Fatal("workflow with no triggers should not exist in the Listener")
 	}
-	trig1 := trigger.NewRuntimeTrigger()
-	trig2 := trigger.NewRuntimeTrigger()
+	trig1 := trigger.NewEmptyRuntimeTrigger()
+	trig2 := trigger.NewEmptyRuntimeTrigger()
 	wfA1.Triggers = []map[string]interface{}{trig1.ToMap(), trig2.ToMap()}
 	if err := rl.Listen([]trigger.Source{wfA1}...); err != nil {
 		t.Fatal(err)

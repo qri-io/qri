@@ -74,9 +74,21 @@ func (s Server) Serve(ctx context.Context) (err error) {
 		Handler: s.Mux,
 	}
 
-	info := "qri is ready."
+	// TODO(ramfox): check config to see if automation is active
+	automationRunning := true
+	if err := s.Instance.AutomationListen(ctx); err != nil {
+		automationRunning = false
+		if !errors.Is(lib.ErrAutomationDisabled, err) {
+			return err
+		}
+	}
+
+	info := "qri is ready.\n"
+	if !automationRunning {
+		info += "automation is diabled. workflow triggers will not execute\n"
+	}
 	if !p2pConnected {
-		info += "running with no p2p connection"
+		info += "running with no p2p connection\n"
 	}
 	info += cfg.SummaryString()
 	if p2pConnected {

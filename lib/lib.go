@@ -618,7 +618,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
 	// basic orchestrator options. When we get the automation configuration settled
 	// we will build a more robust solution
-	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, automation.DefaultOrchestratorOptions())
+	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, automation.DefaultOrchestratorOptions(inst.bus))
 	go inst.waitForAllDone()
 	go func() {
 		if err := inst.bus.Publish(ctx, event.ETInstanceConstructed, nil); err != nil {
@@ -752,7 +752,13 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
 	// basic orchestrator options. When we get the automation configuration settled
 	// we will build a more robust solution
-	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, automation.DefaultOrchestratorOptions())
+	autoOpts := automation.DefaultOrchestratorOptions(inst.bus)
+	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, autoOpts)
+	if err != nil {
+		cancel()
+		panic(err)
+	}
+
 	inst.remoteClient, err = remote.NewClient(ctx, node, inst.bus)
 	if err != nil {
 		cancel()
@@ -862,6 +868,29 @@ func (inst *Instance) ConnectP2P(ctx context.Context) (err error) {
 			return err
 		}
 	}
+
+	return nil
+}
+
+// ErrAutomationDisabled error indicates automation is disabled by configuration
+var ErrAutomationDisabled = fmt.Errorf("automation is disabled")
+
+// AutomationListen starts the automation orchestrator listening for automation
+// trigger
+func (inst *Instance) AutomationListen(ctx context.Context) (err error) {
+	if inst.cfg.Automation != nil && !inst.cfg.Automation.Enabled {
+		return ErrAutomationDisabled
+	}
+
+	err = inst.automation.Start(ctx)
+	if err != nil {
+		return
+	}
+	go func() {
+		inst.releasers.Add(1)
+		<-inst.automation.Done()
+		inst.releasers.Done()
+	}()
 
 	return nil
 }

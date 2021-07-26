@@ -62,6 +62,7 @@ type Orchestrator struct {
 	applyFactory ApplyFactory
 	bus          event.Bus
 	cancel       context.CancelFunc
+	doneCh       chan struct{}
 	running      bool
 }
 
@@ -85,12 +86,14 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 	var o *Orchestrator
 	defer func() {
 		if !ok {
-			o.Shutdown()
+			o.Stop()
 		}
 	}()
 
 	o = &Orchestrator{
-		cancel:       cancel,
+		cancel: cancel,
+		doneCh: make(chan struct{}),
+
 		bus:          bus,
 		runFactory:   runFactory,
 		applyFactory: applyFactory,
@@ -134,16 +137,22 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 	}
 	// TODO (ramfox): once hooks/completors are implemented, start the completor system here
 	ok = true
+
+	go o.handleContextClose(ctx)
+
 	return o, nil
 }
 
 // DefaultOrchestratorOptions is a temporary solution to supplying options to the orchestrator
 // TODO (ramfox): remove this in favor of using the automation configuration to
 // determing what the orchestrator should be configured as
-func DefaultOrchestratorOptions() OrchestratorOptions {
+func DefaultOrchestratorOptions(bus event.Bus) OrchestratorOptions {
 	return OrchestratorOptions{
 		WorkflowStore: workflow.NewMemStore(),
 		RunStore:      run.NewMemStore(),
+		Listeners: []trigger.Listener{
+			trigger.NewCronListener(bus),
+		},
 	}
 }
 
@@ -157,9 +166,24 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 
 // Stop stops the listeners and completors from listening for triggers and hooks
 func (o *Orchestrator) Stop() {
-	// unsubscribe
+	o.cancel()
+	<-o.doneCh
+}
+
+// Done retrns a read only channel that will close when the Orchestrator
+// finishes stopping
+func (o *Orchestrator) Done() <-chan struct{} {
+	return o.doneCh
+}
+
+func (o *Orchestrator) handleContextClose(ctx context.Context) {
+	<-ctx.Done()
 	o.running = false
+	// TODO (ramfox): when we have added a way to unsubscribe from a bus, this is where we should do it
+
+	// unsubscribe
 	o.stopListeners()
+	close(o.doneCh)
 }
 
 // startListeners passes a list of deployed Workflows to configured trigger
@@ -199,14 +223,6 @@ func (o *Orchestrator) stopListeners() {
 			log.Debugf("Orchestrator StopListeners error: %s", err)
 		}
 	}
-}
-
-// Shutdown stops any currently running processes and tears down the orchestrator system
-// must be called to ensure all processes have be closed correctly
-func (o *Orchestrator) Shutdown() {
-	// TODO (ramfox): when we have added a way to unsubscribe from a bus, this is where we should do it
-	o.Stop()
-	o.cancel()
 }
 
 // advanceTrigger may emit log errors
