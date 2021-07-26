@@ -618,7 +618,11 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
 	// basic orchestrator options. When we get the automation configuration settled
 	// we will build a more robust solution
-	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, automation.DefaultOrchestratorOptions(inst.bus))
+	orchestratorOpts, err := automation.DefaultOrchestratorOptions(inst.bus, inst.repoPath)
+	if err != nil {
+		return nil, err
+	}
+	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, orchestratorOpts)
 	go inst.waitForAllDone()
 	go func() {
 		if err := inst.bus.Publish(ctx, event.ETInstanceConstructed, nil); err != nil {
@@ -752,7 +756,11 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
 	// basic orchestrator options. When we get the automation configuration settled
 	// we will build a more robust solution
-	autoOpts := automation.DefaultOrchestratorOptions(inst.bus)
+	autoOpts, err := automation.DefaultOrchestratorOptions(inst.bus, inst.repoPath)
+	if err != nil {
+		cancel()
+		panic(err)
+	}
 	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, autoOpts)
 	if err != nil {
 		cancel()

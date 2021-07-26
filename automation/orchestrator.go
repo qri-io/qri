@@ -146,14 +146,18 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 // DefaultOrchestratorOptions is a temporary solution to supplying options to the orchestrator
 // TODO (ramfox): remove this in favor of using the automation configuration to
 // determing what the orchestrator should be configured as
-func DefaultOrchestratorOptions(bus event.Bus) OrchestratorOptions {
+func DefaultOrchestratorOptions(bus event.Bus, repoPath string) (OrchestratorOptions, error) {
+	wfs, err := workflow.NewFileStore(repoPath)
+	if err != nil {
+		return OrchestratorOptions{}, err
+	}
 	return OrchestratorOptions{
-		WorkflowStore: workflow.NewMemStore(),
+		WorkflowStore: wfs,
 		RunStore:      run.NewMemStore(),
 		Listeners: []trigger.Listener{
 			trigger.NewCronListener(bus),
 		},
-	}
+	}, nil
 }
 
 // Start starts the listeners and completors listening for triggers and hooks
