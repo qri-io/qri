@@ -4,8 +4,10 @@ package regclient
 import (
 	"errors"
 	"net/http"
+	"net/url"
 
 	golog "github.com/ipfs/go-log"
+	qhttp "github.com/qri-io/qri/lib/http"
 )
 
 var (
@@ -29,7 +31,7 @@ var (
 // with the configured registry
 type Client struct {
 	cfg        *Config
-	httpClient *http.Client
+	httpClient *qhttp.Client
 }
 
 // Config encapsulates options for working with a registry
@@ -40,5 +42,25 @@ type Config struct {
 
 // NewClient creates a registry from a provided Registry configuration
 func NewClient(cfg *Config) *Client {
-	return &Client{cfg, HTTPClient}
+	c := &Client{cfg: cfg}
+	if c.cfg.Location == "" {
+		return c
+	}
+
+	u, err := url.Parse(c.cfg.Location)
+	if err != nil {
+		log.Debugf(ErrNoRegistry.Error())
+	} else {
+		us := u.String()
+		if u.Scheme != "" {
+			us = us[len(u.Scheme)+len("://")+1:]
+		}
+		httpClient := &qhttp.Client{
+			Address:  us,
+			Protocol: u.Scheme,
+		}
+		c.httpClient = httpClient
+	}
+
+	return c
 }

@@ -135,7 +135,8 @@ func (c Client) doJSONProfileReq(method string, p *registry.Profile) (*registry.
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := c.httpClient.Do(req)
+	// TODO(arqu): convert to lib/http/HTTPClient
+	res, err := HTTPClient.Do(req)
 	if err != nil {
 		if strings.Contains(err.Error(), "no such host") {
 			return nil, ErrNoRegistry
@@ -202,7 +203,8 @@ func (c Client) doJSONRegistryRequest(method, url string, input interface{}, out
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := c.httpClient.Do(req)
+	// TODO(arqu): convert to lib/http/HTTPClient
+	res, err := HTTPClient.Do(req)
 	if err != nil {
 		if strings.Contains(err.Error(), "no such host") {
 			return ErrNoRegistry
