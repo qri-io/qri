@@ -1,30 +1,25 @@
 package trigger_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
-	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/profile"
 )
 
-func TestMemTriggerStore(t *testing.T) {
-	ctx := context.Background()
-	bus := event.NilBus
-	l := trigger.NewRuntimeListener(ctx, bus)
-	s := trigger.NewMemTriggerStore(l)
-	if err := s.Put(&workflow.Workflow{OwnerID: profile.ID("ownerID")}); !errors.Is(err, trigger.ErrEmptyWorkflowID) {
-		t.Errorf("Put - source with no WorkflowID - expected error %q, got %q", trigger.ErrEmptyWorkflowID, err)
+func TestSet(t *testing.T) {
+	s := trigger.NewSet(trigger.RuntimeType, trigger.NewRuntimeTrigger)
+	if err := s.Add(&workflow.Workflow{OwnerID: profile.ID("ownerID")}); !errors.Is(err, trigger.ErrEmptyWorkflowID) {
+		t.Errorf("Add - source with no WorkflowID - expected error %q, got %q", trigger.ErrEmptyWorkflowID, err)
 	}
-	if err := s.Put(&workflow.Workflow{ID: "workflowID"}); !errors.Is(err, trigger.ErrEmptyOwnerID) {
-		t.Errorf("Put - source with no OwnerID - expected error %q, got %q", trigger.ErrEmptyOwnerID, err)
+	if err := s.Add(&workflow.Workflow{ID: "workflowID"}); !errors.Is(err, trigger.ErrEmptyOwnerID) {
+		t.Errorf("Add - source with no OwnerID - expected error %q, got %q", trigger.ErrEmptyOwnerID, err)
 	}
-	if err := s.Put(&workflow.Workflow{OwnerID: profile.ID("ownerID"), ID: "workflowID"}); err != nil {
-		t.Errorf("Put - unexpected error: %s", err)
+	if err := s.Add(&workflow.Workflow{OwnerID: profile.ID("ownerID"), ID: "workflowID"}); err != nil {
+		t.Errorf("Add - unexpected error: %s", err)
 	}
 	if diff := cmp.Diff(map[profile.ID]map[string][]trigger.Trigger{}, s.Active()); diff != "" {
 		t.Errorf("active triggers mismatch (-want +got):\n%s", diff)
@@ -35,12 +30,12 @@ func TestMemTriggerStore(t *testing.T) {
 		OwnerID: alice,
 		ID:      "workflow1",
 		Triggers: []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"id":     "trigger1",
 				"active": true,
 				"type":   trigger.RuntimeType,
 			},
-			map[string]interface{}{
+			{
 				"id":     "trigger_not_active",
 				"active": false,
 				"type":   trigger.RuntimeType,
@@ -57,12 +52,12 @@ func TestMemTriggerStore(t *testing.T) {
 		OwnerID: alice,
 		ID:      "workflow3",
 		Triggers: []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"id":     "trigger2",
 				"active": true,
 				"type":   trigger.RuntimeType,
 			},
-			map[string]interface{}{
+			{
 				"id":     "trigger3",
 				"active": true,
 				"type":   trigger.RuntimeType,
@@ -75,7 +70,7 @@ func TestMemTriggerStore(t *testing.T) {
 		OwnerID: bob,
 		ID:      "workflow4",
 		Triggers: []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"id":     "trigger4",
 				"active": true,
 				"type":   trigger.RuntimeType,
@@ -87,7 +82,7 @@ func TestMemTriggerStore(t *testing.T) {
 		OwnerID: bob,
 		ID:      "workflow5",
 		Triggers: []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"id":     "trigger_not_active_workflow",
 				"active": true,
 				"type":   trigger.RuntimeType,
@@ -116,22 +111,22 @@ func TestMemTriggerStore(t *testing.T) {
 	}
 	triggers := []trigger.Trigger{}
 	for i := 0; i < len(triggerIDs); i++ {
-		trig := trigger.NewRuntimeTrigger()
+		trig := trigger.NewEmptyRuntimeTrigger()
 		trig.SetActive(true)
 		triggers = append(triggers, trig)
 	}
 
 	expected := map[profile.ID]map[string][]trigger.Trigger{
-		alice: map[string][]trigger.Trigger{
+		alice: {
 			"workflow1": triggers[:1],
 			"workflow3": triggers[1:3],
 		},
-		bob: map[string][]trigger.Trigger{
+		bob: {
 			"workflow4": triggers[3:],
 		},
 	}
-	if err := s.Put(sourceA, sourceB, sourceC, sourceD, sourceE); err != nil {
-		t.Fatalf("Put unexpected error: %s", err)
+	if err := s.Add(sourceA, sourceB, sourceC, sourceD, sourceE); err != nil {
+		t.Fatalf("Add unexpected error: %s", err)
 	}
 	if diff := cmp.Diff(expected, s.Active(), cmp.AllowUnexported(trigger.RuntimeTrigger{})); diff != "" {
 		t.Errorf("active triggers mismatch (-want +got):\n%s", diff)
@@ -145,8 +140,8 @@ func TestMemTriggerStore(t *testing.T) {
 	// should remove the entry in the store
 	sourceD.Triggers = []map[string]interface{}{}
 	delete(expected, bob)
-	if err := s.Put(sourceD); err != nil {
-		t.Fatalf("Put unexpected error: %s", err)
+	if err := s.Add(sourceD); err != nil {
+		t.Fatalf("Add unexpected error: %s", err)
 	}
 	if diff := cmp.Diff(expected, s.Active(), cmp.AllowUnexported(trigger.RuntimeTrigger{})); diff != "" {
 		t.Errorf("active triggers mismatch (-want +got):\n%s", diff)
@@ -162,8 +157,8 @@ func TestMemTriggerStore(t *testing.T) {
 		sourceC.Triggers[1],
 	}
 	expected[alice]["workflow1"] = triggers[:3]
-	if err := s.Put(sourceA); err != nil {
-		t.Fatalf("Put unexpected error: %s", err)
+	if err := s.Add(sourceA); err != nil {
+		t.Fatalf("Add unexpected error: %s", err)
 	}
 	if diff := cmp.Diff(expected, s.Active(), cmp.AllowUnexported(trigger.RuntimeTrigger{})); diff != "" {
 		t.Errorf("active triggers mismatch (-want +got):\n%s", diff)
@@ -176,8 +171,8 @@ func TestMemTriggerStore(t *testing.T) {
 
 	sourceC.Triggers = []map[string]interface{}{}
 	delete(expected[alice], "workflow3")
-	if err := s.Put(sourceC); err != nil {
-		t.Fatalf("Put unexpected error: %s", err)
+	if err := s.Add(sourceC); err != nil {
+		t.Fatalf("Add unexpected error: %s", err)
 	}
 	if diff := cmp.Diff(expected, s.Active(), cmp.AllowUnexported(trigger.RuntimeTrigger{})); diff != "" {
 		t.Errorf("active triggers mismatch (-want +got):\n%s", diff)
@@ -185,8 +180,8 @@ func TestMemTriggerStore(t *testing.T) {
 
 	sourceA.Triggers = []map[string]interface{}{}
 	delete(expected, alice)
-	if err := s.Put(sourceA); err != nil {
-		t.Fatalf("Put unexpected error: %s", err)
+	if err := s.Add(sourceA); err != nil {
+		t.Fatalf("Add unexpected error: %s", err)
 	}
 	if diff := cmp.Diff(expected, s.Active(), cmp.AllowUnexported(trigger.RuntimeTrigger{})); diff != "" {
 		t.Errorf("active triggers mismatch (-want +got):\n%s", diff)

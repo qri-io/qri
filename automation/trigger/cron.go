@@ -10,11 +10,16 @@ import (
 	"github.com/qri-io/qri/event"
 )
 
-// NowFunc returns the time now
-// can be overridded for testing purposes
-var NowFunc = func() time.Time {
-	return time.Now()
-}
+const (
+	// CronType denotes a `CronTrigger`
+	CronType = "cron"
+	// DefaultInterval is the default amount of time to wait before checking
+	// if any CronTriggers have fired
+	DefaultInterval = time.Second
+)
+
+// NowFunc returns a new timestamp. can be overridden for testing purposes
+var NowFunc = time.Now
 
 // CronTrigger implements the Trigger interface & keeps track of periodicity
 // and the next run time
@@ -27,22 +32,31 @@ type CronTrigger struct {
 
 var _ Trigger = (*CronTrigger)(nil)
 
-// CronType denotes a `CronTrigger`
-const CronType = "cron"
+// NewCronTrigger constructs a CronTrigger
+func NewCronTrigger(cfg map[string]interface{}) (Trigger, error) {
+	typ := cfg["type"]
+	if typ != CronType {
+		return nil, fmt.Errorf("%w, expected %q but got %q", ErrTypeMismatch, CronType, typ)
+	}
 
-// NewCronTrigger returns an active `CronTrigger`
-func NewCronTrigger(vals map[string]interface{}) (*CronTrigger, error) {
-	data, err := json.Marshal(vals)
+	_, ok := cfg["periodicity"]
+	if !ok {
+		return nil, fmt.Errorf("field %q required", "periodicity")
+	}
+
+	data, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
-	ct := &CronTrigger{}
-	err = ct.UnmarshalJSON(data)
-	if ct.nextRunStart == nil {
-		ct.nextRunStart = ct.periodicity.Interval.Start
+	trig := &CronTrigger{}
+	err = trig.UnmarshalJSON(data)
+	if trig.id == "" {
+		trig.id = NewID()
 	}
-	ct.active = true
-	return ct, err
+	if trig.nextRunStart == nil {
+		trig.nextRunStart = trig.periodicity.Interval.Start
+	}
+	return trig, err
 }
 
 // ID returns the trigger.ID
@@ -123,17 +137,13 @@ func (ct *CronTrigger) UnmarshalJSON(p []byte) error {
 
 // CronListener listens for CronTriggers
 type CronListener struct {
-	cancel       context.CancelFunc
-	pub          event.Publisher
-	interval     time.Duration
-	triggerStore *MemTriggerStore
+	cancel   context.CancelFunc
+	pub      event.Publisher
+	interval time.Duration
+	triggers *Set
 }
 
 var _ Listener = (*CronListener)(nil)
-
-// DefaultInterval is the default amount of time to wait before checking
-// if any CronTriggers have fired
-const DefaultInterval = time.Second
 
 // NewCronListener returns a CronListener with the DefaultInterval
 func NewCronListener(pub event.Publisher) *CronListener {
@@ -142,45 +152,22 @@ func NewCronListener(pub event.Publisher) *CronListener {
 
 // NewCronListenerInterval returns a CronListener with the given interval
 func NewCronListenerInterval(pub event.Publisher, interval time.Duration) *CronListener {
-	cl := &CronListener{
+	return &CronListener{
 		pub:      pub,
 		interval: interval,
+		triggers: NewSet(CronType, NewCronTrigger),
 	}
-	cl.triggerStore = NewMemTriggerStore(cl)
-	return cl
 }
 
-// ConstructTrigger returns a CronTrigger from a map[string]interface{}
+// ConstructTrigger binds NewCronTrigger to CronListener
 func (c *CronListener) ConstructTrigger(cfg map[string]interface{}) (Trigger, error) {
-	typ := cfg["type"]
-	if typ != c.Type() {
-		return nil, fmt.Errorf("%w, expected %q but got %q", ErrTypeMismatch, c.Type(), typ)
-	}
-
-	_, ok := cfg["periodicity"]
-	if !ok {
-		return nil, fmt.Errorf("field %q required", "periodicity")
-	}
-
-	data, err := json.Marshal(cfg)
-	if err != nil {
-		return nil, err
-	}
-	trig := &CronTrigger{}
-	err = trig.UnmarshalJSON(data)
-	if trig.id == "" {
-		trig.id = NewID()
-	}
-	if trig.nextRunStart == nil {
-		trig.nextRunStart = trig.periodicity.Interval.Start
-	}
-	return trig, err
+	return NewCronTrigger(cfg)
 }
 
 // Listen takes a list of sources and adds or updates the Listener's store to
 // include all the active triggers of the CronType
 func (c *CronListener) Listen(sources ...Source) error {
-	return c.triggerStore.Put(sources...)
+	return c.triggers.Add(sources...)
 }
 
 // Type returns the CronType
@@ -192,7 +179,7 @@ func (c *CronListener) Start(ctx context.Context) error {
 	c.cancel = cancel
 	check := func(ctx context.Context) {
 		now := NowFunc()
-		for ownerID, wids := range c.triggerStore.Active() {
+		for ownerID, wids := range c.triggers.Active() {
 			for workflowID, triggers := range wids {
 				for _, trig := range triggers {
 					t := trig.(*CronTrigger)
@@ -227,6 +214,9 @@ func (c *CronListener) Start(ctx context.Context) error {
 
 // Stop tells the CronListener to stop listening for CronTriggers
 func (c *CronListener) Stop() error {
-	c.cancel()
+	// cancel will be nil if listener is never started
+	if c.cancel != nil {
+		c.cancel()
+	}
 	return nil
 }

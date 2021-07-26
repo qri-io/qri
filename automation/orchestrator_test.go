@@ -30,7 +30,7 @@ func TestIntegration(t *testing.T) {
 	runStore := run.NewMemStore()
 	workflowStore := workflow.NewMemStore()
 	runtimeListener := trigger.NewRuntimeListener(ctx, bus)
-	rttListenTest := trigger.NewRuntimeTrigger()
+	rttListenTest := trigger.NewEmptyRuntimeTrigger()
 	rttListenTest.SetActive(true)
 	wf := &workflow.Workflow{
 		DatasetID: "test_listeners",
@@ -75,7 +75,7 @@ func TestIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer o.Shutdown()
+	defer o.Stop()
 
 	prevTriggerNewID := trigger.NewID
 	defer func() {
@@ -473,7 +473,7 @@ func TestRunStoreEvents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer o.Shutdown()
+	defer o.Stop()
 	if err := o.RunWorkflow(ctx, wf.ID, ""); err != nil {
 		t.Fatal(err)
 	}

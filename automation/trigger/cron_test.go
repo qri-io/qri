@@ -38,7 +38,7 @@ func TestCronListener(t *testing.T) {
 		OwnerID: "test Owner id",
 		Active:  true,
 		Triggers: []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"id":          "trigger1",
 				"active":      true,
 				"type":        trigger.CronType,

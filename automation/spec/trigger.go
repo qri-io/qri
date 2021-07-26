@@ -20,7 +20,7 @@ func AssertTrigger(t *testing.T, trig trigger.Trigger, advanced map[string]inter
 		t.Error("Type method must return a non-empty trigger.Type")
 	}
 	if err := trig.Advance(); err != nil {
-		t.Fatal("trigger.Advance() unexpected error")
+		t.Fatalf("trigger.Advance() unexpected error: %s", err)
 	}
 	triggerObj := trig.ToMap()
 	if diff := cmp.Diff(advanced, triggerObj); diff != "" {
@@ -90,8 +90,9 @@ func AssertTrigger(t *testing.T, trig trigger.Trigger, advanced map[string]inter
 	}
 }
 
-// ListenerConstructor creates a trigger listener and function that fires the listener when called, and a function that
-// advances the trigger & updates the source properly
+// ListenerConstructor creates a trigger listener and function that fires the
+// listener when called, and a function that advances the trigger & updates
+// the source
 type ListenerConstructor func(ctx context.Context, bus event.Bus) (listener trigger.Listener, activate func(), advance func())
 
 // AssertListener confirms the expected behavior of a trigger.Listener

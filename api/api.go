@@ -75,15 +75,20 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	}
 
 	// TODO(ramfox): check config to see if automation is active
-	automationCancel, err := s.Instance.AutomationListen(ctx)
-	if err != nil {
-		return err
+	automationRunning := true
+	if err := s.Instance.AutomationListen(ctx); err != nil {
+		automationRunning = false
+		if !errors.Is(lib.ErrAutomationDisabled, err) {
+			return err
+		}
 	}
 
-	info := "qri is ready."
-	info += "\nlistening for triggers"
+	info := "qri is ready.\n"
+	if !automationRunning {
+		info += "automation is diabled. workflow triggers will not execute\n"
+	}
 	if !p2pConnected {
-		info += "running with no p2p connection"
+		info += "running with no p2p connection\n"
 	}
 	info += cfg.SummaryString()
 	if p2pConnected {
@@ -99,7 +104,6 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	go func() {
 		<-ctx.Done()
 		log.Info("shutting down")
-		automationCancel()
 		server.Close()
 	}()
 

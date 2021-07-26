@@ -61,6 +61,10 @@ type Trigger interface {
 	ToMap() map[string]interface{}
 }
 
+// Constructor is a function that creates a Trigger from a
+// map[string]interface{}
+type Constructor func(opts map[string]interface{}) (Trigger, error)
+
 // A Listener emits a `event.ETTriggerWorkflow` event when a specific stimulus
 // is triggered
 type Listener interface {
@@ -84,26 +88,28 @@ type Source interface {
 	Owner() profile.ID
 }
 
-// MemTriggerStore stores triggers by ownerID, and workflowID
-type MemTriggerStore struct {
+// Set stores triggers of a common type, uniquely identified by ownerID and
+// workflowID
+type Set struct {
 	triggerType      string
 	activeLock       sync.Mutex
 	active           map[profile.ID]map[string][]Trigger
 	constructTrigger func(opt map[string]interface{}) (Trigger, error)
 }
 
-// NewMemTriggerStore creates a MemTriggerStore
-func NewMemTriggerStore(l Listener) *MemTriggerStore {
-	return &MemTriggerStore{
+// NewSet creates a Set with types matched to a given listener
+func NewSet(triggerType string, ctor Constructor) *Set {
+	return &Set{
 		activeLock:       sync.Mutex{},
 		active:           map[profile.ID]map[string][]Trigger{},
-		triggerType:      l.Type(),
-		constructTrigger: l.ConstructTrigger,
+		triggerType:      triggerType,
+		constructTrigger: ctor,
 	}
 }
 
-// Put adds the Triggers from a Source into the MemTriggerStore
-func (t *MemTriggerStore) Put(sources ...Source) error {
+// Add popuates the set with Triggers from a Source whos type matches the set's
+// trigger type
+func (t *Set) Add(sources ...Source) error {
 	t.activeLock.Lock()
 	defer t.activeLock.Unlock()
 	for _, s := range sources {
@@ -158,7 +164,7 @@ func (t *MemTriggerStore) Put(sources ...Source) error {
 }
 
 // Exists returns true if all the triggers from the Source exist in the store
-func (t *MemTriggerStore) Exists(source Source) bool {
+func (t *Set) Exists(source Source) bool {
 	t.activeLock.Lock()
 	defer t.activeLock.Unlock()
 
@@ -190,6 +196,6 @@ func (t *MemTriggerStore) Exists(source Source) bool {
 }
 
 // Active returns the map of active triggers, organized by OwnerID and WorkflowID
-func (t *MemTriggerStore) Active() map[profile.ID]map[string][]Trigger {
+func (t *Set) Active() map[profile.ID]map[string][]Trigger {
 	return t.active
 }

@@ -12,7 +12,7 @@ import (
 )
 
 func TestRuntimeTrigger(t *testing.T) {
-	rt := trigger.NewRuntimeTrigger()
+	rt := trigger.NewEmptyRuntimeTrigger()
 	adv := rt.ToMap()
 	adv["advanceCount"] = 1
 	spec.AssertTrigger(t, rt, adv)
@@ -98,8 +98,8 @@ func TestRuntimeListenerListen(t *testing.T) {
 	if rl.TriggersExists(wfA1) || rl.TriggersExists(wfB1) {
 		t.Fatal("workflow with no triggers should not exist in the Listener")
 	}
-	trig1 := trigger.NewRuntimeTrigger()
-	trig2 := trigger.NewRuntimeTrigger()
+	trig1 := trigger.NewEmptyRuntimeTrigger()
+	trig2 := trigger.NewEmptyRuntimeTrigger()
 	wfA1.Triggers = []map[string]interface{}{trig1.ToMap(), trig2.ToMap()}
 	if err := rl.Listen([]trigger.Source{wfA1}...); err != nil {
 		t.Fatal(err)
