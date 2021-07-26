@@ -63,11 +63,15 @@ type Bus interface {
 	Publish(ctx context.Context, typ Type, data interface{}) error
 	// PublishID publishes an event with an arbitrary session id
 	PublishID(ctx context.Context, typ Type, sessionID string, data interface{}) error
-	// Subscribe to one or more eventTypes with a handler function that will be called
+	// SubscribeTypes subscribes to one or more eventTypes with a handler function that will be called
 	// whenever the event type is published
 	SubscribeTypes(handler Handler, eventTypes ...Type)
+	// UnsubscribeTypes unsubscribes to one or more eventTypes from a handler function
+	UnsubscribeTypes(handler Handler, eventTypes ...Type)
 	// SubscribeID subscribes to only events that have a matching session id
 	SubscribeID(handler Handler, sessionID string)
+	// UnsubscribeID unsubscribes to events that have a matching session id
+	UnsubscribeID(handler Handler, sessionID string)
 	// SubscribeAll subscribes to all events
 	SubscribeAll(handler Handler)
 	// NumSubscriptions returns the number of subscribers to the bus's events
@@ -96,7 +100,11 @@ func (nilBus) PublishID(_ context.Context, _ Type, _ string, _ interface{}) erro
 // SubscribeTypes does nothing
 func (nilBus) SubscribeTypes(handler Handler, eventTypes ...Type) {}
 
+func (nilBus) UnsubscribeTypes(handler Handler, eventTypes ...Type) {}
+
 func (nilBus) SubscribeID(handler Handler, id string) {}
+
+func (nilBus) UnsubscribeID(handler Handler, sessionID string) {}
 
 func (nilBus) SubscribeAll(handler Handler) {}
 
@@ -190,7 +198,7 @@ func (b *bus) publish(ctx context.Context, typ Type, sessionID string, payload i
 	return nil
 }
 
-// Subscribe requests events from the given type, returning a channel of those events
+// SubscribeTypes requests events from the given type, returning a channel of those events
 func (b *bus) SubscribeTypes(handler Handler, eventTypes ...Type) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
@@ -201,12 +209,47 @@ func (b *bus) SubscribeTypes(handler Handler, eventTypes ...Type) {
 	}
 }
 
+// UnsubscribeTypes unsubscribes the handler from the given events
+func (b *bus) UnsubscribeTypes(handler Handler, eventTypes ...Type) {
+	b.lk.Lock()
+	defer b.lk.Unlock()
+	log.Debugf("Unsubscribe to types: %v", eventTypes)
+
+	for _, typ := range eventTypes {
+		for i, h := range b.subs[typ] {
+			if h == handler {
+				b.subs[typ] = removeHandlerByIndex(b.subs[typ], i)
+				break
+			}
+		}
+	}
+}
+
 // SubscribeID requests events that match the given sessionID
 func (b *bus) SubscribeID(handler Handler, sessionID string) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	log.Debugf("Subscribe to ID: %v", sessionID)
 	b.idSubs[sessionID] = append(b.idSubs[sessionID], handler)
+}
+
+// UnsubscribeID unsubscribes events that match the given sessionID
+func (b *bus) UnsubscribeID(handler Handler, sessionID string) {
+	b.lk.Lock()
+	defer b.lk.Unlock()
+	log.Debugf("Unsubscribe to ID: %v", sessionID)
+	for i, h := range b.idSubs[sessionID] {
+		if h == handler {
+			b.idSubs[sessionID] = removeHandlerByIndex(b.idSubs[sessionID], i)
+			break
+		}
+	}
+}
+
+func removeHandlerByIndex(h []Handler, i int) []Handler {
+	handlers := make([]Handler, 0)
+	handlers = append(handlers, h[:i]...)
+	return append(handlers, h[i+1:]...)
 }
 
 // SubscribeAll requests all events from the bus
