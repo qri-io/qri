@@ -96,6 +96,10 @@ func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string) (Set, error
 }
 
 func (s *localSet) List(ctx context.Context, pid profile.ID, lp params.List) ([]dsref.VersionInfo, error) {
+	if err := s.validatePid(pid); err != nil {
+		return nil, err
+	}
+
 	s.Lock()
 	defer s.Unlock()
 
@@ -123,6 +127,10 @@ func (s *localSet) List(ctx context.Context, pid profile.ID, lp params.List) ([]
 }
 
 func (s *localSet) Put(ctx context.Context, pid profile.ID, items ...dsref.VersionInfo) error {
+	if err := s.validatePid(pid); err != nil {
+		return err
+	}
+
 	s.Lock()
 	defer s.Unlock()
 
@@ -164,6 +172,10 @@ func (s *localSet) putOne(pid profile.ID, item dsref.VersionInfo) error {
 }
 
 func (s *localSet) Delete(ctx context.Context, pid profile.ID, initID ...string) error {
+	if err := s.validatePid(pid); err != nil {
+		return err
+	}
+
 	s.Lock()
 	defer s.Unlock()
 
@@ -191,6 +203,18 @@ func (s *localSet) Delete(ctx context.Context, pid profile.ID, initID ...string)
 
 	s.collections[pid] = col
 	return s.saveProfileCollection(pid)
+}
+
+func (s *localSet) validatePid(pid profile.ID) error {
+	// pid must be a valid profile.ID, not a base64 encoded string version
+	asStr := pid.String()
+	if strings.HasPrefix(asStr, "Qm") {
+		return nil
+	}
+	if strings.HasPrefix(asStr, "9t") {
+		return fmt.Errorf("profile.ID invalid, was double encoded as %q. do not pass a base64 encoded string, instead use NewB58ID(b64encodedID)", asStr)
+	}
+	return fmt.Errorf("profile.ID invalid, encodes to %q", asStr)
 }
 
 func (s *localSet) loadAll() error {
