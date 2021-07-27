@@ -8,11 +8,12 @@ import (
 	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/lib"
+	qhttp "github.com/qri-io/qri/lib/http"
 )
 
 const (
 	// AEToken is the token provider endpoint
-	AEToken = lib.APIEndpoint("/oauth/token")
+	AEToken qhttp.APIEndpoint = "/oauth/token"
 )
 
 // TokenHandler is a handler to authenticate and generate access & refresh tokens

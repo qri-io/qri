@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi/linkfile"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -33,8 +34,8 @@ func (m CollectionMethods) Name() string {
 // Attributes defines attributes for each method
 func (m CollectionMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"list":        {Endpoint: AEList, HTTPVerb: "POST"},
-		"listrawrefs": {Endpoint: DenyHTTP},
+		"list":        {Endpoint: qhttp.AEList, HTTPVerb: "POST"},
+		"listrawrefs": {Endpoint: qhttp.DenyHTTP},
 	}
 }
 

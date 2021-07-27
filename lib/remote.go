@@ -7,6 +7,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/remote"
 )
 
@@ -26,9 +27,9 @@ func (m RemoteMethods) Name() string {
 // Attributes defines attributes for each method
 func (m RemoteMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"feeds":   {Endpoint: AEFeeds, HTTPVerb: "POST"},
-		"preview": {Endpoint: AEPreview, HTTPVerb: "POST"},
-		"remove":  {Endpoint: AERemoteRemove, HTTPVerb: "POST", DefaultSource: "network"},
+		"feeds":   {Endpoint: qhttp.AEFeeds, HTTPVerb: "POST"},
+		"preview": {Endpoint: qhttp.AEPreview, HTTPVerb: "POST"},
+		"remove":  {Endpoint: qhttp.AERemoteRemove, HTTPVerb: "POST", DefaultSource: "network"},
 	}
 }
 

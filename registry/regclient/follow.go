@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/qri-io/dataset"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/registry"
 )
 
@@ -14,7 +15,7 @@ func (c Client) GetFollowing(ctx context.Context, p *registry.FollowGetParams) (
 	}
 
 	results := []*dataset.Dataset{}
-	err := c.httpClient.Call(ctx, "/registry/follow/list", "", p, results)
+	err := c.httpClient.Call(ctx, qhttp.AERegistryGetFollowing, "", p, results)
 	if err != nil {
 		return nil, err
 	}
@@ -26,5 +27,5 @@ func (c Client) Follow(ctx context.Context, p *registry.FollowParams) error {
 	if c.httpClient == nil {
 		return ErrNoRegistry
 	}
-	return c.httpClient.Call(ctx, "/registry/follow", "", p, nil)
+	return c.httpClient.Call(ctx, qhttp.AERegistryFollow, "", p, nil)
 }

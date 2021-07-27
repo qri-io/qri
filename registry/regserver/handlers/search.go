@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	apiutil "github.com/qri-io/qri/api/util"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/registry"
 )
 
@@ -17,7 +18,7 @@ const (
 func NewSearchHandler(s registry.Searchable) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p := &registry.SearchParams{}
-		if r.Header.Get("Content-Type") == "application/json" && r.Method == "POST" {
+		if r.Header.Get("Content-Type") == qhttp.JSONMimeType && r.Method == http.MethodPost {
 			if err := json.NewDecoder(r.Body).Decode(p); err != nil {
 				apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 				return

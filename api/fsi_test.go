@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
+	qhttp "github.com/qri-io/qri/lib/http"
 )
 
 func TestFSIHandlers(t *testing.T) {
@@ -46,9 +47,9 @@ func TestFSIHandlers(t *testing.T) {
 	}
 	body := []byte(fmt.Sprintf(`{"username":"me","name":"api_test_init_dataset","targetDir":%q,"format":"csv"}`, initDir))
 	initCases := []handlerTestCase{
-		{"POST", "/", nil, nil},
-		{"POST", fmt.Sprintf("/me/api_test_init_dataset?targetdir=%s&format=csv", initDir), body, nil},
-		{"POST", fmt.Sprintf("/me/api_test_init_dataset?targetdir=%s&format=csv", initDir), body, nil},
+		{http.MethodPost, "/", nil, nil},
+		{http.MethodPost, fmt.Sprintf("/me/api_test_init_dataset?targetdir=%s&format=csv", initDir), body, nil},
+		{http.MethodPost, fmt.Sprintf("/me/api_test_init_dataset?targetdir=%s&format=csv", initDir), body, nil},
 	}
 	runHandlerTestCases(t, "init", initHandler, initCases, true)
 
@@ -56,10 +57,10 @@ func TestFSIHandlers(t *testing.T) {
 		lib.NewHTTPRequestHandler(inst, "fsi.checkout").ServeHTTP(w, r)
 	}
 	checkoutCases := []handlerTestCase{
-		{"POST", "/me/movies", nil, nil},
+		{http.MethodPost, "/me/movies", nil, nil},
 		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
 		// temp directory names
-		//{"POST", fmt.Sprintf("/me/movies?dir=%s", checkoutDir), nil},
+		//{http.MethodPost, fmt.Sprintf("/me/movies?dir=%s", checkoutDir), nil},
 	}
 	runHandlerTestCases(t, "checkout", checkoutHandler, checkoutCases, true)
 }
@@ -158,7 +159,7 @@ func TestNoHistory(t *testing.T) {
 
 	// Status at version with no history
 	body := map[string]string{"ref": "peer/test_ds"}
-	gotStatusCode, gotBodyString = JSONAPICallWithBody("POST", "/status", body, statusHandler, nil)
+	gotStatusCode, gotBodyString = JSONAPICallWithBody(http.MethodPost, "/status", body, statusHandler, nil)
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -169,7 +170,7 @@ func TestNoHistory(t *testing.T) {
 
 	// Status with no history, but FSI working directory has contents
 	body["fsi"] = "true"
-	gotStatusCode, gotBodyString = JSONAPICallWithBody("POST", "/status", body, statusHandler, nil)
+	gotStatusCode, gotBodyString = JSONAPICallWithBody(http.MethodPost, "/status", body, statusHandler, nil)
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
@@ -189,7 +190,7 @@ func TestNoHistory(t *testing.T) {
 
 	// History with no history
 	p := lib.ActivityParams{Ref: "peer/test_ds"}
-	gotStatusCode, gotBodyString = JSONAPICallWithBody("POST", lib.AEActivity.String(), p, historyHandler, nil)
+	gotStatusCode, gotBodyString = JSONAPICallWithBody(http.MethodPost, qhttp.AEActivity.String(), p, historyHandler, nil)
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
@@ -199,7 +200,7 @@ func TestNoHistory(t *testing.T) {
 
 	p.EnsureFSIExists = true
 	// History with no history, still returns ErrNoHistory since this route ignores fsi param
-	gotStatusCode, gotBodyString = JSONAPICallWithBody("POST", lib.AEActivity.String(), p, historyHandler, nil)
+	gotStatusCode, gotBodyString = JSONAPICallWithBody(http.MethodPost, qhttp.AEActivity.String(), p, historyHandler, nil)
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
@@ -246,7 +247,7 @@ func TestFSIWrite(t *testing.T) {
 		muxVarsToQueryParamMiddleware(lib.NewHTTPRequestHandler(inst, "fsi.checkout")).ServeHTTP(w, r)
 	}
 	actualStatusCode, actualBody := JSONAPICallWithBody(
-		"POST",
+		http.MethodPost,
 		"/checkout",
 		map[string]string{
 			"ref": "peer/write_test",
@@ -270,7 +271,7 @@ func TestFSIWrite(t *testing.T) {
 		Ref:     "peer/write_test",
 		Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh hai there"}},
 	}
-	status, strRes := JSONAPICallWithBody("POST", "/fsi/write/me/write_test", p, writeHandler, nil)
+	status, strRes := JSONAPICallWithBody(http.MethodPost, "/fsi/write/me/write_test", p, writeHandler, nil)
 
 	if status != http.StatusOK {
 		t.Errorf("status code mismatch. expected: %d, got: %d", http.StatusOK, status)
@@ -362,7 +363,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 
 	// Checkout the dataset
 	actualStatusCode, actualBody := JSONAPICallWithBody(
-		"POST",
+		http.MethodPost,
 		"/checkout",
 		map[string]string{
 			"ref": "me/fsi_checkout_restore",
@@ -408,7 +409,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 
 	// Status should show that meta is modified
 	body := map[string]string{"ref": "peer/fsi_checkout_restore", "fsi": "true"}
-	actualStatusCode, actualBody = JSONAPICallWithBody("POST", "/status/peer/fsi_checkout_restore?fsi=true", body, statusHandler, nil)
+	actualStatusCode, actualBody = JSONAPICallWithBody(http.MethodPost, "/status/peer/fsi_checkout_restore?fsi=true", body, statusHandler, nil)
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
@@ -425,7 +426,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 		lib.NewHTTPRequestHandler(inst, "fsi.restore").ServeHTTP(w, r)
 	}
 	actualStatusCode, actualBody = JSONAPICallWithBody(
-		"POST",
+		http.MethodPost,
 		"/restore",
 		map[string]string{
 			"ref":      "me/fsi_checkout_restore",
@@ -454,7 +455,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 
 	// Restore the previous version of the dataset
 	actualStatusCode, actualBody = JSONAPICallWithBody(
-		"POST",
+		http.MethodPost,
 		"/restore",
 		map[string]string{
 			"ref": "me/fsi_checkout_restore",

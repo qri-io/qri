@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/sql"
 )
 
@@ -18,7 +19,7 @@ func (m SQLMethods) Name() string { return "sql" }
 // Attributes defines attributes for each method
 func (m SQLMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"exec": {Endpoint: AESQL, HTTPVerb: "POST"},
+		"exec": {Endpoint: qhttp.AESQL, HTTPVerb: "POST"},
 	}
 }
 

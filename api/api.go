@@ -13,6 +13,7 @@ import (
 	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/lib"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/version"
 )
 
@@ -152,14 +153,14 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 // refRouteParams carry a config for a ref based route
 type refRouteParams struct {
-	Endpoint lib.APIEndpoint
+	Endpoint qhttp.APIEndpoint
 	ShortRef bool
 	Selector bool
 	Methods  []string
 }
 
 // newrefRouteParams is a shorthand to generate refRouteParams
-func newrefRouteParams(e lib.APIEndpoint, sr bool, sel bool, methods ...string) refRouteParams {
+func newrefRouteParams(e qhttp.APIEndpoint, sr bool, sel bool, methods ...string) refRouteParams {
 	return refRouteParams{
 		Endpoint: e,
 		ShortRef: sr,
@@ -236,17 +237,17 @@ func NewServerRoutes(s Server) *mux.Router {
 	// non POST/json dataset endpoints
 	m.Handle(AEGetCSVFullRef.String(), s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
 	m.Handle(AEGetCSVShortRef.String(), s.Middleware(GetBodyCSVHandler(s.Instance))).Methods(http.MethodGet)
-	routeParams = newrefRouteParams(lib.AEGet, false, true, http.MethodGet)
-	handleRefRoute(m, routeParams, s.Middleware(GetHandler(s.Instance, lib.AEGet.String())))
+	routeParams = newrefRouteParams(qhttp.AEGet, false, true, http.MethodGet)
+	handleRefRoute(m, routeParams, s.Middleware(GetHandler(s.Instance, qhttp.AEGet.String())))
 	m.Handle(AEUnpack.String(), s.Middleware(UnpackHandler(AEUnpack.NoTrailingSlash())))
 
 	// sync/protocol endpoints
 	if cfg.RemoteServer != nil && cfg.RemoteServer.Enabled {
 		log.Info("running in `remote` mode")
 
-		m.Handle(lib.AERemoteDSync.String(), s.Middleware(s.Instance.RemoteServer().DsyncHTTPHandler()))
-		m.Handle(lib.AERemoteLogSync.String(), s.Middleware(s.Instance.RemoteServer().LogsyncHTTPHandler()))
-		m.Handle(lib.AERemoteRefs.String(), s.Middleware(s.Instance.RemoteServer().RefsHTTPHandler()))
+		m.Handle(qhttp.AERemoteDSync.String(), s.Middleware(s.Instance.RemoteServer().DsyncHTTPHandler()))
+		m.Handle(qhttp.AERemoteLogSync.String(), s.Middleware(s.Instance.RemoteServer().LogsyncHTTPHandler()))
+		m.Handle(qhttp.AERemoteRefs.String(), s.Middleware(s.Instance.RemoteServer().RefsHTTPHandler()))
 	}
 
 	return m

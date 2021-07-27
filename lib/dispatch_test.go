@@ -309,8 +309,8 @@ func (m *animalMethods) Name() string {
 
 func (m *animalMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"cat": {Endpoint: DenyHTTP},
-		"dog": {Endpoint: DenyHTTP},
+		"cat": {Endpoint: qhttp.DenyHTTP},
+		"dog": {Endpoint: qhttp.DenyHTTP},
 	}
 }
 

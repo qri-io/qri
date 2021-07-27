@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/version"
+	qhttp "github.com/qri-io/qri/lib/http"
 )
 
 type docs struct {
@@ -38,7 +39,7 @@ type libMethod struct {
 	MethodName string
 	Doc        string
 	Params     qriType
-	Endpoint   lib.APIEndpoint
+	Endpoint   qhttp.APIEndpoint
 	HTTPVerb   string
 	Response   response
 	Paginated  bool
@@ -134,7 +135,7 @@ func OpenAPIYAML() (*bytes.Buffer, error) {
 			}
 
 			attrs := methodAttributes[strings.ToLower(i.Name)]
-			if attrs.Endpoint == lib.DenyHTTP {
+			if attrs.Endpoint == qhttp.DenyHTTP {
 				continue
 			}
 
@@ -351,7 +352,7 @@ func addNonLibMethods(methods []libMethod) []libMethod {
 	m = libMethod{
 		MethodSet:  "api",
 		MethodName: "get_ref",
-		Endpoint:   lib.APIEndpoint(fmt.Sprintf("%s/{dsref}", lib.AEGet)),
+		Endpoint:   qhttp.APIEndpoint(fmt.Sprintf("%s/{dsref}", qhttp.AEGet)),
 		HTTPVerb:   "get",
 		Params: qriType{
 			Name: "pathParams",
@@ -370,7 +371,7 @@ func addNonLibMethods(methods []libMethod) []libMethod {
 	m = libMethod{
 		MethodSet:  "api",
 		MethodName: "get_ref_selector",
-		Endpoint:   lib.APIEndpoint(fmt.Sprintf("%s/{dsref}/{selector}", lib.AEGet)),
+		Endpoint:   qhttp.APIEndpoint(fmt.Sprintf("%s/{dsref}/{selector}", qhttp.AEGet)),
 		HTTPVerb:   "get",
 		Params: qriType{
 			Name: "pathParams",

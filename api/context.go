@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/lib"
+	qhttp "github.com/qri-io/qri/lib/http"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -28,7 +28,7 @@ func DatasetRefFromReq(r *http.Request) (dsref.Ref, error) {
 	if r.URL.String() == "" || r.URL.Path == "" {
 		return dsref.Ref{}, nil
 	}
-	return lib.DsRefFromPath(r.URL.Path)
+	return qhttp.DsRefFromPath(r.URL.Path)
 }
 
 // DatasetRefFromCtx extracts a Dataset reference from a given

@@ -8,6 +8,7 @@ import (
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/registry"
 )
@@ -29,10 +30,10 @@ func (m ProfileMethods) Name() string {
 // Attributes defines attributes for each method
 func (m ProfileMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"getprofile":      {Endpoint: AEGetProfile, HTTPVerb: "POST", DenyRPC: true},
-		"setprofile":      {Endpoint: AESetProfile, HTTPVerb: "POST", DenyRPC: true},
-		"setprofilephoto": {Endpoint: AESetProfilePhoto, HTTPVerb: "POST", DenyRPC: true},
-		"setposterphoto":  {Endpoint: AESetPosterPhoto, HTTPVerb: "POST", DenyRPC: true},
+		"getprofile":      {Endpoint: qhttp.AEGetProfile, HTTPVerb: "POST", DenyRPC: true},
+		"setprofile":      {Endpoint: qhttp.AESetProfile, HTTPVerb: "POST", DenyRPC: true},
+		"setprofilephoto": {Endpoint: qhttp.AESetProfilePhoto, HTTPVerb: "POST", DenyRPC: true},
+		"setposterphoto":  {Endpoint: qhttp.AESetPosterPhoto, HTTPVerb: "POST", DenyRPC: true},
 	}
 }
 

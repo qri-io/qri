@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	qhttp "github.com/qri-io/qri/lib/http"
 )
 
 // GiveAPIServer creates an API server that gives access to lib's registered methods
@@ -13,7 +14,7 @@ func (inst *Instance) GiveAPIServer(middleware func(handler http.HandlerFunc) ht
 		if arrayContainsString(ignoreMethods, methodName) {
 			continue
 		}
-		if call.Endpoint == DenyHTTP {
+		if call.Endpoint == qhttp.DenyHTTP {
 			continue
 		}
 		handler := middleware(NewHTTPRequestHandler(inst, methodName))

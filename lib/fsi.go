@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -29,15 +30,15 @@ func (m FSIMethods) Name() string {
 // Attributes defines attributes for each method
 func (m FSIMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"status":                {Endpoint: AEStatus, HTTPVerb: "POST"},
-		"caninitdatasetworkdir": {Endpoint: AECanInitDatasetWorkDir, HTTPVerb: "POST"},
-		"init":                  {Endpoint: AEInit, HTTPVerb: "POST"},
-		"checkout":              {Endpoint: AECheckout, HTTPVerb: "POST"},
-		"ensureref":             {Endpoint: AEEnsureRef, HTTPVerb: "POST"},
-		"restore":               {Endpoint: AERestore, HTTPVerb: "POST"},
-		"write":                 {Endpoint: AEFSIWrite, HTTPVerb: "POST"},
-		"createlink":            {Endpoint: AEFSICreateLink, HTTPVerb: "POST"},
-		"unlink":                {Endpoint: AEFSIUnlink, HTTPVerb: "POST"},
+		"status":                {Endpoint: qhttp.AEStatus, HTTPVerb: "POST"},
+		"caninitdatasetworkdir": {Endpoint: qhttp.AECanInitDatasetWorkDir, HTTPVerb: "POST"},
+		"init":                  {Endpoint: qhttp.AEInit, HTTPVerb: "POST"},
+		"checkout":              {Endpoint: qhttp.AECheckout, HTTPVerb: "POST"},
+		"ensureref":             {Endpoint: qhttp.AEEnsureRef, HTTPVerb: "POST"},
+		"restore":               {Endpoint: qhttp.AERestore, HTTPVerb: "POST"},
+		"write":                 {Endpoint: qhttp.AEFSIWrite, HTTPVerb: "POST"},
+		"createlink":            {Endpoint: qhttp.AEFSICreateLink, HTTPVerb: "POST"},
+		"unlink":                {Endpoint: qhttp.AEFSIUnlink, HTTPVerb: "POST"},
 	}
 }
 

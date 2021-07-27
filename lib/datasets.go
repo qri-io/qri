@@ -31,6 +31,7 @@ import (
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
@@ -52,21 +53,21 @@ func (m DatasetMethods) Name() string {
 // Attributes defines attributes for each method
 func (m DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"componentstatus": {Endpoint: AEComponentStatus, HTTPVerb: "POST"},
-		"get":             {Endpoint: AEGet, HTTPVerb: "POST"},
-		"getcsv":          {Endpoint: DenyHTTP}, // getcsv is not part of the json api, but is handled in a separate `GetBodyCSVHandler` function
-		"getzip":          {Endpoint: DenyHTTP}, // getzip is not part of the json api, but is handled is a separate `GetHandler` function
-		"activity":        {Endpoint: AEActivity, HTTPVerb: "POST"},
-		"rename":          {Endpoint: AERename, HTTPVerb: "POST", DefaultSource: "local"},
-		"save":            {Endpoint: AESave, HTTPVerb: "POST"},
-		"pull":            {Endpoint: AEPull, HTTPVerb: "POST", DefaultSource: "network"},
-		"push":            {Endpoint: AEPush, HTTPVerb: "POST", DefaultSource: "local"},
-		"render":          {Endpoint: AERender, HTTPVerb: "POST"},
-		"remove":          {Endpoint: AERemove, HTTPVerb: "POST", DefaultSource: "local"},
-		"validate":        {Endpoint: AEValidate, HTTPVerb: "POST", DefaultSource: "local"},
-		"manifest":        {Endpoint: AEManifest, HTTPVerb: "POST", DefaultSource: "local"},
-		"manifestmissing": {Endpoint: AEManifestMissing, HTTPVerb: "POST", DefaultSource: "local"},
-		"daginfo":         {Endpoint: AEDAGInfo, HTTPVerb: "POST", DefaultSource: "local"},
+		"componentstatus": {Endpoint: qhttp.AEComponentStatus, HTTPVerb: "POST"},
+		"get":             {Endpoint: qhttp.AEGet, HTTPVerb: "POST"},
+		"getcsv":          {Endpoint: qhttp.DenyHTTP}, // getcsv is not part of the json api, but is handled in a separate `GetBodyCSVHandler` function
+		"getzip":          {Endpoint: qhttp.DenyHTTP}, // getzip is not part of the json api, but is handled is a separate `GetHandler` function
+		"activity":        {Endpoint: qhttp.AEActivity, HTTPVerb: "POST"},
+		"rename":          {Endpoint: qhttp.AERename, HTTPVerb: "POST", DefaultSource: "local"},
+		"save":            {Endpoint: qhttp.AESave, HTTPVerb: "POST"},
+		"pull":            {Endpoint: qhttp.AEPull, HTTPVerb: "POST", DefaultSource: "network"},
+		"push":            {Endpoint: qhttp.AEPush, HTTPVerb: "POST", DefaultSource: "local"},
+		"render":          {Endpoint: qhttp.AERender, HTTPVerb: "POST"},
+		"remove":          {Endpoint: qhttp.AERemove, HTTPVerb: "POST", DefaultSource: "local"},
+		"validate":        {Endpoint: qhttp.AEValidate, HTTPVerb: "POST", DefaultSource: "local"},
+		"manifest":        {Endpoint: qhttp.AEManifest, HTTPVerb: "POST", DefaultSource: "local"},
+		"manifestmissing": {Endpoint: qhttp.AEManifestMissing, HTTPVerb: "POST", DefaultSource: "local"},
+		"daginfo":         {Endpoint: qhttp.AEDAGInfo, HTTPVerb: "POST", DefaultSource: "local"},
 	}
 }
 

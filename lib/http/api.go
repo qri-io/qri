@@ -1,4 +1,4 @@
-package lib
+package http
 
 import (
 	"fmt"
@@ -32,133 +32,133 @@ const (
 	// aggregate endpoints
 
 	// AEList lists all datasets in your collection
-	AEList = APIEndpoint("/list")
+	AEList APIEndpoint = "/list"
 	// AEDiff is an endpoint for generating dataset diffs
-	AEDiff = APIEndpoint("/diff")
+	AEDiff APIEndpoint = "/diff"
 	// AEChanges is an endpoint for generating dataset change reports
-	AEChanges = APIEndpoint("/changes")
+	AEChanges APIEndpoint = "/changes"
 	// AESQL executes SQL commands
-	AESQL = APIEndpoint("/sql")
+	AESQL APIEndpoint = "/sql"
 
 	// auth endpoints
 
 	// AECreateAuthToken creates an auth token for a user
-	AECreateAuthToken = APIEndpoint("/access/token")
+	AECreateAuthToken APIEndpoint = "/access/token"
 
 	// automation endpoints
 
 	// AEApply invokes a transform apply
-	AEApply = APIEndpoint("/auto/apply")
+	AEApply APIEndpoint = "/auto/apply"
 	// AEDeploy creates, updates, or deploys a workflow
-	AEDeploy = APIEndpoint("/auto/deploy")
+	AEDeploy APIEndpoint = "/auto/deploy"
 
 	// dataset endpoints
 
 	// AEComponentStatus returns what changed for a specific commit
-	AEComponentStatus = APIEndpoint("/ds/componentstatus")
+	AEComponentStatus APIEndpoint = "/ds/componentstatus"
 	// AEGet is an endpoint for fetch individual dataset components
-	AEGet = APIEndpoint("/ds/get")
+	AEGet APIEndpoint = "/ds/get"
 	// AEActivity is an endpoint that returns a dataset activity list
-	AEActivity = APIEndpoint("/ds/activity")
+	AEActivity APIEndpoint = "/ds/activity"
 	// AERename is an endpoint for renaming datasets
-	AERename = APIEndpoint("/ds/rename")
+	AERename APIEndpoint = "/ds/rename"
 	// AESave is an endpoint for saving a dataset
-	AESave = APIEndpoint("/ds/save")
+	AESave APIEndpoint = "/ds/save"
 	// AEPull facilittates dataset pull requests from a remote
-	AEPull = APIEndpoint("/ds/pull")
+	AEPull APIEndpoint = "/ds/pull"
 	// AEPush facilitates dataset push requests to a remote
-	AEPush = APIEndpoint("/ds/push")
+	AEPush APIEndpoint = "/ds/push"
 	// AERender renders the current dataset ref
-	AERender = APIEndpoint("/ds/render")
+	AERender APIEndpoint = "/ds/render"
 	// AERemove exposes the dataset remove mechanics
-	AERemove = APIEndpoint("/ds/remove")
+	AERemove APIEndpoint = "/ds/remove"
 	// AEValidate is an endpoint for validating datasets
-	AEValidate = APIEndpoint("/ds/validate")
+	AEValidate APIEndpoint = "/ds/validate"
 	// AEManifest generates a manifest for a dataset path
-	AEManifest = APIEndpoint("/ds/manifest")
+	AEManifest APIEndpoint = "/ds/manifest"
 	// AEManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
-	AEManifestMissing = APIEndpoint("/ds/manifest/missing")
+	AEManifestMissing APIEndpoint = "/ds/manifest/missing"
 	// AEDAGInfo generates a dag.Info for a dataset path
-	AEDAGInfo = APIEndpoint("/ds/daginfo")
+	AEDAGInfo APIEndpoint = "/ds/daginfo"
 
 	// peer endpoints
 
 	// AEPeer fetches a specific peer
-	AEPeer = APIEndpoint("/peer")
+	AEPeer APIEndpoint = "/peer"
 	// AEConnect initiates an explicit connection to a peer
-	AEConnect = APIEndpoint("/peer/connect")
+	AEConnect APIEndpoint = "/peer/connect"
 	// AEDisconnect closes an explicit connection to a peer
-	AEDisconnect = APIEndpoint("/peer/disconnect")
+	AEDisconnect APIEndpoint = "/peer/disconnect"
 	// AEPeers fetches all the peers
-	AEPeers = APIEndpoint("/peer/list")
+	AEPeers APIEndpoint = "/peer/list"
 
 	// profile endpoints
 
 	// AEGetProfile is an alias for the me endpoint
-	AEGetProfile = APIEndpoint("/profile")
+	AEGetProfile APIEndpoint = "/profile"
 	// AESetProfile is an endpoint to set the profile
-	AESetProfile = APIEndpoint("/profile/set")
+	AESetProfile APIEndpoint = "/profile/set"
 	// AESetProfilePhoto is an endpoint to set the profile photo
-	AESetProfilePhoto = APIEndpoint("/profile/photo")
+	AESetProfilePhoto APIEndpoint = "/profile/photo"
 	// AESetPosterPhoto is an endpoint to set the profile poster
-	AESetPosterPhoto = APIEndpoint("/profile/poster")
+	AESetPosterPhoto APIEndpoint = "/profile/poster"
 
 	// remote client endpoints
 
 	// AEFeeds fetches and index of named feeds
-	AEFeeds = APIEndpoint("/remote/feeds")
+	AEFeeds APIEndpoint = "/remote/feeds"
 	// AEPreview fetches a dataset preview from the registry
-	AEPreview = APIEndpoint("/remote/preview")
+	AEPreview APIEndpoint = "/remote/preview"
 	// AERemoteRemove removes a dataset from a given remote
-	AERemoteRemove = APIEndpoint("/remote/remove")
+	AERemoteRemove APIEndpoint = "/remote/remove"
 	// AERegistryNew creates a new user on the registry
-	AERegistryNew = APIEndpoint("/remote/registry/profile/new")
+	AERegistryNew APIEndpoint = "/remote/registry/profile/new"
 	// AERegistryProve links an the current peer with an existing
 	// user on the registry
-	AERegistryProve = APIEndpoint("/remote/registry/profile/prove")
+	AERegistryProve APIEndpoint = "/remote/registry/profile/prove"
 	// AESearch returns a list of dataset search results
-	AESearch = APIEndpoint("/registry/search")
+	AESearch APIEndpoint = "/registry/search"
 	// AERegistryGetFollowing returns a list of datasets a user follows
-	AERegistryGetFollowing = APIEndpoint("/registry/follow/list")
+	AERegistryGetFollowing APIEndpoint = "/registry/follow/list"
 	// AERegistryFollow updates the follow status of the current user for a given dataset
-	AERegistryFollow = APIEndpoint("/registry/follow")
+	AERegistryFollow APIEndpoint = "/registry/follow"
 
 	// fsi endpoints
 
 	// AEStatus returns the filesystem dataset status
-	AEStatus = APIEndpoint("/wd/status")
+	AEStatus APIEndpoint = "/wd/status"
 	// AEInit invokes a dataset initialization on the filesystem
-	AEInit = APIEndpoint("/wd/init")
+	AEInit APIEndpoint = "/wd/init"
 	// AECanInitDatasetWorkDir returns whether a dataset can be initialized
-	AECanInitDatasetWorkDir = APIEndpoint("/wd/caninitworkdir")
+	AECanInitDatasetWorkDir APIEndpoint = "/wd/caninitworkdir"
 	// AECheckout invokes a dataset checkout to the filesystem
-	AECheckout = APIEndpoint("/wd/checkout")
+	AECheckout APIEndpoint = "/wd/checkout"
 	// AERestore invokes a restore
-	AERestore = APIEndpoint("/wd/restore")
+	AERestore APIEndpoint = "/wd/restore"
 	// AEFSIWrite writes input data to the filesystem
-	AEFSIWrite = APIEndpoint("/wd/write")
+	AEFSIWrite APIEndpoint = "/wd/write"
 	// AEFSICreateLink creates an fsi link
-	AEFSICreateLink = APIEndpoint("/wd/createlink")
+	AEFSICreateLink APIEndpoint = "/wd/createlink"
 	// AEFSIUnlink removes the fsi link
-	AEFSIUnlink = APIEndpoint("/wd/unlink")
+	AEFSIUnlink APIEndpoint = "/wd/unlink"
 	// AEEnsureRef ensures that the ref is fsi linked
-	AEEnsureRef = APIEndpoint("/wd/ensureref")
+	AEEnsureRef APIEndpoint = "/wd/ensureref"
 
 	// sync endpoints
 
 	// AERemoteDSync exposes the dsync mechanics
-	AERemoteDSync = APIEndpoint("/remote/dsync")
+	AERemoteDSync APIEndpoint = "/remote/dsync"
 	// AERemoteLogSync exposes the logsync mechanics
-	AERemoteLogSync = APIEndpoint("/remote/logsync")
+	AERemoteLogSync APIEndpoint = "/remote/logsync"
 	// AERemoteRefs exposes the remote ref resolution mechanics
-	AERemoteRefs = APIEndpoint("/remote/refs")
+	AERemoteRefs APIEndpoint = "/remote/refs"
 
 	// other endpoints
 
 	// AEConnections lists qri & IPFS connections
-	AEConnections = APIEndpoint("/connections")
+	AEConnections APIEndpoint = "/connections"
 	// AEConnectedQriProfiles lists qri profile connections
-	AEConnectedQriProfiles = APIEndpoint("/connections/qri")
+	AEConnectedQriProfiles APIEndpoint = "/connections/qri"
 
 	// DenyHTTP will disable HTTP access to a method
 	DenyHTTP = APIEndpoint("")
@@ -166,13 +166,13 @@ const (
 
 // DsRefFromPath parses a path and returns a dsref.Ref
 func DsRefFromPath(path string) (dsref.Ref, error) {
-	refstr := HTTPPathToQriPath(path)
+	refstr := PathToQriPath(path)
 	return dsref.ParsePeerRef(refstr)
 }
 
-// HTTPPathToQriPath converts a http path to a
+// PathToQriPath converts a http path to a
 // qri path
-func HTTPPathToQriPath(path string) string {
+func PathToQriPath(path string) string {
 	paramIndex := strings.Index(path, "?")
 	if paramIndex != -1 {
 		path = path[:paramIndex]
