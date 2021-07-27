@@ -54,7 +54,7 @@ func TestPush(t *testing.T) {
 	if len(results) != 1 {
 		t.Errorf("expected: 1 result, got %d results", len(results))
 	}
-	if results[0].Name != "one_ds" {
-		t.Errorf("expected: dataset named \"one_ds\", got %q", results[0].Name)
+	if results[0].Value.Name != "one_ds" {
+		t.Errorf("expected: dataset named \"one_ds\", got %q", results[0].Value.Name)
 	}
 }

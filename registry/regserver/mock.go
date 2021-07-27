@@ -5,7 +5,6 @@ import (
 	"context"
 	"net/http/httptest"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
@@ -105,17 +104,21 @@ type MockRepoSearch struct {
 }
 
 // Search implements the registry.Searchable interface
-func (ss MockRepoSearch) Search(p registry.SearchParams) ([]*dataset.Dataset, error) {
+func (ss MockRepoSearch) Search(p registry.SearchParams) ([]registry.SearchResult, error) {
 	ctx := context.Background()
 	infos, err := base.ListDatasets(ctx, ss.Repo, p.Q, "", 0, 1000, true, false)
 	if err != nil {
 		return nil, err
 	}
 
-	var res []*dataset.Dataset
+	var res []registry.SearchResult
 	for _, info := range infos {
 		ds := dsref.ConvertVersionInfoToDataset(&info)
-		res = append(res, ds)
+		res = append(res, registry.SearchResult{
+			Type:  "dataset",
+			ID:    ds.Path,
+			Value: ds,
+		})
 	}
 	return res, nil
 }

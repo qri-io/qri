@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/registry"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -151,7 +152,7 @@ func (vis versionInfoStringer) String() string {
 	return w.String()
 }
 
-type searchResultStringer lib.SearchResult
+type searchResultStringer registry.SearchResult
 
 func (r searchResultStringer) String() string {
 	w := &strings.Builder{}

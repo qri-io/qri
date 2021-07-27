@@ -53,7 +53,7 @@ func NewClient(cfg *Config) *Client {
 	} else {
 		us := u.String()
 		if u.Scheme != "" {
-			us = us[len(u.Scheme)+len("://")+1:]
+			us = us[len(u.Scheme)+len("://"):]
 		}
 		httpClient := &qhttp.Client{
 			Address:  us,

@@ -1,6 +1,7 @@
 package regclient
 
 import (
+	"context"
 	"net/http/httptest"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 )
 
 func TestSearchMethods(t *testing.T) {
+	ctx := context.Background()
 
 	reg := registry.Registry{
 		Profiles: registry.NewMemProfiles(),
@@ -22,7 +24,7 @@ func TestSearchMethods(t *testing.T) {
 
 	searchParams := &SearchParams{Query: "presidents", Limit: 100, Offset: 0}
 	// TODO: need to add tests that actually inspect the search results
-	_, err := c.Search(searchParams)
+	_, err := c.Search(ctx, searchParams)
 	if err != nil {
 		t.Errorf("error executing search: %s", err)
 	}
