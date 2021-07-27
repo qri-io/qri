@@ -1,6 +1,7 @@
 package run
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -58,22 +59,20 @@ type EventAdder interface {
 
 // MemStore is an in memory representation of a Store
 type MemStore struct {
-	mu              sync.Mutex
-	bus             event.Bus
-	workflows       map[workflow.ID]*workflowMeta
-	runs            map[string]*State
-	handleRunEvents event.Handler
+	mu        sync.Mutex
+	workflows map[workflow.ID]*workflowMeta
+	runs      map[string]*State
 }
 
 type workflowMeta struct {
-	count  int
-	runIDs []string
+	Count  int      `json:"count"`
+	RunIDs []string `json:"runIDs"`
 }
 
 func newWorkflowMeta() *workflowMeta {
 	return &workflowMeta{
-		count:  0,
-		runIDs: []string{},
+		Count:  0,
+		RunIDs: []string{},
 	}
 }
 
@@ -113,9 +112,9 @@ func (s *MemStore) Create(r *State) (*State, error) {
 		wfm := newWorkflowMeta()
 		s.workflows[run.WorkflowID] = wfm
 	}
-	s.workflows[run.WorkflowID].count++
-	runIDs := s.workflows[run.WorkflowID].runIDs
-	s.workflows[run.WorkflowID].runIDs = append(runIDs, run.ID)
+	s.workflows[run.WorkflowID].Count++
+	runIDs := s.workflows[run.WorkflowID].RunIDs
+	s.workflows[run.WorkflowID].RunIDs = append(runIDs, run.ID)
 	s.runs[run.ID] = run
 	return run, nil
 }
@@ -164,7 +163,7 @@ func (s *MemStore) Count(wid workflow.ID) (int, error) {
 	if !ok {
 		return 0, fmt.Errorf("%w %q", ErrUnknownWorkflowID, wid)
 	}
-	return wfm.count, nil
+	return wfm.Count, nil
 }
 
 // List lists all the runs associated with the workflow.ID in reverse
@@ -180,7 +179,7 @@ func (s *MemStore) List(wid workflow.ID, lp params.List) ([]*State, error) {
 	if !ok {
 		return nil, fmt.Errorf("%w %q", ErrUnknownWorkflowID, wid)
 	}
-	runIDs := wfm.runIDs
+	runIDs := wfm.RunIDs
 	runs := []*State{}
 	for i := len(runIDs) - 1; i >= 0; i-- {
 		id := runIDs[i]
@@ -212,7 +211,7 @@ func (s *MemStore) GetLatest(wid workflow.ID) (*State, error) {
 	if !ok {
 		return nil, fmt.Errorf("%w %q", ErrUnknownWorkflowID, wid)
 	}
-	runIDs := wfm.runIDs
+	runIDs := wfm.RunIDs
 	latestRunID := runIDs[len(runIDs)-1]
 	run, ok := s.runs[latestRunID]
 	if !ok {
@@ -242,7 +241,7 @@ func (s *MemStore) ListByStatus(status Status, lp params.List) ([]*State, error)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, wfm := range s.workflows {
-		runIDs := wfm.runIDs
+		runIDs := wfm.RunIDs
 		rid := runIDs[len(runIDs)-1]
 		run, ok := s.runs[rid]
 		if !ok {
@@ -282,5 +281,31 @@ func (s *MemStore) AddEvent(id string, e event.Event) error {
 	}
 
 	s.runs[id] = run
+	return nil
+}
+
+// MarshalJSON satisfies the json.Marshaller interface
+func (s *MemStore) MarshalJSON() ([]byte, error) {
+	if s == nil {
+		s = &MemStore{}
+	}
+	return json.Marshal(struct {
+		Workflows map[workflow.ID]*workflowMeta `json:"workflows"`
+		Runs      map[string]*State             `json:"runs"`
+	}{Workflows: s.workflows, Runs: s.runs})
+}
+
+// UnmarshalJSON satisfies the json.Unmarshaller interface
+func (s *MemStore) UnmarshalJSON(p []byte) error {
+	v := struct {
+		Workflows map[workflow.ID]*workflowMeta `json:"workflows"`
+		Runs      map[string]*State             `json:"runs"`
+	}{}
+
+	if err := json.Unmarshal(p, &v); err != nil {
+		return err
+	}
+	s.workflows = v.Workflows
+	s.runs = v.Runs
 	return nil
 }

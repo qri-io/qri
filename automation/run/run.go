@@ -9,11 +9,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
 )
 
 var (
+	log = golog.Logger("run")
 	// ErrNoID indicates the run.State has no run ID
 	ErrNoID = fmt.Errorf("no run ID")
 	// ErrNoWorkflowID indicates the run.State has no workflow.ID
