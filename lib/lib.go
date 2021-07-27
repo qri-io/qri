@@ -951,6 +951,11 @@ func (inst *Instance) Registry() RegistryClientMethods {
 	return RegistryClientMethods{d: inst}
 }
 
+// Follow returns the FollowMethods that Instance has registered
+func (inst *Instance) Follow() FollowMethods {
+	return FollowMethods{d: inst}
+}
+
 // Remote returns the RemoteMethods that Instance has registered
 func (inst *Instance) Remote() RemoteMethods {
 	return RemoteMethods{d: inst}

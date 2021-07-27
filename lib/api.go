@@ -118,6 +118,10 @@ const (
 	AERegistryProve = APIEndpoint("/remote/registry/profile/prove")
 	// AESearch returns a list of dataset search results
 	AESearch = APIEndpoint("/registry/search")
+	// AERegistryGetFollowing returns a list of datasets a user follows
+	AERegistryGetFollowing = APIEndpoint("/registry/follow/list")
+	// AERegistryFollow updates the follow status of the current user for a given dataset
+	AERegistryFollow = APIEndpoint("/registry/follow")
 
 	// fsi endpoints
 
