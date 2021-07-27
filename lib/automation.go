@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/transform"
 )
@@ -31,8 +32,8 @@ func (m AutomationMethods) Name() string {
 // Attributes defines attributes for each method
 func (m AutomationMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apply":  {Endpoint: AEApply, HTTPVerb: "POST"},
-		"deploy": {Endpoint: AEDeploy, HTTPVerb: "POST"},
+		"apply":  {Endpoint: qhttp.AEApply, HTTPVerb: "POST"},
+		"deploy": {Endpoint: qhttp.AEDeploy, HTTPVerb: "POST"},
 	}
 }
 

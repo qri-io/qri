@@ -1,27 +1,27 @@
 package api
 
 import (
-	"github.com/qri-io/qri/lib"
+	qhttp "github.com/qri-io/qri/lib/http"
 )
 
 const (
 	// base endpoints
 
 	// AEHome is the / endpoint
-	AEHome = lib.APIEndpoint("/")
+	AEHome qhttp.APIEndpoint = "/"
 	// AEHealth is the service health check endpoint
-	AEHealth = lib.APIEndpoint("/health")
+	AEHealth qhttp.APIEndpoint = "/health"
 	// AEIPFS is the IPFS endpoint
-	AEIPFS = lib.APIEndpoint("/qfs/ipfs/{path:.*}")
+	AEIPFS qhttp.APIEndpoint = "/qfs/ipfs/{path:.*}"
 	// AEWebUI serves the remote WebUI
-	AEWebUI = lib.APIEndpoint("/webui")
+	AEWebUI qhttp.APIEndpoint = "/webui"
 
 	// dataset endpoints
 
 	// AEGetCSVFullRef is the route used to get a body as a csv, that can also handle a specific hash
-	AEGetCSVFullRef = lib.APIEndpoint("/ds/get/{username}/{name}/at/{fs}/{hash}/body.csv")
+	AEGetCSVFullRef qhttp.APIEndpoint = "/ds/get/{username}/{name}/at/{fs}/{hash}/body.csv"
 	// AEGetCSVShortRef is the route used to get a body as a csv
-	AEGetCSVShortRef = lib.APIEndpoint("/ds/get/{username}/{name}/body.csv")
+	AEGetCSVShortRef qhttp.APIEndpoint = "/ds/get/{username}/{name}/body.csv"
 	// AEUnpack unpacks a zip file and sends it back
-	AEUnpack = lib.APIEndpoint("/ds/unpack")
+	AEUnpack qhttp.APIEndpoint = "/ds/unpack"
 )

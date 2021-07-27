@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/qri/config"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
@@ -26,12 +27,12 @@ func (m PeerMethods) Name() string { return "peer" }
 // Attributes defines attributes for each method
 func (m PeerMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"list":                 {Endpoint: AEPeers, HTTPVerb: "POST"},
-		"info":                 {Endpoint: AEPeer, HTTPVerb: "POST"},
-		"connect":              {Endpoint: AEConnect, HTTPVerb: "POST"},
-		"disconnect":           {Endpoint: AEDisconnect, HTTPVerb: "POST"},
-		"connections":          {Endpoint: AEConnections, HTTPVerb: "POST"},
-		"connectedqriprofiles": {Endpoint: AEConnectedQriProfiles, HTTPVerb: "POST"},
+		"list":                 {Endpoint: qhttp.AEPeers, HTTPVerb: "POST"},
+		"info":                 {Endpoint: qhttp.AEPeer, HTTPVerb: "POST"},
+		"connect":              {Endpoint: qhttp.AEConnect, HTTPVerb: "POST"},
+		"disconnect":           {Endpoint: qhttp.AEDisconnect, HTTPVerb: "POST"},
+		"connections":          {Endpoint: qhttp.AEConnections, HTTPVerb: "POST"},
+		"connectedqriprofiles": {Endpoint: qhttp.AEConnectedQriProfiles, HTTPVerb: "POST"},
 	}
 }
 

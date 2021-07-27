@@ -9,6 +9,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/qri/config"
+	qhttp "github.com/qri-io/qri/lib/http"
 )
 
 // ConfigMethods encapsulates changes to a qri configuration
@@ -25,9 +26,9 @@ func (m ConfigMethods) Name() string {
 func (m ConfigMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		// config methods are not allowed over HTTP nor RPC
-		"getconfig":     {Endpoint: DenyHTTP},
-		"getconfigkeys": {Endpoint: DenyHTTP},
-		"setconfig":     {Endpoint: DenyHTTP},
+		"getconfig":     {Endpoint: qhttp.DenyHTTP},
+		"getconfigkeys": {Endpoint: qhttp.DenyHTTP},
+		"setconfig":     {Endpoint: qhttp.DenyHTTP},
 	}
 }
 

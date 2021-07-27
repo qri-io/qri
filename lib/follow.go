@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/qri-io/dataset"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo"
 )
@@ -21,8 +22,8 @@ func (m FollowMethods) Name() string {
 // Attributes defines attributes for each method
 func (m FollowMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"get":    {Endpoint: AERegistryGetFollowing, HTTPVerb: "POST"},
-		"follow": {Endpoint: AERegistryFollow, HTTPVerb: "POST"},
+		"get":    {Endpoint: qhttp.AERegistryGetFollowing, HTTPVerb: "POST"},
+		"follow": {Endpoint: qhttp.AERegistryFollow, HTTPVerb: "POST"},
 	}
 }
 

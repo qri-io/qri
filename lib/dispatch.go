@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/qri-io/qri/auth/token"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/profile"
 )
 
@@ -18,8 +19,6 @@ var (
 	ErrDispatchNilInstance = errors.New("instance is nil, cannot dispatch")
 	// ErrDispatchNilParam indicates that the param passed to dispatch is nil
 	ErrDispatchNilParam = errors.New("param is nil, cannot dispatch")
-	// ErrUnsupportedRPC is an error for when running a method that is not supported via HTTP RPC
-	ErrUnsupportedRPC = errors.New("method is not supported over RPC")
 )
 
 // dispatcher isolates the dispatch method
@@ -50,7 +49,7 @@ type MethodSet interface {
 // Each method is required to have associated attributes in order to successfully register
 // Variables are exported so that external packages such as docs can access them
 type AttributeSet struct {
-	Endpoint APIEndpoint
+	Endpoint qhttp.APIEndpoint
 	HTTPVerb string
 	// the default source used for resolving references
 	DefaultSource string
@@ -121,7 +120,7 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 
 		if c, ok := inst.regMethods.lookup(method); ok {
 			if c.DenyRPC {
-				return nil, nil, ErrUnsupportedRPC
+				return nil, nil, qhttp.ErrUnsupportedRPC
 			}
 			if c.OutType != nil {
 				out := reflect.New(c.OutType)
@@ -132,7 +131,7 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 			// for it to reliably use GET. All POSTs w/ content type application json work, however.
 			// we may want to just flat out say that as an RPC layer, dispatch will only ever use
 			// json POST to communicate.
-			err = inst.http.CallMethod(ctx, c.Endpoint.String(), "POST", source, param, res)
+			err = inst.http.CallMethod(ctx, c.Endpoint, http.MethodPost, source, param, res)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -246,7 +245,7 @@ type callable struct {
 	InType    reflect.Type
 	OutType   reflect.Type
 	RetCursor bool
-	Endpoint  APIEndpoint
+	Endpoint  qhttp.APIEndpoint
 	Verb      string
 	Source    string
 	DenyRPC   bool

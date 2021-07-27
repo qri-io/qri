@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -16,22 +17,28 @@ import (
 	"github.com/qri-io/qri/auth/token"
 )
 
-var log = golog.Logger("lib")
+const (
+	// JSONMimeType is the JSON content type header value
+	JSONMimeType = "application/json"
+	// SourceResolver header name
+	SourceResolver = "SourceResolver"
+)
 
-const jsonMimeType = "application/json"
+var (
+	log = golog.Logger("lib")
+	// ErrUnsupportedRPC is an error for when running a method that is not supported via HTTP RPC
+	ErrUnsupportedRPC = errors.New("method is not supported over RPC")
+)
 
-// SourceResolver header name
-const SourceResolver = "SourceResolver"
-
-// Client implements the qri http client
+// Client makes remote procedure calls to a qri node over HTTP
 type Client struct {
 	Address  string
 	Protocol string
 }
 
 // NewClient instantiates a new Client
-func NewClient(multiaddr string) (*Client, error) {
-	maAddr, err := ma.NewMultiaddr(multiaddr)
+func NewClient(multiaddrStr string) (*Client, error) {
+	maAddr, err := ma.NewMultiaddr(multiaddrStr)
 	if err != nil {
 		return nil, err
 	}
@@ -54,9 +61,9 @@ func NewClient(multiaddr string) (*Client, error) {
 	}, nil
 }
 
-// NewClientWithProtocol instantiates a new Client with a specified protocol
-func NewClientWithProtocol(multiaddr string, protocol string) (*Client, error) {
-	maAddr, err := ma.NewMultiaddr(multiaddr)
+// NewClientWithProtocol instantiates a new Client with either http or https protocols
+func NewClientWithProtocol(multiaddrStr, protocol string) (*Client, error) {
+	maAddr, err := ma.NewMultiaddr(multiaddrStr)
 	if err != nil {
 		return nil, err
 	}
@@ -71,28 +78,28 @@ func NewClientWithProtocol(multiaddr string, protocol string) (*Client, error) {
 }
 
 // Call calls API endpoint and passes on parameters, context info
-func (c Client) Call(ctx context.Context, apiEndpoint string, source string, params interface{}, result interface{}) error {
+func (c Client) Call(ctx context.Context, apiEndpoint APIEndpoint, source string, params interface{}, result interface{}) error {
 	return c.CallMethod(ctx, apiEndpoint, http.MethodPost, source, params, result)
 }
 
 // CallMethod calls API endpoint and passes on parameters, context info and specific HTTP Method
-func (c Client) CallMethod(ctx context.Context, apiEndpoint string, httpMethod string, source string, params interface{}, result interface{}) error {
+func (c Client) CallMethod(ctx context.Context, apiEndpoint APIEndpoint, httpMethod string, source string, params interface{}, result interface{}) error {
 	// TODO(arqu): work out mimeType configuration/override per API endpoint
-	mimeType := jsonMimeType
+	mimeType := JSONMimeType
 	addr := fmt.Sprintf("%s://%s%s", c.Protocol, c.Address, apiEndpoint)
 
 	return c.do(ctx, addr, httpMethod, mimeType, source, params, result, false)
 }
 
 // CallRaw calls API endpoint and passes on parameters, context info and returns the []byte result
-func (c Client) CallRaw(ctx context.Context, apiEndpoint string, source string, params interface{}, result interface{}) error {
+func (c Client) CallRaw(ctx context.Context, apiEndpoint APIEndpoint, source string, params interface{}, result interface{}) error {
 	return c.CallMethodRaw(ctx, apiEndpoint, http.MethodPost, source, params, result)
 }
 
 // CallMethodRaw calls API endpoint and passes on parameters, context info, specific HTTP Method and returns the []byte result
-func (c Client) CallMethodRaw(ctx context.Context, apiEndpoint string, httpMethod string, source string, params interface{}, result interface{}) error {
+func (c Client) CallMethodRaw(ctx context.Context, apiEndpoint APIEndpoint, httpMethod string, source string, params interface{}, result interface{}) error {
 	// TODO(arqu): work out mimeType configuration/override per API endpoint
-	mimeType := jsonMimeType
+	mimeType := JSONMimeType
 	addr := fmt.Sprintf("%s://%s%s", c.Protocol, c.Address, apiEndpoint)
 	// TODO(arqu): inject context values into headers
 

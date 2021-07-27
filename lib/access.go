@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/qri-io/qri/auth/token"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/profile"
 )
 
@@ -22,7 +23,7 @@ func (m AccessMethods) Name() string {
 // Attributes defines attributes for each method
 func (m AccessMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"createauthtoken": {Endpoint: AECreateAuthToken, HTTPVerb: "POST", DefaultSource: "local"},
+		"createauthtoken": {Endpoint: qhttp.AECreateAuthToken, HTTPVerb: "POST", DefaultSource: "local"},
 	}
 }
 

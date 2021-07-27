@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/spf13/cobra"
 )
 
@@ -157,7 +158,7 @@ func (o *ConfigOptions) Get(args []string) (err error) {
 
 	data, err := o.inst.Config().GetConfig(ctx, params)
 	if err != nil {
-		if errors.Is(err, lib.ErrUnsupportedRPC) {
+		if errors.Is(err, qhttp.ErrUnsupportedRPC) {
 			return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
 		}
 		return err
@@ -199,7 +200,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		if photoPaths[path] {
 			profileMethods := o.inst.Profile()
 			if err = setPhotoPath(ctx, &profileMethods, path, args[i+1]); err != nil {
-				if errors.Is(err, lib.ErrUnsupportedRPC) {
+				if errors.Is(err, qhttp.ErrUnsupportedRPC) {
 					return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
 				}
 				return err
@@ -218,14 +219,14 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		}
 	}
 	if _, err := o.inst.Config().SetConfig(ctx, o.inst.GetConfig()); err != nil {
-		if errors.Is(err, lib.ErrUnsupportedRPC) {
+		if errors.Is(err, qhttp.ErrUnsupportedRPC) {
 			return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
 		}
 		return err
 	}
 	if profileChanged {
 		if _, err = o.inst.Profile().SetProfile(ctx, &lib.SetProfileParams{Pro: profile}); err != nil {
-			if errors.Is(err, lib.ErrUnsupportedRPC) {
+			if errors.Is(err, qhttp.ErrUnsupportedRPC) {
 				return fmt.Errorf("%w - this could mean you're running qri connect in another terminal or application", err)
 			}
 			return err

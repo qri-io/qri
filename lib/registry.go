@@ -8,6 +8,7 @@ import (
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/profile"
@@ -27,8 +28,8 @@ func (m RegistryClientMethods) Name() string {
 // Attributes defines attributes for each method
 func (m RegistryClientMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"createprofile":   {Endpoint: DenyHTTP},
-		"proveprofilekey": {Endpoint: DenyHTTP},
+		"createprofile":   {Endpoint: qhttp.DenyHTTP},
+		"proveprofilekey": {Endpoint: qhttp.DenyHTTP},
 	}
 }
 

@@ -3,6 +3,7 @@ package lib
 import (
 	"context"
 
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/logbook"
 )
 
@@ -20,9 +21,9 @@ func (m LogMethods) Name() string {
 // Attributes defines attributes for each method
 func (m LogMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"log":            {Endpoint: DenyHTTP},
-		"rawlogbook":     {Endpoint: DenyHTTP},
-		"logbooksummary": {Endpoint: DenyHTTP},
+		"log":            {Endpoint: qhttp.DenyHTTP},
+		"rawlogbook":     {Endpoint: qhttp.DenyHTTP},
+		"logbooksummary": {Endpoint: qhttp.DenyHTTP},
 	}
 }
 
