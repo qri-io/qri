@@ -30,10 +30,11 @@ import (
 
 // Registry a collection of interfaces that together form a registry service
 type Registry struct {
-	Remote   *remote.Server
-	Profiles Profiles
-	Search   Searchable
-	Indexer  Indexer
+	Remote       *remote.Server
+	Profiles     Profiles
+	Search       Searchable
+	Indexer      Indexer
+	Follower     Follower
 }
 
 var (

@@ -267,6 +267,7 @@ func (inst *Instance) AllMethods() []MethodSet {
 		inst.Peer(),
 		inst.Profile(),
 		inst.Registry(),
+		inst.Follow(),
 		inst.Remote(),
 		inst.Search(),
 		inst.SQL(),
@@ -288,6 +289,7 @@ func (inst *Instance) RegisterMethods() {
 	inst.registerOne("peer", inst.Peer(), peerImpl{}, reg)
 	inst.registerOne("profile", inst.Profile(), profileImpl{}, reg)
 	inst.registerOne("registry", inst.Registry(), registryImpl{}, reg)
+	inst.registerOne("follow", inst.Follow(), followImpl{}, reg)
 	inst.registerOne("remote", inst.Remote(), remoteImpl{}, reg)
 	inst.registerOne("search", inst.Search(), searchImpl{}, reg)
 	inst.registerOne("sql", inst.SQL(), sqlImpl{}, reg)
