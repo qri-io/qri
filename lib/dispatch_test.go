@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/api/util"
+	qhttp "github.com/qri-io/qri/lib/http"
 )
 
 func TestRegisterMethods(t *testing.T) {
@@ -209,9 +210,9 @@ func TestDefaultSource(t *testing.T) {
 	}
 }
 
-func serverConnectAndListen(t *testing.T, servInst *Instance, port int) (*HTTPClient, func()) {
+func serverConnectAndListen(t *testing.T, servInst *Instance, port int) (*qhttp.Client, func()) {
 	address := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)
-	connection, err := NewHTTPClient(address)
+	connection, err := qhttp.NewClient(address)
 	if err != nil {
 		t.Fatal(err)
 	}

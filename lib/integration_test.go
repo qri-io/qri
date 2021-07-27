@@ -423,7 +423,7 @@ func PushToRegistry(ctx context.Context, t *testing.T, inst *Instance, refstr st
 	return *res
 }
 
-func SearchFor(ctx context.Context, t *testing.T, inst *Instance, term string) []SearchResult {
+func SearchFor(ctx context.Context, t *testing.T, inst *Instance, term string) []registry.SearchResult {
 	results, err := inst.Search().Search(ctx, &SearchParams{Query: term})
 	if err != nil {
 		t.Fatal(err)

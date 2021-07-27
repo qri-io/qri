@@ -47,10 +47,10 @@ func TestSearch(t *testing.T) {
 
 var mockResponse = []byte(`{"data":[
   {
-    "Type": "dataset",
-    "ID": "/ipfs/QmZEnjt3Y5RxXsoZyufJfFzcogicBEwfaimJSyDuC7nySA",
-    "URL": "https://qri.cloud/nuun/nuun",
-    "Value": {
+    "type": "dataset",
+    "id": "/ipfs/QmZEnjt3Y5RxXsoZyufJfFzcogicBEwfaimJSyDuC7nySA",
+    "url": "https://qri.cloud/nuun/nuun",
+    "value": {
       "commit": {
         "qri": "cm:0",
         "timestamp": "2019-08-31T12:07:56.212858Z",

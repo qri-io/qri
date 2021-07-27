@@ -3,7 +3,7 @@ package lib
 import (
 	"context"
 
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/repo"
 )
@@ -32,18 +32,10 @@ type SearchParams struct {
 	Offset int    `json:"offset,omitempty"`
 }
 
-// SearchResult struct
-type SearchResult struct {
-	Type  string           `json:"type"`
-	ID    string           `json:"id"`
-	URL   string           `json:"url"`
-	Value *dataset.Dataset `json:"value"`
-}
-
 // Search queries for items on qri related to given parameters
-func (m SearchMethods) Search(ctx context.Context, p *SearchParams) ([]SearchResult, error) {
+func (m SearchMethods) Search(ctx context.Context, p *SearchParams) ([]registry.SearchResult, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "search"), p)
-	if res, ok := got.([]SearchResult); ok {
+	if res, ok := got.([]registry.SearchResult); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -55,7 +47,7 @@ func (m SearchMethods) Search(ctx context.Context, p *SearchParams) ([]SearchRes
 type searchImpl struct{}
 
 // Search queries for items on qri related to given parameters
-func (searchImpl) Search(scope scope, p *SearchParams) ([]SearchResult, error) {
+func (searchImpl) Search(scope scope, p *SearchParams) ([]registry.SearchResult, error) {
 	client := scope.RegistryClient()
 	if client == nil {
 		return nil, repo.ErrNoRegistry
@@ -70,12 +62,5 @@ func (searchImpl) Search(scope scope, p *SearchParams) ([]SearchResult, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	searchResults := make([]SearchResult, len(regResults))
-	for i, result := range regResults {
-		searchResults[i].Type = "dataset"
-		searchResults[i].ID = result.Path
-		searchResults[i].Value = result
-	}
-	return searchResults, nil
+	return regResults, nil
 }

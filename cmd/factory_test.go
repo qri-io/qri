@@ -10,6 +10,7 @@ import (
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/lib"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/test"
@@ -128,6 +129,6 @@ func (t TestFactory) ConnectionNode() (*p2p.QriNode, error) {
 }
 
 // HTTPClient returns nil for tests
-func (t TestFactory) HTTPClient() *lib.HTTPClient {
+func (t TestFactory) HTTPClient() *qhttp.Client {
 	return nil
 }

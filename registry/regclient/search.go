@@ -3,7 +3,6 @@ package regclient
 import (
 	"context"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/registry"
 )
 
@@ -33,7 +32,7 @@ type SearchParams struct {
 }
 
 // Search makes a registry search request
-func (c Client) Search(ctx context.Context, p *SearchParams) ([]*dataset.Dataset, error) {
+func (c Client) Search(ctx context.Context, p *SearchParams) ([]registry.SearchResult, error) {
 	if c.httpClient == nil {
 		return nil, ErrNoRegistry
 	}
@@ -44,10 +43,10 @@ func (c Client) Search(ctx context.Context, p *SearchParams) ([]*dataset.Dataset
 		Limit:  p.Limit,
 		Offset: p.Offset,
 	}
-	results := []*dataset.Dataset{}
-	err := c.httpClient.CallMethod(ctx, "registry/search", "GET", "", params, results)
+	res := []registry.SearchResult{}
+	err := c.httpClient.CallMethod(ctx, "/registry/search", "GET", "", params, &res)
 	if err != nil {
 		return nil, err
 	}
-	return results, nil
+	return res, nil
 }

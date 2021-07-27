@@ -17,8 +17,7 @@ const (
 func NewSearchHandler(s registry.Searchable) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p := &registry.SearchParams{}
-		switch r.Header.Get("Content-Type") {
-		case "application/json":
+		if r.Header.Get("Content-Type") == "application/json" && r.Method == "POST" {
 			if err := json.NewDecoder(r.Body).Decode(p); err != nil {
 				apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 				return
@@ -26,20 +25,16 @@ func NewSearchHandler(s registry.Searchable) http.HandlerFunc {
 			if p.Limit == 0 {
 				p.Limit = defaultLimit
 			}
-		default:
+		} else {
 			p.Limit = apiutil.ReqParamInt(r, "limit", defaultLimit)
 			p.Offset = apiutil.ReqParamInt(r, "offset", defaultOffset)
 			p.Q = r.FormValue("q")
 		}
-		switch r.Method {
-		case "GET":
-			results, err := s.Search(*p)
-			if err != nil {
-				apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
-			}
-			apiutil.WriteResponse(w, results)
+		results, err := s.Search(*p)
+		if err != nil {
+			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
+		apiutil.WriteResponse(w, results)
 	}
 }

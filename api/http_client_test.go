@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/lib"
+	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo/test"
 )
@@ -69,7 +70,7 @@ func TestHTTPClient(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	httpClient, err := lib.NewHTTPClient(cfg.API.Address)
+	httpClient, err := qhttp.NewClient(cfg.API.Address)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -78,13 +79,13 @@ func TestHTTPClient(t *testing.T) {
 	httpClient.Address = sURL.Host
 	httpClient.Protocol = "http"
 
-	if err = httpClient.CallRaw(ctx, AEHome, "", nil, &bytes.Buffer{}); err != nil {
+	if err = httpClient.CallRaw(ctx, AEHome.String(), "", nil, &bytes.Buffer{}); err != nil {
 		t.Fatal(err.Error())
 	}
 
 	res := []dsref.VersionInfo{}
 	p := lib.ListParams{}
-	err = httpClient.CallMethod(ctx, lib.AEList, http.MethodPost, "", p, &res)
+	err = httpClient.CallMethod(ctx, lib.AEList.String(), http.MethodPost, "", p, &res)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
