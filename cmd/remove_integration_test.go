@@ -851,6 +851,7 @@ func TestRemoveEvenIfForeignDatasetWithNoOplog(t *testing.T) {
 
 // Test that remove can cleanup datasets in an inconsistent state
 func TestRemoveWorksAfterDeletingWorkingDirectoryFromInit(t *testing.T) {
+	t.Skip("fsi is going away")
 	run := NewFSITestRunner(t, "test_peer_remove_rm_wd_from_init", "qri_test_remove_rm_wd_from_init")
 	defer run.Delete()
 

@@ -9,7 +9,10 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/base/params"
+	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -230,19 +233,14 @@ func ListDatasets(ctx context.Context, r repo.Repo, term, profileID string, offs
 }
 
 // RawDatasetRefs converts the dataset refs to a string
-func RawDatasetRefs(ctx context.Context, r repo.Repo) (string, error) {
-	num, err := r.RefCount()
+func RawDatasetRefs(ctx context.Context, pid profile.ID, s collection.Set) (string, error) {
+	res, err := s.List(ctx, pid, params.ListAll)
 	if err != nil {
 		return "", err
 	}
-	res, err := r.References(0, num)
-	if err != nil {
-		log.Debug(err.Error())
-		return "", fmt.Errorf("error getting dataset list: %s", err.Error())
-	}
 
 	// Calculate the largest index, and get its length
-	width := len(fmt.Sprintf("%d", num-1))
+	width := len(fmt.Sprintf("%d", len(res)-1))
 	// Padding for each row to stringify
 	padding := strings.Repeat(" ", width)
 	// A printf template for stringifying indexes, such that they all have the same size
@@ -251,7 +249,7 @@ func RawDatasetRefs(ctx context.Context, r repo.Repo) (string, error) {
 	builder := strings.Builder{}
 	for n, ref := range res {
 		datasetNum := fmt.Sprintf(numTemplate, n)
-		fmt.Fprintf(&builder, "%s Peername:  %s\n", datasetNum, ref.Peername)
+		fmt.Fprintf(&builder, "%s Peername:  %s\n", datasetNum, ref.Username)
 		fmt.Fprintf(&builder, "%s ProfileID: %s\n", padding, ref.ProfileID)
 		fmt.Fprintf(&builder, "%s Name:      %s\n", padding, ref.Name)
 		fmt.Fprintf(&builder, "%s Path:      %s\n", padding, ref.Path)

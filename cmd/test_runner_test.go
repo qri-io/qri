@@ -646,7 +646,7 @@ func (runner *TestRunner) AddDatasetToRefstore(t *testing.T, refStr string, ds *
 	}
 
 	// Reserve the name in the logbook, which provides an initID
-	initID, err := r.Logbook().WriteDatasetInit(ctx, ds.Name)
+	initID, err := r.Logbook().WriteDatasetInit(ctx, ds.Peername, ds.Name)
 	if err != nil {
 		t.Fatal(err)
 	}

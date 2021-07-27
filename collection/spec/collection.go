@@ -226,17 +226,11 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		muppetNamesName2 := "muppet_names_and_ages"
 
 		// simulate name initialization, normally emitted by logbook
-		mustPublish(ctx, t, bus, event.ETDatasetNameInit, event.DsChange{
-			InitID:     muppetNamesInitID,
-			Username:   kermit.Peername,
-			ProfileID:  kermit.ID.String(),
-			PrettyName: muppetNamesName1,
-			Info: &dsref.VersionInfo{
-				InitID:    muppetNamesInitID,
-				ProfileID: kermit.ID.String(),
-				Username:  kermit.Peername,
-				Name:      muppetNamesName1,
-			},
+		mustPublish(ctx, t, bus, event.ETDatasetNameInit, dsref.VersionInfo{
+			InitID:    muppetNamesInitID,
+			ProfileID: kermit.ID.String(),
+			Username:  kermit.Peername,
+			Name:      muppetNamesName1,
 		})
 
 		expect := []dsref.VersionInfo{
@@ -250,51 +244,50 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
 
 		// simulate version creation, normally emitted by logbook
-		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, event.DsChange{
-			ProfileID: kermit.ID.String(),
-			TopIndex:  2,
-			Info: &dsref.VersionInfo{
-				InitID:    muppetNamesInitID,
-				ProfileID: kermit.ID.String(),
-				Path:      "/mem/PathToMuppetNamesVersionOne",
-				Name:      muppetNamesName1,
-			},
+		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
+			InitID:      muppetNamesInitID,
+			ProfileID:   kermit.ID.String(),
+			Path:        "/mem/PathToMuppetNamesVersionOne",
+			Username:    kermit.Peername,
+			Name:        muppetNamesName1,
+			NumVersions: 2,
+			BodySize:    20,
 		})
 
 		expect = []dsref.VersionInfo{
 			{
-				InitID:    muppetNamesInitID,
-				ProfileID: kermit.ID.String(),
-				Username:  kermit.Peername,
-				Name:      muppetNamesName1,
-				// TopIndex:  2,
-				// HeadRef:   "/mem/PathToMuppetNamesVersionOne",
+				InitID:      muppetNamesInitID,
+				ProfileID:   kermit.ID.String(),
+				Username:    kermit.Peername,
+				Name:        muppetNamesName1,
+				NumVersions: 2,
+				Path:        "/mem/PathToMuppetNamesVersionOne",
+				BodySize:    20,
 			},
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
 
 		// simulate dataset renaming, normally emitted by logbook
-		mustPublish(ctx, t, bus, event.ETDatasetRename, event.DsChange{
-			InitID:     muppetNamesInitID,
-			PrettyName: muppetNamesName2,
+		mustPublish(ctx, t, bus, event.ETDatasetRename, event.DsRename{
+			InitID:  muppetNamesInitID,
+			OldName: muppetNamesName1,
+			NewName: muppetNamesName2,
 		})
 
 		expect = []dsref.VersionInfo{
 			{
-				InitID:    muppetNamesInitID,
-				ProfileID: kermit.ID.String(),
-				Username:  kermit.Peername,
-				Name:      muppetNamesName2,
-				// TopIndex:  2,
-				// HeadRef:   "/mem/PathToMuppetNamesVersionOne",
+				InitID:      muppetNamesInitID,
+				ProfileID:   kermit.ID.String(),
+				Username:    kermit.Peername,
+				Name:        muppetNamesName2,
+				NumVersions: 2,
+				Path:        "/mem/PathToMuppetNamesVersionOne",
+				BodySize:    20,
 			},
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
 
-		mustPublish(ctx, t, bus, event.ETDatasetDeleteAll, event.DsChange{
-			InitID:     muppetNamesInitID,
-			PrettyName: muppetNamesName2,
-		})
+		mustPublish(ctx, t, bus, event.ETDatasetDeleteAll, muppetNamesInitID)
 
 		expect = []dsref.VersionInfo{}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
@@ -338,22 +331,23 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 			},
 		})
 		// simulate version creation, normally emitted by logbook
-		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, event.DsChange{
-			InitID:   muppetTweetsInitID,
-			TopIndex: 2,
-			HeadRef:  "/mem/PathToMuppetTweetsVersionOne",
-			// TODO (b5): real event includes a VersionInfo:
-			// Info:     &info,
+		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
+			InitID:      muppetTweetsInitID,
+			NumVersions: 2,
+			Path:        "/mem/PathToMuppetTweetsVersionOne",
+			ProfileID:   kermit.ID.String(),
+			Username:    kermit.Peername,
+			Name:        muppetTweetsName,
 		})
 
 		expect := []dsref.VersionInfo{
 			{
-				InitID:    muppetTweetsInitID,
-				ProfileID: kermit.ID.String(),
-				Username:  kermit.Peername,
-				Name:      muppetTweetsName,
-				// TopIndex:  2,
-				// HeadRef:   "/mem/PathToMuppetTweetsVersionOne",
+				InitID:      muppetTweetsInitID,
+				ProfileID:   kermit.ID.String(),
+				Username:    kermit.Peername,
+				Name:        muppetTweetsName,
+				NumVersions: 2,
+				Path:        "/mem/PathToMuppetTweetsVersionOne",
 			},
 		}
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)

@@ -108,7 +108,7 @@ func PrepareSaveRef(
 		return ref, true, fmt.Errorf("invalid dataset name: %s", ref.Name)
 	}
 
-	ref.InitID, err = book.WriteDatasetInit(ctx, ref.Name)
+	ref.InitID, err = book.WriteDatasetInit(ctx, ref.Username, ref.Name)
 	log.Debugf("PrepareSaveRef created new initID=%q ref.Username=%q ref.Name=%q", ref.InitID, ref.Username, ref.Name)
 	return ref, true, err
 }

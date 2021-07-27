@@ -103,7 +103,7 @@ func TestRenameUpdatesLink(t *testing.T) {
 	output := run.MustExec(t, "qri list")
 	expect = `1   test_peer_rename_update_link/remove_second_name
     linked: /tmp/remove_update_link
-    22 B, 2 entries, 0 errors
+    22 B, 2 entries, 0 errors, 1 version
 
 `
 	if diff := cmp.Diff(expect, output); diff != "" {

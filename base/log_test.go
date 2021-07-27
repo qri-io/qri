@@ -83,7 +83,7 @@ func TestDatasetLogForeign(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	initID := foreignBuilder.DatasetInit(ctx, t, ref.Name)
+	initID := foreignBuilder.DatasetInit(ctx, t, ref.Username, ref.Name)
 	// NOTE: Need to assign ProfileID because nothing is resolving the username
 	ref.ProfileID = themKeyData.EncodedPeerID
 	ref.Path = "/mem/QmExample"

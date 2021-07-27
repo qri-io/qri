@@ -207,7 +207,9 @@ type lessFunc func(a, b *VersionInfo) bool
 func newLessFunc(key string) (lessFunc, error) {
 	switch key {
 	case "name":
-		return func(a, b *VersionInfo) bool { return (a.Username < b.Username && a.Name < b.Name) }, nil
+		return func(a, b *VersionInfo) bool {
+			return (a.Username < b.Username || a.Name < b.Name)
+		}, nil
 	case "size":
 		return func(a, b *VersionInfo) bool { return a.BodySize < b.BodySize }, nil
 	}

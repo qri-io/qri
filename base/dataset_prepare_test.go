@@ -26,8 +26,8 @@ func TestPrepareSaveRef(t *testing.T) {
 	pro := r.Profiles().Owner()
 	book := r.Logbook()
 
-	book.WriteDatasetInit(ctx, "cities")
-	book.WriteDatasetInit(ctx, "Bad_Case")
+	book.WriteDatasetInit(ctx, pro.Peername, "cities")
+	book.WriteDatasetInit(ctx, pro.Peername, "Bad_Case")
 
 	bad := []struct {
 		refStr, filepath string

@@ -1,5 +1,6 @@
 [
   {
+    "initID": "ghculhp32kpjkhxb6wpxeucdwcjpwws2ke7cmu3zk3g4v6sgvyla",
     "username": "peer",
     "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
     "name": "cities",
@@ -13,6 +14,7 @@
     "commitMessage": "created dataset"
   },
   {
+    "initID": "32mmooius2uvmzjdosvs5fs7ybqbf3bvg5pqblr5ival7zjnqlea",
     "username": "peer",
     "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
     "name": "counter",

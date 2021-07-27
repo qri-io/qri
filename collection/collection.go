@@ -139,11 +139,14 @@ func (s *localSet) List(ctx context.Context, pid profile.ID, lp params.List) ([]
 
 	for _, item := range col {
 		lp.Offset--
-		if lp.Offset > 0 {
+		if lp.Offset >= 0 {
 			continue
 		}
 
 		results = append(results, item)
+		if len(results) == lp.Limit {
+			break
+		}
 	}
 
 	return results, nil
@@ -291,21 +294,22 @@ func (s *localSet) subscribe(bus event.Bus) {
 		event.ETDatasetCommitChange,
 		event.ETDatasetRename,
 		event.ETDatasetDeleteAll,
+
+		// remote & registry events
+		event.ETDatasetPushed,
+		event.ETDatasetPulled,
+		event.ETRegistryProfileCreated,
+
+		// fsi
+		event.ETFSICreateLink,
+		event.ETFSIRemoveLink,
 	)
 }
 
 func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 	switch e.Type {
 	case event.ETDatasetNameInit:
-		if change, ok := e.Payload.(event.DsChange); ok {
-			vi := dsref.VersionInfo{
-				InitID:    change.InitID,
-				ProfileID: change.ProfileID,
-				Username:  change.Username,
-				Name:      change.PrettyName,
-			}
-			// if vi := change.Info; vi = nil {
-			// }
+		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
 			pid, err := profile.NewB58ID(vi.ProfileID)
 			if err != nil {
 				log.Debugw("parsing profile ID in name init", "err", err)
@@ -315,32 +319,120 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 				log.Debugw("putting one:", "err", err)
 				return err
 			}
-			log.Debugw("finished putting new name", "name", change.PrettyName, "initID", change.InitID)
+			log.Debugw("finished putting new name", "name", vi.Name, "initID", vi.InitID)
 		}
 	case event.ETDatasetCommitChange:
 		// keep in mind commit changes can mean added OR removed versions
-		if change, ok := e.Payload.(event.DsChange); ok {
-			s.updateOneAcrossAllCollections(change.InitID, func(vi *dsref.VersionInfo) {
-				vi.Path = change.HeadRef
-				vi.NumVersions = change.TopIndex
+		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
+			s.updateOneAcrossAllCollections(vi.InitID, func(m *dsref.VersionInfo) {
+				// preserve fsi path
+				vi.FSIPath = m.FSIPath
+				*m = vi
 			})
 		}
 	case event.ETDatasetRename:
-		if change, ok := e.Payload.(event.DsChange); ok {
-			s.updateOneAcrossAllCollections(change.InitID, func(vi *dsref.VersionInfo) {
-				vi.Name = change.PrettyName
+		if rename, ok := e.Payload.(event.DsRename); ok {
+			s.updateOneAcrossAllCollections(rename.InitID, func(vi *dsref.VersionInfo) {
+				vi.Name = rename.NewName
 			})
 		}
 	case event.ETDatasetDeleteAll:
 		// TODO(b5): need user-scoped events for this, unless we want one user
 		// removing a dataset to remove it from all collections of all users
-		if change, ok := e.Payload.(event.DsChange); ok {
-			if err := s.deleteAcrossAllCollections(change.InitID); err != nil {
-				// TODO(b5): log error
-				log.Debugw("removing dataset across all collections", "initID", change.InitID, "err", err)
+		if initID, ok := e.Payload.(string); ok {
+			if err := s.deleteAcrossAllCollections(initID); err != nil {
+				log.Debugw("removing dataset across all collections", "initID", initID, "err", err)
+			}
+		}
+
+	case event.ETRegistryProfileCreated:
+		if p, ok := e.Payload.(event.RegistryProfileCreated); ok {
+			s.updateUsernameAcrossAllCollections(p.ProfileID, p.Username)
+		}
+	case event.ETDatasetPulled:
+		// TODO(b5): need user-scoped events for this so we can know *who* pulled
+		// for now we'll hack in an addition to all user's collections, which would
+		// DEFINITELY break cloud
+		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
+			if err := s.addOneAcrossAllCollections(vi); err != nil {
+				log.Debugw("adding dataset across all collections", "initID", vi.InitID, "err", err)
+			}
+		}
+	case event.ETDatasetPushed:
+		// TODO(b5): need user-scoped events for this so we can know *who* pulled
+		// for now we'll hack in an addition to all user's collections, which would
+		// DEFINITELY break cloud
+		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
+			if err := s.addOneAcrossAllCollections(vi); err != nil {
+				log.Debugw("adding dataset across all collections", "initID", vi.InitID, "err", err)
+			}
+		}
+	case event.ETFSICreateLink:
+		if link, ok := e.Payload.(event.FSICreateLink); ok {
+			s.updateOneAcrossAllCollections(link.InitID, func(vi *dsref.VersionInfo) {
+				vi.FSIPath = link.FSIPath
+			})
+		}
+	case event.ETFSIRemoveLink:
+		if change, ok := e.Payload.(event.FSIRemoveLink); ok {
+			s.updateOneAcrossAllCollections(change.InitID, func(vi *dsref.VersionInfo) {
+				vi.FSIPath = ""
+			})
+		}
+	}
+	return nil
+}
+
+func (s *localSet) updateUsernameAcrossAllCollections(changedUsernameProfileIDString, newUsername string) error {
+	s.Lock()
+	defer s.Unlock()
+
+	for pid, col := range s.collections {
+		changed := false
+		for i, vi := range col {
+			if vi.ProfileID == changedUsernameProfileIDString && vi.Username != newUsername {
+				changed = true
+				vi.Username = newUsername
+				col[i] = vi
+			}
+		}
+		if changed {
+			if err := s.saveProfileCollection(pid); err != nil {
+				return err
 			}
 		}
 	}
+
+	return nil
+}
+
+func (s *localSet) addOneAcrossAllCollections(add dsref.VersionInfo) error {
+	s.Lock()
+	defer s.Unlock()
+
+	agg, err := dsref.NewVersionInfoAggregator([]string{"name"})
+	if err != nil {
+		return err
+	}
+
+	for pid, col := range s.collections {
+		added := false
+		for i, vi := range col {
+			if vi.InitID == add.InitID {
+				added = true
+				col[i] = vi
+			}
+		}
+		if !added {
+			s.collections[pid] = append(col, add)
+			agg.Sort(s.collections[pid])
+		}
+
+		if err := s.saveProfileCollection(pid); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

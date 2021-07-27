@@ -19,6 +19,11 @@ const (
 	// (logbook + versions) completed
 	// payload will be a RemoteEvent
 	ETRemoteClientPushDatasetCompleted = Type("remoteClient:PushDatasetCompleted")
+	// ETDatasetPushed fires at the same logical time as
+	// ETRemoteClientPushDatasetCompleted, but contains a versionInfo payload
+	// for subscribers that need additional fields from the pushed dataset
+	// payload will be a dsref.VersionInfo
+	ETDatasetPushed = Type("remoteClient:DatasetPushed")
 	// ETRemoteClientPullVersionProgress indicates a change in progress of a
 	// dataset version pull. Progress can fire as much as once-per-block.
 	// subscriptions do not block the publisher
@@ -32,6 +37,11 @@ const (
 	// (logbook + versions) completed
 	// payload will be a RemoteEvent
 	ETRemoteClientPullDatasetCompleted = Type("remoteClient:PullDatasetCompleted")
+	// ETDatasetPulled fires at the same logical time as
+	// ETRemoteClientPullDatasetCompleted, but contains a versionInfo payload
+	// for subscribers that need additional fields from the pulled dataset
+	// payload will be a dsref.VersionInfo
+	ETDatasetPulled = Type("remoteClient:DatasetPulled")
 	// ETRemoteClientRemoveDatasetCompleted indicates removing a dataset
 	// (logbook + versions) remove completed
 	// payload will be a RemoteEvent
@@ -44,4 +54,19 @@ type RemoteEvent struct {
 	RemoteAddr string         `json:"remoteAddr"`
 	Progress   dag.Completion `json:"progress"`
 	Error      error          `json:"error,omitempty"`
+}
+
+const (
+	// ETRegistryProfileCreated indicates a successful profile creation on the
+	// configured registry
+	// payload will be a RegistryProfileCreated
+	ETRegistryProfileCreated = Type("registry:ProfileCreated")
+)
+
+// RegistryProfileCreated encapsulates fields in a profile creation response
+// from the configured registry
+type RegistryProfileCreated struct {
+	RegistryLocation string `json:"registryLocation"`
+	ProfileID        string `json:"profileID"`
+	Username         string `json:"username"`
 }

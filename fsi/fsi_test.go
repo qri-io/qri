@@ -102,7 +102,7 @@ func TestCreateLink(t *testing.T) {
 		t.Errorf("wrong .qri-ref content.\nactual:\t%s\nexpect:\t%s", actual, expectLinkFile)
 	}
 
-	links, err := fsi.ListLinks(0, 30)
+	links, err := fsi.listLinks(0, 30)
 	if len(links) != 1 {
 		t.Errorf("error: wanted links of length 1, got %d", len(links))
 	}
@@ -147,7 +147,7 @@ func TestCreateLinkTwice(t *testing.T) {
 		t.Errorf("error: .qri-ref content, actual: %s, expect: %s", actual, expect)
 	}
 
-	links, err := fsi.ListLinks(0, 30)
+	links, err := fsi.listLinks(0, 30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,7 +219,7 @@ func TestCreateLinkAgainOnceQriRefRemoved(t *testing.T) {
 		t.Errorf("error: .qri-ref content, actual: %s, expect: %s", actual, expect)
 	}
 
-	links, err := fsi.ListLinks(0, 30)
+	links, err := fsi.listLinks(0, 30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,7 +303,7 @@ func TestModifyLinkDirectory(t *testing.T) {
 		t.Errorf("expected ModifyLinkReference to succeed, got: %s", err.Error())
 	}
 
-	refs, err := fsi.ListLinks(0, 10)
+	refs, err := fsi.listLinks(0, 10)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -28,14 +28,15 @@ func TestLoadDataset(t *testing.T) {
 	loader = &datasetLoader{inst: tr.Instance}
 	dsrefspec.AssertLoaderSpec(t, loader, func(ds *dataset.Dataset) (*dsref.Ref, error) {
 		// Allocate an initID for this dataset
-		initID, err := tr.Instance.logbook.WriteDatasetInit(tr.Ctx, ds.Name)
+		username := tr.Instance.repo.Profiles().Owner().Peername
+		initID, err := tr.Instance.logbook.WriteDatasetInit(tr.Ctx, username, ds.Name)
 		if err != nil {
 			return nil, err
 		}
 		// Create the dataset in the provided storage
 		ref := &dsref.Ref{
 			InitID:   initID,
-			Username: tr.Instance.repo.Profiles().Owner().Peername,
+			Username: username,
 			Name:     ds.Name,
 		}
 		path, err := dsfs.CreateDataset(

@@ -124,9 +124,10 @@ func (fsi *FSI) ResolvedPath(ref *dsref.Ref) error {
 	return ErrNoLink
 }
 
-// ListLinks returns a list of linked datasets and their connected
-// directories
-func (fsi *FSI) ListLinks(offset, limit int) ([]dsref.VersionInfo, error) {
+// listLinks returns a list of linked datasets and their connected directories
+// Deprecated: we're moving away from repo dataset listing. This should rely
+// on a collection instead
+func (fsi *FSI) listLinks(offset, limit int) ([]dsref.VersionInfo, error) {
 	// TODO (b5) - figure out a better pagination / querying strategy here
 	allRefs, err := repo.ListDatasetsShim(fsi.repo, offset, 100000)
 	if err != nil {
@@ -166,8 +167,7 @@ func (fsi *FSI) EnsureRefNotLinked(ref dsref.Ref) error {
 func (fsi *FSI) CreateLink(ctx context.Context, dirPath string, ref dsref.Ref) (vi *dsref.VersionInfo, rollback func(), err error) {
 	rollback = func() {}
 
-	// todo(arqu): should utilize rollback as other operations bellow
-	// can fail too
+	// TODO(arqu): should utilize rollback as other operations below can fail too
 	if err := fsi.EnsureRefNotLinked(ref); err != nil {
 		return nil, rollback, err
 	}
@@ -202,20 +202,11 @@ func (fsi *FSI) CreateLink(ctx context.Context, dirPath string, ref dsref.Ref) (
 	}
 
 	// Send an event to the bus about this checkout
-	err = fsi.pub.Publish(ctx, event.ETFSICreateLinkEvent, event.FSICreateLinkEvent{
+	err = fsi.pub.Publish(ctx, event.ETFSICreateLink, event.FSICreateLink{
+		InitID:   ref.InitID,
 		FSIPath:  dirPath,
 		Username: vi.Username,
-		Dsname:   vi.Name,
-	})
-	if err != nil {
-		return nil, removeLinkAndRemoveRefFunc, err
-	}
-
-	err = fsi.pub.Publish(ctx, event.ETDatasetCreateLink, event.DsChange{
-		InitID:     ref.InitID, // versionInfo probably coming from old Refstore
-		Username:   vi.Username,
-		PrettyName: vi.Name,
-		Dir:        dirPath,
+		Name:     vi.Name,
 	})
 	if err != nil {
 		return nil, removeLinkAndRemoveRefFunc, err
@@ -261,6 +252,13 @@ func (fsi *FSI) Unlink(ctx context.Context, dirPath string, ref dsref.Ref) error
 		log.Debugf("removing link file: %s", removeErr.Error())
 	}
 
+	err := fsi.pub.Publish(ctx, event.ETFSIRemoveLink, event.FSIRemoveLink{
+		InitID: ref.InitID,
+	})
+	if err != nil {
+		return err
+	}
+
 	// Ref may be empty, which will mean only the link file should be removed
 	if ref.IsEmpty() {
 		return nil
@@ -277,6 +275,7 @@ func (fsi *FSI) Unlink(ctx context.Context, dirPath string, ref dsref.Ref) error
 		_, err := repo.DeleteVersionInfoShim(ctx, fsi.repo, ref)
 		return err
 	}
+
 	// Otherwise just update the refstore
 	return repo.PutVersionInfoShim(ctx, fsi.repo, vi)
 }

@@ -472,7 +472,7 @@ func newTestbook(username string, pk crypto.PrivKey) (*logbook.Book, error) {
 
 func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, err error) {
 	name := "nasdaq"
-	initID, err := book.WriteDatasetInit(ctx, name)
+	initID, err := book.WriteDatasetInit(ctx, book.Username(), name)
 	if err != nil {
 		return ref, err
 	}
@@ -513,7 +513,7 @@ func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref,
 		return dsref.Ref{}, err
 	}
 
-	initID, err := book.WriteDatasetInit(ctx, name)
+	initID, err := book.WriteDatasetInit(ctx, book.Username(), name)
 	if err != nil {
 		return ref, err
 	}

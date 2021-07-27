@@ -600,7 +600,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 				return nil, resolverErr
 			}
 
-			if inst.remoteServer, err = remote.NewServer(inst.node, cfg.RemoteServer, localResolver, o.remoteOptsFuncs...); err != nil {
+			if inst.remoteServer, err = remote.NewServer(inst.node, cfg.RemoteServer, localResolver, inst.bus, o.remoteOptsFuncs...); err != nil {
 				log.Error("intializing remote:", err.Error())
 				return
 			}
@@ -776,6 +776,14 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		panic(err)
 	}
 
+	inst.collectionSet, err = collection.NewLocalSet(ctx, inst.bus, "", func(o *collection.LocalSetOptions) {
+		o.MigrateRepo = inst.repo
+	})
+	if err != nil {
+		cancel()
+		panic(err)
+	}
+
 	inst.releasers.Add(1)
 	go func() {
 		<-inst.remoteClient.Done()
@@ -870,7 +878,7 @@ func (inst *Instance) ConnectP2P(ctx context.Context) (err error) {
 		if err != nil {
 			return err
 		}
-		if inst.remoteServer, err = remote.NewServer(inst.node, inst.cfg.RemoteServer, localResolver, inst.remoteOptsFuncs...); err != nil {
+		if inst.remoteServer, err = remote.NewServer(inst.node, inst.cfg.RemoteServer, localResolver, inst.bus, inst.remoteOptsFuncs...); err != nil {
 			log.Debugw("remote.NewServer", "err", err)
 			return err
 		}

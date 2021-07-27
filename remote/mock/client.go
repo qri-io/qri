@@ -33,6 +33,7 @@ type OtherPeer struct {
 // Client is a remote client suitable for tests
 type Client struct {
 	node *p2p.QriNode
+	pub  event.Publisher
 
 	otherPeers map[string]*OtherPeer
 
@@ -49,6 +50,7 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c r
 	ctx, cancel := context.WithCancel(ctx)
 
 	cli := &Client{
+		pub:        pub,
 		node:       node,
 		otherPeers: map[string]*OtherPeer{},
 		doneCh:     make(chan struct{}),
@@ -134,7 +136,19 @@ func (c *Client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr str
 		return nil, err
 	}
 
-	return dsfs.LoadDataset(ctx, c.node.Repo.Filesystem(), vi.Path)
+	ds, err := dsfs.LoadDataset(ctx, c.node.Repo.Filesystem(), vi.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	info := dsref.ConvertDatasetToVersionInfo(ds)
+	info.Username = ref.Username
+	info.Name = ref.Name
+	info.ProfileID = ref.ProfileID
+	if err := c.pub.Publish(ctx, event.ETDatasetPulled, info); err != nil {
+		return nil, err
+	}
+	return ds, err
 }
 
 func (c *Client) createTheirDataset(ctx context.Context, ref *dsref.Ref) error {
@@ -175,7 +189,7 @@ func (c *Client) createTheirDataset(ctx context.Context, ref *dsref.Ref) error {
 	}
 
 	// Allocate an initID for this dataset
-	ref.InitID, err = other.book.WriteDatasetInit(ctx, ref.Name)
+	ref.InitID, err = other.book.WriteDatasetInit(ctx, ref.Username, ref.Name)
 	if err != nil {
 		return err
 	}

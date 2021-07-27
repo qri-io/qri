@@ -339,11 +339,8 @@ func (book *Book) WriteAuthorRename(ctx context.Context, newName string) error {
 	return nil
 }
 
-// WriteDatasetInit initializes a new dataset name within the author's namespace
-// TODO (b5) - this should accept a username param. In the future "org" type
-// users will want to delegate dataset creation to different keys, where the org
-// username is used
-func (book *Book) WriteDatasetInit(ctx context.Context, dsName string) (string, error) {
+// WriteDatasetInit initializes a new dataset name
+func (book *Book) WriteDatasetInit(ctx context.Context, username, dsName string) (string, error) {
 	if book == nil {
 		return "", ErrNoLogbook
 	}
@@ -396,11 +393,11 @@ func (book *Book) WriteDatasetInit(ctx context.Context, dsName string) (string, 
 
 	// TODO(dlong): Perhaps in the future, pass the authorID (hash of the author creation
 	// block) to the dscache, use that instead-of or in-addition-to the profileID.
-	err = book.publisher.Publish(ctx, event.ETDatasetNameInit, event.DsChange{
-		InitID:     initID,
-		Username:   book.Username(),
-		ProfileID:  profileID,
-		PrettyName: dsName,
+	err = book.publisher.Publish(ctx, event.ETDatasetNameInit, dsref.VersionInfo{
+		InitID:    initID,
+		Username:  book.Username(),
+		ProfileID: profileID,
+		Name:      dsName,
 	})
 	if err != nil {
 		log.Error(err)
@@ -429,6 +426,8 @@ func (book *Book) WriteDatasetRename(ctx context.Context, initID string, newName
 		return err
 	}
 
+	oldName := dsLog.l.Name()
+
 	dsLog.Append(oplog.Op{
 		Type:      oplog.OpTypeAmend,
 		Model:     DatasetModel,
@@ -436,9 +435,10 @@ func (book *Book) WriteDatasetRename(ctx context.Context, initID string, newName
 		Timestamp: NewTimestamp(),
 	})
 
-	err = book.publisher.Publish(ctx, event.ETDatasetRename, event.DsChange{
-		InitID:     initID,
-		PrettyName: newName,
+	err = book.publisher.Publish(ctx, event.ETDatasetRename, event.DsRename{
+		InitID:  initID,
+		OldName: oldName,
+		NewName: newName,
 	})
 	if err != nil {
 		log.Error(err)
@@ -538,9 +538,7 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, initID string) error {
 		Timestamp: NewTimestamp(),
 	})
 
-	err = book.publisher.Publish(ctx, event.ETDatasetDeleteAll, event.DsChange{
-		InitID: initID,
-	})
+	err = book.publisher.Publish(ctx, event.ETDatasetDeleteAll, initID)
 	if err != nil {
 		log.Error(err)
 	}
@@ -584,14 +582,10 @@ func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *datas
 	}
 
 	info := dsref.ConvertDatasetToVersionInfo(ds)
+	info.InitID = initID
+	info.NumVersions = topIndex
 
-	err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, event.DsChange{
-		InitID:   initID,
-		TopIndex: topIndex,
-		HeadRef:  info.Path,
-		Info:     &info,
-	})
-	if err != nil {
+	if err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, info); err != nil {
 		log.Error(err)
 	}
 
@@ -727,13 +721,10 @@ func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisio
 
 	if len(items) > 0 {
 		lastItem := items[len(items)-1]
-		err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, event.DsChange{
-			InitID:   initID,
-			TopIndex: len(items),
-			HeadRef:  lastItem.Path,
-			Info:     &lastItem,
-		})
-		if err != nil {
+		lastItem.InitID = initID
+		lastItem.NumVersions = len(items)
+
+		if err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, lastItem); err != nil {
 			log.Error(err)
 		}
 	}
@@ -1168,7 +1159,7 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, histor
 		return ErrLogTooShort
 	}
 
-	initID, err := book.WriteDatasetInit(ctx, ref.Name)
+	initID, err := book.WriteDatasetInit(ctx, ref.Username, ref.Name)
 	if err != nil {
 		return err
 	}

@@ -272,28 +272,42 @@ func (d *Dscache) validateProfileID(profileID string) bool {
 }
 
 func (d *Dscache) handler(_ context.Context, e event.Event) error {
-	act, ok := e.Payload.(event.DsChange)
-	if !ok {
-		log.Error("dscache got an event with a payload that isn't a event.DsChange type: %v", e.Payload)
-		return nil
-	}
-
 	switch e.Type {
 	case event.ETDatasetNameInit:
+		act, ok := e.Payload.(dsref.VersionInfo)
+		if !ok {
+			log.Error("dscache got an event with a payload that isn't a dsref.VersionInfo type: %v", e.Payload)
+			return nil
+		}
 		if err := d.updateInitDataset(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
 	case event.ETDatasetCommitChange:
+		act, ok := e.Payload.(dsref.VersionInfo)
+		if !ok {
+			log.Error("dscache got an event with a payload that isn't a dsref.VersionInfo type: %v", e.Payload)
+			return nil
+		}
 		if err := d.updateChangeCursor(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
 	case event.ETDatasetDeleteAll:
-		if err := d.updateDeleteDataset(act); err != nil && err != ErrNoDscache {
+		initID, ok := e.Payload.(string)
+		if !ok {
+			log.Error("dscache got an event with a payload that isn't a string type: %v", e.Payload)
+			return nil
+		}
+		if err := d.updateDeleteDataset(initID); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
 	case event.ETDatasetRename:
 		// TODO(dustmop): Handle renames
-	case event.ETDatasetCreateLink:
+	case event.ETFSICreateLink:
+		act, ok := e.Payload.(event.FSICreateLink)
+		if !ok {
+			log.Error("dscache got an event with a payload that isn't a event.FSICreateLink type: %v", e.Payload)
+			return nil
+		}
 		if err := d.updateCreateLink(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
@@ -302,7 +316,7 @@ func (d *Dscache) handler(_ context.Context, e event.Event) error {
 	return nil
 }
 
-func (d *Dscache) updateInitDataset(act event.DsChange) error {
+func (d *Dscache) updateInitDataset(act dsref.VersionInfo) error {
 	if d.IsEmpty() {
 		// Only create a new dscache if that feature is enabled. This way no one is forced to
 		// use dscache without opting in.
@@ -319,7 +333,7 @@ func (d *Dscache) updateInitDataset(act event.DsChange) error {
 		builder.AddDsVersionInfo(dsref.VersionInfo{
 			InitID:    act.InitID,
 			ProfileID: act.ProfileID,
-			Name:      act.PrettyName,
+			Name:      act.Name,
 		})
 		cache := builder.Build()
 		d.Assign(cache)
@@ -342,7 +356,7 @@ func (d *Dscache) updateInitDataset(act event.DsChange) error {
 	builder.AddDsVersionInfo(dsref.VersionInfo{
 		InitID:    act.InitID,
 		ProfileID: act.ProfileID,
-		Name:      act.PrettyName,
+		Name:      act.Name,
 	})
 	cache := builder.Build()
 	d.Assign(cache)
@@ -350,7 +364,7 @@ func (d *Dscache) updateInitDataset(act event.DsChange) error {
 }
 
 // Copy the entire dscache, except for the matching entry, rebuild that one to modify it
-func (d *Dscache) updateChangeCursor(act event.DsChange) error {
+func (d *Dscache) updateChangeCursor(act dsref.VersionInfo) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
@@ -367,22 +381,18 @@ func (d *Dscache) updateChangeCursor(act event.DsChange) error {
 		// Function to replace the matching entry
 		func(refStartMutationFunc func(builder *flatbuffers.Builder)) {
 			var metaTitle flatbuffers.UOffsetT
-			if act.Info != nil {
-				metaTitle = builder.CreateString(act.Info.MetaTitle)
-			}
-			hashRef := builder.CreateString(string(act.HeadRef))
+			metaTitle = builder.CreateString(act.MetaTitle)
+			hashRef := builder.CreateString(string(act.Path))
 			// Start building a ref object, by mutating an existing ref object.
 			refStartMutationFunc(builder)
 			// Add only the fields we want to change.
-			dscachefb.RefEntryInfoAddTopIndex(builder, int32(act.TopIndex))
-			dscachefb.RefEntryInfoAddCursorIndex(builder, int32(act.TopIndex))
-			if act.Info != nil {
-				dscachefb.RefEntryInfoAddMetaTitle(builder, metaTitle)
-				dscachefb.RefEntryInfoAddCommitTime(builder, act.Info.CommitTime.Unix())
-				dscachefb.RefEntryInfoAddBodySize(builder, int64(act.Info.BodySize))
-				dscachefb.RefEntryInfoAddBodyRows(builder, int32(act.Info.BodyRows))
-				dscachefb.RefEntryInfoAddNumErrors(builder, int32(act.Info.NumErrors))
-			}
+			dscachefb.RefEntryInfoAddTopIndex(builder, int32(act.NumVersions))
+			dscachefb.RefEntryInfoAddCursorIndex(builder, int32(act.NumVersions))
+			dscachefb.RefEntryInfoAddMetaTitle(builder, metaTitle)
+			dscachefb.RefEntryInfoAddCommitTime(builder, act.CommitTime.Unix())
+			dscachefb.RefEntryInfoAddBodySize(builder, int64(act.BodySize))
+			dscachefb.RefEntryInfoAddBodyRows(builder, int32(act.BodyRows))
+			dscachefb.RefEntryInfoAddNumErrors(builder, int32(act.NumErrors))
 			dscachefb.RefEntryInfoAddHeadRef(builder, hashRef)
 			// Don't call RefEntryInfoEnd, that is handled by copyReferenceListWithReplacement
 		},
@@ -394,7 +404,7 @@ func (d *Dscache) updateChangeCursor(act event.DsChange) error {
 }
 
 // Copy the entire dscache, except leave out the matching entry.
-func (d *Dscache) updateDeleteDataset(act event.DsChange) error {
+func (d *Dscache) updateDeleteDataset(initID string) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
@@ -405,7 +415,7 @@ func (d *Dscache) updateDeleteDataset(act event.DsChange) error {
 	refs := d.copyReferenceListWithReplacement(
 		builder,
 		func(r *dscachefb.RefEntryInfo) bool {
-			return string(r.InitID()) == act.InitID
+			return string(r.InitID()) == initID
 		},
 		// Pass a nil function, so the matching entry is not replaced, it is omitted
 		nil,
@@ -417,7 +427,7 @@ func (d *Dscache) updateDeleteDataset(act event.DsChange) error {
 }
 
 // Copy the entire dscache, except for the matching entry, which is copied then assigned an fsiPath
-func (d *Dscache) updateCreateLink(act event.DsChange) error {
+func (d *Dscache) updateCreateLink(act event.FSICreateLink) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
@@ -432,11 +442,11 @@ func (d *Dscache) updateCreateLink(act event.DsChange) error {
 			if act.InitID != "" {
 				return string(r.InitID()) == act.InitID
 			}
-			return d.DefaultUsername == act.Username && string(r.PrettyName()) == act.PrettyName
+			return d.DefaultUsername == act.Username && string(r.PrettyName()) == act.Name
 		},
 		// Function to replace the matching entry
 		func(refStartMutationFunc func(builder *flatbuffers.Builder)) {
-			fsiDir := builder.CreateString(string(act.Dir))
+			fsiDir := builder.CreateString(string(act.FSIPath))
 			// Start building a ref object, by mutating an existing ref object.
 			refStartMutationFunc(builder)
 			// For this kind of update, only the fsiDir is modified

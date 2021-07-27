@@ -37,8 +37,8 @@ func NewLogbookTempBuilder(t *testing.T, privKey crypto.PrivKey, username string
 }
 
 // DatasetInit initializes a new dataset and return a reference to it
-func (b *BookBuilder) DatasetInit(ctx context.Context, t *testing.T, dsname string) string {
-	initID, err := b.Book.WriteDatasetInit(ctx, dsname)
+func (b *BookBuilder) DatasetInit(ctx context.Context, t *testing.T, username, dsname string) string {
+	initID, err := b.Book.WriteDatasetInit(ctx, username, dsname)
 	if err != nil {
 		t.Fatal(err)
 	}

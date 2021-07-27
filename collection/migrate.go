@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -20,11 +21,18 @@ func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, s Set, r repo.Rep
 		return err
 	}
 
+	// empty collection "migration" needs to create a set for the repo owner
+	if len(datasets) == 0 {
+		if ls, ok := s.(*localSet); ok {
+			ls.collections[r.Profiles().Owner().ID] = []dsref.VersionInfo{}
+		}
+	}
+
 	book := r.Logbook()
 	for i, vi := range datasets {
 		ref := vi.SimpleRef()
 		if _, err := book.ResolveRef(ctx, &ref); err != nil {
-			log.Warnf("can't migrate dataset %s to collection. Error resolving dataset initID: %s", vi.SimpleRef(), err)
+			log.Errorf("can't migrate dataset %s to collection. Error resolving dataset initID: %s", vi.SimpleRef(), err)
 			continue
 		}
 		datasets[i].InitID = ref.InitID
