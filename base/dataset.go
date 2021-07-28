@@ -17,10 +17,6 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// ErrUnlistableReferences is an error for when listing references encounters some problem, but
-// these problems are non-fatal
-var ErrUnlistableReferences = errors.New("Warning: Some datasets could not be listed, because of invalid state. These datasets still exist in your repository, but have references that cannot be resolved. This will be fixed in a future version. You can see all datasets by using `qri list --raw`")
-
 // OpenDataset prepares a dataset for use, checking each component
 // for populated Path or Byte suffixed fields, consuming those fields to
 // set File handlers that are ready for reading
@@ -270,23 +266,3 @@ func ReadDataset(ctx context.Context, r repo.Repo, path string) (ds *dataset.Dat
 
 	return dsfs.LoadDataset(ctx, fs, path)
 }
-
-// // PinDataset marks a dataset for retention in a store
-// func PinDataset(ctx context.Context, r repo.Repo, path string) error {
-// 	// TODO (b5) - this doesn't make *total* sense at the moment, need to rethink
-// 	// how pinning intersects with the qfs API
-// 	if pinner, ok := r.Filesystem().DefaultWriteFS().(qfs.PinningFS); ok {
-// 		return pinner.Pin(ctx, path, true)
-// 	}
-// 	return repo.ErrNotPinner
-// }
-
-// // UnpinDataset unmarks a dataset for retention in a store
-// func UnpinDataset(ctx context.Context, r repo.Repo, path string) error {
-// 	// TODO (b5) - this doesn't make *total* sense at the moment, need to rethink
-// 	// how pinning intersects with the qfs API
-// 	if pinner, ok := r.Filesystem().DefaultWriteFS().(qfs.PinningFS); ok {
-// 		return pinner.Unpin(ctx, path, true)
-// 	}
-// 	return repo.ErrNotPinner
-// }

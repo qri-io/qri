@@ -14,9 +14,6 @@ import (
 // TimeoutDuration is the duration allowed for a datasetLog lookup before it times out
 const TimeoutDuration = 100 * time.Millisecond
 
-// ErrDatasetLogTimeout is an error for when getting the datasetLog times out
-var ErrDatasetLogTimeout = fmt.Errorf("datasetLog: timeout")
-
 // DatasetLog fetches the change version history of a dataset
 func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset int, loadDatasets bool) ([]dsref.VersionInfo, error) {
 	if book := r.Logbook(); book != nil {
