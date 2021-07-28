@@ -300,6 +300,11 @@ func (s *localSet) subscribe(bus event.Bus) {
 		event.ETDatasetPulled,
 		event.ETRegistryProfileCreated,
 
+		// automation events
+		event.ETAutomationDeployStart,
+		event.ETAutomationWorkflowStarted,
+		event.ETAutomationWorkflowStopped,
+
 		// fsi
 		event.ETFSICreateLink,
 		event.ETFSIRemoveLink,
@@ -367,6 +372,49 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 				log.Debugw("adding dataset across all collections", "initID", vi.InitID, "err", err)
 			}
 		}
+
+	case event.ETAutomationDeployStart:
+		if evt, ok := e.Payload.(event.DeployEvent); ok {
+			err := s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+				vi.WorkflowID = evt.WorkflowID
+			})
+			if err != nil {
+				log.Debugw("updating dataset across all collections", "DatasetID", evt.DatasetID, "err", err)
+			}
+		}
+	case event.ETAutomationDeployEnd:
+		if evt, ok := e.Payload.(event.DeployEvent); ok {
+			err := s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+				vi.WorkflowID = evt.WorkflowID
+				if evt.Error != "" {
+					vi.WorkflowID = ""
+				}
+			})
+			if err != nil {
+				log.Debugw("updating dataset across all collections", "DatasetID", evt.DatasetID, "err", err)
+			}
+		}
+	case event.ETAutomationWorkflowStarted:
+		if evt, ok := e.Payload.(event.WorkflowStartedEvent); ok {
+			err := s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+				vi.RunID = evt.RunID
+				vi.RunStatus = "running"
+			})
+			if err != nil {
+				log.Debugw("updating dataset across all collections", "DatasetID", evt.DatasetID, "err", err)
+			}
+		}
+	case event.ETAutomationWorkflowStopped:
+		if evt, ok := e.Payload.(event.WorkflowStartedEvent); ok {
+			err := s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+				vi.RunID = ""
+				vi.RunStatus = ""
+			})
+			if err != nil {
+				log.Debugw("updating dataset across all collections", "DatasetID", evt.DatasetID, "err", err)
+			}
+		}
+
 	case event.ETFSICreateLink:
 		if link, ok := e.Payload.(event.FSICreateLink); ok {
 			s.updateOneAcrossAllCollections(link.InitID, func(vi *dsref.VersionInfo) {
@@ -445,6 +493,7 @@ func (s *localSet) updateOneAcrossAllCollections(initID string, mutate func(vi *
 			if vi.InitID == initID {
 				mutate(&vi)
 				col[i] = vi
+				s.collections[pid] = col
 				if err := s.saveProfileCollection(pid); err != nil {
 					return err
 				}
