@@ -45,14 +45,15 @@ type WritableSet interface {
 	Delete(ctx context.Context, profileID profile.ID, initIDs ...string) error
 }
 
-// LocalSetOptionFunc is a function that modifies the provided
+// LocalSetOptionFunc passes an options pointer for confugration during
+// LocalSet construction
 type LocalSetOptionFunc func(o *LocalSetOptions)
 
-// LocalSetOptions configures the local set
+// LocalSetOptions configures local set runtime behaviour
 type LocalSetOptions struct {
-	// repo to migrate from if collectionSet does not exist. If provided the
-	// collection will migrate from the repo to create a collection set for the
-	// "root" user instead of createing a blank collection
+	// If MigrateRepo is provided & a local colleciton doesn't exist, LocalSet
+	// will run a migration, creating a new set from the provided repo, creating
+	// a collection set for the "root" user
 	MigrateRepo repo.Repo
 }
 
