@@ -157,10 +157,9 @@ func (s *fileStore) Remove(id ID) error {
 	return ErrNotFound
 }
 
-// DeleteAllWorkflows removes all the workflow from the filestore
-// TODO (ramfox): not finished
-func (s *fileStore) DeleteAlWorkflows(ctx context.Context) error {
-	return fmt.Errorf("not finished: fileStore delete all workflows")
+// Shutdown writes the set of workflows to the filestore
+func (s *fileStore) Shutdown() error {
+	return s.writeToFile()
 }
 
 func (s *fileStore) loadFromFile() (err error) {
@@ -199,7 +198,7 @@ func (s *fileStore) writeToFile() error {
 // Only use this when you have a surrounding lock
 func (s *fileStore) writeToFileNoLock() error {
 	state := struct {
-		Workflows *Set
+		Workflows *Set `json:"workflows"`
 	}{
 		Workflows: s.workflows,
 	}
