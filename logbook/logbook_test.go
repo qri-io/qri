@@ -62,7 +62,7 @@ func Example() {
 	// log under the logbook author's namespace with the given name, and an opset
 	// that tracks operations by this author within that new namespace.
 	// The entire logbook is persisted to the filestore after each operation
-	initID, err := book.WriteDatasetInit(ctx, "world_bank_population")
+	initID, err := book.WriteDatasetInit(ctx, "b5", "world_bank_population")
 	if err != nil {
 		panic(err)
 	}
@@ -217,7 +217,7 @@ func TestNilCallable(t *testing.T) {
 	if err = book.WriteAuthorRename(ctx, ""); err != logbook.ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
-	if _, err = book.WriteDatasetInit(ctx, ""); err != logbook.ErrNoLogbook {
+	if _, err = book.WriteDatasetInit(ctx, "", ""); err != logbook.ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", logbook.ErrNoLogbook, err)
 	}
 	if err = book.WriteDatasetRename(ctx, initID, ""); err != logbook.ErrNoLogbook {
@@ -450,7 +450,7 @@ func TestPushModel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	initID, err := tr.Book.WriteDatasetInit(ctx, "publish_test")
+	initID, err := tr.Book.WriteDatasetInit(ctx, tr.Username, "publish_test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -537,10 +537,10 @@ func TestDatasetLogNaming(t *testing.T) {
 	defer cleanup()
 	var err error
 
-	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, ""); err == nil {
+	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, tr.Username, ""); err == nil {
 		t.Errorf("expected initializing with an empty name to error")
 	}
-	firstInitID, err := tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes")
+	firstInitID, err := tr.Book.WriteDatasetInit(tr.Ctx, tr.Username, "airport_codes")
 	if err != nil {
 		t.Fatalf("unexpected error writing valid dataset name: %s", err)
 	}
@@ -552,13 +552,13 @@ func TestDatasetLogNaming(t *testing.T) {
 		t.Error("expected finding the original name to error")
 	}
 	// Init another dataset with the old name, which is now available due to rename.
-	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err != nil {
+	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, tr.Username, "airport_codes"); err != nil {
 		t.Fatalf("unexpected error writing recently freed-up dataset name: %s", err)
 	}
 	if err = tr.Book.WriteDatasetDelete(tr.Ctx, firstInitID); err != nil {
 		t.Errorf("unexpected error deleting first dataset: %s", err)
 	}
-	_, err = tr.Book.WriteDatasetInit(tr.Ctx, "iata_airport_codes")
+	_, err = tr.Book.WriteDatasetInit(tr.Ctx, tr.Username, "iata_airport_codes")
 	if err != nil {
 		t.Errorf("expected initializing new name with deleted dataset to not error: %s", err)
 	}
@@ -625,10 +625,10 @@ func TestDatasetLogNaming(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 
-	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, "overwrite"); err != nil {
+	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, tr.Username, "overwrite"); err != nil {
 		t.Fatalf("unexpected error writing valid dataset name: %s", err)
 	}
-	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, "overwrite"); err != nil {
+	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, tr.Username, "overwrite"); err != nil {
 		t.Fatalf("unexpected error overwrite an empty dataset history: %s", err)
 	}
 	err = tr.Book.WriteVersionSave(tr.Ctx, firstInitID, &dataset.Dataset{
@@ -644,7 +644,7 @@ func TestDatasetLogNaming(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, "overwrite"); err != nil {
+	if _, err = tr.Book.WriteDatasetInit(tr.Ctx, tr.Username, "overwrite"); err != nil {
 		t.Error("expected initializing a name that exists with a history to error")
 	}
 }
@@ -1033,7 +1033,7 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) string {
 	book := tr.Book
 	name := "world_bank_population"
 
-	initID, err := book.WriteDatasetInit(tr.Ctx, name)
+	initID, err := book.WriteDatasetInit(tr.Ctx, tr.Username, name)
 	if err != nil {
 		panic(err)
 	}
@@ -1137,7 +1137,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 	name := "dataset"
 	rename := "renamed_dataset"
 
-	initID, err := book.WriteDatasetInit(tr.Ctx, name)
+	initID, err := book.WriteDatasetInit(tr.Ctx, tr.Username, name)
 	if err != nil {
 		panic(err)
 	}
@@ -1281,7 +1281,7 @@ func (tr *testRunner) WorldBankPlainLog() logbook.PlainLog {
 // GenerateExampleOplog makes an example dataset history on a given journal,
 // returning the initID and a signed log
 func GenerateExampleOplog(ctx context.Context, t *testing.T, journal *logbook.Book, dsname, headPath string) (string, *oplog.Log) {
-	initID, err := journal.WriteDatasetInit(ctx, dsname)
+	initID, err := journal.WriteDatasetInit(ctx, journal.Username(), dsname)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1323,7 +1323,7 @@ func makeLogbookOneCommit(ctx context.Context, t *testing.T, ref dsref.Ref, comm
 	fs := qfs.NewMemFS()
 
 	builder := logbook.NewLogbookTempBuilder(t, privKey, ref.Username, fs, rootPath)
-	id := builder.DatasetInit(ctx, t, ref.Name)
+	id := builder.DatasetInit(ctx, t, ref.Username, ref.Name)
 	builder.Commit(ctx, t, id, commitMessage, dsPath)
 	return builder.Logbook()
 }

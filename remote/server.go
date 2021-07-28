@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/logsync"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -94,6 +95,7 @@ type Options struct {
 type Server struct {
 	node          *p2p.QriNode
 	logbook       *logbook.Book
+	pub           event.Publisher
 	localResolver dsref.Resolver
 
 	dsync   *dsync.Dsync
@@ -150,7 +152,7 @@ func OptLoadPolicyFileIfExists(filename string) OptionsFunc {
 }
 
 // NewServer creates a remote
-func NewServer(node *p2p.QriNode, cfg *config.RemoteServer, localResolver dsref.Resolver, opts ...OptionsFunc) (*Server, error) {
+func NewServer(node *p2p.QriNode, cfg *config.RemoteServer, localResolver dsref.Resolver, pub event.Publisher, opts ...OptionsFunc) (*Server, error) {
 	log.Debugf("NewServer cfg=%v len(opts)=%d", cfg, len(opts))
 	o := &Options{}
 	for _, opt := range opts {
@@ -164,6 +166,7 @@ func NewServer(node *p2p.QriNode, cfg *config.RemoteServer, localResolver dsref.
 	r := &Server{
 		node:          node,
 		logbook:       node.Repo.Logbook(),
+		pub:           pub,
 		localResolver: localResolver,
 
 		acceptSizeMax:   cfg.AcceptSizeMax,
@@ -423,6 +426,10 @@ func (r *Server) dsPushComplete(ctx context.Context, info dag.Info, meta map[str
 	vi := ref.VersionInfo()
 	// mark ref as published b/c someone just published to us
 	vi.Published = true
+
+	if err := r.pub.Publish(ctx, event.ETDatasetPushed, vi); err != nil {
+		return err
+	}
 
 	// TODO (b5) - this could overwrite any FSI links & other ref details,
 	// need to investigate

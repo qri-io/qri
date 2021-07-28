@@ -1,24 +1,20 @@
 package event
 
-import (
-	"github.com/qri-io/qri/dsref"
-)
-
 const (
 	// ETDatasetNameInit is when a dataset is initialized
-	// payload is a DsChange
+	// payload is a dsref.VersionInfo
 	ETDatasetNameInit = Type("dataset:Init")
 	// ETDatasetCommitChange is when a dataset changes its newest commit
-	// payload is a DsChange
+	// payload is a dsref.VersionInfo
 	ETDatasetCommitChange = Type("dataset:CommitChange")
 	// ETDatasetDeleteAll is when a dataset is entirely deleted
-	// payload is a DsChange
+	// payload is a dsref.VersionInfo
 	ETDatasetDeleteAll = Type("dataset:DeleteAll")
 	// ETDatasetRename is when a dataset is renamed
-	// payload is a DsChange
+	// payload is a dsref.VersionInfo
 	ETDatasetRename = Type("dataset:Rename")
 	// ETDatasetCreateLink is when a dataset is linked to a working directory
-	// payload is a DsChange
+	// payload is a dsref.VersionInfo
 	ETDatasetCreateLink = Type("dataset:CreateLink")
 
 	// ETDatasetSaveStarted fires when saving a dataset starts
@@ -35,16 +31,11 @@ const (
 	ETDatasetSaveCompleted = Type("dataset:SaveCompleted")
 )
 
-// DsChange represents the result of a change to a dataset
-type DsChange struct {
-	InitID     string             `json:"initID"`
-	TopIndex   int                `json:"topIndex"`
-	ProfileID  string             `json:"profileID"`
-	Username   string             `json:"username"`
-	PrettyName string             `json:"prettyName"`
-	HeadRef    string             `json:"headRef"`
-	Info       *dsref.VersionInfo `json:"info"`
-	Dir        string             `json:"dir"`
+// DsRename encapsulates fields from a dataset rename
+type DsRename struct {
+	InitID  string `json:"initID"`
+	OldName string `json:"oldName"`
+	NewName string `json:"newName"`
 }
 
 // DsSaveEvent represents a change in version creation progress

@@ -164,6 +164,7 @@ structure:
 
 // Test pull a foreign dataset and check it out to a working directory
 func TestPullWithCheckout(t *testing.T) {
+	t.Skip("fsi linking is going away")
 	run := NewFSITestRunnerWithMockRemoteClient(t, "test_peer_pull_fsi_checkout", "pull_with_checkout")
 	defer run.Delete()
 

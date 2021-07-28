@@ -618,6 +618,7 @@ func TestListFormatJson(t *testing.T) {
 	output := run.MustExec(t, "qri list --format json")
 	expect := dstest.Template(t, `[
   {
+    "initID": "ph45s2teqrzwlsvb5fjkkd5zt4wkenqspdwdna6zrarwi6jpo7ea",
     "username": "test_peer_list_format_json",
     "profileID": "{{ .profileID }}",
     "name": "my_ds",
@@ -628,7 +629,8 @@ func TestListFormatJson(t *testing.T) {
     "numErrors": 1,
     "commitTime": "2001-01-01T01:01:01.000000001Z",
     "commitTitle": "created dataset from body_ten.csv",
-    "commitMessage": "created dataset from body_ten.csv"
+    "commitMessage": "created dataset from body_ten.csv",
+    "numVersions": 1
   }
 ]`, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",

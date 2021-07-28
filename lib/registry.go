@@ -8,6 +8,7 @@ import (
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/event"
 	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -63,6 +64,15 @@ func (registryImpl) CreateProfile(scope scope, p *RegistryProfileParams) error {
 	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
 	ownerPk := scope.Profiles().Owner().PrivKey
 	pro, err := scope.RegistryClient().CreateProfile(p.Profile, ownerPk)
+	if err != nil {
+		return err
+	}
+
+	err = scope.Bus().Publish(scope.Context(), event.ETRegistryProfileCreated, event.RegistryProfileCreated{
+		RegistryLocation: scope.Config().Registry.Location,
+		ProfileID:        pro.ProfileID,
+		Username:         pro.Username,
+	})
 	if err != nil {
 		return err
 	}

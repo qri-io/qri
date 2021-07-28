@@ -515,7 +515,7 @@ func (c *client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr str
 		return nil, err
 	}
 
-	// TODO (b5) - contents of this functino below here be moved into an event
+	// TODO (b5) - contents of this function below here be moved into an event
 	// handler subscribed to event.ETRemoteClientPullDatasetComplete
 	refAsReporef := reporef.RefFromDsref(*ref)
 
@@ -546,6 +546,11 @@ func (c *client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr str
 	refAsReporef.Dataset = ds
 
 	if err := base.ReplaceRefIfMoreRecent(node.Repo, &prevRef, &refAsReporef); err != nil {
+		return nil, err
+	}
+
+	vi := dsref.ConvertDatasetToVersionInfo(ds)
+	if err := c.events.Publish(ctx, event.ETDatasetPulled, vi); err != nil {
 		return nil, err
 	}
 

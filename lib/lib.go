@@ -346,7 +346,7 @@ func OptDscache(dscache *dscache.Dscache) Option {
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
-	log.Debugf("NewInstance repoPath=%s opts=%v", repoPath, opts)
+	log.Debugw("NewInstance", "repoPath", repoPath, "opts", opts)
 	ctx, cancel := context.WithCancel(ctx)
 	ok := false
 	defer func() {
@@ -600,7 +600,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 				return nil, resolverErr
 			}
 
-			if inst.remoteServer, err = remote.NewServer(inst.node, cfg.RemoteServer, localResolver, o.remoteOptsFuncs...); err != nil {
+			if inst.remoteServer, err = remote.NewServer(inst.node, cfg.RemoteServer, localResolver, inst.bus, o.remoteOptsFuncs...); err != nil {
 				log.Error("intializing remote:", err.Error())
 				return
 			}
@@ -616,6 +616,16 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	applyFactory := func(ctx context.Context) automation.Apply {
 		return inst.apply
 	}
+
+	if o.collectionSet == nil && inst.repo != nil {
+		inst.collectionSet, err = collection.NewLocalSet(ctx, inst.bus, repoPath, func(o *collection.LocalSetOptions) {
+			o.MigrateRepo = inst.repo
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
 	// basic orchestrator options. When we get the automation configuration settled
 	// we will build a more robust solution
@@ -766,6 +776,14 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 		panic(err)
 	}
 
+	inst.collectionSet, err = collection.NewLocalSet(ctx, inst.bus, "", func(o *collection.LocalSetOptions) {
+		o.MigrateRepo = inst.repo
+	})
+	if err != nil {
+		cancel()
+		panic(err)
+	}
+
 	inst.releasers.Add(1)
 	go func() {
 		<-inst.remoteClient.Done()
@@ -860,7 +878,7 @@ func (inst *Instance) ConnectP2P(ctx context.Context) (err error) {
 		if err != nil {
 			return err
 		}
-		if inst.remoteServer, err = remote.NewServer(inst.node, inst.cfg.RemoteServer, localResolver, inst.remoteOptsFuncs...); err != nil {
+		if inst.remoteServer, err = remote.NewServer(inst.node, inst.cfg.RemoteServer, localResolver, inst.bus, inst.remoteOptsFuncs...); err != nil {
 			log.Debugw("remote.NewServer", "err", err)
 			return err
 		}

@@ -84,7 +84,7 @@ func NewTempRegistry(ctx context.Context, peername, tmpDirPrefix string, g key.C
 		AllowRemoves:     true,
 	}
 
-	rem, err := remote.NewServer(node, remoteCfg, node.Repo.Logbook())
+	rem, err := remote.NewServer(node, remoteCfg, node.Repo.Logbook(), node.Repo.Bus())
 	if err != nil {
 		return nil, nil, err
 	}

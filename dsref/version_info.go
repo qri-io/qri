@@ -86,6 +86,11 @@ type VersionInfo struct {
 	// FSIPath is this dataset's link to the local filesystem if one exists
 	FSIPath string `json:"fsiPath,omitempty"`
 	//
+	// Workflow fields
+	//
+	WorkflowID                 string `json:"workflowID,omitempty"`
+	WorkflowTriggerDescription string `json:"workflowtriggerDescription,omitempty"`
+	//
 	// Run Fields
 	//
 	// RunID is derived from from either the Commit.RunID, field or the runID of a
@@ -207,7 +212,9 @@ type lessFunc func(a, b *VersionInfo) bool
 func newLessFunc(key string) (lessFunc, error) {
 	switch key {
 	case "name":
-		return func(a, b *VersionInfo) bool { return (a.Username < b.Username && a.Name < b.Name) }, nil
+		return func(a, b *VersionInfo) bool {
+			return (a.Username < b.Username || a.Name < b.Name)
+		}, nil
 	case "size":
 		return func(a, b *VersionInfo) bool { return a.BodySize < b.BodySize }, nil
 	}

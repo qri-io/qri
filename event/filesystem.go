@@ -5,16 +5,25 @@ import (
 )
 
 const (
-	// ETFSICreateLinkEvent type for when FSI creates a link between a dataset
+	// ETFSICreateLink type for when FSI creates a link between a dataset
 	// and working directory
-	ETFSICreateLinkEvent = Type("fsi:CreateLinkEvent")
+	ETFSICreateLink = Type("fsi:CreateLink")
+	// ETFSIRemoveLink fires when a filesystem link is removed
+	// payload is a FSIRemoveLink
+	ETFSIRemoveLink = Type("fsi:RemoveLink")
 )
 
-// FSICreateLinkEvent describes an FSI created link
-type FSICreateLinkEvent struct {
+// FSICreateLink describes an FSI created link
+type FSICreateLink struct {
+	InitID   string `json:"initID"`
 	FSIPath  string `json:"fsiPath"`
 	Username string `json:"username"`
-	Dsname   string `json:"dsName"`
+	Name     string `json:"name"`
+}
+
+// FSIRemoveLink describes removing an FSI link directory
+type FSIRemoveLink struct {
+	InitID string `json:"initID"`
 }
 
 const (

@@ -232,7 +232,7 @@ func TestFeeds(t *testing.T) {
 		AcceptSizeMax: 10000,
 	}
 
-	rem, err := NewServer(tr.NodeA, aCfg, tr.NodeA.Repo.Logbook())
+	rem, err := NewServer(tr.NodeA, aCfg, tr.NodeA.Repo.Logbook(), tr.NodeA.Repo.Bus())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -437,7 +437,7 @@ func (tr *testRunner) NodeARemote(t *testing.T, opts ...OptionsFunc) *Server {
 		AcceptSizeMax: 10000,
 	}
 
-	rem, err := NewServer(tr.NodeA, aCfg, tr.NodeA.Repo.Logbook(), opts...)
+	rem, err := NewServer(tr.NodeA, aCfg, tr.NodeA.Repo.Logbook(), tr.NodeA.Repo.Bus(), opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -523,7 +523,7 @@ func saveDataset(ctx context.Context, r repo.Repo, peername string, ds *dataset.
 		got, _ := r.GetRef(reporef.DatasetRef{Peername: peername, Name: ds.Name})
 		headRef = got.Path
 	} else if err == logbook.ErrNotFound {
-		initID, err = book.WriteDatasetInit(ctx, ds.Name)
+		initID, err = book.WriteDatasetInit(ctx, peername, ds.Name)
 	}
 	if err != nil {
 		panic(err)

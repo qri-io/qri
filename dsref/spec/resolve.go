@@ -270,12 +270,12 @@ func ForeignLogbook(t *testing.T, username string) *logbook.Book {
 // GenerateExampleOplog makes an example dataset history on a given journal,
 // returning the initID and a signed log
 func GenerateExampleOplog(ctx context.Context, journal *logbook.Book, dsname, headPath string) (string, *oplog.Log, error) {
-	initID, err := journal.WriteDatasetInit(ctx, dsname)
+	username := journal.Username()
+	initID, err := journal.WriteDatasetInit(ctx, username, dsname)
 	if err != nil {
 		return "", nil, err
 	}
 
-	username := journal.Username()
 	err = journal.WriteVersionSave(ctx, initID, &dataset.Dataset{
 		Peername: username,
 		Name:     dsname,

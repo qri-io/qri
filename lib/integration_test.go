@@ -329,7 +329,7 @@ func (tr *NetworkIntegrationTestRunner) InitRegistry(t *testing.T) {
 		t.Fatal("creating a Registry for NetworkIntegration test fails if `qri connect` is running")
 	}
 
-	rem, err := remote.NewServer(node, cfg.RemoteServer, node.Repo.Logbook())
+	rem, err := remote.NewServer(node, cfg.RemoteServer, node.Repo.Logbook(), tr.RegistryInst.Bus())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -55,7 +55,7 @@ func NewFilesysWatcher(ctx context.Context, bus event.Bus) (*FilesysWatcher, err
 	}
 
 	bus.SubscribeTypes(w.eventHandler,
-		event.ETFSICreateLinkEvent,
+		event.ETFSICreateLink,
 	)
 
 	// Dispatch filesystem events
@@ -88,14 +88,14 @@ func NewFilesysWatcher(ctx context.Context, bus event.Bus) (*FilesysWatcher, err
 
 func (w *FilesysWatcher) eventHandler(ctx context.Context, e event.Event) error {
 	switch e.Type {
-	case event.ETFSICreateLinkEvent:
+	case event.ETFSICreateLink:
 		go func() {
-			if fce, ok := e.Payload.(event.FSICreateLinkEvent); ok {
+			if fce, ok := e.Payload.(event.FSICreateLink); ok {
 				log.Debugf("received link event. adding watcher for path: %s", fce.FSIPath)
 				w.Watch(EventPath{
 					Path:     fce.FSIPath,
 					Username: fce.Username,
-					Dsname:   fce.Dsname,
+					Dsname:   fce.Name,
 				})
 			}
 		}()

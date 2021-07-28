@@ -8,6 +8,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/collection"
+	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 )
 
 func TestListDatasets(t *testing.T) {
@@ -88,9 +91,20 @@ func TestRawDatasetRefs(t *testing.T) {
 
 	ctx := context.Background()
 	r := newTestRepo(t)
-	addCitiesDataset(t, r)
+	s, err := collection.NewLocalSet(ctx, event.NilBus, "")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	actual, err := RawDatasetRefs(ctx, r)
+	ref := addCitiesDataset(t, r)
+	ws := s.(collection.WritableSet)
+	vi := dsref.NewVersionInfoFromRef(ref)
+	vi.InitID = "AnInitID"
+	if err := ws.Put(ctx, r.Profiles().Active(ctx).ID, vi); err != nil {
+		t.Fatal(err)
+	}
+
+	actual, err := RawDatasetRefs(ctx, r.Profiles().Active(ctx).ID, s)
 	if err != nil {
 		t.Fatal(err)
 	}

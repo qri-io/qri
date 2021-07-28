@@ -31,7 +31,9 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 		t.Fatalf("test repo has no datasets")
 	}
 
-	set, err := MigrateRepoStoreToLocalCollectionSet(ctx, event.NilBus, "", r)
+	set, err := NewLocalSet(ctx, event.NilBus, "", func(o *LocalSetOptions) {
+		o.MigrateRepo = r
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +43,7 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 		t.Error(err)
 	}
 
-	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(dsref.VersionInfo{}, "InitID")); diff != "" {
+	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(dsref.VersionInfo{}, "InitID", "MetaTitle", "ThemeList", "BodySize", "BodyRows", "CommitTime", "NumErrors", "CommitTitle")); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 

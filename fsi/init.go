@@ -95,7 +95,7 @@ to create a working directory for an existing dataset`
 	}
 
 	// write an InitID
-	ref.InitID, err = fsi.repo.Logbook().WriteDatasetInit(ctx, ref.Name)
+	ref.InitID, err = fsi.repo.Logbook().WriteDatasetInit(ctx, ref.Username, ref.Name)
 	if err != nil {
 		if err == logbook.ErrNoLogbook {
 			rollback = func() {}
