@@ -43,7 +43,7 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 		t.Error(err)
 	}
 
-	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(dsref.VersionInfo{}, "InitID")); diff != "" {
+	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(dsref.VersionInfo{}, "InitID", "MetaTitle", "ThemeList", "BodySize", "BodyRows", "CommitTime", "NumErrors", "CommitTitle")); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 

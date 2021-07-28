@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 )
@@ -21,7 +22,7 @@ func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, s Set, r repo.Rep
 		return err
 	}
 
-	// empty collection "migration" needs to create a set for the repo owner
+	// empty collection migration needs to create a set for the repo owner
 	if len(datasets) == 0 {
 		if ls, ok := s.(*localSet); ok {
 			ls.collections[r.Profiles().Owner().ID] = []dsref.VersionInfo{}
@@ -36,6 +37,16 @@ func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, s Set, r repo.Rep
 			continue
 		}
 		datasets[i].InitID = ref.InitID
+		if ds, loadErr := dsfs.LoadDataset(ctx, r.Filesystem(), ref.Path); loadErr == nil {
+			datasets[i].CommitTime = ds.Commit.Timestamp
+			datasets[i].CommitTitle = ds.Commit.Title
+			datasets[i].BodyRows = ds.Structure.Entries
+			datasets[i].BodySize = ds.Structure.Length
+			datasets[i].NumErrors = ds.Structure.ErrCount
+			if ds.Meta != nil {
+				datasets[i].MetaTitle = ds.Meta.Title
+			}
+		}
 	}
 
 	// remove any datasets that couldn't be resolved
