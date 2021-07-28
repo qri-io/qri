@@ -41,8 +41,7 @@ func (s *fileStore) loadFromFile() error {
 		log.Debugw("fileStore loading store from file", "error", err)
 		return err
 	}
-
-	if err := json.Unmarshal(data, &s.store); err != nil {
+	if err := json.Unmarshal(data, s.store); err != nil {
 		log.Debugw("fileStore deserializing from JSON", "error", err)
 		return err
 	}
@@ -94,6 +93,14 @@ func (s *fileStore) GetStatus(wid workflow.ID) (Status, error) { return s.store.
 // looking only at the most recent run of each Workflow
 func (s *fileStore) ListByStatus(status Status, lp params.List) ([]*State, error) {
 	return s.store.ListByStatus(status, lp)
+}
+
+// Shutdown writes the run events to the filestore
+func (s *fileStore) Shutdown() error {
+	if err := s.writeToFile(); err != nil {
+		return err
+	}
+	return s.store.Shutdown()
 }
 
 // AddEvent writes an event to the store, attaching it to an existing stored

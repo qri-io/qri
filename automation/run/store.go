@@ -43,6 +43,8 @@ type Store interface {
 	// ListByStatus returns a list of run.State entries with a given status
 	// looking only at the most recent run of each Workflow
 	ListByStatus(s Status, lp params.List) ([]*State, error)
+	// Shutdown closes the store
+	Shutdown() error
 }
 
 // EventAdder is an extension interface that optimizes writing an event to a run
@@ -264,6 +266,11 @@ func (s *MemStore) ListByStatus(status Status, lp params.List) ([]*State, error)
 
 	sort.Sort(set)
 	return set.Slice(start, end), nil
+}
+
+// Shutdown closes the store
+func (s *MemStore) Shutdown() error {
+	return nil
 }
 
 // AddEvent writes an event to the store, attaching it to an existing stored
