@@ -151,9 +151,13 @@ func DefaultOrchestratorOptions(bus event.Bus, repoPath string) (OrchestratorOpt
 	if err != nil {
 		return OrchestratorOptions{}, err
 	}
+	rs, err := run.NewFileStore(repoPath)
+	if err != nil {
+		return OrchestratorOptions{}, err
+	}
 	return OrchestratorOptions{
 		WorkflowStore: wfs,
-		RunStore:      run.NewMemStore(),
+		RunStore:      rs,
 		Listeners: []trigger.Listener{
 			trigger.NewCronListener(bus),
 		},
@@ -183,6 +187,12 @@ func (o *Orchestrator) Done() <-chan struct{} {
 func (o *Orchestrator) handleContextClose(ctx context.Context) {
 	<-ctx.Done()
 	o.running = false
+	if err := o.workflows.Shutdown(); err != nil {
+		log.Errorw("workflows.Shutdown", "error", err)
+	}
+	if err := o.runs.Shutdown(); err != nil {
+		log.Errorw("runs.Shutdown", "error", err)
+	}
 	// TODO (ramfox): when we have added a way to unsubscribe from a bus, this is where we should do it
 
 	// unsubscribe
