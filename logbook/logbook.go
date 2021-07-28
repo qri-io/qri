@@ -121,7 +121,7 @@ func NewBook(pk crypto.PrivKey, store oplog.Logstore) *Book {
 // NewJournal initializes a logbook owned by a single author, reading any
 // existing data at the given filesystem location.
 // logbooks are encrypted at rest with the given private key
-func NewJournal(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesystem, location string) (*Book, error) {
+func NewJournal(pk crypto.PrivKey, username string, pub event.Publisher, fs qfs.Filesystem, location string) (*Book, error) {
 	ctx := context.Background()
 	if pk == nil {
 		return nil, fmt.Errorf("logbook: private key is required")
@@ -132,8 +132,8 @@ func NewJournal(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesy
 	if location == "" {
 		return nil, fmt.Errorf("logbook: location is required")
 	}
-	if bus == nil {
-		return nil, fmt.Errorf("logbook: event.Bus is required")
+	if pub == nil {
+		return nil, fmt.Errorf("logbook: event.Publisher is required")
 	}
 
 	book := &Book{
@@ -142,7 +142,7 @@ func NewJournal(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesy
 		pk:         pk,
 		authorName: username,
 		fsLocation: location,
-		publisher:  bus,
+		publisher:  pub,
 	}
 
 	if err := book.load(ctx); err != nil {
@@ -165,7 +165,7 @@ func NewJournal(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesy
 
 // NewJournalOverwriteWithProfileID initializes a new logbook using the
 // given profileID. Any existing logbook will be overwritten.
-func NewJournalOverwriteWithProfileID(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesystem, location, profileID string) (*Book, error) {
+func NewJournalOverwriteWithProfileID(pk crypto.PrivKey, username string, pub event.Publisher, fs qfs.Filesystem, location, profileID string) (*Book, error) {
 	ctx := context.Background()
 	if pk == nil {
 		return nil, fmt.Errorf("logbook: private key is required")
@@ -179,8 +179,8 @@ func NewJournalOverwriteWithProfileID(pk crypto.PrivKey, username string, bus ev
 	if profileID == "" {
 		return nil, fmt.Errorf("logbook: profileID is required")
 	}
-	if bus == nil {
-		return nil, fmt.Errorf("logbook: event.Bus is required")
+	if pub == nil {
+		return nil, fmt.Errorf("logbook: event.Publisher is required")
 	}
 
 	book := &Book{
@@ -189,7 +189,7 @@ func NewJournalOverwriteWithProfileID(pk crypto.PrivKey, username string, bus ev
 		pk:         pk,
 		authorName: username,
 		fsLocation: location,
-		publisher:  bus,
+		publisher:  pub,
 	}
 
 	err := book.initialize(ctx, profileID)

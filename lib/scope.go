@@ -30,6 +30,8 @@ type scope struct {
 	inst   *Instance
 	pro    *profile.Profile
 	source string
+	// TODO(dustmop): Try and replace this with just a publisher, not a bus
+	bus    *perUserBus
 	// TODO(dustmop): Additional information, such as user identity, their profile, keys
 	useFSI bool
 }
@@ -58,10 +60,16 @@ func (s *scope) AutomationOrchestrator() *automation.Orchestrator {
 	return s.inst.automation
 }
 
-// Bus returns the event bus
+// Bus returns the event bus that is scoped to the active user
 func (s *scope) Bus() event.Bus {
-	// TODO(dustmop): Filter only events for this scope.
-	return s.inst.bus
+	if s.bus == nil {
+		pid := s.pro.ID
+		s.bus = &perUserBus{
+			profileID: pid,
+			mainBus:   s.inst.bus,
+		}
+	}
+	return s.bus
 }
 
 // ChangeConfig implements the ConfigSetter interface
@@ -197,4 +205,41 @@ func (s *scope) Stats() *stats.Service {
 // enable the dscache
 func (s *scope) UseDscache() bool {
 	return false
+}
+
+//////////////////////////////////////////////////////////////////////
+
+type perUserBus struct {
+	profileID profile.ID
+	mainBus   event.Bus
+}
+
+var _ event.Bus = (*perUserBus)(nil)
+
+// Publish
+func (*perUserBus) Publish(ctx context.Context, t event.Type, data interface{}) error {
+	// TODO
+	return nil
+}
+
+// PublishID
+func (*perUserBus) PublishID(_ context.Context, t event.Type, id string, data interface{}) error {
+	// TODO
+	return nil
+}
+
+func (*perUserBus) SubscribeTypes(handler event.Handler, eventTypes ...event.Type) {
+	panic("Not Implemented: SubscribeTypes")
+}
+
+func (*perUserBus) SubscribeID(handler event.Handler, id string) {
+	panic("Not Implemented: SubscribeID")
+}
+
+func (*perUserBus) SubscribeAll(handler event.Handler) {
+	panic("Not Implemented: SubscribeAll")
+}
+
+func (*perUserBus) NumSubscribers() int {
+	return 0
 }
