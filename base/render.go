@@ -4,14 +4,49 @@ import (
 	"context"
 	"io/ioutil"
 	"strings"
+	"sync"
 
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsviz"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo"
+	"github.com/russross/blackfriday/v2"
 )
 
-func init() {
+var (
+	initializeDsviz sync.Once
+	// DefaultTemplate is the template that render will fall back to should no
+	// template be available
+	DefaultTemplate = `<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ title }}</title>
+  {{ block "stylesheet" . }}{{ end }}
+</head>
+<body class="viewport">
+  {{ block "header" . }}{{ end }}
+  {{ block "summary" . }}{{ end }}
+  {{ block "citation" . }}{{ end }}
+</body>
+</html>`
+)
+
+// MaybeAddDefaultViz sets a dataset viz component and template if none exists
+// TODO(dlong): This is deprecated and should be removed.
+func MaybeAddDefaultViz(ds *dataset.Dataset) {
+	if ds.Viz != nil {
+		// ensure viz defaults to HTML if unspecified
+		if ds.Viz.Format == "" {
+			ds.Viz.Format = "html"
+		}
+		return
+	}
+	ds.Viz = &dataset.Viz{Format: "html"}
+	ds.Viz.SetScriptFile(qfs.NewMemfileReader("viz.html", strings.NewReader(DefaultTemplate)))
+}
+
+func initializeDsvizFunc() {
 	stylesheet := `<style type="text/css">
   html, body, .viewport { height: 100%; width: 100%; margin: 0; font-family: "avenir next", "avenir", sans-serif; font-size: 16px; }
   body { display: flex; flex-direction: column; }
@@ -64,20 +99,6 @@ func init() {
 	}
 }
 
-// MaybeAddDefaultViz sets a dataset viz component and template if none exists
-// TODO(dlong): This is deprecated and should be removed.
-func MaybeAddDefaultViz(ds *dataset.Dataset) {
-	if ds.Viz != nil {
-		// ensure viz defaults to HTML if unspecified
-		if ds.Viz.Format == "" {
-			ds.Viz.Format = "html"
-		}
-		return
-	}
-	ds.Viz = &dataset.Viz{Format: "html"}
-	ds.Viz.SetScriptFile(qfs.NewMemfileReader("viz.html", strings.NewReader(DefaultTemplate)))
-}
-
 // Render executes a template for a dataset, returning a slice of HTML
 // Render uses go's html/template package to generate html documents from an
 // input dataset. It's API has been adjusted to use lowerCamelCase instead of
@@ -122,6 +143,7 @@ func Render(ctx context.Context, r repo.Repo, ds *dataset.Dataset, tmplData []by
 
 	*/
 	const tmplName = "template"
+	initializeDsviz.Do(initializeDsvizFunc)
 
 	// TODO(dlong): Deprecated, this should be removed.
 	MaybeAddDefaultViz(ds)
@@ -138,17 +160,16 @@ func Render(ctx context.Context, r repo.Repo, ds *dataset.Dataset, tmplData []by
 	return ioutil.ReadAll(data)
 }
 
-// DefaultTemplate is the template that render will fall back to should no
-// template be available
-var DefaultTemplate = `<!DOCTYPE html>
-<html>
-<head>
-  <title>{{ title }}</title>
-  {{ block "stylesheet" . }}{{ end }}
-</head>
-<body class="viewport">
-  {{ block "header" . }}{{ end }}
-  {{ block "summary" . }}{{ end }}
-  {{ block "citation" . }}{{ end }}
-</body>
-</html>`
+// RenderReadme converts the markdown from the file into html.
+func RenderReadme(ctx context.Context, file qfs.File) ([]byte, error) {
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+	r := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
+		Flags: blackfriday.CommonHTMLFlags | blackfriday.NoreferrerLinks | blackfriday.NoopenerLinks | blackfriday.HrefTargetBlank,
+	})
+	unsafe := blackfriday.Run(data, blackfriday.WithRenderer(r))
+	htmlBytes := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
+	return htmlBytes, nil
+}
