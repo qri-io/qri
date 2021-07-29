@@ -214,17 +214,17 @@ func NewStepStateFromEvent(e event.Event) (*StepState, error) {
 	return nil, fmt.Errorf("run step event data must be a transform step lifecycle struct")
 }
 
-type rawStepState struct {
+type _stepState struct {
 	Name      string     `json:"name"`
 	Category  string     `json:"category"`
 	Status    Status     `json:"status"`
 	StartTime *time.Time `json:"startTime"`
 	StopTime  *time.Time `json:"stopTime"`
 	Duration  int        `json:"duration"`
-	Output    []rawEvent `json:"output"`
+	Output    []_event   `json:"output"`
 }
 
-type rawEvent struct {
+type _event struct {
 	Type      event.Type      `json:"type"`
 	Timestamp int64           `json:"timestamp"`
 	SessionID string          `json:"sessionID"`
@@ -233,20 +233,17 @@ type rawEvent struct {
 
 // UnmarshalJSON satisfies the json.Unmarshaller interface
 func (ss *StepState) UnmarshalJSON(data []byte) error {
-	if ss == nil {
-		ss = &StepState{}
-	}
-
-	rs := &rawStepState{}
+	tmpSS := &StepState{}
+	rs := &_stepState{}
 	if err := json.Unmarshal(data, rs); err != nil {
 		return err
 	}
-	ss.Name = rs.Name
-	ss.Category = rs.Category
-	ss.Status = rs.Status
-	ss.StartTime = rs.StartTime
-	ss.StopTime = rs.StopTime
-	ss.Duration = rs.Duration
+	tmpSS.Name = rs.Name
+	tmpSS.Category = rs.Category
+	tmpSS.Status = rs.Status
+	tmpSS.StartTime = rs.StartTime
+	tmpSS.StopTime = rs.StopTime
+	tmpSS.Duration = rs.Duration
 	for _, re := range rs.Output {
 		e := event.Event{
 			Type:      re.Type,
@@ -282,8 +279,9 @@ func (ss *StepState) UnmarshalJSON(data []byte) error {
 				return err
 			}
 		}
-		ss.Output = append(ss.Output, e)
+		tmpSS.Output = append(tmpSS.Output, e)
 	}
+	*ss = *tmpSS
 	return nil
 }
 
