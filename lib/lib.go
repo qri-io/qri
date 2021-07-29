@@ -24,6 +24,9 @@ import (
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/automation"
+	"github.com/qri-io/qri/automation/run"
+	"github.com/qri-io/qri/automation/trigger"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
@@ -629,7 +632,11 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
 	// basic orchestrator options. When we get the automation configuration settled
 	// we will build a more robust solution
-	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, automation.DefaultOrchestratorOptions(inst.bus))
+	orchestratorOpts, err := automation.DefaultOrchestratorOptions(inst.bus, inst.repoPath)
+	if err != nil {
+		return nil, err
+	}
+	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, orchestratorOpts)
 	go inst.waitForAllDone()
 	go func() {
 		if err := inst.bus.Publish(ctx, event.ETInstanceConstructed, nil); err != nil {
@@ -763,7 +770,13 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
 	// basic orchestrator options. When we get the automation configuration settled
 	// we will build a more robust solution
-	autoOpts := automation.DefaultOrchestratorOptions(inst.bus)
+	autoOpts := automation.OrchestratorOptions{
+		WorkflowStore: workflow.NewMemStore(),
+		Listeners: []trigger.Listener{
+			trigger.NewRuntimeListener(ctx, inst.bus),
+		},
+		RunStore: run.NewMemStore(),
+	}
 	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, autoOpts)
 	if err != nil {
 		cancel()

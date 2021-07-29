@@ -9,11 +9,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
 )
 
 var (
+	log = golog.Logger("run")
 	// ErrNoID indicates the run.State has no run ID
 	ErrNoID = fmt.Errorf("no run ID")
 	// ErrNoWorkflowID indicates the run.State has no workflow.ID
@@ -209,6 +212,79 @@ func NewStepStateFromEvent(e event.Event) (*StepState, error) {
 		}, nil
 	}
 	return nil, fmt.Errorf("run step event data must be a transform step lifecycle struct")
+}
+
+type rawStepState struct {
+	Name      string     `json:"name"`
+	Category  string     `json:"category"`
+	Status    Status     `json:"status"`
+	StartTime *time.Time `json:"startTime"`
+	StopTime  *time.Time `json:"stopTime"`
+	Duration  int        `json:"duration"`
+	Output    []rawEvent `json:"output"`
+}
+
+type rawEvent struct {
+	Type      event.Type      `json:"type"`
+	Timestamp int64           `json:"timestamp"`
+	SessionID string          `json:"sessionID"`
+	Payload   json.RawMessage `json:"payload"`
+}
+
+// UnmarshalJSON satisfies the json.Unmarshaller interface
+func (ss *StepState) UnmarshalJSON(data []byte) error {
+	if ss == nil {
+		ss = &StepState{}
+	}
+
+	rs := &rawStepState{}
+	if err := json.Unmarshal(data, rs); err != nil {
+		return err
+	}
+	ss.Name = rs.Name
+	ss.Category = rs.Category
+	ss.Status = rs.Status
+	ss.StartTime = rs.StartTime
+	ss.StopTime = rs.StopTime
+	ss.Duration = rs.Duration
+	for _, re := range rs.Output {
+		e := event.Event{
+			Type:      re.Type,
+			Timestamp: re.Timestamp,
+			SessionID: re.SessionID,
+		}
+		switch e.Type {
+		case event.ETTransformStart, event.ETTransformStop:
+			p := event.TransformLifecycle{}
+			if err := json.Unmarshal(re.Payload, &p); err != nil {
+				return err
+			}
+			e.Payload = p
+		case event.ETTransformStepStart, event.ETTransformStepStop, event.ETTransformStepSkip:
+			p := event.TransformStepLifecycle{}
+			if err := json.Unmarshal(re.Payload, &p); err != nil {
+				return err
+			}
+			e.Payload = p
+		case event.ETTransformPrint, event.ETTransformError:
+			p := ""
+			if err := json.Unmarshal(re.Payload, &p); err != nil {
+				return err
+			}
+			e.Payload = p
+		case event.ETTransformDatasetPreview:
+			e.Payload = &dataset.Dataset{}
+			if err := json.Unmarshal(re.Payload, e.Payload); err != nil {
+				return err
+			}
+		default:
+			if err := json.Unmarshal(re.Payload, e.Payload); err != nil {
+				return err
+			}
+		}
+		ss.Output = append(ss.Output, e)
+	}
+	return nil
 }
 
 func toTimePointer(unixnano int64) *time.Time {

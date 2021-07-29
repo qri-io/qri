@@ -31,6 +31,8 @@ type Store interface {
 	// Workflow.DatasetID is unique. If there is an existing ID, Put will
 	// update the entry in the Store, if the given workflow is valid
 	Put(wf *Workflow) (*Workflow, error)
+	// Shutdown closes the store
+	Shutdown() error
 }
 
 // A Lister lists entries from a workflow store
@@ -188,4 +190,9 @@ func (m *MemStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Work
 
 	sort.Sort(wfs)
 	return wfs.Slice(start, end), nil
+}
+
+// Shutdown closes the store
+func (m *MemStore) Shutdown() error {
+	return nil
 }
