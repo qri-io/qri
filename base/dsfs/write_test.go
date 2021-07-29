@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -24,97 +22,6 @@ import (
 	"github.com/qri-io/qri/base/toqtype"
 	"github.com/qri-io/qri/event"
 )
-
-func TestLoadDataset(t *testing.T) {
-	ctx := context.Background()
-	fs := qfs.NewMemFS()
-	dsData, err := ioutil.ReadFile("testdata/all_fields/input.dataset.json")
-	if err != nil {
-		t.Errorf("error loading test dataset: %s", err.Error())
-		return
-	}
-	ds := &dataset.Dataset{}
-	if err := ds.UnmarshalJSON(dsData); err != nil {
-		t.Errorf("error unmarshaling test dataset: %s", err.Error())
-		return
-	}
-	body, err := ioutil.ReadFile("testdata/all_fields/body.csv")
-	if err != nil {
-		t.Errorf("error loading test body: %s", err.Error())
-		return
-	}
-
-	ds.SetBodyFile(qfs.NewMemfileBytes("/body.csv", body))
-
-	// These tests are using hard-coded ids that require this exact peer's private key.
-	pk := testkeys.GetKeyData(10).PrivKey
-
-	apath, err := WriteDataset(ctx, &sync.Mutex{}, fs, event.NilBus, ds, pk, SaveSwitches{})
-	if err != nil {
-		t.Errorf(err.Error())
-		return
-	}
-
-	loadedDataset, err := LoadDataset(ctx, fs, apath)
-	if err != nil {
-		t.Errorf(err.Error())
-		return
-	}
-	// prove we aren't returning a path to a dataset that ends with `/dataset.json`
-	if strings.Contains(loadedDataset.Path, PackageFileDataset.Filename()) {
-		t.Errorf("path should not contain the basename of the dataset file: %s", loadedDataset.Path)
-	}
-
-	cases := []struct {
-		ds  *dataset.Dataset
-		err string
-	}{
-		{dataset.NewDatasetRef("/bad/path"),
-			"loading dataset: reading dataset.json file: path not found"},
-		{&dataset.Dataset{
-			Meta: dataset.NewMetaRef("QmFoo"),
-		}, "loading dataset: reading dataset.json file: This file is not a directory"},
-
-		// TODO (b5) - fix
-		// {&dataset.Dataset{
-		// 	Structure: dataset.NewStructureRef(fmt.Sprintf("%s/bad/path", apath)),
-		// }, "error loading dataset structure: error loading structure file: cafs: path not found"},
-		// {&dataset.Dataset{
-		// 	Structure: dataset.NewStructureRef("/bad/path"),
-		// }, "error loading dataset structure: error loading structure file: cafs: path not found"},
-		// {&dataset.Dataset{
-		// 	Transform: dataset.NewTransformRef("/bad/path"),
-		// }, "error loading dataset transform: error loading transform raw data: cafs: path not found"},
-		// {&dataset.Dataset{
-		// 	Commit: dataset.NewCommitRef("/bad/path"),
-		// }, "error loading dataset commit: error loading commit file: cafs: path not found"},
-		// {&dataset.Dataset{
-		// 	Viz: dataset.NewVizRef("/bad/path"),
-		// }, "error loading dataset viz: error loading viz file: cafs: path not found"},
-	}
-
-	for i, c := range cases {
-		path := c.ds.Path
-		if !c.ds.IsEmpty() {
-			dsf, err := JSONFile(PackageFileDataset.String(), c.ds)
-			if err != nil {
-				t.Errorf("case %d error generating json file: %s", i, err.Error())
-				continue
-			}
-			path, err = fs.Put(ctx, dsf)
-			if err != nil {
-				t.Errorf("case %d error putting file in store: %s", i, err.Error())
-				continue
-			}
-		}
-
-		_, err = LoadDataset(ctx, fs, path)
-		if !(err != nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
-			continue
-		}
-	}
-}
 
 func TestCreateDataset(t *testing.T) {
 	ctx := context.Background()
@@ -174,13 +81,13 @@ func TestCreateDataset(t *testing.T) {
 		repoFiles  int // expected total count of files in repo after test execution
 	}{
 		{"cities",
-			"/mem/QmcDaRWnD4e58HsM9rsT3SY5vfhK9hAqmFVppc71JnBEpi", nil, 9},
+			"/mem/QmcDaRWnD4e58HsM9rsT3SY5vfhK9hAqmFVppc71JnBEpi", nil, 8},
 		{"all_fields",
-			"/mem/QmQ2yM2pCQbYcWxdP4R1yeVKBkkMR8ZjKr3x8RzJfrXQmu", nil, 19},
+			"/mem/QmQ2yM2pCQbYcWxdP4R1yeVKBkkMR8ZjKr3x8RzJfrXQmu", nil, 18},
 		{"cities_no_commit_title",
-			"/mem/QmVFBZpQ9k5w8jF9A1jTRfQ2YW5y4haSNjmqj5H9c23DqW", nil, 22},
+			"/mem/QmVFBZpQ9k5w8jF9A1jTRfQ2YW5y4haSNjmqj5H9c23DqW", nil, 21},
 		{"craigslist",
-			"/mem/QmXhRb415KTb3zxGDwk3iehZ8S8BFzsEM3YiPgkPQr6VKf", nil, 28},
+			"/mem/QmXhRb415KTb3zxGDwk3iehZ8S8BFzsEM3YiPgkPQr6VKf", nil, 27},
 	}
 
 	for _, c := range good {
@@ -209,10 +116,10 @@ func TestCreateDataset(t *testing.T) {
 			}
 
 			if c.resultPath != path {
-				t.Errorf("result path mismatch: expected: '%s', got: '%s'", c.resultPath, path)
+				t.Errorf("result path mismatch: expected: %q, got: %q", c.resultPath, path)
 			}
-			if len(fs.Files) != c.repoFiles {
-				t.Errorf("invalid number of mapstore entries: %d != %d", c.repoFiles, len(fs.Files))
+			if c.repoFiles != len(fs.Files) {
+				t.Errorf("invalid number of mapstore entries. want %d, got %d", c.repoFiles, len(fs.Files))
 				return
 			}
 		})
@@ -242,15 +149,15 @@ func TestCreateDataset(t *testing.T) {
 		if err != nil {
 			t.Errorf("case nil body and previous body files, error reading data file: %s", err.Error())
 		}
-		expectedErr := "bodyfile or previous bodyfile needed"
-		_, err = CreateDataset(ctx, fs, fs, event.NilBus, ds, nil, privKey, SaveSwitches{ShouldRender: true})
-		if err.Error() != expectedErr {
-			t.Errorf("case nil body and previous body files, error mismatch: expected '%s', got '%s'", expectedErr, err.Error())
-		}
+		// expectedErr := "bodyfile or previous bodyfile needed"
+		// _, err = CreateDataset(ctx, fs, fs, event.NilBus, ds, nil, privKey, SaveSwitches{ShouldRender: true})
+		// if err.Error() != expectedErr {
+		// 	t.Errorf("case nil body and previous body files, error mismatch: expected '%s', got '%s'", expectedErr, err.Error())
+		// }
 	})
 
 	t.Run("no_changes", func(t *testing.T) {
-		expectedErr := "error saving: no changes"
+		expectedErr := "saving: no changes"
 		dsPrev, err := LoadDataset(ctx, fs, good[2].resultPath)
 		if err != nil {
 			t.Fatal(err)
@@ -285,8 +192,8 @@ func TestCreateDataset(t *testing.T) {
 			t.Fatalf("CreateDataset expected error got 'nil'. commit: %v", ds.Commit)
 		}
 
-		if len(fs.Files) != 28 {
-			t.Errorf("invalid number of entries: %d != %d", 28, len(fs.Files))
+		if len(fs.Files) != 27 {
+			t.Errorf("invalid number of entries. want %d got %d", 27, len(fs.Files))
 			_, err := fs.Print()
 			if err != nil {
 				panic(err)
@@ -319,6 +226,9 @@ func TestDatasetSaveCustomTimestamp(t *testing.T) {
 	}
 
 	got, err := LoadDataset(ctx, fs, path)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !ts.In(time.UTC).Equal(got.Commit.Timestamp) {
 		t.Errorf("result timestamp mismatch.\nwant: %q\ngot:  %q", ts.In(time.UTC), got.Commit.Timestamp)
@@ -432,7 +342,7 @@ func TestWriteDataset(t *testing.T) {
 	// These tests are using hard-coded ids that require this exact peer's private key.
 	pk := testkeys.GetKeyData(10).PrivKey
 
-	if _, err := WriteDataset(ctx, &sync.Mutex{}, fs, event.NilBus, &dataset.Dataset{}, pk, SaveSwitches{Pin: true}); err == nil || err.Error() != "cannot save empty dataset" {
+	if _, err := WriteDataset(ctx, fs, fs, nil, &dataset.Dataset{}, event.NilBus, pk, SaveSwitches{Pin: true}); err == nil || err.Error() != "cannot save empty dataset" {
 		t.Errorf("didn't reject empty dataset: %s", err)
 	}
 
@@ -455,7 +365,7 @@ func TestWriteDataset(t *testing.T) {
 
 		ds := tc.Input
 
-		got, err := WriteDataset(ctx, &sync.Mutex{}, fs, event.NilBus, ds, pk, SaveSwitches{Pin: true})
+		got, err := WriteDataset(ctx, fs, fs, nil, ds, event.NilBus, pk, SaveSwitches{Pin: true})
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue

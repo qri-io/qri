@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"path/filepath"
 	"time"
@@ -25,86 +24,64 @@ var Timestamp = func() time.Time {
 	return time.Now().UTC()
 }
 
-// BodyAction represents the action that should be taken to understand how the body changed
+// BodyAction represents the action that should be taken to understand how the
+// body changed
 type BodyAction string
 
 const (
 	// BodyDefault is the default action: compare them to get how much changed
-	BodyDefault = BodyAction("default")
+	BodyDefault BodyAction = "default"
 	// BodySame means that the bodies are the same, no need to compare
-	BodySame = BodyAction("same")
+	BodySame BodyAction = "same"
 	// BodyTooBig means the body is too big to directly compare, and should use
 	// some other method
-	BodyTooBig = BodyAction("too_big")
+	BodyTooBig BodyAction = "too_big"
 )
 
-// DerefCommit derferences a dataset's Commit element if required
-// should be a no-op if ds.Structure is nil or isn't a reference
-func DerefCommit(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
-	if ds.Commit != nil && ds.Commit.IsEmpty() && ds.Commit.Path != "" {
-		cm, err := loadCommit(ctx, store, ds.Commit.Path)
+func commitFileAddFunc(ctx context.Context, privKey crypto.PrivKey, publisher event.Publisher) writeComponentFunc {
+	return func(src qfs.Filesystem, dst qfs.MerkleDagStore, prev, ds *dataset.Dataset, added qfs.Links, sw *SaveSwitches) error {
+		if ds.Commit == nil {
+			return errNoComponent
+		}
+
+		if evtErr := publisher.Publish(ctx, event.ETDatasetSaveProgress, event.DsSaveEvent{
+			Username:   ds.Peername,
+			Name:       ds.Name,
+			Message:    "finalizing",
+			Completion: 0.9,
+		}); evtErr != nil {
+			log.Debugw("publish event errored", "error", evtErr)
+		}
+
+		log.Debugw("writing commit file", "bodyAction", sw.bodyAct, "force", sw.ForceIfNoChanges, "fileHint", sw.FileHint)
+
+		updateScriptPaths(dst, ds, added)
+
+		if err := confirmByteChangesExist(ds, prev, sw.ForceIfNoChanges, dst, added); err != nil {
+			return fmt.Errorf("saving: %w", err)
+		}
+
+		if err := ensureCommitTitleAndMessage(ctx, src, privKey, ds, prev, sw.bodyAct, sw.FileHint, sw.ForceIfNoChanges); err != nil {
+			log.Debugf("ensureCommitTitleAndMessage: %s", err)
+			return fmt.Errorf("saving: %w", err)
+		}
+
+		ds.DropTransientValues()
+		setComponentRefs(dst, ds, bodyFilename(ds), added)
+
+		signedBytes, err := privKey.Sign(ds.SigningBytes())
 		if err != nil {
 			log.Debug(err.Error())
-			return fmt.Errorf("loading dataset commit: %w", err)
+			return fmt.Errorf("signing commit: %w", err)
 		}
-		cm.Path = ds.Commit.Path
-		ds.Commit = cm
-	}
-	return nil
-}
+		ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
+		log.Debugw("writing commit", "title", ds.Commit.Title, "message", ds.Commit.Message)
 
-// loadCommit assumes the provided path is valid
-func loadCommit(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Commit, err error) {
-	data, err := fileBytes(fs.Get(ctx, path))
-	if err != nil {
-		log.Debug(err.Error())
-		return nil, fmt.Errorf("loading commit file: %s", err.Error())
-	}
-	return dataset.UnmarshalCommit(data)
-}
-
-func commitFileAddFunc(privKey crypto.PrivKey, pub event.Publisher) addWriteFileFunc {
-	return func(ds *dataset.Dataset, wfs *writeFiles) error {
-		if ds.Commit == nil {
-			return nil
+		f, err := JSONFile(PackageFileCommit.String(), ds.Commit)
+		if err != nil {
+			return err
 		}
-
-		hook := func(ctx context.Context, f qfs.File, added map[string]string) (io.Reader, error) {
-			if evtErr := pub.Publish(ctx, event.ETDatasetSaveProgress, event.DsSaveEvent{
-				Username:   ds.Peername,
-				Name:       ds.Name,
-				Message:    "finalizing",
-				Completion: 0.9,
-			}); evtErr != nil {
-				log.Debugw("publish event errored", "error", evtErr)
-			}
-
-			if cff, ok := wfs.body.(*computeFieldsFile); ok {
-				updateScriptPaths(ds, added)
-
-				if err := confirmByteChangesExist(cff.ds, cff.prev, added, wfs.body.FullPath(), cff.sw.ForceIfNoChanges); err != nil {
-					return nil, fmt.Errorf("error saving: %w", err)
-				}
-
-				if err := ensureCommitTitleAndMessage(ctx, cff.fs, cff.pk, cff.ds, cff.prev, cff.bodyAct, cff.sw.FileHint, cff.sw.ForceIfNoChanges); err != nil {
-					log.Debugf("ensureCommitTitleAndMessage: %s", err)
-					return nil, fmt.Errorf("error saving: %w", err)
-				}
-			}
-
-			replaceComponentsWithRefs(ds, added, wfs.body.FullPath())
-
-			signedBytes, err := privKey.Sign(ds.SigningBytes())
-			if err != nil {
-				log.Debug(err.Error())
-				return nil, fmt.Errorf("error signing commit title: %w", err)
-			}
-			ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
-			return JSONFile(PackageFileCommit.Filename(), ds.Commit)
-		}
-
-		wfs.commit = qfs.NewWriteHookFile(emptyFile(PackageFileCommit.Filename()), hook, filePaths(wfs.files())...)
-		return nil
+		return writePackageFile(dst, f, added)
 	}
 }
 
@@ -116,7 +93,7 @@ func commitFileAddFunc(privKey crypto.PrivKey, pub event.Publisher) addWriteFile
 // keep in mind: it is possible for byte-level changes to exist, but not cause
 // any alterations to dataset values, (for example: removing non-sensitive
 // whitespace)
-func confirmByteChangesExist(ds, prev *dataset.Dataset, added map[string]string, bodyPathName string, force bool) error {
+func confirmByteChangesExist(ds, prev *dataset.Dataset, force bool, dst qfs.MerkleDagStore, added qfs.Links) error {
 	if force {
 		log.Debugf("forcing changes. skipping uniqueness checks")
 		// fast path: forced changes ignore all comparison
@@ -155,9 +132,9 @@ func confirmByteChangesExist(ds, prev *dataset.Dataset, added map[string]string,
 
 	// create an empty dataset & populate it with path references to avoid
 	// altering the in-flight dataset
-	next := &dataset.Dataset{}
-	replaceComponentsWithRefs(next, added, bodyPathName)
-	nextRefs := next.PathMap()
+	nextDs := &dataset.Dataset{}
+	setComponentRefs(dst, nextDs, bodyFilename(ds), added)
+	nextRefs := nextDs.PathMap()
 
 	for key, nextPath := range nextRefs {
 		if prevRefs[key] != nextPath {
@@ -173,6 +150,7 @@ func confirmByteChangesExist(ds, prev *dataset.Dataset, added map[string]string,
 		}
 	}
 
+	log.Debugw("confirmByteChanges", "err", ErrNoChanges)
 	return ErrNoChanges
 }
 
@@ -186,7 +164,7 @@ func ensureCommitTitleAndMessage(ctx context.Context, fs qfs.Filesystem, privKey
 	}
 
 	// fast path when commit and title are set
-	log.Debugf("ensureCommitTitleAndMessage bodyAct=%s", bodyAct)
+	log.Debugw("ensureCommitTitleAndMessage", "bodyAct", bodyAct)
 	shortTitle, longMessage, err := generateCommitDescriptions(ctx, fs, ds, prev, bodyAct, forceIfNoChanges)
 	if err != nil {
 		log.Debugf("generateCommitDescriptions err: %s", err)
@@ -217,18 +195,15 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 	if prev == nil || prev.IsEmpty() {
 		return defaultCreatedDescription, defaultCreatedDescription, nil
 	}
-	log.Debug("generateCommitDescriptions")
 
 	// Inline body if it is a reasonable size, to get message about how the body has changed.
 	if bodyAct != BodySame {
 		// If previous version had bodyfile, read it and assign it
 		if prev.Structure != nil && prev.Structure.Length < BodySizeSmallEnoughToDiff {
 			if prev.BodyFile() != nil {
-				log.Debugf("inlining body file to calulate a diff")
-				prevReader, err := dsio.NewEntryReader(prev.Structure, prev.BodyFile())
-				if err == nil {
-					prevBodyData, err := dsio.ReadAll(prevReader)
-					if err == nil {
+				log.Debugf("inlining body file to calculate a diff")
+				if prevReader, err := dsio.NewEntryReader(prev.Structure, prev.BodyFile()); err == nil {
+					if prevBodyData, err := dsio.ReadAll(prevReader); err == nil {
 						prev.Body = prevBodyData
 					}
 				}
@@ -398,6 +373,7 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 	if bodyAct == BodyTooBig {
 		prevBody = nil
 		nextBody = nil
+		log.Debugw("checking checksum equality", "prev", prevChecksum, "next", nextChecksum)
 		if prevChecksum != nextChecksum {
 			assumeBodyChanged = true
 		}
@@ -421,15 +397,15 @@ func generateCommitDescriptions(ctx context.Context, fs qfs.Filesystem, ds, prev
 		}
 	}
 
-	log.Debug("setting diff descriptions")
 	shortTitle, longMessage := friendly.DiffDescriptions(headDiff, bodyDiff, bodyStat, assumeBodyChanged)
 	if shortTitle == "" {
 		if forceIfNoChanges {
 			return "forced update", "forced update", nil
 		}
+		log.Debugw("generateCommitDescriptions", "err", ErrNoChanges)
 		return "", "", ErrNoChanges
 	}
 
-	log.Debugf("set friendly diff descriptions. shortTitle=%q message=%q", shortTitle, longMessage)
+	log.Debugw("generateCommitDescriptions", "shortTitle", shortTitle, "message", longMessage, "bodyChanged", assumeBodyChanged)
 	return shortTitle, longMessage, nil
 }

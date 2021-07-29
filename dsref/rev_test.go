@@ -11,7 +11,7 @@ func TestParseRevs(t *testing.T) {
 		exp []*Rev
 		err string
 	}{
-		{"", []*Rev{}, "unrecognized revision field: "},
+		{"", []*Rev{}, ""},
 		{"body", []*Rev{{"bd", 1}}, ""},
 		{"md", []*Rev{{"md", 1}}, ""},
 		{"ds", []*Rev{{"ds", 1}}, ""},

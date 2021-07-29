@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"sync"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
@@ -170,15 +169,16 @@ func makeFilestore() (map[string]string, qfs.Filesystem, error) {
 			return datasets, nil, err
 		}
 
-		dataPath := fmt.Sprintf("testdata/%s/body.%s", k, ds.Structure.Format)
+		ds.Commit = &dataset.Commit{}
+		dataPath := fmt.Sprintf("testdata/%s/%s", k, ds.Structure.BodyFilename())
 		data, err := ioutil.ReadFile(dataPath)
 		if err != nil {
 			return datasets, nil, err
 		}
 
-		ds.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("/body.%s", ds.Structure.Format), data))
+		ds.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("/%s", ds.Structure.BodyFilename()), data))
 
-		dskey, err := WriteDataset(ctx, &sync.Mutex{}, fs, event.NilBus, ds, pk, SaveSwitches{Pin: true})
+		dskey, err := WriteDataset(ctx, fs, fs, nil, ds, event.NilBus, pk, SaveSwitches{Pin: true})
 		if err != nil {
 			return datasets, nil, fmt.Errorf("dataset: %s write error: %s", k, err.Error())
 		}

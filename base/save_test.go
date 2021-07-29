@@ -163,17 +163,20 @@ func TestCreateDataset(t *testing.T) {
 	if len(refs) != 1 {
 		t.Errorf("ref length mismatch. expected 1, got: %d", len(refs))
 	}
+	prevPath := createdDs.Path
 
 	// Need to reset because CreateDataset clears the name before writing to ipfs. Remove the
 	// reliance on CreateDataset needing the ds.Name field.
 	ds.Name = dsName
-	ds.PreviousPath = createdDs.Path
+	ds.PreviousPath = prevPath
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
 
 	if createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, createdDs, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected unchanged dataset with no force flag to error")
 	}
 
+	ds.Name = dsName
+	ds.PreviousPath = prevPath
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
 	if createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, createdDs, SaveSwitches{ForceIfNoChanges: true, Pin: true, ShouldRender: true}); err != nil {
 		t.Errorf("unexpected force-save error: %s", err)
