@@ -49,7 +49,6 @@ const (
 	// ETAutomationDeployEnd signals the deploy has finished
 	// Payload will be a DeployEvent, if the `Error` field is filled,
 	// the deploy ended in error
-	// This event should not block
 	ETAutomationDeployEnd = Type("automation:DeployEnd")
 )
 

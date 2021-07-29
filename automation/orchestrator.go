@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/profile"
 )
 
 var (
@@ -207,6 +208,7 @@ func (o *Orchestrator) startListeners(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("error getting deployed workflows from the store: %w", err)
 	}
+	log.Debugw("listening", "deployed", len(wfs), "workflows", wfs)
 	srcs := make([]trigger.Source, 0, len(wfs))
 	for _, wf := range wfs {
 		srcs = append(srcs, wf)
@@ -272,6 +274,7 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 		if !ok {
 			return fmt.Errorf("handleTrigger: expected event.Payload to be an `event.WorkflowTriggerEvent`: %v", e.Payload)
 		}
+		log.Debugw("trigger workflow", "wid", wtp.WorkflowID, "triggerID", wtp.TriggerID)
 		go func() {
 			wf, err := o.GetWorkflow(workflow.ID(wtp.WorkflowID))
 			if err != nil {
@@ -308,7 +311,8 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 	o.runLock.Lock()
 	defer o.runLock.Unlock()
 	wid := wf.ID
-	log.Debugw("runWorkflow, workflow", "id", wid)
+	log.Debugw("runWorkflow", "id", wid)
+	ctx = profile.AddIDToContext(ctx, wf.OwnerID.String())
 
 	// TODO (ramfox): when hooks/completors are added, this should wait for the err, iterate through the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
@@ -397,6 +401,7 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 // SaveWorkflow creates a new workflow if the workflow id is empty, or updates
 // an existing workflow in the workflow Store
 func (o *Orchestrator) SaveWorkflow(wf *workflow.Workflow) (*workflow.Workflow, error) {
+	log.Debugw("saving workflow", "wf", wf)
 	if wf.ID != "" {
 		fetchedWF, err := o.workflows.Get(wf.ID)
 		if errors.Is(err, workflow.ErrNotFound) {

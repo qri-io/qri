@@ -94,7 +94,7 @@ type Set struct {
 	triggerType      string
 	activeLock       sync.Mutex
 	active           map[profile.ID]map[string][]Trigger
-	constructTrigger func(opt map[string]interface{}) (Trigger, error)
+	constructTrigger Constructor
 }
 
 // NewSet creates a Set with types matched to a given listener

@@ -305,6 +305,7 @@ func (s *localSet) subscribe(bus event.Bus) {
 		event.ETAutomationDeployStart,
 		event.ETAutomationWorkflowStarted,
 		event.ETAutomationWorkflowStopped,
+		event.ETAutomationDeployEnd,
 
 		// fsi
 		event.ETFSICreateLink,
@@ -313,6 +314,7 @@ func (s *localSet) subscribe(bus event.Bus) {
 }
 
 func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
+	log.Debugw("handleEvent", "type", e.Type, "payload", e.Payload)
 	switch e.Type {
 	case event.ETDatasetNameInit:
 		if vi, ok := e.Payload.(dsref.VersionInfo); ok {

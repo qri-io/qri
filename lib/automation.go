@@ -265,6 +265,17 @@ func deploy(s scope, p *DeployParams) {
 		}()
 		return
 	}
+	wf, err = scope.AutomationOrchestrator().DeployWorkflow(wf.ID)
+	if err != nil {
+		log.Debugw("deploy deploy workflow", "error", err)
+		deployPayload.Error = err.Error()
+		go func() {
+			if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployEnd, ref, deployPayload); err != nil {
+				log.Debug(err)
+			}
+		}()
+		return
+	}
 
 	deployPayload.WorkflowID = wf.ID.String()
 	go func() {
@@ -297,11 +308,9 @@ func deploy(s scope, p *DeployParams) {
 
 	}
 	log.Debug("deploy ended")
-	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployEnd, ref, deployPayload); err != nil {
-			log.Debug(err)
-		}
-	}()
+	if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployEnd, ref, deployPayload); err != nil {
+		log.Debug(err)
+	}
 	rollback = false
 }
 

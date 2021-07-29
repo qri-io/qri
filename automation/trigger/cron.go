@@ -181,7 +181,7 @@ func (c *CronListener) Start(ctx context.Context) error {
 		now := NowFunc()
 		for ownerID, wids := range c.triggers.Active() {
 			for workflowID, triggers := range wids {
-				for _, trig := range triggers {
+				for i, trig := range triggers {
 					t := trig.(*CronTrigger)
 					if t.nextRunStart != nil && now.After(*t.nextRunStart) {
 						wte := event.WorkflowTriggerEvent{
@@ -192,6 +192,7 @@ func (c *CronListener) Start(ctx context.Context) error {
 						if err := c.pub.Publish(ctx, event.ETAutomationWorkflowTrigger, wte); err != nil {
 							log.Debugw("CronListener: publish ETAutomationWorkflowTrigger", "error", err, "WorkflowTriggerEvent", wte)
 						}
+						triggers[i].Advance()
 					}
 				}
 			}

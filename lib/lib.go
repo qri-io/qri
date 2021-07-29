@@ -767,9 +767,6 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 	}
 
 	var err error
-	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
-	// basic orchestrator options. When we get the automation configuration settled
-	// we will build a more robust solution
 	autoOpts := automation.OrchestratorOptions{
 		WorkflowStore: workflow.NewMemStore(),
 		Listeners: []trigger.Listener{
