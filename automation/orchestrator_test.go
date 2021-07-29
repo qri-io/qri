@@ -179,7 +179,7 @@ func TestIntegration(t *testing.T) {
 
 	bus.SubscribeTypes(workflowEventsHandler, event.ETAutomationWorkflowStarted, event.ETAutomationWorkflowStopped)
 	done := errOnTimeout(t, workflowStoppedEventFired, "o.RunWorkflow error: timed out before `ETAutomationWorkflowStopped` event fired")
-	err = o.RunWorkflow(ctx, got.ID, runID)
+	_, err = o.RunWorkflow(ctx, got.ID, runID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -476,7 +476,7 @@ func TestRunStoreEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer o.Stop()
-	if err := o.RunWorkflow(ctx, wf.ID, ""); err != nil {
+	if _, err := o.RunWorkflow(ctx, wf.ID, ""); err != nil {
 		t.Fatal(err)
 	}
 }

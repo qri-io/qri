@@ -31,8 +31,10 @@ func (m AutomationMethods) Name() string {
 // Attributes defines attributes for each method
 func (m AutomationMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"apply":  {Endpoint: qhttp.AEApply, HTTPVerb: "POST"},
-		"deploy": {Endpoint: qhttp.AEDeploy, HTTPVerb: "POST"},
+		"apply":    {Endpoint: qhttp.AEApply, HTTPVerb: "POST"},
+		"deploy":   {Endpoint: qhttp.AEDeploy, HTTPVerb: "POST"},
+		"run":      {Endpoint: qhttp.AERun, HTTPVerb: "POST"},
+		"workflow": {Endpoint: qhttp.AEWorkflow, HTTPVerb: "POST"},
 	}
 }
 
@@ -95,6 +97,52 @@ func (p *DeployParams) Validate() error {
 func (m AutomationMethods) Deploy(ctx context.Context, p *DeployParams) error {
 	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "deploy"), p)
 	return dispatchReturnError(nil, err)
+}
+
+// RunParams are parameters for the run command
+type RunParams struct {
+	WorkflowID string `json:"workflowID"`
+	RunID      string `json:"runID"`
+}
+
+// Validate returns an error if RunParams fields are in an invalid state
+func (p *RunParams) Validate() error {
+	if p.WorkflowID == "" {
+		return fmt.Errorf("run: workflow id required")
+	}
+	return nil
+}
+
+// Run manually runs a workflow
+func (m AutomationMethods) Run(ctx context.Context, p *RunParams) (string, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "run"), p)
+	if res, ok := got.(string); ok {
+		return res, err
+	}
+	return "", dispatchReturnError(got, err)
+}
+
+// WorkflowParams are parameters for the Workflow command
+type WorkflowParams struct {
+	WorkflowID string `json:"workflowID"`
+	InitID     string `json:"initID"`
+}
+
+// Validate returns an error if WorkflowParams fields are in an invalid state
+func (p *WorkflowParams) Validate() error {
+	if p.WorkflowID == "" && p.InitID == "" {
+		return fmt.Errorf("get workflow: workflow id or init id must be provided")
+	}
+	return nil
+}
+
+// Workflow fetches a workflow
+func (m AutomationMethods) Workflow(ctx context.Context, p *WorkflowParams) (*workflow.Workflow, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "workflow"), p)
+	if res, ok := got.(*workflow.Workflow); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
 }
 
 // Implementations for automation methods follow
@@ -246,7 +294,7 @@ func deploy(scope scope, p *DeployParams) {
 		deployPayload.RunID = runID
 		go scope.sendEvent(event.ETAutomationDeployRun, ref, deployPayload)
 
-		err := scope.AutomationOrchestrator().RunWorkflow(scope.Context(), wf.ID, runID)
+		_, err := scope.AutomationOrchestrator().RunWorkflow(scope.Context(), wf.ID, runID)
 		if err != nil {
 			log.Debugw("deploy run workflow", "error", err)
 			deployPayload.Error = err.Error()
@@ -260,12 +308,25 @@ func deploy(scope scope, p *DeployParams) {
 	rollback = false
 }
 
-func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, wf *workflow.Workflow, runID string) error {
-	scope, err := newScopeFromWorkflow(ctx, inst, wf)
+// Run manually runs a workflow
+func (automationImpl) Run(scope scope, p *RunParams) (string, error) {
+	return scope.AutomationOrchestrator().RunWorkflow(scope.AppContext(), workflow.ID(p.WorkflowID), p.RunID)
+}
+
+// Workflow fetches a workflow by the workflow or dataset id
+func (automationImpl) Workflow(scope scope, p *WorkflowParams) (*workflow.Workflow, error) {
+	if p.WorkflowID != "" {
+		return scope.AutomationOrchestrator().GetWorkflow(scope.Context(), workflow.ID(p.WorkflowID))
+	}
+	return scope.AutomationOrchestrator().GetWorkflowByInitID(scope.Context(), p.InitID)
+}
+
+func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
+	scope, err := newScopeFromWorkflow(ctx, inst, w)
 	if err != nil {
 		return err
 	}
-	ref := &dsref.Ref{InitID: wf.InitID}
+	ref := &dsref.Ref{InitID: w.InitID}
 	_, err = scope.ResolveReference(ctx, ref)
 	if err != nil {
 		return fmt.Errorf("run error: %w", err)
@@ -273,7 +334,7 @@ func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, wf *workf
 	p := &SaveParams{
 		Ref: ref.Human(),
 		Dataset: &dataset.Dataset{
-			ID: wf.InitID,
+			ID: w.InitID,
 			Commit: &dataset.Commit{
 				RunID: runID,
 			},

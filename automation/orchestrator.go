@@ -294,15 +294,15 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 }
 
 // RunWorkflow runs the given workflow
-func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID, runID string) error {
+func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID, runID string) (string, error) {
 	if runID == "" {
 		runID = run.NewID()
 	}
 	wf, err := o.GetWorkflow(ctx, workflow.ID(wid))
 	if err != nil {
-		return err
+		return "", err
 	}
-	return o.runWorkflow(ctx, wf, runID)
+	return runID, o.runWorkflow(ctx, wf, runID)
 }
 
 func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, runID string) error {
@@ -310,9 +310,6 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 	defer o.runLock.Unlock()
 	wid := wf.ID
 	log.Debugw("runWorkflow, workflow", "id", wid)
-
-	// TODO (ramfox): when hooks/completors are added, this should wait for the err, iterate through the hooks
-	// for this workflow, and emit the events for hooks that this orchestrator understands
 
 	go func(wf *workflow.Workflow) {
 		if err := o.bus.PublishID(ctx, event.ETAutomationWorkflowStarted, wf.ID.String(), event.WorkflowStartedEvent{
@@ -361,6 +358,9 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 			log.Debug(err)
 		}
 	}(wf)
+
+	// TODO (ramfox): when hooks/completors are added, this should wait for the err, iterate through the hooks
+	// for this workflow, and emit the events for hooks that this orchestrator understands
 	return err
 }
 
@@ -450,6 +450,11 @@ func (o *Orchestrator) SaveWorkflow(ctx context.Context, wf *workflow.Workflow) 
 // GetWorkflow fetches an existing workflow from the WorkflowStore
 func (o *Orchestrator) GetWorkflow(ctx context.Context, id workflow.ID) (*workflow.Workflow, error) {
 	return o.workflows.Get(ctx, id)
+}
+
+// GetWorkflowByInitID fetches an existing workflow from the WorkflowStore by the InitID
+func (o *Orchestrator) GetWorkflowByInitID(ctx context.Context, id string) (*workflow.Workflow, error) {
+	return o.workflows.GetByInitID(ctx, id)
 }
 
 // RemoveWorkflow removes a workflow form the workflow.Store
