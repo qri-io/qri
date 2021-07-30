@@ -77,11 +77,8 @@ func (CronTrigger) Type() string { return CronType }
 // Advance sets the periodicity and nextRunStart to be ready for the next run
 func (ct *CronTrigger) Advance() error {
 	ct.periodicity = ct.periodicity.NextRep()
-	if ct.nextRunStart != nil {
-		*ct.nextRunStart = ct.periodicity.After(*ct.nextRunStart)
-		return nil
-	}
-	*ct.nextRunStart = ct.periodicity.After(NowFunc())
+	next := ct.periodicity.After(NowFunc())
+	ct.nextRunStart = &next
 	return nil
 }
 

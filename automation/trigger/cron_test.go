@@ -12,6 +12,15 @@ import (
 )
 
 func TestCronTrigger(t *testing.T) {
+	prevNowFunc := trigger.NowFunc
+	trigger.NowFunc = func() time.Time {
+		ti := time.Unix(1627830000, 0).UTC()
+		return ti
+	}
+	defer func() {
+		trigger.NowFunc = prevNowFunc
+	}()
+
 	opts := map[string]interface{}{
 		"type":        trigger.CronType,
 		"id":          "test_1",
@@ -26,8 +35,8 @@ func TestCronTrigger(t *testing.T) {
 		"type":         trigger.CronType,
 		"id":           "test_1",
 		"active":       true,
-		"periodicity":  "R/2021-07-13T22:15:00Z/P1H",
-		"nextRunStart": "2021-07-13T22:15:00Z",
+		"periodicity":  "R/2021-07-13T21:15:00Z/P1H",
+		"nextRunStart": "2021-08-01T16:00:00Z",
 	}
 	spec.AssertTrigger(t, ct, adv)
 }
