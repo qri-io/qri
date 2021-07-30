@@ -197,11 +197,12 @@ func TestIntegration(t *testing.T) {
 	}
 	<-done
 
-	expected, err = o.DeployWorkflow(expected.ID)
+	expected.Active = true
+	expected, err = o.SaveWorkflow(expected)
 	if err != nil {
-		t.Fatalf("DeployWorkflow unexpected error: %s", err)
+		t.Fatalf("SaveWorkflow unexpected error: %s", err)
 	}
-	// give time for DeployWorkflow to update listeners
+	// give time for SaveWorkflow to update listeners
 	<-time.After(100 * time.Millisecond)
 	if runtimeListener.TriggersExists(expected) {
 		t.Fatal("orchestrator should not update listeners before the orchestrator has 'Started'.")
@@ -235,13 +236,14 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("Existing workflow triggers for workflow %q must be added to the run store.", expected.ID)
 	}
 
-	wf, err = o.UndeployWorkflow(wf.ID)
+	wf.Active = false
+	wf, err = o.SaveWorkflow(wf)
 	if err != nil {
-		t.Fatalf("Undeployed unexpected error: %s", err)
+		t.Fatalf("SaveWorkflow unexpected error: %s", err)
 	}
-	// give time for UndeployWorkflow to update listeners
+	// give time for SaveWorkflow to update listeners
 	if runtimeListener.TriggersExists(wf) {
-		t.Fatalf("UndeployWorkflow should update listeners")
+		t.Fatalf("SaveWorkflow should update listeners")
 	}
 	expectedWorkflowEvents = []interface{}{
 		event.WorkflowStartedEvent{

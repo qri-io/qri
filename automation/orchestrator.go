@@ -437,29 +437,13 @@ func (o *Orchestrator) SaveWorkflow(wf *workflow.Workflow) (*workflow.Workflow, 
 	if wf.ID == "" {
 		wf.Created = NowFunc()
 	}
-	return o.workflows.Put(wf)
-}
 
-// DeployWorkflow deploys a workflow
-func (o *Orchestrator) DeployWorkflow(id workflow.ID) (*workflow.Workflow, error) {
-	wf, err := o.workflows.Get(id)
+	wf, err := o.workflows.Put(wf)
 	if err != nil {
 		return nil, err
 	}
-	wf.Active = true
-	defer o.updateListeners(wf)
-	return o.workflows.Put(wf)
-}
-
-// UndeployWorkflow undeploys a workflow
-func (o *Orchestrator) UndeployWorkflow(id workflow.ID) (*workflow.Workflow, error) {
-	wf, err := o.workflows.Get(id)
-	if err != nil {
-		return nil, err
-	}
-	wf.Active = false
-	defer o.updateListeners(wf)
-	return o.workflows.Put(wf)
+	go o.updateListeners(wf)
+	return wf, err
 }
 
 // GetWorkflow fetches an existing workflow from the WorkflowStore
@@ -469,7 +453,16 @@ func (o *Orchestrator) GetWorkflow(id workflow.ID) (*workflow.Workflow, error) {
 
 // RemoveWorkflow removes a workflow form the workflow.Store
 func (o *Orchestrator) RemoveWorkflow(id workflow.ID) error {
-	return o.workflows.Remove(id)
+	wf, err := o.workflows.Get(id)
+	if err != nil {
+		return err
+	}
+	wf.Triggers = []map[string]interface{}{}
+	if err := o.workflows.Remove(id); err != nil {
+		return err
+	}
+	go o.updateListeners(wf)
+	return nil
 }
 
 // runEventsHandler returns a handler that writes run events to a run store
