@@ -20,19 +20,19 @@ var (
 type Store interface {
 	Lister
 	// Get fetches a Workflow from the Store using the workflow.ID
-	Get(wid ID) (*Workflow, error)
+	Get(ctx context.Context, wid ID) (*Workflow, error)
 	// GetByDatasetID fetches a Workflow from the Store using the dataset.ID
-	GetByDatasetID(did string) (*Workflow, error)
+	GetByDatasetID(ctx context.Context, did string) (*Workflow, error)
 	// Remove removes a Workflow from the Store using the workflow.ID
-	Remove(id ID) error
+	Remove(ctx context.Context, id ID) error
 	// Put adds a Workflow to the Store. If there is no ID in the Workflow,
 	// Put will create a new ID, record the time in the `Created` field
 	// and put the workflow in the store, ensuring that the associated
 	// Workflow.DatasetID is unique. If there is an existing ID, Put will
 	// update the entry in the Store, if the given workflow is valid
-	Put(wf *Workflow) (*Workflow, error)
+	Put(ctx context.Context, wf *Workflow) (*Workflow, error)
 	// Shutdown closes the store
-	Shutdown() error
+	Shutdown(ctx context.Context) error
 }
 
 // A Lister lists entries from a workflow store
@@ -62,13 +62,13 @@ func NewMemStore() *MemStore {
 }
 
 // Put adds a Workflow to a MemStore
-func (m *MemStore) Put(wf *Workflow) (*Workflow, error) {
+func (m *MemStore) Put(ctx context.Context, wf *Workflow) (*Workflow, error) {
 	if wf == nil {
 		return nil, ErrNilWorkflow
 	}
 	w := wf.Copy()
 	if w.ID == "" {
-		if _, err := m.GetByDatasetID(w.DatasetID); !errors.Is(err, ErrNotFound) {
+		if _, err := m.GetByDatasetID(ctx, w.DatasetID); !errors.Is(err, ErrNotFound) {
 			return nil, ErrWorkflowForDatasetExists
 		}
 		w.ID = NewID()
@@ -83,7 +83,7 @@ func (m *MemStore) Put(wf *Workflow) (*Workflow, error) {
 }
 
 // Get fetches a Workflow using the associated ID
-func (m *MemStore) Get(wid ID) (*Workflow, error) {
+func (m *MemStore) Get(ctx context.Context, wid ID) (*Workflow, error) {
 	m.mu.Lock()
 	wf, ok := m.workflows[wid]
 	m.mu.Unlock()
@@ -94,7 +94,7 @@ func (m *MemStore) Get(wid ID) (*Workflow, error) {
 }
 
 // GetByDatasetID fetches a Workflow using the dataset ID
-func (m *MemStore) GetByDatasetID(did string) (*Workflow, error) {
+func (m *MemStore) GetByDatasetID(ctx context.Context, did string) (*Workflow, error) {
 	if did == "" {
 		return nil, ErrNotFound
 	}
@@ -109,7 +109,7 @@ func (m *MemStore) GetByDatasetID(did string) (*Workflow, error) {
 }
 
 // Remove removes a Workflow from a Store
-func (m *MemStore) Remove(id ID) error {
+func (m *MemStore) Remove(ctx context.Context, id ID) error {
 	m.mu.Lock()
 	_, ok := m.workflows[id]
 	if !ok {
@@ -193,6 +193,6 @@ func (m *MemStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Work
 }
 
 // Shutdown closes the store
-func (m *MemStore) Shutdown() error {
+func (m *MemStore) Shutdown(ctx context.Context) error {
 	return nil
 }

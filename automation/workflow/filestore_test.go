@@ -1,6 +1,7 @@
 package workflow_test
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestFileStoreIntegration(t *testing.T) {
+	ctx := context.Background()
 	tmpdir, err := ioutil.TempDir("", "")
 	if err != nil {
 		log.Fatal(err)
@@ -74,7 +76,7 @@ func TestFileStoreIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := store.Get(expectedWF1.ID)
+	got, err := store.Get(ctx, expectedWF1.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,10 +104,10 @@ func TestFileStoreIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = store.Put(expectedWF2); err != nil {
+	if _, err = store.Put(ctx, expectedWF2); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.Shutdown(); err != nil {
+	if err := store.Shutdown(ctx); err != nil {
 		t.Fatal(err)
 	}
 	gotBytes, err := ioutil.ReadFile(filepath.Join(tmpdir, "workflows.json"))

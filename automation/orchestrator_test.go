@@ -39,7 +39,7 @@ func TestIntegration(t *testing.T) {
 		Triggers:  []map[string]interface{}{rttListenTest.ToMap()},
 		Active:    true,
 	}
-	wf, err := workflowStore.Put(wf)
+	wf, err := workflowStore.Put(ctx, wf)
 	if err != nil {
 		t.Fatalf("workflowStore.Put unexpected error: %s", err)
 	}
@@ -113,7 +113,7 @@ func TestIntegration(t *testing.T) {
 			}},
 	}
 
-	got, err := o.SaveWorkflow(&workflow.Workflow{
+	got, err := o.SaveWorkflow(ctx, &workflow.Workflow{
 		DatasetID: "dataset_id",
 		OwnerID:   "profile_id",
 		Triggers: []map[string]interface{}{
@@ -132,7 +132,7 @@ func TestIntegration(t *testing.T) {
 		t.Fatal("only triggers of active workflows should be added to the runtimeListener")
 	}
 
-	got, err = o.GetWorkflow(expected.ID)
+	got, err = o.GetWorkflow(ctx, expected.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +198,7 @@ func TestIntegration(t *testing.T) {
 	<-done
 
 	expected.Active = true
-	expected, err = o.SaveWorkflow(expected)
+	expected, err = o.SaveWorkflow(ctx, expected)
 	if err != nil {
 		t.Fatalf("SaveWorkflow unexpected error: %s", err)
 	}
@@ -237,7 +237,7 @@ func TestIntegration(t *testing.T) {
 	}
 
 	wf.Active = false
-	wf, err = o.SaveWorkflow(wf)
+	wf, err = o.SaveWorkflow(ctx, wf)
 	if err != nil {
 		t.Fatalf("SaveWorkflow unexpected error: %s", err)
 	}
@@ -307,7 +307,7 @@ func TestRunStoreEvents(t *testing.T) {
 	listener := trigger.NewRuntimeListener(ctx, bus)
 	runStore := run.NewMemStore()
 	workflowStore := workflow.NewMemStore()
-	wf, err := workflowStore.Put(&workflow.Workflow{
+	wf, err := workflowStore.Put(ctx, &workflow.Workflow{
 		DatasetID: "dataset_id",
 		OwnerID:   "owner_id",
 		Created:   &time.Time{},

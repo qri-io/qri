@@ -187,7 +187,7 @@ func (o *Orchestrator) Done() <-chan struct{} {
 func (o *Orchestrator) handleContextClose(ctx context.Context) {
 	<-ctx.Done()
 	o.running = false
-	if err := o.workflows.Shutdown(); err != nil {
+	if err := o.workflows.Shutdown(ctx); err != nil {
 		log.Errorw("workflows.Shutdown", "error", err)
 	}
 	if err := o.runs.Shutdown(); err != nil {
@@ -273,13 +273,13 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 			return fmt.Errorf("handleTrigger: expected event.Payload to be an `event.WorkflowTriggerEvent`: %v", e.Payload)
 		}
 		go func() {
-			wf, err := o.GetWorkflow(workflow.ID(wtp.WorkflowID))
+			wf, err := o.GetWorkflow(ctx, workflow.ID(wtp.WorkflowID))
 			if err != nil {
 				log.Debugw("handleTrigger: error fetching workflow", "id", wtp.WorkflowID, "err", err)
 				return
 			}
 			wf = o.advanceTrigger(wf, wtp.TriggerID)
-			wf, err = o.SaveWorkflow(wf)
+			wf, err = o.SaveWorkflow(ctx, wf)
 			if err != nil {
 				log.Debugw("handleTrigger: error saving workflow", "id", wtp.WorkflowID, "err", err)
 			}
@@ -297,7 +297,7 @@ func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID, runID s
 	if runID == "" {
 		runID = run.NewID()
 	}
-	wf, err := o.GetWorkflow(workflow.ID(wid))
+	wf, err := o.GetWorkflow(ctx, workflow.ID(wid))
 	if err != nil {
 		return err
 	}
@@ -396,9 +396,9 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 
 // SaveWorkflow creates a new workflow if the workflow id is empty, or updates
 // an existing workflow in the workflow Store
-func (o *Orchestrator) SaveWorkflow(wf *workflow.Workflow) (*workflow.Workflow, error) {
+func (o *Orchestrator) SaveWorkflow(ctx context.Context, wf *workflow.Workflow) (*workflow.Workflow, error) {
 	if wf.ID != "" {
-		fetchedWF, err := o.workflows.Get(wf.ID)
+		fetchedWF, err := o.workflows.Get(ctx, wf.ID)
 		if errors.Is(err, workflow.ErrNotFound) {
 			return nil, fmt.Errorf("SaveWorkflow error: workflow %q, %w", wf.ID, err)
 		}
@@ -438,7 +438,7 @@ func (o *Orchestrator) SaveWorkflow(wf *workflow.Workflow) (*workflow.Workflow, 
 		wf.Created = NowFunc()
 	}
 
-	wf, err := o.workflows.Put(wf)
+	wf, err := o.workflows.Put(ctx, wf)
 	if err != nil {
 		return nil, err
 	}
@@ -447,18 +447,18 @@ func (o *Orchestrator) SaveWorkflow(wf *workflow.Workflow) (*workflow.Workflow, 
 }
 
 // GetWorkflow fetches an existing workflow from the WorkflowStore
-func (o *Orchestrator) GetWorkflow(id workflow.ID) (*workflow.Workflow, error) {
-	return o.workflows.Get(id)
+func (o *Orchestrator) GetWorkflow(ctx context.Context, id workflow.ID) (*workflow.Workflow, error) {
+	return o.workflows.Get(ctx, id)
 }
 
 // RemoveWorkflow removes a workflow form the workflow.Store
-func (o *Orchestrator) RemoveWorkflow(id workflow.ID) error {
-	wf, err := o.workflows.Get(id)
+func (o *Orchestrator) RemoveWorkflow(ctx context.Context, id workflow.ID) error {
+	wf, err := o.workflows.Get(ctx, id)
 	if err != nil {
 		return err
 	}
 	wf.Triggers = []map[string]interface{}{}
-	if err := o.workflows.Remove(id); err != nil {
+	if err := o.workflows.Remove(ctx, id); err != nil {
 		return err
 	}
 	go o.updateListeners(wf)
