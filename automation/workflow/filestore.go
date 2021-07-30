@@ -98,7 +98,7 @@ func (s *fileStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Wor
 }
 
 // GetWorkflowByDatasetID gets a workflow with the corresponding datasetID field
-func (s *fileStore) GetByDatasetID(datasetID string) (*Workflow, error) {
+func (s *fileStore) GetByDatasetID(ctx context.Context, datasetID string) (*Workflow, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -111,7 +111,7 @@ func (s *fileStore) GetByDatasetID(datasetID string) (*Workflow, error) {
 }
 
 // GetWorkflow gets workflow details from the store by dataset identifier
-func (s *fileStore) Get(id ID) (*Workflow, error) {
+func (s *fileStore) Get(ctx context.Context, id ID) (*Workflow, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -125,13 +125,13 @@ func (s *fileStore) Get(id ID) (*Workflow, error) {
 
 // PutWorkflow places a workflow in the store. If the workflow name matches the name of a workflow
 // that already exists, it will be overwritten with the new workflow
-func (s *fileStore) Put(wf *Workflow) (*Workflow, error) {
+func (s *fileStore) Put(ctx context.Context, wf *Workflow) (*Workflow, error) {
 	if wf == nil {
 		return nil, ErrNilWorkflow
 	}
 	w := wf.Copy()
 	if wf.ID == "" {
-		if _, err := s.GetByDatasetID(w.DatasetID); !errors.Is(err, ErrNotFound) {
+		if _, err := s.GetByDatasetID(ctx, w.DatasetID); !errors.Is(err, ErrNotFound) {
 			return nil, ErrWorkflowForDatasetExists
 		}
 		w.ID = NewID()
@@ -148,7 +148,7 @@ func (s *fileStore) Put(wf *Workflow) (*Workflow, error) {
 
 // DeleteWorkflow removes a workflow from the store by name. deleting a non-existent workflow
 // won't return an error
-func (s *fileStore) Remove(id ID) error {
+func (s *fileStore) Remove(ctx context.Context, id ID) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if removed := s.workflows.Remove(id); removed {
@@ -158,7 +158,7 @@ func (s *fileStore) Remove(id ID) error {
 }
 
 // Shutdown writes the set of workflows to the filestore
-func (s *fileStore) Shutdown() error {
+func (s *fileStore) Shutdown(ctx context.Context) error {
 	return s.writeToFile()
 }
 

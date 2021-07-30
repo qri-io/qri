@@ -153,7 +153,7 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 	log.Debugw("deploy", "dataset name", p.Dataset.Name, "peername", p.Dataset.Peername, "workflow id", p.Workflow.ID)
 	if p.Workflow.ID != "" {
-		wf, err := scope.AutomationOrchestrator().GetWorkflow(p.Workflow.ID)
+		wf, err := scope.AutomationOrchestrator().GetWorkflow(scope.Context(), p.Workflow.ID)
 		if err != nil {
 			return fmt.Errorf("deploy: %w", err)
 		}
@@ -254,7 +254,7 @@ func deploy(s scope, p *DeployParams) {
 		}
 	}()
 
-	wf, err = scope.AutomationOrchestrator().SaveWorkflow(wf)
+	wf, err = scope.AutomationOrchestrator().SaveWorkflow(scope.Context(), wf)
 	if err != nil {
 		log.Debugw("deploy save workflow", "error", err)
 		deployPayload.Error = err.Error()
