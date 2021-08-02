@@ -91,6 +91,7 @@ type InstanceOptions struct {
 	collectionSet           collection.Set
 	tokenProvider           token.Provider
 	logAll                  bool
+	automation              *automation.Orchestrator
 
 	remoteMockClient bool
 	// use OptRemoteOptions to set this
@@ -291,6 +292,14 @@ func OptTokenProvider(t token.Provider) Option {
 	}
 }
 
+// OptOrchestrator provides an orchestrator implementation
+func OptOrchestrator(a *automation.Orchestrator) Option {
+	return func(o *InstanceOptions) error {
+		o.automation = a
+		return nil
+	}
+}
+
 // OptLogbook overrides the configured logbook with a manually provided one
 func OptLogbook(bk *logbook.Book) Option {
 	return func(o *InstanceOptions) error {
@@ -431,6 +440,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		keystore:      o.keyStore,
 		tokenProvider: o.tokenProvider,
 		dscache:       o.dscache,
+		automation:    o.automation,
 		profiles:      o.profiles,
 		bus:           o.bus,
 		appCtx:        ctx,
@@ -613,12 +623,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			inst.remoteOptsFuncs = o.remoteOptsFuncs
 		}
 	}
-	runFactory := func(ctx context.Context) automation.Run {
-		return inst.run
-	}
-	applyFactory := func(ctx context.Context) automation.Apply {
-		return inst.apply
-	}
 
 	if o.collectionSet == nil && inst.repo != nil {
 		inst.collectionSet, err = collection.NewLocalSet(ctx, inst.bus, repoPath, func(o *collection.LocalSetOptions) {
@@ -629,14 +633,26 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
-	// basic orchestrator options. When we get the automation configuration settled
-	// we will build a more robust solution
-	orchestratorOpts, err := automation.DefaultOrchestratorOptions(inst.bus, inst.repoPath)
-	if err != nil {
-		return nil, err
+	if o.automation == nil {
+		runFactory := func(ctx context.Context) automation.Run {
+			return inst.run
+		}
+		applyFactory := func(ctx context.Context) automation.Apply {
+			return inst.apply
+		}
+		// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
+		// basic orchestrator options. When we get the automation configuration settled
+		// we will build a more robust solution
+		orchestratorOpts, err := automation.DefaultOrchestratorOptions(inst.bus, inst.repoPath)
+		if err != nil {
+			return nil, err
+		}
+		inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, orchestratorOpts)
+		if err != nil {
+			return nil, err
+		}
 	}
-	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, orchestratorOpts)
+
 	go inst.waitForAllDone()
 	go func() {
 		if err := inst.bus.Publish(ctx, event.ETInstanceConstructed, nil); err != nil {
