@@ -108,12 +108,3 @@ func IDB58MustDecode(proid string) ID {
 	}
 	return ID(pid)
 }
-
-// NewB58ID creates a peer.ID from a base58 encoded string
-// DEPRECATED: This function is confusing, its name implies that it is returning
-// a base58 string, but actually it takes a base58 string and decodes it.
-// Call IDB58Decode instead.
-func NewB58ID(pid string) (ID, error) {
-	id, err := peer.IDB58Decode(pid)
-	return ID(id), err
-}

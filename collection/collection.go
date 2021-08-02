@@ -328,7 +328,7 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 	switch e.Type {
 	case event.ETDatasetNameInit:
 		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
-			pid, err := profile.NewB58ID(vi.ProfileID)
+			pid, err := profile.IDB58Decode(vi.ProfileID)
 			if err != nil {
 				log.Debugw("parsing profile ID in name init", "err", err)
 				return err

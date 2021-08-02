@@ -111,6 +111,8 @@ func TestInvalidIDFails(t *testing.T) {
 	}
 	wc := c.(collection.WritableSet)
 
+	// Construct an invalid profileID (it's base58 encoded), which
+	// should result in an error
 	info := dsref.VersionInfo{
 		ProfileID:  myPid,
 		InitID:     "some_init_id",
@@ -118,8 +120,13 @@ func TestInvalidIDFails(t *testing.T) {
 		Name:       "my_ds",
 		CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
-	if err = wc.Put(ctx, myPid, info); err != nil {
-		t.Error(err)
+	err = wc.Put(ctx, myPid, info)
+	if err == nil {
+		t.Fatal("expected to get an error, did not get one")
+	}
+	expectErr := `profile.ID invalid, was double encoded as "9tmzz8FC9hjBrY1J9NFFt4gjAzGZWCGrKwB4pcdwuSHC7Y4Y7oPPAkrV48ryPYu". do not pass a base64 encoded string, instead use IDB58Decode(b64encodedID)`
+	if expectErr != err.Error() {
+		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
 	}
 }
 

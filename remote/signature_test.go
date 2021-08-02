@@ -15,7 +15,7 @@ func TestVerifySigParams(t *testing.T) {
 		t.Errorf(err.Error())
 		return
 	}
-	profileID, err := profile.NewB58ID(pid)
+	profileID, err := profile.IDB58Decode(pid)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
