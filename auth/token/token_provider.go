@@ -159,12 +159,12 @@ func (p *LocalProvider) Token(ctx context.Context, req *Request) (*Response, err
 			log.Debugf("token.Provider private key is nil")
 			return nil, ErrInvalidCredentials
 		}
-		accessToken, err := NewPrivKeyAuthToken(pro.PrivKey, pro.ID.String(), AccessTokenTTL)
+		accessToken, err := NewPrivKeyAuthToken(pro.PrivKey, pro.ID.Encode(), AccessTokenTTL)
 		if err != nil {
 			log.Debugf("token.Provider failed to generate access token: %q", err.Error())
 			return nil, ErrInvalidRequest
 		}
-		refreshToken, err := NewPrivKeyAuthToken(pro.PrivKey, pro.ID.String(), RefreshTokenTTL)
+		refreshToken, err := NewPrivKeyAuthToken(pro.PrivKey, pro.ID.Encode(), RefreshTokenTTL)
 		if err != nil {
 			log.Debugf("token.Provider failed to generate refresh token: %q", err.Error())
 			return nil, ErrInvalidRequest
@@ -192,7 +192,7 @@ func (p *LocalProvider) Token(ctx context.Context, req *Request) (*Response, err
 				log.Debugf("token.Provider profile not found")
 				return nil, ErrNotFound
 			}
-			accessToken, err := NewPrivKeyAuthToken(pro.PrivKey, pro.ID.String(), AccessTokenTTL)
+			accessToken, err := NewPrivKeyAuthToken(pro.PrivKey, pro.ID.Encode(), AccessTokenTTL)
 			if err != nil {
 				log.Debugf("token.Provider failed to generate access token: %q", err.Error())
 				return nil, ErrInvalidRequest

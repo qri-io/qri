@@ -184,7 +184,7 @@ func ListDatasets(ctx context.Context, r repo.Repo, term, profileID string, offs
 			}
 		}
 		if profileID != "" {
-			if profileID != ref.ProfileID.String() {
+			if profileID != ref.ProfileID.Encode() {
 				continue
 			}
 		}

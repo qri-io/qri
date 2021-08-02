@@ -198,8 +198,8 @@ func (a *pkSource) CreateToken(pro *profile.Profile, ttl time.Duration) (string,
 	// set our claims
 	claims := &Claims{
 		StandardClaims: &jwt.StandardClaims{
-			Subject: pro.ID.String(),
-			Issuer:  pro.ID.String(),
+			Subject: pro.ID.Encode(),
+			Issuer:  pro.ID.Encode(),
 		},
 		ClientType: UserClient,
 	}

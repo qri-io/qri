@@ -99,13 +99,13 @@ func (pol Policy) Enforce(subject *profile.Profile, resource, action string) err
 
 	for _, rule := range pol {
 		log.Debugf("rule=%q effect=%q subject=%t resources=%t actions=%t", rule.Title, rule.Effect,
-			(rule.Subject == subject.ID.String() || rule.Subject == matchAll),
+			(rule.Subject == subject.ID.Encode() || rule.Subject == matchAll),
 			rule.Resources.Contains(rsc, subject.Peername),
 			rule.Actions.Contains(act),
 		)
 
 		if rule.Effect == EffectAllow &&
-			(rule.Subject == subject.ID.String() || rule.Subject == matchAll) &&
+			(rule.Subject == subject.ID.Encode() || rule.Subject == matchAll) &&
 			rule.Resources.Contains(rsc, subject.Peername) &&
 			rule.Actions.Contains(act) {
 			log.Debugf("matched rule title=%q", rule.Title)

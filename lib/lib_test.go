@@ -284,7 +284,7 @@ func TestNewInstanceWithAccessControlPolicy(t *testing.T) {
 		{
 			"title": "pull foo:bar dataset",
 			"effect": "allow",
-			"subject": "` + proID.String() + `",
+			"subject": "` + proID.Encode() + `",
 			"resources": [
 				"dataset:foo:bar"
 			],
@@ -349,7 +349,7 @@ func TestNewInstanceWithCollectionOption(t *testing.T) {
 			InitID:    "init_id",
 			Username:  kermit.Peername,
 			Name:      "dataset",
-			ProfileID: kermit.ID.String(),
+			ProfileID: kermit.ID.Encode(),
 		},
 	}
 

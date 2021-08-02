@@ -127,9 +127,13 @@ func (s *localSet) List(ctx context.Context, pid profile.ID, lp params.List) ([]
 	s.Lock()
 	defer s.Unlock()
 
+	if err := pid.Validate(); err != nil {
+		return nil, err
+	}
+
 	col, ok := s.collections[pid]
 	if !ok {
-		return nil, fmt.Errorf("%w: no collection for profile ID %q", ErrNotFound, pid.String())
+		return nil, fmt.Errorf("%w: no collection for profile ID %q", ErrNotFound, pid.Encode())
 	}
 
 	if lp.Limit < 0 {
@@ -156,6 +160,10 @@ func (s *localSet) List(ctx context.Context, pid profile.ID, lp params.List) ([]
 func (s *localSet) Put(ctx context.Context, pid profile.ID, items ...dsref.VersionInfo) error {
 	s.Lock()
 	defer s.Unlock()
+
+	if err := pid.Validate(); err != nil {
+		return err
+	}
 
 	for _, item := range items {
 		if err := s.putOne(pid, item); err != nil {
@@ -197,6 +205,10 @@ func (s *localSet) putOne(pid profile.ID, item dsref.VersionInfo) error {
 func (s *localSet) Delete(ctx context.Context, pid profile.ID, initID ...string) error {
 	s.Lock()
 	defer s.Unlock()
+
+	if err := pid.Validate(); err != nil {
+		return err
+	}
 
 	col, ok := s.collections[pid]
 	if !ok {
@@ -284,7 +296,7 @@ func (s *localSet) saveProfileCollection(pid profile.ID) error {
 		return fmt.Errorf("serializing user collection: %w", err)
 	}
 
-	path := filepath.Join(s.basePath, fmt.Sprintf("%s.json", pid.String()))
+	path := filepath.Join(s.basePath, fmt.Sprintf("%s.json", pid.Encode()))
 	return ioutil.WriteFile(path, data, 0644)
 }
 

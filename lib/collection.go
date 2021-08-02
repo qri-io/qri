@@ -117,7 +117,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 	}
 
 	reqProfile := scope.Repo().Profiles().Owner()
-	listProfile, err := getProfile(scope.Context(), scope.Repo().Profiles(), reqProfile.ID.String(), p.Username)
+	listProfile, err := getProfile(scope.Context(), scope.Repo().Profiles(), reqProfile.ID.Encode(), p.Username)
 	if err != nil {
 		return nil, err
 	}

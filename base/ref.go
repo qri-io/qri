@@ -16,7 +16,7 @@ import (
 // already resolved
 func InLocalNamespace(ctx context.Context, r repo.Repo, ref dsref.Ref) bool {
 	p := r.Profiles().Owner()
-	return p.ID.String() == ref.ProfileID
+	return p.ID.Encode() == ref.ProfileID
 }
 
 // SetPublishStatus updates the Published field of a dataset ref

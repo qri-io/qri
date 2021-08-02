@@ -28,7 +28,7 @@ func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, refs []repo
 
 	userProfileList := make([]userProfilePair, 0, len(profileList))
 	for id, pro := range profileList {
-		pair := userProfilePair{Username: pro.Peername, ProfileID: id.String()}
+		pair := userProfilePair{Username: pro.Peername, ProfileID: id.Encode()}
 		userProfileList = append(userProfileList, pair)
 	}
 
@@ -179,7 +179,7 @@ func convertLogbookAndRefs(ctx context.Context, book *logbook.Book, dsrefs []rep
 		}
 		missingInfoList = append(missingInfoList, &entryInfo{
 			VersionInfo: dsref.VersionInfo{
-				ProfileID: ref.ProfileID.String(),
+				ProfileID: ref.ProfileID.Encode(),
 				Name:      ref.Name,
 				Path:      ref.Path,
 				FSIPath:   ref.FSIPath,
@@ -274,7 +274,7 @@ func findMatchingInfo(ref reporef.DatasetRef, entryInfoList []*entryInfo) *entry
 		// but name is mutable and can be modified at any time. It should not be used as a
 		// primary key, only as for pretty display. We should be using initID everywhere instead,
 		// but dsrefs does not store the initID, which is the whole reason it is going away.
-		if ref.ProfileID.String() == info.ProfileID && ref.Name == info.Name {
+		if ref.ProfileID.Encode() == info.ProfileID && ref.Name == info.Name {
 			return info
 		}
 	}

@@ -11,7 +11,7 @@ import (
 func ConvertToVersionInfo(r *DatasetRef) dsref.VersionInfo {
 	build := dsref.VersionInfo{
 		Username:  r.Peername,
-		ProfileID: r.ProfileID.String(),
+		ProfileID: r.ProfileID.Encode(),
 		Name:      r.Name,
 		Path:      r.Path,
 	}
@@ -53,7 +53,7 @@ func ConvertToDsref(ref DatasetRef) dsref.Ref {
 	return dsref.Ref{
 		Username:  ref.Peername,
 		Name:      ref.Name,
-		ProfileID: ref.ProfileID.String(),
+		ProfileID: ref.ProfileID.Encode(),
 		Path:      ref.Path,
 	}
 }

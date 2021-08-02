@@ -49,7 +49,7 @@ func (r DatasetRef) DebugString() string {
 	builder.WriteString("{peername:")
 	builder.WriteString(r.Peername)
 	builder.WriteString(",profileID:")
-	builder.WriteString(r.ProfileID.String())
+	builder.WriteString(r.ProfileID.Encode())
 	builder.WriteString(",name:")
 	builder.WriteString(r.Name)
 	if r.Path != "" {
@@ -73,11 +73,11 @@ func (r DatasetRef) DebugString() string {
 // Absolute implements the same thing as String(), but append ProfileID if it exist
 func (r DatasetRef) Absolute() (s string) {
 	s = r.AliasString()
-	if r.ProfileID.String() != "" || r.Path != "" {
+	if r.ProfileID.Encode() != "" || r.Path != "" {
 		s += "@"
 	}
-	if r.ProfileID.String() != "" {
-		s += r.ProfileID.String()
+	if r.ProfileID.Encode() != "" {
+		s += r.ProfileID.Encode()
 	}
 	if r.Path != "" {
 		s += r.Path

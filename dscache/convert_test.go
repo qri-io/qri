@@ -26,22 +26,22 @@ func TestBuildDscacheFlatbuffer(t *testing.T) {
 	userList := []userProfilePair{
 		{
 			Username:  "test_zero",
-			ProfileID: pid0.String(),
+			ProfileID: pid0.Encode(),
 		},
 		{
 			Username:  "test_one",
-			ProfileID: pid1.String(),
+			ProfileID: pid1.Encode(),
 		},
 		{
 			Username:  "test_two",
-			ProfileID: pid2.String(),
+			ProfileID: pid2.Encode(),
 		},
 	}
 	entryInfoList := []*entryInfo{
 		&entryInfo{
 			VersionInfo: dsref.VersionInfo{
 				InitID:    "ds_init_id_0000",
-				ProfileID: pid1.String(),
+				ProfileID: pid1.Encode(),
 				Name:      "my_ds",
 				Path:      "/ipfs/QmExampleFirst",
 			},
@@ -49,7 +49,7 @@ func TestBuildDscacheFlatbuffer(t *testing.T) {
 		&entryInfo{
 			VersionInfo: dsref.VersionInfo{
 				InitID:    "ds_init_id_0001",
-				ProfileID: pid1.String(),
+				ProfileID: pid1.Encode(),
 				Name:      "another_ds",
 				Path:      "/ipfs/QmExampleSecond",
 			},
@@ -57,7 +57,7 @@ func TestBuildDscacheFlatbuffer(t *testing.T) {
 		&entryInfo{
 			VersionInfo: dsref.VersionInfo{
 				InitID:    "ds_init_id_0002",
-				ProfileID: pid1.String(),
+				ProfileID: pid1.Encode(),
 				Name:      "checked_out_ds",
 				Path:      "/ipfs/QmExampleThird",
 				FSIPath:   "/path/to/workspace/checked_out_ds",
@@ -66,7 +66,7 @@ func TestBuildDscacheFlatbuffer(t *testing.T) {
 		&entryInfo{
 			VersionInfo: dsref.VersionInfo{
 				InitID:    "ds_init_id_0003",
-				ProfileID: pid2.String(),
+				ProfileID: pid2.Encode(),
 				Name:      "foreign_ds",
 				Path:      "/ipfs/QmExampleFourth",
 			},

@@ -61,7 +61,7 @@ func TestDscacheAssignSaveAndLoad(t *testing.T) {
 
 	// Construct a dscache, will not save without a filename
 	builder := NewBuilder()
-	builder.AddUser(peername, profile.IDFromPeerID(keyData.PeerID).String())
+	builder.AddUser(peername, profile.IDFromPeerID(keyData.PeerID).Encode())
 	builder.AddDsVersionInfo(dsref.VersionInfo{InitID: "abcd1"})
 	builder.AddDsVersionInfo(dsref.VersionInfo{InitID: "efgh2"})
 	constructed := builder.Build()

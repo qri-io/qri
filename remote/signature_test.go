@@ -24,7 +24,7 @@ func TestVerifySigParams(t *testing.T) {
 		Path:      "foo",
 		Username:  "bar",
 		Name:      "baz",
-		ProfileID: profileID.String(),
+		ProfileID: profileID.Encode(),
 	}
 	sigParams, err := sigParams(kd0.PrivKey, "bar", ref)
 	if err != nil {

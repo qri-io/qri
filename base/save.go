@@ -155,7 +155,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 		// should be ok to skip this error. we may not have the previous
 		// reference locally
 		repo.DeleteVersionInfoShim(ctx, r, dsref.Ref{
-			ProfileID: pro.ID.String(),
+			ProfileID: pro.ID.Encode(),
 			Username:  pro.Peername,
 			Name:      dsName,
 			Path:      ds.PreviousPath,
@@ -167,7 +167,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 	if err != nil {
 		return nil, err
 	}
-	ds.ProfileID = pro.ID.String()
+	ds.ProfileID = pro.ID.Encode()
 	ds.Name = dsName
 	ds.Peername = pro.Peername
 	ds.Path = path
@@ -310,7 +310,7 @@ func InferValues(pro *profile.Profile, ds *dataset.Dataset) error {
 	}
 	// NOTE: add author ProfileID here to keep the dataset package agnostic to
 	// all identity stuff except keypair crypto
-	ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
+	ds.Commit.Author = &dataset.User{ID: pro.ID.Encode()}
 
 	// add any missing structure fields
 	if err := detect.Structure(ds); err != nil && !errors.Is(err, dataset.ErrNoBody) {

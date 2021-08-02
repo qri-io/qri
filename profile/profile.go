@@ -156,7 +156,7 @@ func (p Profile) Encode() (*config.ProfilePod, error) {
 		addrs = append(addrs, maddr.String())
 	}
 	pp := &config.ProfilePod{
-		ID:           p.ID.String(),
+		ID:           p.ID.Encode(),
 		Type:         p.Type.String(),
 		Peername:     p.Peername,
 		Created:      p.Created,

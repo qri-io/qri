@@ -209,7 +209,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	if ds.Commit != nil {
 		// NOTE: add author ProfileID here to keep the dataset package agnostic to
 		// all identity stuff except keypair crypto
-		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
+		ds.Commit.Author = &dataset.User{ID: pro.ID.Encode()}
 	}
 
 	sw := dsfs.SaveSwitches{Pin: true, ShouldRender: true}
@@ -241,7 +241,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	}
 
 	// TODO (b5): confirm these assignments happen in dsfs.CreateDataset with tests
-	ds.ProfileID = pro.ID.String()
+	ds.ProfileID = pro.ID.Encode()
 	ds.Peername = pro.Peername
 	ds.Path = path
 
