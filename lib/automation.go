@@ -148,7 +148,7 @@ func (m AutomationMethods) Workflow(ctx context.Context, p *WorkflowParams) (*wo
 
 // Remove removes a workflow
 func (m AutomationMethods) Remove(ctx context.Context, p *WorkflowParams) error {
-	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "workflow"), p)
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "remove"), p)
 	return dispatchReturnError(nil, err)
 }
 
@@ -332,13 +332,13 @@ func (automationImpl) Workflow(scope scope, p *WorkflowParams) (*workflow.Workfl
 func (automationImpl) Remove(scope scope, p *WorkflowParams) error {
 	id := workflow.ID(p.WorkflowID)
 	if p.WorkflowID == "" {
-		wf, err := scope.AutomationOrchestrator().GetWorkflowByDatasetID(p.DatasetID)
+		wf, err := scope.AutomationOrchestrator().GetWorkflowByInitID(scope.Context(), p.InitID)
 		if err != nil {
 			return err
 		}
 		id = wf.ID
 	}
-	return scope.AutomationOrchestrator().RemoveWorkflow(id)
+	return scope.AutomationOrchestrator().RemoveWorkflow(scope.Context(), id)
 }
 
 func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {

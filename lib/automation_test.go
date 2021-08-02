@@ -3,13 +3,16 @@ package lib
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/event"
 )
 
@@ -88,7 +91,7 @@ func TestApplyTransformValidationFailure(t *testing.T) {
 	}
 }
 
-func TestDeploy(t *testing.T) {
+func TestAutomation(t *testing.T) {
 	tr := newTestRunner(t)
 	bodyFile := qfs.NewMemfileBytes("body.csv", []byte("1,2,3\n4,5,6"))
 	ds := &dataset.Dataset{
@@ -142,6 +145,8 @@ def transform(ds,ctx):
 			if !ok {
 				deployEnded <- "event.ETAutomationDeployEnd payload not of type event.DeployEvent"
 			}
+			wf.ID = workflow.ID(payload.WorkflowID)
+			wf.InitID = payload.InitID
 			deployEnded <- payload.Error
 		}
 		return nil
@@ -161,5 +166,77 @@ def transform(ds,ctx):
 	errMsg := <-done
 	if errMsg != "" {
 		t.Errorf(errMsg)
+	}
+
+	if wf.WorkflowID() == "" {
+		t.Fatal("expected workflow ID in deploy event payload")
+	}
+	if wf.InitID == "" {
+		t.Fatal("expected dataset ID in deploy event payload")
+	}
+
+	expectWF := wf.Copy()
+	expectWF.Triggers = []map[string]interface{}{}
+
+	gotWF, err := tr.Instance.WithSource("local").Automation().Workflow(tr.Ctx, &WorkflowParams{WorkflowID: wf.WorkflowID()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectWF.Created = gotWF.Created
+	if diff := cmp.Diff(expectWF, gotWF); diff != "" {
+		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
+	}
+
+	gotWF, err = tr.Instance.WithSource("local").Automation().Workflow(tr.Ctx, &WorkflowParams{InitID: wf.InitID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(expectWF, gotWF); diff != "" {
+		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
+	}
+
+	gotEvent := event.WorkflowStoppedEvent{}
+	runEnded := make(chan string)
+	handleRun := func(ctx context.Context, e event.Event) error {
+		if e.Type == event.ETAutomationWorkflowStopped {
+			ok := false
+			gotEvent, ok = e.Payload.(event.WorkflowStoppedEvent)
+			if !ok {
+				runEnded <- "event.ETAutomationDeployEnd payload not of type event.DeployEvent"
+				return nil
+			}
+			runEnded <- ""
+		}
+		return nil
+	}
+	runID := "test_run_id"
+	bus.SubscribeTypes(handleRun, event.ETAutomationWorkflowStopped)
+	expectEvent := event.WorkflowStoppedEvent{
+		InitID:     wf.InitID,
+		OwnerID:    wf.OwnerID,
+		WorkflowID: wf.WorkflowID(),
+		RunID:      runID,
+		Status:     string(run.RSSucceeded),
+	}
+	gotID, err := tr.Instance.WithSource("local").Automation().Run(tr.Ctx, &RunParams{WorkflowID: wf.WorkflowID(), RunID: runID})
+	if !errors.Is(err, dsfs.ErrNoChanges) {
+		t.Fatal(err)
+	}
+	if gotID != runID {
+		t.Errorf("runID mismatch, expected %s, got %s", runID, gotID)
+	}
+	errMsg = <-runEnded
+	if errMsg != "" {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(expectEvent, gotEvent); diff != "" {
+		t.Errorf("workflow event mismatch (-want +got):\n%s", diff)
+	}
+
+	if err := tr.Instance.WithSource("local").Automation().Remove(tr.Ctx, &WorkflowParams{WorkflowID: wf.WorkflowID()}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tr.Instance.WithSource("local").Automation().Workflow(tr.Ctx, &WorkflowParams{WorkflowID: wf.WorkflowID()}); !errors.Is(err, workflow.ErrNotFound) {
+		t.Fatalf("error mismatch: expected %q, got %q", workflow.ErrNotFound, err)
 	}
 }
