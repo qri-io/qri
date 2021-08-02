@@ -35,6 +35,7 @@ func (m AutomationMethods) Attributes() map[string]AttributeSet {
 		"deploy":   {Endpoint: qhttp.AEDeploy, HTTPVerb: "POST"},
 		"run":      {Endpoint: qhttp.AERun, HTTPVerb: "POST"},
 		"workflow": {Endpoint: qhttp.AEWorkflow, HTTPVerb: "POST"},
+		"remove":   {Endpoint: qhttp.AERemoveWorkflow, HTTPVerb: "POST"},
 	}
 }
 
@@ -143,6 +144,12 @@ func (m AutomationMethods) Workflow(ctx context.Context, p *WorkflowParams) (*wo
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
+}
+
+// Remove removes a workflow
+func (m AutomationMethods) Remove(ctx context.Context, p *WorkflowParams) error {
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "workflow"), p)
+	return dispatchReturnError(nil, err)
 }
 
 // Implementations for automation methods follow
@@ -319,6 +326,19 @@ func (automationImpl) Workflow(scope scope, p *WorkflowParams) (*workflow.Workfl
 		return scope.AutomationOrchestrator().GetWorkflow(scope.Context(), workflow.ID(p.WorkflowID))
 	}
 	return scope.AutomationOrchestrator().GetWorkflowByInitID(scope.Context(), p.InitID)
+}
+
+// Remove removes a workflow by the workflow or dataset id
+func (automationImpl) Remove(scope scope, p *WorkflowParams) error {
+	id := workflow.ID(p.WorkflowID)
+	if p.WorkflowID == "" {
+		wf, err := scope.AutomationOrchestrator().GetWorkflowByDatasetID(p.DatasetID)
+		if err != nil {
+			return err
+		}
+		id = wf.ID
+	}
+	return scope.AutomationOrchestrator().RemoveWorkflow(id)
 }
 
 func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
