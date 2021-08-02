@@ -376,43 +376,43 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 
 	case event.ETAutomationDeployStart:
 		if evt, ok := e.Payload.(event.DeployEvent); ok {
-			err := s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+			err := s.updateOneAcrossAllCollections(evt.InitID, func(vi *dsref.VersionInfo) {
 				vi.WorkflowID = evt.WorkflowID
 			})
 			if err != nil {
-				log.Debugw("updating dataset across all collections", "DatasetID", evt.DatasetID, "err", err)
+				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
 			}
 		}
 	case event.ETAutomationDeployEnd:
 		if evt, ok := e.Payload.(event.DeployEvent); ok {
-			err := s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+			err := s.updateOneAcrossAllCollections(evt.InitID, func(vi *dsref.VersionInfo) {
 				vi.WorkflowID = evt.WorkflowID
 				if evt.Error != "" {
 					vi.WorkflowID = ""
 				}
 			})
 			if err != nil {
-				log.Debugw("updating dataset across all collections", "DatasetID", evt.DatasetID, "err", err)
+				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
 			}
 		}
 	case event.ETAutomationWorkflowStarted:
 		if evt, ok := e.Payload.(event.WorkflowStartedEvent); ok {
-			err := s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+			err := s.updateOneAcrossAllCollections(evt.InitID, func(vi *dsref.VersionInfo) {
 				vi.RunID = evt.RunID
 				vi.RunStatus = "running"
 			})
 			if err != nil {
-				log.Debugw("updating dataset across all collections", "DatasetID", evt.DatasetID, "err", err)
+				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
 			}
 		}
 	case event.ETAutomationWorkflowStopped:
 		if evt, ok := e.Payload.(event.WorkflowStartedEvent); ok {
-			err := s.updateOneAcrossAllCollections(evt.DatasetID, func(vi *dsref.VersionInfo) {
+			err := s.updateOneAcrossAllCollections(evt.InitID, func(vi *dsref.VersionInfo) {
 				vi.RunID = ""
 				vi.RunStatus = ""
 			})
 			if err != nil {
-				log.Debugw("updating dataset across all collections", "DatasetID", evt.DatasetID, "err", err)
+				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
 			}
 		}
 

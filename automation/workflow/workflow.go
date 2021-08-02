@@ -18,8 +18,8 @@ var (
 	ErrNilWorkflow = fmt.Errorf("nil workflow")
 	// ErrNoWorkflowID indicates the workflow is invalid because the ID field is empty
 	ErrNoWorkflowID = fmt.Errorf("invalid workflow: empty ID")
-	// ErrNoDatasetID indicates the workflow is invalid because the DatasetID field is empty
-	ErrNoDatasetID = fmt.Errorf("invalid workflow: empty DatasetID")
+	// ErrNoInitID indicates the workflow is invalid because the InitID field is empty
+	ErrNoInitID = fmt.Errorf("invalid workflow: empty InitID")
 	// ErrNoOwnerID indicates the workflow is invalid because the OwnerID field is empty
 	ErrNoOwnerID = fmt.Errorf("invalid workflow: empty OwnerID")
 	// ErrNilCreated indicates the workflow is invalid because the Created field is empty
@@ -51,13 +51,13 @@ func SetIDRand(r io.Reader) {
 
 // A Workflow associates automation with a dataset
 type Workflow struct {
-	ID        ID
-	DatasetID string
-	OwnerID   profile.ID
-	Created   *time.Time
-	Active    bool
-	Triggers  []map[string]interface{}
-	Hooks     []map[string]interface{}
+	ID       ID
+	InitID   string
+	OwnerID  profile.ID
+	Created  *time.Time
+	Active   bool
+	Triggers []map[string]interface{}
+	Hooks    []map[string]interface{}
 }
 
 // Validate errors if the workflow is not valid
@@ -68,8 +68,8 @@ func (w *Workflow) Validate() error {
 	if w.ID == "" {
 		return ErrNoWorkflowID
 	}
-	if w.DatasetID == "" {
-		return ErrNoDatasetID
+	if w.InitID == "" {
+		return ErrNoInitID
 	}
 	if w.OwnerID == "" {
 		return ErrNoOwnerID
@@ -86,13 +86,13 @@ func (w *Workflow) Copy() *Workflow {
 		return nil
 	}
 	workflow := &Workflow{
-		ID:        w.ID,
-		DatasetID: w.DatasetID,
-		OwnerID:   w.OwnerID,
-		Created:   w.Created,
-		Active:    w.Active,
-		Triggers:  w.Triggers,
-		Hooks:     w.Hooks,
+		ID:       w.ID,
+		InitID:   w.InitID,
+		OwnerID:  w.OwnerID,
+		Created:  w.Created,
+		Active:   w.Active,
+		Triggers: w.Triggers,
+		Hooks:    w.Hooks,
 	}
 	return workflow
 }

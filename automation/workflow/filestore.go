@@ -97,13 +97,13 @@ func (s *fileStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Wor
 	return deployed.Slice(start, end), nil
 }
 
-// GetWorkflowByDatasetID gets a workflow with the corresponding datasetID field
-func (s *fileStore) GetByDatasetID(ctx context.Context, datasetID string) (*Workflow, error) {
+// GetWorkflowByInitID gets a workflow with the corresponding InitID field
+func (s *fileStore) GetByInitID(ctx context.Context, initID string) (*Workflow, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	for _, workflow := range s.workflows.set {
-		if workflow.DatasetID == datasetID {
+		if workflow.InitID == initID {
 			return workflow, nil
 		}
 	}
@@ -131,7 +131,7 @@ func (s *fileStore) Put(ctx context.Context, wf *Workflow) (*Workflow, error) {
 	}
 	w := wf.Copy()
 	if wf.ID == "" {
-		if _, err := s.GetByDatasetID(ctx, w.DatasetID); !errors.Is(err, ErrNotFound) {
+		if _, err := s.GetByInitID(ctx, w.InitID); !errors.Is(err, ErrNotFound) {
 			return nil, ErrWorkflowForDatasetExists
 		}
 		w.ID = NewID()

@@ -157,8 +157,8 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 		if err != nil {
 			return fmt.Errorf("deploy: %w", err)
 		}
-		if p.Workflow.DatasetID != wf.DatasetID {
-			return fmt.Errorf("deploy: given workflow and workflow on record have different DatasetIDs")
+		if p.Workflow.InitID != wf.InitID {
+			return fmt.Errorf("deploy: given workflow and workflow on record have different InitIDs")
 		}
 		if p.Workflow.OwnerID != wf.OwnerID {
 			return fmt.Errorf("deploy: given workflow and workflow on record have different OwnerIDs")
@@ -185,7 +185,7 @@ func deploy(s scope, p *DeployParams) {
 	ref := vi.SimpleRef().String()
 	deployPayload := event.DeployEvent{
 		Ref:        ref,
-		DatasetID:  p.Dataset.ID,
+		InitID:     p.Dataset.ID,
 		WorkflowID: p.Workflow.ID.String(),
 	}
 	log.Debugw("deploy started", "payload", deployPayload)
@@ -237,7 +237,7 @@ func deploy(s scope, p *DeployParams) {
 		return
 	}
 
-	deployPayload.DatasetID = ds.ID
+	deployPayload.InitID = ds.ID
 	go func() {
 		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeploySaveDatasetEnd, ref, deployPayload); err != nil {
 			log.Debug(err)
@@ -245,7 +245,7 @@ func deploy(s scope, p *DeployParams) {
 	}()
 
 	wf := p.Workflow.Copy()
-	wf.DatasetID = ds.ID
+	wf.InitID = ds.ID
 	wf.OwnerID = scope.ActiveProfile().ID
 
 	go func() {
@@ -311,7 +311,7 @@ func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workfl
 	if err != nil {
 		return err
 	}
-	ref := &dsref.Ref{InitID: w.DatasetID}
+	ref := &dsref.Ref{InitID: w.InitID}
 	_, err = scope.ResolveReference(ctx, ref)
 	if err != nil {
 		return fmt.Errorf("run error: %w", err)
@@ -319,7 +319,7 @@ func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workfl
 	p := &SaveParams{
 		Ref: ref.Human(),
 		Dataset: &dataset.Dataset{
-			ID: w.DatasetID,
+			ID: w.InitID,
 			Commit: &dataset.Commit{
 				RunID: runID,
 			},
