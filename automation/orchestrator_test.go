@@ -33,11 +33,11 @@ func TestIntegration(t *testing.T) {
 	rttListenTest := trigger.NewEmptyRuntimeTrigger()
 	rttListenTest.SetActive(true)
 	wf := &workflow.Workflow{
-		DatasetID: "test_listeners",
-		OwnerID:   "profile_id",
-		Created:   NowFunc(),
-		Triggers:  []map[string]interface{}{rttListenTest.ToMap()},
-		Active:    true,
+		InitID:   "test_listeners",
+		OwnerID:  "profile_id",
+		Created:  NowFunc(),
+		Triggers: []map[string]interface{}{rttListenTest.ToMap()},
+		Active:   true,
 	}
 	wf, err := workflowStore.Put(ctx, wf)
 	if err != nil {
@@ -95,9 +95,9 @@ func TestIntegration(t *testing.T) {
 		return id
 	}
 	expected := &workflow.Workflow{
-		DatasetID: "dataset_id",
-		OwnerID:   "profile_id",
-		Created:   NowFunc(),
+		InitID:  "dataset_id",
+		OwnerID: "profile_id",
+		Created: NowFunc(),
 		Triggers: []map[string]interface{}{
 			map[string]interface{}{
 				"id":           triggerIDs[0],
@@ -114,8 +114,8 @@ func TestIntegration(t *testing.T) {
 	}
 
 	got, err := o.SaveWorkflow(ctx, &workflow.Workflow{
-		DatasetID: "dataset_id",
-		OwnerID:   "profile_id",
+		InitID:  "dataset_id",
+		OwnerID: "profile_id",
 		Triggers: []map[string]interface{}{
 			map[string]interface{}{"type": trigger.RuntimeType},
 			map[string]interface{}{"type": trigger.RuntimeType, "active": true},
@@ -143,13 +143,13 @@ func TestIntegration(t *testing.T) {
 	runID := "runID_1"
 	expectedWorkflowEvents := []interface{}{
 		event.WorkflowStartedEvent{
-			DatasetID:  got.DatasetID,
+			InitID:     got.InitID,
 			OwnerID:    got.OwnerID,
 			WorkflowID: got.WorkflowID(),
 			RunID:      runID,
 		},
 		event.WorkflowStoppedEvent{
-			DatasetID:  got.DatasetID,
+			InitID:     got.InitID,
 			OwnerID:    got.OwnerID,
 			WorkflowID: got.WorkflowID(),
 			RunID:      runID,
@@ -247,12 +247,12 @@ func TestIntegration(t *testing.T) {
 	}
 	expectedWorkflowEvents = []interface{}{
 		event.WorkflowStartedEvent{
-			DatasetID:  expected.DatasetID,
+			InitID:     expected.InitID,
 			OwnerID:    expected.OwnerID,
 			WorkflowID: expected.WorkflowID(),
 		},
 		event.WorkflowStoppedEvent{
-			DatasetID:  expected.DatasetID,
+			InitID:     expected.InitID,
 			OwnerID:    expected.OwnerID,
 			WorkflowID: expected.WorkflowID(),
 			Status:     string(run.RSSucceeded),
@@ -308,9 +308,9 @@ func TestRunStoreEvents(t *testing.T) {
 	runStore := run.NewMemStore()
 	workflowStore := workflow.NewMemStore()
 	wf, err := workflowStore.Put(ctx, &workflow.Workflow{
-		DatasetID: "dataset_id",
-		OwnerID:   "owner_id",
-		Created:   &time.Time{},
+		InitID:  "dataset_id",
+		OwnerID: "owner_id",
+		Created: &time.Time{},
 	})
 	if err != nil {
 		t.Fatal(err)

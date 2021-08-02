@@ -18,10 +18,10 @@ func TestWorkflowValidate(t *testing.T) {
 	}{
 		{"nil workflow", nil, ErrNilWorkflow},
 		{"no id", &Workflow{}, ErrNoWorkflowID},
-		{"no dataset id", &Workflow{ID: "test_id"}, ErrNoDatasetID},
-		{"no owner id", &Workflow{ID: "test_id", DatasetID: "dataset_id"}, ErrNoOwnerID},
-		{"no created time", &Workflow{ID: "test_id", DatasetID: "dataset_id", OwnerID: ownerID}, ErrNilCreated},
-		{"no error", &Workflow{ID: "test_id", DatasetID: "dataset_id", OwnerID: ownerID, Created: &now}, nil},
+		{"no dataset id", &Workflow{ID: "test_id"}, ErrNoInitID},
+		{"no owner id", &Workflow{ID: "test_id", InitID: "dataset_id"}, ErrNoOwnerID},
+		{"no created time", &Workflow{ID: "test_id", InitID: "dataset_id", OwnerID: ownerID}, ErrNilCreated},
+		{"no error", &Workflow{ID: "test_id", InitID: "dataset_id", OwnerID: ownerID, Created: &now}, nil},
 	}
 	for _, c := range cases {
 		got := c.workflow.Validate()
