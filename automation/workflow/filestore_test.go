@@ -43,11 +43,11 @@ func TestFileStoreIntegration(t *testing.T) {
 
 	timestamp := time.Unix(0, 123400000)
 	expectedWF1 := &workflow.Workflow{
-		ID:        "workflow1",
-		DatasetID: "dataset1",
-		OwnerID:   profile.IDB58MustDecode("QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F"),
-		Created:   &timestamp,
-		Active:    true,
+		ID:      "workflow1",
+		InitID:  "dataset1",
+		OwnerID: profile.IDB58MustDecode("QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F"),
+		Created: &timestamp,
+		Active:  true,
 		Triggers: []map[string]interface{}{
 			{"id": "trigger1"},
 		},
@@ -87,11 +87,11 @@ func TestFileStoreIntegration(t *testing.T) {
 
 	// add to it
 	expectedWF2 := &workflow.Workflow{
-		ID:        "workflow2",
-		DatasetID: "dataset2",
-		OwnerID:   profile.IDB58MustDecode("QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F"),
-		Created:   &timestamp,
-		Active:    false,
+		ID:      "workflow2",
+		InitID:  "dataset2",
+		OwnerID: profile.IDB58MustDecode("QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F"),
+		Created: &timestamp,
+		Active:  false,
 		Triggers: []map[string]interface{}{
 			{"id": "trigger2"},
 		},

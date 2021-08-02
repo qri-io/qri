@@ -21,14 +21,14 @@ type Store interface {
 	Lister
 	// Get fetches a Workflow from the Store using the workflow.ID
 	Get(ctx context.Context, wid ID) (*Workflow, error)
-	// GetByDatasetID fetches a Workflow from the Store using the dataset.ID
-	GetByDatasetID(ctx context.Context, did string) (*Workflow, error)
+	// GetByInitID fetches a Workflow from the Store using the dataset.ID
+	GetByInitID(ctx context.Context, initID string) (*Workflow, error)
 	// Remove removes a Workflow from the Store using the workflow.ID
 	Remove(ctx context.Context, id ID) error
 	// Put adds a Workflow to the Store. If there is no ID in the Workflow,
 	// Put will create a new ID, record the time in the `Created` field
 	// and put the workflow in the store, ensuring that the associated
-	// Workflow.DatasetID is unique. If there is an existing ID, Put will
+	// Workflow.InitID is unique. If there is an existing ID, Put will
 	// update the entry in the Store, if the given workflow is valid
 	Put(ctx context.Context, wf *Workflow) (*Workflow, error)
 	// Shutdown closes the store
@@ -68,7 +68,7 @@ func (m *MemStore) Put(ctx context.Context, wf *Workflow) (*Workflow, error) {
 	}
 	w := wf.Copy()
 	if w.ID == "" {
-		if _, err := m.GetByDatasetID(ctx, w.DatasetID); !errors.Is(err, ErrNotFound) {
+		if _, err := m.GetByInitID(ctx, w.InitID); !errors.Is(err, ErrNotFound) {
 			return nil, ErrWorkflowForDatasetExists
 		}
 		w.ID = NewID()
@@ -93,15 +93,15 @@ func (m *MemStore) Get(ctx context.Context, wid ID) (*Workflow, error) {
 	return wf, nil
 }
 
-// GetByDatasetID fetches a Workflow using the dataset ID
-func (m *MemStore) GetByDatasetID(ctx context.Context, did string) (*Workflow, error) {
-	if did == "" {
+// GetByInitID fetches a Workflow using the dataset ID
+func (m *MemStore) GetByInitID(ctx context.Context, initID string) (*Workflow, error) {
+	if initID == "" {
 		return nil, ErrNotFound
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, wf := range m.workflows {
-		if wf.DatasetID == did {
+		if wf.InitID == initID {
 			return wf, nil
 		}
 	}

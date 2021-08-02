@@ -23,16 +23,16 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 	workflow.SetIDRand(strings.NewReader(seedStr))
 	now := time.Now()
 
-	aliceDatasetID := "alice_dataset_id"
+	aliceInitID := "alice_dataset_id"
 	aliceProID := profile.ID("alice_pro_id")
 	aliceTrigger := map[string]interface{}{"type": trigger.RuntimeType}
 	aliceHook := map[string]interface{}{"type": hook.RuntimeType}
 	alice := &workflow.Workflow{
-		DatasetID: aliceDatasetID,
-		OwnerID:   aliceProID,
-		Created:   &now,
-		Triggers:  []map[string]interface{}{aliceTrigger},
-		Hooks:     []map[string]interface{}{aliceHook},
+		InitID:   aliceInitID,
+		OwnerID:  aliceProID,
+		Created:  &now,
+		Triggers: []map[string]interface{}{aliceTrigger},
+		Hooks:    []map[string]interface{}{aliceHook},
 	}
 	got, err := store.Put(ctx, alice)
 	if err != nil {
@@ -55,7 +55,7 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
-	got, err = store.GetByDatasetID(ctx, alice.DatasetID)
+	got, err = store.GetByInitID(ctx, alice.InitID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,20 +64,20 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 	}
 
 	// store.Put error checking
-	if _, err := store.Put(ctx, &workflow.Workflow{DatasetID: aliceDatasetID}); !errors.Is(err, workflow.ErrWorkflowForDatasetExists) {
-		t.Errorf("Put method must emit `workflow.ErrWorkflowForDatasetExists` error if a workflow for the given DatasetID already exists")
+	if _, err := store.Put(ctx, &workflow.Workflow{InitID: aliceInitID}); !errors.Is(err, workflow.ErrWorkflowForDatasetExists) {
+		t.Errorf("Put method must emit `workflow.ErrWorkflowForDatasetExists` error if a workflow for the given InitID already exists")
 	}
 
-	brittDatasetID := "britt_dataset_id"
+	brittInitID := "britt_dataset_id"
 	brittProID := profile.ID("britt_pro_id")
 	brittTrigger := map[string]interface{}{"type": trigger.RuntimeType}
 	brittHook := map[string]interface{}{"type": hook.RuntimeType}
 	britt := &workflow.Workflow{
-		DatasetID: brittDatasetID,
-		OwnerID:   brittProID,
-		Created:   &now,
-		Triggers:  []map[string]interface{}{brittTrigger},
-		Hooks:     []map[string]interface{}{brittHook},
+		InitID:   brittInitID,
+		OwnerID:  brittProID,
+		Created:  &now,
+		Triggers: []map[string]interface{}{brittTrigger},
+		Hooks:    []map[string]interface{}{brittHook},
 	}
 	got, err = store.Put(ctx, britt)
 	if err != nil {
@@ -107,13 +107,13 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 	}
 
 	aliceUpdated := &workflow.Workflow{
-		ID:        aliceID,
-		DatasetID: alice.DatasetID,
-		OwnerID:   alice.OwnerID,
-		Active:    true,
-		Created:   &now,
-		Triggers:  []map[string]interface{}{aliceTrigger, brittTrigger},
-		Hooks:     []map[string]interface{}{aliceHook, brittHook},
+		ID:       aliceID,
+		InitID:   alice.InitID,
+		OwnerID:  alice.OwnerID,
+		Active:   true,
+		Created:  &now,
+		Triggers: []map[string]interface{}{aliceTrigger, brittTrigger},
+		Hooks:    []map[string]interface{}{aliceHook, brittHook},
 	}
 	_, err = store.Put(ctx, aliceUpdated)
 	if err != nil {
@@ -164,9 +164,9 @@ func AssertWorkflowLister(t *testing.T, store workflow.Store) {
 	for i := 0; i < 10; i++ {
 		now := time.Now()
 		wf, err := store.Put(ctx, &workflow.Workflow{
-			DatasetID: fmt.Sprintf("dataset_%d", i),
-			OwnerID:   proID,
-			Created:   &now,
+			InitID:  fmt.Sprintf("dataset_%d", i),
+			OwnerID: proID,
+			Created: &now,
 		})
 		if err != nil {
 			t.Fatal(err)

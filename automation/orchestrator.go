@@ -315,7 +315,7 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 
 	go func(wf *workflow.Workflow) {
 		if err := o.bus.PublishID(ctx, event.ETAutomationWorkflowStarted, wf.ID.String(), event.WorkflowStartedEvent{
-			DatasetID:  wf.DatasetID,
+			InitID:     wf.InitID,
 			OwnerID:    wf.OwnerID,
 			WorkflowID: wf.WorkflowID(),
 			RunID:      runID,
@@ -351,7 +351,7 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 			status = string(runStatus)
 		}
 		if err := o.bus.PublishID(ctx, event.ETAutomationWorkflowStopped, wf.ID.String(), event.WorkflowStoppedEvent{
-			DatasetID:  wf.DatasetID,
+			InitID:     wf.InitID,
 			OwnerID:    wf.OwnerID,
 			WorkflowID: wf.WorkflowID(),
 			RunID:      runID,
@@ -402,8 +402,8 @@ func (o *Orchestrator) SaveWorkflow(ctx context.Context, wf *workflow.Workflow) 
 		if errors.Is(err, workflow.ErrNotFound) {
 			return nil, fmt.Errorf("SaveWorkflow error: workflow %q, %w", wf.ID, err)
 		}
-		if fetchedWF.DatasetID != wf.DatasetID {
-			return nil, fmt.Errorf("SaveWorkflow error: given workflow %q has a different DatasetID than the workflow on record", wf.ID)
+		if fetchedWF.InitID != wf.InitID {
+			return nil, fmt.Errorf("SaveWorkflow error: given workflow %q has a different InitID than the workflow on record", wf.ID)
 		}
 		if fetchedWF.OwnerID != wf.OwnerID {
 			return nil, fmt.Errorf("SaveWorkflow error: given workflow %q has a different OwnerID than the workflow on record", wf.ID)
