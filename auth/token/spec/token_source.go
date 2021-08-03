@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/profile"

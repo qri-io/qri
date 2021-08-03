@@ -5,12 +5,12 @@ go 1.15
 require (
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
 	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/flock v0.7.1
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/flatbuffers v1.12.1-0.20200706154056-969d0f7a6317
 	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.2.0
