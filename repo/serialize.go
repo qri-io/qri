@@ -63,7 +63,7 @@ func UnmarshalRefsFlatbuffer(data []byte) (ls RefList, err error) {
 // MarshalFlatbuffer writes a ref to a builder
 func MarshalFlatbuffer(r reporef.DatasetRef, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	peername := builder.CreateString(r.Peername)
-	profileID := builder.CreateString(r.ProfileID.String())
+	profileID := builder.CreateString(r.ProfileID.Encode())
 	name := builder.CreateString(r.Name)
 	path := builder.CreateString(r.Path)
 	fsiPath := builder.CreateString(r.FSIPath)

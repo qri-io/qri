@@ -149,7 +149,7 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 		d.Root.Refs(&refCache, i)
 
 		proIDStr := string(refCache.ProfileID())
-		profileID, err := profile.NewB58ID(proIDStr)
+		profileID, err := profile.IDB58Decode(proIDStr)
 		if err != nil {
 			log.Errorf("could not parse profileID %q", proIDStr)
 		}

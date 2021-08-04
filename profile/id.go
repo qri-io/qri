@@ -1,7 +1,10 @@
 package profile
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
 )
@@ -10,22 +13,43 @@ import (
 // but the mechanics of peer.ID & profile.ID are exactly the same
 type ID peer.ID
 
-// String implements the stringer interface for ID
+// String converts a profileID to a string for debugging
 func (id ID) String() string {
+	bytes := []byte(id)
+	return fmt.Sprintf("profile.ID{%s}", hex.EncodeToString(bytes))
+}
+
+// Encode converts a profileID into a base58 encoded string
+func (id ID) Encode() string {
 	return peer.ID(id).Pretty()
 }
 
-// Validate exposes the validation interface for ID
+// Empty returns whether the id is empty
+func (id ID) Empty() bool {
+	return id.Encode() == ""
+}
+
+// Validate validates the profileID, returning an error if it is invalid
 func (id ID) Validate() error {
-	return peer.ID(id).Validate()
+	if err := peer.ID(id).Validate(); err != nil {
+		return err
+	}
+	b64str := id.Encode()
+	if strings.HasPrefix(b64str, "Qm") {
+		return nil
+	}
+	if strings.HasPrefix(b64str, "9t") {
+		return fmt.Errorf("profile.ID invalid, was double encoded as %q. do not pass a base64 encoded string, instead use IDB58Decode(b64encodedID)", b64str)
+	}
+	return fmt.Errorf("profile.ID invalid, encodes to %q", b64str)
 }
 
-// MarshalJSON implements the json.Marshaler interface for ID
+// MarshalJSON encodes the ID for json marshalling
 func (id ID) MarshalJSON() ([]byte, error) {
-	return json.Marshal(id.String())
+	return json.Marshal(id.Encode())
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface for ID
+// UnmarshalJSON unmarshals an id from json
 func (id *ID) UnmarshalJSON(data []byte) (err error) {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
@@ -35,12 +59,12 @@ func (id *ID) UnmarshalJSON(data []byte) (err error) {
 	return
 }
 
-// MarshalYAML implements the yaml.Marshaler interface for ID
+// MarshalYAML encodes the ID for yaml marshalling
 func (id *ID) MarshalYAML() (interface{}, error) {
-	return id.String(), nil
+	return id.Encode(), nil
 }
 
-// UnmarshalYAML implements the yaml.Unmarshaler interface for ID
+// UnmarshalYAML unmarshals an id from yaml
 func (id *ID) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 	var str string
 	if err := unmarshal(&str); err != nil {
@@ -50,8 +74,8 @@ func (id *ID) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 	return
 }
 
-// IDRawByteString constructs an ID from a raw byte string. No decoding happens. Should only
-// be used in tests
+// IDRawByteString constructs an ID from a raw byte string. No base58 decoding happens.
+// Should only be used in tests
 func IDRawByteString(data string) ID {
 	return ID(data)
 }
@@ -61,7 +85,7 @@ func IDFromPeerID(pid peer.ID) ID {
 	return ID(pid)
 }
 
-// IDB58Decode proxies a lower level API b/c I'm lazy & don't like
+// IDB58Decode decodes a base58 string into a profile.ID
 func IDB58Decode(proid string) (ID, error) {
 	pid, err := peer.IDB58Decode(proid)
 	return ID(pid), err
@@ -83,10 +107,4 @@ func IDB58MustDecode(proid string) ID {
 		panic(proid + " " + err.Error())
 	}
 	return ID(pid)
-}
-
-// NewB58ID creates a peer.ID from a base58-encoded string
-func NewB58ID(pid string) (ID, error) {
-	id, err := peer.IDB58Decode(pid)
-	return ID(id), err
 }

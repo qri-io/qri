@@ -111,7 +111,7 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 			if err != nil {
 				return nil, nil, err
 			}
-			tokstr, err := token.NewPrivKeyAuthToken(p.PrivKey, p.ID.String(), time.Minute)
+			tokstr, err := token.NewPrivKeyAuthToken(p.PrivKey, p.ID.Encode(), time.Minute)
 			if err != nil {
 				return nil, nil, err
 			}

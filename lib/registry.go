@@ -111,7 +111,7 @@ func (registryImpl) ProveProfileKey(scope scope, p *RegistryProfileParams) error
 		return err
 	}
 
-	p.Profile.ProfileID = pro.ID.String()
+	p.Profile.ProfileID = pro.ID.Encode()
 	p.Profile.PublicKey = base64.StdEncoding.EncodeToString(pubkeybytes)
 	// TODO(dustmop): Expand the signature to sign more than just the username
 	sigbytes, err := privKey.Sign([]byte(p.Profile.Username))

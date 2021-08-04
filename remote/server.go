@@ -376,7 +376,7 @@ func (r *Server) dsPushPreCheck(ctx context.Context, info dag.Info, meta map[str
 		}
 	}
 
-	log.Debugf("pid %s pushing ref %s", pid.String(), ref.String())
+	log.Debugf("pid %s pushing ref %s", pid.Encode(), ref.String())
 
 	if r.datasetPushPreCheck != nil {
 		if err := r.datasetPushPreCheck(ctx, pid, ref); err != nil {
@@ -465,7 +465,7 @@ func (r *Server) dsGetDagInfo(ctx context.Context, into dag.Info, meta map[strin
 		return err
 	}
 	pid := subj.ID
-	log.Debugf("pid %s pulling ref %s", pid.String(), ref.String())
+	log.Debugf("pid %s pulling ref %s", pid.Encode(), ref.String())
 
 	if r.datasetPulled != nil {
 		if err = r.datasetPulled(ctx, pid, ref); err != nil {
@@ -491,7 +491,7 @@ func (r *Server) subjAndRefFromMeta(meta map[string]string) (*profile.Profile, d
 
 	pid, err := profile.IDB58Decode(meta["pid"])
 	if err == nil && ref.ProfileID == "" {
-		ref.ProfileID = pid.String()
+		ref.ProfileID = pid.Encode()
 	}
 
 	pro := &profile.Profile{

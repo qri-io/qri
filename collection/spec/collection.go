@@ -59,9 +59,9 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 			item    dsref.VersionInfo
 		}{
 			{"empty", dsref.VersionInfo{}},
-			{"no InitID", dsref.VersionInfo{ProfileID: kermit.ID.String()}},
+			{"no InitID", dsref.VersionInfo{ProfileID: kermit.ID.Encode()}},
 			{"no profileID", dsref.VersionInfo{InitID: "init_id"}},
-			{"no name", dsref.VersionInfo{InitID: "init_id", ProfileID: kermit.ID.String()}},
+			{"no name", dsref.VersionInfo{InitID: "init_id", ProfileID: kermit.ID.Encode()}},
 		}
 
 		for _, bad := range badItems {
@@ -74,14 +74,14 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 
 		err := ec.Put(ctx, kermit.ID,
 			dsref.VersionInfo{
-				ProfileID:  kermit.ID.String(),
+				ProfileID:  kermit.ID.Encode(),
 				InitID:     "muppet_names_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names",
 				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			dsref.VersionInfo{
-				ProfileID:  kermit.ID.String(),
+				ProfileID:  kermit.ID.Encode(),
 				InitID:     "muppet_names_and_ages_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names_and_ages",
@@ -95,21 +95,21 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 
 		err = ec.Put(ctx, missPiggy.ID,
 			dsref.VersionInfo{
-				ProfileID:  missPiggy.ID.String(),
+				ProfileID:  missPiggy.ID.Encode(),
 				InitID:     "secret_muppet_friends_init_id",
 				Username:   "miss_piggy",
 				Name:       "secret_muppet_friends",
 				CommitTime: time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC),
 			},
 			dsref.VersionInfo{
-				ProfileID:  missPiggy.ID.String(),
+				ProfileID:  missPiggy.ID.Encode(),
 				InitID:     "muppet_names_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names",
 				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			dsref.VersionInfo{
-				ProfileID:  missPiggy.ID.String(),
+				ProfileID:  missPiggy.ID.Encode(),
 				InitID:     "famous_muppets_init_id",
 				Username:   "famous_muppets",
 				Name:       "famous_muppets",
@@ -124,14 +124,14 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 	t.Run("list", func(t *testing.T) {
 		assertCollectionList(ctx, t, kermit, params.ListAll, ec, []dsref.VersionInfo{
 			{
-				ProfileID:  kermit.ID.String(),
+				ProfileID:  kermit.ID.Encode(),
 				InitID:     "muppet_names_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names",
 				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			{
-				ProfileID:  kermit.ID.String(),
+				ProfileID:  kermit.ID.Encode(),
 				InitID:     "muppet_names_and_ages_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names_and_ages",
@@ -141,21 +141,21 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, ec, []dsref.VersionInfo{
 			{
-				ProfileID:  missPiggy.ID.String(),
+				ProfileID:  missPiggy.ID.Encode(),
 				InitID:     "famous_muppets_init_id",
 				Username:   "famous_muppets",
 				Name:       "famous_muppets",
 				CommitTime: time.Date(2021, 1, 4, 0, 0, 0, 0, time.UTC),
 			},
 			{
-				ProfileID:  missPiggy.ID.String(),
+				ProfileID:  missPiggy.ID.Encode(),
 				InitID:     "muppet_names_init_id",
 				Username:   "kermit",
 				Name:       "muppet_names",
 				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			{
-				ProfileID:  missPiggy.ID.String(),
+				ProfileID:  missPiggy.ID.Encode(),
 				InitID:     "secret_muppet_friends_init_id",
 				Username:   "miss_piggy",
 				Name:       "secret_muppet_friends",
@@ -228,7 +228,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		// simulate name initialization, normally emitted by logbook
 		mustPublish(ctx, t, bus, event.ETDatasetNameInit, dsref.VersionInfo{
 			InitID:    muppetNamesInitID,
-			ProfileID: kermit.ID.String(),
+			ProfileID: kermit.ID.Encode(),
 			Username:  kermit.Peername,
 			Name:      muppetNamesName1,
 		})
@@ -236,7 +236,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		expect := []dsref.VersionInfo{
 			{
 				InitID:    muppetNamesInitID,
-				ProfileID: kermit.ID.String(),
+				ProfileID: kermit.ID.Encode(),
 				Username:  kermit.Peername,
 				Name:      muppetNamesName1,
 			},
@@ -246,7 +246,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		// simulate version creation, normally emitted by logbook
 		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
 			InitID:      muppetNamesInitID,
-			ProfileID:   kermit.ID.String(),
+			ProfileID:   kermit.ID.Encode(),
 			Path:        "/mem/PathToMuppetNamesVersionOne",
 			Username:    kermit.Peername,
 			Name:        muppetNamesName1,
@@ -257,7 +257,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		expect = []dsref.VersionInfo{
 			{
 				InitID:      muppetNamesInitID,
-				ProfileID:   kermit.ID.String(),
+				ProfileID:   kermit.ID.Encode(),
 				Username:    kermit.Peername,
 				Name:        muppetNamesName1,
 				NumVersions: 2,
@@ -277,7 +277,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		expect = []dsref.VersionInfo{
 			{
 				InitID:      muppetNamesInitID,
-				ProfileID:   kermit.ID.String(),
+				ProfileID:   kermit.ID.Encode(),
 				Username:    kermit.Peername,
 				Name:        muppetNamesName2,
 				NumVersions: 2,
@@ -316,7 +316,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		// mustPublish(ctx, t, bus, event.ETDatasetNameInit, event.DsChange{
 		// 	InitID:     muppetTweetsInitID,
 		// 	Username:   kermit.Peername,
-		// 	ProfileID:  kermit.ID.String(),
+		// 	ProfileID:  kermit.ID.Encode(),
 		// 	PrettyName: muppetTweetsName,
 		// 	Info: &dsref.VersionInfo{
 		// 		InitID: muppetTweetsInitID,
@@ -327,7 +327,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 			Ref: dsref.Ref{
 				InitID:    muppetTweetsInitID,
 				Username:  kermit.Peername,
-				ProfileID: kermit.ID.String(),
+				ProfileID: kermit.ID.Encode(),
 			},
 		})
 		// simulate version creation, normally emitted by logbook
@@ -335,7 +335,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 			InitID:      muppetTweetsInitID,
 			NumVersions: 2,
 			Path:        "/mem/PathToMuppetTweetsVersionOne",
-			ProfileID:   kermit.ID.String(),
+			ProfileID:   kermit.ID.Encode(),
 			Username:    kermit.Peername,
 			Name:        muppetTweetsName,
 		})
@@ -343,7 +343,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		expect := []dsref.VersionInfo{
 			{
 				InitID:      muppetTweetsInitID,
-				ProfileID:   kermit.ID.String(),
+				ProfileID:   kermit.ID.Encode(),
 				Username:    kermit.Peername,
 				Name:        muppetTweetsName,
 				NumVersions: 2,

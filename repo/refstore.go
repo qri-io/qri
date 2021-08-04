@@ -61,7 +61,7 @@ func PutVersionInfoShim(ctx context.Context, r Repo, vi *dsref.VersionInfo) erro
 	if vi.ProfileID == "" && vi.Username != "" {
 		rref := &reporef.DatasetRef{Peername: vi.Username}
 		if err := canonicalizeProfile(ctx, r, rref); err == nil {
-			vi.ProfileID = rref.ProfileID.String()
+			vi.ProfileID = rref.ProfileID.Encode()
 		}
 	}
 	return r.PutRef(reporef.RefFromVersionInfo(vi))
@@ -222,7 +222,7 @@ func canonicalizeProfile(ctx context.Context, r Repo, ref *reporef.DatasetRef) e
 				return nil
 			}
 			if ref.ProfileID != id {
-				return fmt.Errorf("Peername and ProfileID combination not valid: Peername = %s, ProfileID = %s, but was given ProfileID = %s", ref.Peername, id.String(), ref.ProfileID)
+				return fmt.Errorf("Peername and ProfileID combination not valid: Peername = %s, ProfileID = %s, but was given ProfileID = %s", ref.Peername, id.Encode(), ref.ProfileID)
 			}
 		}
 	}
@@ -233,7 +233,7 @@ func canonicalizeProfile(ctx context.Context, r Repo, ref *reporef.DatasetRef) e
 // describing any difference between the two references
 func CompareDatasetRef(a, b reporef.DatasetRef) error {
 	if a.ProfileID != b.ProfileID {
-		return fmt.Errorf("PeerID mismatch. %s != %s", a.ProfileID, b.ProfileID)
+		return fmt.Errorf("PeerID mismatch. %s != %s", a.ProfileID.Encode(), b.ProfileID.Encode())
 	}
 	if a.Peername != b.Peername {
 		return fmt.Errorf("Peername mismatch. %s != %s", a.Peername, b.Peername)

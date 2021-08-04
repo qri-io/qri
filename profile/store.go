@@ -168,7 +168,7 @@ func (m *MemStore) Active(ctx context.Context) *Profile {
 
 // PutProfile adds a peer to this store
 func (m *MemStore) PutProfile(p *Profile) error {
-	if p.ID.String() == "" {
+	if p.ID.Empty() {
 		return fmt.Errorf("profile.ID is required")
 	}
 
@@ -341,8 +341,8 @@ func (r *LocalStore) Active(ctx context.Context) *Profile {
 
 // PutProfile adds a peer to the store
 func (r *LocalStore) PutProfile(p *Profile) error {
-	log.Debugf("put profile: %s", p.ID.String())
-	if p.ID.String() == "" {
+	log.Debugf("put profile: %s", p.ID.Encode())
+	if p.ID.Empty() {
 		return fmt.Errorf("profile ID is required")
 	}
 
@@ -372,7 +372,7 @@ func (r *LocalStore) PutProfile(p *Profile) error {
 	if err != nil {
 		return err
 	}
-	ps[p.ID.String()] = enc
+	ps[p.ID.Encode()] = enc
 	return r.saveFile(ps)
 }
 
@@ -386,7 +386,7 @@ func (r *LocalStore) PeerIDs(id ID) ([]peer.ID, error) {
 		return nil, err
 	}
 
-	ids := id.String()
+	ids := id.Encode()
 
 	for proid, cp := range ps {
 		if ids == proid {
@@ -445,7 +445,7 @@ func (r *LocalStore) PeernameID(peername string) (ID, error) {
 
 // GetProfile fetches a profile from the store
 func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
-	log.Debugf("get profile: %s", id.String())
+	log.Debugf("get profile: %s", id.Encode())
 
 	r.Lock()
 	defer r.Unlock()
@@ -455,7 +455,7 @@ func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
 		return nil, err
 	}
 
-	ids := id.String()
+	ids := id.Encode()
 
 	for proid, p := range ps {
 		if ids == proid {
@@ -535,7 +535,7 @@ func (r *LocalStore) DeleteProfile(id ID) error {
 	if err != nil {
 		return err
 	}
-	delete(ps, id.String())
+	delete(ps, id.Encode())
 	return r.saveFile(ps)
 }
 

@@ -172,7 +172,7 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 }
 
 func deploy(s scope, p *DeployParams) {
-	ctx := profile.AddIDToContext(s.AppContext(), s.ActiveProfile().ID.String())
+	ctx := profile.AddIDToContext(s.AppContext(), s.ActiveProfile().ID.Encode())
 	// TODO(ramfox): we need the scope context to last longer than the context
 	// that was passed to us. We are, for now, going to rely on the app context
 	// in the future we will probably want something more sophisticated so that
@@ -306,7 +306,7 @@ func deploy(s scope, p *DeployParams) {
 }
 
 func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
-	ctxWithProfile := profile.AddIDToContext(ctx, w.OwnerID.String())
+	ctxWithProfile := profile.AddIDToContext(ctx, w.OwnerID.Encode())
 	scope, err := newScope(ctxWithProfile, inst, "local")
 	if err != nil {
 		return err
@@ -332,7 +332,7 @@ func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workfl
 }
 
 func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
-	ctxWithProfile := profile.AddIDToContext(ctx, wf.OwnerID.String())
+	ctxWithProfile := profile.AddIDToContext(ctx, wf.OwnerID.Encode())
 	scope, err := newScope(ctxWithProfile, inst, "local")
 	if err != nil {
 		return err

@@ -49,7 +49,7 @@ func TestCollectionPersistence(t *testing.T) {
 	missPiggy := profiletest.GetProfile("miss_piggy")
 
 	item1 := dsref.VersionInfo{
-		ProfileID:  kermit.ID.String(),
+		ProfileID:  kermit.ID.Encode(),
 		InitID:     "muppet_names_init_id",
 		Username:   "kermit",
 		Name:       "muppet_names",
@@ -60,7 +60,7 @@ func TestCollectionPersistence(t *testing.T) {
 	}
 
 	item2 := dsref.VersionInfo{
-		ProfileID:  missPiggy.ID.String(),
+		ProfileID:  missPiggy.ID.Encode(),
 		InitID:     "secret_muppet_friends_init_id",
 		Username:   "miss_piggy",
 		Name:       "secret_muppet_friends",
@@ -92,3 +92,41 @@ func TestCollectionPersistence(t *testing.T) {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
 }
+
+const myPid = "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
+
+func TestInvalidIDFails(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dir, err := ioutil.TempDir("", "qri_test_invalid_id_fails")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	c, err := collection.NewLocalSet(ctx, event.NilBus, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wc := c.(collection.WritableSet)
+
+	// Construct an invalid profileID (it's base58 encoded), which
+	// should result in an error
+	info := dsref.VersionInfo{
+		ProfileID:  myPid,
+		InitID:     "some_init_id",
+		Username:   "user",
+		Name:       "my_ds",
+		CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+	err = wc.Put(ctx, myPid, info)
+	if err == nil {
+		t.Fatal("expected to get an error, did not get one")
+	}
+	expectErr := `profile.ID invalid, was double encoded as "9tmzz8FC9hjBrY1J9NFFt4gjAzGZWCGrKwB4pcdwuSHC7Y4Y7oPPAkrV48ryPYu". do not pass a base64 encoded string, instead use IDB58Decode(b64encodedID)`
+	if expectErr != err.Error() {
+		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
+	}
+}
+
