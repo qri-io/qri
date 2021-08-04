@@ -15,7 +15,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	qhttp "github.com/qri-io/qri/lib/http"
-	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/transform"
 )
 
@@ -164,6 +163,9 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 			return fmt.Errorf("deploy: given workflow and workflow on record have different OwnerIDs")
 		}
 	}
+	// Because deploy runs as a background task, re-root execution context atop
+	// the application context
+	scope = scope.ReplaceParentContext(scope.AppContext())
 	// TODO(ramfox): if we decide that you can interact with the automation subsystem when
 	// qri connect is NOT running, we need a `wait` flag in DeployParams, that, when `true`,
 	// does NOT deploy in a go routine
@@ -171,16 +173,7 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 	return nil
 }
 
-func deploy(s scope, p *DeployParams) {
-	ctx := profile.AddIDToContext(s.AppContext(), s.ActiveProfile().ID.Encode())
-	// TODO(ramfox): we need the scope context to last longer than the context
-	// that was passed to us. We are, for now, going to rely on the app context
-	// in the future we will probably want something more sophisticated so that
-	// the user can cancel a deploy or run themselves
-	scope, err := newScope(ctx, s.inst, s.source)
-	if err != nil {
-		log.Debugw("deploy: creating new scope", "error", err)
-	}
+func deploy(scope scope, p *DeployParams) {
 	vi := dsref.ConvertDatasetToVersionInfo(p.Dataset)
 	ref := vi.SimpleRef().String()
 	deployPayload := event.DeployEvent{
@@ -188,12 +181,10 @@ func deploy(s scope, p *DeployParams) {
 		InitID:     p.Dataset.ID,
 		WorkflowID: p.Workflow.ID.String(),
 	}
-	log.Debugw("deploy started", "payload", deployPayload)
-	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployStart, ref, deployPayload); err != nil {
-			log.Debug(err)
-		}
-	}()
+
+	log.Debugw("deploy started", "ref", vi.SimpleRef().String(), "payload", deployPayload)
+	scope.sendEvent(event.ETAutomationDeployStart, ref, deployPayload)
+
 	rollback := true
 	defer func() {
 		if rollback {
@@ -210,11 +201,7 @@ func deploy(s scope, p *DeployParams) {
 		}
 	}()
 
-	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeploySaveDatasetStart, ref, deployPayload); err != nil {
-			log.Debug(err)
-		}
-	}()
+	go scope.sendEvent(event.ETAutomationDeploySaveDatasetStart, ref, deployPayload)
 
 	saveParams := &SaveParams{
 		Ref:     vi.SimpleRef().String(),
@@ -229,89 +216,56 @@ func deploy(s scope, p *DeployParams) {
 	if err != nil && !errors.Is(err, dsfs.ErrNoChanges) {
 		log.Debugw("deploy save dataset", "error", err)
 		deployPayload.Error = err.Error()
-		go func() {
-			if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployEnd, ref, deployPayload); err != nil {
-				log.Debug(err)
-			}
-		}()
+		scope.sendEvent(event.ETAutomationDeployEnd, ref, deployPayload)
 		return
 	}
 
 	deployPayload.InitID = ds.ID
-	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeploySaveDatasetEnd, ref, deployPayload); err != nil {
-			log.Debug(err)
-		}
-	}()
+	go scope.sendEvent(event.ETAutomationDeploySaveDatasetEnd, ref, deployPayload)
 
 	wf := p.Workflow.Copy()
 	wf.InitID = ds.ID
 	wf.OwnerID = scope.ActiveProfile().ID
 
-	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeploySaveWorkflowStart, ref, deployPayload); err != nil {
-			log.Debug(err)
-		}
-	}()
+	go scope.sendEvent(event.ETAutomationDeploySaveWorkflowStart, ref, deployPayload)
 
 	wf, err = scope.AutomationOrchestrator().SaveWorkflow(scope.Context(), wf)
 	if err != nil {
 		log.Debugw("deploy save workflow", "error", err)
 		deployPayload.Error = err.Error()
-		go func() {
-			if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployEnd, ref, deployPayload); err != nil {
-				log.Debug(err)
-			}
-		}()
+		scope.sendEvent(event.ETAutomationDeployEnd, ref, deployPayload)
 		return
 	}
 
 	deployPayload.WorkflowID = wf.ID.String()
-	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeploySaveWorkflowEnd, ref, deployPayload); err != nil {
-			log.Debug(err)
-		}
-	}()
+	go scope.sendEvent(event.ETAutomationDeploySaveWorkflowEnd, ref, deployPayload)
 
 	if p.Run && !saveParams.Apply {
 		runID := run.NewID()
 
 		deployPayload.RunID = runID
-		go func() {
-			if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployRun, ref, deployPayload); err != nil {
-				log.Debug(err)
-			}
-		}()
+		go scope.sendEvent(event.ETAutomationDeployRun, ref, deployPayload)
 
 		err := scope.AutomationOrchestrator().RunWorkflow(scope.Context(), wf.ID, runID)
 		if err != nil {
 			log.Debugw("deploy run workflow", "error", err)
 			deployPayload.Error = err.Error()
-			go func() {
-				if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployEnd, ref, deployPayload); err != nil {
-					log.Debug(err)
-				}
-			}()
+			scope.sendEvent(event.ETAutomationDeployEnd, ref, deployPayload)
 			return
 		}
-
 	}
+
 	log.Debug("deploy ended")
-	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), event.ETAutomationDeployEnd, ref, deployPayload); err != nil {
-			log.Debug(err)
-		}
-	}()
+	scope.sendEvent(event.ETAutomationDeployEnd, ref, deployPayload)
 	rollback = false
 }
 
-func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
-	ctxWithProfile := profile.AddIDToContext(ctx, w.OwnerID.Encode())
-	scope, err := newScope(ctxWithProfile, inst, "local")
+func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, wf *workflow.Workflow, runID string) error {
+	scope, err := newScopeFromWorkflow(ctx, inst, wf)
 	if err != nil {
 		return err
 	}
-	ref := &dsref.Ref{InitID: w.InitID}
+	ref := &dsref.Ref{InitID: wf.InitID}
 	_, err = scope.ResolveReference(ctx, ref)
 	if err != nil {
 		return fmt.Errorf("run error: %w", err)
@@ -319,7 +273,7 @@ func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workfl
 	p := &SaveParams{
 		Ref: ref.Human(),
 		Dataset: &dataset.Dataset{
-			ID: w.InitID,
+			ID: wf.InitID,
 			Commit: &dataset.Commit{
 				RunID: runID,
 			},
@@ -332,8 +286,7 @@ func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workfl
 }
 
 func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
-	ctxWithProfile := profile.AddIDToContext(ctx, wf.OwnerID.Encode())
-	scope, err := newScope(ctxWithProfile, inst, "local")
+	scope, err := newScopeFromWorkflow(ctx, inst, wf)
 	if err != nil {
 		return err
 	}

@@ -1227,6 +1227,7 @@ func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, 
 	if profileIDString != "" {
 		pid, err := profile.IDB58Decode(profileIDString)
 		if err != nil {
+			log.Errorw("profile", "id", profileIDString)
 			return nil, fmt.Errorf("invalid profile ID")
 		}
 		pro, err := inst.profiles.GetProfile(pid)

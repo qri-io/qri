@@ -132,6 +132,8 @@ def transform(ds,ctx):
 			done <- "timeout occured before deploy finished"
 		}
 	}()
+
+	// A successfully deployed workflow will send on the bus when it is finished
 	bus := tr.Instance.Bus()
 	handleDeploy := func(ctx context.Context, e event.Event) error {
 		switch e.Type {
@@ -145,9 +147,17 @@ def transform(ds,ctx):
 		return nil
 	}
 	bus.SubscribeTypes(handleDeploy, event.ETAutomationDeployEnd)
-	if err := tr.Instance.WithSource("local").Automation().Deploy(tr.Ctx, p); err != nil {
+
+	// The context we pass in will be cancelled as soon as the call to
+	// deploy returns. But the operation should still complete successfully,
+	// because deployed workflows run asynchronously.
+	ctxCancelable, cancel := context.WithCancel(tr.Ctx)
+	if err := tr.Instance.WithSource("local").Automation().Deploy(ctxCancelable, p); err != nil {
 		t.Fatalf("deploy unexpected error: %s", err)
 	}
+	cancel()
+
+	// Wait to make sure the workflow runs without error
 	errMsg := <-done
 	if errMsg != "" {
 		t.Errorf(errMsg)

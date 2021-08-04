@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/automation"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
@@ -20,17 +21,17 @@ import (
 	"github.com/qri-io/qri/stats"
 )
 
-// scope represents the lifetime of a method call, abstractly connected to the caller of
-// that method, such that the implementation is unaware of how it has been invoked.
-// Using scope instead of the global data on Instance lets us control user identity,
-// permissions, and configuration, while also setting us up to properly run multiple
-// operations at the same time to support multi-tenancy and multi-processing.
+// scope represents the lifetime of a method call, abstractly connected to the
+// caller of that method, such that the implementation is unaware of how it has
+// been invoked. Using scope instead of the global data on Instance lets us
+// control user identity, permissions, and configuration, while also setting us
+// up to properly run multiple operations at the same time to support
+// multi-tenancy and multi-processing.
 type scope struct {
 	ctx    context.Context
 	inst   *Instance
 	pro    *profile.Profile
 	source string
-	// TODO(dustmop): Additional information, such as user identity, their profile, keys
 	useFSI bool
 }
 
@@ -40,11 +41,23 @@ func newScope(ctx context.Context, inst *Instance, source string) (scope, error)
 		return scope{}, err
 	}
 
+	// Add the profileID to the context to identify this user
+	ctx = profile.AddIDToContext(ctx, pro.ID.Encode())
 	return scope{
 		ctx:    ctx,
 		inst:   inst,
 		pro:    pro,
 		source: source,
+		useFSI: false,
+	}, nil
+}
+
+func newScopeFromWorkflow(ctx context.Context, inst *Instance, wf *workflow.Workflow) (scope, error) {
+	ctx = profile.AddIDToContext(ctx, wf.OwnerID.Encode())
+	return scope{
+		ctx:    ctx,
+		inst:   inst,
+		source: "local",
 		useFSI: false,
 	}, nil
 }
@@ -64,6 +77,16 @@ func (s *scope) Bus() event.Bus {
 	return s.inst.bus
 }
 
+// sendEvent publishes an event with an identifier on the instance bus, using
+// the scope context
+func (s *scope) sendEvent(typ event.Type, id string, payload interface{}) error {
+	err := s.inst.bus.PublishID(s.ctx, typ, id, payload)
+	if err != nil {
+		log.Debug(err)
+	}
+	return err
+}
+
 // ChangeConfig implements the ConfigSetter interface
 func (s *scope) ChangeConfig(ctg *config.Config) error {
 	return s.inst.ChangeConfig(ctg)
@@ -74,14 +97,16 @@ func (s *scope) Config() *config.Config {
 	return s.inst.cfg
 }
 
-// Context returns the context for this scope. Though this pattern is usually discouraged,
-// we're following http.Request's lead, as scope plays the same role. The lifetime of a
-// single scope matches the lifetime of the Context; this ownership is not long-lived
+// Context returns the context for this scope. Though this pattern is usually
+// discouraged, we're following http.Request's lead, as scope plays the same
+// role. The lifetime of a single scope matches the lifetime of the Context;
+// this ownership is not long-lived
 func (s *scope) Context() context.Context {
 	return s.ctx
 }
 
-// AppContext returns the context of the top-level application, to enable graceful shutdowns
+// AppContext returns the context of the top-level application, to enable
+// graceful shutdowns
 func (s *scope) AppContext() context.Context {
 	return s.inst.appCtx
 }
@@ -91,20 +116,38 @@ func (s *scope) CollectionSet() collection.Set {
 	return s.inst.collectionSet
 }
 
+// ReplaceParentContext returns a copy of the scope bound to a new parent
+// context
+func (s *scope) ReplaceParentContext(newParent context.Context) scope {
+	// Copy values from the old context to the new one
+	profileID := profile.IDFromCtx(s.ctx)
+	if profileID != "" {
+		newParent = profile.AddIDToContext(newParent, profileID)
+	}
+	// Return a copy of the scope, except the context is new
+	return scope{
+		ctx:    newParent,
+		inst:   s.inst,
+		pro:    s.pro,
+		source: s.source,
+		useFSI: s.useFSI,
+	}
+}
+
 // Dscache returns the dscache
 func (s *scope) Dscache() *dscache.Dscache {
 	return s.inst.Dscache()
 }
 
-// EnableWorkingDir allows datasets to be loaded from working directories that they
-// may be linked to
+// EnableWorkingDir allows datasets to be loaded from working directories that
+// they may be linked to
 func (s *scope) EnableWorkingDir(state bool) {
 	s.useFSI = state
 }
 
 // FSISubsystem returns a reference to the FSI subsystem
-// TODO(dustmop): This subsystem contains global data, we should move that data out and
-// into scope
+// TODO(dustmop): This subsystem contains global data, we should move that data
+// out and into scope
 func (s *scope) FSISubsystem() *fsi.FSI {
 	return s.inst.fsi
 }
@@ -114,7 +157,8 @@ func (s *scope) Filesystem() *muxfs.Mux {
 	return s.inst.qfs
 }
 
-// GetVersionInfoShim is in the process of being removed. Try not to add new callers.
+// GetVersionInfoShim is in the process of being removed. Try not to add new
+// callers.
 func (s *scope) GetVersionInfoShim(ref dsref.Ref) (*dsref.VersionInfo, error) {
 	r := s.inst.Repo()
 	return repo.GetVersionInfoShim(r, ref)
