@@ -182,8 +182,8 @@ func deploy(scope scope, p *DeployParams) {
 		WorkflowID: p.Workflow.ID.String(),
 	}
 
-	log.Debugw("deploy started", "payload", deployPayload)
-	sendEventAsync(scope, event.ETAutomationDeployStart, ref, deployPayload)
+	log.Debugw("deploy started", "ref", vi.SimpleRef().String(), "payload", deployPayload)
+	scope.sendEvent(event.ETAutomationDeployStart, ref, deployPayload)
 
 	rollback := true
 	defer func() {
@@ -201,7 +201,7 @@ func deploy(scope scope, p *DeployParams) {
 		}
 	}()
 
-	sendEventAsync(scope, event.ETAutomationDeploySaveDatasetStart, ref, deployPayload)
+	go scope.sendEvent(event.ETAutomationDeploySaveDatasetStart, ref, deployPayload)
 
 	saveParams := &SaveParams{
 		Ref:     vi.SimpleRef().String(),
@@ -216,48 +216,47 @@ func deploy(scope scope, p *DeployParams) {
 	if err != nil && !errors.Is(err, dsfs.ErrNoChanges) {
 		log.Debugw("deploy save dataset", "error", err)
 		deployPayload.Error = err.Error()
-		sendEventAsync(scope, event.ETAutomationDeployEnd, ref, deployPayload)
+		scope.sendEvent(event.ETAutomationDeployEnd, ref, deployPayload)
 		return
 	}
 
 	deployPayload.InitID = ds.ID
-	sendEventAsync(scope, event.ETAutomationDeploySaveDatasetEnd, ref, deployPayload)
+	go scope.sendEvent(event.ETAutomationDeploySaveDatasetEnd, ref, deployPayload)
 
 	wf := p.Workflow.Copy()
 	wf.InitID = ds.ID
 	wf.OwnerID = scope.ActiveProfile().ID
 
-	sendEventAsync(scope, event.ETAutomationDeploySaveWorkflowStart, ref, deployPayload)
+	go scope.sendEvent(event.ETAutomationDeploySaveWorkflowStart, ref, deployPayload)
 
 	wf, err = scope.AutomationOrchestrator().SaveWorkflow(scope.Context(), wf)
 	if err != nil {
 		log.Debugw("deploy save workflow", "error", err)
 		deployPayload.Error = err.Error()
-		sendEventAsync(scope, event.ETAutomationDeployEnd, ref, deployPayload)
+		scope.sendEvent(event.ETAutomationDeployEnd, ref, deployPayload)
 		return
 	}
 
 	deployPayload.WorkflowID = wf.ID.String()
-	sendEventAsync(scope, event.ETAutomationDeploySaveWorkflowEnd, ref, deployPayload)
+	go scope.sendEvent(event.ETAutomationDeploySaveWorkflowEnd, ref, deployPayload)
 
 	if p.Run && !saveParams.Apply {
 		runID := run.NewID()
 
 		deployPayload.RunID = runID
-		sendEventAsync(scope, event.ETAutomationDeployRun, ref, deployPayload)
+		go scope.sendEvent(event.ETAutomationDeployRun, ref, deployPayload)
 
 		err := scope.AutomationOrchestrator().RunWorkflow(scope.Context(), wf.ID, runID)
 		if err != nil {
 			log.Debugw("deploy run workflow", "error", err)
 			deployPayload.Error = err.Error()
-			sendEventAsync(scope, event.ETAutomationDeployEnd, ref, deployPayload)
+			scope.sendEvent(event.ETAutomationDeployEnd, ref, deployPayload)
 			return
 		}
-
 	}
 
 	log.Debug("deploy ended")
-	sendEventAsync(scope, event.ETAutomationDeployEnd, ref, deployPayload)
+	scope.sendEvent(event.ETAutomationDeployEnd, ref, deployPayload)
 	rollback = false
 }
 
@@ -294,12 +293,4 @@ func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *wo
 
 	transformer := transform.NewTransformer(scope.AppContext(), scope.Loader(), scope.Bus())
 	return transformer.Apply(ctx, ds, runID, wait, nil, secrets)
-}
-
-func sendEventAsync(scope scope, typ event.Type, id string, payload interface{}) {
-	go func() {
-		if err := scope.Bus().PublishID(scope.Context(), typ, id, payload); err != nil {
-			log.Debug(err)
-		}
-	}()
 }

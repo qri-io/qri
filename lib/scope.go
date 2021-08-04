@@ -42,7 +42,7 @@ func newScope(ctx context.Context, inst *Instance, source string) (scope, error)
 	}
 
 	// Add the profileID to the context to identify this user
-	ctx = profile.AddIDToContext(ctx, pro.ID.String())
+	ctx = profile.AddIDToContext(ctx, pro.ID.Encode())
 	return scope{
 		ctx:    ctx,
 		inst:   inst,
@@ -53,7 +53,7 @@ func newScope(ctx context.Context, inst *Instance, source string) (scope, error)
 }
 
 func newScopeFromWorkflow(ctx context.Context, inst *Instance, wf *workflow.Workflow) (scope, error) {
-	ctx = profile.AddIDToContext(ctx, wf.OwnerID.String())
+	ctx = profile.AddIDToContext(ctx, wf.OwnerID.Encode())
 	return scope{
 		ctx:    ctx,
 		inst:   inst,
@@ -75,6 +75,16 @@ func (s *scope) AutomationOrchestrator() *automation.Orchestrator {
 func (s *scope) Bus() event.Bus {
 	// TODO(dustmop): Filter only events for this scope.
 	return s.inst.bus
+}
+
+// sendEvent publishes an event with an identifier on the instance bus, using
+// the scope context
+func (s *scope) sendEvent(typ event.Type, id string, payload interface{}) error {
+	err := s.inst.bus.PublishID(s.ctx, typ, id, payload)
+	if err != nil {
+		log.Debug(err)
+	}
+	return err
 }
 
 // ChangeConfig implements the ConfigSetter interface
