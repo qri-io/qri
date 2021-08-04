@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qri/automation/hook"
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/profile"
 )
 
@@ -89,7 +90,7 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
-	wfs, err := store.List(ctx, -1, 0)
+	wfs, err := store.List(ctx, "", params.ListAll)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +98,7 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 		t.Fatalf("store.List count mismatch, expected 2 workflows, got %d", len(wfs))
 	}
 
-	deployed, err := store.ListDeployed(ctx, -1, 0)
+	deployed, err := store.ListDeployed(ctx, "", params.ListAll)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +129,7 @@ func AssertWorkflowStore(t *testing.T, store workflow.Store) {
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
-	deployed, err = store.ListDeployed(ctx, -1, 0)
+	deployed, err = store.ListDeployed(ctx, "", params.ListAll)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,8 +181,8 @@ func AssertWorkflowLister(t *testing.T, store workflow.Store) {
 
 	// error cases
 	errCases := []errTestCase{
-		{"negative limit", -10, 0, "limit of -10 is out of bounds"},
-		{"negative offset", 0, -1, "offset of -1 is out of bounds"},
+		{"negative limit", "test_owner", -10, 0, "limit of -10 is out of bounds"},
+		{"negative offset", "test_owner", 0, -1, "offset of -1 is out of bounds"},
 	}
 
 	runListErrTestCases(ctx, t, "List", store.List, errCases)
@@ -198,25 +199,26 @@ func AssertWorkflowLister(t *testing.T, store workflow.Store) {
 
 	// working cases
 	cases := []expectedTestCase{
-		{"get all", -1, 0, expectedAllWorkflows[:]},
-		{"get first 4", 4, 0, expectedAllWorkflows[0:4]},
-		{"get next 4", 4, 4, expectedAllWorkflows[4:8]},
-		{"get last 2", 4, 8, expectedAllWorkflows[8:]},
+		{"get all", "test_owner", -1, 0, expectedAllWorkflows[:]},
+		{"get first 4", "test_owner", 4, 0, expectedAllWorkflows[0:4]},
+		{"get next 4", "test_owner", 4, 4, expectedAllWorkflows[4:8]},
+		{"get last 2", "test_owner", 4, 8, expectedAllWorkflows[8:]},
 	}
 
 	runListExpectedTestCases(ctx, t, "List", store.List, cases)
 
 	cases = []expectedTestCase{
-		{"get all", -1, 0, expectedDeployedWorkflows[:]},
-		{"get first 2", 2, 0, expectedDeployedWorkflows[0:2]},
-		{"get next 2", 2, 2, expectedDeployedWorkflows[2:4]},
-		{"get last 1", 2, 4, expectedDeployedWorkflows[4:]},
+		{"get all", "test_owner", -1, 0, expectedDeployedWorkflows[:]},
+		{"get first 2", "test_owner", 2, 0, expectedDeployedWorkflows[0:2]},
+		{"get next 2", "test_owner", 2, 2, expectedDeployedWorkflows[2:4]},
+		{"get last 1", "test_owner", 2, 4, expectedDeployedWorkflows[4:]},
 	}
 	runListExpectedTestCases(ctx, t, "ListDeployed", store.ListDeployed, cases)
 }
 
 type expectedTestCase struct {
 	description string
+	ownerID     profile.ID
 	limit       int
 	offset      int
 	expected    []*workflow.Workflow
@@ -224,7 +226,7 @@ type expectedTestCase struct {
 
 func runListExpectedTestCases(ctx context.Context, t *testing.T, fnName string, fn listFunc, cases []expectedTestCase) {
 	for _, c := range cases {
-		got, err := fn(ctx, c.limit, c.offset)
+		got, err := fn(ctx, c.ownerID, params.List{}.WithOffsetLimit(c.offset, c.limit))
 		if err != nil {
 			t.Errorf("%s case %s: unexpected error %w", fnName, c.description, err)
 			continue
@@ -235,10 +237,11 @@ func runListExpectedTestCases(ctx context.Context, t *testing.T, fnName string, 
 	}
 }
 
-type listFunc func(ctx context.Context, limit, offset int) ([]*workflow.Workflow, error)
+type listFunc func(ctx context.Context, pid profile.ID, lp params.List) ([]*workflow.Workflow, error)
 
 type errTestCase struct {
 	description string
+	ownerID     profile.ID
 	limit       int
 	offset      int
 	errMsg      string
@@ -246,7 +249,7 @@ type errTestCase struct {
 
 func runListErrTestCases(ctx context.Context, t *testing.T, fnName string, fn listFunc, cases []errTestCase) {
 	for _, c := range cases {
-		_, err := fn(ctx, c.limit, c.offset)
+		_, err := fn(ctx, c.ownerID, params.List{}.WithOffsetLimit(c.offset, c.limit))
 		if err == nil {
 			t.Errorf("%s case %s: error mismatch, expected %q, got no error", fnName, c.description, c.errMsg)
 			continue
@@ -266,7 +269,7 @@ type emptyTestCase struct {
 func runListEmptyTestCases(ctx context.Context, t *testing.T, fnName string, fn listFunc, cases []emptyTestCase) {
 	expected := []*workflow.Workflow{}
 	for _, c := range cases {
-		got, err := fn(ctx, c.limit, c.offset)
+		got, err := fn(ctx, "", params.List{}.WithOffsetLimit(c.offset, c.limit))
 		if err != nil {
 			t.Errorf("%s case %s: unexpected error %q", fnName, c.description, err)
 			continue

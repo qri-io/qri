@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/event"
 )
 
@@ -203,7 +204,7 @@ func (o *Orchestrator) handleContextClose(ctx context.Context) {
 // startListeners passes a list of deployed Workflows to configured trigger
 // Listeners
 func (o *Orchestrator) startListeners(ctx context.Context) error {
-	wfs, err := o.workflows.ListDeployed(ctx, -1, 0)
+	wfs, err := o.workflows.ListDeployed(ctx, "", params.ListAll)
 	if err != nil {
 		return fmt.Errorf("error getting deployed workflows from the store: %w", err)
 	}

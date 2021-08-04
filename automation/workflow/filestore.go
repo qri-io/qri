@@ -10,6 +10,9 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+
+	"github.com/qri-io/qri/base/params"
+	"github.com/qri-io/qri/profile"
 )
 
 // fileStore is a store implementation that writes to a file of JSON bytes.
@@ -34,23 +37,23 @@ func NewFileStore(repoPath string) (Store, error) {
 }
 
 // ListWorkflows lists workflows currently in the store
-func (s *fileStore) List(ctx context.Context, limit, offset int) ([]*Workflow, error) {
+func (s *fileStore) List(ctx context.Context, pid profile.ID, lp params.List) ([]*Workflow, error) {
 	fetchAll := false
 	switch {
-	case limit == -1 && offset == 0:
+	case lp.Limit == -1 && lp.Offset == 0:
 		fetchAll = true
-	case limit < 0:
-		return nil, fmt.Errorf("limit of %d is out of bounds", limit)
-	case offset < 0:
-		return nil, fmt.Errorf("offset of %d is out of bounds", offset)
-	case limit == 0 || offset > s.workflows.Len():
+	case lp.Limit < 0:
+		return nil, fmt.Errorf("limit of %d is out of bounds", lp.Limit)
+	case lp.Offset < 0:
+		return nil, fmt.Errorf("offset of %d is out of bounds", lp.Offset)
+	case lp.Limit == 0 || lp.Offset > s.workflows.Len():
 		return []*Workflow{}, nil
 	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	start := offset
-	end := offset + limit
+	start := lp.Offset
+	end := lp.Offset + lp.Limit
 	if end > s.workflows.Len() || fetchAll {
 		end = s.workflows.Len()
 	}
@@ -61,17 +64,17 @@ func (s *fileStore) List(ctx context.Context, limit, offset int) ([]*Workflow, e
 
 // ListWorkflowsByStatus lists workflows filtered by status and ordered in reverse
 // chronological order by `LatestStart`
-func (s *fileStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Workflow, error) {
+func (s *fileStore) ListDeployed(ctx context.Context, pid profile.ID, lp params.List) ([]*Workflow, error) {
 	deployed := NewSet()
 	fetchAll := false
 	switch {
-	case limit == -1 && offset == 0:
+	case lp.Limit == -1 && lp.Offset == 0:
 		fetchAll = true
-	case limit < 0:
-		return nil, fmt.Errorf("limit of %d is out of bounds", limit)
-	case offset < 0:
-		return nil, fmt.Errorf("offset of %d is out of bounds", offset)
-	case limit == 0:
+	case lp.Limit < 0:
+		return nil, fmt.Errorf("limit of %d is out of bounds", lp.Limit)
+	case lp.Offset < 0:
+		return nil, fmt.Errorf("offset of %d is out of bounds", lp.Offset)
+	case lp.Limit == 0:
 		return []*Workflow{}, nil
 	}
 	s.lock.Lock()
@@ -83,12 +86,12 @@ func (s *fileStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Wor
 		}
 	}
 
-	if offset >= deployed.Len() {
+	if lp.Offset >= deployed.Len() {
 		return []*Workflow{}, nil
 	}
 
-	start := offset
-	end := offset + limit
+	start := lp.Offset
+	end := lp.Offset + lp.Limit
 	if end > deployed.Len() || fetchAll {
 		end = deployed.Len()
 	}

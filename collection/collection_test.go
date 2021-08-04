@@ -129,4 +129,3 @@ func TestInvalidIDFails(t *testing.T) {
 		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
 	}
 }
-
