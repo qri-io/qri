@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+
+	"github.com/qri-io/qri/base/params"
+	"github.com/qri-io/qri/profile"
 )
 
 var (
@@ -39,10 +42,10 @@ type Store interface {
 type Lister interface {
 	// List lists the Workflows in the Store in reverse chronological order
 	// by Workflow.Created time
-	List(ctx context.Context, limit, offset int) ([]*Workflow, error)
+	List(ctx context.Context, pid profile.ID, lp params.List) ([]*Workflow, error)
 	// ListDeployed lists the deployed Workflows in the Store in reverse
 	// chronological order by Workflow.Created time
-	ListDeployed(ctx context.Context, limit, offset int) ([]*Workflow, error)
+	ListDeployed(ctx context.Context, pid profile.ID, lp params.List) ([]*Workflow, error)
 }
 
 // MemStore is an in memory representation of a Store
@@ -122,17 +125,17 @@ func (m *MemStore) Remove(ctx context.Context, id ID) error {
 
 // List lists all the workflows in the store, by decending order from time of
 // creation
-func (m *MemStore) List(ctx context.Context, limit, offset int) ([]*Workflow, error) {
+func (m *MemStore) List(ctx context.Context, pid profile.ID, lp params.List) ([]*Workflow, error) {
 	wfs := NewSet()
 	fetchAll := false
 	switch {
-	case limit == -1 && offset == 0:
+	case lp.Limit == -1 && lp.Offset == 0:
 		fetchAll = true
-	case limit < 0:
-		return nil, fmt.Errorf("limit of %d is out of bounds", limit)
-	case offset < 0:
-		return nil, fmt.Errorf("offset of %d is out of bounds", offset)
-	case limit == 0:
+	case lp.Limit < 0:
+		return nil, fmt.Errorf("limit of %d is out of bounds", lp.Limit)
+	case lp.Offset < 0:
+		return nil, fmt.Errorf("offset of %d is out of bounds", lp.Offset)
+	case lp.Limit == 0:
 		return []*Workflow{}, nil
 	}
 	m.mu.Lock()
@@ -141,12 +144,12 @@ func (m *MemStore) List(ctx context.Context, limit, offset int) ([]*Workflow, er
 		wfs.Add(wf)
 	}
 
-	if offset >= wfs.Len() {
+	if lp.Offset >= wfs.Len() {
 		return []*Workflow{}, nil
 	}
 
-	start := offset
-	end := offset + limit
+	start := lp.Offset
+	end := lp.Offset + lp.Limit
 	if end > wfs.Len() || fetchAll {
 		end = wfs.Len()
 	}
@@ -157,17 +160,17 @@ func (m *MemStore) List(ctx context.Context, limit, offset int) ([]*Workflow, er
 
 // ListDeployed lists all the workflows in the store that are deployed, by
 // decending order from time of creation
-func (m *MemStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Workflow, error) {
+func (m *MemStore) ListDeployed(ctx context.Context, pid profile.ID, lp params.List) ([]*Workflow, error) {
 	wfs := NewSet()
 	fetchAll := false
 	switch {
-	case limit == -1 && offset == 0:
+	case lp.Limit == -1 && lp.Offset == 0:
 		fetchAll = true
-	case limit < 0:
-		return nil, fmt.Errorf("limit of %d is out of bounds", limit)
-	case offset < 0:
-		return nil, fmt.Errorf("offset of %d is out of bounds", offset)
-	case limit == 0:
+	case lp.Limit < 0:
+		return nil, fmt.Errorf("limit of %d is out of bounds", lp.Limit)
+	case lp.Offset < 0:
+		return nil, fmt.Errorf("offset of %d is out of bounds", lp.Offset)
+	case lp.Limit == 0:
 		return []*Workflow{}, nil
 	}
 	m.mu.Lock()
@@ -178,12 +181,12 @@ func (m *MemStore) ListDeployed(ctx context.Context, limit, offset int) ([]*Work
 		}
 	}
 
-	if offset >= wfs.Len() {
+	if lp.Offset >= wfs.Len() {
 		return []*Workflow{}, nil
 	}
 
-	start := offset
-	end := offset + limit
+	start := lp.Offset
+	end := lp.Offset + lp.Limit
 	if end > wfs.Len() || fetchAll {
 		end = wfs.Len()
 	}
