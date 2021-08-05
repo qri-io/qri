@@ -3,19 +3,14 @@
 package stats
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"path/filepath"
 
 	logger "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dsstats"
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/fsi"
 )
 
@@ -62,23 +57,9 @@ func (s *Service) Stats(ctx context.Context, ds *dataset.Dataset) (*dataset.Stat
 	if ds.Structure == nil || ds.Structure.IsEmpty() {
 		log.Debugw("inferring structure to calculate stats")
 		ds.Structure = &dataset.Structure{}
-		data, err := ioutil.ReadAll(ds.BodyFile())
-		if err != nil {
-			panic(err)
+		if err := detect.Structure(ds); err != nil {
+			return nil, fmt.Errorf("inferring structure: %w", err)
 		}
-		log.Debugw("data", "data", string(data))
-		buf := &bytes.Buffer{}
-		tr := io.TeeReader(bytes.NewBuffer(data), buf)
-		ds.Structure.Format = filepath.Ext(ds.BodyFile().FileName())
-		ds.Structure.Schema, _, err = detect.Schema(ds.Structure, tr)
-		if err != nil {
-			log.Debugw("error inferring schema", "error", err)
-			return nil, fmt.Errorf("couldn't infer schema: %w", err)
-		}
-
-		// glue read bytes back onto reader
-		mr := io.MultiReader(buf, ds.BodyFile())
-		ds.SetBodyFile(qfs.NewMemfileReader(ds.BodyFile().FullPath(), mr))
 	}
 
 	rdr, err := dsio.NewEntryReader(ds.Structure, ds.BodyFile())

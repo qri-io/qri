@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -58,6 +59,11 @@ func TestStatsService(t *testing.T) {
 	if diff := cmp.Diff(expect, sa); diff != "" {
 		t.Errorf("stat component result mismatch. (-want +got):%s\n", diff)
 	}
+
+	// TODO(b5): dataset.Dataset.BodyFile() should return a name that matches.
+	// currently we need to set the filename manually so detect.Structure has something
+	// to work with
+	ds.SetBodyFile(qfs.NewMemfileReader(ds.Structure.BodyFilename(), ds.BodyFile()))
 
 	// remove path. recalculated stats won't have a path set
 	expect.Path = ""

@@ -92,9 +92,13 @@ func TestWriteZipFullDataset(t *testing.T) {
 		return
 	}
 
-	tmppath := filepath.Join(os.TempDir(), "exported.zip")
-	// defer os.RemoveAll(tmppath)
-	t.Log(tmppath)
+	path, err := ioutil.TempDir("", "TestArchiveFullDataset")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmppath := filepath.Join(path, "exported.zip")
+	defer os.RemoveAll(tmppath)
+	// t.Log(tmppath)
 	err = ioutil.WriteFile(tmppath, buf.Bytes(), os.ModePerm)
 	if err != nil {
 		t.Errorf("error writing temp zip file: %s", err.Error())
