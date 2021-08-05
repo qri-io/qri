@@ -1,6 +1,6 @@
 module github.com/qri-io/qri
 
-go 1.15
+go 1.16
 
 require (
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760

@@ -4,9 +4,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/qri-io/qri
     docker:
-      - image: circleci/golang:1.15.1
-        environment:
-          GO111MODULE: "on"
+      - image: circleci/golang:1.16.5
     environment:
       TEST_RESULTS: /tmp/test-results
       GOFLAGS: -p=8
