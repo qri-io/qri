@@ -1,3 +1,90 @@
+<a name="v0.10.0-rc1"></a>
+# [v0.10.0-rc1](https://github.com/qri-io/qri/compare/v0.10.0...v0.10.0-rc1) (2021-08-05)
+
+
+### Bug Fixes
+
+* **api:** don't error when running connect with disabled p2p ([6e1aa18](https://github.com/qri-io/qri/commit/6e1aa18))
+* **automation:** send Deploy Start/End events synchronously ([748f618](https://github.com/qri-io/qri/commit/748f618))
+* **automation:** update `Listeners` after the `Workflow` has been changed ([6915a2f](https://github.com/qri-io/qri/commit/6915a2f))
+* **base:** GenerateAvailableName creates new refs on each check ([60fe45c](https://github.com/qri-io/qri/commit/60fe45c))
+* **dataset:** File components store content as text, instead of scriptBytes ([3a958ee](https://github.com/qri-io/qri/commit/3a958ee))
+* **docs:** update table of contents ([#1786](https://github.com/qri-io/qri/issues/1786)) ([2fa4d64](https://github.com/qri-io/qri/commit/2fa4d64))
+* **dsfs:** use Structure.BodyFilename to name body files on save ([08e2090](https://github.com/qri-io/qri/commit/08e2090))
+* **event:** add json tags to automation event payloads ([6665482](https://github.com/qri-io/qri/commit/6665482))
+* **jwt:** Switch to golang-jwt as dependabot recommends ([342465e](https://github.com/qri-io/qri/commit/342465e))
+* **lib:** adjust `Deploy` scope ([c0fa5fd](https://github.com/qri-io/qri/commit/c0fa5fd))
+* **lib:** json tags on param structs ([9758ccd](https://github.com/qri-io/qri/commit/9758ccd))
+* **orchestrator:** pass in OrchestratorOptions to create instance.Orchestrator ([4be59c9](https://github.com/qri-io/qri/commit/4be59c9))
+* **readme:** readme urls are linked properly now ([6819775](https://github.com/qri-io/qri/commit/6819775))
+* **remote:** update handlers with gorilla mux ([fe931d9](https://github.com/qri-io/qri/commit/fe931d9))
+* **run:** `MemStore.Put` should only update count for a new run ([72fef0e](https://github.com/qri-io/qri/commit/72fef0e))
+* **run, workflow:** fix offset index bug & `Copy` method signature ([d139bbd](https://github.com/qri-io/qri/commit/d139bbd))
+* **run, workflow:** fix offset index bug & `Copy` method signature ([bd459bc](https://github.com/qri-io/qri/commit/bd459bc))
+* **search:** align search call and response structures ([bddbcb8](https://github.com/qri-io/qri/commit/bddbcb8))
+* **search:** use consistent naming and output format for search ([1d8d176](https://github.com/qri-io/qri/commit/1d8d176))
+* **trigger:** adjust `AssertListener` test, add `MemTriggerStore` to listeners ([5efac9a](https://github.com/qri-io/qri/commit/5efac9a))
+* **workflow:** fix mem store `Lister` methods and add spec test ([59b665d](https://github.com/qri-io/qri/commit/59b665d))
+
+
+### Code Refactoring
+
+* **config.API:** migration changes API config fields ([75b6d4c](https://github.com/qri-io/qri/commit/75b6d4c)), closes [#1723](https://github.com/qri-io/qri/issues/1723) [#1619](https://github.com/qri-io/qri/issues/1619) [#1618](https://github.com/qri-io/qri/issues/1618)
+
+
+### Features
+
+* **api:** `qri connect` should start the orchestrator listening for triggers ([784e8cc](https://github.com/qri-io/qri/commit/784e8cc))
+* **automation:** `orchestrator` struct and constructor ([499a66c](https://github.com/qri-io/qri/commit/499a66c))
+* **automation:** add `fileStore` workflow store ([4d4ba64](https://github.com/qri-io/qri/commit/4d4ba64))
+* **base:** support progress in save, shorter stats keys ([8420bce](https://github.com/qri-io/qri/commit/8420bce))
+* **collection:** event subscription for local collection ([bbe2e30](https://github.com/qri-io/qri/commit/bbe2e30))
+* **collection:** local collection persists to disk if given a repoPath ([4ce7071](https://github.com/qri-io/qri/commit/4ce7071))
+* **collection:** migration from repo refstore loads version info details ([6b4006e](https://github.com/qri-io/qri/commit/6b4006e))
+* **collection:** migration func for Repo -> LocalCollection ([bf5d9e0](https://github.com/qri-io/qri/commit/bf5d9e0))
+* **collection:** refactored event payloads, local collection feature parity ([089e36b](https://github.com/qri-io/qri/commit/089e36b))
+* **collection:** subscribe collection to automation events ([606f0a0](https://github.com/qri-io/qri/commit/606f0a0))
+* **collection:** use collection subsystem by default ([7aae8fc](https://github.com/qri-io/qri/commit/7aae8fc))
+* **config:** add automation configuration ([5b3f260](https://github.com/qri-io/qri/commit/5b3f260)), closes [#1748](https://github.com/qri-io/qri/issues/1748)
+* **event:** add `DeployEvent` payload & series of `ETDeploy` events ([5245135](https://github.com/qri-io/qri/commit/5245135))
+* **event:** add `ETWorkflowStarted` & `ETWorkflowStopped events` ([3caf64d](https://github.com/qri-io/qri/commit/3caf64d))
+* **follow:** add registry dataset following support ([aeff81a](https://github.com/qri-io/qri/commit/aeff81a))
+* **get:** Limit size of body that `get` may return when using `all` ([e145a94](https://github.com/qri-io/qri/commit/e145a94))
+* **lib:** add `Automation().Deploy` method ([b40d094](https://github.com/qri-io/qri/commit/b40d094))
+* **lib:** add `CronListener` to the Orchestrator listeners ([e25cd22](https://github.com/qri-io/qri/commit/e25cd22))
+* **lib:** add CollectionSet to instance, set via constructor opt ([38108a9](https://github.com/qri-io/qri/commit/38108a9))
+* **list:** list package generalizes aggregation parameters ([f26fabe](https://github.com/qri-io/qri/commit/f26fabe))
+* **orchestrator:** add `trigger.Trigger` and `trigger.Listeners` to the `Orchestrator` ([7b7eca7](https://github.com/qri-io/qri/commit/7b7eca7))
+* **profile:** `AddToContext` `IDFromCtx`, allows us to pull a profile.ID from context ([4b0443d](https://github.com/qri-io/qri/commit/4b0443d))
+* **resolver:** resolving a reference w an initID completes the ref ([f0a55f7](https://github.com/qri-io/qri/commit/f0a55f7))
+* **run:** add `fileStore` implementation of `run.Store` ([0f7d230](https://github.com/qri-io/qri/commit/0f7d230))
+* **run:** add `run.Store`, `AssertPut`, and implement `store.Put` ([147259c](https://github.com/qri-io/qri/commit/147259c))
+* **run:** add `run.Store`, `AssertPut`, and implement `store.Put` ([95df562](https://github.com/qri-io/qri/commit/95df562))
+* **run:** expand `Store` interface, `MemStore`, `AssertRunStore` spec test ([040a8d0](https://github.com/qri-io/qri/commit/040a8d0))
+* **run:** expand `Store` interface, `MemStore`, `AssertRunStore` spec test ([281b539](https://github.com/qri-io/qri/commit/281b539))
+* **run:** implement `SubscribeID` & spec test `AssertRunStoreSubscription` ([0949e0b](https://github.com/qri-io/qri/commit/0949e0b))
+* **run:** implement `SubscribeID` & spec test `AssertRunStoreSubscription` ([9cc960d](https://github.com/qri-io/qri/commit/9cc960d))
+* **scope:** Scope has ReplaceParentContext method ([5590fe2](https://github.com/qri-io/qri/commit/5590fe2))
+* **spec:** add `AssertTriggerListener` spec test ([ce798cf](https://github.com/qri-io/qri/commit/ce798cf))
+* **token:** add and implement token provider interface ([914aac9](https://github.com/qri-io/qri/commit/914aac9))
+* **trigger:** add `CronTrigger` and `CronListener` that trigger a workflow periodically ([5001252](https://github.com/qri-io/qri/commit/5001252))
+* **trigger:** add `Listener`, `Source` interfaces, update `Workflow` ([95bc208](https://github.com/qri-io/qri/commit/95bc208))
+* **trigger:** add `MemTriggerStore` that can be used by Listeners to track triggers ([ed49faf](https://github.com/qri-io/qri/commit/ed49faf))
+* **trigger:** add `RuntimeListener` trigger.Listener ([af1de8f](https://github.com/qri-io/qri/commit/af1de8f))
+* **trigger:** replace `UpdateTriggers` with `Listen` method ([a63c059](https://github.com/qri-io/qri/commit/a63c059))
+* **VersionInfo:** VersionInfoAggregator supports arbitrary sort ([a6e9c38](https://github.com/qri-io/qri/commit/a6e9c38))
+* **workflow:** add `Trigger` and `Hook` interface ([f9f35b6](https://github.com/qri-io/qri/commit/f9f35b6))
+* **workflow:** add spec for `Hook` and `Trigger` interfaces ([6552e1c](https://github.com/qri-io/qri/commit/6552e1c))
+* **workflow:** expand `Store` interface ([e0845b5](https://github.com/qri-io/qri/commit/e0845b5))
+
+
+### BREAKING CHANGES
+
+* **lib:** api request fields have changed. See documentation for details
+* **config.API:** config.API fields have changed
+
+
+
 <a name="v0.10.0"></a>
 # [v0.10.0](https://github.com/qri-io/qri/compare/v0.9.13...v) (2021-05-04)
 
