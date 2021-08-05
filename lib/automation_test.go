@@ -240,3 +240,29 @@ def transform(ds,ctx):
 		t.Fatalf("error mismatch: expected %q, got %q", workflow.ErrNotFound, err)
 	}
 }
+
+func TestRunParamsValidate(t *testing.T) {
+	p := &RunParams{}
+	if err := p.Validate(); err == nil {
+		t.Fatalf("expected validation error for empty `RunParams`, got nil")
+	}
+	p.WorkflowID = "wfid"
+	p.InitID = "initid"
+	p.Ref = "ref"
+	if err := p.Validate(); err == nil {
+		t.Fatalf("expected validation error for `RunParams` with all fields non empty, got nil")
+	}
+}
+
+func TestWorkflowParamsValidate(t *testing.T) {
+	p := &WorkflowParams{}
+	if err := p.Validate(); err == nil {
+		t.Fatalf("expected validation error for empty `WorkflowParams`, got nil")
+	}
+	p.WorkflowID = "wfid"
+	p.InitID = "initid"
+	p.Ref = "ref"
+	if err := p.Validate(); err == nil {
+		t.Fatalf("expected validation error for `WorkflowParams` with all fields non empty, got nil")
+	}
+}

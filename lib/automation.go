@@ -102,14 +102,19 @@ func (m AutomationMethods) Deploy(ctx context.Context, p *DeployParams) error {
 
 // RunParams are parameters for the run command
 type RunParams struct {
+	Ref        string `json:"ref"`
+	InitID     string `json:"initID"`
 	WorkflowID string `json:"workflowID"`
 	RunID      string `json:"runID"`
 }
 
 // Validate returns an error if RunParams fields are in an invalid state
 func (p *RunParams) Validate() error {
-	if p.WorkflowID == "" {
-		return fmt.Errorf("run: workflow id required")
+	if p.WorkflowID == "" && p.InitID == "" && p.Ref == "" {
+		return fmt.Errorf("run params: workflow id, init id, or ref required")
+	}
+	if (p.WorkflowID != "" && p.InitID != "") || (p.WorkflowID != "" && p.Ref != "") || (p.InitID != "" && p.Ref != "") {
+		return fmt.Errorf("run params: only one of workflow id, init id, or ref needed")
 	}
 	return nil
 }
@@ -127,13 +132,18 @@ func (m AutomationMethods) Run(ctx context.Context, p *RunParams) (string, error
 type WorkflowParams struct {
 	WorkflowID string `json:"workflowID"`
 	InitID     string `json:"initID"`
+	Ref        string `json:"ref"`
 }
 
 // Validate returns an error if WorkflowParams fields are in an invalid state
 func (p *WorkflowParams) Validate() error {
-	if p.WorkflowID == "" && p.InitID == "" {
-		return fmt.Errorf("get workflow: workflow id or init id must be provided")
+	if p.WorkflowID == "" && p.InitID == "" && p.Ref == "" {
+		return fmt.Errorf("workflow params: workflow id, init id, or ref must be provided")
 	}
+	if (p.WorkflowID != "" && p.InitID != "") || (p.WorkflowID != "" && p.Ref != "") || (p.InitID != "" && p.Ref != "") {
+		return fmt.Errorf("workflow params: only one of workflow id, init id, or ref needed")
+	}
+
 	return nil
 }
 
@@ -218,6 +228,7 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 			return fmt.Errorf("deploy: given workflow and workflow on record have different OwnerIDs")
 		}
 	}
+
 	// Because deploy runs as a background task, re-root execution context atop
 	// the application context
 	scope = scope.ReplaceParentContext(scope.AppContext())
@@ -317,6 +328,23 @@ func deploy(scope scope, p *DeployParams) {
 
 // Run manually runs a workflow
 func (automationImpl) Run(scope scope, p *RunParams) (string, error) {
+	if p.WorkflowID == "" {
+		if p.Ref != "" && p.InitID == "" {
+			ref, err := dsref.Parse(p.Ref)
+			if err != nil {
+				return "", err
+			}
+			if _, err := scope.ResolveReference(scope.Context(), &ref); err != nil {
+				return "", err
+			}
+			p.InitID = ref.InitID
+		}
+		wf, err := scope.AutomationOrchestrator().GetWorkflowByInitID(scope.Context(), p.InitID)
+		if err != nil {
+			return "", err
+		}
+		p.WorkflowID = wf.WorkflowID()
+	}
 	return scope.AutomationOrchestrator().RunWorkflow(scope.AppContext(), workflow.ID(p.WorkflowID), p.RunID)
 }
 
@@ -325,20 +353,40 @@ func (automationImpl) Workflow(scope scope, p *WorkflowParams) (*workflow.Workfl
 	if p.WorkflowID != "" {
 		return scope.AutomationOrchestrator().GetWorkflow(scope.Context(), workflow.ID(p.WorkflowID))
 	}
+	if p.Ref != "" && p.InitID == "" {
+		ref, err := dsref.Parse(p.Ref)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := scope.ResolveReference(scope.Context(), &ref); err != nil {
+			return nil, err
+		}
+		p.InitID = ref.InitID
+	}
 	return scope.AutomationOrchestrator().GetWorkflowByInitID(scope.Context(), p.InitID)
 }
 
 // Remove removes a workflow by the workflow or dataset id
 func (automationImpl) Remove(scope scope, p *WorkflowParams) error {
-	id := workflow.ID(p.WorkflowID)
 	if p.WorkflowID == "" {
+		if p.Ref != "" && p.InitID == "" {
+			ref, err := dsref.Parse(p.Ref)
+			if err != nil {
+				return err
+			}
+			if _, err := scope.ResolveReference(scope.Context(), &ref); err != nil {
+				return err
+			}
+			p.InitID = ref.InitID
+		}
 		wf, err := scope.AutomationOrchestrator().GetWorkflowByInitID(scope.Context(), p.InitID)
 		if err != nil {
 			return err
 		}
-		id = wf.ID
+		p.WorkflowID = wf.WorkflowID()
 	}
-	return scope.AutomationOrchestrator().RemoveWorkflow(scope.Context(), id)
+
+	return scope.AutomationOrchestrator().RemoveWorkflow(scope.Context(), workflow.ID(p.WorkflowID))
 }
 
 func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {

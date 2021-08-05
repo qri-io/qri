@@ -165,6 +165,18 @@ func DefaultOrchestratorOptions(bus event.Bus, repoPath string) (OrchestratorOpt
 	}, nil
 }
 
+// DefaultMemOrchestratorOptions is primarily for use in tests
+// it returns options for an orchestrator whose Stores are in memory implementations
+func DefaultMemOrchestratorOptions(ctx context.Context, bus event.Bus) OrchestratorOptions {
+	return OrchestratorOptions{
+		WorkflowStore: workflow.NewMemStore(),
+		RunStore:      run.NewMemStore(),
+		Listeners: []trigger.Listener{
+			trigger.NewRuntimeListener(ctx, bus),
+		},
+	}
+}
+
 // Start starts the listeners and completors listening for triggers and hooks
 func (o *Orchestrator) Start(ctx context.Context) error {
 	// TODO(ramfox): when hooks and completors are set up, start them here
