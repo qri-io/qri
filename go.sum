@@ -94,9 +94,7 @@ github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kB
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/bradfitz/go-smtpd v0.0.0-20170404230938-deb6d6237625/go.mod h1:HYsPBTaaSFSlLx/70C2HPIMNZpVV8+vt/A+FMnYP11g=
-github.com/bradleyjkemp/cupaloy v2.3.0+incompatible h1:UafIjBvWQmS9i/xRg+CamMrnLTKNzo+bdmT/oH34c2Y=
 github.com/bradleyjkemp/cupaloy v2.3.0+incompatible/go.mod h1:Au1Xw1sgaJ5iSFktEhYsS0dbQiS1B0/XMXl+42y9Ilk=
-github.com/bradleyjkemp/memmap v0.2.2 h1:K1MRR3CePpyv5fCF92VVRQa0YTCF1lBeHYUe1YQKPt8=
 github.com/bradleyjkemp/memmap v0.2.2/go.mod h1:hk93kmTK3wk+ezO+gS/h/W7ZXi5CRoB3sXCajzC2PMU=
 github.com/bradleyjkemp/memviz v0.2.2 h1:4401FLjMkfcpjrCJNSorhiPSkjiq8QBS++fsppQSk1s=
 github.com/bradleyjkemp/memviz v0.2.2/go.mod h1:O8KbRC1I+XiOeTs6+KcaCuME1yAAEc54zsQrlv6nkKg=
@@ -254,7 +252,6 @@ github.com/go-kit/kit v0.10.0/go.mod h1:xUsJbQ/Fp4kEt7AFgCuvyX4a71u8h9jB8tj/ORgO
 github.com/go-logfmt/logfmt v0.3.0/go.mod h1:Qt1PoO58o5twSAckw1HlFXLmHsOX5/0LbT9GBnD5lWE=
 github.com/go-logfmt/logfmt v0.4.0/go.mod h1:3RMwSq7FuexP4Kalkev3ejPJsZTpXXBr9+V4qmtdjCk=
 github.com/go-logfmt/logfmt v0.5.0/go.mod h1:wCYkCAKZfumFQihp8CzCvQ3paCTfi41vtzG1KdI/P7A=
-github.com/go-playground/assert/v2 v2.0.1 h1:MsBgLAaY856+nPRTKrp3/OZK38U/wa0CcBYNjji3q3A=
 github.com/go-playground/assert/v2 v2.0.1/go.mod h1:VDjEfimB/XKnb+ZQfWdccd7VUvScMdVu0Titje2rxJ4=
 github.com/go-playground/locales v0.13.0 h1:HyWk6mgj5qFqCT5fjGBuRArbVDfE4hi8+e8ceBS/t7Q=
 github.com/go-playground/locales v0.13.0/go.mod h1:taPMhCMXrRLJO55olJkUXHZBHCxTMfnGwq/HNwmWNS8=
@@ -1259,7 +1256,6 @@ github.com/openzipkin/zipkin-go v0.2.2/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnh
 github.com/otiai10/copy v1.2.0 h1:HvG945u96iNadPoG2/Ja2+AUJeW5YuFQMixq9yirC+k=
 github.com/otiai10/copy v1.2.0/go.mod h1:rrF5dJ5F0t/EWSYODDu4j9/vEeYHMkc8jt0zJChqQWw=
 github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95/go.mod h1:9qAhocn7zKJG+0mI8eUu6xqkFDYS2kb2saOteoSB3cE=
-github.com/otiai10/curr v1.0.0 h1:TJIWdbX0B+kpNagQrjgq8bCMrbhiuX73M2XwgtDMoOI=
 github.com/otiai10/curr v1.0.0/go.mod h1:LskTG5wDwr8Rs+nNQ+1LlxRjAtTZZjtJW4rMXl6j4vs=
 github.com/otiai10/mint v1.3.0/go.mod h1:F5AjcsTsWUqX+Na9fpHb52P8pcRX2CI6A3ctIT91xUo=
 github.com/otiai10/mint v1.3.1 h1:BCmzIS3n71sGfHB5NMNDB3lHYPz8fWSkCAErHed//qc=
@@ -1358,8 +1354,8 @@ github.com/qri-io/jsonpointer v0.1.1/go.mod h1:DnJPaYgiKu56EuDp8TU5wFLdZIcAnb/uH
 github.com/qri-io/jsonschema v0.2.2-0.20210618085106-a515144d7449 h1:cAOmZ7Wn2/lDhq8d0qq00pqvrhgwvLQMizMhr+3XLg4=
 github.com/qri-io/jsonschema v0.2.2-0.20210618085106-a515144d7449/go.mod h1:g7DPkiOsK1xv6T/Ao5scXRkd+yTFygcANPBaaqW+VrI=
 github.com/qri-io/qfs v0.6.1-0.20210629014446-45bdcdb57434/go.mod h1:XX/caqvngrusufIrtnbo4iPtgsNfu0dfrE3pmLGte9w=
-github.com/qri-io/qfs v0.6.1-0.20210805021933-c2dabeb6689b h1:55dXc7lDAG9Tv+K/1Fx8MxHHiR1NgspgJYCSF2pemcY=
-github.com/qri-io/qfs v0.6.1-0.20210805021933-c2dabeb6689b/go.mod h1:PCkSctLfc6OAquG5QtiUzddDkUE4wezDIvaUOaeuwu0=
+github.com/qri-io/qfs v0.6.1-0.20210806014444-d49f4226a85b h1:tvMqu/8gBzjrS9PBjte+SrvGS647JcBWiOeQYY4Ia6k=
+github.com/qri-io/qfs v0.6.1-0.20210806014444-d49f4226a85b/go.mod h1:PCkSctLfc6OAquG5QtiUzddDkUE4wezDIvaUOaeuwu0=
 github.com/qri-io/starlib v0.4.2 h1:ZGzmzT9fOqdluezcwhAZAbTn/v6kMg1tC6ALVjQPhpQ=
 github.com/qri-io/starlib v0.4.2/go.mod h1:2xlZ9r2UV4LF4G9mpYPBWo7CtXtdW0h1RoGIkZ8elOE=
 github.com/qri-io/varName v0.1.0 h1:dFP5qZHrxnn5fNoMbjfpMCRBYDrOsoyls7R07r+emk0=

@@ -48,7 +48,7 @@ require (
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/iso8601 v0.1.1-0.20201221213213-f31ee4cdc38b
 	github.com/qri-io/jsonschema v0.2.2-0.20210618085106-a515144d7449
-	github.com/qri-io/qfs v0.6.1-0.20210805021933-c2dabeb6689b
+	github.com/qri-io/qfs v0.6.1-0.20210806014444-d49f4226a85b
 	github.com/qri-io/starlib v0.4.2
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.1.0
