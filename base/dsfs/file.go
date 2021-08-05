@@ -63,13 +63,13 @@ var _ fs.DirEntry = (*fsDirEntry)(nil)
 
 func (de fsDirEntry) Name() string { return de.name }
 func (de fsDirEntry) IsDir() bool  { return !de.isFile }
-func (ds fsDirEntry) Type() fs.FileMode {
-	if ds.isFile {
+func (de fsDirEntry) Type() fs.FileMode {
+	if de.isFile {
 		return 0
 	}
 	return fs.ModeDir
 }
-func (ds fsDirEntry) Info() (fs.FileInfo, error) { return nil, errors.New("fsDirEntry.FileInfo") }
+func (de fsDirEntry) Info() (fs.FileInfo, error) { return nil, errors.New("fsDirEntry.FileInfo") }
 
 // memfile is an in-memory file
 type memfile struct {

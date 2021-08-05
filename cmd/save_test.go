@@ -145,7 +145,7 @@ func TestSaveRun(t *testing.T) {
 		{"good inputs", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@/mem/QmU8LkXYdPtFQcqxYRxvSYVR8dYzR6i34HtwXYjDzBwWs9\nthis dataset has 1 validation errors\n", "", ""},
 		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@/mem/Qme77Bh4VSsZBbGHLon9YUHwqmQJQa6VYT9eGoVYSF3MZo\nthis dataset has 1 validation errors\n", "", ""},
 		{"no changes", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", true, "", "saving: no changes", ""},
-		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, "dataset saved: peer/movies@/mem/QmT3RYgyjwdobD97pNtcMv3rpMUBiecVSP46kMPS95E9AP\nthis dataset has 1 validation errors\n", "", ""},
+		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, "dataset saved: peer/movies@/mem/QmVPN7GqXyaVkrUMWAHrs1RajDFooy7xJBYMTtk5HNJEBh\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
 	for _, c := range cases {
@@ -241,7 +241,7 @@ Tangled ,100
     created dataset from body_ten.csv
 
 `, map[string]string{
-		"path": "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
+		"path": "/ipfs/QmVmAAVSVewv6HzojRBr2bqJgWwZ8w18vVPqQ6VuTuH7UZ",
 	})
 
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -270,8 +270,8 @@ func TestSaveBasicCommands(t *testing.T) {
 	os.Chdir(tmpPath)
 
 	tmplData := map[string]string{
-		"path1": "/ipfs/QmeW16M3mE8y3kGZzgSuWNnN3LZL8JFYZi1mHGCSQ1me3C",
-		"path2": "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
+		"path1": "/ipfs/QmTXNdaB5RzwTC9bzxiydrfjhYGw1uDWoWAZgw5YRcBCJX",
+		"path2": "/ipfs/QmVmAAVSVewv6HzojRBr2bqJgWwZ8w18vVPqQ6VuTuH7UZ",
 	}
 
 	goodCases := []struct {
@@ -392,13 +392,13 @@ func TestSaveInferName(t *testing.T) {
 	defer run.Delete()
 
 	tmplData := map[string]string{
-		"path1": "/ipfs/QmUkmbtVQYfrRKEWbCzJf7VSd4ZecCFnYDQCtw5oeyqXFH",
-		"path2": "/ipfs/QmQ8qSnAaXkF3zcZfKZvtG6Hcsfs77qXGiTz73mAbxzWsL",
-		"path3": "/ipfs/QmY5SfLwcT8QpjAvfx4TxTmsCVU8Um9BHNvPWH9AEKJ7Fe",
-		"path4": "/ipfs/QmZmqxZACZBUzyNR42L79kPzdxXzcVv9pRSkeMHtexGwom",
-		"path5": "/ipfs/QmVLg74dDmcuGc1FTJGcz415T1hWJHnsd1JbYm321n2cro",
-		"path6": "/ipfs/QmdeMGiLh3SyWTdDuvnuN1SKEB3u4TUft5HRKT1p3FXNug",
-		"path7": "/ipfs/QmT1yXvkYNJjC6GkmReLj5aKTQa4s1mR5hiAc3rZJbzQZZ",
+		"path1": "/ipfs/QmeuUCCYW8csxHdi1Vb7s7i8uSz4ms2Wu6RUhXGQnzRDNy",
+		"path2": "/ipfs/QmP7WJDLAwrhMcPvSvDesrbGU5juTfsJ6ZoXuNJwnjmKqK",
+		"path3": "/ipfs/QmUQmYNQPDs1inqWSL8HqaPshP3BS3TutGB6rcBYFn3Vrj",
+		"path4": "/ipfs/QmPemWKr6243MwHBJByNJZLTAyuhDVn9nAXSG3hQBLju68",
+		"path5": "/ipfs/Qmb5kveEDxqEydsqTprrJWCUbU9oCjehoS3ixYUByNxkUq",
+		"path6": "/ipfs/QmbryoyFzVttEF3yqEfbRmecoDR2CnDFT7zwC29GumNEPk",
+		"path7": "/ipfs/QmcEL3A6Xr6SMvEzWyDXoq2kSP444qF29gTJzda2B8mcob",
 	}
 
 	// Save a dataset with an inferred name.
@@ -589,7 +589,7 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
      headRef       = {{ .path1 }}
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path1":     "/ipfs/QmTqqCcVrw8Q7Twj6sg2QedP28zaCpoKRyxw9znpj6ryCn",
+		"path1":     "/ipfs/QmfU8fcG7DjpL94JvDvAvzo2zkWWXx2Lj8kiq3KhB7Kvat",
 	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
@@ -639,8 +639,8 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
      headRef       = {{ .path2 }}
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path1":     "/ipfs/QmQ8qSnAaXkF3zcZfKZvtG6Hcsfs77qXGiTz73mAbxzWsL",
-		"path2":     "/ipfs/QmTqqCcVrw8Q7Twj6sg2QedP28zaCpoKRyxw9znpj6ryCn",
+		"path1":     "/ipfs/QmP7WJDLAwrhMcPvSvDesrbGU5juTfsJ6ZoXuNJwnjmKqK",
+		"path2":     "/ipfs/QmfU8fcG7DjpL94JvDvAvzo2zkWWXx2Lj8kiq3KhB7Kvat",
 	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
@@ -686,7 +686,7 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
      headRef       = {{ .path1 }}
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path1":     "/ipfs/QmTqqCcVrw8Q7Twj6sg2QedP28zaCpoKRyxw9znpj6ryCn",
+		"path1":     "/ipfs/QmfU8fcG7DjpL94JvDvAvzo2zkWWXx2Lj8kiq3KhB7Kvat",
 	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
@@ -726,7 +726,7 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
      headRef       = {{ .path1 }}
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path1":     "/ipfs/Qme5VHnaMsuXjCvrPU5HokmvWtPfvfrp46Qzry6AGRH9pb",
+		"path1":     "/ipfs/QmZfKcJ9yAqwaYnVo9fqczLP11ScUtQY4tcQVQcMfp2o7Y",
 	})
 
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -786,7 +786,7 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 		"path1":     "/ipfs/QmT7S65mfJV1wskRDj7sYmycfXGawwFEekw6aJxUtdFPy5",
-		"path2":     "/ipfs/QmTqqCcVrw8Q7Twj6sg2QedP28zaCpoKRyxw9znpj6ryCn",
+		"path2":     "/ipfs/QmfU8fcG7DjpL94JvDvAvzo2zkWWXx2Lj8kiq3KhB7Kvat",
 	})
 
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -826,7 +826,7 @@ func TestSaveDscacheThenRemoveAll(t *testing.T) {
      headRef       = {{ .path1 }}
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path1":     "/ipfs/QmTqqCcVrw8Q7Twj6sg2QedP28zaCpoKRyxw9znpj6ryCn",
+		"path1":     "/ipfs/QmfU8fcG7DjpL94JvDvAvzo2zkWWXx2Lj8kiq3KhB7Kvat",
 	})
 
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -1015,8 +1015,8 @@ func TestSaveLargeBodyIsSame(t *testing.T) {
     created dataset from body_ten.csv
 
 `, map[string]string{
-		"path1": "/ipfs/QmPZiHBFGxA4p53VfV29tXEZ667SiNkXamC9oCjFhPWVX4",
-		"path2": "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
+		"path1": "/ipfs/QmaMqhLPoVu3N5GTqEoaDgckdTmmgzwt5Q9oNBEY6T9Vs6",
+		"path2": "/ipfs/QmVmAAVSVewv6HzojRBr2bqJgWwZ8w18vVPqQ6VuTuH7UZ",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {

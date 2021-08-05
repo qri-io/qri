@@ -31,7 +31,7 @@ func TestLogAndDeletes(t *testing.T) {
     created dataset from body_two.json
 
 `, map[string]string{
-		"path": "/ipfs/QmTqqCcVrw8Q7Twj6sg2QedP28zaCpoKRyxw9znpj6ryCn",
+		"path": "/ipfs/QmfU8fcG7DjpL94JvDvAvzo2zkWWXx2Lj8kiq3KhB7Kvat",
 	})
 
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -68,8 +68,8 @@ func TestLogAndDeletes(t *testing.T) {
     created dataset from body_two.json
 
 `, map[string]string{
-		"path1": "/ipfs/Qme5VHnaMsuXjCvrPU5HokmvWtPfvfrp46Qzry6AGRH9pb",
-		"path2": "/ipfs/QmTqqCcVrw8Q7Twj6sg2QedP28zaCpoKRyxw9znpj6ryCn",
+		"path1": "/ipfs/QmZfKcJ9yAqwaYnVo9fqczLP11ScUtQY4tcQVQcMfp2o7Y",
+		"path2": "/ipfs/QmfU8fcG7DjpL94JvDvAvzo2zkWWXx2Lj8kiq3KhB7Kvat",
 	})
 
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -96,7 +96,7 @@ func TestLogAndDeletes(t *testing.T) {
     created dataset from body_two.json
 
 `, map[string]string{
-		"path": "/ipfs/QmTqqCcVrw8Q7Twj6sg2QedP28zaCpoKRyxw9znpj6ryCn",
+		"path": "/ipfs/QmfU8fcG7DjpL94JvDvAvzo2zkWWXx2Lj8kiq3KhB7Kvat",
 	})
 
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -133,7 +133,7 @@ func TestLogAndDeletes(t *testing.T) {
     created dataset from body_ten.csv
 
 `, map[string]string{
-		"path": "/ipfs/QmRHxewn3GLFtkUMnuMycmb9CoR5qVTmKUdEPVcuJTXgxi",
+		"path": "/ipfs/QmQBGw3fgPUd4PsuUQc2QRdcK3VuEXyzzQ1JrRKaVTZHgB",
 	})
 
 	if diff := cmpTextLines(expect, output); diff != "" {

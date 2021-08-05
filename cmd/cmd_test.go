@@ -279,9 +279,6 @@ func TestSaveTwoComponents(t *testing.T) {
 
 	// Save a version, then same another with two components at once
 	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
-	got1 := run.MustLoadDataset(t, run.GetPathForDataset(t, 0))
-	fmt.Println(got1.Stats.Path)
-
 	run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/structure_override.json me/test_ds")
 
 	// Read head from the dataset that was saved, as json string.
@@ -485,8 +482,8 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
     created dataset from tf_123.star
 
 `, map[string]string{
-		"commit1": "/ipfs/QmYiwHLqQHMBaut6QVHqSpvmL7a7kHoFNB13NNCFiykoT7",
-		"commit2": "/ipfs/QmZx6mYranv8ZFgwq7QVFoVVje2vPueC3MJYPy1LVnANmJ",
+		"commit1": "/ipfs/QmTAd6xBZmWPdKoZYyXufUSXva7SSsMuywokawMw9ozC6z",
+		"commit2": "/ipfs/QmTBMKzPKV82Adg1zzj2tqJEQqYwShvCcy8YifiLQqchcc",
 	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)
@@ -536,7 +533,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 
 	tmplData := map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
+		"path":      "/ipfs/QmVmAAVSVewv6HzojRBr2bqJgWwZ8w18vVPqQ6VuTuH7UZ",
 	}
 
 	// Create a dataset, using the "anonymous" generated username.
@@ -637,7 +634,7 @@ func TestListFormatJson(t *testing.T) {
   }
 ]`, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
+		"path":      "/ipfs/QmVmAAVSVewv6HzojRBr2bqJgWwZ8w18vVPqQ6VuTuH7UZ",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {
