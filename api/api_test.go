@@ -21,6 +21,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	apispec "github.com/qri-io/qri/api/spec"
+	"github.com/qri-io/qri/automation"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	testcfg "github.com/qri-io/qri/config/test"
@@ -135,9 +136,13 @@ func testConfigAndSetter() (cfg *config.Config, setCfg func(*config.Config) erro
 }
 
 func newTestInstanceWithProfileFromNode(ctx context.Context, node *p2p.QriNode) *lib.Instance {
+	return newTestInstanceWithProfileFromNodeAndOrchestratorOpts(ctx, node, nil)
+}
+
+func newTestInstanceWithProfileFromNodeAndOrchestratorOpts(ctx context.Context, node *p2p.QriNode, o *automation.OrchestratorOptions) *lib.Instance {
 	cfg := testcfg.DefaultConfigForTesting()
 	cfg.Profile, _ = node.Repo.Profiles().Owner().Encode()
-	return lib.NewInstanceFromConfigAndNode(ctx, cfg, node)
+	return lib.NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts(ctx, cfg, node, event.NilBus, o)
 }
 
 type handlerTestCase struct {

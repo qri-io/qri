@@ -17,5 +17,91 @@
         "Content-Type": "application/json"
       }
     }
+  },
+  {
+	  "endpoint": "/auto/deploy",
+	  "method": "POST",
+	  "headers": {
+		  "Content-Type": "application/json"
+	  },
+	  "body": {
+		  "ref": "peer/now",
+		  "dataset": {
+			  "name": "now",
+			  "peername": "peer",
+			  "transform": {
+				"steps": [
+					{
+					  "syntax":"starlark",
+					  "category":"setup",
+					  "name":"setup",
+					  "script":"# load starlark dependencies\nload(\"encoding/csv.star\", \"csv\")\nload(\"time.star\", \"time\")\n"
+					},
+					{
+					  "syntax":"starlark",
+					  "category":"transform",
+					  "name":"transform",
+					  "script":"# set the body\ndef transform(ds, ctx):\n  currentTime = time.now()\n  body = [\n    ['timestamp']\n  ]\n  body.append([str(currentTime)])\n  theCSV = csv.write_all(body)\n\n  ds.set_body(theCSV, parse_as='csv')\n"
+					}
+				]
+			}
+		},
+		"workflow": {
+		}
+	  },
+	  "expect": {
+		  "code": 200,
+		  "headers": {
+			  "Content-Type":"application/json"
+		  }
+	  }
+  },
+  {
+	  "endpoint": "/auto/run",
+	  "method": "POST",
+	  "headers": {
+		  "Content-Type": "application/json"
+	  },
+	  "body": {
+		  "workflowID": "1d79b0ff-a133-4731-9892-5ee01842ca81"
+	  },
+	  "expect": {
+		  "code": 200,
+		  "headers": {
+			  "Content-Type":"application/json"
+		  }
+	  }
+  },
+  {
+	"endpoint": "/auto/workflow",
+	"method": "POST",
+	"headers": {
+		"Content-Type": "application/json"
+	},
+	"body": {
+		"workflowID": "9e45m9ll-b366-0945-2743-8mm90731jl72"
+	},
+	"expect": {
+	      "code": 200,
+	      "headers": {
+		"Content-Type": "application/json"
+	      }
+	}
+  },
+  {
+	  "endpoint": "/auto/remove",
+	  "method": "POST",
+	  "headers": {
+		  "Content-Type": "application/json"
+	  },
+	  "body": {
+		"workflowID": "9e45m9ll-b366-0945-2743-8mm90731jl72"
+	},
+	"expect": {
+	      "code": 200,
+	      "headers": {
+		"Content-Type": "application/json"
+	      }
+	} 
   }
 ]
