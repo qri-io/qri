@@ -732,13 +732,23 @@ func newStats(cfg *config.Config, repoPath string) (*stats.Service, error) {
 // don't write new code that relies on this, instead create a configuration
 // and options that can be fed to NewInstance
 // This function must only be used for testing purposes
+// TODO(ramfox): remove and replace call sites with `NewInstance`
 func NewInstanceFromConfigAndNode(ctx context.Context, cfg *config.Config, node *p2p.QriNode) *Instance {
 	return NewInstanceFromConfigAndNodeAndBus(ctx, cfg, node, event.NilBus)
 }
 
 // NewInstanceFromConfigAndNodeAndBus adds a bus argument to the horrible, hacky
 // instance construtor
+// TODO(ramfox): remove and replace call sites with `NewInstance`
 func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config, node *p2p.QriNode, bus event.Bus) *Instance {
+	return NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts(ctx, cfg, node, bus, nil)
+}
+
+// NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts adds orchestrator opts to the
+// horrible, hacky instance constructor
+// This function must only be used for testing purpose
+// TODO(ramfox): remove and replace call sites with `NewInstance`
+func NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts(ctx context.Context, cfg *config.Config, node *p2p.QriNode, bus event.Bus, o *automation.OrchestratorOptions) *Instance {
 	ctx, cancel := context.WithCancel(ctx)
 
 	r := node.Repo
@@ -786,14 +796,16 @@ func NewInstanceFromConfigAndNodeAndBus(ctx context.Context, cfg *config.Config,
 	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
 	// basic orchestrator options. When we get the automation configuration settled
 	// we will build a more robust solution
-	autoOpts := automation.OrchestratorOptions{
-		WorkflowStore: workflow.NewMemStore(),
-		Listeners: []trigger.Listener{
-			trigger.NewRuntimeListener(ctx, inst.bus),
-		},
-		RunStore: run.NewMemStore(),
+	if o == nil {
+		o = &automation.OrchestratorOptions{
+			WorkflowStore: workflow.NewMemStore(),
+			Listeners: []trigger.Listener{
+				trigger.NewRuntimeListener(ctx, inst.bus),
+			},
+			RunStore: run.NewMemStore(),
+		}
 	}
-	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, autoOpts)
+	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, *o)
 	if err != nil {
 		cancel()
 		panic(err)

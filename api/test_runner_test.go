@@ -11,21 +11,27 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/automation"
+	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/automation/workflow/wftest"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/profile"
 )
 
 type APITestRunner struct {
-	cancelCtx    context.CancelFunc
-	Ctx          context.Context
-	Node         *p2p.QriNode
-	NodeTeardown func()
-	Inst         *lib.Instance
-	DsfsTsFunc   func() time.Time
-	TmpDir       string
-	WorkDir      string
-	PrevXformVer string
+	cancelCtx     context.CancelFunc
+	Ctx           context.Context
+	Node          *p2p.QriNode
+	NodeTeardown  func()
+	Inst          *lib.Instance
+	workflowStore workflow.Store
+	DsfsTsFunc    func() time.Time
+	TmpDir        string
+	WorkDir       string
+	PrevXformVer  string
 }
 
 func NewAPITestRunner(t *testing.T) *APITestRunner {
@@ -35,7 +41,12 @@ func NewAPITestRunner(t *testing.T) *APITestRunner {
 		Ctx:       ctx,
 	}
 	run.Node, run.NodeTeardown = newTestNode(t)
-	run.Inst = newTestInstanceWithProfileFromNode(ctx, run.Node)
+	o := automation.DefaultMemOrchestratorOptions(ctx, event.NilBus)
+	run.workflowStore = o.WorkflowStore
+
+	run.Inst = newTestInstanceWithProfileFromNodeAndOrchestratorOpts(ctx, run.Node, &o)
+
+	wftest.MustAddDefaultWorkflows(t, &run)
 
 	tmpDir, err := ioutil.TempDir("", "api_test")
 	if err != nil {
@@ -54,6 +65,22 @@ func NewAPITestRunner(t *testing.T) *APITestRunner {
 	APIVersion = "test_version"
 
 	return &run
+}
+
+func (r *APITestRunner) Instance() *lib.Instance {
+	return r.Inst
+}
+
+func (r *APITestRunner) Owner() *profile.Profile {
+	return r.Node.Repo.Profiles().Owner()
+}
+
+func (r *APITestRunner) Context() context.Context {
+	return r.Ctx
+}
+
+func (r *APITestRunner) WorkflowStore() workflow.Store {
+	return r.workflowStore
 }
 
 func (r *APITestRunner) Delete() {

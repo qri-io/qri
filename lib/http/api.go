@@ -51,6 +51,12 @@ const (
 	AEApply APIEndpoint = "/auto/apply"
 	// AEDeploy creates, updates, or deploys a workflow
 	AEDeploy APIEndpoint = "/auto/deploy"
+	// AERun manually runs a workflow
+	AERun APIEndpoint = "/auto/run"
+	// AEWorkflow fetches a workflow
+	AEWorkflow = "/auto/workflow"
+	// AERemoveWorkflow removes a workflow
+	AERemoveWorkflow = "/auto/remove"
 
 	// dataset endpoints
 
