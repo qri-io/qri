@@ -1,0 +1,20 @@
+{
+	"name": "now",
+	"peername": "peer",
+	"transform": {
+		"steps": [
+			{
+			  "syntax":"starlark",
+			  "category":"setup",
+			  "name":"setup",
+			  "script":"# load starlark dependencies\nload(\"encoding/csv.star\", \"csv\")\nload(\"time.star\", \"time\")\n"
+			},
+			{
+			  "syntax":"starlark",
+			  "category":"transform",
+			  "name":"transform",
+			  "script":"# set the body\ndef transform(ds, ctx):\n  currentTime = time.now()\n  body = [\n    ['timestamp']\n  ]\n  body.append([str(currentTime)])\n  theCSV = csv.write_all(body)\n\n  ds.set_body(theCSV, parse_as='csv')\n"
+			}
+		]
+	}
+}
