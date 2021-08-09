@@ -10,6 +10,7 @@ import (
 	"time"
 
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/qri/profile"
 )
 
 var (
@@ -33,6 +34,7 @@ type Type string
 type Event struct {
 	Type      Type
 	Timestamp int64
+	ProfileID string
 	SessionID string
 	Payload   interface{}
 }
@@ -157,10 +159,13 @@ func (b *bus) publish(ctx context.Context, typ Type, sessionID string, payload i
 		return ErrBusClosed
 	}
 
+	profileid := profile.IDFromCtx(ctx)
+
 	e := Event{
 		Type:      typ,
 		Timestamp: NowFunc().UnixNano(),
 		SessionID: sessionID,
+		ProfileID: profileid,
 		Payload:   payload,
 	}
 

@@ -287,7 +287,8 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
 
-		mustPublish(ctx, t, bus, event.ETDatasetDeleteAll, muppetNamesInitID)
+		scopedCtx := profile.AddIDToContext(ctx, kermit.ID.Encode())
+		mustPublish(scopedCtx, t, bus, event.ETDatasetDeleteAll, muppetNamesInitID)
 
 		expect = []dsref.VersionInfo{}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
