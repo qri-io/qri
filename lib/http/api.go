@@ -54,9 +54,9 @@ const (
 	// AERun manually runs a workflow
 	AERun APIEndpoint = "/auto/run"
 	// AEWorkflow fetches a workflow
-	AEWorkflow = "/auto/workflow"
+	AEWorkflow APIEndpoint = "/auto/workflow"
 	// AERemoveWorkflow removes a workflow
-	AERemoveWorkflow = "/auto/remove"
+	AERemoveWorkflow APIEndpoint = "/auto/remove"
 
 	// dataset endpoints
 
