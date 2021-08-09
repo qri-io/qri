@@ -23,7 +23,7 @@ func TestNewManifest(t *testing.T) {
 	expect := &dag.Manifest{
 		Links: [][2]int{{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}},
 		Nodes: []string{
-			"QmXrEEWgrTgLjDG4PyJZFmeGH8gvf49Hi6JVC2r4L1JJbW",
+			"QmR2cvzUwuRu24nxEentiAsGvkqgbBdJcEa9ezFwF4DgDR",
 			"QmPtfTWctksdUXfXCmpQf7pF8z5xUNAYrurQxY5LRsKrX1",
 			"QmQYhY2RaVLn36MrjLQG9XJk6QQMHkSvvPUXZ9J9MDf6Ur",
 			"QmTgqZXtLnU2nRU4yMaQKBiMPesavuDVCfBWJgDvbQZ2xm",
@@ -90,11 +90,11 @@ func TestNewDAGInfo(t *testing.T) {
 			"st": 3,
 			"sa": 2,
 		},
-		Sizes: []uint64{1710, 472, 157, 166, 13, 54, 428, 39},
+		Sizes: []uint64{1642, 472, 157, 166, 13, 54, 428, 39},
 		Manifest: &dag.Manifest{
 			Links: [][2]int{{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}},
 			Nodes: []string{
-				"QmXrEEWgrTgLjDG4PyJZFmeGH8gvf49Hi6JVC2r4L1JJbW",
+				"QmR2cvzUwuRu24nxEentiAsGvkqgbBdJcEa9ezFwF4DgDR",
 				"QmPtfTWctksdUXfXCmpQf7pF8z5xUNAYrurQxY5LRsKrX1",
 				"QmQYhY2RaVLn36MrjLQG9XJk6QQMHkSvvPUXZ9J9MDf6Ur",
 				"QmTgqZXtLnU2nRU4yMaQKBiMPesavuDVCfBWJgDvbQZ2xm",

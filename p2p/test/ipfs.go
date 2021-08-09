@@ -46,7 +46,7 @@ func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username str
 	if err != nil {
 		return nil, err
 	}
-	if err := mux.SetFilesystem(ipfs); err != nil {
+	if err := mux.SetFilesystem(ipfs.(qfs.Filesystem)); err != nil {
 		return nil, err
 	}
 

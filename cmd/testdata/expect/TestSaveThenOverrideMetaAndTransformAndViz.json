@@ -4,21 +4,21 @@
     "author": {
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
-    "message": "meta:\n\tupdated title\nviz added\ntransform added\nbody:\n\tadded row /",
-    "path": "/ipfs/QmXfHPNGE5fNgeTkDFoQP5qkZdG4icqe1wQY3539kRHMt1",
+    "message": "meta:\n\tupdated title\nviz added\ntransform added",
+    "path": "/ipfs/QmUKcMbZnhsPacu6qAubbgnn484Vpjmaqff1TxM5pCLr2m",
     "qri": "cm:0",
     "signature": "DLZfNN6+75R5Yxe3AHPpU1BBrgndN6pEZJTs2Hhy/5Q2MzIvH/pplz59RvUXoZVGkCJNKnSnQcIR7LxWuXjkqRtNLzOt7Pa47NL5THH56tlwLUiX8NyffhPPPiUPU6cURQi2kYr2jYALTqmMaymCXNDybbyl9Vy3MTDxQL6naNvA5WGLI5fcksDvTFSHnkRvcxjsxS4z5bPd0Xek2F4MsEdPmWB59W6S3Z56uwrdj07ttFGq8UeNoyV6+sijjI4CsACvjSjLQo4NQfLTMRWrg6pufjn4Z8JruILjvLymR0wnMldvZsiWC8ZI/MjfXfM6HsAWs2moe4jFJL+zdAPqMg==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
-    "title": "updated meta, viz, transform, and body",
-    "runID": "6d675a6f-6d62-4965-b321-3f213f214f6d"
+    "title": "updated meta, viz, and transform",
+    "runID": "4f6d675a-6f6d-4269-a573-213f213f214f"
   },
   "meta": {
     "path": "/ipfs/QmWWtJJLzCYWp4KEMb95aPQe7n98y3eyRmQTJvxwqyDXCv",
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/Qmc8F9NbT41btv5LiTojfZRhDDhFMXNf2gjAhgUKncSBto",
-  "previousPath": "/ipfs/QmZpWS4BxQkDFd3Vrsnex7EFmCU3zex9GpnfmTmyjCwbfE",
+  "path": "/ipfs/QmdiVgkb4K7SQVuUK2Dp5Kgxu5Jr449KsW7sWDmqc4yenW",
+  "previousPath": "/ipfs/QmfSR1yRPszTNeBrHug3SDZaUsrJHFLGeezVp3T9Hfh1gN",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
@@ -104,8 +104,8 @@
   },
   "transform": {
     "qri": "tf:0",
-    "text": "# transform that doesn't change anything.\ndef transform(ds, ctx):\n  print(\"hello Qri! \\n\")",
     "scriptPath": "/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN",
+    "text": "# transform that doesn't change anything.\ndef transform(ds, ctx):\n  print(\"hello Qri! \\n\")",
     "syntax": "starlark",
     "syntaxVersion": "test_version"
   },

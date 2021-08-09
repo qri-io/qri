@@ -4,11 +4,11 @@ package dsfs
 import (
 	"fmt"
 
-	logger "github.com/ipfs/go-log"
+	golog "github.com/ipfs/go-log"
 )
 
 var (
-	log = logger.Logger("dsfs")
+	log = golog.Logger("dsfs")
 	// ErrNoChanges indicates a save failed because no values changed, and
 	// force-saving was disabled
 	ErrNoChanges = fmt.Errorf("no changes")

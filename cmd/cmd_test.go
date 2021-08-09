@@ -412,7 +412,7 @@ func TestSaveTransformWithoutChanges(t *testing.T) {
 	}
 
 	err := run.ExecCommand("qri save --apply --file=testdata/movies/tf_123.star me/test_ds")
-	expect := `error saving: no changes`
+	expect := `saving failed: no changes`
 	if err == nil {
 		t.Fatalf("expected error: did not get one")
 	}
@@ -482,8 +482,8 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
     created dataset from tf_123.star
 
 `, map[string]string{
-		"commit1": "/ipfs/QmYiwHLqQHMBaut6QVHqSpvmL7a7kHoFNB13NNCFiykoT7",
-		"commit2": "/ipfs/QmZx6mYranv8ZFgwq7QVFoVVje2vPueC3MJYPy1LVnANmJ",
+		"commit1": "/ipfs/QmTAd6xBZmWPdKoZYyXufUSXva7SSsMuywokawMw9ozC6z",
+		"commit2": "/ipfs/QmTBMKzPKV82Adg1zzj2tqJEQqYwShvCcy8YifiLQqchcc",
 	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)
@@ -533,7 +533,7 @@ func TestRenameAfterRegistration(t *testing.T) {
 
 	tmplData := map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
+		"path":      "/ipfs/QmVmAAVSVewv6HzojRBr2bqJgWwZ8w18vVPqQ6VuTuH7UZ",
 	}
 
 	// Create a dataset, using the "anonymous" generated username.
@@ -634,7 +634,7 @@ func TestListFormatJson(t *testing.T) {
   }
 ]`, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
+		"path":      "/ipfs/QmVmAAVSVewv6HzojRBr2bqJgWwZ8w18vVPqQ6VuTuH7UZ",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {

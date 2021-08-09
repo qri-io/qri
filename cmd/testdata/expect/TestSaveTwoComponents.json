@@ -4,20 +4,20 @@
     "author": {
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
-    "message": "meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.lazyQuotes\n\tupdated schema.items.items.0.title\nbody:\n\tadded row /",
-    "path": "/ipfs/Qmf8LAtweyFDtH2y5Py9KgGvmBUE1SLcd3t5da1gxdEp4s",
+    "message": "meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.lazyQuotes\n\tupdated schema.items.items.0.title",
+    "path": "/ipfs/QmcssLzc2TXmYazoQ48NgZ9eCNYB7UbvYtbr1b2z7TRYXG",
     "qri": "cm:0",
     "signature": "TbRg15nt0nGeSLMWMgM90GlOk9wZLhldcEsAquTw1OJX1b5qmZnm7UrTJSGDnLqhSqE9+e5DCINAhxY+PGayIp1hyWTTJX5694yfeN6650l/0z25a4Lhl0UerKkXxkHKvaaAR8tesllKdorYlsUGKMeAjh4QEMfkgakoE3FaJsFBEDUIiEijrIICUw77lKKe8YTyyKRFEsMcFXD0ZBK8AC3GTga9QE0ne66tiitSPWaZ39XYXYzuc+uR7jm55LG68SY9Luk/xfu4E8CUrmJvvoRBLym6gqFOq5Lfa1l8+2YShXzDN+ZeMR6T179YKQNNoWYsybCaoBR6fgU/JDsckQ==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
-    "title": "updated meta, structure, and body"
+    "title": "updated meta and structure"
   },
   "meta": {
     "path": "/ipfs/QmWWtJJLzCYWp4KEMb95aPQe7n98y3eyRmQTJvxwqyDXCv",
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmVZzGj2TujZuHE9XLSCJ4Wd49S9776v3VceWEhSUxNchg",
-  "previousPath": "/ipfs/QmZpWS4BxQkDFd3Vrsnex7EFmCU3zex9GpnfmTmyjCwbfE",
+  "path": "/ipfs/QmeKHXLMZ4VJxdCF7VN8Ra2LMnu4ybZeavLgEVLF77cwqi",
+  "previousPath": "/ipfs/QmfSR1yRPszTNeBrHug3SDZaUsrJHFLGeezVp3T9Hfh1gN",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",

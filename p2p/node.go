@@ -254,7 +254,7 @@ func (n *QriNode) IPFS() (*core.IpfsNode, error) {
 
 // note: both qipfs and ipfs_http have this method
 type ipfsApier interface {
-	IPFSCoreAPI() coreiface.CoreAPI
+	CoreAPI() coreiface.CoreAPI
 }
 
 // IPFSCoreAPI returns a IPFS API interface instance
@@ -263,7 +263,7 @@ func (n *QriNode) IPFSCoreAPI() (coreiface.CoreAPI, error) {
 		return nil, ErrNoQriNode
 	}
 	if ipfsfs, ok := n.Repo.Filesystem().Filesystem("ipfs").(ipfsApier); ok {
-		return ipfsfs.IPFSCoreAPI(), nil
+		return ipfsfs.CoreAPI(), nil
 	}
 	return nil, fmt.Errorf("not using IPFS")
 }

@@ -27,8 +27,8 @@ func TestLogbookCommand(t *testing.T) {
 	expect := dstest.Template(t, tplString, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 		"authorID":  "74iwd7hnx5u47nfnu73auj77hycw5ivdjswdrfyafh4cr3ylmwnq",
-		"path1":     "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
-		"path2":     "/ipfs/QmfLPeefx6oYrnPFrWpWGeW6s1qC3HVHK6NzohiBGDZdns",
+		"path1":     "/ipfs/QmVmAAVSVewv6HzojRBr2bqJgWwZ8w18vVPqQ6VuTuH7UZ",
+		"path2":     "/ipfs/QmdvkyoxvUXkKYpxDYbSh9nswzY4hyjtWG7FBbLgYxpgbi",
 	})
 
 	// Regex that replaces the timestamp with just static text

@@ -80,7 +80,7 @@ func TestPullAndListRefs(t *testing.T) {
 
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
+		"path":      "/ipfs/QmVmAAVSVewv6HzojRBr2bqJgWwZ8w18vVPqQ6VuTuH7UZ",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {
@@ -107,8 +107,8 @@ func TestPullAndListRefs(t *testing.T) {
 `, map[string]string{
 		"profileID1": "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
 		"profileID2": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path1":      "/ipfs/QmTa8HQ2kisP2enbiyUw3ordSA1WV3ZBQVNUCFBusHENW4",
-		"path2":      "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
+		"path1":      "/ipfs/QmQ4sdVf7c4baC8HHEwkcMYTRW5Lunpb4k1JnoxK6vkdaB",
+		"path2":      "/ipfs/QmVmAAVSVewv6HzojRBr2bqJgWwZ8w18vVPqQ6VuTuH7UZ",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {
@@ -152,7 +152,7 @@ structure:
 		"signature":     "gySMr/FiT+kz0X2ODXCE5APx/BvPvalw4xlbS8TtSWssEoHlAOdrUNKUfU7j6rjyq7sFJ7hrbIVOn87fx+7arYCvrvikRawd2anzIvIruxfBymS6A0HtAGAOEAvpn3XbDykEjqaomTXS1CyR6wQkwNEgbELCIqwda9UV3ulhUtHMrAyMxvnq3NG6J9wyFB13u133aDVEojJ82mEF5DBFB+VBVbw90S4b/5AxLEUFSt/BCtE1O0lKYCt2x0HK+1fhl85oe3fpqLhLk96qCAR/Ngv4bt0E9NjGi2ltuji8gaDICKe5KRaSXjXlMkwbUq6sXEKgqzfxHXoIAUZnZNwnmg==",
 		"bodyPath":      "/ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb",
 		"commitPath":    "/ipfs/QmTTPd47BD4EGpCpuvRwTRqDRF84iAuJmfUUGcfEBuF7he",
-		"path":          "/ipfs/Qme666Kphnyw8Sf9sjJaEUp1gQ9PodDyZVW878b6pHny9n",
+		"path":          "/ipfs/QmUv37uYowTAYx2VTsdBcpgHoqRQppQyrnf5yEZcAwcp9P",
 		"structurePath": "/ipfs/QmWoYVZWDdiNauzeP171hKSdo3p2bFaqDcW6cppb9QugUE",
 		"statsPath":     "/ipfs/QmQQkQF2KNBZfFiX33jJ9hu6ivfoHrtgcwMRAezS4dcA7c",
 	})
@@ -185,7 +185,7 @@ func TestPullWithCheckout(t *testing.T) {
 
 `, map[string]string{
 		"profileID": "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
-		"path1":     "/ipfs/Qme666Kphnyw8Sf9sjJaEUp1gQ9PodDyZVW878b6pHny9n",
+		"path1":     "/ipfs/QmUv37uYowTAYx2VTsdBcpgHoqRQppQyrnf5yEZcAwcp9P",
 	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)

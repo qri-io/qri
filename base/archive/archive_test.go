@@ -4,7 +4,6 @@ import (
 	"context"
 	"path/filepath"
 	"runtime"
-	"sync"
 	"testing"
 	"time"
 
@@ -133,7 +132,7 @@ func testFS() (qfs.Filesystem, map[string]string, error) {
 	ds.SetBodyFile(dataf)
 
 	fs := qfs.NewMemFS()
-	dskey, err := dsfs.WriteDataset(ctx, nil, fs, event.NilBus, ds, pk, dsfs.SaveSwitches{})
+	dskey, err := dsfs.WriteDataset(ctx, nil, fs, nil, ds, event.NilBus, pk, dsfs.SaveSwitches{})
 	if err != nil {
 		return fs, ns, err
 	}
@@ -179,8 +178,7 @@ func testFSWithVizAndTransform() (qfs.Filesystem, map[string]string, error) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.csv", []byte("movie\nup\nthe incredibles")))
 	privKey := testkeys.GetKeyData(10).PrivKey
 
-	var dsLk sync.Mutex
-	dskey, err := dsfs.WriteDataset(ctx, &dsLk, st, event.NilBus, ds, privKey, dsfs.SaveSwitches{Pin: true})
+	dskey, err := dsfs.WriteDataset(ctx, st, st, nil, ds, event.NilBus, privKey, dsfs.SaveSwitches{Pin: true})
 	if err != nil {
 		return st, ns, err
 	}

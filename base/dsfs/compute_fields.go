@@ -20,10 +20,9 @@ import (
 type computeFieldsFile struct {
 	*sync.Mutex
 
-	fs        qfs.Filesystem  // filesystem we're writing to
 	publisher event.Publisher // optional bus to publish progress events to
 	pk        crypto.PrivKey  // key for signing version
-	sw        SaveSwitches
+	sw        *SaveSwitches
 
 	ds, prev *dataset.Dataset
 
@@ -33,8 +32,6 @@ type computeFieldsFile struct {
 	// buffer of entries for diffing small datasets. will be set to nil if
 	// body reads more than BodySizeSmallEnoughToDiff bytes
 	diffMessageBuf *dsio.EntryBuffer
-	// action to take when calculating commit messages
-	bodyAct BodyAction
 
 	bodySize   int64 // copy provided body file .Size() method
 	pipeReader *io.PipeReader
@@ -53,13 +50,11 @@ var (
 
 func newComputeFieldsFile(
 	ctx context.Context,
-	dsLk *sync.Mutex,
-	fs qfs.Filesystem,
 	pub event.Publisher,
 	pk crypto.PrivKey,
 	ds *dataset.Dataset,
 	prev *dataset.Dataset,
-	sw SaveSwitches) (qfs.File, error) {
+	sw *SaveSwitches) (qfs.File, error) {
 	var (
 		bf     = ds.BodyFile()
 		bfPrev qfs.File
@@ -85,16 +80,15 @@ func newComputeFieldsFile(
 
 	pr, pw := io.Pipe()
 	tr := io.TeeReader(bf, pw)
+	sw.bodyAct = BodyDefault
 
 	cff := &computeFieldsFile{
-		Mutex:      dsLk,
-		fs:         fs,
+		Mutex:      &sync.Mutex{},
 		publisher:  pub,
 		pk:         pk,
 		sw:         sw,
 		ds:         ds,
 		prev:       prev,
-		bodyAct:    BodyDefault,
 		bodySize:   bodySize,
 		pipeReader: pr,
 		pipeWriter: pw,
@@ -186,12 +180,6 @@ func (cff *computeFieldsFile) handleRows(ctx context.Context) {
 	}
 
 	cff.Lock()
-	if cff.ds.Commit.Timestamp.IsZero() {
-		// assign timestamp early. saving process on large files can take many minutes
-		cff.ds.Commit.Timestamp = Timestamp()
-	} else {
-		cff.ds.Commit.Timestamp = cff.ds.Commit.Timestamp.In(time.UTC)
-	}
 	cff.acc = dsstats.NewAccumulator(st)
 	cff.Unlock()
 
@@ -344,7 +332,7 @@ func (cff *computeFieldsFile) flushBatch(ctx context.Context, buf *dsio.EntryBuf
 		log.Debugf("removing diffMessage data buffer. bytesRead exceeds %d bytes", BodySizeSmallEnoughToDiff)
 		cff.diffMessageBuf.Close()
 		cff.diffMessageBuf = nil
-		cff.bodyAct = BodyTooBig
+		cff.sw.bodyAct = BodyTooBig
 	}
 
 	if e := buf.Close(); e != nil {

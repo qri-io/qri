@@ -4,20 +4,20 @@
     "author": {
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
-    "message": "meta added\nbody:\n\tadded row /",
-    "path": "/ipfs/QmUb9DKT2x8Cbe75sVdNKa3uEZzVaTo5B1NEpmUGpr87MU",
+    "message": "meta added",
+    "path": "/ipfs/QmQXAq6RHjWfGZgUYHDPKRbyY9SoVhVkGqZ1UKmAjD3QH2",
     "qri": "cm:0",
     "signature": "DLZfNN6+75R5Yxe3AHPpU1BBrgndN6pEZJTs2Hhy/5Q2MzIvH/pplz59RvUXoZVGkCJNKnSnQcIR7LxWuXjkqRtNLzOt7Pa47NL5THH56tlwLUiX8NyffhPPPiUPU6cURQi2kYr2jYALTqmMaymCXNDybbyl9Vy3MTDxQL6naNvA5WGLI5fcksDvTFSHnkRvcxjsxS4z5bPd0Xek2F4MsEdPmWB59W6S3Z56uwrdj07ttFGq8UeNoyV6+sijjI4CsACvjSjLQo4NQfLTMRWrg6pufjn4Z8JruILjvLymR0wnMldvZsiWC8ZI/MjfXfM6HsAWs2moe4jFJL+zdAPqMg==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
-    "title": "updated meta and body"
+    "title": "meta added"
   },
   "meta": {
     "path": "/ipfs/QmWWtJJLzCYWp4KEMb95aPQe7n98y3eyRmQTJvxwqyDXCv",
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmTA5KVatx92BktVb5pDo8cniME2g9sBS5rNBPnGdDD824",
-  "previousPath": "/ipfs/QmVoTPfveZmw6nVwz48KNPhcAgMdPwr2UWL4fhYd9pr2GM",
+  "path": "/ipfs/QmZsWyJk5D6ZGPjnWowKQypWn331CYfAzKd8P9DuyV7JRJ",
+  "previousPath": "/ipfs/QmVmAAVSVewv6HzojRBr2bqJgWwZ8w18vVPqQ6VuTuH7UZ",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",

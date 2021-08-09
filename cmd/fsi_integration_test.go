@@ -1496,7 +1496,7 @@ func TestMoveWorkingDirectory(t *testing.T) {
 
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmV5v6CLeeTVDyqnsSauLw8mgtQLgVVHw53g5EHeAmQuGs",
+		"path":      "/ipfs/QmWPJAM5MJ6FJJ98yHbeD2RzwRhNCgYBZvqV5SJcitdxdZ",
 	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
@@ -1537,7 +1537,7 @@ func TestRemoveWorkingDirectory(t *testing.T) {
 
 `, map[string]string{
 		"profileID": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-		"path":      "/ipfs/QmV5v6CLeeTVDyqnsSauLw8mgtQLgVVHw53g5EHeAmQuGs",
+		"path":      "/ipfs/QmWPJAM5MJ6FJJ98yHbeD2RzwRhNCgYBZvqV5SJcitdxdZ",
 	})
 
 	if diff := cmp.Diff(expect, output); diff != "" {
@@ -1881,7 +1881,7 @@ func TestSaveWithReadmeChange(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error trying to save, did not get an error")
 	}
-	expect := "error saving: no changes"
+	expect := "saving failed: no changes"
 	if err.Error() != expect {
 		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
 	}

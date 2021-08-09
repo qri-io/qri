@@ -4,21 +4,21 @@
     "author": {
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
-    "message": "transform added\nbody:\n\tadded row /",
-    "path": "/ipfs/QmYAB3t4fY6oiAurUmvDVSXP17vJ1TnjyNnHJNmxZsidPe",
+    "message": "transform added",
+    "path": "/ipfs/Qmd1WvnWMSRPW79bz6Xsw7qbrU9pdw1rinj9ZEBu6aWeS7",
     "qri": "cm:0",
     "signature": "oKWAhSs8tosCKuv5kZChkfQMuNNKluRcrkIa3fluIOsmPhEmuKz2KvpwJAaAalUrhJSLmblOsfdW+nFCO3pjJwAzfwcueCv/vnIeAfM5io1RL+aUMakBeAflYYe0SUo+xdy+TiKXiX+AElcFUEhqCfG5fd7MSJEK6Whqf/pOeVWYsTE/YYHVTXm2DJOUOAmhUETO7+IKqMyl/HKmYtJTlmpnGKcA6On539nINIyGfRFMlg/H1ZXhN5oGXvWIfjri7TuJtPXtMQVH2h0Ikqgyr8gAwhyPGoxSTZ48KVfaNKnWT5SC+qszdN8vf39Zw3a0/jnBZgY8jtXTm/a/yq9oZw==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
-    "title": "updated transform and body",
-    "runID": "6d675a6f-6d62-4965-b321-3f213f214f6d"
+    "title": "transform added",
+    "runID": "4f6d675a-6f6d-4269-a573-213f213f214f"
   },
   "meta": {
     "path": "/ipfs/QmPTny3VHAB5BcP99r6xhK7SGnmDFjpC8cHXLCrHNn2tZB",
     "qri": "md:0",
     "title": "example movie data"
   },
-  "path": "/ipfs/QmVAXPQumN3Tb1x9iBQ5xKQDmTX9ZFMq1DRg8NMV7xX9My",
-  "previousPath": "/ipfs/QmZpWS4BxQkDFd3Vrsnex7EFmCU3zex9GpnfmTmyjCwbfE",
+  "path": "/ipfs/Qmdm6fdGFr3UKATVWUeA8AkhQvQr1pKYwgFhgqSXashQtK",
+  "previousPath": "/ipfs/QmfSR1yRPszTNeBrHug3SDZaUsrJHFLGeezVp3T9Hfh1gN",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
@@ -104,8 +104,8 @@
   },
   "transform": {
     "qri": "tf:0",
-    "text": "# transform that doesn't change anything.\ndef transform(ds, ctx):\n  print(\"hello Qri! \\n\")",
     "scriptPath": "/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN",
+    "text": "# transform that doesn't change anything.\ndef transform(ds, ctx):\n  print(\"hello Qri! \\n\")",
     "syntax": "starlark",
     "syntaxVersion": "test_version"
   }

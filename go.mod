@@ -1,6 +1,6 @@
 module github.com/qri-io/qri
 
-go 1.15
+go 1.16
 
 require (
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
@@ -18,13 +18,13 @@ require (
 	github.com/gorilla/schema v1.2.0
 	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-datastore v0.4.5
-	github.com/ipfs/go-ipfs v0.9.0
+	github.com/ipfs/go-ipfs v0.9.1
 	github.com/ipfs/go-ipfs-config v0.14.0
 	github.com/ipfs/go-ipld-format v0.2.0
 	github.com/ipfs/go-log v1.0.5
 	github.com/ipfs/interface-go-ipfs-core v0.4.0
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
-	github.com/libp2p/go-libp2p v0.14.2
+	github.com/libp2p/go-libp2p v0.14.3
 	github.com/libp2p/go-libp2p-circuit v0.4.0
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
 	github.com/libp2p/go-libp2p-core v0.8.5
@@ -36,7 +36,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.5
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/multiformats/go-multiaddr v0.3.2
+	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/multiformats/go-multihash v0.0.15
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pkg/errors v0.9.1
@@ -48,7 +48,7 @@ require (
 	github.com/qri-io/ioes v0.1.1
 	github.com/qri-io/iso8601 v0.1.1-0.20201221213213-f31ee4cdc38b
 	github.com/qri-io/jsonschema v0.2.2-0.20210618085106-a515144d7449
-	github.com/qri-io/qfs v0.6.1-0.20210629014446-45bdcdb57434
+	github.com/qri-io/qfs v0.6.1-0.20210806014444-d49f4226a85b
 	github.com/qri-io/starlib v0.4.2
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.1.0
@@ -58,9 +58,9 @@ require (
 	github.com/vbauerster/mpb/v5 v5.3.0
 	go.starlark.net v0.0.0-20200619143648-50ca820fafb9
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf
-	golang.org/x/net v0.0.0-20210423184538-5f58ad60dda6
+	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	golang.org/x/sys v0.0.0-20210511113859-b0526f3d8744
 	golang.org/x/text v0.3.6
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 	nhooyr.io/websocket v1.8.6
 )

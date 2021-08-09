@@ -4,20 +4,20 @@
     "author": {
       "id": "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"
     },
-    "message": "viz added\nbody:\n\tadded row /",
-    "path": "/ipfs/QmSBncTHmfnAcAtSbnmDeT1zKLeP6DWBoVGfNuza6MfLs9",
+    "message": "viz added",
+    "path": "/ipfs/QmTnqGVUYW3bJZPuoRgkcQa6WQKMfcBeDZ1ohYWRgStunc",
     "qri": "cm:0",
     "signature": "oKWAhSs8tosCKuv5kZChkfQMuNNKluRcrkIa3fluIOsmPhEmuKz2KvpwJAaAalUrhJSLmblOsfdW+nFCO3pjJwAzfwcueCv/vnIeAfM5io1RL+aUMakBeAflYYe0SUo+xdy+TiKXiX+AElcFUEhqCfG5fd7MSJEK6Whqf/pOeVWYsTE/YYHVTXm2DJOUOAmhUETO7+IKqMyl/HKmYtJTlmpnGKcA6On539nINIyGfRFMlg/H1ZXhN5oGXvWIfjri7TuJtPXtMQVH2h0Ikqgyr8gAwhyPGoxSTZ48KVfaNKnWT5SC+qszdN8vf39Zw3a0/jnBZgY8jtXTm/a/yq9oZw==",
     "timestamp": "2001-01-01T01:02:01.000000001Z",
-    "title": "updated viz and body"
+    "title": "viz added"
   },
   "meta": {
     "path": "/ipfs/QmPTny3VHAB5BcP99r6xhK7SGnmDFjpC8cHXLCrHNn2tZB",
     "qri": "md:0",
     "title": "example movie data"
   },
-  "path": "/ipfs/QmVJTHHdr66f3amKnBre2z1JAtybVyyZL9SK1fjDVgDHuP",
-  "previousPath": "/ipfs/QmZpWS4BxQkDFd3Vrsnex7EFmCU3zex9GpnfmTmyjCwbfE",
+  "path": "/ipfs/QmbvwNpW5JbebGb21CK4pEcjvRmoPN3QWMqiTN49sBgyRY",
+  "previousPath": "/ipfs/QmfSR1yRPszTNeBrHug3SDZaUsrJHFLGeezVp3T9Hfh1gN",
   "qri": "ds:0",
   "structure": {
     "checksum": "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",

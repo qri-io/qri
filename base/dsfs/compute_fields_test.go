@@ -2,7 +2,6 @@ package dsfs
 
 import (
 	"context"
-	"sync"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -11,7 +10,7 @@ import (
 )
 
 func TestComputeFieldsFile(t *testing.T) {
-	var lk sync.Mutex
+	ctx := context.Background()
 	ds := &dataset.Dataset{
 		Commit: &dataset.Commit{},
 		Structure: &dataset.Structure{
@@ -22,7 +21,7 @@ func TestComputeFieldsFile(t *testing.T) {
 	}
 
 	ds.SetBodyFile(qfs.NewMemfileBytes(ds.Structure.BodyFilename(), []byte("[0,1,2]\n[3,4,5]")))
-	cff, err := newComputeFieldsFile(context.Background(), &lk, nil, event.NilBus, nil, ds, nil, SaveSwitches{})
+	cff, err := newComputeFieldsFile(ctx, event.NilBus, nil, ds, nil, &SaveSwitches{})
 	if err != nil {
 		t.Fatal(err)
 	}

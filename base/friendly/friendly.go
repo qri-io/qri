@@ -23,7 +23,7 @@ type ComponentChanges struct {
 // DiffDescriptions creates a friendly message from diff operations. If there's no differences
 // found, return empty strings.
 func DiffDescriptions(headDeltas, bodyDeltas []*deepdiff.Delta, bodyStats *deepdiff.Stats, assumeBodyChanged bool) (string, string) {
-	log.Debugf("DiffDescriptions len(headDeltas)=%d len(bodyDeltas)=%d bodyStats=%v assumeBodyChanged=%t", len(headDeltas), len(bodyDeltas), bodyStats, assumeBodyChanged)
+	log.Debugw("DiffDescriptions", "len(headDeltas)", len(headDeltas), "len(bodyDeltas)", len(bodyDeltas), "bodyStats", bodyStats, "assumeBodyChanged", assumeBodyChanged)
 	if len(headDeltas) == 0 && len(bodyDeltas) == 0 {
 		return "", ""
 	}
@@ -42,7 +42,7 @@ func DiffDescriptions(headDeltas, bodyDeltas []*deepdiff.Delta, bodyStats *deepd
 	componentsToCheck := []string{"meta", "structure", "readme", "viz", "transform", "body"}
 	for _, compName := range componentsToCheck {
 		if changes, ok := perComponentChanges[compName]; ok {
-			log.Debugf("checking component named=%q", compName)
+			log.Debugw("checking component", "name", compName)
 			changedComponents = append(changedComponents, compName)
 
 			// Decide heuristically which type of message to use for this component
@@ -156,7 +156,7 @@ func buildComponentChanges(headDeltas, bodyDeltas deepdiff.Deltas, bodyStats *de
 				if _, ok := perComponentChanges[compName]; !ok {
 					perComponentChanges[compName] = &ComponentChanges{}
 				}
-				changes, _ := perComponentChanges[compName]
+				changes := perComponentChanges[compName]
 				changes.EntireMessage = pastTense(string(d.Type))
 				continue
 			} else {

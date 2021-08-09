@@ -26,6 +26,9 @@ const AllGenerations = -1
 
 // ParseRevs turns a comma-separated list of revisions into a slice of revisions
 func ParseRevs(str string) (revs []*Rev, err error) {
+	if str == "" {
+		return []*Rev{}, nil
+	}
 	for _, revStr := range strings.Split(str, ",") {
 		rev, err := ParseRev(revStr)
 		if err != nil {
