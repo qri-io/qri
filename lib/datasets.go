@@ -975,6 +975,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 			if err := scope.Logbook().RemoveLog(ctx, ref); err != nil {
 				log.Errorf("couldn't cleanup unused reference: %q", err)
 			}
+			go scope.sendEvent(event.ETDatasetCreateFail, ref, ref.InitID)
 			cancel()
 		}
 	}()

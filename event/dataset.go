@@ -4,11 +4,15 @@ const (
 	// ETDatasetNameInit is when a dataset is initialized
 	// payload is a dsref.VersionInfo
 	ETDatasetNameInit = Type("dataset:Init")
+	// ETDatasetCreateFail is when a dataset is initialized but failed
+	// when creating the first version of the dataset
+	// payload is an `InitID`
+	ETDatasetCreateFail = Type("dataset:CreateFail")
 	// ETDatasetCommitChange is when a dataset changes its newest commit
 	// payload is a dsref.VersionInfo
 	ETDatasetCommitChange = Type("dataset:CommitChange")
 	// ETDatasetDeleteAll is when a dataset is entirely deleted
-	// payload is a dsref.VersionInfo
+	// payload is an `InitID`
 	ETDatasetDeleteAll = Type("dataset:DeleteAll")
 	// ETDatasetRename is when a dataset is renamed
 	// payload is a dsref.VersionInfo
