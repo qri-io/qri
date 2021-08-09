@@ -1025,11 +1025,6 @@ func (inst *Instance) Search() SearchMethods {
 	return SearchMethods{d: inst}
 }
 
-// SQL returns the SQLMethods that Instance has registered
-func (inst *Instance) SQL() SQLMethods {
-	return SQLMethods{d: inst}
-}
-
 // WithSource returns a wrapped instance that will resolve refs from the given source
 func (inst *Instance) WithSource(source string) *InstanceSourceWrap {
 	return &InstanceSourceWrap{
@@ -1068,11 +1063,6 @@ func (isw *InstanceSourceWrap) Log() LogMethods {
 // Remote returns the RemoteMethods that Instance has registered
 func (isw *InstanceSourceWrap) Remote() RemoteMethods {
 	return RemoteMethods{d: isw}
-}
-
-// SQL returns the SQLMethods that Instance has registered
-func (isw *InstanceSourceWrap) SQL() SQLMethods {
-	return SQLMethods{d: isw}
 }
 
 // GetConfig provides methods for manipulating Qri configuration

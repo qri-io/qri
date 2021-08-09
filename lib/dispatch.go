@@ -269,7 +269,6 @@ func (inst *Instance) AllMethods() []MethodSet {
 		inst.Follow(),
 		inst.Remote(),
 		inst.Search(),
-		inst.SQL(),
 		inst.Automation(),
 	}
 }
@@ -291,7 +290,6 @@ func (inst *Instance) RegisterMethods() {
 	inst.registerOne("follow", inst.Follow(), followImpl{}, reg)
 	inst.registerOne("remote", inst.Remote(), remoteImpl{}, reg)
 	inst.registerOne("search", inst.Search(), searchImpl{}, reg)
-	inst.registerOne("sql", inst.SQL(), sqlImpl{}, reg)
 	inst.regMethods = &regMethodSet{reg: reg}
 }
 

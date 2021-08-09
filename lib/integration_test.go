@@ -139,21 +139,14 @@ func TestReferencePulling(t *testing.T) {
 	hinshun := tr.InitHinshun(t)
 
 	// fetch this from the registry by default
-	p := &SQLQueryParams{
-		Query:  "SELECT * FROM nasim/world_bank_population a LIMIT 1",
-		Format: "json",
-	}
-	if _, err := hinshun.SQL().Exec(tr.Ctx, p); err != nil {
+	p := &GetParams{Ref: "nasim/world_bank_population"}
+	if _, err := hinshun.Dataset().Get(tr.Ctx, p); err != nil {
 		t.Fatal(err)
 	}
 
 	// re-run. dataset should now be local, and no longer require registry to
 	// resolve
-	p = &SQLQueryParams{
-		Query:  "SELECT * FROM nasim/world_bank_population a LIMIT 1 OFFSET 1",
-		Format: "json",
-	}
-	if _, err = hinshun.WithSource("local").SQL().Exec(tr.Ctx, p); err != nil {
+	if _, err = hinshun.WithSource("local").Dataset().Get(tr.Ctx, p); err != nil {
 		t.Fatal(err)
 	}
 
