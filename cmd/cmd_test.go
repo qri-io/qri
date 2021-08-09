@@ -412,7 +412,7 @@ func TestSaveTransformWithoutChanges(t *testing.T) {
 	}
 
 	err := run.ExecCommand("qri save --apply --file=testdata/movies/tf_123.star me/test_ds")
-	expect := `saving: no changes`
+	expect := `saving failed: no changes`
 	if err == nil {
 		t.Fatalf("expected error: did not get one")
 	}

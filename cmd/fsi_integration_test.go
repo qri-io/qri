@@ -1881,7 +1881,7 @@ func TestSaveWithReadmeChange(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error trying to save, did not get an error")
 	}
-	expect := "saving: no changes"
+	expect := "saving failed: no changes"
 	if err.Error() != expect {
 		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
 	}

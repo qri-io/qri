@@ -157,7 +157,7 @@ func TestCreateDataset(t *testing.T) {
 	})
 
 	t.Run("no_changes", func(t *testing.T) {
-		expectedErr := "saving: no changes"
+		expectedErr := "saving failed: no changes"
 		dsPrev, err := LoadDataset(ctx, fs, good[2].resultPath)
 		if err != nil {
 			t.Fatal(err)

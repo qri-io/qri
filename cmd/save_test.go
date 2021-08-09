@@ -144,7 +144,7 @@ func TestSaveRun(t *testing.T) {
 		{"bad body file", "me/cities", "", "bad/bodypath.csv", "", "", true, "", "opening body file: opening dataset.bodyPath 'bad/bodypath.csv': path not found", ""},
 		{"good inputs", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@/mem/QmU8LkXYdPtFQcqxYRxvSYVR8dYzR6i34HtwXYjDzBwWs9\nthis dataset has 1 validation errors\n", "", ""},
 		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@/mem/Qme77Bh4VSsZBbGHLon9YUHwqmQJQa6VYT9eGoVYSF3MZo\nthis dataset has 1 validation errors\n", "", ""},
-		{"no changes", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", true, "", "saving: no changes", ""},
+		{"no changes", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", true, "", "saving failed: no changes", ""},
 		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, "dataset saved: peer/movies@/mem/QmVPN7GqXyaVkrUMWAHrs1RajDFooy7xJBYMTtk5HNJEBh\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
@@ -991,7 +991,7 @@ func TestSaveLargeBodyIsSame(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error trying to save, did not get an error")
 	}
-	expect := `saving: no changes`
+	expect := `saving failed: no changes`
 	if err.Error() != expect {
 		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
 	}

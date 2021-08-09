@@ -58,12 +58,12 @@ func commitFileAddFunc(ctx context.Context, privKey crypto.PrivKey, publisher ev
 		updateScriptPaths(dst, ds, added)
 
 		if err := confirmByteChangesExist(ds, prev, sw.ForceIfNoChanges, dst, added); err != nil {
-			return fmt.Errorf("saving: %w", err)
+			return fmt.Errorf("saving failed: %w", err)
 		}
 
 		if err := ensureCommitTitleAndMessage(ctx, src, privKey, ds, prev, sw.bodyAct, sw.FileHint, sw.ForceIfNoChanges); err != nil {
 			log.Debugf("ensureCommitTitleAndMessage: %s", err)
-			return fmt.Errorf("saving: %w", err)
+			return fmt.Errorf("saving failed: %w", err)
 		}
 
 		ds.DropTransientValues()

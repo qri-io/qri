@@ -89,8 +89,8 @@ func LoadBody(ctx context.Context, fs qfs.Filesystem, ds *dataset.Dataset) (qfs.
 	return fs.Get(ctx, ds.BodyPath)
 }
 
-// DerefCommit derferences a dataset's Commit element if required
-// should be a no-op if ds.Structure is nil or isn't a reference
+// DerefCommit derferences a dataset's Commit element if required should be a
+// no-op if ds.Commit is nil or isn't a reference
 func DerefCommit(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
 	if ds.Commit != nil && ds.Commit.IsEmpty() && ds.Commit.Path != "" {
 		cm, err := loadCommit(ctx, store, ds.Commit.Path)
@@ -104,7 +104,6 @@ func DerefCommit(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset)
 	return nil
 }
 
-// loadCommit assumes the provided path is valid
 func loadCommit(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Commit, err error) {
 	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
@@ -114,8 +113,8 @@ func loadCommit(ctx context.Context, fs qfs.Filesystem, path string) (st *datase
 	return dataset.UnmarshalCommit(data)
 }
 
-// DerefMeta derferences a dataset's transform element if required
-// should be a no-op if ds.Structure is nil or isn't a reference
+// DerefMeta derferences a dataset's transform element if required should be a
+// no-op if ds.Meta is nil or isn't a reference
 func DerefMeta(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
 	if ds.Meta != nil && ds.Meta.IsEmpty() && ds.Meta.Path != "" {
 		md, err := loadMeta(ctx, store, ds.Meta.Path)
@@ -129,7 +128,6 @@ func DerefMeta(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) e
 	return nil
 }
 
-// loadMeta assumes the provided path is valid
 func loadMeta(ctx context.Context, fs qfs.Filesystem, path string) (md *dataset.Meta, err error) {
 	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
@@ -141,8 +139,8 @@ func loadMeta(ctx context.Context, fs qfs.Filesystem, path string) (md *dataset.
 	return md, err
 }
 
-// DerefReadme dereferences a dataset's Readme element if required
-// no-op if ds.Readme is nil or isn't a reference
+// DerefReadme dereferences a dataset's Readme element if required no-op if
+// ds.Readme is nil or isn't a reference
 func DerefReadme(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) error {
 	if ds.Readme != nil && ds.Readme.IsEmpty() && ds.Readme.Path != "" {
 		rm, err := loadReadme(ctx, store, ds.Readme.Path)
@@ -156,7 +154,6 @@ func DerefReadme(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset)
 	return nil
 }
 
-// loadReadme assumes the provided path is valid
 func loadReadme(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Readme, err error) {
 	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
@@ -196,7 +193,6 @@ func DerefStats(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) 
 	return nil
 }
 
-// loadStats assumes the provided path is valid
 func loadStats(ctx context.Context, fs qfs.Filesystem, path string) (sa *dataset.Stats, err error) {
 	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
@@ -223,7 +219,6 @@ func DerefTransform(ctx context.Context, store qfs.Filesystem, ds *dataset.Datas
 	return nil
 }
 
-// loadTransform assumes the provided path is correct
 func loadTransform(ctx context.Context, fs qfs.Filesystem, path string) (q *dataset.Transform, err error) {
 	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
@@ -232,22 +227,6 @@ func loadTransform(ctx context.Context, fs qfs.Filesystem, path string) (q *data
 	}
 
 	return dataset.UnmarshalTransform(data)
-}
-
-// LoadTransformScript loads transform script data from a dataset path if the given dataset has a transform script specified
-// the returned qfs.File will be the value of dataset.Transform.ScriptPath
-// TODO - this is broken, assumes file is JSON. fix & test or depricate
-func LoadTransformScript(ctx context.Context, fs qfs.Filesystem, dspath string) (qfs.File, error) {
-	ds, err := LoadDataset(ctx, fs, dspath)
-	if err != nil {
-		return nil, err
-	}
-
-	if ds.Transform == nil || ds.Transform.ScriptPath == "" {
-		return nil, ErrNoTransform
-	}
-
-	return fs.Get(ctx, ds.Transform.ScriptPath)
 }
 
 // DerefStructure derferences a dataset's structure element if required
@@ -266,7 +245,6 @@ func DerefStructure(ctx context.Context, store qfs.Filesystem, ds *dataset.Datas
 	return nil
 }
 
-// loadStructure assumes path is valid
 func loadStructure(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Structure, err error) {
 	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {
@@ -291,7 +269,6 @@ func DerefViz(ctx context.Context, store qfs.Filesystem, ds *dataset.Dataset) er
 	return nil
 }
 
-// loadViz assumes the provided path is valid
 func loadViz(ctx context.Context, fs qfs.Filesystem, path string) (st *dataset.Viz, err error) {
 	data, err := fileBytes(fs.Get(ctx, path))
 	if err != nil {

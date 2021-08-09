@@ -25,7 +25,3 @@ var (
 	// pass (Structure.Strict == true)
 	ErrStrictMode = fmt.Errorf("dataset body did not validate against schema in strict-mode")
 )
-
-func init() {
-	// golog.SetLogLevel("dsfs", "debug")
-}

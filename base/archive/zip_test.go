@@ -97,6 +97,10 @@ func TestWriteZipFullDataset(t *testing.T) {
 		t.Fatal(err)
 	}
 	tmppath := filepath.Join(path, "exported.zip")
+	// If this test explodes because you've intentionally changed the formatting
+	// of dataset saves, comment out the defer, uncomment the log, and examine the
+	// persisted zip archive at the logged path, overrite the existing test zip
+	// archive if everything looks ok
 	defer os.RemoveAll(tmppath)
 	// t.Log(tmppath)
 	err = ioutil.WriteFile(tmppath, buf.Bytes(), os.ModePerm)
