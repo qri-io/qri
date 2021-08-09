@@ -293,6 +293,30 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		expect = []dsref.VersionInfo{}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
 
+		// simulate name initialization, normally emitted by logbook
+		mustPublish(ctx, t, bus, event.ETDatasetNameInit, dsref.VersionInfo{
+			InitID:    muppetNamesInitID,
+			ProfileID: kermit.ID.Encode(),
+			Username:  kermit.Peername,
+			Name:      muppetNamesName1,
+		})
+
+		expect = []dsref.VersionInfo{
+			{
+				InitID:    muppetNamesInitID,
+				ProfileID: kermit.ID.Encode(),
+				Username:  kermit.Peername,
+				Name:      muppetNamesName1,
+			},
+		}
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+
+		// simulate save fail, normally emitted by lib
+		mustPublish(scopedCtx, t, bus, event.ETDatasetCreateFail, muppetNamesInitID)
+
+		expect = []dsref.VersionInfo{}
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+
 		// TODO (b5): create a second dataset, use different timestamps for both,
 		// assert default ordering of datasets
 	})
