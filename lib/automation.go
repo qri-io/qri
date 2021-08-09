@@ -32,7 +32,7 @@ func (m AutomationMethods) Name() string {
 func (m AutomationMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		"apply":    {Endpoint: qhttp.AEApply, HTTPVerb: "POST"},
-		"deploy":   {Endpoint: qhttp.AEDeploy, HTTPVerb: "POST"},
+		"deploy":   {Endpoint: qhttp.AEDeploy, HTTPVerb: "POST", DefaultSource: "local"},
 		"run":      {Endpoint: qhttp.AERun, HTTPVerb: "POST"},
 		"workflow": {Endpoint: qhttp.AEWorkflow, HTTPVerb: "POST"},
 		"remove":   {Endpoint: qhttp.AERemoveWorkflow, HTTPVerb: "POST"},
@@ -231,6 +231,7 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 
 	// Because deploy runs as a background task, re-root execution context atop
 	// the application context
+	log.Debugw("app context", "ctx", scope.AppContext())
 	scope = scope.ReplaceParentContext(scope.AppContext())
 	// TODO(ramfox): if we decide that you can interact with the automation subsystem when
 	// qri connect is NOT running, we need a `wait` flag in DeployParams, that, when `true`,
@@ -251,9 +252,12 @@ func deploy(scope scope, p *DeployParams) {
 	log.Debugw("deploy started", "ref", vi.SimpleRef().String(), "payload", deployPayload)
 	scope.sendEvent(event.ETAutomationDeployStart, ref, deployPayload)
 
+	go scope.sendEvent(event.ETAutomationDeploySaveDatasetStart, ref, deployPayload)
+
+	changesSaved := false
 	rollback := true
 	defer func() {
-		if rollback {
+		if rollback && changesSaved {
 			rp := &RemoveParams{
 				Ref: ref,
 				Revision: &dsref.Rev{
@@ -261,19 +265,19 @@ func deploy(scope scope, p *DeployParams) {
 					Gen:   1,
 				},
 			}
+
 			if _, err := (datasetImpl{}).Remove(scope, rp); err != nil {
 				log.Debugw("deploy rollback", "error", err)
 			}
 		}
 	}()
 
-	go scope.sendEvent(event.ETAutomationDeploySaveDatasetStart, ref, deployPayload)
-
 	saveParams := &SaveParams{
 		Ref:     vi.SimpleRef().String(),
 		Dataset: p.Dataset,
 		Apply:   false,
 	}
+
 	// TODO(ramfox): bandaid! remove when save can handle having saving a dataset with no body/structure
 	if p.Dataset.ID == "" && p.Dataset.BodyFile() == nil {
 		saveParams.Apply = true
@@ -285,7 +289,7 @@ func deploy(scope scope, p *DeployParams) {
 		scope.sendEvent(event.ETAutomationDeployEnd, ref, deployPayload)
 		return
 	}
-
+	changesSaved = !errors.Is(err, dsfs.ErrNoChanges)
 	deployPayload.InitID = ds.ID
 	go scope.sendEvent(event.ETAutomationDeploySaveDatasetEnd, ref, deployPayload)
 
