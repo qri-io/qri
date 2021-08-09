@@ -355,11 +355,10 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 			})
 		}
 	case event.ETDatasetDeleteAll:
-		// TODO(b5): need user-scoped events for this, unless we want one user
-		// removing a dataset to remove it from all collections of all users
-		if initID, ok := e.Payload.(string); ok {
-			if err := s.deleteAcrossAllCollections(initID); err != nil {
-				log.Debugw("removing dataset across all collections", "initID", initID, "err", err)
+		profileID := e.ProfileID
+		if initID, ok := e.Payload.(string); ok && profileID != "" {
+			if err := s.deleteFromCollection(profileID, initID); err != nil {
+				log.Debugw("removing dataset from collection", "profileID", profileID, "initID", initID, "err", err)
 			}
 		}
 
@@ -517,21 +516,28 @@ func (s *localSet) updateOneAcrossAllCollections(initID string, mutate func(vi *
 	return nil
 }
 
-func (s *localSet) deleteAcrossAllCollections(removeID string) error {
+func (s *localSet) deleteFromCollection(profileID, removeID string) error {
 	s.Lock()
 	defer s.Unlock()
 
-	for pid, col := range s.collections {
-		for i, item := range col {
-			if item.InitID == removeID {
-				copy(col[i:], col[i+1:])              // Shift a[i+1:] left one index.
-				col[len(col)-1] = dsref.VersionInfo{} // Erase last element (write zero value).
-				s.collections[pid] = col[:len(col)-1] // Truncate slice.
-				if err := s.saveProfileCollection(pid); err != nil {
-					return err
-				}
-				break
+	pid, err := profile.IDB58Decode(profileID)
+	if err != nil {
+		return err
+	}
+	col, ok := s.collections[pid]
+	if !ok {
+		return fmt.Errorf("no collection found for %q", pid)
+	}
+
+	for i, item := range col {
+		if item.InitID == removeID {
+			copy(col[i:], col[i+1:])              // Shift a[i+1:] left one index.
+			col[len(col)-1] = dsref.VersionInfo{} // Erase last element (write zero value).
+			s.collections[pid] = col[:len(col)-1] // Truncate slice.
+			if err := s.saveProfileCollection(pid); err != nil {
+				return err
 			}
+			break
 		}
 	}
 
