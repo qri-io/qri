@@ -225,7 +225,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		muppetNamesName1 := "muppet_names"
 		muppetNamesName2 := "muppet_names_and_ages"
 
-		// simulate name initialization, normally emitted by logbook
+		// initialize a dataset with the given name, initID, and profileID
 		mustPublish(ctx, t, bus, event.ETDatasetNameInit, dsref.VersionInfo{
 			InitID:    muppetNamesInitID,
 			ProfileID: kermit.ID.Encode(),
@@ -243,7 +243,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
 
-		// simulate version creation, normally emitted by logbook
+		// simulate version creation
 		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
 			InitID:      muppetNamesInitID,
 			ProfileID:   kermit.ID.Encode(),
@@ -267,7 +267,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
 
-		// simulate dataset renaming, normally emitted by logbook
+		// simulate dataset being renamed
 		mustPublish(ctx, t, bus, event.ETDatasetRename, event.DsRename{
 			InitID:  muppetNamesInitID,
 			OldName: muppetNamesName1,
@@ -287,8 +287,42 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
 
-		scopedCtx := profile.AddIDToContext(ctx, kermit.ID.Encode())
-		mustPublish(scopedCtx, t, bus, event.ETDatasetDeleteAll, muppetNamesInitID)
+		// dataset deleted using a scope associated with the owning profile
+		{
+			scopedCtx := profile.AddIDToContext(ctx, kermit.ID.Encode())
+			mustPublish(scopedCtx, t, bus, event.ETDatasetDeleteAll, muppetNamesInitID)
+		}
+
+		expect = []dsref.VersionInfo{}
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+
+		// simulate another initialization
+		mustPublish(ctx, t, bus, event.ETDatasetNameInit, dsref.VersionInfo{
+			InitID:    muppetNamesInitID,
+			ProfileID: kermit.ID.Encode(),
+			Username:  kermit.Peername,
+			Name:      muppetNamesName1,
+		})
+
+		expect = []dsref.VersionInfo{
+			{
+				InitID:    muppetNamesInitID,
+				ProfileID: kermit.ID.Encode(),
+				Username:  kermit.Peername,
+				Name:      muppetNamesName1,
+			},
+		}
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+
+		// deletion event without the owning profile has no effect
+		mustPublish(ctx, t, bus, event.ETDatasetDeleteAll, muppetNamesInitID)
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+
+		// dataset deleted using a scope associated with the owning profile
+		{
+			scopedCtx := profile.AddIDToContext(ctx, kermit.ID.Encode())
+			mustPublish(scopedCtx, t, bus, event.ETDatasetDeleteAll, muppetNamesInitID)
+		}
 
 		expect = []dsref.VersionInfo{}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)

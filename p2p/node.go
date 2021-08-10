@@ -154,7 +154,7 @@ func (n *QriNode) GoOnline(c context.Context) (err error) {
 	if ipfsfs, ok := n.Repo.Filesystem().Filesystem("ipfs").(*qipfs.Filestore); ok {
 		log.Debugf("using IPFS p2p Host")
 		if !ipfsfs.Online() {
-			if err := ipfsfs.GoOnline(ctx); err != nil {
+			if err := ipfsfs.GoOnline(); err != nil {
 				cancel()
 				return err
 			}
