@@ -307,7 +307,6 @@ func (s *localSet) subscribe(bus event.Bus) {
 		event.ETDatasetCommitChange,
 		event.ETDatasetRename,
 		event.ETDatasetDeleteAll,
-		event.ETDatasetCreateFail,
 
 		// remote & registry events
 		event.ETDatasetPushed,
@@ -355,7 +354,7 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 				vi.Name = rename.NewName
 			})
 		}
-	case event.ETDatasetDeleteAll, event.ETDatasetCreateFail:
+	case event.ETDatasetDeleteAll:
 		profileID := e.ProfileID
 		if initID, ok := e.Payload.(string); ok && profileID != "" {
 			if err := s.deleteFromCollection(profileID, initID); err != nil {

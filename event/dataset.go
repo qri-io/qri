@@ -1,36 +1,31 @@
 package event
 
 const (
-	// ETDatasetNameInit is when a dataset is initialized
+	// ETDatasetNameInit occurs when a dataset is first initialized
 	// payload is a dsref.VersionInfo
 	ETDatasetNameInit = Type("dataset:Init")
-	// ETDatasetCreateFail is when a dataset is initialized but failed
-	// when creating the first version of the dataset
-	// payload is an `InitID`
-	ETDatasetCreateFail = Type("dataset:CreateFail")
-	// ETDatasetCommitChange is when a dataset changes its newest commit
+	// ETDatasetCommitChange occurs when a dataset's head commit changes
 	// payload is a dsref.VersionInfo
 	ETDatasetCommitChange = Type("dataset:CommitChange")
-	// ETDatasetDeleteAll is when a dataset is entirely deleted
+	// ETDatasetDeleteAll occurs when a dataset is being deleted
 	// payload is an `InitID`
 	ETDatasetDeleteAll = Type("dataset:DeleteAll")
-	// ETDatasetRename is when a dataset is renamed
+	// ETDatasetRename occurs when a dataset gets renamed
 	// payload is a dsref.VersionInfo
 	ETDatasetRename = Type("dataset:Rename")
-	// ETDatasetCreateLink is when a dataset is linked to a working directory
+	// ETDatasetCreateLink occurs when a dataset gets linked to a working directory
 	// payload is a dsref.VersionInfo
 	ETDatasetCreateLink = Type("dataset:CreateLink")
 
-	// ETDatasetSaveStarted fires when saving a dataset starts
-	// subscriptions do not block the publisher
+	// ETDatasetSaveStarted occurs when a dataset starts being saved
+	// this event is sent asynchronously; the publisher is not blocked
 	// payload will be a DsSaveEvent
 	ETDatasetSaveStarted = Type("dataset:SaveStarted")
-	// ETDatasetSaveProgress indicates a change in progress of dataset version
-	// creation.
-	// subscriptions do not block the publisher
+	// ETDatasetSaveProgress occurs whenever a dataset save makes progress
+	// this event is sent asynchronously; the publisher is not blocked
 	// payload will be a DsSaveEvent
 	ETDatasetSaveProgress = Type("dataset:SaveProgress")
-	// ETDatasetSaveCompleted indicates creating a dataset version finished
+	// ETDatasetSaveCompleted occurs when a dataset save finishes
 	// payload will be a DsSaveEvent
 	ETDatasetSaveCompleted = Type("dataset:SaveCompleted")
 )
