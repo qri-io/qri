@@ -367,12 +367,10 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 			s.updateUsernameAcrossAllCollections(p.ProfileID, p.Username)
 		}
 	case event.ETDatasetPulled:
-		// TODO(b5): need user-scoped events for this so we can know *who* pulled
-		// for now we'll hack in an addition to all user's collections, which would
-		// DEFINITELY break cloud
-		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
-			if err := s.addOneAcrossAllCollections(vi); err != nil {
-				log.Debugw("adding dataset across all collections", "initID", vi.InitID, "err", err)
+		profileID := e.ProfileID
+		if vi, ok := e.Payload.(dsref.VersionInfo); ok && profileID != "" {
+			if err := s.addOneToCollection(profileID, vi); err != nil {
+				log.Debugw("adding dataset to collection", "profileID", profileID, "initID", vi.InitID, "err", err)
 			}
 		}
 	case event.ETDatasetPushed:
@@ -541,6 +539,42 @@ func (s *localSet) deleteFromCollection(profileID, removeID string) error {
 		}
 	}
 
+	return nil
+}
+
+func (s *localSet) addOneToCollection(profileID string, add dsref.VersionInfo) error {
+	s.Lock()
+	defer s.Unlock()
+
+	agg, err := dsref.NewVersionInfoAggregator([]string{"name"})
+	if err != nil {
+		return err
+	}
+
+	pid, err := profile.IDB58Decode(profileID)
+	if err != nil {
+		return err
+	}
+	col, ok := s.collections[pid]
+	if !ok {
+		return fmt.Errorf("no collection found for %q", pid)
+	}
+
+	added := false
+	for i, vi := range col {
+		if vi.InitID == add.InitID {
+			added = true
+			col[i] = vi
+		}
+	}
+	if !added {
+		s.collections[pid] = append(col, add)
+		agg.Sort(s.collections[pid])
+	}
+
+	if err := s.saveProfileCollection(pid); err != nil {
+		return err
+	}
 	return nil
 }
 
