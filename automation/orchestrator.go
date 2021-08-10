@@ -415,13 +415,14 @@ func (o *Orchestrator) SaveWorkflow(ctx context.Context, wf *workflow.Workflow) 
 		if errors.Is(err, workflow.ErrNotFound) {
 			return nil, fmt.Errorf("SaveWorkflow error: workflow %q, %w", wf.ID, err)
 		}
+		log.Debugw("updating workflow", "new", wf, "old", fetchedWF)
 		if fetchedWF.InitID != wf.InitID {
 			return nil, fmt.Errorf("SaveWorkflow error: given workflow %q has a different InitID than the workflow on record", wf.ID)
 		}
 		if fetchedWF.OwnerID != wf.OwnerID {
 			return nil, fmt.Errorf("SaveWorkflow error: given workflow %q has a different OwnerID than the workflow on record", wf.ID)
 		}
-		if fetchedWF.Created != wf.Created {
+		if wf.Created == nil || !fetchedWF.Created.Equal(*wf.Created) {
 			return nil, fmt.Errorf("SaveWorkflow error: given workflow %q has a different Created time than the workflow on record", wf.ID)
 		}
 	}

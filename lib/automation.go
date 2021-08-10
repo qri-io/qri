@@ -254,7 +254,7 @@ func deploy(scope scope, p *DeployParams) {
 
 	go scope.sendEvent(event.ETAutomationDeploySaveDatasetStart, ref, deployPayload)
 
-	changesSaved := false
+	changesSaved := true
 	rollback := true
 	defer func() {
 		if rollback && changesSaved {
@@ -289,13 +289,29 @@ func deploy(scope scope, p *DeployParams) {
 		scope.sendEvent(event.ETAutomationDeployEnd, ref, deployPayload)
 		return
 	}
-	changesSaved = !errors.Is(err, dsfs.ErrNoChanges)
+	if errors.Is(err, dsfs.ErrNoChanges) {
+		ds = p.Dataset
+		changesSaved = false
+		if ds.ID == "" {
+			r := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
+			if _, err := scope.ResolveReference(scope.Context(), &r); err != nil {
+				log.Debugw("deploy resolve dataset", "error", err)
+				deployPayload.Error = err.Error()
+				scope.sendEvent(event.ETAutomationDeployEnd, ref, deployPayload)
+				return
+			}
+			ds.ID = r.InitID
+		}
+	}
+
 	deployPayload.InitID = ds.ID
 	go scope.sendEvent(event.ETAutomationDeploySaveDatasetEnd, ref, deployPayload)
 
 	wf := p.Workflow.Copy()
-	wf.InitID = ds.ID
-	wf.OwnerID = scope.ActiveProfile().ID
+	if wf.ID == "" {
+		wf.InitID = ds.ID
+		wf.OwnerID = scope.ActiveProfile().ID
+	}
 
 	go scope.sendEvent(event.ETAutomationDeploySaveWorkflowStart, ref, deployPayload)
 
