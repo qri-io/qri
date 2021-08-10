@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
-	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0
 	github.com/fsnotify/fsnotify v1.4.9
@@ -39,7 +38,6 @@ require (
 	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/multiformats/go-multihash v0.0.15
 	github.com/olekukonko/tablewriter v0.0.4
-	github.com/pkg/errors v0.9.1
 	github.com/qri-io/dag v0.2.3-0.20210628012720-e8a2affbb114
 	github.com/qri-io/dataset v0.3.1-0.20210805145914-7be32a154c92
 	github.com/qri-io/deepdiff v0.2.1

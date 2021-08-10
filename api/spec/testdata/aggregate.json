@@ -29,23 +29,6 @@
     }
   },
   {
-    "endpoint": "/sql",
-    "method": "POST",
-    "headers": {
-      "Content-Type": "application/json"
-    },
-    "body": {
-      "query": "SELECT * FROM peer/movies",
-      "format": "json"
-    },
-    "expect": {
-      "code": 200,
-      "headers": {
-        "Content-Type": "application/json"
-      }
-    }
-  },
-  {
     "endpoint": "/diff",
     "method": "POST",
     "headers": {

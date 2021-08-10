@@ -37,8 +37,6 @@ const (
 	AEDiff APIEndpoint = "/diff"
 	// AEChanges is an endpoint for generating dataset change reports
 	AEChanges APIEndpoint = "/changes"
-	// AESQL executes SQL commands
-	AESQL APIEndpoint = "/sql"
 
 	// auth endpoints
 
