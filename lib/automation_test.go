@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -125,18 +126,8 @@ def transform(ds,ctx):
 		Workflow: wf,
 		Run:      true,
 	}
-	deployEnded := make(chan string)
-	done := make(chan string)
-	go func() {
-		select {
-		case errMsg := <-deployEnded:
-			done <- errMsg
-		case <-time.After(200 * time.Millisecond):
-			done <- "timeout occured before deploy finished"
-		}
-	}()
-
 	// A successfully deployed workflow will send on the bus when it is finished
+	deployEnded := make(chan string)
 	bus := tr.Instance.Bus()
 	handleDeploy := func(ctx context.Context, e event.Event) error {
 		switch e.Type {
@@ -157,6 +148,7 @@ def transform(ds,ctx):
 	// deploy returns. But the operation should still complete successfully,
 	// because deployed workflows run asynchronously.
 	ctxCancelable, cancel := context.WithCancel(tr.Ctx)
+	done := errOnTimeout(t, deployEnded)
 	if err := tr.Instance.WithSource("local").Automation().Deploy(ctxCancelable, p); err != nil {
 		t.Fatalf("deploy unexpected error: %s", err)
 	}
@@ -165,7 +157,7 @@ def transform(ds,ctx):
 	// Wait to make sure the workflow runs without error
 	errMsg := <-done
 	if errMsg != "" {
-		t.Errorf(errMsg)
+		t.Fatal(errMsg)
 	}
 
 	if wf.WorkflowID() == "" {
@@ -187,7 +179,30 @@ def transform(ds,ctx):
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
+	// ensure we can deploy with no dataset changes
+	ctxCancelable, cancel = context.WithCancel(tr.Ctx)
+	done = errOnTimeout(t, deployEnded)
+	p.Workflow = gotWF
+	if err := tr.Instance.WithSource("local").Automation().Deploy(ctxCancelable, p); err != nil {
+		t.Fatalf("deploy unexpected error: %s", err)
+	}
+	cancel()
+
+	// Wait to make sure the workflow runs without error
+	errMsg = <-done
+	if errMsg != "" {
+		t.Fatal(errMsg)
+	}
+
 	gotWF, err = tr.Instance.WithSource("local").Automation().Workflow(tr.Ctx, &WorkflowParams{InitID: wf.InitID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(expectWF, gotWF); diff != "" {
+		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
+	}
+
+	gotWF, err = tr.Instance.WithSource("local").Automation().Workflow(tr.Ctx, &WorkflowParams{Ref: fmt.Sprintf("%s/%s", ds.Peername, ds.Name)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,4 +280,17 @@ func TestWorkflowParamsValidate(t *testing.T) {
 	if err := p.Validate(); err == nil {
 		t.Fatalf("expected validation error for `WorkflowParams` with all fields non empty, got nil")
 	}
+}
+
+func errOnTimeout(t *testing.T, c chan string) <-chan string {
+	done := make(chan string)
+	go func() {
+		select {
+		case msg := <-c:
+			done <- msg
+		case <-time.After(200 * time.Millisecond):
+			done <- "failed to complete before timeout"
+		}
+	}()
+	return done
 }
