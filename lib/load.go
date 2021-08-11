@@ -29,64 +29,6 @@ func newDatasetLoader(inst *Instance, userOwner, source string, useFSI bool) dsr
 	}
 }
 
-// LoadDataset fetches, dereferences and opens a dataset from a reference
-// implements the dsfs.Loader interface
-// this function expects the passed in reference is fully resolved
-func (d *datasetLoader) loadRefFromLocation(ctx context.Context, ref dsref.Ref, location string) (*dataset.Dataset, error) {
-	if location == "" {
-		return d.loadLocalDataset(ctx, ref)
-	}
-
-	msg := fmt.Sprintf("pulling %s from %s ...\n", ref.Human(), location)
-	if d.inst.streams.Out != nil {
-		d.inst.streams.Out.Write([]byte(msg))
-	}
-
-	// TODO (b5) - it'd be nice to us the returned dataset here, skipping the
-	// loadLocalDataset call entirely. For that to work dsfs.LoadDataset &
-	// inst.loadLocalDataset would have to behave exactly the same, and currently
-	// they don't
-	if _, err := d.inst.remoteClient.PullDataset(ctx, &ref, location); err != nil {
-		return nil, err
-	}
-
-	return d.loadLocalDataset(ctx, ref)
-}
-
-func (d *datasetLoader) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*dataset.Dataset, error) {
-	var (
-		ds  *dataset.Dataset
-		err error
-	)
-
-	if fsi.IsFSIPath(ref.Path) {
-		// Has an FSI Path, load from working directory
-		if ds, err = fsi.ReadDir(fsi.FilesystemPathToLocal(ref.Path)); err != nil {
-			return nil, err
-		}
-		// Assign the FSI path to the dataset so callers know where it was loaded from
-		ds.Path = ref.Path
-	} else {
-		// Load from dsfs
-		if ds, err = dsfs.LoadDataset(ctx, d.inst.qfs, ref.Path); err != nil {
-			return nil, err
-		}
-	}
-	// Set transient info on the returned dataset
-	ds.Name = ref.Name
-	ds.Peername = ref.Username
-	// TODO(dustmop): When dscache / dscollect is in use, enable this since resolved
-	// references should always have it set
-	// ds.ID = ref.InitID
-
-	if err = base.OpenDataset(ctx, d.inst.repo.Filesystem(), ds); err != nil {
-		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
-		return nil, err
-	}
-
-	return ds, nil
-}
-
 // LoadDataset loads a dataset by resolving where it is available according to
 // the source being used, and loading it from there
 func (d *datasetLoader) LoadDataset(ctx context.Context, refstr string) (*dataset.Dataset, error) {
@@ -142,4 +84,60 @@ Replace "me" with your username for the reference:
 	}
 
 	return d.loadRefFromLocation(ctx, ref, location)
+}
+
+// LoadDataset fetches, dereferences and opens a dataset from a reference
+// implements the dsfs.Loader interface
+// this function expects the passed in reference is fully resolved
+func (d *datasetLoader) loadRefFromLocation(ctx context.Context, ref dsref.Ref, location string) (*dataset.Dataset, error) {
+	if location == "" {
+		return d.loadLocalDataset(ctx, ref)
+	}
+
+	msg := fmt.Sprintf("pulling %s from %s ...\n", ref.Human(), location)
+	if d.inst.streams.Out != nil {
+		d.inst.streams.Out.Write([]byte(msg))
+	}
+
+	// TODO (b5) - it'd be nice to use the returned dataset here, skipping the
+	// loadLocalDataset call entirely. For that to work dsfs.LoadDataset &
+	// inst.loadLocalDataset would have to behave in exactly the same way, and
+	// currently they don't
+	if _, err := d.inst.remoteClient.PullDataset(ctx, &ref, location); err != nil {
+		return nil, err
+	}
+
+	return d.loadLocalDataset(ctx, ref)
+}
+
+func (d *datasetLoader) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*dataset.Dataset, error) {
+	var (
+		ds  *dataset.Dataset
+		err error
+	)
+
+	if fsi.IsFSIPath(ref.Path) {
+		// Has an FSI Path, load from working directory
+		if ds, err = fsi.ReadDir(fsi.FilesystemPathToLocal(ref.Path)); err != nil {
+			return nil, err
+		}
+		// Assign the FSI path to the dataset so callers know where it was loaded from
+		ds.Path = ref.Path
+	} else {
+		// Load from dsfs
+		if ds, err = dsfs.LoadDataset(ctx, d.inst.qfs, ref.Path); err != nil {
+			return nil, err
+		}
+	}
+	// Set transient info on the returned dataset
+	ds.Name = ref.Name
+	ds.Peername = ref.Username
+	ds.ID = ref.InitID
+
+	if err = base.OpenDataset(ctx, d.inst.repo.Filesystem(), ds); err != nil {
+		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
+		return nil, err
+	}
+
+	return ds, nil
 }

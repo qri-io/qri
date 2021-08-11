@@ -138,5 +138,5 @@ func constructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.
 	}
 
 	book := r.Logbook()
-	return book.ConstructDatasetLog(ctx, ref, history)
+	return book.ConstructDatasetLog(ctx, r.Profiles().Owner(), ref, history)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -19,15 +18,10 @@ func TestMemResolver(t *testing.T) {
 		t.Errorf("ResolveRef must be nil-callable. expected: %q, got %v", dsref.ErrRefNotFound, err)
 	}
 
-	dsrefspec.AssertResolverSpec(t, m, func(ref dsref.Ref, author profile.Author, log *oplog.Log) error {
-		kid, err := key.IDFromPubKey(author.AuthorPubKey())
-		if err != nil {
-			return err
-		}
-
+	dsrefspec.AssertResolverSpec(t, m, func(ref dsref.Ref, author *profile.Profile, log *oplog.Log) error {
 		m.Put(dsref.VersionInfo{
 			InitID:    ref.InitID,
-			ProfileID: kid,
+			ProfileID: author.ID.Encode(),
 			Username:  ref.Username,
 			Name:      ref.Name,
 			Path:      ref.Path,

@@ -95,7 +95,7 @@ func (lsync *Logsync) Author() profile.Author {
 	if lsync == nil {
 		return nil
 	}
-	return lsync.book.Author()
+	return profile.NewAuthorFromProfile(lsync.book.Owner())
 }
 
 // NewPush prepares a Push from the local logsync to a remote destination
@@ -158,7 +158,7 @@ func (lsync *Logsync) DoRemove(ctx context.Context, ref dsref.Ref, remoteAddr st
 	}
 
 	// record remove as delete of all versions on the remote
-	_, _, err = lsync.book.WriteRemoteDelete(ctx, ref.InitID, len(versions), remoteAddr)
+	_, _, err = lsync.book.WriteRemoteDelete(ctx, lsync.book.Owner(), ref.InitID, len(versions), remoteAddr)
 	return err
 }
 
@@ -243,7 +243,7 @@ func (lsync *Logsync) put(ctx context.Context, author profile.Author, ref dsref.
 		}
 	}
 
-	if err := lsync.book.MergeLog(ctx, author, lg); err != nil {
+	if err := lsync.book.MergeLog(ctx, author.AuthorPubKey(), lg); err != nil {
 		return err
 	}
 
@@ -279,7 +279,7 @@ func (lsync *Logsync) get(ctx context.Context, author profile.Author, ref dsref.
 		return lsync.Author(), nil, err
 	}
 
-	data, err := lsync.book.LogBytes(l)
+	data, err := lsync.book.LogBytes(l, lsync.book.Owner().PrivKey)
 	if err != nil {
 		log.Debugf("LogBytes error=%q initID=%q", err, ref.InitID)
 		return nil, nil, err
@@ -351,12 +351,12 @@ type Push struct {
 func (p *Push) Do(ctx context.Context) error {
 	// eagerly write a push to the logbook. The log the remote receives will include
 	// the push operation. If anything goes wrong, rollback the write
-	l, rollback, err := p.book.WriteRemotePush(ctx, p.ref.InitID, 1, p.remote.addr())
+	l, rollback, err := p.book.WriteRemotePush(ctx, p.book.Owner(), p.ref.InitID, 1, p.remote.addr())
 	if err != nil {
 		return err
 	}
 
-	data, err := p.book.LogBytes(l)
+	data, err := p.book.LogBytes(l, p.book.Owner().PrivKey)
 	if err != nil {
 		if rollbackErr := rollback(ctx); rollbackErr != nil {
 			log.Errorf("rolling back dataset log: %q", rollbackErr)
@@ -365,7 +365,8 @@ func (p *Push) Do(ctx context.Context) error {
 	}
 
 	buf := bytes.NewBuffer(data)
-	err = p.remote.put(ctx, p.book.Author(), p.ref, buf)
+	author := profile.NewAuthorFromProfile(p.book.Owner())
+	err = p.remote.put(ctx, author, p.ref, buf)
 	if err != nil {
 		if rollbackErr := rollback(ctx); rollbackErr != nil {
 			log.Errorf("rolling back dataset log: %q", rollbackErr)
@@ -388,7 +389,8 @@ type Pull struct {
 // Do executes the pull
 func (p *Pull) Do(ctx context.Context) (*oplog.Log, error) {
 	log.Debugw("pull.Do", "ref", p.ref)
-	sender, r, err := p.remote.get(ctx, p.book.Author(), p.ref)
+	author := profile.NewAuthorFromProfile(p.book.Owner())
+	sender, r, err := p.remote.get(ctx, author, p.ref)
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +405,7 @@ func (p *Pull) Do(ctx context.Context) (*oplog.Log, error) {
 	}
 
 	if p.Merge {
-		if err := p.book.MergeLog(ctx, sender, l); err != nil {
+		if err := p.book.MergeLog(ctx, sender.AuthorPubKey(), l); err != nil {
 			return nil, err
 		}
 	}

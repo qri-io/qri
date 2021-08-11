@@ -645,8 +645,11 @@ func (runner *TestRunner) AddDatasetToRefstore(t *testing.T, refStr string, ds *
 		t.Fatal(err)
 	}
 
+	// WARNING: here we're assuming the provided ref matches the owner peername
+	author := r.Logbook().Owner()
+
 	// Reserve the name in the logbook, which provides an initID
-	initID, err := r.Logbook().WriteDatasetInit(ctx, ds.Peername, ds.Name)
+	initID, err := r.Logbook().WriteDatasetInit(ctx, author, ds.Name)
 	if err != nil {
 		t.Fatal(err)
 	}

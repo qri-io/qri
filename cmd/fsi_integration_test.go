@@ -940,6 +940,7 @@ func TestGetPreviousVersionExplicitPath(t *testing.T) {
 	// Checkout the newly created dataset.
 	run.MustExec(t, "qri checkout me/get_ver")
 
+	fmt.Println(ref1)
 	// Get meta from an old reference
 	output = run.MustExec(t, fmt.Sprintf("qri get meta %s", ref1))
 	expect := `null
@@ -1319,7 +1320,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	output = run.MustExecCombinedOutErr(t, "qri diff")
 	expect = `for linked dataset [test_peer_diff_after_change/diff_change]
 
--35 elements. 5 inserts. 5 deletes.
+-36 elements. 5 inserts. 6 deletes.
 
  body: 
    0: 
@@ -1334,6 +1335,7 @@ run ` + "`qri save`" + ` to commit this dataset
      1: "five"
     -2: 6
     +2: 321
+-id: "yf5ek35yt2suwfutp62nivqwrbfuugxa74e7p5tgpw4fycegrvlq"
  meta: 
    qri: "md:0"
   +title: "hello"

@@ -84,7 +84,7 @@ func (fsi *FSI) InitDataset(ctx context.Context, p InitParams) (ref dsref.Ref, e
 	book := fsi.repo.Logbook()
 
 	// TODO(b5) - not a fan of relying on logbook for the current username
-	ref = dsref.Ref{Username: book.Username(), Name: p.Name}
+	ref = dsref.Ref{Username: book.Owner().Peername, Name: p.Name}
 	// Validate dataset name. The `init` command must only be used for creating new datasets.
 	// Make sure a dataset with this name does not exist in your repo.
 	if _, err = fsi.repo.ResolveRef(ctx, &ref); err == nil {
@@ -95,7 +95,7 @@ to create a working directory for an existing dataset`
 	}
 
 	// write an InitID
-	ref.InitID, err = fsi.repo.Logbook().WriteDatasetInit(ctx, ref.Username, ref.Name)
+	ref.InitID, err = fsi.repo.Logbook().WriteDatasetInit(ctx, book.Owner(), ref.Name)
 	if err != nil {
 		if err == logbook.ErrNoLogbook {
 			rollback = func() {}

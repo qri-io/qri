@@ -16,6 +16,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/deepdiff"
+	"github.com/qri-io/qri/dsref"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/lib"
@@ -350,4 +351,10 @@ func addElapsedBar(p *mpb.Progress, total int64, title string) *mpb.Bar {
 				decor.Elapsed(decor.ET_STYLE_GO, decor.WC{W: 4}), "done",
 			),
 		))
+}
+
+func refString(ref dsref.Ref) string {
+	ref.ProfileID = ""
+	ref.InitID = ""
+	return ref.String()
 }

@@ -84,8 +84,8 @@ func TestNewRemoteRefResolver(t *testing.T) {
 	cli := tr.NodeBClient(t)
 	resolver := cli.NewRemoteRefResolver(s.URL)
 
-	dsrefspec.AssertResolverSpec(t, resolver, func(r dsref.Ref, author profile.Author, log *oplog.Log) error {
-		return remA.Node().Repo.Logbook().MergeLog(context.Background(), author, log)
+	dsrefspec.AssertResolverSpec(t, resolver, func(r dsref.Ref, author *profile.Profile, log *oplog.Log) error {
+		return remA.Node().Repo.Logbook().MergeLog(context.Background(), author.PubKey, log)
 	})
 }
 

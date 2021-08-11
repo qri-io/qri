@@ -191,7 +191,9 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 		ds.Transform.OpenScriptFile(ctx, scope.Filesystem())
 	}
 
-	wf := &workflow.Workflow{}
+	wf := &workflow.Workflow{
+		OwnerID: scope.ActiveProfile().ID,
+	}
 	if p.Hooks != nil {
 		wf.Hooks = p.Hooks
 	}

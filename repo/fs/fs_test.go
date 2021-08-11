@@ -58,7 +58,7 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, "/mem/logbook.qfb")
+		book, err := logbook.NewJournal(*pro, bus, fs, "/mem/logbook.qfb")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -118,7 +118,7 @@ func TestResolveRef(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, "/mem/logbook.qfb")
+	book, err := logbook.NewJournal(*pro, bus, fs, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,12 +130,12 @@ func TestResolveRef(t *testing.T) {
 		t.Fatalf("error creating repo: %s", err.Error())
 	}
 
-	dsrefspec.AssertResolverSpec(t, r, func(ref dsref.Ref, author profile.Author, log *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, r, func(ref dsref.Ref, author *profile.Profile, log *oplog.Log) error {
 		datasetRef := reporef.RefFromDsref(ref)
 		err := r.PutRef(datasetRef)
 		if err != nil {
 			t.Fatal(err)
 		}
-		return r.Logbook().MergeLog(ctx, author, log)
+		return r.Logbook().MergeLog(ctx, author.PubKey, log)
 	})
 }

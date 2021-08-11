@@ -84,6 +84,11 @@ type Logstore interface {
 	// use Logstore.Children or Logstore.Descendants to populate missing children
 	Get(ctx context.Context, id string) (*Log, error)
 
+	// GetAuthorID fetches the first log that matches the given model and
+	// authorID. Note that AutorID is the initial operation AuthorID field,
+	// not the init identifier
+	GetAuthorID(ctx context.Context, model uint32, authorID string) (*Log, error)
+
 	// get the immediate descendants of a log, using the given log as an outparam.
 	// Children must only mutate Logs field of the passed-in log pointer
 	// added Children MAY include decendant logs
@@ -167,13 +172,6 @@ func GetWithSparseAncestorsAllDescendants(ctx context.Context, store Logstore, i
 type AuthorLogstore interface {
 	// All AuthorLogstores are Logstores
 	Logstore
-
-	// get the id of the oplog that represnts this Logstore's author
-	ID() string
-	// attribute ownership of the logstore to an author
-	// the given id MUST equal the id of a log already in the logstore
-	SetID(ctx context.Context, id string) error
-
 	// marshals all logs to a slice of bytes encrypted with the given private key
 	FlatbufferCipher(pk crypto.PrivKey) ([]byte, error)
 	// decrypt flatbuffer bytes, re-hydrating the store
@@ -184,27 +182,11 @@ type AuthorLogstore interface {
 // view of an abstract dataset graph. journals live in memory by default, and
 // can be encrypted for storage
 type Journal struct {
-	id   string
 	logs []*Log
 }
 
 // assert at compile time that a Journal pointer is an AuthorLogstore
 var _ AuthorLogstore = (*Journal)(nil)
-
-// ID gets the journal author identifier
-func (j *Journal) ID() string {
-	return j.id
-}
-
-// SetID assigns the book identifier
-func (j *Journal) SetID(ctx context.Context, id string) error {
-	if _, err := j.Get(ctx, id); err != nil {
-		return err
-	}
-
-	j.id = id
-	return nil
-}
 
 // MergeLog adds a log to the journal
 func (j *Journal) MergeLog(ctx context.Context, incoming *Log) error {
@@ -283,6 +265,16 @@ func (j *Journal) Get(_ context.Context, id string) (*Log, error) {
 	return nil, fmt.Errorf("getting log %q %w", id, ErrNotFound)
 }
 
+// GetAuthorID fetches the first log that matches the given model and authorID
+func (j *Journal) GetAuthorID(_ context.Context, model uint32, authorID string) (*Log, error) {
+	for _, lg := range j.logs {
+		if lg.Model() == model && len(lg.Ops) > 0 && lg.Author() == authorID {
+			return lg, nil
+		}
+	}
+	return nil, fmt.Errorf("getting log by author ID %q %w", authorID, ErrNotFound)
+}
+
 // HeadRef traverses the log graph & pulls out a log based on named head
 // references
 // HeadRef will not return logs that have been marked as removed. To fetch
@@ -341,7 +333,6 @@ func (j *Journal) Descendants(ctx context.Context, l *Log) error {
 // ReplaceAll replaces the entirety of the logs
 func (j *Journal) ReplaceAll(ctx context.Context, l *Log) error {
 	j.logs = []*Log{l}
-	j.id = l.Ops[0].Hash()
 	return nil
 }
 
@@ -409,7 +400,6 @@ func (j Journal) flatbufferBytes() []byte {
 // note: currently doesn't marshal book.author, we're considering deprecating
 // the author field
 func (j Journal) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	id := builder.CreateString(j.id)
 
 	setsl := j.logs
 	count := len(setsl)
@@ -424,15 +414,12 @@ func (j Journal) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOf
 	sets := builder.EndVector(count)
 
 	logfb.BookStart(builder)
-	logfb.BookAddIdentifier(builder, id)
 	logfb.BookAddLogs(builder, sets)
 	return logfb.BookEnd(builder)
 }
 
 func (j *Journal) unmarshalFlatbuffer(b *logfb.Book) error {
-	newBook := Journal{
-		id: string(b.Identifier()),
-	}
+	newBook := Journal{}
 
 	count := b.LogsLength()
 	lfb := &logfb.Log{}

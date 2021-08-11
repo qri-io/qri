@@ -157,8 +157,8 @@ func (registryImpl) ProveProfileKey(scope scope, p *RegistryProfileParams) error
 		// Otherwise, nothing was ever pushed. Create new logbook data using the
 		// profileID we got back.
 		logbookPath := filepath.Join(scope.RepoPath(), "logbook.qfb")
-		logbook, err := logbook.NewJournalOverwriteWithProfileID(privKey, p.Profile.Username, scope.Bus(),
-			scope.Filesystem(), logbookPath, cfg.Profile.ID)
+		logbook, err := logbook.NewJournalOverwriteWithProfile(*pro, scope.Bus(),
+			scope.Filesystem(), logbookPath)
 		if err != nil {
 			return err
 		}

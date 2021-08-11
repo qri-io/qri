@@ -192,11 +192,11 @@ func TestPrepareSaveRef(t *testing.T) {
 	r := newTestRepo(t)
 	ctx := context.Background()
 
-	pro := r.Profiles().Owner()
+	author := r.Profiles().Owner()
 	book := r.Logbook()
 
-	book.WriteDatasetInit(ctx, pro.Peername, "cities")
-	book.WriteDatasetInit(ctx, pro.Peername, "Bad_Case")
+	book.WriteDatasetInit(ctx, author, "cities")
+	book.WriteDatasetInit(ctx, author, "Bad_Case")
 
 	bad := []struct {
 		refStr, filepath string
@@ -214,7 +214,7 @@ func TestPrepareSaveRef(t *testing.T) {
 
 	for _, c := range bad {
 		t.Run(fmt.Sprintf("bad_%s", c.refStr), func(t *testing.T) {
-			ref, isNew, err := PrepareSaveRef(ctx, pro, book, book, c.refStr, c.filepath, c.newName)
+			ref, isNew, err := PrepareSaveRef(ctx, author, book, book, c.refStr, c.filepath, c.newName)
 			if !c.expect.Equals(ref) {
 				t.Errorf("resulting ref mismatch. want:\n%#v\ngot:\n%#v", c.expect, ref)
 			}
@@ -245,7 +245,7 @@ func TestPrepareSaveRef(t *testing.T) {
 
 	for _, c := range good {
 		t.Run(fmt.Sprintf("good_%s", c.refStr), func(t *testing.T) {
-			ref, isNew, err := PrepareSaveRef(ctx, pro, book, book, c.refStr, c.filepath, c.newName)
+			ref, isNew, err := PrepareSaveRef(ctx, author, book, book, c.refStr, c.filepath, c.newName)
 			if err != nil {
 				t.Fatalf("unexpected error: %q", err)
 			}

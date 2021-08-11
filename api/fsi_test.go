@@ -103,7 +103,7 @@ func TestNoHistory(t *testing.T) {
 	structureMtime := st.ModTime().Format(time.RFC3339)
 
 	// Expected response for dataset head, regardless of fsi parameter
-	expectBody := `{"data":{"bodyPath":"fsi_init_dir/body.csv","meta":{"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0"}},"meta":{"code":200}}`
+	expectBody := `{"data":{"bodyPath":"fsi_init_dir/body.csv","id":"6yn4jmjjsndpwf4qllvjcunrzni3o3vcejlkvdsvhayfcvrgrpsq","meta":{"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0"}},"meta":{"code":200}}`
 
 	// Dataset with a link to the filesystem, but no history and the api request says fsi=false
 	gotStatusCode, gotBodyString := APICall("/get/peer/test_ds", GetHandler(run.Inst, ""), map[string]string{"username": "peer", "name": "test_ds"})
