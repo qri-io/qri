@@ -17,6 +17,14 @@ const (
 	// Payload will be a WorkflowStoppedEvent
 	// This event should not block
 	ETAutomationWorkflowStopped = Type("automation:WorkflowStopped")
+	// ETAutomationWorkflowCreated signals that a new workflow has been created
+	// Payload will be a workflow.Workflow
+	// This event should not block
+	ETAutomationWorkflowCreated = Type("automation:WorkflowCreated")
+	// ETAutomationWorkflowRemoved signals that a workflow has been removed
+	// Payload will be a workflow.Workflow
+	// This event should not block
+	ETAutomationWorkflowRemoved = Type("automation:WorkflowRemoved")
 	// ETAutomationDeployStart signals that a deploy has started
 	// Payload will be a DeployEvent
 	ETAutomationDeployStart = Type("automation:DeployStart")
