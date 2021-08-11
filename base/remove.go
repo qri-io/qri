@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -17,13 +18,13 @@ import (
 // was removed from, as well the last error that occurred, if any.
 // Note that in particular, FSI is not handled at all by this function. Callers should also
 // call any relevent FSI operations.
-func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, history []dsref.VersionInfo) (didRemove string, removeErr error) {
+func RemoveEntireDataset(ctx context.Context, r repo.Repo, author *profile.Profile, ref dsref.Ref, history []dsref.VersionInfo) (didRemove string, removeErr error) {
 	// If the dataset has no history (such as running `qri init` without `qri save`), then
 	// the ref has no path. Can't call RemoveNVersionsFromStore without a path, but don't
 	// need to call it anyway. Skip it.
 	if len(history) > 0 {
 		// Delete entire dataset for all generations.
-		if _, err := RemoveNVersionsFromStore(ctx, r, ref, -1); err == nil {
+		if _, err := RemoveNVersionsFromStore(ctx, r, author, ref, -1); err == nil {
 			didRemove = appendString(didRemove, "history")
 		} else {
 			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
@@ -39,10 +40,10 @@ func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, histor
 		log.Debugf("Remove, logbook.RefToInitID failed, error: %s", err)
 		removeErr = err
 	}
-	if ref.Username == book.Username() {
+	if ref.Username == book.Owner().Peername {
 		// TOOD(dustmop): Logbook should validate the fact that author's should only be able to
 		// write to their own logs. Trying to write to another user's log should throw an error.
-		if err := book.WriteDatasetDelete(ctx, initID); err == nil {
+		if err := book.WriteDatasetDeleteAll(ctx, book.Owner(), initID); err == nil {
 			didRemove = appendString(didRemove, "logbook")
 		} else {
 			log.Debugf("Remove, logbook.WriteDatasetDelete failed, error: %s", err)
@@ -71,7 +72,7 @@ func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, histor
 // the most recent version
 // when n == -1, remove all versions
 // does not remove the dataset reference
-func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, n int) (*dsref.VersionInfo, error) {
+func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, author *profile.Profile, curr dsref.Ref, n int) (*dsref.VersionInfo, error) {
 	var err error
 	if r == nil {
 		return nil, fmt.Errorf("need a repo")
@@ -149,7 +150,7 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 		// we're just trying to remove it. Return successfully.
 		return info, nil
 	}
-	if err = r.Logbook().WriteVersionDelete(ctx, initID, n); err != nil {
+	if err = r.Logbook().WriteVersionDelete(ctx, author, initID, n); err != nil {
 		return info, err
 	}
 

@@ -18,7 +18,7 @@ func newUserLog(log *oplog.Log) *UserLog {
 
 // Append adds an op to the UserLog
 func (alog *UserLog) Append(op oplog.Op) {
-	if op.Model != AuthorModel {
+	if op.Model != UserModel {
 		log.Errorf("cannot Append, incorrect model %d for UserLog", op.Model)
 		return
 	}

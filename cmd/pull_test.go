@@ -133,6 +133,7 @@ commit:
   signature: {{ .signature }}
   timestamp: "2001-01-01T01:01:01.000000001Z"
   title: created dataset
+id: {{ .id }}
 name: their_dataset
 path: {{ .path }}
 peername: other_peer
@@ -149,6 +150,7 @@ structure:
     type: object
 
 `, map[string]string{
+		"id":            "zgseugtra4h7ekpzfuczupudzyrfrhafx3ucb35kbafb37p2575q",
 		"signature":     "gySMr/FiT+kz0X2ODXCE5APx/BvPvalw4xlbS8TtSWssEoHlAOdrUNKUfU7j6rjyq7sFJ7hrbIVOn87fx+7arYCvrvikRawd2anzIvIruxfBymS6A0HtAGAOEAvpn3XbDykEjqaomTXS1CyR6wQkwNEgbELCIqwda9UV3ulhUtHMrAyMxvnq3NG6J9wyFB13u133aDVEojJ82mEF5DBFB+VBVbw90S4b/5AxLEUFSt/BCtE1O0lKYCt2x0HK+1fhl85oe3fpqLhLk96qCAR/Ngv4bt0E9NjGi2ltuji8gaDICKe5KRaSXjXlMkwbUq6sXEKgqzfxHXoIAUZnZNwnmg==",
 		"bodyPath":      "/ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb",
 		"commitPath":    "/ipfs/QmTTPd47BD4EGpCpuvRwTRqDRF84iAuJmfUUGcfEBuF7he",

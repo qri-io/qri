@@ -8,6 +8,7 @@ import (
 
 	cmp "github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/profile"
 )
 
 func TestSyncHTTP(t *testing.T) {
@@ -91,22 +92,23 @@ func TestSyncHTTP(t *testing.T) {
 func TestHTTPClientErrors(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
+	authorA := profile.NewAuthorFromProfile(tr.A.Owner())
 
 	c := httpClient{}
-	if _, _, err := c.get(tr.Ctx, tr.A.Author(), dsref.Ref{}); err == nil {
+	if _, _, err := c.get(tr.Ctx, authorA, dsref.Ref{}); err == nil {
 		t.Error("expected error to exist")
 	}
 
 	c.URL = "https://not.a.url      .sadfhajksldfjaskl"
-	if _, _, err := c.get(tr.Ctx, tr.A.Author(), dsref.Ref{}); err == nil {
+	if _, _, err := c.get(tr.Ctx, authorA, dsref.Ref{}); err == nil {
 		t.Error("expected error to exist")
 	}
 
-	if err := c.put(tr.Ctx, tr.A.Author(), dsref.Ref{}, nil); err == nil {
+	if err := c.put(tr.Ctx, authorA, dsref.Ref{}, nil); err == nil {
 		t.Error("expected error to exist")
 	}
 
-	if err := c.del(tr.Ctx, tr.A.Author(), dsref.Ref{}); err == nil {
+	if err := c.del(tr.Ctx, authorA, dsref.Ref{}); err == nil {
 		t.Error("expected error to exist")
 	}
 
@@ -116,15 +118,15 @@ func TestHTTPClientErrors(t *testing.T) {
 	defer server.Close()
 
 	c.URL = server.URL
-	if _, _, err := c.get(tr.Ctx, tr.A.Author(), dsref.Ref{}); err == nil {
+	if _, _, err := c.get(tr.Ctx, authorA, dsref.Ref{}); err == nil {
 		t.Error("expected error to exist")
 	}
 
-	if err := c.put(tr.Ctx, tr.A.Author(), dsref.Ref{}, nil); err == nil {
+	if err := c.put(tr.Ctx, authorA, dsref.Ref{}, nil); err == nil {
 		t.Error("expected error to exist")
 	}
 
-	if err := c.del(tr.Ctx, tr.A.Author(), dsref.Ref{}); err == nil {
+	if err := c.del(tr.Ctx, authorA, dsref.Ref{}); err == nil {
 		t.Error("expected error to exist")
 	}
 }
@@ -133,6 +135,7 @@ func TestHTTPHandlerErrors(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 	handler := HTTPHandler(nil)
+	authorA := profile.NewAuthorFromProfile(tr.A.Owner())
 
 	// one test with no author headers:
 	r := httptest.NewRequest("GET", "http://remote.qri.io", nil)
@@ -157,7 +160,7 @@ func TestHTTPHandlerErrors(t *testing.T) {
 
 	for _, c := range cases {
 		r := httptest.NewRequest(c.method, fmt.Sprintf("http://remote.qri.io%s", c.endpoint), nil)
-		addAuthorHTTPHeaders(r.Header, tr.A.Author())
+		addAuthorHTTPHeaders(r.Header, authorA)
 
 		w := httptest.NewRecorder()
 		handler(w, r)

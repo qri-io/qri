@@ -85,6 +85,7 @@ commit:
   signature: {{ .signature }}
   timestamp: "2001-01-01T01:02:01.000000001Z"
   title: body changed by 54%
+id: {{ .id }}
 name: my_ds
 path: {{ .path }}
 peername: test_peer_get
@@ -192,6 +193,7 @@ commit:
   signature: {{ .signature }}
   timestamp: "2001-01-01T01:01:01.000000001Z"
   title: created dataset from body_ten.csv
+id: {{ .id }}
 name: my_ds
 path: {{ .path }}
 peername: test_peer_get
@@ -300,6 +302,7 @@ Tangled ,100
 `
 
 	currHeadFSI = `bodyPath: /tmp/my_ds/my_ds/body.csv
+id: nkt3s27sojzsiu7tcs6p5asrwbqf3yd5nhjtotsstd6ub2owecvq
 name: my_ds
 peername: test_peer_get
 qri: ds:0
@@ -325,6 +328,7 @@ structure:
 
 var (
 	currHeadRepoData = map[string]string{
+		"id":            "nkt3s27sojzsiu7tcs6p5asrwbqf3yd5nhjtotsstd6ub2owecvq",
 		"profileID":     "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 		"bodyPath":      "/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB",
 		"commitPath":    "/ipfs/QmQb3AfjzFn5RWGkrcFHV4GEDWAt97P9q3JhM8qJm69wZ3",
@@ -335,6 +339,7 @@ var (
 		"structurePath": "/ipfs/QmcAfMfZ7qTNiCfQxnRJyDxEDM7tqDstvpgviT73PFbabZ",
 	}
 	prevHeadRepoData = map[string]string{
+		"id":            "nkt3s27sojzsiu7tcs6p5asrwbqf3yd5nhjtotsstd6ub2owecvq",
 		"profileID":     "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 		"bodyPath":      "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
 		"commitPath":    "/ipfs/QmRQo5ivNLbQdu1ps3iyEaVknyTYisUwsL152dwSorskJB",
@@ -575,6 +580,7 @@ commit:
   signature: {{ .signature }}
   timestamp: "2001-01-01T01:01:01.000000001Z"
   title: created dataset
+id: {{ .id }}
 name: their_dataset
 path: {{ .path }}
 peername: other_peer
@@ -591,6 +597,7 @@ structure:
     type: object
 
 `, map[string]string{
+		"id":            "zgseugtra4h7ekpzfuczupudzyrfrhafx3ucb35kbafb37p2575q",
 		"bodyPath":      "/ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb",
 		"commitPath":    "/ipfs/QmTTPd47BD4EGpCpuvRwTRqDRF84iAuJmfUUGcfEBuF7he",
 		"signature":     "gySMr/FiT+kz0X2ODXCE5APx/BvPvalw4xlbS8TtSWssEoHlAOdrUNKUfU7j6rjyq7sFJ7hrbIVOn87fx+7arYCvrvikRawd2anzIvIruxfBymS6A0HtAGAOEAvpn3XbDykEjqaomTXS1CyR6wQkwNEgbELCIqwda9UV3ulhUtHMrAyMxvnq3NG6J9wyFB13u133aDVEojJ82mEF5DBFB+VBVbw90S4b/5AxLEUFSt/BCtE1O0lKYCt2x0HK+1fhl85oe3fpqLhLk96qCAR/Ngv4bt0E9NjGi2ltuji8gaDICKe5KRaSXjXlMkwbUq6sXEKgqzfxHXoIAUZnZNwnmg==",

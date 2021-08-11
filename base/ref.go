@@ -8,6 +8,7 @@ import (
 
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -57,7 +58,7 @@ func ReplaceRefIfMoreRecent(r repo.Repo, prev, curr *reporef.DatasetRef) error {
 
 // RenameDatasetRef changes a dataset's pretty name by modifying the ref in the repository
 // refstore, and returns a versionInfo describing the resulting dataset reference.
-func RenameDatasetRef(ctx context.Context, r repo.Repo, ref dsref.Ref, newName string) (*dsref.VersionInfo, error) {
+func RenameDatasetRef(ctx context.Context, r repo.Repo, author *profile.Profile, ref dsref.Ref, newName string) (*dsref.VersionInfo, error) {
 	if !dsref.IsValidName(newName) {
 		return nil, dsref.ErrDescribeValidName
 	}
@@ -77,7 +78,7 @@ func RenameDatasetRef(ctx context.Context, r repo.Repo, ref dsref.Ref, newName s
 		return nil, fmt.Errorf("error with new reference: %w", newRefErr)
 	}
 
-	err := r.Logbook().WriteDatasetRename(ctx, ref.InitID, newName)
+	err := r.Logbook().WriteDatasetRename(ctx, author, ref.InitID, newName)
 	if err != nil && err != logbook.ErrNoLogbook {
 		return nil, err
 	}
@@ -128,5 +129,5 @@ func ModifyRepoUsername(ctx context.Context, r repo.Repo, book *logbook.Book, fr
 	}
 
 	// we also need to update the logbook
-	return book.WriteAuthorRename(ctx, to)
+	return book.WriteAuthorRename(ctx, book.Owner(), to)
 }

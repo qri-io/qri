@@ -10,7 +10,6 @@ import (
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
-	"github.com/qri-io/qri/auth/key"
 	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
@@ -96,10 +95,10 @@ func TestResolveRef(t *testing.T) {
 	path := filepath.Join(tmpdir, "dscache.qfb")
 	dsc := NewDscache(ctx, fs, event.NilBus, "test_resolve_ref_user", path)
 
-	dsrefspec.AssertResolverSpec(t, dsc, func(r dsref.Ref, author profile.Author, _ *oplog.Log) error {
+	dsrefspec.AssertResolverSpec(t, dsc, func(r dsref.Ref, author *profile.Profile, _ *oplog.Log) error {
 		builder := NewBuilder()
-		kid, err := key.IDFromPubKey(author.AuthorPubKey())
-		builder.AddUser(r.Username, kid)
+		profileID := author.ID.Encode()
+		builder.AddUser(r.Username, profileID)
 		if err != nil {
 			return err
 		}
@@ -107,7 +106,7 @@ func TestResolveRef(t *testing.T) {
 			Username:  r.Username,
 			InitID:    r.InitID,
 			Path:      r.Path,
-			ProfileID: kid,
+			ProfileID: profileID,
 			Name:      r.Name,
 		})
 		cache := builder.Build()
@@ -123,7 +122,11 @@ func TestCacheRefConsistency(t *testing.T) {
 
 	localUsername := "local_user"
 	localDsName := "local_dataset"
-	book, err := logbook.NewJournal(testkeys.GetKeyData(0).PrivKey, localUsername, event.NilBus, fsys, "/mem/logbook.qfb")
+	pro, err := profile.NewSparsePKProfile(localUsername, testkeys.GetKeyData(0).PrivKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	book, err := logbook.NewJournal(*pro, event.NilBus, fsys, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +154,7 @@ func TestCacheRefConsistency(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := book.MergeLog(ctx, foreignBook.Author(), log); err != nil {
+	if err := book.MergeLog(ctx, foreignBook.Owner().PubKey, log); err != nil {
 		t.Fatal(err)
 	}
 

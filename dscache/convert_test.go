@@ -571,17 +571,21 @@ func makeFakeLogbook(ctx context.Context, t *testing.T, username string, privKey
 		t.Fatal(err)
 	}
 	fs := qfs.NewMemFS()
+	pro, err := profile.NewSparsePKProfile(username, privKey)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	builder := logbook.NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
+	builder := logbook.NewLogbookTempBuilder(t, pro, fs, rootPath)
 
 	// A dataset with one commit, then a rename, then another commit
-	aid := builder.DatasetInit(ctx, t, username, "first_name")
+	aid := builder.DatasetInit(ctx, t, "first_name")
 	builder.Commit(ctx, t, aid, "initial commit", "QmHashOfVersion1")
 	builder.DatasetRename(ctx, t, aid, "first_new_name")
 	builder.Commit(ctx, t, aid, "another commit", "QmHashOfVersion2")
 
 	// A dataset with five commits, two of which were deleted
-	bid := builder.DatasetInit(ctx, t, username, "second_name")
+	bid := builder.DatasetInit(ctx, t, "second_name")
 	builder.Commit(ctx, t, bid, "initial commit", "QmHashOfVersion3")
 	builder.Commit(ctx, t, bid, "second commit", "QmHashOfVersion4")
 	builder.Delete(ctx, t, bid, 1)
@@ -600,18 +604,23 @@ func makeFakeLogbookNonAlphabetical(ctx context.Context, t *testing.T, username 
 	}
 	fs := qfs.NewMemFS()
 
-	builder := logbook.NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
+	pro, err := profile.NewSparsePKProfile(username, privKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	builder := logbook.NewLogbookTempBuilder(t, pro, fs, rootPath)
 
 	// A dataset with one commit
-	aid := builder.DatasetInit(ctx, t, username, "some_dataset")
+	aid := builder.DatasetInit(ctx, t, "some_dataset")
 	builder.Commit(ctx, t, aid, "initial commit", "QmHashOfVersion1")
 
 	// Another dataset with one commit
-	bid := builder.DatasetInit(ctx, t, username, "another_dataset")
+	bid := builder.DatasetInit(ctx, t, "another_dataset")
 	builder.Commit(ctx, t, bid, "initial commit", "QmHashOfVersion2")
 
 	// Yet another dataset with one commit
-	cid := builder.DatasetInit(ctx, t, username, "yet_another")
+	cid := builder.DatasetInit(ctx, t, "yet_another")
 	builder.Commit(ctx, t, cid, "initial commit", "QmHashOfVersion3")
 
 	return builder.Logbook()
@@ -623,24 +632,28 @@ func makeFakeLogbookWithNoHistoryAndDelete(ctx context.Context, t *testing.T, us
 		t.Fatal(err)
 	}
 	fs := qfs.NewMemFS()
+	pro, err := profile.NewSparsePKProfile(username, privKey)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	builder := logbook.NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
+	builder := logbook.NewLogbookTempBuilder(t, pro, fs, rootPath)
 
 	// A dataset with one commit, pretty normal. Corresponding dsref has no FSIPath (no checkout)
-	aid := builder.DatasetInit(ctx, t, username, "first_ds")
+	aid := builder.DatasetInit(ctx, t, "first_ds")
 	builder.Commit(ctx, t, aid, "initial commit", "QmHashOfVersion1001")
 
 	// A dataset with two commits that gets deleted
-	bid := builder.DatasetInit(ctx, t, username, "second_ds")
+	bid := builder.DatasetInit(ctx, t, "second_ds")
 	builder.Commit(ctx, t, bid, "initial commit", "QmHashOfVersion1002")
 	builder.Commit(ctx, t, bid, "another commit", "QmHashOfVersion1003")
 	builder.DatasetDelete(ctx, t, bid)
 
 	// A dataset with no commits, hits the "no history" codepath
-	builder.DatasetInit(ctx, t, username, "third_ds")
+	builder.DatasetInit(ctx, t, "third_ds")
 
 	// A dataset with two commits, pretty normal
-	did := builder.DatasetInit(ctx, t, username, "fourth_ds")
+	did := builder.DatasetInit(ctx, t, "fourth_ds")
 	builder.Commit(ctx, t, did, "initial commit", "QmHashOfVersion1004")
 	builder.Commit(ctx, t, did, "another commit", "QmHashOfVersion1005")
 

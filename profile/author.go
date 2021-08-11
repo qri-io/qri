@@ -33,6 +33,22 @@ func NewAuthor(id string, pubKey crypto.PubKey, username string) Author {
 	}
 }
 
+// NewAuthorFromProfile creates an Author interface implementation from a
+// profile
+//
+// Deprecated - use profile.Profile instead
+func NewAuthorFromProfile(p *Profile) Author {
+	pub := p.PubKey
+	if pub == nil && p.PrivKey != nil {
+		pub = p.PrivKey.GetPublic()
+	}
+	return author{
+		id:       p.ID.Encode(),
+		pubKey:   pub,
+		username: p.Peername,
+	}
+}
+
 func (a author) AuthorID() string {
 	return a.id
 }

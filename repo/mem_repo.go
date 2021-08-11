@@ -60,7 +60,7 @@ func NewMemRepo(ctx context.Context, fs *muxfs.Mux, book *logbook.Book, cache *d
 
 	p := pros.Owner()
 	if book == nil {
-		book, err = logbook.NewJournal(p.PrivKey, p.Peername, bus, fs, "/mem/logbook.qfb")
+		book, err = logbook.NewJournal(*p, bus, fs, "/mem/logbook.qfb")
 		if err != nil {
 			return nil, err
 		}

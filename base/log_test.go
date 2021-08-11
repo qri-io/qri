@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -71,19 +72,22 @@ func TestDatasetLogForeign(t *testing.T) {
 	mr := newTestRepo(t).(*repo.MemRepo)
 	fs, err := localfs.NewFS(nil)
 	if err != nil {
-		t.Errorf("error creating local filesystem")
-		return
+		t.Fatal(err)
 	}
 
 	// Construct a logbook for another user
 	theirRefStr := "them/foreign"
 	themKeyData := testkeys.GetKeyData(1)
-	foreignBuilder := logbook.NewLogbookTempBuilder(t, themKeyData.PrivKey, "them", fs, theirBookPath)
+	them, err := profile.NewSparsePKProfile("them", themKeyData.PrivKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foreignBuilder := logbook.NewLogbookTempBuilder(t, them, fs, theirBookPath)
 	ref, err := dsref.Parse(theirRefStr)
 	if err != nil {
 		t.Fatal(err)
 	}
-	initID := foreignBuilder.DatasetInit(ctx, t, ref.Username, ref.Name)
+	initID := foreignBuilder.DatasetInit(ctx, t, ref.Name)
 	// NOTE: Need to assign ProfileID because nothing is resolving the username
 	ref.ProfileID = themKeyData.EncodedPeerID
 	ref.Path = "/mem/QmExample"
@@ -96,7 +100,11 @@ func TestDatasetLogForeign(t *testing.T) {
 
 	// Construct our own logbook, and merge in the foreign oplog
 	ourKey := testkeys.GetKeyData(0).PrivKey
-	builder := logbook.NewLogbookTempBuilder(t, ourKey, "us", fs, myBookPath)
+	us, err := profile.NewSparsePKProfile("us", ourKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	builder := logbook.NewLogbookTempBuilder(t, us, fs, myBookPath)
 	builder.AddForeign(ctx, t, foreignLog)
 
 	// Inject that log into our mem repo
@@ -209,7 +217,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 
 	// add the logbook back
 	p := mr.Profiles().Owner()
-	book, err := logbook.NewJournal(p.PrivKey, p.Peername, event.NilBus, mr.Filesystem(), "/mem/logbook.qfb")
+	book, err := logbook.NewJournal(*p, event.NilBus, mr.Filesystem(), "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}

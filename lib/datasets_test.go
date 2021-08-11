@@ -378,7 +378,22 @@ func TestGet(t *testing.T) {
 				}
 				return
 			}
-			if diff := cmp.Diff(c.expect, got.Value, cmpopts.IgnoreUnexported(dataset.Dataset{}, dataset.Meta{}, dataset.Commit{}, dataset.Structure{}, dataset.Viz{}, dataset.Readme{}, dataset.Transform{})); diff != "" {
+			if ds, ok := got.Value.(*dataset.Dataset); ok {
+				if ds.ID == "" {
+					t.Errorf("returned dataset should have a non-empty ID field")
+				}
+			}
+			if diff := cmp.Diff(c.expect, got.Value, cmpopts.IgnoreUnexported(
+				dataset.Dataset{},
+				dataset.Meta{},
+				dataset.Commit{},
+				dataset.Structure{},
+				dataset.Viz{},
+				dataset.Readme{},
+				dataset.Transform{},
+			),
+				cmpopts.IgnoreFields(dataset.Dataset{}, "ID"),
+			); diff != "" {
 				t.Errorf("get output (-want +got):\n%s", diff)
 			}
 		})
@@ -700,6 +715,12 @@ func TestGetFSI(t *testing.T) {
 				}
 				return
 			}
+			if ds, ok := got.Value.(*dataset.Dataset); ok {
+				if ds.ID == "" {
+					t.Errorf("returned dataset should have a non-empty ID field")
+				}
+			}
+
 			if diff := cmp.Diff(
 				c.expect,
 				got.Value,
@@ -712,7 +733,7 @@ func TestGetFSI(t *testing.T) {
 					dataset.Readme{},
 					dataset.Transform{},
 				),
-				cmpopts.IgnoreFields(dataset.Dataset{}, "BodyPath"),
+				cmpopts.IgnoreFields(dataset.Dataset{}, "BodyPath", "ID"),
 			); diff != "" {
 				t.Errorf("fsi get output (-want +got):\n%s", diff)
 			}

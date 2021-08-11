@@ -1066,7 +1066,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		if err := transformer.Apply(scope.Context(), ds, runID, shouldWait, scriptOut, secrets); err != nil {
 			log.Errorw("transform run error", "err", err.Error())
 			runState.Message = err.Error()
-			if err := scope.Logbook().WriteTransformRun(scope.Context(), ref.InitID, runState); err != nil {
+			if err := scope.Logbook().WriteTransformRun(scope.Context(), scope.ActiveProfile(), ref.InitID, runState); err != nil {
 				log.Debugw("writing errored transform run to logbook:", "err", err.Error())
 				return nil, err
 			}
@@ -1103,7 +1103,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		if errors.Is(err, dsfs.ErrNoChanges) && runState != nil {
 			runState.Status = run.RSUnchanged
 			runState.Message = err.Error()
-			if err := scope.Logbook().WriteTransformRun(scope.Context(), ref.InitID, runState); err != nil {
+			if err := scope.Logbook().WriteTransformRun(scope.Context(), scope.ActiveProfile(), ref.InitID, runState); err != nil {
 				log.Debugw("writing unchanged transform run to logbook:", "err", err.Error())
 				return nil, err
 			}
@@ -1165,7 +1165,7 @@ func (datasetImpl) Rename(scope scope, p *RenameParams) (*dsref.VersionInfo, err
 	}
 
 	// Update the reference stored in the repo
-	vi, err := base.RenameDatasetRef(scope.Context(), scope.Repo(), ref, next.Name)
+	vi, err := base.RenameDatasetRef(scope.Context(), scope.Repo(), scope.ActiveProfile(), ref, next.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -1207,7 +1207,7 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 		// This should really be checking for some sort of "can't fully resolve" error
 		// defined in dsref instead
 		if p.Force || errors.Is(err, logbook.ErrNotFound) {
-			didRemove, _ := base.RemoveEntireDataset(scope.Context(), scope.Repo(), ref, []dsref.VersionInfo{})
+			didRemove, _ := base.RemoveEntireDataset(scope.Context(), scope.Repo(), scope.ActiveProfile(), ref, []dsref.VersionInfo{})
 			if didRemove != "" {
 				log.Debugw("Remove cleaned up data found", "didRemove", didRemove)
 				res.Message = didRemove
@@ -1278,7 +1278,7 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 			}
 		}
 
-		didRemove, _ := base.RemoveEntireDataset(scope.Context(), scope.Repo(), ref, history)
+		didRemove, _ := base.RemoveEntireDataset(scope.Context(), scope.Repo(), scope.ActiveProfile(), ref, history)
 		res.NumDeleted = dsref.AllGenerations
 		res.Message = didRemove
 
@@ -1317,7 +1317,7 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 			ref = qfsRef
 		}
 		// Delete the specific number of revisions.
-		info, err := base.RemoveNVersionsFromStore(scope.Context(), scope.Repo(), ref, p.Revision.Gen)
+		info, err := base.RemoveNVersionsFromStore(scope.Context(), scope.Repo(), scope.ActiveProfile(), ref, p.Revision.Gen)
 		if err != nil {
 			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
 			return nil, err

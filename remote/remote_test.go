@@ -488,7 +488,8 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) ds
 		},
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[100]")))
-	return saveDataset(ctx, r, "peer", ds)
+	author := r.Logbook().Owner()
+	return saveDataset(ctx, r, author, ds)
 }
 
 func setRefPublished(ctx context.Context, t *testing.T, r repo.Repo, ref *reporef.DatasetRef) {
@@ -512,18 +513,19 @@ func writeVideoViewStats(ctx context.Context, t *testing.T, r repo.Repo) dsref.R
 		},
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[10]")))
-	return saveDataset(ctx, r, "peer", ds)
+	author := r.Logbook().Owner()
+	return saveDataset(ctx, r, author, ds)
 }
 
-func saveDataset(ctx context.Context, r repo.Repo, peername string, ds *dataset.Dataset) dsref.Ref {
+func saveDataset(ctx context.Context, r repo.Repo, author *profile.Profile, ds *dataset.Dataset) dsref.Ref {
 	headRef := ""
 	book := r.Logbook()
-	initID, err := book.RefToInitID(dsref.Ref{Username: peername, Name: ds.Name})
+	initID, err := book.RefToInitID(dsref.Ref{Username: author.Peername, Name: ds.Name})
 	if err == nil {
-		got, _ := r.GetRef(reporef.DatasetRef{Peername: peername, Name: ds.Name})
+		got, _ := r.GetRef(reporef.DatasetRef{Peername: author.Peername, Name: ds.Name})
 		headRef = got.Path
 	} else if err == logbook.ErrNotFound {
-		initID, err = book.WriteDatasetInit(ctx, peername, ds.Name)
+		initID, err = book.WriteDatasetInit(ctx, author, ds.Name)
 	}
 	if err != nil {
 		panic(err)

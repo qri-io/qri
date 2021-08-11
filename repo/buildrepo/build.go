@@ -124,7 +124,7 @@ func NewFilesystem(ctx context.Context, cfg *config.Config) (*muxfs.Mux, error) 
 
 func newLogbook(fs qfs.Filesystem, bus event.Bus, pro *profile.Profile, repoPath string) (book *logbook.Book, err error) {
 	logbookPath := filepath.Join(repoPath, "logbook.qfb")
-	return logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, logbookPath)
+	return logbook.NewJournal(*pro, bus, fs, logbookPath)
 }
 
 func newDscache(ctx context.Context, fs qfs.Filesystem, bus event.Bus, book *logbook.Book, username, repoPath string) (*dscache.Dscache, error) {

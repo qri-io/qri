@@ -456,7 +456,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// if logAll is enabled, turn on debug level logging for all qri packages. Packages need to
 	// be explicitly enumerated here
 	if o.logAll {
-		allPackages := []string{"qriapi", "qrip2p", "base", "changes", "cmd", "config", "dsref", "dsfs", "friendly", "fsi", "lib", "logbook", "profile", "repo", "registry", "sql", "token"}
+		allPackages := []string{"automation", "qriapi", "qrip2p", "base", "changes", "cmd", "config", "dsref", "dsfs", "friendly", "fsi", "lib", "logbook", "profile", "repo", "registry", "sql", "token"}
 		for _, name := range allPackages {
 			golog.SetLogLevel(name, "debug")
 		}
@@ -693,7 +693,7 @@ func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client
 
 func newLogbook(fs qfs.Filesystem, cfg *config.Config, bus event.Bus, pro *profile.Profile, repoPath string) (book *logbook.Book, err error) {
 	logbookPath := filepath.Join(repoPath, "logbook.qfb")
-	return logbook.NewJournal(pro.PrivKey, pro.Peername, bus, fs, logbookPath)
+	return logbook.NewJournal(*pro, bus, fs, logbookPath)
 }
 
 func newDscache(ctx context.Context, fs qfs.Filesystem, bus event.Bus, username, repoPath string) (*dscache.Dscache, error) {

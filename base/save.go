@@ -112,9 +112,10 @@ func SaveDataset(
 	if err != nil {
 		return nil, err
 	}
+	ds.ID = initID
 
 	// Write the save to logbook
-	if err = r.Logbook().WriteVersionSave(ctx, initID, ds, runState); err != nil {
+	if err = r.Logbook().WriteVersionSave(ctx, pro, ds, runState); err != nil {
 		return nil, err
 	}
 	ds.ID = initID
@@ -283,7 +284,7 @@ func PrepareSaveRef(
 		return ref, true, fmt.Errorf("invalid dataset name: %s", ref.Name)
 	}
 
-	ref.InitID, err = book.WriteDatasetInit(ctx, ref.Username, ref.Name)
+	ref.InitID, err = book.WriteDatasetInit(ctx, pro, ref.Name)
 	log.Debugf("PrepareSaveRef created new initID=%q ref.Username=%q ref.Name=%q", ref.InitID, ref.Username, ref.Name)
 	return ref, true, err
 }

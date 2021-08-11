@@ -71,6 +71,27 @@ func NewProfile(p *config.ProfilePod) (pro *Profile, err error) {
 	return
 }
 
+// NewSparsePKProfile creates a sparsely-populated profile from a username and
+// private key
+func NewSparsePKProfile(username string, pk crypto.PrivKey) (*Profile, error) {
+	keyID, err := key.IDFromPrivKey(pk)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := IDB58Decode(keyID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Profile{
+		Peername: username,
+		ID:       id,
+		PubKey:   pk.GetPublic(),
+		PrivKey:  pk,
+	}, nil
+}
+
 // Decode turns a ProfilePod into a profile.Profile
 func (p *Profile) Decode(sp *config.ProfilePod) error {
 	id, err := IDB58Decode(sp.ID)

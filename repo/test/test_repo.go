@@ -251,12 +251,13 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	initID, err := r.Logbook().RefToInitID(dsref.Ref{Username: ds.Peername, Name: dsName})
 	if err == logbook.ErrNotFound {
 		// If dataset does not exist yet, initialize with the given name
-		initID, err = r.Logbook().WriteDatasetInit(ctx, ds.Peername, dsName)
+		initID, err = r.Logbook().WriteDatasetInit(ctx, r.Logbook().Owner(), dsName)
 		if err != nil {
 			return ref, err
 		}
 	}
-	if err = r.Logbook().WriteVersionSave(ctx, initID, ds, nil); err != nil && err != logbook.ErrNoLogbook {
+	ds.ID = initID
+	if err = r.Logbook().WriteVersionSave(ctx, r.Logbook().Owner(), ds, nil); err != nil && err != logbook.ErrNoLogbook {
 		return
 	}
 

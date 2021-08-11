@@ -15,6 +15,7 @@ import (
 func TestRemoveNVersionsFromStore(t *testing.T) {
 	ctx := context.Background()
 	r := newTestRepo(t)
+	author := r.Logbook().Owner()
 
 	bad := []struct {
 		description string
@@ -29,7 +30,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 	}
 
 	for _, c := range bad {
-		_, err := RemoveNVersionsFromStore(ctx, c.store, c.ref, c.n)
+		_, err := RemoveNVersionsFromStore(ctx, c.store, author, c.ref, c.n)
 		if err == nil {
 			t.Errorf("case %s expected: %q, got no error", c.description, c.err)
 			continue
@@ -62,7 +63,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 
 	for _, c := range good {
 		// remove
-		_, err := RemoveNVersionsFromStore(ctx, r, refs[len(refs)-1], c.n)
+		_, err := RemoveNVersionsFromStore(ctx, r, author, refs[len(refs)-1], c.n)
 		if err != nil {
 			t.Errorf("case %q, unexpected err: %s", c.description, err.Error())
 		}
@@ -91,7 +92,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 		update := updateCitiesDataset(t, r, fmt.Sprintf("example city data version %d", i))
 		refs = append(refs, update)
 	}
-	_, err := RemoveNVersionsFromStore(ctx, r, refs[len(refs)-1], -1)
+	_, err := RemoveNVersionsFromStore(ctx, r, author, refs[len(refs)-1], -1)
 	if err != nil {
 		t.Errorf("case 'remove all', unexpected err: %s", err.Error())
 	}

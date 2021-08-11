@@ -195,8 +195,7 @@ continue?`, true) {
 	}
 
 	ref := dsref.ConvertDatasetToVersionInfo(res).SimpleRef()
-	ref.ProfileID = ""
-	printSuccess(o.ErrOut, "dataset saved: %s", ref.String())
+	printSuccess(o.ErrOut, "dataset saved: %s", refString(ref))
 	if res.Structure != nil && res.Structure.ErrCount > 0 {
 		printWarning(o.ErrOut, fmt.Sprintf("this dataset has %d validation errors", res.Structure.ErrCount))
 	}

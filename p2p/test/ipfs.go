@@ -32,6 +32,7 @@ func MakeRepoFromIPFSNode(ctx context.Context, node *core.IpfsNode, username str
 		ID:       profile.IDFromPeerID(node.Identity),
 		Peername: username,
 		PrivKey:  node.PrivateKey,
+		PubKey:   node.PrivateKey.GetPublic(),
 	}
 
 	// TODO (b5) -  we can't supply the usual {Type: "mem"} {Type: "local"}, configuration options here

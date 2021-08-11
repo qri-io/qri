@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset/dstest"
 )
 
 func parsePathFromRef(ref string) string {
@@ -187,9 +188,10 @@ working directory clean
 	// Verify that we can access the working directory. This would not be the case if the
 	// delete operation caused the FSIPath to be moved from the dataset ref in the repo.
 	actual = run.MustExecCombinedOutErr(t, "qri get")
-	expect = `for linked dataset [test_peer_remove_one_work_dir/remove_one]
+	expect = dstest.Template(t, `for linked dataset [test_peer_remove_one_work_dir/remove_one]
 
 bodyPath: /tmp/remove_one/body.csv
+id: {{ .id }}
 meta:
   qri: md:0
   title: one
@@ -213,7 +215,9 @@ structure:
       type: array
     type: array
 
-`
+`, map[string]string{
+		"id": "wiaxfii2g73eict22uh7nfoc2rwgmwzfgts3ip77bc566atgm4cq",
+	})
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset result from get: (-want +got):\n%s", diff)
 	}

@@ -18,33 +18,6 @@ var allowUnexported = cmp.AllowUnexported(
 	Log{},
 )
 
-func TestJournalID(t *testing.T) {
-	tr, cleanup := newTestRunner(t)
-	defer cleanup()
-
-	expect := ""
-	got := tr.Journal.ID()
-	if expect != got {
-		t.Errorf("empty ID mismatch. expected: %q, got: %q", expect, got)
-	}
-
-	if err := tr.Journal.SetID(tr.Ctx, "test_id"); err == nil {
-		t.Errorf("expected setting an ID that doesn't exist to fail. got nil")
-	}
-
-	l := tr.AddAuthorLogTree(t)
-
-	if err := tr.Journal.SetID(tr.Ctx, l.ID()); err != nil {
-		t.Errorf("expected setting ID to an author log to not fail. got: %q", err)
-	}
-
-	expect = l.ID()
-	got = tr.Journal.ID()
-	if expect != got {
-		t.Errorf("set ID mismatch. expected: %q, got: %q", expect, got)
-	}
-}
-
 func TestJournalMerge(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()

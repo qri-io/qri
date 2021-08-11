@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
@@ -189,7 +190,7 @@ func (c *Client) createTheirDataset(ctx context.Context, ref *dsref.Ref) error {
 	}
 
 	// Allocate an initID for this dataset
-	ref.InitID, err = other.book.WriteDatasetInit(ctx, ref.Username, ref.Name)
+	ref.InitID, err = other.book.WriteDatasetInit(ctx, other.book.Owner(), ref.Name)
 	if err != nil {
 		return err
 	}
@@ -208,7 +209,8 @@ func (c *Client) createTheirDataset(ctx context.Context, ref *dsref.Ref) error {
 	ref.Path = path
 
 	// Add a save operation to logbook
-	err = other.book.WriteVersionSave(ctx, ref.InitID, &ds, nil)
+	ds.ID = ref.InitID
+	err = other.book.WriteVersionSave(ctx, other.book.Owner(), &ds, nil)
 	if err != nil {
 		return err
 	}
@@ -232,7 +234,11 @@ func (c *Client) otherPeer(username string) *OtherPeer {
 		if err != nil {
 			panic(err)
 		}
-		book, err := logbook.NewJournal(kd.PrivKey, username, event.NilBus, fs, "logbook.qfb")
+		pro, err := profile.NewSparsePKProfile(username, kd.PrivKey)
+		if err != nil {
+			panic(err)
+		}
+		book, err := logbook.NewJournal(*pro, event.NilBus, fs, "logbook.qfb")
 		if err != nil {
 			panic(err)
 		}
@@ -261,10 +267,10 @@ func (c *Client) pullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string)
 	}
 
 	// Merge their logbook into ours
-	if err = theirBook.SignLog(theirLog); err != nil {
+	if err = theirLog.Sign(theirBook.Owner().PrivKey); err != nil {
 		return err
 	}
-	return c.node.Repo.Logbook().MergeLog(ctx, theirBook.Author(), theirLog)
+	return c.node.Repo.Logbook().MergeLog(ctx, theirBook.Owner().PrivKey.GetPublic(), theirLog)
 }
 
 // mockDagSync immitates a dagsync, pulling a dataset from a peer, and saving it with our refs

@@ -20,7 +20,6 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -29,6 +28,7 @@ import (
 )
 
 var (
+	log = golog.Logger("logbook")
 	// ErrNoLogbook indicates a logbook doesn't exist
 	ErrNoLogbook = fmt.Errorf("logbook: does not exist")
 	// ErrNotFound is a sentinel error for data not found in a logbook
@@ -44,13 +44,11 @@ var (
 	// NewTimestamp generates the current unix nanosecond time.
 	// This is mainly here for tests to override
 	NewTimestamp = func() int64 { return time.Now().UnixNano() }
-
-	log = golog.Logger("logbook")
 )
 
 const (
-	// AuthorModel is the enum for an author model
-	AuthorModel uint32 = iota
+	// UserModel is the enum for an author model
+	UserModel uint32 = iota
 	// DatasetModel is the enum for a dataset model
 	DatasetModel
 	// BranchModel is the enum for a branch model
@@ -80,7 +78,7 @@ const (
 // ModelString gets a unique string descriptor for an integral model identifier
 func ModelString(m uint32) string {
 	switch m {
-	case AuthorModel:
+	case UserModel:
 		return "user"
 	case DatasetModel:
 		return "dataset"
@@ -101,35 +99,34 @@ func ModelString(m uint32) string {
 
 // Book wraps a oplog.Book with a higher-order API specific to Qri
 type Book struct {
-	store oplog.Logstore
-
-	pk         crypto.PrivKey
-	authorID   string
-	authorName string
-
-	fsLocation string
+	owner      *profile.Profile
+	store      oplog.Logstore
+	publisher  event.Publisher
 	fs         qfs.Filesystem
-
-	publisher event.Publisher
+	fsLocation string
 }
 
 // NewBook creates a book with a user-provided logstore
-func NewBook(pk crypto.PrivKey, store oplog.Logstore) *Book {
-	return &Book{pk: pk, store: store}
+func NewBook(owner profile.Profile, bus event.Publisher, store oplog.Logstore) *Book {
+	return &Book{
+		owner:     &owner,
+		store:     store,
+		publisher: bus,
+	}
 }
 
 // NewJournal initializes a logbook owned by a single author, reading any
 // existing data at the given filesystem location.
 // logbooks are encrypted at rest with the given private key
-func NewJournal(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesystem, location string) (*Book, error) {
+func NewJournal(owner profile.Profile, bus event.Publisher, fs qfs.Filesystem, fsLocation string) (*Book, error) {
 	ctx := context.Background()
-	if pk == nil {
+	if owner.PrivKey == nil {
 		return nil, fmt.Errorf("logbook: private key is required")
 	}
 	if fs == nil {
 		return nil, fmt.Errorf("logbook: filesystem is required")
 	}
-	if location == "" {
+	if fsLocation == "" {
 		return nil, fmt.Errorf("logbook: location is required")
 	}
 	if bus == nil {
@@ -139,44 +136,37 @@ func NewJournal(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesy
 	book := &Book{
 		store:      &oplog.Journal{},
 		fs:         fs,
-		pk:         pk,
-		authorName: username,
-		fsLocation: location,
+		owner:      &owner,
+		fsLocation: fsLocation,
 		publisher:  bus,
 	}
 
 	if err := book.load(ctx); err != nil {
 		if err == ErrNotFound {
-			keyID, err := key.IDFromPrivKey(book.pk)
-			if err != nil {
-				return nil, err
-			}
-			err = book.initialize(ctx, keyID)
+			err = book.initialize(ctx)
 			return book, err
 		}
 		return nil, err
 	}
-	// else {
-	// TODO (b5) verify username integrity on load
-	// }
 
 	return book, nil
 }
 
-// NewJournalOverwriteWithProfileID initializes a new logbook using the
-// given profileID. Any existing logbook will be overwritten.
-func NewJournalOverwriteWithProfileID(pk crypto.PrivKey, username string, bus event.Bus, fs qfs.Filesystem, location, profileID string) (*Book, error) {
+// NewJournalOverwriteWithProfile initializes a new logbook using the given
+// profile. Any existing logbook will be overwritten.
+func NewJournalOverwriteWithProfile(owner profile.Profile, bus event.Publisher, fs qfs.Filesystem, fsLocation string) (*Book, error) {
+	log.Debugw("NewJournalOverwriteWithProfile", "owner", owner)
 	ctx := context.Background()
-	if pk == nil {
+	if owner.PrivKey == nil {
 		return nil, fmt.Errorf("logbook: private key is required")
 	}
 	if fs == nil {
 		return nil, fmt.Errorf("logbook: filesystem is required")
 	}
-	if location == "" {
+	if fsLocation == "" {
 		return nil, fmt.Errorf("logbook: location is required")
 	}
-	if profileID == "" {
+	if owner.ID.Encode() == "" {
 		return nil, fmt.Errorf("logbook: profileID is required")
 	}
 	if bus == nil {
@@ -185,85 +175,42 @@ func NewJournalOverwriteWithProfileID(pk crypto.PrivKey, username string, bus ev
 
 	book := &Book{
 		store:      &oplog.Journal{},
+		owner:      &owner,
 		fs:         fs,
-		pk:         pk,
-		authorName: username,
-		fsLocation: location,
+		fsLocation: fsLocation,
 		publisher:  bus,
 	}
 
-	err := book.initialize(ctx, profileID)
+	err := book.initialize(ctx)
 	return book, err
 }
 
-func (book *Book) initialize(ctx context.Context, authorID string) error {
-	// initialize author's log of user actions
+// Owner provides the profile that owns the logbook
+func (book *Book) Owner() *profile.Profile {
+	return book.owner
+}
+
+func (book *Book) initialize(ctx context.Context) error {
+	log.Debug("intializing book", "owner", book.owner.ID.Encode())
+	// initialize owner's log of user actions
 	userActions := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
-		Model:     AuthorModel,
-		Name:      book.Username(),
-		AuthorID:  authorID,
+		Model:     UserModel,
+		Name:      book.owner.Peername,
+		AuthorID:  book.owner.ID.Encode(),
 		Timestamp: NewTimestamp(),
 	})
-	book.authorID = userActions.ID()
 
 	if err := book.store.MergeLog(ctx, userActions); err != nil {
 		return err
 	}
-	if al, ok := book.store.(oplog.AuthorLogstore); ok {
-		al.SetID(ctx, book.authorID)
-	}
+
 	return book.save(ctx)
 }
 
-// ActivePeerID returns the in-use PeerID of the logbook author
-// TODO (b5) - remove the need for this context by caching the active PeerID
-// at key load / save / mutation points
-func (book *Book) ActivePeerID(ctx context.Context) (id string, err error) {
-	if book == nil {
-		return "", ErrNoLogbook
-	}
-
-	lg, err := book.store.Get(ctx, book.authorID)
-	if err != nil {
-		panic(err)
-	}
-	return lg.Author(), nil
-}
-
-// Author returns this book's author
-func (book *Book) Author() profile.Author {
-	return book
-}
-
-// Username returns the human-readable name of the author
-func (book *Book) Username() string {
-	return book.authorName
-}
-
-// AuthorID returns the machine identifier for a name
-func (book *Book) AuthorID() string {
-	return book.authorID
-}
-
-// AuthorPubKey gives this book's author public key
-func (book *Book) AuthorPubKey() crypto.PubKey {
-	return book.pk.GetPublic()
-}
-
-// RenameAuthor marks a change in author name
-func (book *Book) RenameAuthor() error {
-	return fmt.Errorf("not finished")
-}
-
-// DeleteAuthor removes an author, used on teardown
-func (book *Book) DeleteAuthor() error {
-	return fmt.Errorf("not finished")
-}
-
-// ReplaceAll replaces the contents of the logbook with
-// the provided log data
+// ReplaceAll replaces the contents of the logbook with the provided log data
 func (book *Book) ReplaceAll(ctx context.Context, lg *oplog.Log) error {
+	log.Debugw("ReplaceAll", "log", lg)
 	err := book.store.ReplaceAll(ctx, lg)
 	if err != nil {
 		return err
@@ -274,13 +221,15 @@ func (book *Book) ReplaceAll(ctx context.Context, lg *oplog.Log) error {
 // save writes the book to book.fsLocation
 func (book *Book) save(ctx context.Context) (err error) {
 	if al, ok := book.store.(oplog.AuthorLogstore); ok {
-		ciphertext, err := al.FlatbufferCipher(book.pk)
+		ciphertext, err := al.FlatbufferCipher(book.owner.PrivKey)
 		if err != nil {
 			return err
 		}
 
 		file := qfs.NewMemfileBytes(book.fsLocation, ciphertext)
 		book.fsLocation, err = book.fs.Put(ctx, file)
+		log.Debugw("saved author logbook", "err", err)
+		return err
 	}
 	return err
 }
@@ -301,17 +250,14 @@ func (book *Book) load(ctx context.Context) error {
 			return err
 		}
 
-		if err = al.UnmarshalFlatbufferCipher(ctx, book.pk, ciphertext); err != nil {
-			return err
-		}
-
-		book.authorID = al.ID()
+		return al.UnmarshalFlatbufferCipher(ctx, book.owner.PrivKey, ciphertext)
 	}
 	return nil
 }
 
 // WriteAuthorRename adds an operation updating the author's username
-func (book *Book) WriteAuthorRename(ctx context.Context, newName string) error {
+func (book *Book) WriteAuthorRename(ctx context.Context, author *profile.Profile, newName string) error {
+	log.Debugw("WriteAuthorRename", "author", author, "newName", newName)
 	if book == nil {
 		return ErrNoLogbook
 	}
@@ -319,14 +265,18 @@ func (book *Book) WriteAuthorRename(ctx context.Context, newName string) error {
 		return fmt.Errorf("logbook: author name %q invalid", newName)
 	}
 
-	authorLog, err := book.authorLog(ctx)
+	authorLog, err := book.userLog(ctx, author.ID.Encode())
 	if err != nil {
 		return err
 	}
+
+	// TODO (b5): check write access!
+
 	authorLog.Append(oplog.Op{
-		Type:      oplog.OpTypeAmend,
-		Model:     AuthorModel,
-		AuthorID:  book.AuthorID(),
+		Type:  oplog.OpTypeAmend,
+		Model: UserModel,
+		// on the user branch we always use the author's encoded profileID
+		AuthorID:  author.ID.Encode(),
 		Name:      newName,
 		Timestamp: NewTimestamp(),
 	})
@@ -335,12 +285,14 @@ func (book *Book) WriteAuthorRename(ctx context.Context, newName string) error {
 		return err
 	}
 
-	book.authorName = newName
+	if author.ID.Encode() == book.owner.ID.Encode() {
+		book.owner.Peername = newName
+	}
 	return nil
 }
 
 // WriteDatasetInit initializes a new dataset name
-func (book *Book) WriteDatasetInit(ctx context.Context, username, dsName string) (string, error) {
+func (book *Book) WriteDatasetInit(ctx context.Context, author *profile.Profile, dsName string) (string, error) {
 	if book == nil {
 		return "", ErrNoLogbook
 	}
@@ -350,11 +302,13 @@ func (book *Book) WriteDatasetInit(ctx context.Context, username, dsName string)
 	if !dsref.IsValidName(dsName) {
 		return "", fmt.Errorf("logbook: dataset name %q invalid", dsName)
 	}
-	if dsLog, err := book.DatasetRef(ctx, dsref.Ref{Username: book.Username(), Name: dsName}); err == nil {
+
+	ref := dsref.Ref{Username: author.Peername, Name: dsName}
+	if dsLog, err := book.DatasetRef(ctx, ref); err == nil {
 		// check for "blank" logs, and remove them
 		if len(dsLog.Ops) == 1 && len(dsLog.Logs) == 1 && len(dsLog.Logs[0].Ops) == 1 {
-			log.Debugw("removing stranded reference", "ref", dsref.Ref{Username: book.Username(), Name: dsName})
-			if err := book.RemoveLog(ctx, dsref.Ref{Username: book.Username(), Name: dsName}); err != nil {
+			log.Debugw("removing stranded reference", "ref", ref)
+			if err := book.RemoveLog(ctx, ref); err != nil {
 				return "", fmt.Errorf("logbook: removing stray log: %w", err)
 			}
 		} else {
@@ -362,17 +316,18 @@ func (book *Book) WriteDatasetInit(ctx context.Context, username, dsName string)
 		}
 	}
 
-	authorLog, err := book.authorLog(ctx)
+	profileID := author.ID.Encode()
+	authorLog, err := book.userLog(ctx, profileID)
 	if err != nil {
 		return "", err
 	}
-	profileID := authorLog.ProfileID()
+	authorLogID := authorLog.l.ID()
 
-	log.Debugf("initializing name: '%s'", dsName)
+	log.Debugw("initializing dataset", "profileID", profileID, "username", author.Peername, "name", dsName, "authorLogID", authorLogID)
 	dsLog := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     DatasetModel,
-		AuthorID:  book.AuthorID(),
+		AuthorID:  authorLogID,
 		Name:      dsName,
 		Timestamp: NewTimestamp(),
 	})
@@ -380,22 +335,18 @@ func (book *Book) WriteDatasetInit(ctx context.Context, username, dsName string)
 	branch := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     BranchModel,
-		AuthorID:  book.AuthorID(),
+		AuthorID:  authorLogID,
 		Name:      DefaultBranchName,
 		Timestamp: NewTimestamp(),
 	})
 
 	dsLog.AddChild(branch)
-
 	authorLog.AddChild(dsLog)
-
 	initID := dsLog.ID()
 
-	// TODO(dlong): Perhaps in the future, pass the authorID (hash of the author creation
-	// block) to the dscache, use that instead-of or in-addition-to the profileID.
 	err = book.publisher.Publish(ctx, event.ETDatasetNameInit, dsref.VersionInfo{
 		InitID:    initID,
-		Username:  book.Username(),
+		Username:  author.Peername,
 		ProfileID: profileID,
 		Name:      dsName,
 	})
@@ -407,7 +358,7 @@ func (book *Book) WriteDatasetInit(ctx context.Context, username, dsName string)
 }
 
 // WriteDatasetRename marks renaming a dataset
-func (book *Book) WriteDatasetRename(ctx context.Context, initID string, newName string) error {
+func (book *Book) WriteDatasetRename(ctx context.Context, author *profile.Profile, initID string, newName string) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
@@ -415,18 +366,17 @@ func (book *Book) WriteDatasetRename(ctx context.Context, initID string, newName
 		return fmt.Errorf("logbook: new dataset name %q invalid", newName)
 	}
 
-	log.Debugf("WriteDatasetRename: '%s' -> '%s'", initID, newName)
-
 	dsLog, err := book.datasetLog(ctx, initID)
 	if err != nil {
 		return err
 	}
 
-	if err := book.hasWriteAccess(dsLog.l); err != nil {
+	if err := book.hasWriteAccess(ctx, dsLog.l, author); err != nil {
 		return err
 	}
 
 	oldName := dsLog.l.Name()
+	log.Debugw("WriteDatasetRename", "author.ID", author.ID.Encode(), "author.Peername", author.Peername, "initID", initID, "oldName", oldName, "newName", newName)
 
 	dsLog.Append(oplog.Op{
 		Type:      oplog.OpTypeAmend,
@@ -475,13 +425,9 @@ func (book *Book) RefToInitID(ref dsref.Ref) (string, error) {
 
 // Return a strongly typed UserLog for the given profileID. Top level of the logbook.
 func (book Book) userLog(ctx context.Context, profileID string) (*UserLog, error) {
-	return nil, fmt.Errorf("TODO(dustmop): Not Implemented")
-}
-
-// Return a strongly typed UserLog for the author of the logbook.
-func (book Book) authorLog(ctx context.Context) (*UserLog, error) {
-	lg, err := book.store.Get(ctx, book.authorID)
+	lg, err := book.store.GetAuthorID(ctx, UserModel, profileID)
 	if err != nil {
+		log.Debugw("fetch userLog", "profileID", profileID, "err", err)
 		return nil, err
 	}
 	return newUserLog(lg), nil
@@ -509,26 +455,31 @@ func (book *Book) branchLog(ctx context.Context, initID string) (*BranchLog, err
 }
 
 // hasWriteAccess is a simple author-matching check
-func (book *Book) hasWriteAccess(log *oplog.Log) error {
-	if log.Ops[0].AuthorID != book.authorID {
+func (book *Book) hasWriteAccess(ctx context.Context, log *oplog.Log, pro *profile.Profile) error {
+	ul, err := book.userLog(ctx, pro.ID.Encode())
+	if err != nil {
+		return err
+	}
+
+	if log.Ops[0].AuthorID != ul.l.ID() {
 		return fmt.Errorf("%w: you do not have write access", ErrAccessDenied)
 	}
 	return nil
 }
 
-// WriteDatasetDelete closes a dataset, marking it as deleted
-func (book *Book) WriteDatasetDelete(ctx context.Context, initID string) error {
+// WriteDatasetDeleteAll closes a dataset, marking it as deleted
+func (book *Book) WriteDatasetDeleteAll(ctx context.Context, pro *profile.Profile, initID string) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
-	log.Debugf("WriteDatasetDelete: '%s'", initID)
+	log.Debugw("WriteDatasetDeleteAll", "initID", initID)
 
 	dsLog, err := book.datasetLog(ctx, initID)
 	if err != nil {
 		return err
 	}
 
-	if err := book.hasWriteAccess(dsLog.l); err != nil {
+	if err := book.hasWriteAccess(ctx, dsLog.l, pro); err != nil {
 		return err
 	}
 
@@ -552,18 +503,18 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, initID string) error {
 // If a run.State argument is non-nil two operations are written to the log,
 // one op for the run followed by a commit op for the dataset save.
 // If run.State is non-nil the dataset.Commit.RunID and rs.ID fields must match
-func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *dataset.Dataset, rs *run.State) error {
+func (book *Book) WriteVersionSave(ctx context.Context, author *profile.Profile, ds *dataset.Dataset, rs *run.State) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
 
-	log.Debugw("WriteVersionSave", "initID", initID)
-	branchLog, err := book.branchLog(ctx, initID)
+	log.Debugw("WriteVersionSave", "authorID", author.ID.Encode(), "initID", ds.ID)
+	branchLog, err := book.branchLog(ctx, ds.ID)
 	if err != nil {
 		return err
 	}
 
-	if err := book.hasWriteAccess(branchLog.l); err != nil {
+	if err := book.hasWriteAccess(ctx, branchLog.l, author); err != nil {
 		return err
 	}
 
@@ -582,7 +533,6 @@ func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *datas
 	}
 
 	info := dsref.ConvertDatasetToVersionInfo(ds)
-	info.InitID = initID
 	info.NumVersions = topIndex
 
 	if err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, info); err != nil {
@@ -594,29 +544,27 @@ func (book *Book) WriteVersionSave(ctx context.Context, initID string, ds *datas
 
 // WriteTransformRun adds an operation to a log marking the execution of a
 // dataset transform script
-func (book *Book) WriteTransformRun(ctx context.Context, initID string, rs *run.State) error {
+func (book *Book) WriteTransformRun(ctx context.Context, author *profile.Profile, initID string, rs *run.State) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
+	if rs == nil {
+		return fmt.Errorf("run state is required")
+	}
 
-	log.Debugf("WriteTransformRun: %s", initID)
+	log.Debugw("WriteTransformRun", "author.ID", author.ID.Encode(), "initID", initID, "runState.ID", rs.ID, "runState.Status", rs.Status)
 	branchLog, err := book.branchLog(ctx, initID)
 	if err != nil {
 		return err
 	}
 
-	if err := book.hasWriteAccess(branchLog.l); err != nil {
+	if err := book.hasWriteAccess(ctx, branchLog.l, author); err != nil {
 		return err
 	}
 
 	book.appendTransformRun(branchLog, rs)
 	// TODO(dlong): Think about how to handle a failure exactly here, what needs to be rolled back?
-	err = book.save(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return book.save(ctx)
 }
 
 func (book *Book) appendVersionSave(blog *BranchLog, ds *dataset.Dataset) int {
@@ -665,17 +613,17 @@ func (book *Book) appendTransformRun(blog *BranchLog, rs *run.State) int {
 
 // WriteVersionAmend adds an operation to a log when a dataset amends a commit
 // TODO(dustmop): Currently unused by codebase, only called in tests.
-func (book *Book) WriteVersionAmend(ctx context.Context, initID string, ds *dataset.Dataset) error {
+func (book *Book) WriteVersionAmend(ctx context.Context, author *profile.Profile, ds *dataset.Dataset) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
-	log.Debugf("WriteVersionAmend: '%s'", initID)
+	log.Debugf("WriteVersionAmend: '%s'", ds.ID)
 
-	branchLog, err := book.branchLog(ctx, initID)
+	branchLog, err := book.branchLog(ctx, ds.ID)
 	if err != nil {
 		return err
 	}
-	if err := book.hasWriteAccess(branchLog.l); err != nil {
+	if err := book.hasWriteAccess(ctx, branchLog.l, author); err != nil {
 		return err
 	}
 
@@ -695,7 +643,7 @@ func (book *Book) WriteVersionAmend(ctx context.Context, initID string, ds *data
 // WriteVersionDelete adds an operation to a log marking a number of sequential
 // versions from HEAD as deleted. Because logs are append-only, deletes are
 // recorded as "tombstone" operations that mark removal.
-func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisions int) error {
+func (book *Book) WriteVersionDelete(ctx context.Context, author *profile.Profile, initID string, revisions int) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
@@ -705,7 +653,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisio
 	if err != nil {
 		return err
 	}
-	if err := book.hasWriteAccess(branchLog.l); err != nil {
+	if err := book.hasWriteAccess(ctx, branchLog.l, author); err != nil {
 		return err
 	}
 
@@ -735,7 +683,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, initID string, revisio
 // WriteRemotePush adds an operation to a log marking the publication of a
 // number of versions to a remote address. It returns a rollback function that
 // removes the operation when called
-func (book *Book) WriteRemotePush(ctx context.Context, initID string, revisions int, remoteAddr string) (l *oplog.Log, rollback func(ctx context.Context) error, err error) {
+func (book *Book) WriteRemotePush(ctx context.Context, author *profile.Profile, initID string, revisions int, remoteAddr string) (l *oplog.Log, rollback func(context.Context) error, err error) {
 	if book == nil {
 		return nil, nil, ErrNoLogbook
 	}
@@ -745,7 +693,7 @@ func (book *Book) WriteRemotePush(ctx context.Context, initID string, revisions 
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := book.hasWriteAccess(branchLog.l); err != nil {
+	if err := book.hasWriteAccess(ctx, branchLog.l, author); err != nil {
 		return nil, nil, err
 	}
 
@@ -796,7 +744,7 @@ func (book *Book) WriteRemotePush(ctx context.Context, initID string, revisions 
 
 // WriteRemoteDelete adds an operation to a log marking an unpublish request for
 // a count of sequential versions from HEAD
-func (book *Book) WriteRemoteDelete(ctx context.Context, initID string, revisions int, remoteAddr string) (l *oplog.Log, rollback func(ctx context.Context) error, err error) {
+func (book *Book) WriteRemoteDelete(ctx context.Context, author *profile.Profile, initID string, revisions int, remoteAddr string) (l *oplog.Log, rollback func(ctx context.Context) error, err error) {
 	if book == nil {
 		return nil, nil, ErrNoLogbook
 	}
@@ -806,7 +754,7 @@ func (book *Book) WriteRemoteDelete(ctx context.Context, initID string, revision
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := book.hasWriteAccess(branchLog.l); err != nil {
+	if err := book.hasWriteAccess(ctx, branchLog.l, author); err != nil {
 		return nil, nil, err
 	}
 
@@ -1066,14 +1014,9 @@ func (book Book) BranchRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, erro
 	return book.store.HeadRef(ctx, ref.Username, ref.Name, DefaultBranchName)
 }
 
-// SignLog populates the signature field of a log using the author's private key
-func (book Book) SignLog(log *oplog.Log) error {
-	return log.Sign(book.pk)
-}
-
-// LogBytes signs a log with this book's private key and writes to a flatbuffer
-func (book Book) LogBytes(log *oplog.Log) ([]byte, error) {
-	if err := book.SignLog(log); err != nil {
+// LogBytes signs a log and writes it to a flatbuffer
+func (book Book) LogBytes(log *oplog.Log, signingKey crypto.PrivKey) ([]byte, error) {
+	if err := log.Sign(signingKey); err != nil {
 		return nil, err
 	}
 	return log.FlatbufferBytes(), nil
@@ -1088,7 +1031,7 @@ func DsrefAliasForLog(log *oplog.Log) (dsref.Ref, error) {
 	if log == nil {
 		return ref, fmt.Errorf("logbook: log is required")
 	}
-	if log.Model() != AuthorModel {
+	if log.Model() != UserModel {
 		return ref, fmt.Errorf("logbook: log isn't rooted as an author")
 	}
 	if len(log.Logs) != 1 {
@@ -1105,7 +1048,7 @@ func DsrefAliasForLog(log *oplog.Log) (dsref.Ref, error) {
 }
 
 // MergeLog adds a log to the logbook, merging with any existing log data
-func (book *Book) MergeLog(ctx context.Context, sender profile.Author, lg *oplog.Log) error {
+func (book *Book) MergeLog(ctx context.Context, sender crypto.PubKey, lg *oplog.Log) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
@@ -1113,7 +1056,7 @@ func (book *Book) MergeLog(ctx context.Context, sender profile.Author, lg *oplog
 	// For now we only allow users to merge logs they've written
 	// book will need access to a store of public keys before we can verify
 	// signatures non-same-senders
-	if err := lg.Verify(sender.AuthorPubKey()); err != nil {
+	if err := lg.Verify(sender); err != nil {
 		return err
 	}
 
@@ -1148,7 +1091,7 @@ func dsRefToLogPath(ref dsref.Ref) (path []string) {
 // the given history MUST be ordered from oldest to newest commits
 // TODO (b5) - this presently only works for datasets in an author's user
 // namespace
-func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, history []*dataset.Dataset) error {
+func (book *Book) ConstructDatasetLog(ctx context.Context, author *profile.Profile, ref dsref.Ref, history []*dataset.Dataset) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
@@ -1159,7 +1102,7 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, histor
 		return ErrLogTooShort
 	}
 
-	initID, err := book.WriteDatasetInit(ctx, ref.Username, ref.Name)
+	initID, err := book.WriteDatasetInit(ctx, author, ref.Name)
 	if err != nil {
 		return err
 	}
@@ -1350,7 +1293,7 @@ func (book Book) LogEntries(ctx context.Context, ref dsref.Ref, offset, limit in
 }
 
 var actionStrings = map[uint32][3]string{
-	AuthorModel:  {"create profile", "update profile", "delete profile"},
+	UserModel:    {"create profile", "update profile", "delete profile"},
 	DatasetModel: {"init dataset", "rename dataset", "delete dataset"},
 	BranchModel:  {"init branch", "rename branch", "delete branch"},
 	CommitModel:  {"save commit", "amend commit", "remove commit"},

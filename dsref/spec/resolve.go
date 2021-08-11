@@ -12,7 +12,6 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/auth/key"
 	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -25,7 +24,7 @@ import (
 // PutRefFunc is required to run the ResolverSpec test, when called the Resolver
 // should retain the reference for later retrieval by the spec test. PutRefFunc
 // also passes the author & oplog that back the reference
-type PutRefFunc func(ref dsref.Ref, author profile.Author, log *oplog.Log) error
+type PutRefFunc func(ref dsref.Ref, author *profile.Profile, log *oplog.Log) error
 
 // AssertResolverSpec confirms the expected behaviour of a dsref.Resolver
 // Interface implementation. In addition to this test passing, implementations
@@ -38,11 +37,7 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 		journal          = ForeignLogbook(t, username)
 	)
 
-	pubKeyID, err := key.IDFromPubKey(journal.AuthorPubKey())
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	profileID := journal.Owner().ID.Encode()
 	initID, log, err := GenerateExampleOplog(ctx, journal, dsname, headPath)
 	if err != nil {
 		t.Fatal(err)
@@ -50,14 +45,14 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 
 	expectRef := dsref.Ref{
 		InitID:    initID,
-		ProfileID: pubKeyID,
+		ProfileID: profileID,
 		Username:  username,
 		Name:      dsname,
 		Path:      headPath,
 	}
 
 	t.Run("dsrefResolverSpec", func(t *testing.T) {
-		if err := putFunc(expectRef, journal.Author(), log); err != nil {
+		if err := putFunc(expectRef, journal.Owner(), log); err != nil {
 			t.Fatalf("put ref failed: %s", err)
 		}
 
@@ -101,7 +96,7 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 		expectRef = dsref.Ref{
 			Username:  username,
 			Name:      dsname,
-			ProfileID: pubKeyID,
+			ProfileID: profileID,
 			Path:      "/ill_provide_the_path_thank_you_very_much",
 			InitID:    expectRef.InitID,
 		}
@@ -134,7 +129,7 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 		// expectRef = dsref.Ref{
 		// 	Username:  username,
 		// 	Name:      dsname,
-		// 	ProfileID: pubKeyID,
+		// 	ProfileID: profileID,
 		// 	Path:      headPath,
 		// 	InitID:    initID,
 		// }
@@ -164,7 +159,7 @@ func AssertResolverSpec(t *testing.T, r dsref.Resolver, putFunc PutRefFunc) {
 		expectRef = dsref.Ref{
 			Username:  username,
 			Name:      dsname,
-			ProfileID: pubKeyID,
+			ProfileID: profileID,
 			Path:      headPath,
 			InitID:    initID,
 		}
@@ -257,9 +252,15 @@ func ConsistentResolvers(t *testing.T, ref dsref.Ref, resolvers ...dsref.Resolve
 
 // ForeignLogbook creates a logbook to use as an external source of oplog data
 func ForeignLogbook(t *testing.T, username string) *logbook.Book {
-	pk := testkeys.GetKeyData(9).PrivKey
+	t.Helper()
+
 	ms := qfs.NewMemFS()
-	journal, err := logbook.NewJournal(pk, username, event.NilBus, ms, "/mem/logbook.qfb")
+	pk := testkeys.GetKeyData(9).PrivKey
+	pro, err := profile.NewSparsePKProfile(username, pk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	journal, err := logbook.NewJournal(*pro, event.NilBus, ms, "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,14 +271,15 @@ func ForeignLogbook(t *testing.T, username string) *logbook.Book {
 // GenerateExampleOplog makes an example dataset history on a given journal,
 // returning the initID and a signed log
 func GenerateExampleOplog(ctx context.Context, journal *logbook.Book, dsname, headPath string) (string, *oplog.Log, error) {
-	username := journal.Username()
-	initID, err := journal.WriteDatasetInit(ctx, username, dsname)
+	author := journal.Owner()
+	initID, err := journal.WriteDatasetInit(ctx, author, dsname)
 	if err != nil {
 		return "", nil, err
 	}
 
-	err = journal.WriteVersionSave(ctx, initID, &dataset.Dataset{
-		Peername: username,
+	err = journal.WriteVersionSave(ctx, author, &dataset.Dataset{
+		ID:       initID,
+		Peername: author.Peername,
 		Name:     dsname,
 		Commit: &dataset.Commit{
 			Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -294,7 +296,7 @@ func GenerateExampleOplog(ctx context.Context, journal *logbook.Book, dsname, he
 	if err != nil {
 		return "", nil, err
 	}
-	if err := journal.SignLog(lg); err != nil {
+	if err := lg.Sign(author.PrivKey); err != nil {
 		return "", nil, err
 	}
 

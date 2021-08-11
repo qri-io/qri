@@ -41,10 +41,7 @@ func TestP2PLogsync(t *testing.T) {
 	}
 
 	// pull logs to B from A
-	aID, err := tr.A.ActivePeerID(tr.Ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	aID := tr.A.Owner().ID.Encode()
 
 	pull, err := lsB.NewPull(worldBankRef, aID)
 	if err != nil {
@@ -71,10 +68,7 @@ func TestP2PLogsync(t *testing.T) {
 	}
 
 	// push logs from A to B
-	bID, err := tr.B.ActivePeerID(tr.Ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	bID := tr.B.Owner().ID.Encode()
 
 	push, err := lsA.NewPush(nasdaqRef, bID)
 	if err != nil {

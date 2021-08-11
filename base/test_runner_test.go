@@ -52,10 +52,10 @@ func (run *TestRunner) SaveDatasetReplace(ds *dataset.Dataset) (dsref.Ref, error
 
 func (run *TestRunner) saveDataset(ds *dataset.Dataset, sw SaveSwitches) (dsref.Ref, error) {
 	book := run.Repo.Logbook()
-	username := "peer"
-	ref := dsref.Ref{Username: username, Name: ds.Name}
+	author := book.Owner()
+	ref := dsref.Ref{Username: author.Peername, Name: ds.Name}
 	if _, err := book.ResolveRef(context.Background(), &ref); err == dsref.ErrRefNotFound {
-		ref.InitID, err = book.WriteDatasetInit(run.Context, username, ds.Name)
+		ref.InitID, err = book.WriteDatasetInit(run.Context, author, ds.Name)
 		if err != nil {
 			return dsref.Ref{}, err
 		}

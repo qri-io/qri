@@ -38,7 +38,7 @@ func TestApplyTransform(t *testing.T) {
 		Wait: true,
 	})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	output, err := json.Marshal(res.Body)

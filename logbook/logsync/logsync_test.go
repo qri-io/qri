@@ -22,7 +22,6 @@ import (
 )
 
 func Example() {
-	// first some boilerplate setup
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
 
@@ -38,7 +37,7 @@ func Example() {
 		// we MUST override the PreCheck function. In this example we're only going
 		// to allow pushes from johnathon
 		o.PushPreCheck = func(ctx context.Context, author profile.Author, ref dsref.Ref, l *oplog.Log) error {
-			if author.AuthorID() != johnathonsLogbook.Author().AuthorID() {
+			if author.AuthorID() != johnathonsLogbook.Owner().ID.Encode() {
 				return fmt.Errorf("rejected for secret reasons")
 			}
 			return nil
@@ -467,18 +466,20 @@ func newTestbook(username string, pk crypto.PrivKey) (*logbook.Book, error) {
 	// logbook relies on a qfs.Filesystem for read & write. create an in-memory
 	// filesystem we can play with
 	fs := qfs.NewMemFS()
-	return logbook.NewJournal(pk, username, event.NilBus, fs, "/mem/logbook.qfb")
+	pro := mustProfileFromPrivKey(username, pk)
+	return logbook.NewJournal(*pro, event.NilBus, fs, "/mem/logbook.qfb")
 }
 
 func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, err error) {
 	name := "nasdaq"
-	initID, err := book.WriteDatasetInit(ctx, book.Username(), name)
+	initID, err := book.WriteDatasetInit(ctx, book.Owner(), name)
 	if err != nil {
 		return ref, err
 	}
 
 	ds := &dataset.Dataset{
-		Peername: book.Username(),
+		ID:       initID,
+		Peername: book.Owner().Peername,
 		Name:     name,
 		Commit: &dataset.Commit{
 			Timestamp: time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC),
@@ -488,19 +489,19 @@ func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, er
 		PreviousPath: "",
 	}
 
-	if err = book.WriteVersionSave(ctx, initID, ds, nil); err != nil {
+	if err = book.WriteVersionSave(ctx, book.Owner(), ds, nil); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "v1"
 	ds.PreviousPath = "v0"
 
-	if err = book.WriteVersionSave(ctx, initID, ds, nil); err != nil {
+	if err = book.WriteVersionSave(ctx, book.Owner(), ds, nil); err != nil {
 		return ref, err
 	}
 
 	return dsref.Ref{
-		Username: book.Username(),
+		Username: book.Owner().Peername,
 		Name:     name,
 		InitID:   initID,
 	}, nil
@@ -508,18 +509,16 @@ func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, er
 
 func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, err error) {
 	name := "world_bank_population"
-	peerID, err := book.ActivePeerID(ctx)
-	if err != nil {
-		return dsref.Ref{}, err
-	}
+	author := book.Owner()
 
-	initID, err := book.WriteDatasetInit(ctx, book.Username(), name)
+	initID, err := book.WriteDatasetInit(ctx, author, name)
 	if err != nil {
 		return ref, err
 	}
 
 	ds := &dataset.Dataset{
-		Peername: book.Username(),
+		ID:       initID,
+		Peername: author.Peername,
 		Name:     name,
 		Commit: &dataset.Commit{
 			Timestamp: time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC),
@@ -529,29 +528,37 @@ func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref,
 		PreviousPath: "",
 	}
 
-	if err = book.WriteVersionSave(ctx, initID, ds, nil); err != nil {
+	if err = book.WriteVersionSave(ctx, author, ds, nil); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "/ipfs/QmVersion1"
 	ds.PreviousPath = "/ipfs/QmVesion0"
 
-	if err = book.WriteVersionSave(ctx, initID, ds, nil); err != nil {
+	if err = book.WriteVersionSave(ctx, author, ds, nil); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "/ipfs/QmVersion2"
 	ds.PreviousPath = "/ipfs/QmVersion1"
 
-	if err = book.WriteVersionSave(ctx, initID, ds, nil); err != nil {
+	if err = book.WriteVersionSave(ctx, author, ds, nil); err != nil {
 		return ref, err
 	}
 
 	return dsref.Ref{
-		Username:  book.Username(),
+		Username:  author.Peername,
 		Name:      name,
-		ProfileID: peerID,
+		ProfileID: author.ID.Encode(),
 		InitID:    initID,
 		Path:      ds.Path,
 	}, nil
+}
+
+func mustProfileFromPrivKey(username string, pk crypto.PrivKey) *profile.Profile {
+	p, err := profile.NewSparsePKProfile(username, pk)
+	if err != nil {
+		panic(err)
+	}
+	return p
 }
