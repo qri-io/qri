@@ -105,7 +105,6 @@ type RunParams struct {
 	Ref        string `json:"ref"`
 	InitID     string `json:"initID"`
 	WorkflowID string `json:"workflowID"`
-	RunID      string `json:"runID"`
 }
 
 // Validate returns an error if RunParams fields are in an invalid state
@@ -367,7 +366,9 @@ func (automationImpl) Run(scope scope, p *RunParams) (string, error) {
 		}
 		p.WorkflowID = wf.WorkflowID()
 	}
-	return scope.AutomationOrchestrator().RunWorkflow(scope.AppContext(), workflow.ID(p.WorkflowID), p.RunID)
+	runID := run.NewID()
+	go scope.AutomationOrchestrator().RunWorkflow(scope.AppContext(), workflow.ID(p.WorkflowID), runID)
+	return runID, nil
 }
 
 // Workflow fetches a workflow by the workflow or dataset id

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/workflow"
-	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/event"
 )
 
@@ -210,42 +210,31 @@ def transform(ds,ctx):
 		t.Errorf("workflow mismatch (-want +got):\n%s", diff)
 	}
 
-	gotEvent := event.WorkflowStoppedEvent{}
-	runEnded := make(chan string)
+	runStatus := make(chan string)
 	handleRun := func(ctx context.Context, e event.Event) error {
-		if e.Type == event.ETAutomationWorkflowStopped {
+		if e.Type == event.ETTransformStop {
 			ok := false
-			gotEvent, ok = e.Payload.(event.WorkflowStoppedEvent)
+			p, ok := e.Payload.(event.TransformLifecycle)
 			if !ok {
-				runEnded <- "event.ETAutomationDeployEnd payload not of type event.DeployEvent"
-				return nil
+				t.Fatal("event.ETTransformStop payload not of type event.DeployEvent")
 			}
-			runEnded <- ""
+			runStatus <- p.Status
 		}
 		return nil
 	}
-	runID := "test_run_id"
-	bus.SubscribeTypes(handleRun, event.ETAutomationWorkflowStopped)
-	expectEvent := event.WorkflowStoppedEvent{
-		InitID:     wf.InitID,
-		OwnerID:    wf.OwnerID,
-		WorkflowID: wf.WorkflowID(),
-		RunID:      runID,
-		Status:     string(run.RSSucceeded),
-	}
-	gotID, err := tr.Instance.WithSource("local").Automation().Run(tr.Ctx, &RunParams{WorkflowID: wf.WorkflowID(), RunID: runID})
-	if !errors.Is(err, dsfs.ErrNoChanges) {
-		t.Fatal(err)
-	}
+	run.SetIDRand(strings.NewReader("testRunIDForTestAutomation"))
+	runID := run.NewID()
+	run.SetIDRand(strings.NewReader("testRunIDForTestAutomation"))
+	defer run.SetIDRand(nil)
+	bus.SubscribeID(handleRun, runID)
+	done = errOnTimeout(t, runStatus)
+	gotID, err := tr.Instance.WithSource("local").Automation().Run(tr.Ctx, &RunParams{WorkflowID: wf.WorkflowID()})
 	if gotID != runID {
 		t.Errorf("runID mismatch, expected %s, got %s", runID, gotID)
 	}
-	errMsg = <-runEnded
-	if errMsg != "" {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(expectEvent, gotEvent); diff != "" {
-		t.Errorf("workflow event mismatch (-want +got):\n%s", diff)
+	gotStatus := <-done
+	if gotStatus != "succeeded" {
+		t.Fatal(gotStatus)
 	}
 
 	if err := tr.Instance.WithSource("local").Automation().Remove(tr.Ctx, &WorkflowParams{WorkflowID: wf.WorkflowID()}); err != nil {
