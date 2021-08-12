@@ -268,7 +268,11 @@ func (j *Journal) Get(_ context.Context, id string) (*Log, error) {
 // GetAuthorID fetches the first log that matches the given model and authorID
 func (j *Journal) GetAuthorID(_ context.Context, model uint32, authorID string) (*Log, error) {
 	for _, lg := range j.logs {
-		if lg.Model() == model && len(lg.Ops) > 0 && lg.Author() == authorID {
+		// NOTE: old logbook entries erroneously used logbook identifiers in the AuthorID
+		// space when they should have been using external author Identifiers. In the short
+		// term we're relying on the fact that the 0th operation always uses an external
+		// identifier
+		if lg.Model() == model && lg.FirstOpAuthorID() == authorID {
 			return lg, nil
 		}
 	}
