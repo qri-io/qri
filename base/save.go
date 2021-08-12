@@ -28,14 +28,14 @@ func SaveDataset(
 	ctx context.Context,
 	r repo.Repo,
 	writeDest qfs.Filesystem,
+	author *profile.Profile,
 	initID string,
 	prevPath string,
 	changes *dataset.Dataset,
 	runState *run.State,
 	sw SaveSwitches,
 ) (ds *dataset.Dataset, err error) {
-	pro := r.Profiles().Owner()
-	log.Debugw("SaveDataset", "initID", initID, "prevPath", prevPath, "peername", pro.Peername, "privKeyIsNil", pro.PrivKey == nil)
+	log.Debugw("SaveDataset", "initID", initID, "prevPath", prevPath, "author", author)
 	if initID == "" {
 		return nil, fmt.Errorf("SaveDataset requires an initID")
 	}
@@ -100,7 +100,7 @@ func SaveDataset(
 	}
 
 	// infer missing values
-	if err = InferValues(pro, changes); err != nil {
+	if err = InferValues(author, changes); err != nil {
 		return
 	}
 
@@ -108,14 +108,14 @@ func SaveDataset(
 	changes.PreviousPath = prevPath
 
 	// Write the dataset to storage and get back the new path
-	ds, err = CreateDataset(ctx, r, writeDest, changes, prev, sw)
+	ds, err = CreateDataset(ctx, r, writeDest, author, changes, prev, sw)
 	if err != nil {
 		return nil, err
 	}
 	ds.ID = initID
 
 	// Write the save to logbook
-	if err = r.Logbook().WriteVersionSave(ctx, pro, ds, runState); err != nil {
+	if err = r.Logbook().WriteVersionSave(ctx, author, ds, runState); err != nil {
 		return nil, err
 	}
 	ds.ID = initID
@@ -123,10 +123,9 @@ func SaveDataset(
 }
 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating the refstore
-func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, ds, dsPrev *dataset.Dataset, sw SaveSwitches) (res *dataset.Dataset, err error) {
-	log.Debugf("CreateDataset ds=%#v dsPrev=%#v", ds, dsPrev)
+func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, author *profile.Profile, ds, dsPrev *dataset.Dataset, sw SaveSwitches) (res *dataset.Dataset, err error) {
+	log.Debugw("CreateDataset", "ds.ID", ds.ID)
 	var (
-		pro     = r.Profiles().Owner()
 		path    string
 		resBody qfs.File
 	)
@@ -147,7 +146,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 		return nil, fmt.Errorf("invalid dataset: %w", err)
 	}
 
-	if path, err = dsfs.CreateDataset(ctx, r.Filesystem(), writeDest, r.Bus(), ds, dsPrev, pro.PrivKey, sw); err != nil {
+	if path, err = dsfs.CreateDataset(ctx, r.Filesystem(), writeDest, r.Bus(), ds, dsPrev, author.PrivKey, sw); err != nil {
 		log.Debugf("dsfs.CreateDataset: %s", err)
 		return nil, err
 	}
@@ -156,8 +155,8 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 		// should be ok to skip this error. we may not have the previous
 		// reference locally
 		repo.DeleteVersionInfoShim(ctx, r, dsref.Ref{
-			ProfileID: pro.ID.Encode(),
-			Username:  pro.Peername,
+			ProfileID: author.ID.Encode(),
+			Username:  author.Peername,
 			Name:      dsName,
 			Path:      ds.PreviousPath,
 		})
@@ -168,9 +167,9 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 	if err != nil {
 		return nil, err
 	}
-	ds.ProfileID = pro.ID.Encode()
+	ds.ProfileID = author.ID.Encode()
 	ds.Name = dsName
-	ds.Peername = pro.Peername
+	ds.Peername = author.Peername
 	ds.Path = path
 
 	// TODO(dustmop): Reference is created here in order to update refstore. As we move to initID
@@ -201,14 +200,14 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, d
 // Path of the current version, if one exists
 func PrepareSaveRef(
 	ctx context.Context,
-	pro *profile.Profile,
+	author *profile.Profile,
 	book *logbook.Book,
 	resolver dsref.Resolver,
 	refStr string,
 	bodyPathNameHint string,
 	wantNewName bool,
 ) (dsref.Ref, bool, error) {
-	log.Debugf("PrepareSaveRef refStr=%q bodyPathNameHint=%q wantNewName=%t", refStr, bodyPathNameHint, wantNewName)
+	log.Debugw("PrepareSaveRef", "refStr", refStr, "bodyPathNameHint", bodyPathNameHint, "wantNeName", wantNewName)
 
 	var badCaseErr error
 
@@ -228,7 +227,7 @@ func PrepareSaveRef(
 
 		// need to use profile username b/c resolver.ResolveRef can't handle "me"
 		// shorthand
-		check := &dsref.Ref{Username: pro.Peername, Name: ref.Name}
+		check := &dsref.Ref{Username: author.Peername, Name: ref.Name}
 		if _, resolveErr := resolver.ResolveRef(ctx, check); resolveErr == nil {
 			if !wantNewName {
 				// Name was inferred, and has previous version. Unclear if the user meant to create
@@ -236,7 +235,7 @@ func PrepareSaveRef(
 				// Raise an error recommending one of these course of actions.
 				return ref, false, fmt.Errorf(`inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference %q. To create a new dataset, use --new flag`, check.Human())
 			}
-			ref.Name = GenerateAvailableName(ctx, pro, resolver, ref.Name)
+			ref.Name = GenerateAvailableName(ctx, author, resolver, ref.Name)
 		}
 	} else if errors.Is(err, dsref.ErrNotHumanFriendly) {
 		return ref, false, err
@@ -248,10 +247,10 @@ func PrepareSaveRef(
 	// Validate that username is our own, it's not valid to try to save a dataset with someone
 	// else's username. Without this check, base will replace the username with our own regardless,
 	// it's better to have an error to display, rather than silently ignore it.
-	if ref.Username != "" && ref.Username != "me" && ref.Username != pro.Peername {
-		return ref, false, fmt.Errorf("cannot save using a different username than %q", pro.Peername)
+	if ref.Username != "" && ref.Username != "me" && ref.Username != author.Peername {
+		return ref, false, fmt.Errorf("cannot save using a different username than %q", author.Peername)
 	}
-	ref.Username = pro.Peername
+	ref.Username = author.Peername
 
 	// attempt to resolve the reference
 	if _, resolveErr := resolver.ResolveRef(ctx, &ref); resolveErr != nil {
@@ -284,8 +283,8 @@ func PrepareSaveRef(
 		return ref, true, fmt.Errorf("invalid dataset name: %s", ref.Name)
 	}
 
-	ref.InitID, err = book.WriteDatasetInit(ctx, pro, ref.Name)
-	log.Debugf("PrepareSaveRef created new initID=%q ref.Username=%q ref.Name=%q", ref.InitID, ref.Username, ref.Name)
+	ref.InitID, err = book.WriteDatasetInit(ctx, author, ref.Name)
+	log.Debugw("PrepareSaveRef complete", "ref", ref)
 	return ref, true, err
 }
 

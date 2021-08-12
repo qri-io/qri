@@ -657,7 +657,7 @@ func (runner *TestRunner) AddDatasetToRefstore(t *testing.T, refStr string, ds *
 	// No existing commit
 	emptyHeadRef := ""
 
-	if _, err = base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), initID, emptyHeadRef, ds, nil, base.SaveSwitches{}); err != nil {
+	if _, err = base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), author, initID, emptyHeadRef, ds, nil, base.SaveSwitches{}); err != nil {
 		t.Fatal(err)
 	}
 

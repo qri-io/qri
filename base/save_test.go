@@ -129,11 +129,11 @@ func TestCreateDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
 
-	if _, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), &dataset.Dataset{}, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
+	if _, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), &dataset.Dataset{}, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected bad dataset to error")
 	}
 
-	createdDs, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true})
+	createdDs, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), ds, &dataset.Dataset{}, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -152,7 +152,7 @@ func TestCreateDataset(t *testing.T) {
 	ds.PreviousPath = createdDs.Path
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
 
-	createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, createdDs, SaveSwitches{Pin: true, ShouldRender: true})
+	createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), ds, createdDs, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -171,14 +171,14 @@ func TestCreateDataset(t *testing.T) {
 	ds.PreviousPath = prevPath
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
 
-	if createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, createdDs, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
+	if createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), ds, createdDs, SaveSwitches{Pin: true, ShouldRender: true}); err == nil {
 		t.Error("expected unchanged dataset with no force flag to error")
 	}
 
 	ds.Name = dsName
 	ds.PreviousPath = prevPath
 	ds.SetBodyFile(qfs.NewMemfileBytes("/body.json", []byte("[]")))
-	if createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, createdDs, SaveSwitches{ForceIfNoChanges: true, Pin: true, ShouldRender: true}); err != nil {
+	if createdDs, err = CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), ds, createdDs, SaveSwitches{ForceIfNoChanges: true, Pin: true, ShouldRender: true}); err != nil {
 		t.Errorf("unexpected force-save error: %s", err)
 	}
 }

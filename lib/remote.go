@@ -114,6 +114,8 @@ func (remoteImpl) Remove(scope scope, p *PushParams) (*dsref.Ref, error) {
 		return nil, err
 	}
 
+	author := scope.ActiveProfile()
+
 	if _, err := scope.ResolveReference(scope.Context(), &ref); err != nil {
 		return nil, err
 	}
@@ -127,7 +129,7 @@ func (remoteImpl) Remove(scope scope, p *PushParams) (*dsref.Ref, error) {
 		return nil, err
 	}
 
-	if err = base.SetPublishStatus(scope.Context(), scope.Repo(), ref, false); err != nil {
+	if err = base.SetPublishStatus(scope.Context(), scope.Repo(), author, ref, false); err != nil {
 		return nil, err
 	}
 
