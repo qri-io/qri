@@ -220,11 +220,11 @@ func TestFeeds(t *testing.T) {
 
 	wbp := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 	wbpRepoRef := reporef.RefFromDsref(wbp)
-	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, &wbpRepoRef)
+	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, tr.NodeA.Repo.Profiles().Owner(), &wbpRepoRef)
 
 	vvs := writeVideoViewStats(tr.Ctx, t, tr.NodeA.Repo)
 	vvsRepoRef := reporef.RefFromDsref(vvs)
-	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, &vvsRepoRef)
+	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, tr.NodeA.Repo.Profiles().Owner(), &vvsRepoRef)
 
 	aCfg := &config.RemoteServer{
 		Enabled:       true,
@@ -492,8 +492,8 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) ds
 	return saveDataset(ctx, r, author, ds)
 }
 
-func setRefPublished(ctx context.Context, t *testing.T, r repo.Repo, ref *reporef.DatasetRef) {
-	if err := base.SetPublishStatus(ctx, r, reporef.ConvertToDsref(*ref), true); err != nil {
+func setRefPublished(ctx context.Context, t *testing.T, r repo.Repo, author *profile.Profile, ref *reporef.DatasetRef) {
+	if err := base.SetPublishStatus(ctx, r, author, reporef.ConvertToDsref(*ref), true); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -530,7 +530,7 @@ func saveDataset(ctx context.Context, r repo.Repo, author *profile.Profile, ds *
 	if err != nil {
 		panic(err)
 	}
-	res, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), initID, headRef, ds, nil, base.SaveSwitches{})
+	res, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), initID, headRef, ds, nil, base.SaveSwitches{})
 	if err != nil {
 		panic(err)
 	}

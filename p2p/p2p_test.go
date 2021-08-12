@@ -73,7 +73,7 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) re
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[100]")))
 
-	res, err := base.CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), ds, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
+	res, err := base.CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), ds, nil, base.SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -13,16 +13,15 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// InLocalNamespace checks if a dataset ref is local, assumes the reference is
-// already resolved
-func InLocalNamespace(ctx context.Context, r repo.Repo, ref dsref.Ref) bool {
-	p := r.Profiles().Owner()
-	return p.ID.Encode() == ref.ProfileID
+// InAuthorNamespace checks if a dataset ref is owned by the author, assumes the
+// reference is already resolved
+func InAuthorNamespace(ctx context.Context, author *profile.Profile, ref dsref.Ref) bool {
+	return author.ID.Encode() == ref.ProfileID
 }
 
 // SetPublishStatus updates the Published field of a dataset ref
-func SetPublishStatus(ctx context.Context, r repo.Repo, ref dsref.Ref, published bool) error {
-	if !InLocalNamespace(ctx, r, ref) {
+func SetPublishStatus(ctx context.Context, r repo.Repo, author *profile.Profile, ref dsref.Ref, published bool) error {
+	if !InAuthorNamespace(ctx, author, ref) {
 		return fmt.Errorf("can't publish datasets that are not in your namespace")
 	}
 

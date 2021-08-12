@@ -63,7 +63,7 @@ func (run *TestRunner) saveDataset(ds *dataset.Dataset, sw SaveSwitches) (dsref.
 		return dsref.Ref{}, err
 	}
 
-	ds, err := SaveDataset(run.Context, run.Repo, run.Repo.Filesystem().DefaultWriteFS(), ref.InitID, ref.Path, ds, nil, sw)
+	ds, err := SaveDataset(run.Context, run.Repo, run.Repo.Filesystem().DefaultWriteFS(), run.Repo.Profiles().Owner(), ref.InitID, ref.Path, ds, nil, sw)
 	if err != nil {
 		return dsref.Ref{}, err
 	}

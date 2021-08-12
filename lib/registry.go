@@ -61,9 +61,7 @@ type registryImpl struct{}
 
 // CreateProfile creates a profile
 func (registryImpl) CreateProfile(scope scope, p *RegistryProfileParams) error {
-	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
-	ownerPk := scope.Profiles().Owner().PrivKey
-	pro, err := scope.RegistryClient().CreateProfile(p.Profile, ownerPk)
+	pro, err := scope.RegistryClient().CreateProfile(p.Profile, scope.ActiveProfile().PrivKey)
 	if err != nil {
 		return err
 	}
@@ -101,8 +99,7 @@ func (registryImpl) ProveProfileKey(scope scope, p *RegistryProfileParams) error
 	}
 
 	// For signing the outgoing message
-	// TODO(arqu): this should take the profile PK instead of active PK once multi tenancy is supported
-	privKey := scope.Profiles().Owner().PrivKey
+	privKey := scope.ActiveProfile().PrivKey
 
 	// Get public key to send to server
 	pro := scope.ActiveProfile()

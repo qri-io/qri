@@ -12,22 +12,23 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-func TestInLocalNamespace(t *testing.T) {
+func TestInAuthorNamespace(t *testing.T) {
 	r := newTestRepo(t)
+	author := r.Profiles().Owner()
 	ctx := context.Background()
 	ref := addCitiesDataset(t, r)
 
-	if !InLocalNamespace(ctx, r, ref) {
+	if !InAuthorNamespace(ctx, author, ref) {
 		t.Errorf("expected %s true", ref.String())
 	}
 
 	ref = dsref.Ref{}
-	if InLocalNamespace(ctx, r, ref) {
+	if InAuthorNamespace(ctx, author, ref) {
 		t.Errorf("expected %s false", ref.String())
 	}
 
 	ref = dsref.Ref{ProfileID: "fake"}
-	if InLocalNamespace(ctx, r, ref) {
+	if InAuthorNamespace(ctx, author, ref) {
 		t.Errorf("expected %s false", ref.String())
 	}
 }
@@ -36,8 +37,9 @@ func TestSetPublishStatus(t *testing.T) {
 	r := newTestRepo(t)
 	ctx := context.Background()
 	ref := addCitiesDataset(t, r)
+	author := r.Profiles().Owner()
 
-	if err := SetPublishStatus(ctx, r, ref, true); err != nil {
+	if err := SetPublishStatus(ctx, r, author, ref, true); err != nil {
 		t.Error(err)
 	}
 
@@ -49,7 +51,7 @@ func TestSetPublishStatus(t *testing.T) {
 		t.Errorf("expected published to equal true: %v,%v", ref, res)
 	}
 
-	if err := SetPublishStatus(ctx, r, ref, false); err != nil {
+	if err := SetPublishStatus(ctx, r, author, ref, false); err != nil {
 		t.Error(err)
 	}
 	res, err = repo.GetVersionInfoShim(r, ref)
@@ -60,7 +62,7 @@ func TestSetPublishStatus(t *testing.T) {
 		t.Errorf("expected published to equal false: %v,%v", ref, res)
 	}
 
-	if err := SetPublishStatus(ctx, r, dsref.Ref{Name: "foo"}, false); err == nil {
+	if err := SetPublishStatus(ctx, r, author, dsref.Ref{Name: "foo"}, false); err == nil {
 		t.Error("expected invalid reference to error")
 	}
 
@@ -72,7 +74,7 @@ func TestSetPublishStatus(t *testing.T) {
 
 	r.Profiles().PutProfile(&profile.Profile{ID: profile.IDB58DecodeOrEmpty(outside.ProfileID), Peername: outside.Username})
 
-	if err := SetPublishStatus(ctx, r, outside, true); err == nil {
+	if err := SetPublishStatus(ctx, r, author, outside, true); err == nil {
 		t.Error("expected setting the publish status of a name outside peer's namespace to fail")
 	}
 }

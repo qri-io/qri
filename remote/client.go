@@ -130,6 +130,9 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 		})
 	}
 
+	// TODO(b5): need to re-think remote client construction in a multi tenant context
+	// need to either dynamically re-construct client on a per-request basis, or accept
+	// author args.
 	pro := node.Repo.Profiles().Owner()
 
 	cli := &client{

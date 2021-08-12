@@ -909,12 +909,14 @@ func IsSelectorScriptFile(selector string) bool {
 
 // Save adds a history entry, updating a dataset
 func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
-	log.Debugw("DatasetMethods.Save", "ref", p.Ref, "apply", p.Apply)
-	res := &dataset.Dataset{}
-
+	log.Debugw("DatasetMethods.Save", "ref", p.Ref, "apply", p.Apply, "author", scope.ActiveProfile())
 	var (
+		res       = &dataset.Dataset{}
 		writeDest = scope.Filesystem().DefaultWriteFS() // filesystem dataset will be written to
-		pro       = scope.Repo().Profiles().Owner()     // user making the request. hard-coded to repo owner
+		author    = scope.ActiveProfile()               // user making the request
+		// runState holds the results of transform application. will be non-nil if a
+		// transform is applied while saving
+		runState *run.State
 	)
 
 	if p.Private {
@@ -960,7 +962,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		return nil, err
 	}
 
-	ref, isNew, err := base.PrepareSaveRef(scope.Context(), pro, scope.Logbook(), resolver, p.Ref, ds.BodyPath, p.NewName)
+	ref, isNew, err := base.PrepareSaveRef(scope.Context(), author, scope.Logbook(), resolver, p.Ref, ds.BodyPath, p.NewName)
 	if err != nil {
 		log.Debugw("save PrepareSaveRef", "refParam", p.Ref, "wantNewName", p.NewName, "err", err)
 		return nil, err
@@ -1016,10 +1018,6 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		log.Debugw("save OpenDataset", "err", err.Error())
 		return nil, err
 	}
-
-	// runState holds the results of transform application. will be non-nil if a
-	// transform is applied while saving
-	var runState *run.State
 
 	// If applying a transform, execute its script before saving
 	if p.Apply {
@@ -1096,14 +1094,14 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		NewName:             p.NewName,
 		Drop:                p.Drop,
 	}
-	savedDs, err := base.SaveDataset(scope.Context(), scope.Repo(), writeDest, ref.InitID, ref.Path, ds, runState, switches)
+	savedDs, err := base.SaveDataset(scope.Context(), scope.Repo(), writeDest, author, ref.InitID, ref.Path, ds, runState, switches)
 	if err != nil {
 		// datasets that are unchanged & have a runState record a record of no-changes
 		// to logbook
 		if errors.Is(err, dsfs.ErrNoChanges) && runState != nil {
 			runState.Status = run.RSUnchanged
 			runState.Message = err.Error()
-			if err := scope.Logbook().WriteTransformRun(scope.Context(), scope.ActiveProfile(), ref.InitID, runState); err != nil {
+			if err := scope.Logbook().WriteTransformRun(scope.Context(), author, ref.InitID, runState); err != nil {
 				log.Debugw("writing unchanged transform run to logbook:", "err", err.Error())
 				return nil, err
 			}
@@ -1404,6 +1402,8 @@ func (datasetImpl) Push(scope scope, p *PushParams) (*dsref.Ref, error) {
 		return nil, fmt.Errorf("push requires the 'local' source")
 	}
 
+	author := scope.ActiveProfile()
+
 	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
 	if err != nil {
 		return nil, err
@@ -1418,7 +1418,7 @@ func (datasetImpl) Push(scope scope, p *PushParams) (*dsref.Ref, error) {
 		return nil, err
 	}
 
-	if err = base.SetPublishStatus(scope.Context(), scope.Repo(), ref, true); err != nil {
+	if err = base.SetPublishStatus(scope.Context(), scope.Repo(), author, ref, true); err != nil {
 		return nil, err
 	}
 
