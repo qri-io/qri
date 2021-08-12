@@ -526,7 +526,18 @@ func (c *client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr str
 			return nil, fmt.Errorf("error putting dataset in repo: %s", err.Error())
 		}
 
-		return dsfs.LoadDataset(ctx, node.Repo.Filesystem(), ref.Path)
+		ds, err := dsfs.LoadDataset(ctx, node.Repo.Filesystem(), ref.Path)
+		if err != nil {
+			log.Debug(err.Error())
+			return nil, fmt.Errorf("error loading added dataset: %s", ref.Path)
+		}
+
+		vi := dsref.ConvertDatasetToVersionInfo(ds)
+		if err := c.events.Publish(ctx, event.ETDatasetPulled, vi); err != nil {
+			return nil, err
+		}
+
+		return ds, nil
 	}
 	if err != nil {
 		return nil, err

@@ -390,6 +390,45 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		// TODO (b5): simulate workflow creation, check that collection updates with
 		// workflow ID
 	})
+
+
+	t.Run("user_3_pull_dataset", func(t *testing.T) {
+		muppetNamesInitID := "initID"
+		muppetNamesName1 := "muppet_names"
+
+		// no user profile in the context, so dataset pull does nothing
+		mustPublish(ctx, t, bus, event.ETDatasetPulled, dsref.VersionInfo{
+			InitID:    muppetNamesInitID,
+			ProfileID: kermit.ID.Encode(),
+			Username:  kermit.Peername,
+			Name:      muppetNamesName1,
+		})
+		expect := []dsref.VersionInfo{}
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+
+		// add a user profile to the scoped context
+		{
+			scopedCtx := profile.AddIDToContext(ctx, kermit.ID.Encode())
+			// pull again which will work this time
+			mustPublish(scopedCtx, t, bus, event.ETDatasetPulled, dsref.VersionInfo{
+				InitID:    muppetNamesInitID,
+				ProfileID: kermit.ID.Encode(),
+				Username:  kermit.Peername,
+				Name:      muppetNamesName1,
+			})
+		}
+
+		// now collection has the expected info
+		expect = []dsref.VersionInfo{
+			{
+				InitID:    muppetNamesInitID,
+				ProfileID: kermit.ID.Encode(),
+				Username:  kermit.Peername,
+				Name:      muppetNamesName1,
+			},
+		}
+		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+	})
 }
 
 func assertCollectionList(ctx context.Context, t *testing.T, p *profile.Profile, lp params.List, c collection.Set, expect []dsref.VersionInfo) {
