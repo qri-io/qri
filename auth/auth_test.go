@@ -43,7 +43,7 @@ func TestAuthAndGetProfile(t *testing.T) {
 		Peername: "user",
 		PrivKey:  kd0.PrivKey,
 	}
-	ps, err := profile.NewLocalStore(filepath.Join(path, "profiles.json"), owner, ks)
+	ps, err := profile.NewLocalStore(ctx, filepath.Join(path, "profiles.json"), owner, ks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestAuthAndGetProfile(t *testing.T) {
 	}
 	pro.PrivKey = kd0.PrivKey
 	pro.PubKey = kd0.PrivKey.GetPublic()
-	err = ps.PutProfile(pro)
+	err = ps.PutProfile(ctx, pro)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestAuthAndGetProfile(t *testing.T) {
 	}
 	pro.PrivKey = kd1.PrivKey
 	pro.PubKey = kd1.PrivKey.GetPublic()
-	err = ps.PutProfile(pro)
+	err = ps.PutProfile(ctx, pro)
 	if err != nil {
 		t.Fatal(err)
 	}

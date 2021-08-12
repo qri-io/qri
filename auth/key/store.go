@@ -1,6 +1,7 @@
 package key
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -73,7 +74,7 @@ func lockPath(filename string) string {
 }
 
 // PubKey returns the public key for a given ID if it exists
-func (s *localStore) PubKey(keyID ID) crypto.PubKey {
+func (s *localStore) PubKey(ctx context.Context, keyID ID) crypto.PubKey {
 	s.Lock()
 	defer s.Unlock()
 
@@ -81,11 +82,11 @@ func (s *localStore) PubKey(keyID ID) crypto.PubKey {
 	if err != nil {
 		return nil
 	}
-	return kb.PubKey(keyID)
+	return kb.PubKey(ctx, keyID)
 }
 
 // PrivKey returns the private key for a given ID if it exists
-func (s *localStore) PrivKey(keyID ID) crypto.PrivKey {
+func (s *localStore) PrivKey(ctx context.Context, keyID ID) crypto.PrivKey {
 	s.Lock()
 	defer s.Unlock()
 
@@ -93,11 +94,11 @@ func (s *localStore) PrivKey(keyID ID) crypto.PrivKey {
 	if err != nil {
 		return nil
 	}
-	return kb.PrivKey(keyID)
+	return kb.PrivKey(ctx, keyID)
 }
 
 // AddPubKey inserts a public key for a given ID
-func (s *localStore) AddPubKey(keyID ID, pubKey crypto.PubKey) error {
+func (s *localStore) AddPubKey(ctx context.Context, keyID ID, pubKey crypto.PubKey) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -108,7 +109,7 @@ func (s *localStore) AddPubKey(keyID ID, pubKey crypto.PubKey) error {
 	if !keyID.MatchesPublicKey(pubKey) {
 		return fmt.Errorf("%w id: %q", ErrKeyAndIDMismatch, keyID.Pretty())
 	}
-	err = kb.AddPubKey(keyID, pubKey)
+	err = kb.AddPubKey(ctx, keyID, pubKey)
 	if err != nil {
 		return err
 	}
@@ -117,7 +118,7 @@ func (s *localStore) AddPubKey(keyID ID, pubKey crypto.PubKey) error {
 }
 
 // AddPrivKey inserts a private key for a given ID
-func (s *localStore) AddPrivKey(keyID ID, privKey crypto.PrivKey) error {
+func (s *localStore) AddPrivKey(ctx context.Context, keyID ID, privKey crypto.PrivKey) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -129,7 +130,7 @@ func (s *localStore) AddPrivKey(keyID ID, privKey crypto.PrivKey) error {
 	if err != nil {
 		return err
 	}
-	err = kb.AddPrivKey(keyID, privKey)
+	err = kb.AddPrivKey(ctx, keyID, privKey)
 	if err != nil {
 		return err
 	}
@@ -138,7 +139,7 @@ func (s *localStore) AddPrivKey(keyID ID, privKey crypto.PrivKey) error {
 }
 
 // IDsWithKeys returns the list of IDs in the KeyBook
-func (s *localStore) IDsWithKeys() []ID {
+func (s *localStore) IDsWithKeys(ctx context.Context) []ID {
 	s.Lock()
 	defer s.Unlock()
 
@@ -148,7 +149,7 @@ func (s *localStore) IDsWithKeys() []ID {
 		log.Debugf("error loading peers with keys: %q", err.Error())
 		return []ID{}
 	}
-	return kb.IDsWithKeys()
+	return kb.IDsWithKeys(ctx)
 }
 
 func (s *localStore) keys() (Book, error) {

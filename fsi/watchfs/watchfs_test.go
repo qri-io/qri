@@ -84,7 +84,7 @@ func TestWatchAllFSIPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pro := r.Profiles().Owner()
+	pro := r.Profiles().Owner(ctx)
 
 	ref, err := r.GetRef(reporef.DatasetRef{
 		Peername: pro.Peername,

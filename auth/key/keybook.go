@@ -1,6 +1,7 @@
 package key
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"sync"
@@ -12,19 +13,19 @@ import (
 // which hold the key information
 type Book interface {
 	// PubKey stores the public key for a key.ID
-	PubKey(ID) ic.PubKey
+	PubKey(context.Context, ID) ic.PubKey
 
 	// AddPubKey stores the public for a key.ID
-	AddPubKey(ID, ic.PubKey) error
+	AddPubKey(context.Context, ID, ic.PubKey) error
 
 	// PrivKey returns the private key for a key.ID, if known
-	PrivKey(ID) ic.PrivKey
+	PrivKey(context.Context, ID) ic.PrivKey
 
 	// AddPrivKey stores the private key for a key.ID
-	AddPrivKey(ID, ic.PrivKey) error
+	AddPrivKey(context.Context, ID, ic.PrivKey) error
 
 	// IDsWithKeys returns all the key IDs stored in the KeyBook
-	IDsWithKeys() []ID
+	IDsWithKeys(context.Context) []ID
 }
 
 type memoryKeyBook struct {
@@ -43,7 +44,7 @@ func newKeyBook() *memoryKeyBook {
 }
 
 // IDsWithKeys returns the list of IDs in the KeyBook
-func (mkb *memoryKeyBook) IDsWithKeys() []ID {
+func (mkb *memoryKeyBook) IDsWithKeys(_ context.Context) []ID {
 	mkb.RLock()
 	ps := make([]ID, 0, len(mkb.pks)+len(mkb.sks))
 	for p := range mkb.pks {
@@ -59,7 +60,7 @@ func (mkb *memoryKeyBook) IDsWithKeys() []ID {
 }
 
 // PubKey returns the public key for a given ID if it exists
-func (mkb *memoryKeyBook) PubKey(k ID) ic.PubKey {
+func (mkb *memoryKeyBook) PubKey(_ context.Context, k ID) ic.PubKey {
 	mkb.RLock()
 	pk := mkb.pks[k]
 	mkb.RUnlock()
@@ -76,7 +77,7 @@ func (mkb *memoryKeyBook) PubKey(k ID) ic.PubKey {
 }
 
 // AddPubKey inserts a public key for a given ID
-func (mkb *memoryKeyBook) AddPubKey(k ID, pk ic.PubKey) error {
+func (mkb *memoryKeyBook) AddPubKey(_ context.Context, k ID, pk ic.PubKey) error {
 	mkb.Lock()
 	mkb.pks[k] = pk
 	mkb.Unlock()
@@ -84,7 +85,7 @@ func (mkb *memoryKeyBook) AddPubKey(k ID, pk ic.PubKey) error {
 }
 
 // PrivKey returns the private key for a given ID if it exists
-func (mkb *memoryKeyBook) PrivKey(k ID) ic.PrivKey {
+func (mkb *memoryKeyBook) PrivKey(_ context.Context, k ID) ic.PrivKey {
 	mkb.RLock()
 	sk := mkb.sks[k]
 	mkb.RUnlock()
@@ -92,7 +93,7 @@ func (mkb *memoryKeyBook) PrivKey(k ID) ic.PrivKey {
 }
 
 // AddPrivKey inserts a private key for a given ID
-func (mkb *memoryKeyBook) AddPrivKey(k ID, sk ic.PrivKey) error {
+func (mkb *memoryKeyBook) AddPrivKey(_ context.Context, k ID, sk ic.PrivKey) error {
 	if sk == nil {
 		return errors.New("sk is nil (PrivKey)")
 	}
@@ -137,6 +138,7 @@ func (mkb *memoryKeyBook) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements the JSON unmarshal interface
 func (mkb *memoryKeyBook) UnmarshalJSON(data []byte) error {
+	ctx := context.Background()
 	keyBookJSON := map[string]map[string]string{}
 	err := json.Unmarshal(data, &keyBookJSON)
 	if err != nil {
@@ -156,7 +158,7 @@ func (mkb *memoryKeyBook) UnmarshalJSON(data []byte) error {
 			if err != nil {
 				return err
 			}
-			err = mkb.AddPubKey(id, key)
+			err = mkb.AddPubKey(ctx, id, key)
 			if err != nil {
 				return err
 			}
@@ -176,7 +178,7 @@ func (mkb *memoryKeyBook) UnmarshalJSON(data []byte) error {
 			if err != nil {
 				return err
 			}
-			err = mkb.AddPrivKey(id, key)
+			err = mkb.AddPrivKey(ctx, id, key)
 			if err != nil {
 				return err
 			}

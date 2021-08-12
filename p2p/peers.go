@@ -13,7 +13,7 @@ import (
 )
 
 // ConnectedQriProfiles lists all connected peers that support the qri protocol
-func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
+func (n *QriNode) ConnectedQriProfiles(ctx context.Context) map[profile.ID]*config.ProfilePod {
 	peers := map[profile.ID]*config.ProfilePod{}
 	if n.host == nil {
 		return peers
@@ -21,7 +21,7 @@ func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
 	// TODO (ramfox): refactor to rely on `ConnectedQriPeerIDs` & add GetNetworkAddrs
 	// convenience func
 	for _, conn := range n.host.Network().Conns() {
-		if p, err := n.Repo.Profiles().PeerProfile(conn.RemotePeer()); err == nil {
+		if p, err := n.Repo.Profiles().PeerProfile(ctx, conn.RemotePeer()); err == nil {
 			if pe, err := p.Encode(); err == nil {
 				pe.Online = true
 				// Build host multiaddress,
@@ -51,13 +51,13 @@ func (n *QriNode) ConnectedQriPeerIDs() []peer.ID {
 // of a slice cap(max) of peers to try to connect to
 // TODO - In the future we'll use a few tricks to improve on just iterating the list
 // at a bare minimum we should grab a randomized set of peers
-func (n *QriNode) ClosestConnectedQriPeers(profileID profile.ID, max int) (pid []peer.ID) {
+func (n *QriNode) ClosestConnectedQriPeers(ctx context.Context, profileID profile.ID, max int) (pid []peer.ID) {
 	added := 0
 	if !n.Online {
 		return []peer.ID{}
 	}
 
-	if peerIDs, err := n.Repo.Profiles().PeerIDs(profileID); err == nil {
+	if peerIDs, err := n.Repo.Profiles().PeerIDs(ctx, profileID); err == nil {
 		for _, peerID := range peerIDs {
 			if len(n.host.Network().ConnsToPeer(peerID)) > 0 {
 				added++
@@ -161,7 +161,7 @@ type PeerConnectionParams struct {
 // peer, explicitly connecting to them.
 func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*profile.Profile, error) {
 	log.Debugf("connect to peer: %v", p)
-	pinfo, err := n.peerConnectionParamsToPeerInfo(p)
+	pinfo, err := n.peerConnectionParamsToPeerInfo(ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 
 // DisconnectFromPeer explicitly closes a connection to a peer
 func (n *QriNode) DisconnectFromPeer(ctx context.Context, p PeerConnectionParams) error {
-	pinfo, err := n.peerConnectionParamsToPeerInfo(p)
+	pinfo, err := n.peerConnectionParamsToPeerInfo(ctx, p)
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func (n *QriNode) DisconnectFromPeer(ctx context.Context, p PeerConnectionParams
 }
 
 // peerConnectionParamsToPeerInfo turns connection parameters into something p2p can dial
-func (n *QriNode) peerConnectionParamsToPeerInfo(p PeerConnectionParams) (pi peer.AddrInfo, err error) {
+func (n *QriNode) peerConnectionParamsToPeerInfo(ctx context.Context, p PeerConnectionParams) (pi peer.AddrInfo, err error) {
 	if p.Multiaddr != nil {
 		return toPeerInfos([]ma.Multiaddr{p.Multiaddr})[0], nil
 	} else if len(p.PeerID) > 0 {
@@ -220,13 +220,13 @@ func (n *QriNode) peerConnectionParamsToPeerInfo(p PeerConnectionParams) (pi pee
 		// TODO - there's lot's of possibile ambiguity around resolving peernames
 		// this naive implementation for now just checks the profile store for a
 		// matching peername
-		proID, err = n.Repo.Profiles().PeernameID(p.Peername)
+		proID, err = n.Repo.Profiles().PeernameID(ctx, p.Peername)
 		if err != nil {
 			return
 		}
 	}
 
-	ids, err := n.Repo.Profiles().PeerIDs(proID)
+	ids, err := n.Repo.Profiles().PeerIDs(ctx, proID)
 	if err != nil {
 		return
 	}

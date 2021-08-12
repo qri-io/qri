@@ -142,7 +142,7 @@ func (p *LocalProvider) Token(ctx context.Context, req *Request) (*Response, err
 		// TODO(arqu): this only selects the first returned profile for a given peername.
 		// ideally we would use the profile.ID to fetch the exact profile
 		// or otherwise validate the signatures
-		pros, err := p.profiles.ProfilesForUsername(req.Username)
+		pros, err := p.profiles.ProfilesForUsername(ctx, req.Username)
 		if err != nil {
 			log.Debugf("token.Provider failed to fetch profiles: %q", err.Error())
 			return nil, ErrInvalidRequest
@@ -175,7 +175,7 @@ func (p *LocalProvider) Token(ctx context.Context, req *Request) (*Response, err
 		if req.RefreshToken == "" {
 			return nil, ErrInvalidRequest
 		}
-		tok, err := ParseAuthToken(req.RefreshToken, p.keys)
+		tok, err := ParseAuthToken(ctx, req.RefreshToken, p.keys)
 		if err != nil {
 			log.Debugf("token.Provider error parsing refresh token: %q", err.Error())
 			return nil, ErrInvalidRequest
@@ -187,7 +187,7 @@ func (p *LocalProvider) Token(ctx context.Context, req *Request) (*Response, err
 				log.Debugf("token.Provider failed to parse profileID")
 				return nil, ErrInvalidRequest
 			}
-			pro, err := p.profiles.GetProfile(pid)
+			pro, err := p.profiles.GetProfile(ctx, pid)
 			if errors.Is(err, profile.ErrNotFound) {
 				log.Debugf("token.Provider profile not found")
 				return nil, ErrNotFound

@@ -189,7 +189,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	var (
 		ctx = context.Background()
 		ds  = tc.Input
-		pro = r.Profiles().Owner()
+		pro = r.Profiles().Owner(ctx)
 		// NOTE - struct fields need to be instantiated to make assign set to
 		// new pointer values
 		userSet = &dataset.Dataset{

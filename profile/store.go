@@ -30,37 +30,37 @@ var (
 // that must have an associated private key
 type Store interface {
 	// Owner is a single profile that represents the current user
-	Owner() *Profile
+	Owner(ctx context.Context) *Profile
 	// SetOwner handles updates to the current user profile at runtime
-	SetOwner(own *Profile) error
+	SetOwner(ctx context.Context, own *Profile) error
 	// Active is the active profile that represents the current user
 	Active(ctx context.Context) *Profile
 
 	// put a profile in the store
-	PutProfile(profile *Profile) error
+	PutProfile(ctx context.Context, profile *Profile) error
 	// get a profile by ID
-	GetProfile(id ID) (*Profile, error)
+	GetProfile(ctx context.Context, id ID) (*Profile, error)
 	// remove a profile from the store
-	DeleteProfile(id ID) error
+	DeleteProfile(ctx context.Context, id ID) error
 
 	// get all profiles who's .Peername field matches a given username. It's
 	// possible to have multiple profiles with the same username
-	ProfilesForUsername(username string) ([]*Profile, error)
+	ProfilesForUsername(ctx context.Context, username string) ([]*Profile, error)
 	// list all profiles in the store, keyed by ID
 	// Deprecated - don't add new callers to this. We should replace this with
 	// a better batch accessor
-	List() (map[ID]*Profile, error)
+	List(ctx context.Context) (map[ID]*Profile, error)
 	// get a set of peer ids for a given profile ID
-	PeerIDs(id ID) ([]peer.ID, error)
+	PeerIDs(ctx context.Context, id ID) ([]peer.ID, error)
 	// get a profile for a given peer Identifier
-	PeerProfile(id peer.ID) (*Profile, error)
+	PeerProfile(ctx context.Context, id peer.ID) (*Profile, error)
 	// get the profile ID for a given peername
 	// Depcreated - use GetProfile instead
-	PeernameID(peername string) (ID, error)
+	PeernameID(ctx context.Context, peername string) (ID, error)
 }
 
 // NewStore creates a profile store from configuration
-func NewStore(cfg *config.Config, keyStore key.Store) (Store, error) {
+func NewStore(ctx context.Context, cfg *config.Config, keyStore key.Store) (Store, error) {
 	pro, err := NewProfile(cfg.Profile)
 	if err != nil {
 		return nil, err
@@ -72,14 +72,14 @@ func NewStore(cfg *config.Config, keyStore key.Store) (Store, error) {
 	}
 
 	if cfg.Repo == nil {
-		return NewMemStore(pro, keyStore)
+		return NewMemStore(ctx, pro, keyStore)
 	}
 
 	switch cfg.Repo.Type {
 	case "fs":
-		return NewLocalStore(filepath.Join(filepath.Dir(cfg.Path()), "peers.json"), pro, keyStore)
+		return NewLocalStore(ctx, filepath.Join(filepath.Dir(cfg.Path()), "peers.json"), pro, keyStore)
 	case "mem":
-		return NewMemStore(pro, keyStore)
+		return NewMemStore(ctx, pro, keyStore)
 	default:
 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
 	}
@@ -88,8 +88,8 @@ func NewStore(cfg *config.Config, keyStore key.Store) (Store, error) {
 // ResolveUsername finds a single profile for a given username from a store of
 // usernames. Errors if the store contains more than one user with the given
 // username
-func ResolveUsername(s Store, username string) (*Profile, error) {
-	pros, err := s.ProfilesForUsername(username)
+func ResolveUsername(ctx context.Context, s Store, username string) (*Profile, error) {
+	pros, err := s.ProfilesForUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
@@ -128,15 +128,15 @@ type MemStore struct {
 }
 
 // NewMemStore allocates a MemStore
-func NewMemStore(owner *Profile, ks key.Store) (Store, error) {
+func NewMemStore(ctx context.Context, owner *Profile, ks key.Store) (Store, error) {
 	if err := owner.ValidOwnerProfile(); err != nil {
 		return nil, err
 	}
 
-	if err := ks.AddPrivKey(owner.GetKeyID(), owner.PrivKey); err != nil {
+	if err := ks.AddPrivKey(ctx, owner.GetKeyID(), owner.PrivKey); err != nil {
 		return nil, err
 	}
-	if err := ks.AddPubKey(owner.GetKeyID(), owner.PrivKey.GetPublic()); err != nil {
+	if err := ks.AddPubKey(ctx, owner.GetKeyID(), owner.PrivKey.GetPublic()); err != nil {
 		return nil, err
 	}
 
@@ -150,24 +150,24 @@ func NewMemStore(owner *Profile, ks key.Store) (Store, error) {
 }
 
 // Owner accesses the current owner user profile
-func (m *MemStore) Owner() *Profile {
+func (m *MemStore) Owner(ctx context.Context) *Profile {
 	// TODO(b5): this should return a copy
 	return m.owner
 }
 
 // SetOwner updates the owner profile
-func (m *MemStore) SetOwner(own *Profile) error {
+func (m *MemStore) SetOwner(ctx context.Context, own *Profile) error {
 	m.owner = own
 	return nil
 }
 
 // Active is the curernt active profile
 func (m *MemStore) Active(ctx context.Context) *Profile {
-	return m.Owner()
+	return m.Owner(ctx)
 }
 
 // PutProfile adds a peer to this store
-func (m *MemStore) PutProfile(p *Profile) error {
+func (m *MemStore) PutProfile(ctx context.Context, p *Profile) error {
 	if p.ID.Empty() {
 		return fmt.Errorf("profile.ID is required")
 	}
@@ -177,12 +177,12 @@ func (m *MemStore) PutProfile(p *Profile) error {
 	m.Unlock()
 
 	if p.PubKey != nil {
-		if err := m.keyStore.AddPubKey(p.GetKeyID(), p.PubKey); err != nil {
+		if err := m.keyStore.AddPubKey(ctx, p.GetKeyID(), p.PubKey); err != nil {
 			return err
 		}
 	}
 	if p.PrivKey != nil {
-		if err := m.keyStore.AddPrivKey(p.GetKeyID(), p.PrivKey); err != nil {
+		if err := m.keyStore.AddPrivKey(ctx, p.GetKeyID(), p.PrivKey); err != nil {
 			return err
 		}
 	}
@@ -190,7 +190,7 @@ func (m *MemStore) PutProfile(p *Profile) error {
 }
 
 // PeernameID gives the ID for a given peername
-func (m *MemStore) PeernameID(peername string) (ID, error) {
+func (m *MemStore) PeernameID(ctx context.Context, peername string) (ID, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -205,7 +205,7 @@ func (m *MemStore) PeernameID(peername string) (ID, error) {
 // PeerProfile returns profile data for a given peer.ID
 // TODO - this func implies that peer.ID's are only ever connected to the same
 // profile. That could cause trouble.
-func (m *MemStore) PeerProfile(id peer.ID) (*Profile, error) {
+func (m *MemStore) PeerProfile(ctx context.Context, id peer.ID) (*Profile, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -221,7 +221,7 @@ func (m *MemStore) PeerProfile(id peer.ID) (*Profile, error) {
 }
 
 // PeerIDs gives the peer.IDs list for a given peername
-func (m *MemStore) PeerIDs(id ID) ([]peer.ID, error) {
+func (m *MemStore) PeerIDs(ctx context.Context, id ID) ([]peer.ID, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -235,7 +235,7 @@ func (m *MemStore) PeerIDs(id ID) ([]peer.ID, error) {
 }
 
 // List hands the full list of peers back
-func (m *MemStore) List() (map[ID]*Profile, error) {
+func (m *MemStore) List(ctx context.Context) (map[ID]*Profile, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -247,7 +247,7 @@ func (m *MemStore) List() (map[ID]*Profile, error) {
 }
 
 // GetProfile give's peer info from the store for a given peer.ID
-func (m *MemStore) GetProfile(id ID) (*Profile, error) {
+func (m *MemStore) GetProfile(ctx context.Context, id ID) (*Profile, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -257,14 +257,14 @@ func (m *MemStore) GetProfile(id ID) (*Profile, error) {
 
 	pro := m.store[id]
 	pro.KeyID = pro.GetKeyID()
-	pro.PubKey = m.keyStore.PubKey(pro.GetKeyID())
-	pro.PrivKey = m.keyStore.PrivKey(pro.GetKeyID())
+	pro.PubKey = m.keyStore.PubKey(ctx, pro.GetKeyID())
+	pro.PrivKey = m.keyStore.PrivKey(ctx, pro.GetKeyID())
 
 	return pro, nil
 }
 
 // ProfilesForUsername fetches all profile that match a username (Peername)
-func (m *MemStore) ProfilesForUsername(username string) ([]*Profile, error) {
+func (m *MemStore) ProfilesForUsername(ctx context.Context, username string) ([]*Profile, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -279,7 +279,7 @@ func (m *MemStore) ProfilesForUsername(username string) ([]*Profile, error) {
 }
 
 // DeleteProfile removes a peer from this store
-func (m *MemStore) DeleteProfile(id ID) error {
+func (m *MemStore) DeleteProfile(ctx context.Context, id ID) error {
 	m.Lock()
 	delete(m.store, id)
 	m.Unlock()
@@ -298,12 +298,12 @@ type LocalStore struct {
 }
 
 // NewLocalStore allocates a LocalStore
-func NewLocalStore(filename string, owner *Profile, ks key.Store) (Store, error) {
+func NewLocalStore(ctx context.Context, filename string, owner *Profile, ks key.Store) (Store, error) {
 	if err := owner.ValidOwnerProfile(); err != nil {
 		return nil, err
 	}
 
-	if err := ks.AddPrivKey(owner.GetKeyID(), owner.PrivKey); err != nil {
+	if err := ks.AddPrivKey(ctx, owner.GetKeyID(), owner.PrivKey); err != nil {
 		return nil, err
 	}
 
@@ -314,7 +314,7 @@ func NewLocalStore(filename string, owner *Profile, ks key.Store) (Store, error)
 		flock:    flock.New(lockPath(filename)),
 	}
 
-	err := s.PutProfile(owner)
+	err := s.PutProfile(ctx, owner)
 	return s, err
 }
 
@@ -323,24 +323,24 @@ func lockPath(filename string) string {
 }
 
 // Owner accesses the current owner user profile
-func (r *LocalStore) Owner() *Profile {
+func (r *LocalStore) Owner(ctx context.Context) *Profile {
 	// TODO(b5): this should return a copy
 	return r.owner
 }
 
 // SetOwner updates the owner profile
-func (r *LocalStore) SetOwner(own *Profile) error {
+func (r *LocalStore) SetOwner(ctx context.Context, own *Profile) error {
 	r.owner = own
-	return r.PutProfile(own)
+	return r.PutProfile(ctx, own)
 }
 
 // Active is the curernt active profile
 func (r *LocalStore) Active(ctx context.Context) *Profile {
-	return r.Owner()
+	return r.Owner(ctx)
 }
 
 // PutProfile adds a peer to the store
-func (r *LocalStore) PutProfile(p *Profile) error {
+func (r *LocalStore) PutProfile(ctx context.Context, p *Profile) error {
 	log.Debugf("put profile: %s", p.ID.Encode())
 	if p.ID.Empty() {
 		return fmt.Errorf("profile ID is required")
@@ -355,12 +355,12 @@ func (r *LocalStore) PutProfile(p *Profile) error {
 	enc.Online = false
 
 	if p.PubKey != nil {
-		if err := r.keyStore.AddPubKey(p.GetKeyID(), p.PubKey); err != nil {
+		if err := r.keyStore.AddPubKey(ctx, p.GetKeyID(), p.PubKey); err != nil {
 			return err
 		}
 	}
 	if p.PrivKey != nil {
-		if err := r.keyStore.AddPrivKey(p.GetKeyID(), p.PrivKey); err != nil {
+		if err := r.keyStore.AddPrivKey(ctx, p.GetKeyID(), p.PrivKey); err != nil {
 			return err
 		}
 	}
@@ -377,7 +377,7 @@ func (r *LocalStore) PutProfile(p *Profile) error {
 }
 
 // PeerIDs gives the peer.IDs list for a given peername
-func (r *LocalStore) PeerIDs(id ID) ([]peer.ID, error) {
+func (r *LocalStore) PeerIDs(ctx context.Context, id ID) ([]peer.ID, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -402,7 +402,7 @@ func (r *LocalStore) PeerIDs(id ID) ([]peer.ID, error) {
 }
 
 // List hands back the list of peers
-func (r *LocalStore) List() (map[ID]*Profile, error) {
+func (r *LocalStore) List(ctx context.Context) (map[ID]*Profile, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -426,7 +426,7 @@ func (r *LocalStore) List() (map[ID]*Profile, error) {
 }
 
 // PeernameID gives the ID for a given peername
-func (r *LocalStore) PeernameID(peername string) (ID, error) {
+func (r *LocalStore) PeernameID(ctx context.Context, peername string) (ID, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -444,7 +444,7 @@ func (r *LocalStore) PeernameID(peername string) (ID, error) {
 }
 
 // GetProfile fetches a profile from the store
-func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
+func (r *LocalStore) GetProfile(ctx context.Context, id ID) (*Profile, error) {
 	log.Debugf("get profile: %s", id.Encode())
 
 	r.Lock()
@@ -462,8 +462,8 @@ func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
 			pro := &Profile{}
 			err := pro.Decode(p)
 			pro.KeyID = pro.GetKeyID()
-			pro.PubKey = r.keyStore.PubKey(pro.GetKeyID())
-			pro.PrivKey = r.keyStore.PrivKey(pro.GetKeyID())
+			pro.PubKey = r.keyStore.PubKey(ctx, pro.GetKeyID())
+			pro.PrivKey = r.keyStore.PrivKey(ctx, pro.GetKeyID())
 			return pro, err
 		}
 	}
@@ -472,7 +472,7 @@ func (r *LocalStore) GetProfile(id ID) (*Profile, error) {
 }
 
 // ProfilesForUsername fetches all profile that match a username (Peername)
-func (r *LocalStore) ProfilesForUsername(username string) ([]*Profile, error) {
+func (r *LocalStore) ProfilesForUsername(ctx context.Context, username string) ([]*Profile, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -491,8 +491,8 @@ func (r *LocalStore) ProfilesForUsername(username string) ([]*Profile, error) {
 				continue
 			}
 			pro.KeyID = pro.GetKeyID()
-			pro.PubKey = r.keyStore.PubKey(pro.GetKeyID())
-			pro.PrivKey = r.keyStore.PrivKey(pro.GetKeyID())
+			pro.PubKey = r.keyStore.PubKey(ctx, pro.GetKeyID())
+			pro.PrivKey = r.keyStore.PrivKey(ctx, pro.GetKeyID())
 			res = append(res, pro)
 		}
 	}
@@ -501,7 +501,7 @@ func (r *LocalStore) ProfilesForUsername(username string) ([]*Profile, error) {
 }
 
 // PeerProfile gives the profile that corresponds with a given peer.ID
-func (r *LocalStore) PeerProfile(id peer.ID) (*Profile, error) {
+func (r *LocalStore) PeerProfile(ctx context.Context, id peer.ID) (*Profile, error) {
 	log.Debugf("peerProfile: %s", id.Pretty())
 
 	r.Lock()
@@ -527,7 +527,7 @@ func (r *LocalStore) PeerProfile(id peer.ID) (*Profile, error) {
 }
 
 // DeleteProfile removes a profile from the store
-func (r *LocalStore) DeleteProfile(id ID) error {
+func (r *LocalStore) DeleteProfile(ctx context.Context, id ID) error {
 	r.Lock()
 	defer r.Unlock()
 

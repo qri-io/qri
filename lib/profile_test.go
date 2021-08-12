@@ -154,7 +154,7 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 	regCli, _ := regmock.NewMockServerRegistry(reg)
 	inst.registry = regCli
 
-	pro := node.Repo.Profiles().Owner()
+	pro := node.Repo.Profiles().Owner(ctx)
 	pro.Peername = "keyboard_cat"
 	pp, err := pro.Encode()
 	if err != nil {

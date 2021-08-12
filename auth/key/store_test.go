@@ -1,6 +1,7 @@
 package key_test
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestLocalStore(t *testing.T) {
+	ctx := context.Background()
 	path, err := ioutil.TempDir("", "keys")
 	if err != nil {
 		t.Fatalf("error creating tmp directory: %s", err.Error())
@@ -27,21 +29,21 @@ func TestLocalStore(t *testing.T) {
 
 	kd0 := testkeys.GetKeyData(0)
 
-	if err = ks.AddPubKey(peer.ID("this_must_fail"), kd0.PrivKey.GetPublic()); err == nil {
+	if err = ks.AddPubKey(ctx, peer.ID("this_must_fail"), kd0.PrivKey.GetPublic()); err == nil {
 		t.Error("expected adding public key with mismatching ID to fail. got nil")
 	} else if !errors.Is(err, key.ErrKeyAndIDMismatch) {
 		t.Errorf("mismatched ID error must wrap exported pacakge error, got: %s", err)
 	}
 
-	if err = ks.AddPubKey(kd0.PeerID, kd0.PrivKey.GetPublic()); err != nil {
+	if err = ks.AddPubKey(ctx, kd0.PeerID, kd0.PrivKey.GetPublic()); err != nil {
 		t.Fatal(err)
 	}
 
-	if err = ks.AddPrivKey(kd0.PeerID, kd0.PrivKey); err != nil {
+	if err = ks.AddPrivKey(ctx, kd0.PeerID, kd0.PrivKey); err != nil {
 		t.Fatal(err)
 	}
 
-	if err = ks.AddPrivKey(peer.ID("this_must_fail"), kd0.PrivKey); err == nil {
+	if err = ks.AddPrivKey(ctx, peer.ID("this_must_fail"), kd0.PrivKey); err == nil {
 		t.Error("expected adding private key with mismatching ID to fail. got nil")
 	} else if !errors.Is(err, key.ErrKeyAndIDMismatch) {
 		t.Errorf("mismatched ID error must wrap exported pacakge error, got: %s", err)

@@ -73,7 +73,7 @@ func TestConnectedQriProfiles(t *testing.T) {
 
 	// // this can sometimes hang forever
 	// <-waitCh
-	pros := nodes[0].ConnectedQriProfiles()
+	pros := nodes[0].ConnectedQriProfiles(ctx)
 	if len(pros) != len(nodes)-1 {
 		t.Log("My ID:", nodes[0].host.ID())
 		t.Log("Conns:")

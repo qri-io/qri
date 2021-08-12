@@ -184,7 +184,7 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) dsref.Ref {
 }
 
 func saveDataset(ctx context.Context, r repo.Repo, ds *dataset.Dataset, sw base.SaveSwitches) (dsref.Ref, error) {
-	author := r.Profiles().Owner()
+	author := r.Profiles().Owner(ctx)
 	ref, _, err := base.PrepareSaveRef(ctx, author, r.Logbook(), r.Logbook(), fmt.Sprintf("%s/%s", author.Peername, ds.Name), "", false)
 	if err != nil {
 		return dsref.Ref{}, err

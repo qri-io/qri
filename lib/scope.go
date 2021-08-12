@@ -54,7 +54,7 @@ func newScope(ctx context.Context, inst *Instance, source string) (scope, error)
 
 func newScopeFromWorkflow(ctx context.Context, inst *Instance, wf *workflow.Workflow) (scope, error) {
 	ctx = profile.AddIDToContext(ctx, wf.OwnerID.Encode())
-	pro, err := inst.profiles.GetProfile(wf.OwnerID)
+	pro, err := inst.profiles.GetProfile(ctx, wf.OwnerID)
 	if err != nil {
 		log.Debugw("getting profile", "profileID", wf.OwnerID.Encode(), "err", err)
 		return scope{}, err

@@ -133,10 +133,10 @@ func NewClient(ctx context.Context, node *p2p.QriNode, pub event.Publisher) (c C
 	// TODO(b5): need to re-think remote client construction in a multi tenant context
 	// need to either dynamically re-construct client on a per-request basis, or accept
 	// author args.
-	pro := node.Repo.Profiles().Owner()
+	pro := node.Repo.Profiles().Owner(ctx)
 
 	cli := &client{
-		pk:      node.Repo.Profiles().Owner().PrivKey,
+		pk:      node.Repo.Profiles().Owner(ctx).PrivKey,
 		profile: pro,
 		ds:      ds,
 		logsync: ls,
@@ -756,7 +756,7 @@ func addressType(remoteAddr string) string {
 }
 
 func (c *client) signHTTPRequest(ctx context.Context, req *http.Request) error {
-	pk := c.node.Repo.Profiles().Owner().PrivKey
+	pk := c.node.Repo.Profiles().Owner(ctx).PrivKey
 	now := fmt.Sprintf("%d", nowFunc().In(time.UTC).Unix())
 
 	// TODO (b5) - we shouldn't be calculating profile IDs here

@@ -141,7 +141,7 @@ func newTestInstanceWithProfileFromNode(ctx context.Context, node *p2p.QriNode) 
 
 func newTestInstanceWithProfileFromNodeAndOrchestratorOpts(ctx context.Context, node *p2p.QriNode, o *automation.OrchestratorOptions) *lib.Instance {
 	cfg := testcfg.DefaultConfigForTesting()
-	cfg.Profile, _ = node.Repo.Profiles().Owner().Encode()
+	cfg.Profile, _ = node.Repo.Profiles().Owner(ctx).Encode()
 	return lib.NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts(ctx, cfg, node, event.NilBus, o)
 }
 

@@ -28,7 +28,7 @@ func TestLoadDataset(t *testing.T) {
 	loader = &datasetLoader{inst: tr.Instance}
 	dsrefspec.AssertLoaderSpec(t, loader, func(ds *dataset.Dataset) (*dsref.Ref, error) {
 		// Allocate an initID for this dataset
-		owner := tr.Instance.repo.Profiles().Owner()
+		owner := tr.Instance.repo.Profiles().Owner(tr.Ctx)
 		initID, err := tr.Instance.logbook.WriteDatasetInit(tr.Ctx, owner, ds.Name)
 		if err != nil {
 			return nil, err
@@ -46,7 +46,7 @@ func TestLoadDataset(t *testing.T) {
 			event.NilBus,
 			ds,
 			nil,
-			tr.Instance.repo.Profiles().Owner().PrivKey,
+			tr.Instance.repo.Profiles().Owner(tr.Ctx).PrivKey,
 			dsfs.SaveSwitches{},
 		)
 		if err != nil {

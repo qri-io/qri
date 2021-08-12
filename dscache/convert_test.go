@@ -445,11 +445,11 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefAlphabetized(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	profiles, err := profile.NewMemStore(pro, keyStore)
+	profiles, err := profile.NewMemStore(ctx, pro, keyStore)
 	if err != nil {
 		t.Fatal(err)
 	}
-	profiles.PutProfile(pro)
+	profiles.PutProfile(ctx, pro)
 
 	dsrefs := []reporef.DatasetRef{}
 	fs := qfs.NewMemFS()
@@ -522,11 +522,11 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	profiles, err := profile.NewMemStore(pro, keyStore)
+	profiles, err := profile.NewMemStore(ctx, pro, keyStore)
 	if err != nil {
 		t.Fatal(err)
 	}
-	profiles.PutProfile(pro)
+	profiles.PutProfile(ctx, pro)
 
 	dsrefs := []reporef.DatasetRef{}
 	fs2 := qfs.NewMemFS()

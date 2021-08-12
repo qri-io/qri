@@ -116,7 +116,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 		p.Offset = 0
 	}
 
-	reqProfile := scope.Repo().Profiles().Owner()
+	reqProfile := scope.Repo().Profiles().Owner(scope.Context())
 	listProfile, err := getProfile(scope.Context(), scope.Repo().Profiles(), reqProfile.ID.Encode(), p.Username)
 	if err != nil {
 		return nil, err
@@ -223,9 +223,9 @@ func getProfile(ctx context.Context, pros profile.Store, idStr, peername string)
 		// TODO(b5): we're handling the "me" keyword here, should be handled as part of
 		// request scope construction
 		if peername == "me" {
-			return pros.Owner(), nil
+			return pros.Owner(ctx), nil
 		}
-		return profile.ResolveUsername(pros, peername)
+		return profile.ResolveUsername(ctx, pros, peername)
 	}
 
 	id, err := profile.IDB58Decode(idStr)
@@ -233,7 +233,7 @@ func getProfile(ctx context.Context, pros profile.Store, idStr, peername string)
 		log.Debugw("decoding profile ID", "err", err)
 		return nil, err
 	}
-	return pros.GetProfile(id)
+	return pros.GetProfile(ctx, id)
 }
 
 // ListRawRefs gets the list of raw references as string

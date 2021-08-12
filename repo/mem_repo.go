@@ -41,7 +41,7 @@ func NewMemRepoWithProfile(ctx context.Context, owner *profile.Profile, fs *muxf
 	if err != nil {
 		return nil, err
 	}
-	pros, err := profile.NewMemStore(owner, keyStore)
+	pros, err := profile.NewMemStore(ctx, owner, keyStore)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func NewMemRepo(ctx context.Context, fs *muxfs.Mux, book *logbook.Book, cache *d
 		}
 	}
 
-	p := pros.Owner()
+	p := pros.Owner(ctx)
 	if book == nil {
 		book, err = logbook.NewJournal(*p, bus, fs, "/mem/logbook.qfb")
 		if err != nil {

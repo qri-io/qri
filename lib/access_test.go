@@ -23,7 +23,7 @@ func TestAccessCreateAuthToken(t *testing.T) {
 	}
 
 	// prove we can parse & validate that token
-	_, err = token.ParseAuthToken(s, inst.keystore)
+	_, err = token.ParseAuthToken(ctx, s, inst.keystore)
 	if err != nil {
 		t.Fatal(err)
 	}

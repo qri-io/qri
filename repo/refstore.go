@@ -158,7 +158,7 @@ func canonicalizeProfile(ctx context.Context, r Repo, ref *reporef.DatasetRef) e
 		return nil
 	}
 
-	p := r.Profiles().Owner()
+	p := r.Profiles().Owner(ctx)
 
 	// If this is a dataset ref that a peer of the user owns.
 	if ref.Peername == "me" || ref.Peername == p.Peername || ref.ProfileID == p.ID {
@@ -200,7 +200,7 @@ func canonicalizeProfile(ctx context.Context, r Repo, ref *reporef.DatasetRef) e
 	}
 
 	if ref.ProfileID != "" {
-		if profile, err := r.Profiles().GetProfile(ref.ProfileID); err == nil {
+		if profile, err := r.Profiles().GetProfile(ctx, ref.ProfileID); err == nil {
 
 			if ref.Peername == "" {
 				ref.Peername = profile.Peername
@@ -213,7 +213,7 @@ func canonicalizeProfile(ctx context.Context, r Repo, ref *reporef.DatasetRef) e
 	}
 
 	if ref.Peername != "" {
-		if id, err := r.Profiles().PeernameID(ref.Peername); err == nil {
+		if id, err := r.Profiles().PeernameID(ctx, ref.Peername); err == nil {
 			// if err != nil {
 			// 	return fmt.Errorf("error fetching peer from store: %s", err)
 			// }

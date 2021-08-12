@@ -41,7 +41,7 @@ type Repo struct {
 var _ repo.Repo = (*Repo)(nil)
 
 // NewRepo creates a new file-based repository
-func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Dscache, pro profile.Store, bus event.Bus) (repo.Repo, error) {
+func NewRepo(ctx context.Context, path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Dscache, pro profile.Store, bus event.Bus) (repo.Repo, error) {
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		log.Error(err)
 		return nil, err
@@ -77,10 +77,10 @@ func NewRepo(path string, fsys *muxfs.Mux, book *logbook.Book, cache *dscache.Ds
 		return nil, err
 	}
 
-	own := pro.Owner()
+	own := pro.Owner(ctx)
 	// add our own profile to the store if it doesn't already exist.
-	if _, e := r.Profiles().GetProfile(own.ID); e != nil {
-		if err := r.Profiles().PutProfile(own); err != nil {
+	if _, e := r.Profiles().GetProfile(ctx, own.ID); e != nil {
+		if err := r.Profiles().PutProfile(ctx, own); err != nil {
 			return nil, err
 		}
 	}

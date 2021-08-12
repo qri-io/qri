@@ -54,7 +54,7 @@ func (run *TestRunner) saveDataset(ds *dataset.Dataset, sw SaveSwitches) (dsref.
 	book := run.Repo.Logbook()
 	author := book.Owner()
 	ref := dsref.Ref{Username: author.Peername, Name: ds.Name}
-	if _, err := book.ResolveRef(context.Background(), &ref); err == dsref.ErrRefNotFound {
+	if _, err := book.ResolveRef(run.Context, &ref); err == dsref.ErrRefNotFound {
 		ref.InitID, err = book.WriteDatasetInit(run.Context, author, ds.Name)
 		if err != nil {
 			return dsref.Ref{}, err
@@ -63,7 +63,7 @@ func (run *TestRunner) saveDataset(ds *dataset.Dataset, sw SaveSwitches) (dsref.
 		return dsref.Ref{}, err
 	}
 
-	ds, err := SaveDataset(run.Context, run.Repo, run.Repo.Filesystem().DefaultWriteFS(), run.Repo.Profiles().Owner(), ref.InitID, ref.Path, ds, nil, sw)
+	ds, err := SaveDataset(run.Context, run.Repo, run.Repo.Filesystem().DefaultWriteFS(), run.Repo.Profiles().Owner(run.Context), ref.InitID, ref.Path, ds, nil, sw)
 	if err != nil {
 		return dsref.Ref{}, err
 	}

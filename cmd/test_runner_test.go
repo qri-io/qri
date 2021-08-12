@@ -386,7 +386,7 @@ func (runner *TestRunner) LookupVersionInfo(t *testing.T, refStr string) *dsref.
 	// TODO(b5): me shortcut is handled by an instance, it'd be nice we had a
 	// function in the repo package that deduplicated this in both places
 	if dr.Username == "me" {
-		dr.Username = r.Profiles().Owner().Peername
+		dr.Username = r.Profiles().Owner(ctx).Peername
 	}
 
 	if _, err := r.ResolveRef(ctx, &dr); err != nil {

@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -19,6 +20,7 @@ import (
 )
 
 func TestPutProfileWithAddresses(t *testing.T) {
+	ctx := context.Background()
 	pp := &config.ProfilePod{
 		ID:       "QmU27VdAEUL5NGM6oB56htTxvHLfcGZgsgxrJTdVr2k4zs",
 		Peername: "test_peername",
@@ -51,12 +53,12 @@ func TestPutProfileWithAddresses(t *testing.T) {
 		Peername: "user",
 		PrivKey:  kd0.PrivKey,
 	}
-	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), owner, ks)
+	ps, err := NewLocalStore(ctx, filepath.Join(path, "profiles.json"), owner, ks)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = ps.PutProfile(pro)
+	err = ps.PutProfile(ctx, pro)
 	if err != nil {
 		t.Errorf("error putting profile: %s", err.Error())
 	}
@@ -88,6 +90,7 @@ func TestPutProfileWithAddresses(t *testing.T) {
 }
 
 func TestProfilesWithKeys(t *testing.T) {
+	ctx := context.Background()
 	kd0 := testkeys.GetKeyData(0)
 
 	ks, err := key.NewMemStore()
@@ -105,7 +108,7 @@ func TestProfilesWithKeys(t *testing.T) {
 		Peername: "user",
 		PrivKey:  kd0.PrivKey,
 	}
-	ps, err := NewLocalStore(filepath.Join(path, "profiles.json"), owner, ks)
+	ps, err := NewLocalStore(ctx, filepath.Join(path, "profiles.json"), owner, ks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,12 +127,12 @@ func TestProfilesWithKeys(t *testing.T) {
 	pro.PrivKey = kd0.PrivKey
 	pro.PubKey = kd0.PrivKey.GetPublic()
 
-	err = ps.PutProfile(pro)
+	err = ps.PutProfile(ctx, pro)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tPro, err := ps.GetProfile(pro.ID)
+	tPro, err := ps.GetProfile(ctx, pro.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,6 +147,7 @@ func TestProfilesWithKeys(t *testing.T) {
 }
 
 func TestMemStoreGetOwner(t *testing.T) {
+	ctx := context.Background()
 	kd0 := testkeys.GetKeyData(0)
 	id := IDFromPeerID(kd0.PeerID)
 	owner := &Profile{ID: id, PrivKey: kd0.PrivKey, Peername: "owner"}
@@ -152,12 +156,12 @@ func TestMemStoreGetOwner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s, err := NewMemStore(owner, ks)
+	s, err := NewMemStore(ctx, owner, ks)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pro, err := s.GetProfile(id)
+	pro, err := s.GetProfile(ctx, id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,6 +176,7 @@ func TestMemStoreGetOwner(t *testing.T) {
 }
 
 func TestResolveUsername(t *testing.T) {
+	ctx := context.Background()
 	kd0 := testkeys.GetKeyData(0)
 	kd1 := testkeys.GetKeyData(1)
 	kd2 := testkeys.GetKeyData(2)
@@ -182,16 +187,16 @@ func TestResolveUsername(t *testing.T) {
 	}
 
 	owner := &Profile{ID: IDFromPeerID(kd0.PeerID), PrivKey: kd0.PrivKey, Peername: "owner"}
-	s, err := NewMemStore(owner, ks)
+	s, err := NewMemStore(ctx, owner, ks)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := ResolveUsername(s, "unknown"); !errors.Is(err, ErrNotFound) {
+	if _, err := ResolveUsername(ctx, s, "unknown"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("expected unknown username to return ErrNotFound or wrap of ErrNotFound. got: %#v", err)
 	}
 
-	pro, err := ResolveUsername(s, "owner")
+	pro, err := ResolveUsername(ctx, s, "owner")
 	if err != nil {
 		t.Error(err)
 	}
@@ -202,14 +207,14 @@ func TestResolveUsername(t *testing.T) {
 	marjorieA := &Profile{ID: IDFromPeerID(kd1.PeerID), PrivKey: kd1.PrivKey, Peername: "marjorie", Email: "marjorie_a@aol.com"}
 	marjorieB := &Profile{ID: IDFromPeerID(kd2.PeerID), PrivKey: kd2.PrivKey, Peername: "marjorie", Email: "marjorie_b@aol.com"}
 
-	if err := s.PutProfile(marjorieA); err != nil {
+	if err := s.PutProfile(ctx, marjorieA); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.PutProfile(marjorieB); err != nil {
+	if err := s.PutProfile(ctx, marjorieB); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := ResolveUsername(s, "marjorie"); !errors.Is(err, ErrAmbiguousUsername) {
+	if _, err := ResolveUsername(ctx, s, "marjorie"); !errors.Is(err, ErrAmbiguousUsername) {
 		t.Errorf("expected duplicated username to return ErrAmbiguousUsername or wrap of that error. got: %#v", err)
 	}
 }

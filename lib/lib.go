@@ -514,7 +514,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.profiles == nil {
-		if inst.profiles, err = profile.NewStore(cfg, inst.keystore); err != nil {
+		if inst.profiles, err = profile.NewStore(ctx, cfg, inst.keystore); err != nil {
 			return nil, fmt.Errorf("initializing profile service: %w", err)
 		}
 	}
@@ -525,7 +525,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	pro := inst.profiles.Owner()
+	pro := inst.profiles.Owner(ctx)
 
 	if inst.logbook == nil {
 		inst.logbook, err = newLogbook(inst.qfs, cfg, inst.bus, pro, inst.repoPath)
@@ -752,7 +752,7 @@ func NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts(ctx context.Context, 
 	ctx, cancel := context.WithCancel(ctx)
 
 	r := node.Repo
-	pro := r.Profiles().Owner()
+	pro := r.Profiles().Owner(ctx)
 	fsint := fsi.NewFSI(r, bus)
 	dc := dscache.NewDscache(ctx, r.Filesystem(), bus, pro.Peername, "")
 
@@ -1210,7 +1210,7 @@ func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, 
 	profileIDString := profile.IDFromCtx(ctx)
 	if profileIDString == "" {
 		if tokenString := token.FromCtx(ctx); tokenString != "" {
-			tok, err := token.ParseAuthToken(tokenString, inst.keystore)
+			tok, err := token.ParseAuthToken(ctx, tokenString, inst.keystore)
 			if err != nil {
 				return nil, err
 			}
@@ -1232,7 +1232,7 @@ func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, 
 			log.Errorw("profile", "id", profileIDString)
 			return nil, fmt.Errorf("invalid profile ID")
 		}
-		pro, err := inst.profiles.GetProfile(pid)
+		pro, err := inst.profiles.GetProfile(ctx, pid)
 		if errors.Is(err, profile.ErrNotFound) {
 			return nil, fmt.Errorf("profile not found")
 		}
@@ -1240,7 +1240,7 @@ func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, 
 	}
 
 	if inst.profiles != nil {
-		return inst.profiles.Owner(), nil
+		return inst.profiles.Owner(ctx), nil
 	}
 
 	return nil, fmt.Errorf("no active profile")

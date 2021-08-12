@@ -63,7 +63,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset i
 	}
 
 	// add a history entry b/c we didn't have one, but repo didn't error
-	pro := r.Profiles().Owner()
+	pro := r.Profiles().Owner(ctx)
 	if ref.Username == pro.Peername {
 		go func() {
 			if err := constructDatasetLogFromHistory(context.Background(), r, ref); err != nil {
@@ -138,5 +138,5 @@ func constructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.
 	}
 
 	book := r.Logbook()
-	return book.ConstructDatasetLog(ctx, r.Profiles().Owner(), ref, history)
+	return book.ConstructDatasetLog(ctx, r.Profiles().Owner(ctx), ref, history)
 }
