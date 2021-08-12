@@ -342,6 +342,8 @@ func (book *Book) WriteDatasetInit(ctx context.Context, author *profile.Profile,
 
 	dsLog.AddChild(branch)
 	authorLog.AddChild(dsLog)
+
+	book.store.MergeLog(ctx, authorLog.l)
 	initID := dsLog.ID()
 
 	err = book.publisher.Publish(ctx, event.ETDatasetNameInit, dsref.VersionInfo{
