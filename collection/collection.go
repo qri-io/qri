@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	logger "github.com/ipfs/go-log"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -314,9 +315,10 @@ func (s *localSet) subscribe(bus event.Bus) {
 		event.ETRegistryProfileCreated,
 
 		// automation events
-		event.ETAutomationDeployStart,
 		event.ETAutomationWorkflowStarted,
 		event.ETAutomationWorkflowStopped,
+		event.ETAutomationWorkflowCreated,
+		event.ETAutomationWorkflowRemoved,
 
 		// fsi
 		event.ETFSICreateLink,
@@ -361,17 +363,9 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 				log.Debugw("removing dataset from collection", "profileID", profileID, "initID", initID, "err", err)
 			}
 		}
-
 	case event.ETRegistryProfileCreated:
 		if p, ok := e.Payload.(event.RegistryProfileCreated); ok {
 			s.updateUsernameAcrossAllCollections(p.ProfileID, p.Username)
-		}
-	case event.ETDatasetPulled:
-		profileID := e.ProfileID
-		if vi, ok := e.Payload.(dsref.VersionInfo); ok && profileID != "" {
-			if err := s.addOneToCollection(profileID, vi); err != nil {
-				log.Debugw("adding dataset to collection", "profileID", profileID, "initID", vi.InitID, "err", err)
-			}
 		}
 	case event.ETDatasetPushed:
 		// TODO(b5): need user-scoped events for this so we can know *who* pulled
@@ -382,26 +376,11 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 				log.Debugw("adding dataset across all collections", "initID", vi.InitID, "err", err)
 			}
 		}
-
-	case event.ETAutomationDeployStart:
-		if evt, ok := e.Payload.(event.DeployEvent); ok {
-			err := s.updateOneAcrossAllCollections(evt.InitID, func(vi *dsref.VersionInfo) {
-				vi.WorkflowID = evt.WorkflowID
-			})
-			if err != nil {
-				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
-			}
-		}
-	case event.ETAutomationDeployEnd:
-		if evt, ok := e.Payload.(event.DeployEvent); ok {
-			err := s.updateOneAcrossAllCollections(evt.InitID, func(vi *dsref.VersionInfo) {
-				vi.WorkflowID = evt.WorkflowID
-				if evt.Error != "" {
-					vi.WorkflowID = ""
-				}
-			})
-			if err != nil {
-				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
+	case event.ETDatasetPulled:
+		profileID := e.ProfileID
+		if vi, ok := e.Payload.(dsref.VersionInfo); ok && profileID != "" {
+			if err := s.addOneToCollection(profileID, vi); err != nil {
+				log.Debugw("adding dataset to collection", "profileID", profileID, "initID", vi.InitID, "err", err)
 			}
 		}
 	case event.ETAutomationWorkflowStarted:
@@ -415,16 +394,34 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 			}
 		}
 	case event.ETAutomationWorkflowStopped:
-		if evt, ok := e.Payload.(event.WorkflowStartedEvent); ok {
+		if evt, ok := e.Payload.(event.WorkflowStoppedEvent); ok {
 			err := s.updateOneAcrossAllCollections(evt.InitID, func(vi *dsref.VersionInfo) {
-				vi.RunID = ""
-				vi.RunStatus = ""
+				vi.RunStatus = evt.Status
 			})
 			if err != nil {
 				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
 			}
 		}
+	case event.ETAutomationWorkflowCreated:
+		if wf, ok := e.Payload.(workflow.Workflow); ok {
+			err := s.updateOneAcrossAllCollections(wf.InitID, func(vi *dsref.VersionInfo) {
+				vi.WorkflowID = wf.WorkflowID()
+			})
 
+			if err != nil {
+				log.Debugw("updating dataset across all collections", "InitID", wf.InitID, "err", err)
+			}
+		}
+	case event.ETAutomationWorkflowRemoved:
+		if wf, ok := e.Payload.(workflow.Workflow); ok {
+			err := s.updateOneAcrossAllCollections(wf.InitID, func(vi *dsref.VersionInfo) {
+				vi.WorkflowID = ""
+			})
+
+			if err != nil {
+				log.Debugw("updating dataset across all collections", "InitID", wf.InitID, "err", err)
+			}
+		}
 	case event.ETFSICreateLink:
 		if link, ok := e.Payload.(event.FSICreateLink); ok {
 			s.updateOneAcrossAllCollections(link.InitID, func(vi *dsref.VersionInfo) {

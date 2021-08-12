@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/event"
 )
@@ -352,20 +353,19 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 
 	err := runFunc(ctx, streams, wf, runID)
 	go func(wf *workflow.Workflow) {
-		status := ""
-		if o.runs != nil {
-			runStatus, err := o.runs.GetStatus(wf.ID)
-			if err != nil {
-				log.Debugf("runWorkflow: error getting run status: %s", err)
-			}
-			status = string(runStatus)
+		runStatus := run.RSFailed
+		if err == nil {
+			runStatus = run.RSSucceeded
+		}
+		if errors.Is(err, dsfs.ErrNoChanges) {
+			runStatus = run.RSUnchanged
 		}
 		if err := o.bus.PublishID(ctx, event.ETAutomationWorkflowStopped, wf.ID.String(), event.WorkflowStoppedEvent{
 			InitID:     wf.InitID,
 			OwnerID:    wf.OwnerID,
 			WorkflowID: wf.WorkflowID(),
 			RunID:      runID,
-			Status:     status,
+			Status:     string(runStatus),
 		}); err != nil {
 			log.Debug(err)
 		}
@@ -448,13 +448,20 @@ func (o *Orchestrator) SaveWorkflow(ctx context.Context, wf *workflow.Workflow) 
 	// it should iterate over the hooks this orchestrator understands, and err if the workflow references
 	// any that it doesn't know about
 
-	if wf.ID == "" {
+	isNewWF := wf.ID == ""
+	if isNewWF {
 		wf.Created = NowFunc()
 	}
-
 	wf, err := o.workflows.Put(ctx, wf)
 	if err != nil {
 		return nil, err
+	}
+	if isNewWF {
+		go func() {
+			if err := o.bus.Publish(ctx, event.ETAutomationWorkflowCreated, *wf); err != nil {
+				log.Debug(err)
+			}
+		}()
 	}
 	go o.updateListeners(wf)
 	return wf, err
@@ -480,6 +487,11 @@ func (o *Orchestrator) RemoveWorkflow(ctx context.Context, id workflow.ID) error
 	if err := o.workflows.Remove(ctx, id); err != nil {
 		return err
 	}
+	go func() {
+		if err := o.bus.Publish(ctx, event.ETAutomationWorkflowRemoved, *wf); err != nil {
+			log.Debug(err)
+		}
+	}()
 	go o.updateListeners(wf)
 	return nil
 }

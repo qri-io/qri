@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/dsref"
@@ -387,8 +388,21 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		}
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
 
-		// TODO (b5): simulate workflow creation, check that collection updates with
+		// simulate workflow creation, check that collection updates with
 		// workflow ID
+		wf := workflow.Workflow{
+			InitID:  muppetTweetsInitID,
+			OwnerID: kermit.ID,
+			ID:      "workflow_id",
+		}
+		mustPublish(ctx, t, bus, event.ETAutomationWorkflowCreated, wf)
+
+		expect[0].WorkflowID = "workflow_id"
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
+		// simulate workflow removal, check that the collection removes workflowID
+		mustPublish(ctx, t, bus, event.ETAutomationWorkflowRemoved, wf)
+		expect[0].WorkflowID = ""
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
 	})
 
 
