@@ -347,6 +347,11 @@ func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
 			s.updateOneAcrossAllCollections(vi.InitID, func(m *dsref.VersionInfo) {
 				// preserve fsi path
 				vi.FSIPath = m.FSIPath
+				// preserve workflow id
+				vi.WorkflowID = m.WorkflowID
+				// preserve run information
+				vi.RunID = m.RunID
+				vi.RunStatus = m.RunStatus
 				*m = vi
 			})
 		}
