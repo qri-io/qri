@@ -193,7 +193,7 @@ func TestQriProfileService(t *testing.T) {
 	if len(expectedPeers) != len(connectedPeers) {
 		t.Errorf("expected list of connected peers different then the given list of connected peers: \n  expected: %v\n  got: %v", expectedPeers, connectedPeers)
 		for _, peer := range connectedPeers {
-			pro, err := node.Repo.Profiles().PeerProfile(peer)
+			pro, err := node.Repo.Profiles().PeerProfile(ctx, peer)
 			if err != nil {
 				t.Errorf("error getting peer %q profile: %s", peer, err)
 			}

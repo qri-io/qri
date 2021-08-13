@@ -67,6 +67,7 @@ func TestTokenStore(t *testing.T) {
 }
 
 func TestNewPrivKeyAuthToken(t *testing.T) {
+	ctx := context.Background()
 	// create a token from a private key
 	kd := testkeys.GetKeyData(0)
 	str, err := token.NewPrivKeyAuthToken(kd.PrivKey, kd.KeyID.String(), 0)
@@ -79,11 +80,11 @@ func TestNewPrivKeyAuthToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ks.AddPubKey(kd.KeyID, kd.PrivKey.GetPublic()); err != nil {
+	if err := ks.AddPubKey(ctx, kd.KeyID, kd.PrivKey.GetPublic()); err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = token.ParseAuthToken(str, ks)
+	_, err = token.ParseAuthToken(ctx, str, ks)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -216,7 +216,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	ref := updateCitiesDataset(t, mr, "")
 
 	// add the logbook back
-	p := mr.Profiles().Owner()
+	p := mr.Profiles().Owner(ctx)
 	book, err := logbook.NewJournal(*p, event.NilBus, mr.Filesystem(), "/mem/logbook.qfb")
 	if err != nil {
 		t.Fatal(err)

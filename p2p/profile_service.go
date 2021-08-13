@@ -89,11 +89,12 @@ func (q *QriProfileService) HandleQriPeerDisconnect(pid peer.ID) {
 	<-wait
 
 	go func() {
-		pro, err := q.profiles.PeerProfile(pid)
+		ctx := context.Background()
+		pro, err := q.profiles.PeerProfile(ctx, pid)
 		if err != nil {
 			log.Debugf("error getting peer's profile. pid=%q err=%q", pid, err)
 		}
-		if err := q.pub.Publish(context.Background(), event.ETP2PQriPeerDisconnected, pro); err != nil {
+		if err := q.pub.Publish(ctx, event.ETP2PQriPeerDisconnected, pro); err != nil {
 			log.Debugf("error publishing ETP2PQriPeerDisconnected event. pid=%q err=%q", pid, err)
 		}
 	}()
@@ -112,7 +113,7 @@ func (q *QriProfileService) ConnectedPeerProfile(pid peer.ID) *profile.Profile {
 	if !ok {
 		return nil
 	}
-	pro, err := q.profiles.PeerProfile(pid)
+	pro, err := q.profiles.PeerProfile(context.Background(), pid)
 	if err != nil {
 		log.Debugf("error getting peer profile: pid=%q err=%q", pid, err)
 		return nil
@@ -138,7 +139,7 @@ func (q *QriProfileService) ProfileHandler(s network.Stream) {
 
 	log.Debugf("%s received a profile request from %s %s", ProfileProtocolID, p, s.Conn().RemoteMultiaddr())
 
-	pro := q.profiles.Owner()
+	pro := q.profiles.Owner(context.Background())
 	if err := sendProfile(s, pro); err != nil {
 		log.Debugf("%s error sending profile to %s: %s", ProfileProtocolID, p, err)
 		return
@@ -205,7 +206,7 @@ func (q *QriProfileService) profileRequest(ctx context.Context, pid peer.ID, sig
 	defer func() {
 		close(signal)
 		if err == nil {
-			pro, err := q.profiles.PeerProfile(pid)
+			pro, err := q.profiles.PeerProfile(ctx, pid)
 			if err != nil {
 				log.Debugf("error getting profile from profile store: %s", err)
 				return
@@ -244,7 +245,7 @@ func (q *QriProfileService) receiveAndStoreProfile(ctx context.Context, s networ
 
 	log.Debugf("%s received profile message from %q %s", s.Protocol(), s.Conn().RemotePeer(), s.Conn().RemoteMultiaddr())
 
-	if err := q.profiles.PutProfile(pro); err != nil {
+	if err := q.profiles.PutProfile(ctx, pro); err != nil {
 		log.Debugw("putting received profile in store", "err", err)
 	}
 	return

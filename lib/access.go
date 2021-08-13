@@ -78,13 +78,13 @@ func (accessImpl) CreateAuthToken(scp scope, p *CreateAuthTokenParams) (string, 
 		if err != nil {
 			return "", err
 		}
-		if grantee, err = scp.Profiles().GetProfile(id); err != nil {
+		if grantee, err = scp.Profiles().GetProfile(scp.Context(), id); err != nil {
 			return "", err
 		}
 	} else if p.GranteeUsername == "me" {
 		grantee = scp.ActiveProfile()
 	} else {
-		if grantee, err = profile.ResolveUsername(scp.Profiles(), p.GranteeUsername); err != nil {
+		if grantee, err = profile.ResolveUsername(scp.Context(), scp.Profiles(), p.GranteeUsername); err != nil {
 			return "", err
 		}
 	}

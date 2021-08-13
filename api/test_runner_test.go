@@ -72,7 +72,7 @@ func (r *APITestRunner) Instance() *lib.Instance {
 }
 
 func (r *APITestRunner) Owner() *profile.Profile {
-	return r.Node.Repo.Profiles().Owner()
+	return r.Node.Repo.Profiles().Owner(r.Context())
 }
 
 func (r *APITestRunner) Context() context.Context {

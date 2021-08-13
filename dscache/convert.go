@@ -21,7 +21,7 @@ import (
 // from dsref, but in the future it will be added directly to dscache, with the file systems's
 // linkfiles (.qri-ref) acting as the authoritative source.
 func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, refs []reporef.DatasetRef, profiles profile.Store, book *logbook.Book, filesys qfs.Filesystem) (*Dscache, error) {
-	profileList, err := profiles.List()
+	profileList, err := profiles.List(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -363,7 +363,7 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 	// Moreover, what's the correct thing to do when adding a ref to the refstore who's profile information is not in the profile
 	// store, or worse, doesn't match the profile store?
 	// There's an implied hierarchy of profile store > refstore that isn't being enforced in code, and should be.
-	if err := memRepo.Profiles().PutProfile(carla); err != nil {
+	if err := memRepo.Profiles().PutProfile(ctx, carla); err != nil {
 		t.Fatal(err.Error())
 	}
 

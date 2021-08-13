@@ -220,11 +220,11 @@ func TestFeeds(t *testing.T) {
 
 	wbp := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 	wbpRepoRef := reporef.RefFromDsref(wbp)
-	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, tr.NodeA.Repo.Profiles().Owner(), &wbpRepoRef)
+	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, tr.NodeA.Repo.Profiles().Owner(tr.Ctx), &wbpRepoRef)
 
 	vvs := writeVideoViewStats(tr.Ctx, t, tr.NodeA.Repo)
 	vvsRepoRef := reporef.RefFromDsref(vvs)
-	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, tr.NodeA.Repo.Profiles().Owner(), &vvsRepoRef)
+	setRefPublished(tr.Ctx, t, tr.NodeA.Repo, tr.NodeA.Repo.Profiles().Owner(tr.Ctx), &vvsRepoRef)
 
 	aCfg := &config.RemoteServer{
 		Enabled:       true,
@@ -530,7 +530,7 @@ func saveDataset(ctx context.Context, r repo.Repo, author *profile.Profile, ds *
 	if err != nil {
 		panic(err)
 	}
-	res, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), initID, headRef, ds, nil, base.SaveSwitches{})
+	res, err := base.SaveDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(ctx), initID, headRef, ds, nil, base.SaveSwitches{})
 	if err != nil {
 		panic(err)
 	}

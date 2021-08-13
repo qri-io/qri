@@ -1,6 +1,7 @@
 package spec
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/qri/profile"
@@ -9,10 +10,10 @@ import (
 func testProfileStore(t *testing.T, rmf RepoMakerFunc) {
 	r, cleanup := rmf(t)
 	defer cleanup()
-
+	ctx := context.Background()
 	ps := r.Profiles()
 
-	if err := ps.PutProfile(&profile.Profile{}); err == nil {
+	if err := ps.PutProfile(ctx, &profile.Profile{}); err == nil {
 		t.Error("expected PutProfile to require an ID field")
 	}
 
@@ -20,11 +21,11 @@ func testProfileStore(t *testing.T, rmf RepoMakerFunc) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ps.PutProfile(&profile.Profile{ID: id, Peername: "uniq"}); err != nil {
+	if err := ps.PutProfile(ctx, &profile.Profile{ID: id, Peername: "uniq"}); err != nil {
 		t.Errorf("PutProfile err: %s", err)
 	}
 
-	p, err := ps.GetProfile(id)
+	p, err := ps.GetProfile(ctx, id)
 	if err != nil {
 		t.Errorf("GetProfile: %s", err)
 	}
@@ -34,7 +35,7 @@ func testProfileStore(t *testing.T, rmf RepoMakerFunc) {
 		t.Errorf("GetProfile returned the wrong profile")
 	}
 
-	if err := ps.DeleteProfile(id); err != nil {
+	if err := ps.DeleteProfile(ctx, id); err != nil {
 		t.Errorf("DeleteProfile err: %s", err)
 	}
 

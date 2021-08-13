@@ -197,11 +197,11 @@ func (n *QriNode) GoOnline(c context.Context) (err error) {
 		return err
 	}
 
-	p := n.Repo.Profiles().Owner()
+	p := n.Repo.Profiles().Owner(ctx)
 	p.PeerIDs = []peer.ID{n.host.ID()}
 
 	// update profile with our p2p addresses
-	if err := n.Repo.Profiles().SetOwner(p); err != nil {
+	if err := n.Repo.Profiles().SetOwner(ctx, p); err != nil {
 		cancel()
 		return err
 	}

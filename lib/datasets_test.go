@@ -886,7 +886,7 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 		go func(node *p2p.QriNode) {
 			defer wg.Done()
 			// Get number from end of peername, use that to create dataset name.
-			profile := node.Repo.Profiles().Owner()
+			profile := node.Repo.Profiles().Owner(ctx)
 			num := profile.Peername[len(profile.Peername)-1:]
 			index, _ := strconv.ParseInt(num, 10, 32)
 			name := datasets[index]
@@ -1219,7 +1219,7 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 				defer wg.Done()
 
 				// Get ref to dataset that peer2 has.
-				profile := p1.Repo.Profiles().Owner()
+				profile := p1.Repo.Profiles().Owner(ctx)
 				num := profile.Peername[len(profile.Peername)-1:]
 				index, _ := strconv.ParseInt(num, 10, 32)
 				name := datasets[index]
@@ -1233,8 +1233,8 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 
 				_, err := inst.Dataset().Pull(ctx, p)
 				if err != nil {
-					pro1 := p0.Repo.Profiles().Owner()
-					pro2 := p1.Repo.Profiles().Owner()
+					pro1 := p0.Repo.Profiles().Owner(ctx)
+					pro2 := p1.Repo.Profiles().Owner(ctx)
 					t.Errorf("error adding dataset for %s from %s to %s: %s",
 						ref.Name, pro2.Peername, pro1.Peername, err.Error())
 				}

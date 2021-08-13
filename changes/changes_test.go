@@ -747,7 +747,7 @@ func (run *testRunner) updateDataset(t *testing.T, ds *dataset.Dataset, newBody 
 		t.Fatal(err.Error())
 	}
 
-	res, err := base.CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), ds, nil, dsfs.SaveSwitches{Pin: true, ShouldRender: true})
+	res, err := base.CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(ctx), ds, nil, dsfs.SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

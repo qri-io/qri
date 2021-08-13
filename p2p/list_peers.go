@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/qri-io/qri/config"
@@ -9,12 +10,12 @@ import (
 
 // ListPeers lists Peers on the qri network
 // userID is the profile identifier of the user making the request
-func ListPeers(node *QriNode, userID profile.ID, offset, limit int, onlineOnly bool) ([]*config.ProfilePod, error) {
+func ListPeers(ctx context.Context, node *QriNode, userID profile.ID, offset, limit int, onlineOnly bool) ([]*config.ProfilePod, error) {
 
 	r := node.Repo
 
 	peers := make([]*config.ProfilePod, 0, limit)
-	connected := node.ConnectedQriProfiles()
+	connected := node.ConnectedQriProfiles(ctx)
 
 	if onlineOnly {
 		for _, p := range connected {
@@ -23,7 +24,7 @@ func ListPeers(node *QriNode, userID profile.ID, offset, limit int, onlineOnly b
 		return peers, nil
 	}
 
-	ps, err := r.Profiles().List()
+	ps, err := r.Profiles().List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error listing peers: %s", err.Error())
 	}

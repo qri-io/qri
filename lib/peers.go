@@ -204,7 +204,7 @@ func (peerImpl) List(scope scope, p *PeerListParams) ([]*config.ProfilePod, erro
 
 	// requesting user is hardcoded as node owner
 	u := scope.ActiveProfile()
-	res, err = p2p.ListPeers(scope.Node(), u.ID, p.Offset, p.Limit, !p.Cached)
+	res, err = p2p.ListPeers(scope.Context(), scope.Node(), u.ID, p.Offset, p.Limit, !p.Cached)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func (peerImpl) Info(scope scope, p *PeerInfoParams) (*config.ProfilePod, error)
 		}
 	}
 
-	profiles, err := r.Profiles().List()
+	profiles, err := r.Profiles().List(scope.Context())
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, err
@@ -246,7 +246,7 @@ func (peerImpl) Info(scope scope, p *PeerInfoParams) (*config.ProfilePod, error)
 			}
 			res = *prof
 
-			connected := scope.Node().ConnectedQriProfiles()
+			connected := scope.Node().ConnectedQriProfiles(scope.Context())
 
 			// If the requested profileID is in the list of connected peers, set Online flag.
 			if _, ok := connected[pro.ID]; ok {
@@ -320,7 +320,7 @@ func (peerImpl) ConnectedQriProfiles(scope scope, p *ConnectionsParams) ([]*conf
 		p.Offset = 0
 	}
 
-	connected := scope.Node().ConnectedQriProfiles()
+	connected := scope.Node().ConnectedQriProfiles(scope.Context())
 
 	build := make([]*config.ProfilePod, intMin(len(connected), p.Limit))
 	for _, pro := range connected {

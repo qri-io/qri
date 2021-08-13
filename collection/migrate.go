@@ -23,7 +23,7 @@ func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, s Set, r repo.Rep
 	}
 
 	// empty collection migration needs to create a set for the repo owner
-	ownerID := r.Profiles().Owner().ID
+	ownerID := r.Profiles().Owner(ctx).ID
 	if len(datasets) == 0 {
 		if ls, ok := s.(*localSet); ok {
 			ls.collections[ownerID] = []dsref.VersionInfo{}

@@ -21,7 +21,7 @@ func TestListPeers(t *testing.T) {
 	}
 
 	userID := profile.IDFromPeerID(testPeers[0].SimpleAddrInfo().ID)
-	peers, err := ListPeers(testPeers[0].(*QriNode), userID, 2, 3, false)
+	peers, err := ListPeers(ctx, testPeers[0].(*QriNode), userID, 2, 3, false)
 	if err != nil {
 		t.Error(err.Error())
 	}

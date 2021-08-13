@@ -157,7 +157,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 				t.Errorf("error listing dataset: %s", err.Error())
 			}
 			// Get number from end of peername, use that to find dataset name.
-			profile := node.Repo.Profiles().Owner()
+			profile := node.Repo.Profiles().Owner(ctx)
 			num := profile.Peername[len(profile.Peername)-1:]
 			index, _ := strconv.ParseInt(num, 10, 32)
 			expect := datasets[index]

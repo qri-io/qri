@@ -2,10 +2,11 @@ package lib
 
 import (
 	"context"
-	"github.com/ghodss/yaml"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+
+	"github.com/ghodss/yaml"
 
 	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/config"
@@ -41,7 +42,7 @@ func TestProveProfileKey(t *testing.T) {
 	}
 	repo := tr.Instance.Repo()
 	pstore := repo.Profiles()
-	err = pstore.SetOwner(pro)
+	err = pstore.SetOwner(ctx, pro)
 	if err != nil {
 		t.Fatal(err)
 	}

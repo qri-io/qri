@@ -38,7 +38,7 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := set.List(ctx, r.Profiles().Owner().ID, params.ListAll)
+	got, err := set.List(ctx, r.Profiles().Owner(ctx).ID, params.ListAll)
 	if err != nil {
 		t.Error(err)
 	}

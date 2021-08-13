@@ -103,14 +103,14 @@ func NewPrivKeyAuthToken(pk crypto.PrivKey, profileID string, ttl time.Duration)
 }
 
 // ParseAuthToken will parse, validate and return a token
-func ParseAuthToken(tokenString string, keystore key.Store) (*Token, error) {
+func ParseAuthToken(ctx context.Context, tokenString string, keystore key.Store) (*Token, error) {
 	claims := &Claims{}
 	return jwt.ParseWithClaims(tokenString, claims, func(t *Token) (interface{}, error) {
 		pid, err := peer.Decode(claims.Issuer)
 		if err != nil {
 			return nil, err
 		}
-		pubKey := keystore.PubKey(pid)
+		pubKey := keystore.PubKey(ctx, pid)
 		if pubKey == nil {
 			return nil, fmt.Errorf("cannot verify key. missing public key for id %s", claims.Issuer)
 		}

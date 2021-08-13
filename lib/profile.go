@@ -165,7 +165,7 @@ func (profileImpl) SetProfile(scope scope, p *SetProfileParams) (*config.Profile
 	if err != nil {
 		return nil, err
 	}
-	if err := r.Profiles().SetOwner(enc); err != nil {
+	if err := r.Profiles().SetOwner(scope.Context(), enc); err != nil {
 		return nil, err
 	}
 
@@ -210,7 +210,7 @@ func (profileImpl) SetProfilePhoto(scope scope, p *FileParams) (*config.ProfileP
 	pro.Photo = path
 	pro.Thumb = path
 
-	if err := scope.Profiles().SetOwner(pro); err != nil {
+	if err := scope.Profiles().SetOwner(scope.Context(), pro); err != nil {
 		return nil, err
 	}
 
@@ -243,7 +243,7 @@ func (profileImpl) SetPosterPhoto(scope scope, p *FileParams) (*config.ProfilePo
 
 	pro := scope.ActiveProfile()
 	pro.Poster = path
-	if err := scope.Profiles().SetOwner(pro); err != nil {
+	if err := scope.Profiles().SetOwner(scope.Context(), pro); err != nil {
 		return nil, err
 	}
 

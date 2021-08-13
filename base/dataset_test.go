@@ -37,7 +37,7 @@ func TestListDatasets(t *testing.T) {
 		t.Error("expected no published datasets")
 	}
 
-	if err := SetPublishStatus(ctx, r, r.Profiles().Owner(), ref, true); err != nil {
+	if err := SetPublishStatus(ctx, r, r.Profiles().Owner(ctx), ref, true); err != nil {
 		t.Fatal(err)
 	}
 

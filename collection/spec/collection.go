@@ -405,7 +405,6 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
 	})
 
-
 	t.Run("user_3_pull_dataset", func(t *testing.T) {
 		muppetNamesInitID := "initID"
 		muppetNamesName1 := "muppet_names"

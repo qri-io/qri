@@ -13,9 +13,9 @@ import (
 )
 
 func TestInAuthorNamespace(t *testing.T) {
-	r := newTestRepo(t)
-	author := r.Profiles().Owner()
 	ctx := context.Background()
+	r := newTestRepo(t)
+	author := r.Profiles().Owner(ctx)
 	ref := addCitiesDataset(t, r)
 
 	if !InAuthorNamespace(ctx, author, ref) {
@@ -37,7 +37,7 @@ func TestSetPublishStatus(t *testing.T) {
 	r := newTestRepo(t)
 	ctx := context.Background()
 	ref := addCitiesDataset(t, r)
-	author := r.Profiles().Owner()
+	author := r.Profiles().Owner(ctx)
 
 	if err := SetPublishStatus(ctx, r, author, ref, true); err != nil {
 		t.Error(err)
@@ -72,7 +72,7 @@ func TestSetPublishStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r.Profiles().PutProfile(&profile.Profile{ID: profile.IDB58DecodeOrEmpty(outside.ProfileID), Peername: outside.Username})
+	r.Profiles().PutProfile(ctx, &profile.Profile{ID: profile.IDB58DecodeOrEmpty(outside.ProfileID), Peername: outside.Username})
 
 	if err := SetPublishStatus(ctx, r, author, outside, true); err == nil {
 		t.Error("expected setting the publish status of a name outside peer's namespace to fail")

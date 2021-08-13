@@ -201,7 +201,7 @@ func updateConfig(scope scope, pro *registry.Profile) error {
 		}
 	}
 
-	if err := scope.Profiles().SetOwner(repoPro); err != nil {
+	if err := scope.Profiles().SetOwner(scope.Context(), repoPro); err != nil {
 		return err
 	}
 

@@ -77,7 +77,7 @@ func addCitiesDataset(t *testing.T, r repo.Repo) dsref.Ref {
 		t.Fatal(err.Error())
 	}
 
-	ds, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ds, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(ctx), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -97,7 +97,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) dsref.Ref {
 		t.Fatal(err.Error())
 	}
 
-	pro := r.Profiles().Owner()
+	pro := r.Profiles().Owner(ctx)
 	ref, err := repo.GetVersionInfoShim(r, dsref.Ref{Username: pro.Peername, Name: tc.Name})
 	if err != nil {
 		t.Fatal(err)
@@ -117,7 +117,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) dsref.Ref {
 		tc.Input.PreviousPath = ""
 	}()
 
-	res, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	res, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(ctx), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -131,7 +131,7 @@ func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) dsref.Ref {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(ctx), tc.Input, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -169,7 +169,7 @@ def transform(ds, ctx):
 	readme := "# Oh hey there!\nI'm a readme! hello!\n"
 	ds.Readme.SetScriptFile(qfs.NewMemfileBytes("readme.md", []byte(readme)))
 
-	saved, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), ds, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	saved, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(ctx), ds, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -236,7 +236,7 @@ The dataset also includes turnstile counts for the PATH train system and the Roo
 Versions prior to QmPkGqJ318gcok69Noj3gw3coby8FDrab3x1hBisFcU3Yq were built with a pipeline that had a major error, causing inaccurate numbers near the transition between weekly input files.`
 	ds.Readme.SetScriptFile(qfs.NewMemfileBytes("readme.md", []byte(readme)))
 
-	ref, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(), ds, nil, SaveSwitches{Pin: true, ShouldRender: true})
+	ref, err := CreateDataset(ctx, r, r.Filesystem().DefaultWriteFS(), r.Profiles().Owner(ctx), ds, nil, SaveSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
