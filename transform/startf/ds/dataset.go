@@ -39,19 +39,12 @@ func LoadModule() (starlark.StringDict, error) {
 	return datasetModule, nil
 }
 
-// MutateFieldCheck is a function to check if a dataset field can be mutated
-// before mutating a field, dataset will call MutateFieldCheck with as specific
-// a path as possible and bail if an error is returned
-type MutateFieldCheck func(path ...string) error
-
 // Dataset is a qri dataset starlark type
 type Dataset struct {
 	frozen    bool
-	read      *dataset.Dataset
-	write     *dataset.Dataset
+	ds        *dataset.Dataset
 	bodyCache starlark.Iterable
-	check     MutateFieldCheck
-	modBody   bool
+	changes   map[string]bool
 }
 
 // compile-time interface assertions
@@ -72,14 +65,19 @@ var dsMethods = map[string]*starlark.Builtin{
 
 // NewDataset creates a dataset object, intended to be called from go-land to prepare datasets
 // for handing to other functions
-func NewDataset(ds *dataset.Dataset, check MutateFieldCheck) *Dataset {
-	return &Dataset{read: ds, check: check}
+func NewDataset(ds *dataset.Dataset) *Dataset {
+	return &Dataset{ds: ds, changes: make(map[string]bool)}
 }
 
 // New creates a new dataset from starlark land
 func New(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	d := &Dataset{read: &dataset.Dataset{}, write: &dataset.Dataset{}}
+	d := &Dataset{ds: &dataset.Dataset{}, changes: make(map[string]bool)}
 	return d, nil
+}
+
+// Changes returns a map of which components have been changed
+func (d *Dataset) Changes() map[string]bool {
+	return d.changes
 }
 
 // String returns the Dataset as a string
@@ -113,24 +111,6 @@ func (d *Dataset) AttrNames() []string {
 	return builtinAttrNames(dsMethods)
 }
 
-// SetMutable assigns an underlying dataset that can be mutated
-func (d *Dataset) SetMutable(ds *dataset.Dataset) {
-	d.write = ds
-}
-
-// IsBodyModified returns whether the body has been modified by set_body
-func (d *Dataset) IsBodyModified() bool {
-	return d.modBody
-}
-
-// checkCanMutateField runs the check function if one is defined
-func (d *Dataset) checkCanMutateField(path ...string) error {
-	if d.check != nil {
-		return d.check(path...)
-	}
-	return nil
-}
-
 func (d *Dataset) stringify() string {
 	// TODO(dustmop): Improve the stringification of a Dataset
 	return "<Dataset>"
@@ -158,11 +138,8 @@ func dsGetMeta(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 	self := b.Receiver().(*Dataset)
 
 	var provider *dataset.Meta
-	if self.read != nil && self.read.Meta != nil {
-		provider = self.read.Meta
-	}
-	if self.write != nil && self.write.Meta != nil {
-		provider = self.write.Meta
+	if self.ds != nil && self.ds.Meta != nil {
+		provider = self.ds.Meta
 	}
 
 	if provider == nil {
@@ -196,26 +173,20 @@ func dsSetMeta(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 	if self.frozen {
 		return starlark.None, fmt.Errorf("cannot call set_meta on frozen dataset")
 	}
-	if self.write == nil {
-		return starlark.None, fmt.Errorf("cannot call set_meta on read-only dataset")
-	}
+	self.changes["md"] = true
 
 	key := keyx.GoString()
-
-	if err := self.checkCanMutateField("meta", "key"); err != nil {
-		return starlark.None, err
-	}
 
 	val, err := util.Unmarshal(valx)
 	if err != nil {
 		return nil, err
 	}
 
-	if self.write.Meta == nil {
-		self.write.Meta = &dataset.Meta{}
+	if self.ds.Meta == nil {
+		self.ds.Meta = &dataset.Meta{}
 	}
 
-	return starlark.None, self.write.Meta.Set(key, val)
+	return starlark.None, self.ds.Meta.Set(key, val)
 }
 
 // dsGetStructure gets a dataset structure component
@@ -223,11 +194,8 @@ func dsGetStructure(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	self := b.Receiver().(*Dataset)
 
 	var provider *dataset.Structure
-	if self.read != nil && self.read.Structure != nil {
-		provider = self.read.Structure
-	}
-	if self.write != nil && self.write.Structure != nil {
-		provider = self.write.Structure
+	if self.ds != nil && self.ds.Structure != nil {
+		provider = self.ds.Structure
 	}
 
 	if provider == nil {
@@ -259,21 +227,15 @@ func dsSetStructure(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	if self.frozen {
 		return starlark.None, fmt.Errorf("cannot call set_structure on frozen dataset")
 	}
-	if self.write == nil {
-		return starlark.None, fmt.Errorf("cannot call set_structure on read-only dataset")
-	}
-
-	if err := self.checkCanMutateField("structure"); err != nil {
-		return starlark.None, err
-	}
+	self.changes["st"] = true
 
 	val, err := util.Unmarshal(valx)
 	if err != nil {
 		return starlark.None, err
 	}
 
-	if self.write.Structure == nil {
-		self.write.Structure = &dataset.Structure{}
+	if self.ds.Structure == nil {
+		self.ds.Structure = &dataset.Structure{}
 	}
 
 	data, err := json.Marshal(val)
@@ -281,7 +243,7 @@ func dsSetStructure(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 		return starlark.None, err
 	}
 
-	err = json.Unmarshal(data, self.write.Structure)
+	err = json.Unmarshal(data, self.ds.Structure)
 	return starlark.None, err
 }
 
@@ -300,11 +262,8 @@ func dsGetBody(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 	}
 
 	var provider *dataset.Dataset
-	if self.read != nil {
-		provider = self.read
-	}
-	if self.modBody && self.write != nil {
-		provider = self.write
+	if self.ds != nil {
+		provider = self.ds
 	}
 
 	if provider.BodyFile() == nil {
@@ -360,19 +319,10 @@ func dsSetBody(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 		return starlark.None, err
 	}
 	self := b.Receiver().(*Dataset)
+	self.changes["bd"] = true
 
 	if self.frozen {
 		return starlark.None, fmt.Errorf("cannot call set_body on frozen dataset")
-	}
-	if self.write == nil {
-		return starlark.None, fmt.Errorf("cannot call set_body on read-only dataset")
-	}
-	if err := self.checkCanMutateField("body"); err != nil {
-		return starlark.None, err
-	}
-	if err := self.checkCanMutateField("structure"); err != nil {
-		err = fmt.Errorf("cannot use a transform to set the body of a dataset and manually adjust structure at the same time")
-		return starlark.None, err
 	}
 
 	if df := parseAs.GoString(); df != "" {
@@ -385,11 +335,10 @@ func dsSetBody(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 			return starlark.None, fmt.Errorf("expected data for %q format to be a string", df)
 		}
 
-		self.write.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", df), []byte(string(str))))
-		self.modBody = true
+		self.ds.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", df), []byte(string(str))))
 		self.bodyCache = nil
 
-		if err := detect.Structure(self.write); err != nil {
+		if err := detect.Structure(self.ds); err != nil {
 			return nil, err
 		}
 
@@ -401,13 +350,13 @@ func dsSetBody(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 		return starlark.None, fmt.Errorf("expected body data to be iterable")
 	}
 
-	self.write.Structure = self.writeStructure(data)
+	self.ds.Structure = self.writeStructure(data)
 
-	w, err := dsio.NewEntryBuffer(self.write.Structure)
+	w, err := dsio.NewEntryBuffer(self.ds.Structure)
 	if err != nil {
 		return starlark.None, err
 	}
-	r := NewEntryReader(self.write.Structure, iter)
+	r := NewEntryReader(self.ds.Structure, iter)
 	if err := dsio.Copy(r, w); err != nil {
 		return starlark.None, err
 	}
@@ -415,8 +364,7 @@ func dsSetBody(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 		return starlark.None, err
 	}
 
-	self.write.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", self.write.Structure.Format), w.Bytes()))
-	self.modBody = true
+	self.ds.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", self.ds.Structure.Format), w.Bytes()))
 	self.bodyCache = nil
 
 	return starlark.None, nil
@@ -426,14 +374,9 @@ func dsSetBody(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 // dataset body, falling back to a default json structure based on input values
 // if no prior structure exists
 func (d *Dataset) writeStructure(data starlark.Value) *dataset.Structure {
-	// if the write structure has been set, use that
-	if d.write != nil && d.write.Structure != nil {
-		return d.write.Structure
-	}
-
 	// fall back to inheriting from read structure
-	if d.read != nil && d.read.Structure != nil {
-		return d.read.Structure
+	if d.ds != nil && d.ds.Structure != nil {
+		return d.ds.Structure
 	}
 
 	// use a default of json as a last resort

@@ -1136,7 +1136,7 @@ func TestSaveTransformConflictWithBody(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error trying to save, did not get an error")
 	}
-	expectContains := "transform script and user-supplied dataset are both trying to set:\n  body"
+	expectContains := "transform script and user-supplied dataset are both trying to set body"
 	if !strings.Contains(err.Error(), expectContains) {
 		t.Errorf("expected error to contain %q, but got %s", expectContains, err.Error())
 	}
@@ -1154,7 +1154,7 @@ func TestSaveTransformConflictWithMeta(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error trying to save, did not get an error")
 	}
-	expectContains := "transform script and user-supplied dataset are both trying to set:\n  meta"
+	expectContains := "transform script and user-supplied dataset are both trying to set meta"
 	if !strings.Contains(err.Error(), expectContains) {
 		t.Errorf("expected error to contain %q, but got %s", expectContains, err.Error())
 	}

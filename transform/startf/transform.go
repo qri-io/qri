@@ -44,14 +44,14 @@ type ExecOpts struct {
 	Secrets map[string]interface{}
 	// global values to pass for script execution
 	Globals starlark.StringDict
-	// func that errors if field specified by path is mutated
-	MutateFieldCheck func(path ...string) error
 	// provide a writer to record script "stderr" output to
 	ErrWriter io.Writer
 	// starlark module loader function
 	ModuleLoader ModuleLoader
 	// channel to send events on
 	EventsCh chan event.Event
+	// map of which components have been changed
+	ChangeList map[string]bool
 }
 
 // AddDatasetLoader is required to enable the load_dataset starlark builtin
@@ -73,13 +73,6 @@ func AddQriRepo(repo repo.Repo) func(o *ExecOpts) {
 func AddEventsChannel(eventsCh chan event.Event) func(o *ExecOpts) {
 	return func(o *ExecOpts) {
 		o.EventsCh = eventsCh
-	}
-}
-
-// AddMutateFieldCheck provides a checkFunc to ExecScript
-func AddMutateFieldCheck(check func(path ...string) error) func(o *ExecOpts) {
-	return func(o *ExecOpts) {
-		o.MutateFieldCheck = check
 	}
 }
 
@@ -108,6 +101,13 @@ func SetSecrets(secrets map[string]string) func(o *ExecOpts) {
 	}
 }
 
+// TrackChanges retains a map that tracks changes to dataset components
+func TrackChanges(changes map[string]bool) func(o *ExecOpts) {
+	return func(o *ExecOpts) {
+		o.ChangeList = changes
+	}
+}
+
 // DefaultExecOpts applies default options to an ExecOpts pointer
 func DefaultExecOpts(o *ExecOpts) {
 	o.AllowFloat = true
@@ -123,14 +123,13 @@ type transform struct {
 	dsLoader     dsref.Loader
 	repo         repo.Repo
 	eventsCh     chan event.Event
-	next         *dataset.Dataset
-	prev         *dataset.Dataset
+	target       *dataset.Dataset
 	skyqri       *skyqri.Module
-	checkFunc    func(path ...string) error
 	globals      starlark.StringDict
 	bodyFile     qfs.File
 	stderr       io.Writer
 	moduleLoader ModuleLoader
+	changeList   map[string]bool
 
 	download starlark.Iterable
 }
@@ -143,20 +142,24 @@ var DefaultModuleLoader = func(thread *starlark.Thread, module string) (dict sta
 	return starlib.Loader(thread, module)
 }
 
-// ExecScript executes a transformation against a starlark script file. The next dataset pointer
-// may be modified, while the prev dataset point is read-only. At a bare minimum this function
-// will set transformation details, but starlark scripts can modify many parts of the dataset
-// pointer, including meta, structure, and transform. opts may provide more ways for output to
-// be produced from this function.
-func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o *ExecOpts)) error {
+// ExecScript executes a transformation against a starlark script file. The
+// target dataset has the previous version, if it exists, and may be mutated
+// with new data from the script. At a bare minimum this function will set
+// transformation details, but starlark scripts can modify many parts of the
+// dataset, including meta, structure, and transform. opts may provide more
+// ways for output to be produced from this function.
+func ExecScript(ctx context.Context, target *dataset.Dataset, opts ...func(o *ExecOpts)) error {
 	var err error
-	if next.Transform == nil || next.Transform.ScriptFile() == nil {
+	if target.Transform == nil || target.Transform.ScriptFile() == nil {
 		return fmt.Errorf("no script to execute")
 	}
 
 	o := &ExecOpts{}
 	DefaultExecOpts(o)
 	for _, opt := range opts {
+		if opt == nil {
+			return fmt.Errorf("nil option passed to ExecScript")
+		}
 		opt(o)
 	}
 
@@ -173,10 +176,10 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 	}
 
 	// set transform details
-	next.Transform.Syntax = "starlark"
-	next.Transform.SyntaxVersion = Version
+	target.Transform.Syntax = "starlark"
+	target.Transform.SyntaxVersion = Version
 
-	script := next.Transform.ScriptFile()
+	script := target.Transform.ScriptFile()
 	// "tee" the script reader to avoid losing script data, as starlark.ExecFile
 	// reads, data will be copied to buf, which is re-set to the transform script
 	buf := &bytes.Buffer{}
@@ -187,15 +190,14 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 		ctx:          ctx,
 		dsLoader:     o.DatasetLoader,
 		eventsCh:     o.EventsCh,
-		next:         next,
-		prev:         prev,
+		target:       target,
 		skyqri:       skyqri.NewModule(o.Repo),
-		checkFunc:    o.MutateFieldCheck,
 		stderr:       o.ErrWriter,
 		moduleLoader: o.ModuleLoader,
+		changeList:   o.ChangeList,
 	}
 
-	skyCtx := skyctx.NewContext(next.Transform.Config, o.Secrets)
+	skyCtx := skyctx.NewContext(target.Transform.Config, o.Secrets)
 	thread := &starlark.Thread{Load: t.ModuleLoader}
 
 	// execute the transformation
@@ -231,7 +233,7 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 	}
 
 	// restore consumed script file
-	next.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", buf.Bytes()))
+	target.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", buf.Bytes()))
 
 	return err
 }
@@ -297,20 +299,28 @@ func callDownloadFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context
 	return starlark.Call(thread, download, starlark.Tuple{ctx.Struct()}, nil)
 }
 
-func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (err error) {
-	var transform *starlark.Function
-	if transform, err = t.globalFunc("transform"); err != nil {
+func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context) error {
+	transform, err := t.globalFunc("transform")
+	if err != nil {
 		if err == ErrNotDefined {
 			return nil
 		}
 		return err
 	}
 
-	d := skyds.NewDataset(t.prev, t.checkFunc)
-	d.SetMutable(t.next)
+	d := skyds.NewDataset(t.target)
 	if _, err = starlark.Call(thread, transform, starlark.Tuple{d, ctx.Struct()}, nil); err != nil {
 		return err
 	}
+
+	// Which components were changed
+	if t.changeList != nil {
+		changes := d.Changes()
+		for comp := range changes {
+			t.changeList[comp] = changes[comp]
+		}
+	}
+
 	return nil
 }
 
@@ -350,11 +360,11 @@ func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, ar
 		return starlark.None, err
 	}
 
-	if t.next.Transform.Resources == nil {
-		t.next.Transform.Resources = map[string]*dataset.TransformResource{}
+	if t.target.Transform.Resources == nil {
+		t.target.Transform.Resources = map[string]*dataset.TransformResource{}
 	}
 
-	t.next.Transform.Resources[ds.Path] = &dataset.TransformResource{
+	t.target.Transform.Resources[ds.Path] = &dataset.TransformResource{
 		// TODO(b5) - this should be a method on dataset.Dataset
 		// we should add an ID field to dataset, set that to the InitID, and
 		// add fields to dataset.TransformResource that effectively make it the
@@ -362,7 +372,7 @@ func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, ar
 		Path: fmt.Sprintf("%s/%s@%s", ds.Peername, ds.Name, ds.Path),
 	}
 
-	return skyds.NewDataset(ds, nil), nil
+	return skyds.NewDataset(ds), nil
 }
 
 func (t *transform) print(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -382,39 +392,4 @@ func (t *transform) print(thread *starlark.Thread, _ *starlark.Builtin, args sta
 		t.stderr.Write([]byte("\n"))
 	}
 	return starlark.None, nil
-}
-
-// MutatedComponentsFunc returns a function for checking if a field has been
-// modified. it's a kind of data structure mutual exclusion lock
-// TODO (b5) - this should be refactored & expanded
-func MutatedComponentsFunc(dsp *dataset.Dataset) func(path ...string) error {
-	components := map[string][]string{}
-	if dsp.Commit != nil {
-		components["commit"] = []string{}
-	}
-	if dsp.Transform != nil {
-		components["transform"] = []string{}
-	}
-	if dsp.Meta != nil {
-		components["meta"] = []string{}
-	}
-	if dsp.Structure != nil {
-		components["structure"] = []string{}
-	}
-	if dsp.Viz != nil {
-		components["viz"] = []string{}
-	}
-	if dsp.Body != nil || dsp.BodyBytes != nil || dsp.BodyPath != "" {
-		components["body"] = []string{}
-	}
-
-	return func(path ...string) error {
-		if len(path) > 0 && components[path[0]] != nil {
-			return fmt.Errorf(`transform script and user-supplied dataset are both trying to set:
-  %s
-
-please adjust either the transform script or remove the supplied %q`, path[0], path[0])
-		}
-		return nil
-	}
 }

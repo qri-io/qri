@@ -36,7 +36,6 @@ func TestOpts(t *testing.T) {
 	SetSecrets(map[string]string{"a": "b"})(o)
 	SetErrWriter(nil)(o)
 	AddQriRepo(nil)(o)
-	AddMutateFieldCheck(nil)(o)
 
 	expect := &ExecOpts{
 		Secrets:   map[string]interface{}{"a": "b"},
@@ -56,7 +55,7 @@ func TestExecScript(t *testing.T) {
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/tf.star"))
 
 	stderr := &bytes.Buffer{}
-	err := ExecScript(ctx, ds, nil, SetErrWriter(stderr))
+	err := ExecScript(ctx, ds, SetErrWriter(stderr))
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -104,7 +103,7 @@ func TestExecScript2(t *testing.T) {
 		Transform: &dataset.Transform{},
 	}
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/fetch.star"))
-	err := ExecScript(ctx, ds, nil, func(o *ExecOpts) {
+	err := ExecScript(ctx, ds, func(o *ExecOpts) {
 		o.Globals["test_server_url"] = starlark.String(s.URL)
 	})
 
@@ -161,7 +160,7 @@ def transform(ds, ctx):
 		Transform: &dataset.Transform{},
 	}
 	ds.Transform.SetScriptFile(scriptFile)
-	if err := ExecScript(ctx, ds, nil); err == nil {
+	if err := ExecScript(ctx, ds); err == nil {
 		t.Errorf("expected script to error. got nil")
 	}
 }
@@ -175,7 +174,7 @@ func TestLoadDataset(t *testing.T) {
 	}
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/load_ds.star"))
 
-	err := ExecScript(ctx, ds, nil, func(o *ExecOpts) {
+	err := ExecScript(ctx, ds, func(o *ExecOpts) {
 		o.Repo = r
 		o.ModuleLoader = testModuleLoader(t)
 		o.DatasetLoader = base.NewTestDatasetLoader(r.Filesystem(), r)
@@ -191,7 +190,7 @@ func TestGetMetaNilPrev(t *testing.T) {
 		Transform: &dataset.Transform{},
 	}
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/meta_title.star"))
-	err := ExecScript(ctx, ds, nil)
+	err := ExecScript(ctx, ds)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -207,15 +206,13 @@ func TestGetMetaNilPrev(t *testing.T) {
 func TestGetMetaWithPrev(t *testing.T) {
 	ctx := context.Background()
 	ds := &dataset.Dataset{
-		Transform: &dataset.Transform{},
-	}
-	ds.Transform.SetScriptFile(scriptFile(t, "testdata/meta_title.star"))
-	prev := &dataset.Dataset{
 		Meta: &dataset.Meta{
 			Title: "test_title",
 		},
+		Transform: &dataset.Transform{},
 	}
-	err := ExecScript(ctx, ds, prev)
+	ds.Transform.SetScriptFile(scriptFile(t, "testdata/meta_title.star"))
+	err := ExecScript(ctx, ds)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -226,41 +223,6 @@ func TestGetMetaWithPrev(t *testing.T) {
 	if actual != expect {
 		t.Errorf("expected: \"%s\", actual: \"%s\"", expect, actual)
 	}
-}
-
-func TestMutatedComponentsFunc(t *testing.T) {
-	ds := &dataset.Dataset{
-		Commit:    &dataset.Commit{},
-		Meta:      &dataset.Meta{},
-		Transform: &dataset.Transform{},
-		Structure: &dataset.Structure{},
-		Viz:       &dataset.Viz{},
-		Body:      []interface{}{"foo"},
-	}
-
-	fn := MutatedComponentsFunc(ds)
-
-	paths := []string{
-		"commit",
-		"meta",
-		"transform",
-		"structure",
-		"viz",
-		"body",
-	}
-	for _, p := range paths {
-		if err := fn(p); err == nil {
-			t.Errorf("expected error for path: '%s', got nil", p)
-		}
-	}
-
-	fn = MutatedComponentsFunc(&dataset.Dataset{})
-	for _, p := range paths {
-		if err := fn(p); err != nil {
-			t.Errorf("expected empty dataset to not error for path: '%s', got: %s", p, err)
-		}
-	}
-
 }
 
 func testRepo(t *testing.T) repo.Repo {

@@ -19,11 +19,11 @@ import (
 // ReadDatasetFiles reads zero or more files, each representing a dataset or component of a
 // dataset, and deserializes them, merging the results into a single dataset object. It is an
 // error to provide any combination of files whose contents overlap (modify the same component).
-func ReadDatasetFiles(pathList ...string) (*dataset.Dataset, error) {
+func ReadDatasetFiles(pathList ...string) (*dataset.Dataset, map[string]bool, error) {
 	// If there's only a single file provided, read it and return the dataset.
 	if len(pathList) == 1 {
 		ds, _, err := readSingleFile(pathList[0])
-		return ds, err
+		return ds, nil, err
 	}
 
 	// If there's multiple files provided, read each one and merge them. Any exclusive
@@ -33,21 +33,21 @@ func ReadDatasetFiles(pathList ...string) (*dataset.Dataset, error) {
 	for _, p := range pathList {
 		component, kind, err := readSingleFile(p)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if kind == "zip" || kind == "ds" {
-			return nil, fmt.Errorf("conflict, cannot save a full dataset with other components")
+			return nil, nil, fmt.Errorf("conflict, cannot save a full dataset with other components")
 		}
 		if _, ok := foundKinds[kind]; ok {
-			return nil, fmt.Errorf("conflict, multiple components of kind \"%s\"", kind)
+			return nil, nil, fmt.Errorf("conflict, multiple components of kind \"%s\"", kind)
 		}
 		foundKinds[kind] = true
 
 		ds.Assign(component)
 	}
 
-	return &ds, nil
+	return &ds, foundKinds, nil
 }
 
 // readSingleFile reads a single file, either a full dataset or component, and returns it as
@@ -193,6 +193,28 @@ func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *data
 	}
 	absDatasetPaths(path, ds)
 	return kind, nil
+}
+
+// convert a short name, like "md", to the component name, like "meta"
+func shortNameToComponent(short string) string {
+	switch short {
+	case "rm":
+		return "readme"
+	case "md":
+		return "meta"
+	case "cm":
+		return "commit"
+	case "st":
+		return "structure"
+	case "tf":
+		return "transform"
+	case "bd":
+		return "body"
+	case "ds":
+		return "dataset"
+	default:
+		return short
+	}
 }
 
 // absDatasetPaths converts any relative filepath references in a Dataset to
