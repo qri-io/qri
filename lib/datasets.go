@@ -837,6 +837,8 @@ func (datasetImpl) Activity(scope scope, params *ActivityParams) ([]dsref.Versio
 		params.Offset = 0
 	}
 
+	log.Debugf("Activity start params: %+v", params)
+
 	if params.Pull && scope.SourceName() != "network" {
 		return nil, fmt.Errorf("cannot pull without using network source")
 	}
@@ -846,15 +848,22 @@ func (datasetImpl) Activity(scope scope, params *ActivityParams) ([]dsref.Versio
 		return nil, err
 	}
 
+	log.Debugf("Activity resolved ref: %s", ref)
+
 	if location == "" {
+		log.Debugf("Activity local resolution")
 		// local resolution
 		return base.DatasetLog(scope.Context(), scope.Repo(), ref, params.Limit, params.Offset, true)
 	}
+
+	log.Debugf("Activity fetch logs")
 
 	logs, err := scope.RemoteClient().FetchLogs(scope.Context(), ref, location)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debugf("Activity parse logs")
 
 	// TODO (b5) - FetchLogs currently returns oplogs arranged in user > dataset > branch
 	// hierarchy, and we need to descend to the branch oplog to get commit history
@@ -867,11 +876,15 @@ func (datasetImpl) Activity(scope scope, params *ActivityParams) ([]dsref.Versio
 		}
 	}
 
+	log.Debugf("Activity convert logs to VI")
+
 	items := logbook.ConvertLogsToVersionInfos(logs, ref)
 	log.Debugf("found %d items: %v", len(items), items)
 	if len(items) == 0 {
 		return nil, repo.ErrNoHistory
 	}
+
+	log.Debugf("Activity fill in VI")
 
 	for i, item := range items {
 		local, hasErr := scope.Filesystem().Has(scope.Context(), item.Path)
