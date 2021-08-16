@@ -940,24 +940,19 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		},
 	})
 
-	var manualChanges map[string]bool
-
 	if len(p.FilePaths) > 0 {
 		// TODO (b5): handle this with a qfs.Filesystem
-		dsf, changes, err := ReadDatasetFiles(p.FilePaths...)
+		dsf, err := ReadDatasetFiles(p.FilePaths...)
 		if err != nil {
 			return nil, err
 		}
 		dsf.Assign(ds)
 		ds = dsf
-		manualChanges = changes
 	}
 
-	if p.BodyPath != "" {
-		if manualChanges == nil {
-			manualChanges = make(map[string]bool)
-		}
-		manualChanges["bd"] = true
+	manualChanges := make(map[string]struct{})
+	for comp := range ds.PathMap("dataset") {
+		manualChanges[comp] = struct{}{}
 	}
 
 	if p.Ref == "" && ds.Name != "" {
@@ -1088,9 +1083,9 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		// sure they don't conflict
 		if manualChanges != nil {
 			changes := transformer.Changes()
-			for comp, modified := range changes {
-				if modified && manualChanges[comp] {
-					return nil, fmt.Errorf("transform script and user-supplied dataset are both trying to set %s", shortNameToComponent(comp))
+			for comp := range changes {
+				if _, found := manualChanges[comp]; found {
+					return nil, fmt.Errorf("transform script and user-supplied dataset are both trying to set %s", comp)
 				}
 			}
 		}

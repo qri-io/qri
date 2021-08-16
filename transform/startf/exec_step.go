@@ -24,14 +24,14 @@ var log = golog.Logger("startf")
 
 // StepRunner is able to run individual transform steps
 type StepRunner struct {
-	starCtx    *starctx.Context
-	dsLoader   dsref.Loader
-	target     *dataset.Dataset
-	globals    starlark.StringDict
-	bodyFile   qfs.File
-	eventsCh   chan event.Event
-	thread     *starlark.Thread
-	changeList map[string]bool
+	starCtx   *starctx.Context
+	dsLoader  dsref.Loader
+	target    *dataset.Dataset
+	globals   starlark.StringDict
+	bodyFile  qfs.File
+	eventsCh  chan event.Event
+	thread    *starlark.Thread
+	changeSet map[string]struct{}
 
 	download starlark.Iterable
 }
@@ -62,13 +62,13 @@ func NewStepRunner(target *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunn
 	starCtx := starctx.NewContext(nil, o.Secrets)
 
 	r := &StepRunner{
-		starCtx:    starCtx,
-		dsLoader:   o.DatasetLoader,
-		eventsCh:   o.EventsCh,
-		target:     target,
-		thread:     thread,
-		globals:    starlark.StringDict{},
-		changeList: o.ChangeList,
+		starCtx:   starCtx,
+		dsLoader:  o.DatasetLoader,
+		eventsCh:  o.EventsCh,
+		target:    target,
+		thread:    thread,
+		globals:   starlark.StringDict{},
+		changeSet: o.ChangeSet,
 	}
 
 	return r
@@ -157,10 +157,10 @@ func (r *StepRunner) callTransformFunc(ctx context.Context, thread *starlark.Thr
 	}
 
 	// Which components were changed
-	if r.changeList != nil {
+	if r.changeSet != nil {
 		changes := d.Changes()
 		for comp := range changes {
-			r.changeList[comp] = changes[comp]
+			r.changeSet[comp] = changes[comp]
 		}
 	}
 

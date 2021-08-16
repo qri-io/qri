@@ -44,7 +44,7 @@ type Dataset struct {
 	frozen    bool
 	ds        *dataset.Dataset
 	bodyCache starlark.Iterable
-	changes   map[string]bool
+	changes   map[string]struct{}
 }
 
 // compile-time interface assertions
@@ -66,17 +66,17 @@ var dsMethods = map[string]*starlark.Builtin{
 // NewDataset creates a dataset object, intended to be called from go-land to prepare datasets
 // for handing to other functions
 func NewDataset(ds *dataset.Dataset) *Dataset {
-	return &Dataset{ds: ds, changes: make(map[string]bool)}
+	return &Dataset{ds: ds, changes: make(map[string]struct{})}
 }
 
 // New creates a new dataset from starlark land
 func New(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	d := &Dataset{ds: &dataset.Dataset{}, changes: make(map[string]bool)}
+	d := &Dataset{ds: &dataset.Dataset{}, changes: make(map[string]struct{})}
 	return d, nil
 }
 
 // Changes returns a map of which components have been changed
-func (d *Dataset) Changes() map[string]bool {
+func (d *Dataset) Changes() map[string]struct{} {
 	return d.changes
 }
 
@@ -173,7 +173,7 @@ func dsSetMeta(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 	if self.frozen {
 		return starlark.None, fmt.Errorf("cannot call set_meta on frozen dataset")
 	}
-	self.changes["md"] = true
+	self.changes["meta"] = struct{}{}
 
 	key := keyx.GoString()
 
@@ -227,7 +227,7 @@ func dsSetStructure(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	if self.frozen {
 		return starlark.None, fmt.Errorf("cannot call set_structure on frozen dataset")
 	}
-	self.changes["st"] = true
+	self.changes["structure"] = struct{}{}
 
 	val, err := util.Unmarshal(valx)
 	if err != nil {
@@ -319,7 +319,7 @@ func dsSetBody(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 		return starlark.None, err
 	}
 	self := b.Receiver().(*Dataset)
-	self.changes["bd"] = true
+	self.changes["body"] = struct{}{}
 
 	if self.frozen {
 		return starlark.None, fmt.Errorf("cannot call set_body on frozen dataset")

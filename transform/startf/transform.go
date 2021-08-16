@@ -50,8 +50,8 @@ type ExecOpts struct {
 	ModuleLoader ModuleLoader
 	// channel to send events on
 	EventsCh chan event.Event
-	// map of which components have been changed
-	ChangeList map[string]bool
+	// map containing components that have been changed
+	ChangeSet map[string]struct{}
 }
 
 // AddDatasetLoader is required to enable the load_dataset starlark builtin
@@ -102,9 +102,9 @@ func SetSecrets(secrets map[string]string) func(o *ExecOpts) {
 }
 
 // TrackChanges retains a map that tracks changes to dataset components
-func TrackChanges(changes map[string]bool) func(o *ExecOpts) {
+func TrackChanges(changes map[string]struct{}) func(o *ExecOpts) {
 	return func(o *ExecOpts) {
-		o.ChangeList = changes
+		o.ChangeSet = changes
 	}
 }
 
@@ -129,7 +129,7 @@ type transform struct {
 	bodyFile     qfs.File
 	stderr       io.Writer
 	moduleLoader ModuleLoader
-	changeList   map[string]bool
+	changeSet    map[string]struct{}
 
 	download starlark.Iterable
 }
@@ -194,7 +194,7 @@ func ExecScript(ctx context.Context, target *dataset.Dataset, opts ...func(o *Ex
 		skyqri:       skyqri.NewModule(o.Repo),
 		stderr:       o.ErrWriter,
 		moduleLoader: o.ModuleLoader,
-		changeList:   o.ChangeList,
+		changeSet:    o.ChangeSet,
 	}
 
 	skyCtx := skyctx.NewContext(target.Transform.Config, o.Secrets)
@@ -314,10 +314,10 @@ func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Contex
 	}
 
 	// Which components were changed
-	if t.changeList != nil {
+	if t.changeSet != nil {
 		changes := d.Changes()
 		for comp := range changes {
-			t.changeList[comp] = changes[comp]
+			t.changeSet[comp] = changes[comp]
 		}
 	}
 

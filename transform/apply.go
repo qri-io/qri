@@ -41,7 +41,7 @@ type Transformer struct {
 	appCtx  context.Context
 	loader  dsref.Loader
 	pub     event.Publisher
-	changes map[string]bool
+	changes map[string]struct{}
 }
 
 // NewTransformer returns a new transformer
@@ -54,7 +54,7 @@ func NewTransformer(appCtx context.Context, loader dsref.Loader, pub event.Publi
 }
 
 // Apply applies the transform script to a target dataset
-func (t* Transformer) Apply(
+func (t *Transformer) Apply(
 	ctx context.Context,
 	target *dataset.Dataset,
 	runID string,
@@ -98,7 +98,7 @@ func (t* Transformer) Apply(
 		target.Assign(head)
 	}
 
-	t.changes = make(map[string]bool)
+	t.changes = make(map[string]struct{})
 	eventsCh := make(chan event.Event)
 
 	opts := []func(*startf.ExecOpts){
@@ -251,7 +251,7 @@ func (t* Transformer) Apply(
 }
 
 // Changes returns which components were changed by the most recent application
-func (t* Transformer) Changes() map[string]bool {
+func (t *Transformer) Changes() map[string]struct{} {
 	return t.changes
 }
 
