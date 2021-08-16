@@ -38,9 +38,10 @@ const (
 
 // Transformer holds dependencies needed for applying a transform
 type Transformer struct {
-	appCtx context.Context
-	loader dsref.Loader
-	pub    event.Publisher
+	appCtx  context.Context
+	loader  dsref.Loader
+	pub     event.Publisher
+	changes map[string]struct{}
 }
 
 // NewTransformer returns a new transformer
@@ -53,7 +54,7 @@ func NewTransformer(appCtx context.Context, loader dsref.Loader, pub event.Publi
 }
 
 // Apply applies the transform script to a target dataset
-func (t Transformer) Apply(
+func (t *Transformer) Apply(
 	ctx context.Context,
 	target *dataset.Dataset,
 	runID string,
@@ -62,11 +63,6 @@ func (t Transformer) Apply(
 	secrets map[string]string,
 ) error {
 	log.Debugw("applying transform", "runID", runID, "wait", wait)
-
-	var (
-		head *dataset.Dataset
-		err  error
-	)
 
 	if target.Transform == nil {
 		return errors.New("apply requires a transform component")
@@ -79,7 +75,7 @@ func (t Transformer) Apply(
 	}
 
 	if target.Name != "" {
-		head, err = t.loader.LoadDataset(ctx, fmt.Sprintf("%s/%s", target.Peername, target.Name))
+		head, err := t.loader.LoadDataset(ctx, fmt.Sprintf("%s/%s", target.Peername, target.Name))
 		if errors.Is(err, dsref.ErrRefNotFound) || errors.Is(err, dsref.ErrNoHistory) {
 			// Dataset either does not exist yet, or has no history. Not an error
 			head = &dataset.Dataset{}
@@ -87,20 +83,30 @@ func (t Transformer) Apply(
 		} else if err != nil {
 			return err
 		}
+
+		head.DropTransientValues()
+		head.DropDerivedValues()
+		head.ID = ""
+		head.Commit = nil
+		// Assign target to head first, to copy values being assigned to
+		// the target dataset, such as manual changes (added with the --file
+		// command-line flag) and the transform itself
+		head.Assign(target)
+		// Then assign back to target, so that we end up using the same object
+		// in memory. This sequence of assignments is basically doing:
+		// target.AssignFieldsThatAreNotAlreadySetFrom(head)
+		target.Assign(head)
 	}
 
+	t.changes = make(map[string]struct{})
 	eventsCh := make(chan event.Event)
 
-	// create a check func from a record of all the parts that the datasetPod is changing,
-	// the startf package will use this function to ensure the same components aren't modified
-	mutateCheck := startf.MutatedComponentsFunc(target)
-
 	opts := []func(*startf.ExecOpts){
-		startf.AddMutateFieldCheck(mutateCheck),
 		startf.SetErrWriter(scriptOut),
 		startf.SetSecrets(secrets),
 		startf.AddDatasetLoader(t.loader),
 		startf.AddEventsChannel(eventsCh),
+		startf.TrackChanges(t.changes),
 	}
 
 	doneCh := make(chan error)
@@ -146,7 +152,7 @@ func (t Transformer) Apply(
 
 		// Single-file transform scripts do not have steps, should be executed all at once.
 		if len(target.Transform.Steps) == 0 {
-			runErr = startf.ExecScript(ctx, target, head, opts...)
+			runErr = startf.ExecScript(ctx, target, opts...)
 			if runErr != nil {
 				status = StatusFailed
 				eventsCh <- event.Event{
@@ -169,7 +175,7 @@ func (t Transformer) Apply(
 		}
 
 		// Run each step using a StepRunner
-		stepRunner := startf.NewStepRunner(head, opts...)
+		stepRunner := startf.NewStepRunner(target, opts...)
 		for i, step := range target.Transform.Steps {
 			// If the transform has failed at some step, emit skip events for remaining steps.
 			if status != StatusSucceeded {
@@ -241,8 +247,12 @@ func (t Transformer) Apply(
 		doneCh <- runErr
 	}()
 
-	err = <-doneCh
-	return err
+	return <-doneCh
+}
+
+// Changes returns which components were changed by the most recent application
+func (t *Transformer) Changes() map[string]struct{} {
+	return t.changes
 }
 
 // scriptLen returns the length of the script string, -1 if the script is not

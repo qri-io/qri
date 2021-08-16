@@ -1,7 +1,6 @@
 package ds
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 
@@ -21,71 +20,17 @@ func callMethod(thread *starlark.Thread, v starlark.HasAttrs, name string, tuple
 	return starlark.Call(thread, method, tuple, nil)
 }
 
-func TestCheckFields(t *testing.T) {
-	fieldErr := fmt.Errorf("can't mutate this field")
-	allErrCheck := func(fields ...string) error {
-		return fieldErr
-	}
-	ds := NewDataset(nil, allErrCheck)
-	ds.SetMutable(&dataset.Dataset{})
-	thread := &starlark.Thread{}
-
-	if _, err := callMethod(thread, ds, "set_body", starlark.Tuple{starlark.String("data")}); !errors.Is(err, fieldErr) {
-		t.Errorf("expected fieldErr, got: %s", err)
-	}
-
-	if _, err := callMethod(thread, ds, "set_meta", starlark.Tuple{starlark.String("key"), starlark.String("value")}); !errors.Is(err, fieldErr) {
-		t.Errorf("expected fieldErr, got: %s", err)
-	}
-
-	if _, err := callMethod(thread, ds, "set_structure", starlark.Tuple{starlark.String("wut")}); !errors.Is(err, fieldErr) {
-		t.Errorf("expected fieldErr, got: %s", err)
-	}
-}
-
 func TestCannotSetIfReadOnly(t *testing.T) {
-	ds := NewDataset(&dataset.Dataset{}, nil)
+	ds := NewDataset(&dataset.Dataset{})
+	ds.Freeze()
 	thread := &starlark.Thread{}
-	expect := "cannot call set_body on read-only dataset"
+	expect := "cannot call set_body on frozen dataset"
 	_, err := callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
+	if err == nil {
+		t.Fatal("expected error, did not get one")
+	}
 	if err.Error() != expect {
 		t.Errorf("expected error: %s, got: %s", expect, err)
-	}
-	if ds.IsBodyModified() {
-		t.Errorf("expected body to not have been modified")
-	}
-}
-
-func TestSetMutable(t *testing.T) {
-	ds := NewDataset(&dataset.Dataset{
-		Structure: &dataset.Structure{
-			Format: "json",
-			Schema: dataset.BaseSchemaArray,
-		},
-	}, nil)
-	ds.SetMutable(&dataset.Dataset{
-		Structure: &dataset.Structure{
-			Format: "json",
-			Schema: dataset.BaseSchemaArray,
-		},
-	})
-	thread := &starlark.Thread{}
-
-	_, err := callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
-	if err != nil {
-		t.Error(err)
-	}
-	if !ds.IsBodyModified() {
-		t.Errorf("expected body to have been modified")
-	}
-
-	body, err := callMethod(thread, ds, "get_body", starlark.Tuple{})
-	if err != nil {
-		t.Error(err)
-	}
-	expect := `["a"]`
-	if fmt.Sprintf("%s", body) != expect {
-		t.Errorf("expected body: %s, got: %s", expect, body)
 	}
 }
 
@@ -98,14 +43,7 @@ func TestChangeBody(t *testing.T) {
 		},
 	}
 	prev.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[\"b\"]")))
-	ds := NewDataset(prev, nil)
-	// Next version has no body yet
-	ds.SetMutable(&dataset.Dataset{
-		Structure: &dataset.Structure{
-			Format: "json",
-			Schema: dataset.BaseSchemaArray,
-		},
-	})
+	ds := NewDataset(prev)
 	thread := &starlark.Thread{}
 
 	body, err := callMethod(thread, ds, "get_body", starlark.Tuple{})
@@ -120,9 +58,6 @@ func TestChangeBody(t *testing.T) {
 	_, err = callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
 	if err != nil {
 		t.Error(err)
-	}
-	if !ds.IsBodyModified() {
-		t.Errorf("expected body to have been modified")
 	}
 
 	body, err = callMethod(thread, ds, "get_body", starlark.Tuple{})
@@ -144,14 +79,7 @@ func TestChangeBodyEvenIfTheSame(t *testing.T) {
 		},
 	}
 	prev.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[\"a\"]")))
-	ds := NewDataset(prev, nil)
-	// Next version has no body yet
-	ds.SetMutable(&dataset.Dataset{
-		Structure: &dataset.Structure{
-			Format: "json",
-			Schema: dataset.BaseSchemaArray,
-		},
-	})
+	ds := NewDataset(prev)
 	thread := &starlark.Thread{}
 
 	body, err := callMethod(thread, ds, "get_body", starlark.Tuple{})
@@ -166,9 +94,6 @@ func TestChangeBodyEvenIfTheSame(t *testing.T) {
 	_, err = callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
 	if err != nil {
 		t.Error(err)
-	}
-	if !ds.IsBodyModified() {
-		t.Errorf("expected body to have been modified")
 	}
 
 	body, err = callMethod(thread, ds, "get_body", starlark.Tuple{})
@@ -231,9 +156,6 @@ bat,3,meh
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.csv", []byte(text)))
 
-	d := NewDataset(ds, nil)
-	d.SetMutable(&dataset.Dataset{
-		Structure: ds.Structure,
-	})
+	d := NewDataset(ds)
 	return d
 }

@@ -26,18 +26,18 @@ var log = golog.Logger("startf")
 type StepRunner struct {
 	starCtx   *starctx.Context
 	dsLoader  dsref.Loader
-	prev      *dataset.Dataset
-	checkFunc func(path ...string) error
+	target    *dataset.Dataset
 	globals   starlark.StringDict
 	bodyFile  qfs.File
 	eventsCh  chan event.Event
 	thread    *starlark.Thread
+	changeSet map[string]struct{}
 
 	download starlark.Iterable
 }
 
 // NewStepRunner returns a new StepRunner for the given dataset
-func NewStepRunner(prev *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunner {
+func NewStepRunner(target *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunner {
 	o := &ExecOpts{}
 	DefaultExecOpts(o)
 	for _, opt := range opts {
@@ -65,10 +65,10 @@ func NewStepRunner(prev *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunner
 		starCtx:   starCtx,
 		dsLoader:  o.DatasetLoader,
 		eventsCh:  o.EventsCh,
-		prev:      prev,
-		checkFunc: o.MutateFieldCheck,
+		target:    target,
 		thread:    thread,
 		globals:   starlark.StringDict{},
+		changeSet: o.ChangeSet,
 	}
 
 	return r
@@ -151,10 +151,17 @@ func (r *StepRunner) callDownloadFunc(thread *starlark.Thread, download *starlar
 }
 
 func (r *StepRunner) callTransformFunc(ctx context.Context, thread *starlark.Thread, transform *starlark.Function, ds *dataset.Dataset) (err error) {
-	d := stards.NewDataset(r.prev, r.checkFunc)
-	d.SetMutable(ds)
+	d := stards.NewDataset(r.target)
 	if _, err = starlark.Call(thread, transform, starlark.Tuple{d, r.starCtx.Struct()}, nil); err != nil {
 		return err
+	}
+
+	// Which components were changed
+	if r.changeSet != nil {
+		changes := d.Changes()
+		for comp := range changes {
+			r.changeSet[comp] = changes[comp]
+		}
 	}
 
 	if r.eventsCh != nil {
@@ -197,7 +204,7 @@ func (r *StepRunner) LoadDatasetFunc(ctx context.Context, target *dataset.Datase
 			Path: fmt.Sprintf("%s/%s@%s", ds.Peername, ds.Name, ds.Path),
 		}
 
-		return stards.NewDataset(ds, nil), nil
+		return stards.NewDataset(ds), nil
 	}
 }
 

@@ -952,6 +952,11 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		ds = dsf
 	}
 
+	manualChanges := make(map[string]struct{})
+	for comp := range ds.PathMap("dataset") {
+		manualChanges[comp] = struct{}{}
+	}
+
 	if p.Ref == "" && ds.Name != "" {
 		p.Ref = fmt.Sprintf("me/%s", ds.Name)
 	}
@@ -1070,6 +1075,17 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 			}
 
 			return nil, err
+		}
+
+		// compare manual changes to the changes made by the transform, make
+		// sure they don't conflict
+		if manualChanges != nil {
+			changes := transformer.Changes()
+			for comp := range changes {
+				if _, found := manualChanges[comp]; found {
+					return nil, fmt.Errorf("transform script and user-supplied dataset are both trying to set %s", comp)
+				}
+			}
 		}
 
 		ds.Commit.RunID = runID
