@@ -336,54 +336,34 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		t.Skip("TODO (b5): add a third dataset")
 	})
 
-	t.Run("user_2_automated_datasets", func(t *testing.T) {
+	t.Run("user_2_automation_datasets", func(t *testing.T) {
 		// miss piggy's collection should be empty. Kermit's collection is non-empty,
 		// proving basic multi-tenancy
 		if _, err := c.List(ctx, missPiggy.ID, params.ListAll); err == nil {
 			t.Fatalf("listing without providing any keyIDs should error: %q", err)
 		}
 
-		muppetTweetsInitID := "muppetTweetsInitID"
-		muppetTweetsName := "muppet_tweets"
+		// automated dataset tests
+		missPiggyDatasetInitID := "missPiggyDatasetInitID"
+		missPiggyDatasetName := "miss_piggy_dataset"
 
-		t.Skip("TODO (b5): need user-scoped events to make this work")
-
-		// // simulate name initialization, normally emitted by logbook
-		// mustPublish(ctx, t, bus, event.ETDatasetNameInit, event.DsChange{
-		// 	InitID:     muppetTweetsInitID,
-		// 	Username:   kermit.Peername,
-		// 	ProfileID:  kermit.ID.Encode(),
-		// 	PrettyName: muppetTweetsName,
-		// 	Info: &dsref.VersionInfo{
-		// 		InitID: muppetTweetsInitID,
-		// 		Username: kermit,
-		// 	},
-		// })
-		mustPublish(ctx, t, bus, event.ETRemoteClientPullDatasetCompleted, event.RemoteEvent{
-			Ref: dsref.Ref{
-				InitID:    muppetTweetsInitID,
-				Username:  kermit.Peername,
-				ProfileID: kermit.ID.Encode(),
-			},
-		})
-		// simulate version creation, normally emitted by logbook
-		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
-			InitID:      muppetTweetsInitID,
-			NumVersions: 2,
-			Path:        "/mem/PathToMuppetTweetsVersionOne",
-			ProfileID:   kermit.ID.Encode(),
-			Username:    kermit.Peername,
-			Name:        muppetTweetsName,
+		mustPublish(ctx, t, bus, event.ETDatasetNameInit, dsref.VersionInfo{
+			InitID:      missPiggyDatasetInitID,
+			NumVersions: 1,
+			Path:        "/mem/PathToMissPiggyDatasetVersionOne",
+			ProfileID:   missPiggy.ID.Encode(),
+			Username:    missPiggy.Peername,
+			Name:        missPiggyDatasetName,
 		})
 
 		expect := []dsref.VersionInfo{
 			{
-				InitID:      muppetTweetsInitID,
-				ProfileID:   kermit.ID.Encode(),
-				Username:    kermit.Peername,
-				Name:        muppetTweetsName,
-				NumVersions: 2,
-				Path:        "/mem/PathToMuppetTweetsVersionOne",
+				InitID:      missPiggyDatasetInitID,
+				ProfileID:   missPiggy.ID.Encode(),
+				Username:    missPiggy.Peername,
+				Name:        missPiggyDatasetName,
+				NumVersions: 1,
+				Path:        "/mem/PathToMissPiggyDatasetVersionOne",
 			},
 		}
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
@@ -391,17 +371,38 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		// simulate workflow creation, check that collection updates with
 		// workflow ID
 		wf := workflow.Workflow{
-			InitID:  muppetTweetsInitID,
-			OwnerID: kermit.ID,
+			InitID:  missPiggyDatasetInitID,
+			OwnerID: missPiggy.ID,
 			ID:      "workflow_id",
 		}
 		mustPublish(ctx, t, bus, event.ETAutomationWorkflowCreated, wf)
 
 		expect[0].WorkflowID = "workflow_id"
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
+
+		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
+			InitID:      missPiggyDatasetInitID,
+			NumVersions: 2,
+			Path:        "/mem/PathToMissPiggyDatasetVersionTwo",
+			ProfileID:   missPiggy.ID.Encode(),
+			Username:    missPiggy.Peername,
+			Name:        missPiggyDatasetName,
+		})
+		expect[0].NumVersions = 2
+		expect[0].Path = "/mem/PathToMissPiggyDatasetVersionTwo"
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
+
 		// simulate workflow removal, check that the collection removes workflowID
 		mustPublish(ctx, t, bus, event.ETAutomationWorkflowRemoved, wf)
 		expect[0].WorkflowID = ""
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
+
+		// dataset deleted using a scope associated with the owning profile
+		{
+			scopedCtx := profile.AddIDToContext(ctx, missPiggy.ID.Encode())
+			mustPublish(scopedCtx, t, bus, event.ETDatasetDeleteAll, missPiggyDatasetInitID)
+		}
+		expect = []dsref.VersionInfo{}
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
 	})
 
@@ -441,6 +442,10 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 			},
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+
+		// another user's collection should not be affected
+		expect = []dsref.VersionInfo{}
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
 	})
 }
 

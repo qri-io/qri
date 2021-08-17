@@ -184,6 +184,7 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	if !ref.IsEmpty() {
 		ds.Name = ref.Name
 		ds.Peername = ref.Username
+		ds.ID = ref.InitID
 	}
 	if p.Transform != nil {
 		ds.Transform = p.Transform
