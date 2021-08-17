@@ -205,7 +205,7 @@ func (book *Book) initialize(ctx context.Context) error {
 		return err
 	}
 
-	return book.save(ctx, &UserLog{l: ownerOplog})
+	return book.save(ctx, &UserLog{l: ownerOplog}, nil)
 }
 
 // ReplaceAll replaces the contents of the logbook with the provided log data
@@ -215,7 +215,7 @@ func (book *Book) ReplaceAll(ctx context.Context, lg *oplog.Log) error {
 	if err != nil {
 		return err
 	}
-	return book.save(ctx, nil)
+	return book.save(ctx, nil, nil)
 }
 
 // logPutter is an interface for transactional log updates. updates provided
@@ -226,11 +226,20 @@ type logPutter interface {
 
 // save writes the book to book.fsLocation, if a non-nil authorLog is provided
 // save tries to write a transactional update
-func (book *Book) save(ctx context.Context, authorLog *UserLog) (err error) {
+func (book *Book) save(ctx context.Context, authorLog *UserLog, blog *BranchLog) (err error) {
 	if authorLog != nil {
 		if lp, ok := book.store.(logPutter); ok {
 			if err := lp.PutLog(ctx, authorLog.l); err != nil {
 				return err
+			}
+		}
+	} else {
+		if blog != nil {
+			if lp, ok := book.store.(logPutter); ok {
+
+				if err := lp.PutLog(ctx, blog.l); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -296,7 +305,7 @@ func (book *Book) WriteAuthorRename(ctx context.Context, author *profile.Profile
 		Timestamp: NewTimestamp(),
 	})
 
-	if err := book.save(ctx, authorLog); err != nil {
+	if err := book.save(ctx, authorLog, nil); err != nil {
 		return err
 	}
 
@@ -369,7 +378,7 @@ func (book *Book) WriteDatasetInit(ctx context.Context, author *profile.Profile,
 		log.Error(err)
 	}
 
-	return initID, book.save(ctx, authorLog)
+	return initID, book.save(ctx, authorLog, nil)
 }
 
 // WriteDatasetRename marks renaming a dataset
@@ -409,7 +418,7 @@ func (book *Book) WriteDatasetRename(ctx context.Context, author *profile.Profil
 		log.Error(err)
 	}
 
-	return book.save(ctx, nil)
+	return book.save(ctx, nil, nil)
 }
 
 // RefToInitID converts a dsref to an initID by iterating the entire logbook looking for a match.
@@ -509,7 +518,7 @@ func (book *Book) WriteDatasetDeleteAll(ctx context.Context, pro *profile.Profil
 		log.Error(err)
 	}
 
-	return book.save(ctx, nil)
+	return book.save(ctx, nil, nil)
 }
 
 // WriteVersionSave adds 1 or 2 operations marking the creation of a dataset
@@ -542,7 +551,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, author *profile.Profile,
 
 	topIndex := book.appendVersionSave(branchLog, ds)
 	// TODO(dlong): Think about how to handle a failure exactly here, what needs to be rolled back?
-	err = book.save(ctx, nil)
+	err = book.save(ctx, nil, branchLog)
 	if err != nil {
 		return err
 	}
@@ -579,7 +588,7 @@ func (book *Book) WriteTransformRun(ctx context.Context, author *profile.Profile
 
 	book.appendTransformRun(branchLog, rs)
 	// TODO(dlong): Think about how to handle a failure exactly here, what needs to be rolled back?
-	return book.save(ctx, nil)
+	return book.save(ctx, nil, branchLog)
 }
 
 func (book *Book) appendVersionSave(blog *BranchLog, ds *dataset.Dataset) int {
@@ -652,7 +661,7 @@ func (book *Book) WriteVersionAmend(ctx context.Context, author *profile.Profile
 		Note:      ds.Commit.Title,
 	})
 
-	return book.save(ctx, nil)
+	return book.save(ctx, nil, branchLog)
 }
 
 // WriteVersionDelete adds an operation to a log marking a number of sequential
@@ -692,7 +701,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, author *profile.Profil
 		}
 	}
 
-	return book.save(ctx, nil)
+	return book.save(ctx, nil, nil)
 }
 
 // WriteRemotePush adds an operation to a log marking the publication of a
@@ -720,7 +729,7 @@ func (book *Book) WriteRemotePush(ctx context.Context, author *profile.Profile, 
 		Relations: []string{remoteAddr},
 	})
 
-	if err = book.save(ctx, nil); err != nil {
+	if err = book.save(ctx, nil, nil); err != nil {
 		return nil, nil, err
 	}
 
@@ -743,7 +752,7 @@ func (book *Book) WriteRemotePush(ctx context.Context, author *profile.Profile, 
 			// we should consider returning copies, and adding explicit methods for
 			// modification.
 			branchLog.l.Ops = branchLog.l.Ops[:len(branchLog.l.Ops)-1]
-			rollbackError = book.save(ctx, nil)
+			rollbackError = book.save(ctx, nil, nil)
 		})
 		return rollbackError
 	}
@@ -781,7 +790,7 @@ func (book *Book) WriteRemoteDelete(ctx context.Context, author *profile.Profile
 		Relations: []string{remoteAddr},
 	})
 
-	if err = book.save(ctx, nil); err != nil {
+	if err = book.save(ctx, nil, nil); err != nil {
 		return nil, nil, err
 	}
 
@@ -798,7 +807,7 @@ func (book *Book) WriteRemoteDelete(ctx context.Context, author *profile.Profile
 				return
 			}
 			branchLog.l.Ops = branchLog.l.Ops[:len(branchLog.l.Ops)-1]
-			rollbackError = book.save(ctx, nil)
+			rollbackError = book.save(ctx, nil, nil)
 		})
 		return rollbackError
 	}
@@ -1079,7 +1088,7 @@ func (book *Book) MergeLog(ctx context.Context, sender crypto.PubKey, lg *oplog.
 		return err
 	}
 
-	return book.save(ctx, nil)
+	return book.save(ctx, nil, nil)
 }
 
 // RemoveLog removes an entire log from a logbook
@@ -1088,7 +1097,7 @@ func (book *Book) RemoveLog(ctx context.Context, ref dsref.Ref) error {
 		return ErrNoLogbook
 	}
 	book.store.RemoveLog(ctx, dsRefToLogPath(ref)...)
-	return book.save(ctx, nil)
+	return book.save(ctx, nil, nil)
 }
 
 func dsRefToLogPath(ref dsref.Ref) (path []string) {
@@ -1128,7 +1137,7 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, author *profile.Profi
 	for _, ds := range history {
 		book.appendVersionSave(branchLog, ds)
 	}
-	return book.save(ctx, nil)
+	return book.save(ctx, nil, nil)
 }
 
 func commitOpRunID(op oplog.Op) string {
