@@ -335,9 +335,7 @@ func TestNewInstanceWithCollectionOption(t *testing.T) {
 	}
 	defer tr.Delete()
 
-	bus := event.NewBus(ctx)
-
-	s, err := collection.NewLocalSet(ctx, bus, tr.RootPath)
+	s, err := collection.NewLocalSet(ctx, tr.RootPath)
 	if err != nil {
 		t.Fatal(err)
 	}

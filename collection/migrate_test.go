@@ -8,7 +8,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
 )
@@ -31,7 +30,7 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 		t.Fatalf("test repo has no datasets")
 	}
 
-	set, err := NewLocalSet(ctx, event.NilBus, "", func(o *LocalSetOptions) {
+	set, err := NewLocalSet(ctx, "", func(o *LocalSetOptions) {
 		o.MigrateRepo = r
 	})
 	if err != nil {
@@ -46,5 +45,4 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(dsref.VersionInfo{}, "InitID", "MetaTitle", "ThemeList", "BodySize", "BodyRows", "CommitTime", "NumErrors", "CommitTitle")); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
-
 }

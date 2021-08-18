@@ -8,7 +8,6 @@ import (
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/params"
-	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi/linkfile"
@@ -82,20 +81,18 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 			// subsystem in the hopes that cloud code won't follow this path. Haven't
 			// confirmed that's the case
 			if scope.FSISubsystem() != nil {
-				if ws, ok := s.(collection.WritableSet); ok {
-					// For each reference with a linked fsi working directory, check that the folder exists
-					// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
-					// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
-					update := make([]dsref.VersionInfo, 0, len(infos))
-					for _, info := range infos {
-						if info.FSIPath != "" && !linkfile.ExistsInDir(info.FSIPath) {
-							info.FSIPath = ""
-							update = append(update, info)
-						}
+				// For each reference with a linked fsi working directory, check that the folder exists
+				// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
+				// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
+				update := make([]dsref.VersionInfo, 0, len(infos))
+				for _, info := range infos {
+					if info.FSIPath != "" && !linkfile.ExistsInDir(info.FSIPath) {
+						info.FSIPath = ""
+						update = append(update, info)
 					}
-					if err := ws.Put(scope.Context(), scope.ActiveProfile().ID, update...); err != nil {
-						return nil, err
-					}
+				}
+				if err := s.Put(scope.Context(), scope.ActiveProfile().ID, update...); err != nil {
+					return nil, err
 				}
 			}
 		}

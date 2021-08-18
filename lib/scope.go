@@ -119,8 +119,8 @@ func (s *scope) AppContext() context.Context {
 }
 
 // Collection returns the Instance collection subsystem
-func (s *scope) CollectionSet() collection.Set {
-	return s.inst.collectionSet
+func (s *scope) CollectionSet() *collection.Collection {
+	return s.inst.collection
 }
 
 // ReplaceParentContext returns a copy of the scope bound to a new parent

@@ -10,22 +10,20 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/collection"
-	"github.com/qri-io/qri/collection/spec"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/event"
 	profiletest "github.com/qri-io/qri/profile/test"
 )
 
-var constructor = func(ctx context.Context, bus event.Bus) (collection.Set, error) {
-	return collection.NewLocalSet(ctx, bus, "")
+var constructor = func(ctx context.Context) (collection.WritableSet, error) {
+	return collection.NewLocalSet(ctx, "")
 }
 
 func TestLocalCollection(t *testing.T) {
-	spec.AssertWritableCollectionSpec(t, constructor)
+	AssertWritableCollectionSpec(t, constructor)
 }
 
 func TestLocalCollectionEvents(t *testing.T) {
-	spec.AssertCollectionEventListenerSpec(t, constructor)
+	AssertCollectionEventListenerSpec(t, constructor)
 }
 
 func TestCollectionPersistence(t *testing.T) {
@@ -38,7 +36,7 @@ func TestCollectionPersistence(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	c, err := collection.NewLocalSet(ctx, event.NilBus, dir)
+	c, err := collection.NewLocalSet(ctx, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +69,7 @@ func TestCollectionPersistence(t *testing.T) {
 	}
 
 	// create a new collection to rely on persistence
-	c, err = collection.NewLocalSet(ctx, event.NilBus, dir)
+	c, err = collection.NewLocalSet(ctx, dir)
 	if err != nil {
 		t.Error(err)
 	}
@@ -105,7 +103,7 @@ func TestInvalidIDFails(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	c, err := collection.NewLocalSet(ctx, event.NilBus, dir)
+	c, err := collection.NewLocalSet(ctx, dir)
 	if err != nil {
 		t.Fatal(err)
 	}

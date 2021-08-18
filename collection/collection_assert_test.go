@@ -1,4 +1,4 @@
-package spec
+package collection_test
 
 import (
 	"context"
@@ -17,23 +17,17 @@ import (
 )
 
 // Constructor is a function for creating collections, used by spec tests
-type Constructor func(ctx context.Context, bus event.Bus) (collection.Set, error)
+type Constructor func(ctx context.Context) (collection.WritableSet, error)
 
 // AssertWritableCollectionSpec defines expected behaviours for a Writable
 // collection implementation
 func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	bus := event.NewBus(ctx)
 
-	c, err := constructor(ctx, bus)
+	ec, err := constructor(ctx)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	ec, ok := c.(collection.WritableSet)
-	if !ok {
-		t.Fatal("construtor did not return a writable collection set")
 	}
 
 	kermit := profiletest.GetProfile("kermit")
@@ -205,8 +199,13 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	s, err := constructor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	bus := event.NewBus(ctx)
-	c, err := constructor(ctx, bus)
+	c, err := collection.NewCollection(ctx, bus, s)
 	if err != nil {
 		t.Fatal(err)
 	}

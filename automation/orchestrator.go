@@ -68,8 +68,7 @@ type Orchestrator struct {
 	running      bool
 }
 
-// NewOrchestrator constructs an orchestrator, whose only responsibility, right
-// now, is to create a workflow store, run store, & listen for trigger events
+// NewOrchestrator constructs an orchestrator
 func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, applyFactory ApplyFactory, opts OrchestratorOptions) (*Orchestrator, error) {
 	log.Debugw("NewOrchestrator", "opts", opts)
 
