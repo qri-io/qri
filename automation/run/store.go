@@ -1,6 +1,7 @@
 package run
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/profile"
 )
 
 var (
@@ -25,24 +27,24 @@ var (
 // events and updating the associated the run.State accordingly
 type Store interface {
 	// Create adds a new run State to the Store
-	Create(r *State) (*State, error)
+	Create(ctx context.Context, r *State) (*State, error)
 	// Put puts a run State with an existing run ID into the Store
-	Put(r *State) (*State, error)
+	Put(ctx context.Context, r *State) (*State, error)
 	// Get gets the associated run.State
-	Get(id string) (*State, error)
+	Get(ctx context.Context, id string) (*State, error)
 	// Count returns the number of runs for a given workflow.ID
-	Count(wid workflow.ID) (int, error)
+	Count(ctx context.Context, wid workflow.ID) (int, error)
 	// List lists all the runs associated with the workflow.ID in reverse
 	// chronological order
-	List(wid workflow.ID, lp params.List) ([]*State, error)
+	List(ctx context.Context, wid workflow.ID, lp params.List) ([]*State, error)
 	// GetLatest returns the most recent run associated with the workflow id
-	GetLatest(wid workflow.ID) (*State, error)
+	GetLatest(ctx context.Context, wid workflow.ID) (*State, error)
 	// GetStatus returns the status of the latest run based on the
 	// workflow.ID
-	GetStatus(wid workflow.ID) (Status, error)
+	GetStatus(ctx context.Context, wid workflow.ID) (Status, error)
 	// ListByStatus returns a list of run.State entries with a given status
 	// looking only at the most recent run of each Workflow
-	ListByStatus(s Status, lp params.List) ([]*State, error)
+	ListByStatus(ctx context.Context, owner profile.ID, s Status, lp params.List) ([]*State, error)
 	// Shutdown closes the store
 	Shutdown() error
 }
@@ -93,7 +95,7 @@ func NewMemStore() *MemStore {
 }
 
 // Create adds a new run.State to a MemStore
-func (s *MemStore) Create(r *State) (*State, error) {
+func (s *MemStore) Create(ctx context.Context, r *State) (*State, error) {
 	if r == nil {
 		return nil, fmt.Errorf("run is nil")
 	}
@@ -101,7 +103,7 @@ func (s *MemStore) Create(r *State) (*State, error) {
 	if run.ID == "" {
 		run.ID = NewID()
 	}
-	if _, err := s.Get(run.ID); !errors.Is(err, ErrNotFound) {
+	if _, err := s.Get(ctx, run.ID); !errors.Is(err, ErrNotFound) {
 		return nil, fmt.Errorf("run with this ID already exists")
 	}
 	if err := run.Validate(); err != nil {
@@ -122,7 +124,7 @@ func (s *MemStore) Create(r *State) (*State, error) {
 }
 
 // Put updates an existing run.State in a MemStore
-func (s *MemStore) Put(r *State) (*State, error) {
+func (s *MemStore) Put(ctx context.Context, r *State) (*State, error) {
 	if r == nil {
 		return nil, fmt.Errorf("run is nil")
 	}
@@ -130,7 +132,7 @@ func (s *MemStore) Put(r *State) (*State, error) {
 	if run.ID == "" {
 		return nil, fmt.Errorf("run has empty ID")
 	}
-	fetchedR, err := s.Get(run.ID)
+	fetchedR, err := s.Get(ctx, run.ID)
 	if err != nil {
 		return nil, ErrNotFound
 	}
@@ -147,7 +149,7 @@ func (s *MemStore) Put(r *State) (*State, error) {
 }
 
 // Get fetches a run.State using the associated ID
-func (s *MemStore) Get(id string) (*State, error) {
+func (s *MemStore) Get(ctx context.Context, id string) (*State, error) {
 	s.mu.Lock()
 	r, ok := s.runs[id]
 	s.mu.Unlock()
@@ -158,7 +160,7 @@ func (s *MemStore) Get(id string) (*State, error) {
 }
 
 // Count returns the number of runs for a given workflow.ID
-func (s *MemStore) Count(wid workflow.ID) (int, error) {
+func (s *MemStore) Count(ctx context.Context, wid workflow.ID) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	wfm, ok := s.workflows[wid]
@@ -170,7 +172,7 @@ func (s *MemStore) Count(wid workflow.ID) (int, error) {
 
 // List lists all the runs associated with the workflow.ID in reverse
 // chronological order
-func (s *MemStore) List(wid workflow.ID, lp params.List) ([]*State, error) {
+func (s *MemStore) List(ctx context.Context, wid workflow.ID, lp params.List) ([]*State, error) {
 	if err := lp.Validate(); err != nil {
 		return nil, err
 	}
@@ -205,7 +207,7 @@ func (s *MemStore) List(wid workflow.ID, lp params.List) ([]*State, error) {
 }
 
 // GetLatest returns the most recent run associated with the workflow id
-func (s *MemStore) GetLatest(wid workflow.ID) (*State, error) {
+func (s *MemStore) GetLatest(ctx context.Context, wid workflow.ID) (*State, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -224,8 +226,8 @@ func (s *MemStore) GetLatest(wid workflow.ID) (*State, error) {
 
 // GetStatus returns the status of the latest run based on the
 // workflow.ID
-func (s *MemStore) GetStatus(wid workflow.ID) (Status, error) {
-	run, err := s.GetLatest(wid)
+func (s *MemStore) GetStatus(ctx context.Context, wid workflow.ID) (Status, error) {
+	run, err := s.GetLatest(ctx, wid)
 	if err != nil {
 		return "", err
 	}
@@ -234,7 +236,7 @@ func (s *MemStore) GetStatus(wid workflow.ID) (Status, error) {
 
 // ListByStatus returns a list of run.State entries with a given status
 // looking only at the most recent run of each Workflow
-func (s *MemStore) ListByStatus(status Status, lp params.List) ([]*State, error) {
+func (s *MemStore) ListByStatus(ctx context.Context, owner profile.ID, status Status, lp params.List) ([]*State, error) {
 	if err := lp.Validate(); err != nil {
 		return nil, err
 	}

@@ -53,7 +53,7 @@ func TestIntegration(t *testing.T) {
 		return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
 			// since we don't actually run anything
 			// we need to mock the success of the run
-			runStore.Put(&run.State{
+			runStore.Put(ctx, &run.State{
 				ID:         runID,
 				WorkflowID: w.ID,
 				Status:     run.RSSucceeded,
@@ -376,7 +376,7 @@ func TestRunStoreEvents(t *testing.T) {
 			ts := nextTimestamp()
 			r.Status = run.RSRunning
 			r.StartTime = ts
-			confirmStoredRun(t, runStore, r)
+			confirmStoredRun(ctx, t, runStore, r)
 
 			// event 1
 			bus.PublishID(ctx, event.ETTransformStepStart, r.ID, event.TransformStepLifecycle{
@@ -391,7 +391,7 @@ func TestRunStoreEvents(t *testing.T) {
 				StartTime: ts,
 			}
 			r.Steps = append(r.Steps, expectedStep)
-			confirmStoredRun(t, runStore, r)
+			confirmStoredRun(ctx, t, runStore, r)
 
 			// event 2
 			bus.PublishID(ctx, event.ETTransformPrint, r.ID, "transform print")
@@ -403,7 +403,7 @@ func TestRunStoreEvents(t *testing.T) {
 				Payload:   "transform print",
 			}
 			r.Steps[0].Output = []event.Event{expectedPrintEvent}
-			confirmStoredRun(t, runStore, r)
+			confirmStoredRun(ctx, t, runStore, r)
 
 			// event 3
 			bus.PublishID(ctx, event.ETTransformError, r.ID, "transform error")
@@ -415,7 +415,7 @@ func TestRunStoreEvents(t *testing.T) {
 				Payload:   "transform error",
 			}
 			r.Steps[0].Output = []event.Event{expectedPrintEvent, expectedErrorEvent}
-			confirmStoredRun(t, runStore, r)
+			confirmStoredRun(ctx, t, runStore, r)
 
 			// event 4
 			bus.PublishID(ctx, event.ETTransformDatasetPreview, r.ID, "transform dataset preview")
@@ -427,7 +427,7 @@ func TestRunStoreEvents(t *testing.T) {
 				Payload:   "transform dataset preview",
 			}
 			r.Steps[0].Output = []event.Event{expectedPrintEvent, expectedErrorEvent, expectedDatasetPreviewEvent}
-			confirmStoredRun(t, runStore, r)
+			confirmStoredRun(ctx, t, runStore, r)
 
 			// event 5
 			bus.PublishID(ctx, event.ETTransformStepStop, r.ID, event.TransformStepLifecycle{Status: "succeeded"})
@@ -435,8 +435,8 @@ func TestRunStoreEvents(t *testing.T) {
 			expectedStep = r.Steps[0]
 			expectedStep.StopTime = ts
 			expectedStep.Status = run.RSSucceeded
-			expectedStep.Duration = int(expectedStep.StopTime.Sub(*expectedStep.StartTime))
-			confirmStoredRun(t, runStore, r)
+			expectedStep.Duration = int64(expectedStep.StopTime.Sub(*expectedStep.StartTime))
+			confirmStoredRun(ctx, t, runStore, r)
 
 			// event 6
 			bus.PublishID(ctx, event.ETTransformStepSkip, r.ID, event.TransformStepLifecycle{Name: "step skip", Category: "step skip category", Status: "skipped"})
@@ -447,15 +447,15 @@ func TestRunStoreEvents(t *testing.T) {
 				Status:   run.RSSkipped,
 			}
 			r.Steps = append(r.Steps, expectedSkipStep)
-			confirmStoredRun(t, runStore, r)
+			confirmStoredRun(ctx, t, runStore, r)
 
 			// event 7
 			bus.PublishID(ctx, event.ETTransformStop, r.ID, event.TransformLifecycle{Status: "succeeded"})
 			ts = nextTimestamp()
 			r.StopTime = ts
 			r.Status = run.RSSucceeded
-			r.Duration = int(r.StopTime.Sub(*r.StartTime))
-			confirmStoredRun(t, runStore, r)
+			r.Duration = int64(r.StopTime.Sub(*r.StartTime))
+			confirmStoredRun(ctx, t, runStore, r)
 
 			return nil
 		}
@@ -481,9 +481,9 @@ func TestRunStoreEvents(t *testing.T) {
 	}
 }
 
-func confirmStoredRun(t *testing.T, s run.Store, expect *run.State) {
+func confirmStoredRun(ctx context.Context, t *testing.T, s run.Store, expect *run.State) {
 	t.Helper()
-	got, err := s.Get(expect.ID)
+	got, err := s.Get(ctx, expect.ID)
 	if err != nil {
 		t.Fatalf("getting run: %s", err)
 	}

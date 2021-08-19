@@ -1,6 +1,7 @@
 package run_test
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestFileStore(t *testing.T) {
+	ctx := context.Background()
 	tmpdir, err := ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatal(err)
@@ -113,7 +115,7 @@ func TestFileStore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	gotRun, err := store.Get("run1")
+	gotRun, err := store.Get(ctx, "run1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +171,7 @@ func TestFileStore(t *testing.T) {
 		},
 	}
 
-	if _, err := store.Create(r2); err != nil {
+	if _, err := store.Create(ctx, r2); err != nil {
 		t.Fatal(err)
 	}
 
