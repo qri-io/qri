@@ -336,7 +336,7 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 
 	if o.runs != nil {
 		r := &run.State{ID: runID, WorkflowID: wid}
-		if _, err := o.runs.Create(r); err != nil {
+		if _, err := o.runs.Create(ctx, r); err != nil {
 			return err
 		}
 
@@ -502,7 +502,7 @@ func runEventsHandler(store run.Store) event.Handler {
 			return adder.AddEvent(e.SessionID, e)
 		}
 
-		r, err := store.Get(e.SessionID)
+		r, err := store.Get(ctx, e.SessionID)
 		if err != nil {
 			return err
 		}
@@ -510,7 +510,7 @@ func runEventsHandler(store run.Store) event.Handler {
 			return err
 		}
 
-		_, err = store.Put(r)
+		_, err = store.Put(ctx, r)
 		return err
 	}
 }

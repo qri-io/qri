@@ -74,7 +74,7 @@ type State struct {
 	Message    string       `json:"message"`
 	StartTime  *time.Time   `json:"startTime"`
 	StopTime   *time.Time   `json:"stopTime"`
-	Duration   int          `json:"duration"`
+	Duration   int64        `json:"duration"`
 	Steps      []*StepState `json:"steps"`
 }
 
@@ -131,7 +131,7 @@ func (rs *State) AddTransformEvent(e event.Event) error {
 			rs.Status = Status(tl.Status)
 		}
 		if rs.StartTime != nil && rs.StopTime != nil {
-			rs.Duration = int(rs.StopTime.Sub(*rs.StartTime))
+			rs.Duration = int64(rs.StopTime.Sub(*rs.StartTime))
 		}
 		return nil
 	case event.ETTransformStepStart:
@@ -155,7 +155,7 @@ func (rs *State) AddTransformEvent(e event.Event) error {
 			step.Status = RSFailed
 		}
 		if step.StartTime != nil && step.StopTime != nil {
-			step.Duration = int(step.StopTime.Sub(*step.StartTime))
+			step.Duration = int64(step.StopTime.Sub(*step.StartTime))
 		}
 		return nil
 	case event.ETTransformStepSkip:
@@ -198,7 +198,7 @@ type StepState struct {
 	Status    Status        `json:"status"`
 	StartTime *time.Time    `json:"startTime"`
 	StopTime  *time.Time    `json:"stopTime"`
-	Duration  int           `json:"duration"`
+	Duration  int64         `json:"duration"`
 	Output    []event.Event `json:"output"`
 }
 
@@ -220,7 +220,7 @@ type _stepState struct {
 	Status    Status     `json:"status"`
 	StartTime *time.Time `json:"startTime"`
 	StopTime  *time.Time `json:"stopTime"`
-	Duration  int        `json:"duration"`
+	Duration  int64      `json:"duration"`
 	Output    []_event   `json:"output"`
 }
 
