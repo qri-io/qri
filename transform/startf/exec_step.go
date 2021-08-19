@@ -164,6 +164,11 @@ func (r *StepRunner) callTransformFunc(ctx context.Context, thread *starlark.Thr
 		}
 	}
 
+	// assign the resulting dataframe to the dataset body
+	err = d.AssignBodyFromDataframe()
+	if err != nil {
+		return err
+	}
 	if r.eventsCh != nil {
 		pview, err := preview.Create(ctx, ds)
 		if err != nil {

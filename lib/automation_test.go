@@ -61,7 +61,7 @@ body = """a,b,c
 4,5,6
 """
 def transform(ds,ctx):
-	ds.set_body(body, parse_as="csv")
+	ds.body.set_csv(body)
 `,
 		},
 	}
@@ -70,7 +70,7 @@ def transform(ds,ctx):
 		t.Fatal(err)
 	}
 
-	expectBody := json.RawMessage(`[[1,2,3],[4,5,6]]`)
+	expectBody := json.RawMessage(`[["a","b","c"],["1","2","3"],["4","5","6"]]`)
 
 	if diff := cmp.Diff(expectBody, res.Body); diff != "" {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
@@ -110,7 +110,7 @@ body = """a,b,c
 4,5,6
 """
 def transform(ds,ctx):
-	ds.set_body(body, parse_as="csv")
+	ds.body.set_csv(body)
 `,
 				},
 			},

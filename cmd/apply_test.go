@@ -67,15 +67,19 @@ func TestApplyModifyBody(t *testing.T) {
 
 	// Save two versions, the second of which uses get_body in a transformation
 	run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/test_ds")
-	output := run.MustExec(t, "qri apply --file=testdata/movies/tf_add_one.star me/test_ds")
+	output := run.MustExec(t, "qri apply --file=testdata/movies/tf_add_row.star me/test_ds")
 	expectContains := `"body": [
   [
    "Avatar",
-   179
+   178
   ],
   [
    "Pirates of the Caribbean: At World's End",
-   170
+   169
+  ],
+  [
+   "Batman",
+   126
   ]
  ],`
 	if !strings.Contains(output, expectContains) {
