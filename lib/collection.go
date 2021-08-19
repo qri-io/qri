@@ -91,7 +91,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 						update = append(update, info)
 					}
 				}
-				if err := s.Put(scope.Context(), scope.ActiveProfile().ID, update...); err != nil {
+				if err := s.PutList(scope.Context(), scope.ActiveProfile().ID, update); err != nil {
 					return nil, err
 				}
 			}

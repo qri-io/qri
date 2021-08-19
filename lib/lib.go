@@ -88,7 +88,7 @@ type InstanceOptions struct {
 	keyStore                key.Store
 	profiles                profile.Store
 	bus                     event.Bus
-	collectionSet           collection.WritableSet
+	collectionSet           collection.Set
 	tokenProvider           token.Provider
 	logAll                  bool
 	automationOptions       *automation.OrchestratorOptions
@@ -277,7 +277,7 @@ func OptStatsCache(statsCache stats.Cache) Option {
 }
 
 // OptCollectionSet provides a collection implementation
-func OptCollectionSet(c collection.WritableSet) Option {
+func OptCollectionSet(c collection.Set) Option {
 	return func(o *InstanceOptions) error {
 		o.collectionSet = c
 		return nil
@@ -633,7 +633,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if o.collectionSet != nil {
-		inst.collection, err = collection.NewCollection(ctx, inst.bus, o.collectionSet)
+		inst.collections, err = collection.NewSetMaintainer(ctx, inst.bus, o.collectionSet)
 		if err != nil {
 			return nil, err
 		}
@@ -832,7 +832,7 @@ func NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts(ctx context.Context, 
 		panic(err)
 	}
 
-	inst.collection, err = collection.NewCollection(ctx, inst.bus, set)
+	inst.collections, err = collection.NewSetMaintainer(ctx, inst.bus, set)
 	if err != nil {
 		cancel()
 		panic(err)
@@ -870,7 +870,7 @@ type Instance struct {
 	stats         *stats.Service
 	logbook       *logbook.Book
 	dscache       *dscache.Dscache
-	collection    *collection.Collection
+	collections   *collection.SetMaintainer
 	automation    *automation.Orchestrator
 	tokenProvider token.Provider
 	bus           event.Bus

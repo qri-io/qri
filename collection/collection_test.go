@@ -14,12 +14,12 @@ import (
 	profiletest "github.com/qri-io/qri/profile/test"
 )
 
-var constructor = func(ctx context.Context) (collection.WritableSet, error) {
+var constructor = func(ctx context.Context) (collection.Set, error) {
 	return collection.NewLocalSet(ctx, "")
 }
 
 func TestLocalCollection(t *testing.T) {
-	AssertWritableCollectionSpec(t, constructor)
+	AssertSetSpec(t, constructor)
 }
 
 func TestLocalCollectionEvents(t *testing.T) {
@@ -36,12 +36,10 @@ func TestCollectionPersistence(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	c, err := collection.NewLocalSet(ctx, dir)
+	wc, err := collection.NewLocalSet(ctx, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	wc := c.(collection.WritableSet)
 
 	kermit := profiletest.GetProfile("kermit")
 	missPiggy := profiletest.GetProfile("miss_piggy")
@@ -53,7 +51,7 @@ func TestCollectionPersistence(t *testing.T) {
 		Name:       "muppet_names",
 		CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
-	if err = wc.Put(ctx, kermit.ID, item1); err != nil {
+	if err = wc.Add(ctx, kermit.ID, item1); err != nil {
 		t.Error(err)
 	}
 
@@ -64,12 +62,12 @@ func TestCollectionPersistence(t *testing.T) {
 		Name:       "secret_muppet_friends",
 		CommitTime: time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC),
 	}
-	if err = wc.Put(ctx, missPiggy.ID, item2); err != nil {
+	if err = wc.Add(ctx, missPiggy.ID, item2); err != nil {
 		t.Error(err)
 	}
 
 	// create a new collection to rely on persistence
-	c, err = collection.NewLocalSet(ctx, dir)
+	c, err := collection.NewLocalSet(ctx, dir)
 	if err != nil {
 		t.Error(err)
 	}
@@ -103,11 +101,10 @@ func TestInvalidIDFails(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	c, err := collection.NewLocalSet(ctx, dir)
+	wc, err := collection.NewLocalSet(ctx, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	wc := c.(collection.WritableSet)
 
 	// Construct an invalid profileID (it's base58 encoded), which
 	// should result in an error
@@ -118,7 +115,7 @@ func TestInvalidIDFails(t *testing.T) {
 		Name:       "my_ds",
 		CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
-	err = wc.Put(ctx, myPid, info)
+	err = wc.Add(ctx, myPid, info)
 	if err == nil {
 		t.Fatal("expected to get an error, did not get one")
 	}

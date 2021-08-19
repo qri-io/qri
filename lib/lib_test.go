@@ -351,7 +351,7 @@ func TestNewInstanceWithCollectionOption(t *testing.T) {
 		},
 	}
 
-	err = s.(collection.WritableSet).Put(ctx, kermit.ID, expect...)
+	err = s.PutList(ctx, kermit.ID, expect)
 	if err != nil {
 		t.Fatal(err)
 	}

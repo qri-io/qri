@@ -17,11 +17,11 @@ import (
 )
 
 // Constructor is a function for creating collections, used by spec tests
-type Constructor func(ctx context.Context) (collection.WritableSet, error)
+type Constructor func(ctx context.Context) (collection.Set, error)
 
-// AssertWritableCollectionSpec defines expected behaviours for a Writable
+// AssertSetSpec defines expected behaviours for a Writable
 // collection implementation
-func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
+func AssertSetSpec(t *testing.T, constructor Constructor) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -44,8 +44,8 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 		}
 	})
 
-	t.Run("put", func(t *testing.T) {
-		if err := ec.Put(ctx, kermit.ID); err != nil {
+	t.Run("putlist", func(t *testing.T) {
+		if err := ec.PutList(ctx, kermit.ID, []dsref.VersionInfo{}); err != nil {
 			t.Error("expected put with empty item list NOT to error")
 		}
 
@@ -61,54 +61,58 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 
 		for _, bad := range badItems {
 			t.Run(fmt.Sprintf("bad_item_%s", bad.problem), func(t *testing.T) {
-				if err := ec.Put(ctx, kermit.ID, bad.item); err == nil {
+				if err := ec.PutList(ctx, kermit.ID, []dsref.VersionInfo{bad.item}); err == nil {
 					t.Error("expected error, got nil")
 				}
 			})
 		}
 
-		err := ec.Put(ctx, kermit.ID,
-			dsref.VersionInfo{
-				ProfileID:  kermit.ID.Encode(),
-				InitID:     "muppet_names_init_id",
-				Username:   "kermit",
-				Name:       "muppet_names",
-				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-			dsref.VersionInfo{
-				ProfileID:  kermit.ID.Encode(),
-				InitID:     "muppet_names_and_ages_init_id",
-				Username:   "kermit",
-				Name:       "muppet_names_and_ages",
-				CommitTime: time.Date(2021, 1, 2, 0, 0, 0, 0, time.UTC),
-			},
-		)
+		err := ec.PutList(ctx, kermit.ID,
+			[]dsref.VersionInfo{
+				{
+					ProfileID:  kermit.ID.Encode(),
+					InitID:     "muppet_names_init_id",
+					Username:   "kermit",
+					Name:       "muppet_names",
+					CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				},
+				{
+					ProfileID:  kermit.ID.Encode(),
+					InitID:     "muppet_names_and_ages_init_id",
+					Username:   "kermit",
+					Name:       "muppet_names_and_ages",
+					CommitTime: time.Date(2021, 1, 2, 0, 0, 0, 0, time.UTC),
+				},
+			})
 
 		if err != nil {
 			t.Fatalf("error adding items: %s", err)
 		}
 
-		err = ec.Put(ctx, missPiggy.ID,
-			dsref.VersionInfo{
-				ProfileID:  missPiggy.ID.Encode(),
-				InitID:     "secret_muppet_friends_init_id",
-				Username:   "miss_piggy",
-				Name:       "secret_muppet_friends",
-				CommitTime: time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC),
-			},
-			dsref.VersionInfo{
-				ProfileID:  missPiggy.ID.Encode(),
-				InitID:     "muppet_names_init_id",
-				Username:   "kermit",
-				Name:       "muppet_names",
-				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
-			},
-			dsref.VersionInfo{
-				ProfileID:  missPiggy.ID.Encode(),
-				InitID:     "famous_muppets_init_id",
-				Username:   "famous_muppets",
-				Name:       "famous_muppets",
-				CommitTime: time.Date(2021, 1, 4, 0, 0, 0, 0, time.UTC),
+		err = ec.PutList(ctx, missPiggy.ID,
+			[]dsref.VersionInfo{
+
+				{
+					ProfileID:  missPiggy.ID.Encode(),
+					InitID:     "secret_muppet_friends_init_id",
+					Username:   "miss_piggy",
+					Name:       "secret_muppet_friends",
+					CommitTime: time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC),
+				},
+				{
+					ProfileID:  missPiggy.ID.Encode(),
+					InitID:     "muppet_names_init_id",
+					Username:   "kermit",
+					Name:       "muppet_names",
+					CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				},
+				{
+					ProfileID:  missPiggy.ID.Encode(),
+					InitID:     "famous_muppets_init_id",
+					Username:   "famous_muppets",
+					Name:       "famous_muppets",
+					CommitTime: time.Date(2021, 1, 4, 0, 0, 0, 0, time.UTC),
+				},
 			})
 
 		if err != nil {
@@ -160,31 +164,32 @@ func AssertWritableCollectionSpec(t *testing.T, constructor Constructor) {
 	})
 
 	t.Run("delete", func(t *testing.T) {
-		if err := ec.Delete(ctx, missPiggy.ID); err != nil {
-			t.Errorf("expected delete with no initIDs to not fail")
-		}
-
 		badCases := []struct {
 			reason    string
 			profileID profile.ID
-			ids       []string
+			ids       string
 		}{
-			{"missing ID", kermit.ID, []string{"unknown"}},
+			{"missing ID", kermit.ID, "unknown"},
 		}
 
 		for _, bad := range badCases {
 			t.Run(fmt.Sprintf("bad_case_%s", bad.reason), func(t *testing.T) {
-				if err := ec.Delete(ctx, bad.profileID, bad.ids...); err == nil {
+				if err := ec.Delete(ctx, bad.profileID, bad.ids); err == nil {
 					t.Errorf("expected bad case to error. got nil")
 				}
 			})
 		}
 
-		err := ec.Delete(ctx, missPiggy.ID,
-			"famous_muppets_init_id",
-			"muppet_names_init_id",
-			"secret_muppet_friends_init_id",
-		)
+		err := ec.Delete(ctx, missPiggy.ID, "famous_muppets_init_id")
+		if err != nil {
+			t.Errorf("unexpected error deleting items: %s", err)
+		}
+		err = ec.Delete(ctx, missPiggy.ID, "muppet_names_init_id")
+		if err != nil {
+			t.Errorf("unexpected error deleting items: %s", err)
+		}
+
+		err = ec.Delete(ctx, missPiggy.ID, "secret_muppet_friends_init_id")
 		if err != nil {
 			t.Errorf("unexpected error deleting items: %s", err)
 		}
@@ -205,7 +210,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 	}
 
 	bus := event.NewBus(ctx)
-	c, err := collection.NewCollection(ctx, bus, s)
+	_, err = collection.NewSetMaintainer(ctx, bus, s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +219,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 	missPiggy := profiletest.GetProfile("miss_piggy")
 
 	t.Run("empty_unlimited_list", func(t *testing.T) {
-		_, err := c.List(ctx, profile.ID(""), params.ListAll)
+		_, err := s.List(ctx, profile.ID(""), params.ListAll)
 		if err == nil {
 			t.Fatalf("listing without providing any keyIDs should error: %q", err)
 		}
@@ -241,7 +246,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 				Name:      muppetNamesName1,
 			},
 		}
-		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// simulate version creation
 		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
@@ -265,7 +270,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 				BodySize:    20,
 			},
 		}
-		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// simulate dataset being renamed
 		mustPublish(ctx, t, bus, event.ETDatasetRename, event.DsRename{
@@ -285,7 +290,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 				BodySize:    20,
 			},
 		}
-		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// dataset deleted using a scope associated with the owning profile
 		{
@@ -294,7 +299,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		}
 
 		expect = []dsref.VersionInfo{}
-		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// simulate another initialization
 		mustPublish(ctx, t, bus, event.ETDatasetNameInit, dsref.VersionInfo{
@@ -312,11 +317,11 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 				Name:      muppetNamesName1,
 			},
 		}
-		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// deletion event without the owning profile has no effect
 		mustPublish(ctx, t, bus, event.ETDatasetDeleteAll, muppetNamesInitID)
-		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// dataset deleted using a scope associated with the owning profile
 		{
@@ -325,7 +330,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		}
 
 		expect = []dsref.VersionInfo{}
-		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// TODO (b5): create a second dataset, use different timestamps for both,
 		// assert default ordering of datasets
@@ -338,7 +343,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 	t.Run("user_2_automation_datasets", func(t *testing.T) {
 		// miss piggy's collection should be empty. Kermit's collection is non-empty,
 		// proving basic multi-tenancy
-		if _, err := c.List(ctx, missPiggy.ID, params.ListAll); err == nil {
+		if _, err := s.List(ctx, missPiggy.ID, params.ListAll); err == nil {
 			t.Fatalf("listing without providing any keyIDs should error: %q", err)
 		}
 
@@ -365,7 +370,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 				Path:        "/mem/PathToMissPiggyDatasetVersionOne",
 			},
 		}
-		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, s, expect)
 
 		// simulate workflow creation, check that collection updates with
 		// workflow ID
@@ -377,7 +382,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		mustPublish(ctx, t, bus, event.ETAutomationWorkflowCreated, wf)
 
 		expect[0].WorkflowID = "workflow_id"
-		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, s, expect)
 
 		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
 			InitID:      missPiggyDatasetInitID,
@@ -389,12 +394,12 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		})
 		expect[0].NumVersions = 2
 		expect[0].Path = "/mem/PathToMissPiggyDatasetVersionTwo"
-		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, s, expect)
 
 		// simulate workflow removal, check that the collection removes workflowID
 		mustPublish(ctx, t, bus, event.ETAutomationWorkflowRemoved, wf)
 		expect[0].WorkflowID = ""
-		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, s, expect)
 
 		// dataset deleted using a scope associated with the owning profile
 		{
@@ -402,7 +407,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 			mustPublish(scopedCtx, t, bus, event.ETDatasetDeleteAll, missPiggyDatasetInitID)
 		}
 		expect = []dsref.VersionInfo{}
-		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, s, expect)
 	})
 
 	t.Run("user_3_pull_dataset", func(t *testing.T) {
@@ -417,7 +422,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 			Name:      muppetNamesName1,
 		})
 		expect := []dsref.VersionInfo{}
-		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// add a user profile to the scoped context
 		{
@@ -440,17 +445,17 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 				Name:      muppetNamesName1,
 			},
 		}
-		assertCollectionList(ctx, t, kermit, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// another user's collection should not be affected
 		expect = []dsref.VersionInfo{}
-		assertCollectionList(ctx, t, missPiggy, params.ListAll, c, expect)
+		assertCollectionList(ctx, t, missPiggy, params.ListAll, s, expect)
 	})
 }
 
-func assertCollectionList(ctx context.Context, t *testing.T, p *profile.Profile, lp params.List, c collection.Set, expect []dsref.VersionInfo) {
+func assertCollectionList(ctx context.Context, t *testing.T, p *profile.Profile, lp params.List, s collection.Set, expect []dsref.VersionInfo) {
 	t.Helper()
-	res, err := c.List(ctx, p.ID, lp)
+	res, err := s.List(ctx, p.ID, lp)
 	if err != nil {
 		t.Fatalf("error listing items: %q", err)
 	}

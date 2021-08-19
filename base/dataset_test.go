@@ -96,10 +96,9 @@ func TestRawDatasetRefs(t *testing.T) {
 	}
 
 	ref := addCitiesDataset(t, r)
-	ws := s.(collection.WritableSet)
 	vi := dsref.NewVersionInfoFromRef(ref)
 	vi.InitID = "AnInitID"
-	if err := ws.Put(ctx, r.Profiles().Active(ctx).ID, vi); err != nil {
+	if err := s.Add(ctx, r.Profiles().Active(ctx).ID, vi); err != nil {
 		t.Fatal(err)
 	}
 

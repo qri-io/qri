@@ -28,50 +28,36 @@ var (
 	log         = logger.Logger("collection")
 )
 
-// Collection is a list of datasets, with each list scoped to a user profile
-// A user's collection may consist of datasets they have created and datasets
-// added from other users. Collections are the canonical source of truth for
-// listing a user's datasets in a qri instance. While a collection owns the list
-// the fields in a collection item are cached values gathered from other
-// subsystems, and must be kept in sync as subsystems mutate their state.
-type Collection struct {
-	set WritableSet
+// SetMaintainer maintains a set of collections, each scoped to a user profile
+// It keeps the collection set in sync as subsystems mutate their state.
+type SetMaintainer struct {
+	set Set
 }
 
-// NewCollection constructs a collection
-func NewCollection(ctx context.Context, bus event.Bus, set WritableSet) (*Collection, error) {
-	log.Debugw("NewCollection")
+// NewSetMaintainer constructs a SetMaintainer
+func NewSetMaintainer(ctx context.Context, bus event.Bus, set Set) (*SetMaintainer, error) {
+	log.Debugw("NewSetMaintainer")
 
 	if bus == nil {
 		return nil, fmt.Errorf("bus of type event.Bus required")
 	}
 	if set == nil {
-		return nil, fmt.Errorf("set of type collection.WritableSet required")
+		return nil, fmt.Errorf("set of type collection.Set required")
 	}
-	c := &Collection{
+	c := &SetMaintainer{
 		set: set,
 	}
 	c.subscribe(bus)
 	return c, nil
 }
 
-// List lists a collection as a slice of `dsref.VersionInfo`s, scoped to a user
-func (c *Collection) List(ctx context.Context, pid profile.ID, lp params.List) ([]dsref.VersionInfo, error) {
-	return c.set.List(ctx, pid, lp)
+// Set returns the SetMaintainer's underlying `Set`
+func (sm *SetMaintainer) Set() Set {
+	return sm.set
 }
 
-// Get fetches dataset information as a `dsref.VersionInfo`, scoped by user
-func (c *Collection) Get(ctx context.Context, pid profile.ID, initID string) (dsref.VersionInfo, error) {
-	return c.set.Get(ctx, pid, initID)
-}
-
-// Put adds a list of `dsref.VersionInfo`s to a user's collection
-func (c *Collection) Put(ctx context.Context, pid profile.ID, item ...dsref.VersionInfo) error {
-	return c.set.Put(ctx, pid, item...)
-}
-
-func (c *Collection) subscribe(bus event.Bus) {
-	bus.SubscribeTypes(c.handleEvent,
+func (sm *SetMaintainer) subscribe(bus event.Bus) {
+	bus.SubscribeTypes(sm.handleEvent,
 		// save events
 		event.ETDatasetNameInit,
 		event.ETDatasetCommitChange,
@@ -95,7 +81,7 @@ func (c *Collection) subscribe(bus event.Bus) {
 	)
 }
 
-func (c *Collection) handleEvent(ctx context.Context, e event.Event) error {
+func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 	switch e.Type {
 	case event.ETDatasetNameInit:
 		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
@@ -104,7 +90,7 @@ func (c *Collection) handleEvent(ctx context.Context, e event.Event) error {
 				log.Debugw("parsing profile ID in name init", "err", err)
 				return err
 			}
-			if err := c.set.Put(ctx, pid, vi); err != nil {
+			if err := sm.set.Add(ctx, pid, vi); err != nil {
 				log.Debugw("putting one:", "err", err)
 				return err
 			}
@@ -113,7 +99,7 @@ func (c *Collection) handleEvent(ctx context.Context, e event.Event) error {
 	case event.ETDatasetCommitChange:
 		// keep in mind commit changes can mean added OR removed versions
 		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
-			c.set.UpdateOneAcrossAllCollections(ctx, vi.InitID, func(m *dsref.VersionInfo) {
+			sm.set.UpdateEverywhere(ctx, vi.InitID, func(m *dsref.VersionInfo) {
 				// preserve fsi path
 				vi.FSIPath = m.FSIPath
 				// preserve workflow id
@@ -126,40 +112,50 @@ func (c *Collection) handleEvent(ctx context.Context, e event.Event) error {
 		}
 	case event.ETDatasetRename:
 		if rename, ok := e.Payload.(event.DsRename); ok {
-			c.set.UpdateOneAcrossAllCollections(ctx, rename.InitID, func(vi *dsref.VersionInfo) {
+			sm.set.UpdateEverywhere(ctx, rename.InitID, func(vi *dsref.VersionInfo) {
 				vi.Name = rename.NewName
 			})
 		}
 	case event.ETDatasetDeleteAll:
-		profileID := e.ProfileID
-		if initID, ok := e.Payload.(string); ok && profileID != "" {
-			if err := c.set.DeleteFromCollection(ctx, profileID, initID); err != nil {
-				log.Debugw("removing dataset from collection", "profileID", profileID, "initID", initID, "err", err)
+		if e.ProfileID != "" {
+			pid, err := profile.IDB58Decode(e.ProfileID)
+			if err != nil {
+				log.Debugw("parsing profile ID in dataset delete all event", "err", err)
+				return err
+			}
+			if initID, ok := e.Payload.(string); ok {
+				if err := sm.set.Delete(ctx, pid, initID); err != nil {
+					log.Debugw("removing dataset from collection", "profileID", pid, "initID", initID, "err", err)
+				}
 			}
 		}
 	case event.ETRegistryProfileCreated:
 		if p, ok := e.Payload.(event.RegistryProfileCreated); ok {
-			c.set.UpdateUsernameAcrossAllCollections(ctx, p.ProfileID, p.Username)
+			pid, err := profile.IDB58Decode(p.ProfileID)
+			if err != nil {
+				log.Debugw("parsing profile ID in registry profile created event", "err", err)
+				return err
+			}
+			sm.set.RenameUsername(ctx, pid, p.Username)
 		}
 	case event.ETDatasetPushed:
-		// TODO(b5): need user-scoped events for this so we can know *who* pulled
-		// for now we'll hack in an addition to all user's collections, which would
-		// DEFINITELY break cloud
-		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
-			if err := c.set.AddOneAcrossAllCollections(ctx, vi); err != nil {
-				log.Debugw("adding dataset across all collections", "initID", vi.InitID, "err", err)
-			}
-		}
+		log.Errorw("need user-scoped events to allow `ETDatasetPush` event to add dataset to a user's collection", e.Payload)
 	case event.ETDatasetPulled:
-		profileID := e.ProfileID
-		if vi, ok := e.Payload.(dsref.VersionInfo); ok && profileID != "" {
-			if err := c.set.AddOneToCollection(ctx, profileID, vi); err != nil {
-				log.Debugw("adding dataset to collection", "profileID", profileID, "initID", vi.InitID, "err", err)
+		if e.ProfileID != "" {
+			pid, err := profile.IDB58Decode(e.ProfileID)
+			if err != nil {
+				log.Debugw("parsing profile ID in dataset pulled event", "err", err)
+				return err
+			}
+			if vi, ok := e.Payload.(dsref.VersionInfo); ok {
+				if err := sm.set.Add(ctx, pid, vi); err != nil {
+					log.Debugw("adding dataset to collection", "profileID", pid, "initID", vi.InitID, "err", err)
+				}
 			}
 		}
 	case event.ETAutomationWorkflowStarted:
 		if evt, ok := e.Payload.(event.WorkflowStartedEvent); ok {
-			err := c.set.UpdateOneAcrossAllCollections(ctx, evt.InitID, func(vi *dsref.VersionInfo) {
+			err := sm.set.UpdateEverywhere(ctx, evt.InitID, func(vi *dsref.VersionInfo) {
 				vi.RunID = evt.RunID
 				vi.RunStatus = "running"
 			})
@@ -169,7 +165,7 @@ func (c *Collection) handleEvent(ctx context.Context, e event.Event) error {
 		}
 	case event.ETAutomationWorkflowStopped:
 		if evt, ok := e.Payload.(event.WorkflowStoppedEvent); ok {
-			err := c.set.UpdateOneAcrossAllCollections(ctx, evt.InitID, func(vi *dsref.VersionInfo) {
+			err := sm.set.UpdateEverywhere(ctx, evt.InitID, func(vi *dsref.VersionInfo) {
 				vi.RunStatus = evt.Status
 			})
 			if err != nil {
@@ -178,7 +174,7 @@ func (c *Collection) handleEvent(ctx context.Context, e event.Event) error {
 		}
 	case event.ETAutomationWorkflowCreated:
 		if wf, ok := e.Payload.(workflow.Workflow); ok {
-			err := c.set.UpdateOneAcrossAllCollections(ctx, wf.InitID, func(vi *dsref.VersionInfo) {
+			err := sm.set.UpdateEverywhere(ctx, wf.InitID, func(vi *dsref.VersionInfo) {
 				vi.WorkflowID = wf.WorkflowID()
 			})
 
@@ -188,7 +184,7 @@ func (c *Collection) handleEvent(ctx context.Context, e event.Event) error {
 		}
 	case event.ETAutomationWorkflowRemoved:
 		if wf, ok := e.Payload.(workflow.Workflow); ok {
-			err := c.set.UpdateOneAcrossAllCollections(ctx, wf.InitID, func(vi *dsref.VersionInfo) {
+			err := sm.set.UpdateEverywhere(ctx, wf.InitID, func(vi *dsref.VersionInfo) {
 				vi.WorkflowID = ""
 			})
 
@@ -198,13 +194,13 @@ func (c *Collection) handleEvent(ctx context.Context, e event.Event) error {
 		}
 	case event.ETFSICreateLink:
 		if link, ok := e.Payload.(event.FSICreateLink); ok {
-			c.set.UpdateOneAcrossAllCollections(ctx, link.InitID, func(vi *dsref.VersionInfo) {
+			sm.set.UpdateEverywhere(ctx, link.InitID, func(vi *dsref.VersionInfo) {
 				vi.FSIPath = link.FSIPath
 			})
 		}
 	case event.ETFSIRemoveLink:
 		if change, ok := e.Payload.(event.FSIRemoveLink); ok {
-			c.set.UpdateOneAcrossAllCollections(ctx, change.InitID, func(vi *dsref.VersionInfo) {
+			sm.set.UpdateEverywhere(ctx, change.InitID, func(vi *dsref.VersionInfo) {
 				vi.FSIPath = ""
 			})
 		}
@@ -212,33 +208,28 @@ func (c *Collection) handleEvent(ctx context.Context, e event.Event) error {
 	return nil
 }
 
-// Set maintains lists of datasets, with each list scoped to a user profile.
+// Set maintains lists of dataset information, called a collection, with each
+// list scoped to a user profile. A user's collection may consist of information
+// from datasets they have created and datasets added from other users.
+// Collections are the canonical source of truth for listing a user's datasets
+// in a qri instance. While a collection owns the list, the fields in a
+// collection item are cached values gathered from other subsystems, and must
+// be kept in sync as subsystems mutate their state
 type Set interface {
+	// List the collection of a single user
 	List(ctx context.Context, pid profile.ID, lp params.List) ([]dsref.VersionInfo, error)
+	// Get info about a single dataset in a single user's collection
 	Get(ctx context.Context, pid profile.ID, initID string) (dsref.VersionInfo, error)
-}
-
-// WritableSet is an extension interface on Set that adds methods for
-// adding and removing items
-type WritableSet interface {
-	Set
-	// Put adds a list of `dsref.VersionInfo`s to a user's collection
-	Put(ctx context.Context, pid profile.ID, item ...dsref.VersionInfo) error
-	// Delete removes datasets from a user's collection
-	Delete(ctx context.Context, profileID profile.ID, initIDs ...string) error
-	// UpdateUsernameAcrossAllCollections updates all instances of a username
-	// in all collections
-	UpdateUsernameAcrossAllCollections(ctx context.Context, changedUsernameProfileIDString, newUsername string) error
-	// AddOneAcrossAllCollections adds a new dataset's information to all
-	// collections
-	AddOneAcrossAllCollections(ctx context.Context, add dsref.VersionInfo) error
-	// UpdateOneAcrossAllCollections updates a dataset's information in all
-	// collections
-	UpdateOneAcrossAllCollections(ctx context.Context, initID string, mutate func(vi *dsref.VersionInfo)) error
-	// DeleteFromCollection removes a user's entire collection
-	DeleteFromCollection(ctx context.Context, profileID, removeID string) error
-	// AddOneToCollection adds a dataset to a user's collection
-	AddOneToCollection(ctx context.Context, profileID string, add dsref.VersionInfo) error
+	// PutList adds a list of `dsref.VersionInfo`s to a user's collection
+	PutList(ctx context.Context, pid profile.ID, items []dsref.VersionInfo) error
+	// Add adds a single dataset to a user's collection
+	Add(ctx context.Context, pid profile.ID, add dsref.VersionInfo) error
+	// RenameUsername changes a user's name
+	RenameUsername(ctx context.Context, pid profile.ID, newUsername string) error
+	// UpdateEverywhere updates a dataset in all collections that contain it
+	UpdateEverywhere(ctx context.Context, initID string, mutate func(vi *dsref.VersionInfo)) error
+	// Delete removes a single dataset from a single user's collection
+	Delete(ctx context.Context, pid profile.ID, removeID string) error
 }
 
 // LocalSetOptionFunc passes an options pointer for confugration during
@@ -261,8 +252,7 @@ type localSet struct {
 }
 
 var (
-	_ Set         = (*localSet)(nil)
-	_ WritableSet = (*localSet)(nil)
+	_ Set = (*localSet)(nil)
 )
 
 // NewLocalSet constructs a node-local collection set. If repoDir is not the
@@ -270,7 +260,7 @@ var (
 // persist collections, serializing to a directory of "profileID.json" files,
 // with one for each profileID in the set of collections. providing an empty
 // repoDir value will create an in-memory collection
-func NewLocalSet(ctx context.Context, repoDir string, options ...LocalSetOptionFunc) (WritableSet, error) {
+func NewLocalSet(ctx context.Context, repoDir string, options ...LocalSetOptionFunc) (Set, error) {
 	opt := &LocalSetOptions{}
 	for _, fn := range options {
 		fn(opt)
@@ -366,7 +356,7 @@ func (s *localSet) Get(ctx context.Context, pid profile.ID, initID string) (dsre
 	return dsref.VersionInfo{}, ErrNotFound
 }
 
-func (s *localSet) Put(ctx context.Context, pid profile.ID, items ...dsref.VersionInfo) error {
+func (s *localSet) PutList(ctx context.Context, pid profile.ID, items []dsref.VersionInfo) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -375,7 +365,7 @@ func (s *localSet) Put(ctx context.Context, pid profile.ID, items ...dsref.Versi
 	}
 
 	for _, item := range items {
-		if err := s.putOne(pid, item); err != nil {
+		if err := s.add(pid, item); err != nil {
 			return err
 		}
 	}
@@ -386,7 +376,24 @@ func (s *localSet) Put(ctx context.Context, pid profile.ID, items ...dsref.Versi
 	return s.saveProfileCollection(pid)
 }
 
-func (s *localSet) putOne(pid profile.ID, item dsref.VersionInfo) error {
+func (s *localSet) Add(ctx context.Context, pid profile.ID, item dsref.VersionInfo) error {
+	s.Lock()
+	defer s.Unlock()
+
+	if err := pid.Validate(); err != nil {
+		return err
+	}
+
+	if err := s.add(pid, item); err != nil {
+		return err
+	}
+	agg, _ := dsref.NewVersionInfoAggregator([]string{"name"})
+	agg.Sort(s.collections[pid])
+
+	return s.saveProfileCollection(pid)
+}
+
+func (s *localSet) add(pid profile.ID, item dsref.VersionInfo) error {
 	if item.ProfileID == "" {
 		return fmt.Errorf("profileID is required")
 	}
@@ -411,7 +418,7 @@ func (s *localSet) putOne(pid profile.ID, item dsref.VersionInfo) error {
 	return nil
 }
 
-func (s *localSet) Delete(ctx context.Context, pid profile.ID, initID ...string) error {
+func (s *localSet) Delete(ctx context.Context, pid profile.ID, removeID string) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -424,21 +431,19 @@ func (s *localSet) Delete(ctx context.Context, pid profile.ID, initID ...string)
 		return fmt.Errorf("no collection for profile")
 	}
 
-	for _, removeID := range initID {
-		found := false
-		for i, item := range col {
-			if item.InitID == removeID {
-				found = true
-				copy(col[i:], col[i+1:])              // Shift a[i+1:] left one index.
-				col[len(col)-1] = dsref.VersionInfo{} // Erase last element (write zero value).
-				col = col[:len(col)-1]                // Truncate slice.
-				break
-			}
+	found := false
+	for i, item := range col {
+		if item.InitID == removeID {
+			found = true
+			copy(col[i:], col[i+1:])              // Shift a[i+1:] left one index.
+			col[len(col)-1] = dsref.VersionInfo{} // Erase last element (write zero value).
+			col = col[:len(col)-1]                // Truncate slice.
+			break
 		}
+	}
 
-		if !found {
-			return fmt.Errorf("no dataset in collection with initID %q", removeID)
-		}
+	if !found {
+		return fmt.Errorf("no dataset in collection with initID %q", removeID)
 	}
 
 	s.collections[pid] = col
@@ -509,21 +514,21 @@ func (s *localSet) saveProfileCollection(pid profile.ID) error {
 	return ioutil.WriteFile(path, data, 0644)
 }
 
-func (s *localSet) UpdateUsernameAcrossAllCollections(ctx context.Context, changedUsernameProfileIDString, newUsername string) error {
+func (s *localSet) RenameUsername(ctx context.Context, pid profile.ID, newUsername string) error {
 	s.Lock()
 	defer s.Unlock()
 
-	for pid, col := range s.collections {
+	for profileID, col := range s.collections {
 		changed := false
 		for i, vi := range col {
-			if vi.ProfileID == changedUsernameProfileIDString && vi.Username != newUsername {
+			if vi.ProfileID == pid.Encode() && vi.Username != newUsername {
 				changed = true
 				vi.Username = newUsername
 				col[i] = vi
 			}
 		}
 		if changed {
-			if err := s.saveProfileCollection(pid); err != nil {
+			if err := s.saveProfileCollection(profileID); err != nil {
 				return err
 			}
 		}
@@ -532,37 +537,7 @@ func (s *localSet) UpdateUsernameAcrossAllCollections(ctx context.Context, chang
 	return nil
 }
 
-func (s *localSet) AddOneAcrossAllCollections(ctx context.Context, add dsref.VersionInfo) error {
-	s.Lock()
-	defer s.Unlock()
-
-	agg, err := dsref.NewVersionInfoAggregator([]string{"name"})
-	if err != nil {
-		return err
-	}
-
-	for pid, col := range s.collections {
-		added := false
-		for i, vi := range col {
-			if vi.InitID == add.InitID {
-				added = true
-				col[i] = vi
-			}
-		}
-		if !added {
-			s.collections[pid] = append(col, add)
-			agg.Sort(s.collections[pid])
-		}
-
-		if err := s.saveProfileCollection(pid); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (s *localSet) UpdateOneAcrossAllCollections(ctx context.Context, initID string, mutate func(vi *dsref.VersionInfo)) error {
+func (s *localSet) UpdateEverywhere(ctx context.Context, initID string, mutate func(vi *dsref.VersionInfo)) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -579,70 +554,6 @@ func (s *localSet) UpdateOneAcrossAllCollections(ctx context.Context, initID str
 		}
 	}
 
-	return nil
-}
-
-func (s *localSet) DeleteFromCollection(ctx context.Context, profileID, removeID string) error {
-	s.Lock()
-	defer s.Unlock()
-
-	pid, err := profile.IDB58Decode(profileID)
-	if err != nil {
-		return err
-	}
-	col, ok := s.collections[pid]
-	if !ok {
-		return fmt.Errorf("no collection found for %q", pid)
-	}
-
-	for i, item := range col {
-		if item.InitID == removeID {
-			copy(col[i:], col[i+1:])              // Shift a[i+1:] left one index.
-			col[len(col)-1] = dsref.VersionInfo{} // Erase last element (write zero value).
-			s.collections[pid] = col[:len(col)-1] // Truncate slice.
-			if err := s.saveProfileCollection(pid); err != nil {
-				return err
-			}
-			break
-		}
-	}
-
-	return nil
-}
-
-func (s *localSet) AddOneToCollection(ctx context.Context, profileID string, add dsref.VersionInfo) error {
-	s.Lock()
-	defer s.Unlock()
-
-	agg, err := dsref.NewVersionInfoAggregator([]string{"name"})
-	if err != nil {
-		return err
-	}
-
-	pid, err := profile.IDB58Decode(profileID)
-	if err != nil {
-		return err
-	}
-	col, ok := s.collections[pid]
-	if !ok {
-		return fmt.Errorf("no collection found for %q", pid)
-	}
-
-	added := false
-	for i, vi := range col {
-		if vi.InitID == add.InitID {
-			added = true
-			col[i] = vi
-		}
-	}
-	if !added {
-		s.collections[pid] = append(col, add)
-		agg.Sort(s.collections[pid])
-	}
-
-	if err := s.saveProfileCollection(pid); err != nil {
-		return err
-	}
 	return nil
 }
 
