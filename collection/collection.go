@@ -28,22 +28,199 @@ var (
 	log         = logger.Logger("collection")
 )
 
-// Set maintains lists of datasets, with each list scoped to a user profile.
-// A user's collection may consist of datasets they have created and datasets
-// added from other users. Collections are the canonical source of truth for
-// listing a user's datasets in a qri instance. While a collection owns the list
-// the fields in a collection item are cached values gathered from other
-// subsystems, and must be kept in sync as subsystems mutate their state.
-type Set interface {
-	List(ctx context.Context, pid profile.ID, lp params.List) ([]dsref.VersionInfo, error)
+// SetMaintainer maintains a set of collections, each scoped to a user profile
+// It keeps the collection set in sync as subsystems mutate their state.
+type SetMaintainer struct {
+	Set
 }
 
-// WritableSet is an extension interface on Set that adds methods for
-// adding and removing items
-type WritableSet interface {
-	Set
-	Put(ctx context.Context, profileID profile.ID, items ...dsref.VersionInfo) error
-	Delete(ctx context.Context, profileID profile.ID, initIDs ...string) error
+// NewSetMaintainer constructs a SetMaintainer
+func NewSetMaintainer(ctx context.Context, bus event.Bus, set Set) (*SetMaintainer, error) {
+	if bus == nil {
+		return nil, fmt.Errorf("bus of type event.Bus required")
+	}
+	if set == nil {
+		return nil, fmt.Errorf("set of type collection.Set required")
+	}
+	c := &SetMaintainer{
+		Set: set,
+	}
+	c.subscribe(bus)
+	return c, nil
+}
+
+func (sm *SetMaintainer) subscribe(bus event.Bus) {
+	bus.SubscribeTypes(sm.handleEvent,
+		// save events
+		event.ETDatasetNameInit,
+		event.ETDatasetCommitChange,
+		event.ETDatasetRename,
+		event.ETDatasetDeleteAll,
+
+		// remote & registry events
+		event.ETDatasetPushed,
+		event.ETDatasetPulled,
+		event.ETRegistryProfileCreated,
+
+		// automation events
+		event.ETAutomationWorkflowStarted,
+		event.ETAutomationWorkflowStopped,
+		event.ETAutomationWorkflowCreated,
+		event.ETAutomationWorkflowRemoved,
+
+		// fsi
+		event.ETFSICreateLink,
+		event.ETFSIRemoveLink,
+	)
+}
+
+func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
+	switch e.Type {
+	case event.ETDatasetNameInit:
+		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
+			pid, err := profile.IDB58Decode(vi.ProfileID)
+			if err != nil {
+				log.Debugw("parsing profile ID in name init", "err", err)
+				return err
+			}
+			if err := sm.Add(ctx, pid, vi); err != nil {
+				log.Debugw("putting one:", "err", err)
+				return err
+			}
+			log.Debugw("finished putting new name", "name", vi.Name, "initID", vi.InitID)
+		}
+	case event.ETDatasetCommitChange:
+		// keep in mind commit changes can mean added OR removed versions
+		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
+			sm.UpdateEverywhere(ctx, vi.InitID, func(m *dsref.VersionInfo) {
+				// preserve fsi path
+				vi.FSIPath = m.FSIPath
+				// preserve workflow id
+				vi.WorkflowID = m.WorkflowID
+				// preserve run information
+				vi.RunID = m.RunID
+				vi.RunStatus = m.RunStatus
+				*m = vi
+			})
+		}
+	case event.ETDatasetRename:
+		if rename, ok := e.Payload.(event.DsRename); ok {
+			sm.UpdateEverywhere(ctx, rename.InitID, func(vi *dsref.VersionInfo) {
+				vi.Name = rename.NewName
+			})
+		}
+	case event.ETDatasetDeleteAll:
+		if e.ProfileID != "" {
+			pid, err := profile.IDB58Decode(e.ProfileID)
+			if err != nil {
+				log.Debugw("parsing profile ID in dataset delete all event", "err", err)
+				return err
+			}
+			if initID, ok := e.Payload.(string); ok {
+				if err := sm.Delete(ctx, pid, initID); err != nil {
+					log.Debugw("removing dataset from collection", "profileID", pid, "initID", initID, "err", err)
+				}
+			}
+		}
+	case event.ETRegistryProfileCreated:
+		if p, ok := e.Payload.(event.RegistryProfileCreated); ok {
+			pid, err := profile.IDB58Decode(p.ProfileID)
+			if err != nil {
+				log.Debugw("parsing profile ID in registry profile created event", "err", err)
+				return err
+			}
+			sm.RenameUser(ctx, pid, p.Username)
+		}
+	case event.ETDatasetPushed:
+		log.Errorw("no handler for event `ETDatasetPush`")
+	case event.ETDatasetPulled:
+		if e.ProfileID != "" {
+			pid, err := profile.IDB58Decode(e.ProfileID)
+			if err != nil {
+				log.Debugw("parsing profile ID in dataset pulled event", "err", err)
+				return err
+			}
+			if vi, ok := e.Payload.(dsref.VersionInfo); ok {
+				if err := sm.Add(ctx, pid, vi); err != nil {
+					log.Debugw("adding dataset to collection", "profileID", pid, "initID", vi.InitID, "err", err)
+				}
+			}
+		}
+	case event.ETAutomationWorkflowStarted:
+		if evt, ok := e.Payload.(event.WorkflowStartedEvent); ok {
+			err := sm.UpdateEverywhere(ctx, evt.InitID, func(vi *dsref.VersionInfo) {
+				vi.RunID = evt.RunID
+				vi.RunStatus = "running"
+			})
+			if err != nil {
+				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
+			}
+		}
+	case event.ETAutomationWorkflowStopped:
+		if evt, ok := e.Payload.(event.WorkflowStoppedEvent); ok {
+			err := sm.UpdateEverywhere(ctx, evt.InitID, func(vi *dsref.VersionInfo) {
+				vi.RunStatus = evt.Status
+			})
+			if err != nil {
+				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
+			}
+		}
+	case event.ETAutomationWorkflowCreated:
+		if wf, ok := e.Payload.(workflow.Workflow); ok {
+			err := sm.UpdateEverywhere(ctx, wf.InitID, func(vi *dsref.VersionInfo) {
+				vi.WorkflowID = wf.WorkflowID()
+			})
+
+			if err != nil {
+				log.Debugw("updating dataset across all collections", "InitID", wf.InitID, "err", err)
+			}
+		}
+	case event.ETAutomationWorkflowRemoved:
+		if wf, ok := e.Payload.(workflow.Workflow); ok {
+			err := sm.UpdateEverywhere(ctx, wf.InitID, func(vi *dsref.VersionInfo) {
+				vi.WorkflowID = ""
+			})
+
+			if err != nil {
+				log.Debugw("updating dataset across all collections", "InitID", wf.InitID, "err", err)
+			}
+		}
+	case event.ETFSICreateLink:
+		if link, ok := e.Payload.(event.FSICreateLink); ok {
+			sm.UpdateEverywhere(ctx, link.InitID, func(vi *dsref.VersionInfo) {
+				vi.FSIPath = link.FSIPath
+			})
+		}
+	case event.ETFSIRemoveLink:
+		if change, ok := e.Payload.(event.FSIRemoveLink); ok {
+			sm.UpdateEverywhere(ctx, change.InitID, func(vi *dsref.VersionInfo) {
+				vi.FSIPath = ""
+			})
+		}
+	}
+	return nil
+}
+
+// Set maintains lists of dataset information, called a collection, with each
+// list scoped to a user profile. A user's collection may consist of information
+// from datasets they have created and datasets added from other users.
+// Collections are the canonical source of truth for listing a user's datasets
+// in a qri instance. While a collection owns the list, the fields in a
+// collection item are cached values gathered from other subsystems, and must
+// be kept in sync as subsystems mutate their state
+type Set interface {
+	// List the collection of a single user
+	List(ctx context.Context, pid profile.ID, lp params.List) ([]dsref.VersionInfo, error)
+	// Get info about a single dataset in a single user's collection
+	Get(ctx context.Context, pid profile.ID, initID string) (dsref.VersionInfo, error)
+	// Add adds a dataset or datasets to a user's collection
+	Add(ctx context.Context, pid profile.ID, add ...dsref.VersionInfo) error
+	// RenameUser changes a user's name
+	RenameUser(ctx context.Context, pid profile.ID, newUsername string) error
+	// UpdateEverywhere updates a dataset in all collections that contain it
+	UpdateEverywhere(ctx context.Context, initID string, mutate func(vi *dsref.VersionInfo)) error
+	// Delete removes a single dataset from a single user's collection
+	Delete(ctx context.Context, pid profile.ID, removeID string) error
 }
 
 // LocalSetOptionFunc passes an options pointer for confugration during
@@ -65,17 +242,15 @@ type localSet struct {
 	collections map[profile.ID][]dsref.VersionInfo
 }
 
-var (
-	_ Set         = (*localSet)(nil)
-	_ WritableSet = (*localSet)(nil)
-)
+// compile-time assertion for type interface
+var _ Set = (*localSet)(nil)
 
 // NewLocalSet constructs a node-local collection set. If repoDir is not the
 // empty string, localCollection will create a "collections" directory to
 // persist collections, serializing to a directory of "profileID.json" files,
 // with one for each profileID in the set of collections. providing an empty
 // repoDir value will create an in-memory collection
-func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string, options ...LocalSetOptionFunc) (Set, error) {
+func NewLocalSet(ctx context.Context, repoDir string, options ...LocalSetOptionFunc) (Set, error) {
 	opt := &LocalSetOptions{}
 	for _, fn := range options {
 		fn(opt)
@@ -86,7 +261,6 @@ func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string, options ...
 		s := &localSet{
 			collections: make(map[profile.ID][]dsref.VersionInfo),
 		}
-		s.subscribe(bus)
 		if opt.MigrateRepo != nil {
 			if err := MigrateRepoStoreToLocalCollectionSet(ctx, s, opt.MigrateRepo); err != nil {
 				return nil, err
@@ -105,7 +279,6 @@ func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string, options ...
 			basePath:    repoDir,
 			collections: make(map[profile.ID][]dsref.VersionInfo),
 		}
-		s.subscribe(bus)
 
 		if opt.MigrateRepo != nil {
 			if err = MigrateRepoStoreToLocalCollectionSet(ctx, s, opt.MigrateRepo); err != nil {
@@ -118,7 +291,6 @@ func NewLocalSet(ctx context.Context, bus event.Bus, repoDir string, options ...
 	}
 
 	s := &localSet{basePath: repoDir}
-	s.subscribe(bus)
 
 	err = s.loadAll()
 	return s, err
@@ -158,7 +330,27 @@ func (s *localSet) List(ctx context.Context, pid profile.ID, lp params.List) ([]
 	return results, nil
 }
 
-func (s *localSet) Put(ctx context.Context, pid profile.ID, items ...dsref.VersionInfo) error {
+func (s *localSet) Get(ctx context.Context, pid profile.ID, initID string) (dsref.VersionInfo, error) {
+	s.Lock()
+	defer s.Unlock()
+
+	if err := pid.Validate(); err != nil {
+		return dsref.VersionInfo{}, err
+	}
+
+	collection, ok := s.collections[pid]
+	if !ok {
+		return dsref.VersionInfo{}, fmt.Errorf("%w: no collection for profile ID %q", ErrNotFound, pid.Encode())
+	}
+	for _, vi := range collection {
+		if vi.InitID == initID {
+			return vi, nil
+		}
+	}
+	return dsref.VersionInfo{}, ErrNotFound
+}
+
+func (s *localSet) Add(ctx context.Context, pid profile.ID, items ...dsref.VersionInfo) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -167,18 +359,17 @@ func (s *localSet) Put(ctx context.Context, pid profile.ID, items ...dsref.Versi
 	}
 
 	for _, item := range items {
-		if err := s.putOne(pid, item); err != nil {
+		if err := s.addOne(pid, item); err != nil {
 			return err
 		}
 	}
-
 	agg, _ := dsref.NewVersionInfoAggregator([]string{"name"})
 	agg.Sort(s.collections[pid])
 
 	return s.saveProfileCollection(pid)
 }
 
-func (s *localSet) putOne(pid profile.ID, item dsref.VersionInfo) error {
+func (s *localSet) addOne(pid profile.ID, item dsref.VersionInfo) error {
 	if item.ProfileID == "" {
 		return fmt.Errorf("profileID is required")
 	}
@@ -203,7 +394,7 @@ func (s *localSet) putOne(pid profile.ID, item dsref.VersionInfo) error {
 	return nil
 }
 
-func (s *localSet) Delete(ctx context.Context, pid profile.ID, initID ...string) error {
+func (s *localSet) Delete(ctx context.Context, pid profile.ID, removeID string) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -216,21 +407,19 @@ func (s *localSet) Delete(ctx context.Context, pid profile.ID, initID ...string)
 		return fmt.Errorf("no collection for profile")
 	}
 
-	for _, removeID := range initID {
-		found := false
-		for i, item := range col {
-			if item.InitID == removeID {
-				found = true
-				copy(col[i:], col[i+1:])              // Shift a[i+1:] left one index.
-				col[len(col)-1] = dsref.VersionInfo{} // Erase last element (write zero value).
-				col = col[:len(col)-1]                // Truncate slice.
-				break
-			}
+	found := false
+	for i, item := range col {
+		if item.InitID == removeID {
+			found = true
+			copy(col[i:], col[i+1:])              // Shift a[i+1:] left one index.
+			col[len(col)-1] = dsref.VersionInfo{} // Erase last element (write zero value).
+			col = col[:len(col)-1]                // Truncate slice.
+			break
 		}
+	}
 
-		if !found {
-			return fmt.Errorf("no dataset in collection with initID %q", removeID)
-		}
+	if !found {
+		return fmt.Errorf("no dataset in collection with initID %q", removeID)
 	}
 
 	s.collections[pid] = col
@@ -301,163 +490,21 @@ func (s *localSet) saveProfileCollection(pid profile.ID) error {
 	return ioutil.WriteFile(path, data, 0644)
 }
 
-func (s *localSet) subscribe(bus event.Bus) {
-	bus.SubscribeTypes(s.handleEvent,
-		// save events
-		event.ETDatasetNameInit,
-		event.ETDatasetCommitChange,
-		event.ETDatasetRename,
-		event.ETDatasetDeleteAll,
-
-		// remote & registry events
-		event.ETDatasetPushed,
-		event.ETDatasetPulled,
-		event.ETRegistryProfileCreated,
-
-		// automation events
-		event.ETAutomationWorkflowStarted,
-		event.ETAutomationWorkflowStopped,
-		event.ETAutomationWorkflowCreated,
-		event.ETAutomationWorkflowRemoved,
-
-		// fsi
-		event.ETFSICreateLink,
-		event.ETFSIRemoveLink,
-	)
-}
-
-func (s *localSet) handleEvent(ctx context.Context, e event.Event) error {
-	switch e.Type {
-	case event.ETDatasetNameInit:
-		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
-			pid, err := profile.IDB58Decode(vi.ProfileID)
-			if err != nil {
-				log.Debugw("parsing profile ID in name init", "err", err)
-				return err
-			}
-			if err := s.Put(ctx, pid, vi); err != nil {
-				log.Debugw("putting one:", "err", err)
-				return err
-			}
-			log.Debugw("finished putting new name", "name", vi.Name, "initID", vi.InitID)
-		}
-	case event.ETDatasetCommitChange:
-		// keep in mind commit changes can mean added OR removed versions
-		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
-			s.updateOneAcrossAllCollections(vi.InitID, func(m *dsref.VersionInfo) {
-				// preserve fsi path
-				vi.FSIPath = m.FSIPath
-				// preserve workflow id
-				vi.WorkflowID = m.WorkflowID
-				// preserve run information
-				vi.RunID = m.RunID
-				vi.RunStatus = m.RunStatus
-				*m = vi
-			})
-		}
-	case event.ETDatasetRename:
-		if rename, ok := e.Payload.(event.DsRename); ok {
-			s.updateOneAcrossAllCollections(rename.InitID, func(vi *dsref.VersionInfo) {
-				vi.Name = rename.NewName
-			})
-		}
-	case event.ETDatasetDeleteAll:
-		profileID := e.ProfileID
-		if initID, ok := e.Payload.(string); ok && profileID != "" {
-			if err := s.deleteFromCollection(profileID, initID); err != nil {
-				log.Debugw("removing dataset from collection", "profileID", profileID, "initID", initID, "err", err)
-			}
-		}
-	case event.ETRegistryProfileCreated:
-		if p, ok := e.Payload.(event.RegistryProfileCreated); ok {
-			s.updateUsernameAcrossAllCollections(p.ProfileID, p.Username)
-		}
-	case event.ETDatasetPushed:
-		// TODO(b5): need user-scoped events for this so we can know *who* pulled
-		// for now we'll hack in an addition to all user's collections, which would
-		// DEFINITELY break cloud
-		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
-			if err := s.addOneAcrossAllCollections(vi); err != nil {
-				log.Debugw("adding dataset across all collections", "initID", vi.InitID, "err", err)
-			}
-		}
-	case event.ETDatasetPulled:
-		profileID := e.ProfileID
-		if vi, ok := e.Payload.(dsref.VersionInfo); ok && profileID != "" {
-			if err := s.addOneToCollection(profileID, vi); err != nil {
-				log.Debugw("adding dataset to collection", "profileID", profileID, "initID", vi.InitID, "err", err)
-			}
-		}
-	case event.ETAutomationWorkflowStarted:
-		if evt, ok := e.Payload.(event.WorkflowStartedEvent); ok {
-			err := s.updateOneAcrossAllCollections(evt.InitID, func(vi *dsref.VersionInfo) {
-				vi.RunID = evt.RunID
-				vi.RunStatus = "running"
-			})
-			if err != nil {
-				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
-			}
-		}
-	case event.ETAutomationWorkflowStopped:
-		if evt, ok := e.Payload.(event.WorkflowStoppedEvent); ok {
-			err := s.updateOneAcrossAllCollections(evt.InitID, func(vi *dsref.VersionInfo) {
-				vi.RunStatus = evt.Status
-			})
-			if err != nil {
-				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
-			}
-		}
-	case event.ETAutomationWorkflowCreated:
-		if wf, ok := e.Payload.(workflow.Workflow); ok {
-			err := s.updateOneAcrossAllCollections(wf.InitID, func(vi *dsref.VersionInfo) {
-				vi.WorkflowID = wf.WorkflowID()
-			})
-
-			if err != nil {
-				log.Debugw("updating dataset across all collections", "InitID", wf.InitID, "err", err)
-			}
-		}
-	case event.ETAutomationWorkflowRemoved:
-		if wf, ok := e.Payload.(workflow.Workflow); ok {
-			err := s.updateOneAcrossAllCollections(wf.InitID, func(vi *dsref.VersionInfo) {
-				vi.WorkflowID = ""
-			})
-
-			if err != nil {
-				log.Debugw("updating dataset across all collections", "InitID", wf.InitID, "err", err)
-			}
-		}
-	case event.ETFSICreateLink:
-		if link, ok := e.Payload.(event.FSICreateLink); ok {
-			s.updateOneAcrossAllCollections(link.InitID, func(vi *dsref.VersionInfo) {
-				vi.FSIPath = link.FSIPath
-			})
-		}
-	case event.ETFSIRemoveLink:
-		if change, ok := e.Payload.(event.FSIRemoveLink); ok {
-			s.updateOneAcrossAllCollections(change.InitID, func(vi *dsref.VersionInfo) {
-				vi.FSIPath = ""
-			})
-		}
-	}
-	return nil
-}
-
-func (s *localSet) updateUsernameAcrossAllCollections(changedUsernameProfileIDString, newUsername string) error {
+func (s *localSet) RenameUser(ctx context.Context, pid profile.ID, newUsername string) error {
 	s.Lock()
 	defer s.Unlock()
 
-	for pid, col := range s.collections {
+	for profileID, col := range s.collections {
 		changed := false
 		for i, vi := range col {
-			if vi.ProfileID == changedUsernameProfileIDString && vi.Username != newUsername {
+			if vi.ProfileID == pid.Encode() && vi.Username != newUsername {
 				changed = true
 				vi.Username = newUsername
 				col[i] = vi
 			}
 		}
 		if changed {
-			if err := s.saveProfileCollection(pid); err != nil {
+			if err := s.saveProfileCollection(profileID); err != nil {
 				return err
 			}
 		}
@@ -466,37 +513,7 @@ func (s *localSet) updateUsernameAcrossAllCollections(changedUsernameProfileIDSt
 	return nil
 }
 
-func (s *localSet) addOneAcrossAllCollections(add dsref.VersionInfo) error {
-	s.Lock()
-	defer s.Unlock()
-
-	agg, err := dsref.NewVersionInfoAggregator([]string{"name"})
-	if err != nil {
-		return err
-	}
-
-	for pid, col := range s.collections {
-		added := false
-		for i, vi := range col {
-			if vi.InitID == add.InitID {
-				added = true
-				col[i] = vi
-			}
-		}
-		if !added {
-			s.collections[pid] = append(col, add)
-			agg.Sort(s.collections[pid])
-		}
-
-		if err := s.saveProfileCollection(pid); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (s *localSet) updateOneAcrossAllCollections(initID string, mutate func(vi *dsref.VersionInfo)) error {
+func (s *localSet) UpdateEverywhere(ctx context.Context, initID string, mutate func(vi *dsref.VersionInfo)) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -513,70 +530,6 @@ func (s *localSet) updateOneAcrossAllCollections(initID string, mutate func(vi *
 		}
 	}
 
-	return nil
-}
-
-func (s *localSet) deleteFromCollection(profileID, removeID string) error {
-	s.Lock()
-	defer s.Unlock()
-
-	pid, err := profile.IDB58Decode(profileID)
-	if err != nil {
-		return err
-	}
-	col, ok := s.collections[pid]
-	if !ok {
-		return fmt.Errorf("no collection found for %q", pid)
-	}
-
-	for i, item := range col {
-		if item.InitID == removeID {
-			copy(col[i:], col[i+1:])              // Shift a[i+1:] left one index.
-			col[len(col)-1] = dsref.VersionInfo{} // Erase last element (write zero value).
-			s.collections[pid] = col[:len(col)-1] // Truncate slice.
-			if err := s.saveProfileCollection(pid); err != nil {
-				return err
-			}
-			break
-		}
-	}
-
-	return nil
-}
-
-func (s *localSet) addOneToCollection(profileID string, add dsref.VersionInfo) error {
-	s.Lock()
-	defer s.Unlock()
-
-	agg, err := dsref.NewVersionInfoAggregator([]string{"name"})
-	if err != nil {
-		return err
-	}
-
-	pid, err := profile.IDB58Decode(profileID)
-	if err != nil {
-		return err
-	}
-	col, ok := s.collections[pid]
-	if !ok {
-		return fmt.Errorf("no collection found for %q", pid)
-	}
-
-	added := false
-	for i, vi := range col {
-		if vi.InitID == add.InitID {
-			added = true
-			col[i] = vi
-		}
-	}
-	if !added {
-		s.collections[pid] = append(col, add)
-		agg.Sort(s.collections[pid])
-	}
-
-	if err := s.saveProfileCollection(pid); err != nil {
-		return err
-	}
 	return nil
 }
 

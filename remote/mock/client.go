@@ -143,6 +143,7 @@ func (c *Client) PullDataset(ctx context.Context, ref *dsref.Ref, remoteAddr str
 	}
 
 	info := dsref.ConvertDatasetToVersionInfo(ds)
+	info.InitID = ref.InitID
 	info.Username = ref.Username
 	info.Name = ref.Name
 	info.ProfileID = ref.ProfileID
@@ -287,6 +288,7 @@ func (c *Client) mockDagSync(ctx context.Context, ref dsref.Ref) (*dsref.Version
 
 	// Add to our repository
 	vi := dsref.VersionInfo{
+		InitID:    initID,
 		Path:      dsPath,
 		ProfileID: ref.ProfileID,
 		Username:  ref.Username,

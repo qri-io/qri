@@ -10,7 +10,6 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/event"
 )
 
 func TestListDatasets(t *testing.T) {
@@ -91,16 +90,15 @@ func TestRawDatasetRefs(t *testing.T) {
 
 	ctx := context.Background()
 	r := newTestRepo(t)
-	s, err := collection.NewLocalSet(ctx, event.NilBus, "")
+	s, err := collection.NewLocalSet(ctx, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ref := addCitiesDataset(t, r)
-	ws := s.(collection.WritableSet)
 	vi := dsref.NewVersionInfoFromRef(ref)
 	vi.InitID = "AnInitID"
-	if err := ws.Put(ctx, r.Profiles().Active(ctx).ID, vi); err != nil {
+	if err := s.Add(ctx, r.Profiles().Active(ctx).ID, vi); err != nil {
 		t.Fatal(err)
 	}
 

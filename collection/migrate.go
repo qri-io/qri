@@ -2,7 +2,6 @@ package collection
 
 import (
 	"context"
-	"errors"
 
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -12,11 +11,6 @@ import (
 // MigrateRepoStoreToLocalCollectionSet constructs a local collection.Set from
 // legacy repo data
 func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, s Set, r repo.Repo) error {
-	ws, ok := s.(WritableSet)
-	if !ok {
-		return errors.New("cannot migrate to CollectionSet. Provided CollectionSet is not writable")
-	}
-
 	datasets, err := repo.ListVersionInfoShim(r, 0, 1000000)
 	if err != nil {
 		return err
@@ -57,5 +51,5 @@ func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, s Set, r repo.Rep
 		}
 	}
 
-	return ws.Put(ctx, ownerID, datasets...)
+	return s.Add(ctx, ownerID, datasets...)
 }

@@ -436,7 +436,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		streams:       o.Streams,
 		registry:      o.regclient,
 		logbook:       o.logbook,
-		collectionSet: o.collectionSet,
 		keystore:      o.keyStore,
 		tokenProvider: o.tokenProvider,
 		dscache:       o.dscache,
@@ -624,9 +623,17 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if o.collectionSet == nil && inst.repo != nil {
-		inst.collectionSet, err = collection.NewLocalSet(ctx, inst.bus, repoPath, func(o *collection.LocalSetOptions) {
+		set, err := collection.NewLocalSet(ctx, repoPath, func(o *collection.LocalSetOptions) {
 			o.MigrateRepo = inst.repo
 		})
+		if err != nil {
+			return nil, err
+		}
+		o.collectionSet = set
+	}
+
+	if o.collectionSet != nil {
+		inst.collections, err = collection.NewSetMaintainer(ctx, inst.bus, o.collectionSet)
 		if err != nil {
 			return nil, err
 		}
@@ -817,9 +824,15 @@ func NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts(ctx context.Context, 
 		panic(err)
 	}
 
-	inst.collectionSet, err = collection.NewLocalSet(ctx, inst.bus, "", func(o *collection.LocalSetOptions) {
+	set, err := collection.NewLocalSet(ctx, "", func(o *collection.LocalSetOptions) {
 		o.MigrateRepo = inst.repo
 	})
+	if err != nil {
+		cancel()
+		panic(err)
+	}
+
+	inst.collections, err = collection.NewSetMaintainer(ctx, inst.bus, set)
 	if err != nil {
 		cancel()
 		panic(err)
@@ -857,7 +870,7 @@ type Instance struct {
 	stats         *stats.Service
 	logbook       *logbook.Book
 	dscache       *dscache.Dscache
-	collectionSet collection.Set
+	collections   *collection.SetMaintainer
 	automation    *automation.Orchestrator
 	tokenProvider token.Provider
 	bus           event.Bus
