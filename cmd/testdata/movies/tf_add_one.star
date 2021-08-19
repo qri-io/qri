@@ -1,6 +1,6 @@
 def transform(ds, ctx):
-  body = ds.get_body()
+  body = ds.body
   for row in body:
     row[1] = row[1] + 1
-  ds.set_body(body)
+  ds.body = body
 

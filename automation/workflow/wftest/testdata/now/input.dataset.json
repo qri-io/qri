@@ -13,7 +13,7 @@
 			  "syntax":"starlark",
 			  "category":"transform",
 			  "name":"transform",
-			  "script":"# set the body\ndef transform(ds, ctx):\n  currentTime = time.now()\n  body = [\n    ['timestamp']\n  ]\n  body.append([str(currentTime)])\n  theCSV = csv.write_all(body)\n\n  ds.set_body(theCSV, parse_as='csv')\n"
+			  "script":"# set the body\ndef transform(ds, ctx):\n  currentTime = time.now()\n  body = [\n    ['timestamp']\n  ]\n  body.append([str(currentTime)])\n  theCSV = csv.write_all(body)\n\n  ds.body.set_csv(theCSV)\n"
 			}
 		]
 	}

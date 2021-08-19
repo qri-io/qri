@@ -26,7 +26,7 @@ func TestApply(t *testing.T) {
 				Steps: []*dataset.TransformStep{
 					{Syntax: "starlark", Category: "setup", Script: `print("oh, hello!")`},
 					{Syntax: "starlark", Category: "download", Script: "def download(ctx):\n\treturn"},
-					{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.set_body([[1,2,3]])"},
+					{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.body = [[1,2,3]]"},
 				},
 			},
 			[]event.Event{
@@ -52,7 +52,7 @@ func TestApply(t *testing.T) {
 			[]event.Event{
 				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: 1}},
 				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "setup"}},
-				{Type: event.ETTransformError, Payload: event.TransformMessage{Lvl: event.TransformMsgLvlError, Msg: "Traceback (most recent call last):\n  .star:1:6: in <toplevel>\n  <builtin>: in error\nError: transform error: \"dang, it broke.\""}},
+				{Type: event.ETTransformError, Payload: event.TransformMessage{Lvl: event.TransformMsgLvlError, Msg: "Traceback (most recent call last):\n  .star:1:6: in <toplevel>\nError in error: transform error: \"dang, it broke.\""}},
 				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "setup", Status: StatusFailed}},
 				{Type: event.ETTransformStop, Payload: event.TransformLifecycle{Status: StatusFailed}},
 			},
@@ -138,7 +138,7 @@ var threeStepDatasetPreview = &dataset.Dataset{
 		Steps: []*dataset.TransformStep{
 			{Syntax: "starlark", Category: "setup", Script: `print("oh, hello!")`},
 			{Syntax: "starlark", Category: "download", Script: "def download(ctx):\n\treturn"},
-			{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.set_body([[1,2,3]])"},
+			{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.body = [[1,2,3]]"},
 		},
 	},
 }

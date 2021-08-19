@@ -3,6 +3,7 @@ package startf
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -73,14 +74,18 @@ func TestExecScript(t *testing.T) {
 		t.Errorf("stderr mismatch. expected: '%s', got: '%s'", expect, string(output))
 	}
 
-	entryReader, err := dsio.NewEntryReader(ds.Structure, ds.BodyFile())
+	bf := ds.BodyFile()
+	if bf == nil {
+		t.Fatal("body file is nil")
+	}
+	entryReader, err := dsio.NewEntryReader(ds.Structure, bf)
 	if err != nil {
 		t.Errorf("couldn't create entry reader from returned dataset & body file: %s", err.Error())
 		return
 	}
 
 	i := 0
-	dsio.EachEntry(entryReader, func(_ int, x dsio.Entry, e error) error {
+	dsio.EachEntry(entryReader, func(n int, x dsio.Entry, e error) error {
 		if e != nil {
 			t.Errorf("entry %d iteration error: %s", i, e.Error())
 		}
@@ -88,8 +93,8 @@ func TestExecScript(t *testing.T) {
 		return nil
 	})
 
-	if i != 8 {
-		t.Errorf("expected 8 entries, got: %d", i)
+	if i != 3 {
+		t.Errorf("expected 3 entries, got: %d", i)
 	}
 }
 
@@ -125,7 +130,7 @@ func TestExecStep(t *testing.T) {
 					Name:     "transform",
 					Syntax:   "starlark",
 					Category: "transform",
-					Script:   "def transform(ds, ctx):\n  ds.set_body([[1,2,3]])",
+					Script:   "def transform(ds, ctx):\n  ds.body = [[1,2,3]]",
 				},
 			},
 		},
@@ -137,7 +142,11 @@ func TestExecStep(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Check that body was set by the transform step.
-	data, err := ioutil.ReadAll(ds.BodyFile())
+	bodyfile := ds.BodyFile()
+	if bodyfile == nil {
+		t.Fatal("dataset did not have body assigned")
+	}
+	data, err := ioutil.ReadAll(bodyfile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,9 +204,13 @@ func TestGetMetaNilPrev(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	data, _ := ioutil.ReadAll(ds.BodyFile())
+	bodyfile := ds.BodyFile()
+	if bodyfile == nil {
+		t.Fatal("dataset did not have body assigned")
+	}
+	data, _ := ioutil.ReadAll(bodyfile)
 	actual := string(data)
-	expect := `["no title"]`
+	expect := `[["no title"]]`
 	if actual != expect {
 		t.Errorf("expected: \"%s\", actual: \"%s\"", expect, actual)
 	}
@@ -217,9 +230,13 @@ func TestGetMetaWithPrev(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	data, _ := ioutil.ReadAll(ds.BodyFile())
+	bodyfile := ds.BodyFile()
+	if bodyfile == nil {
+		t.Fatal("dataset did not have body assigned")
+	}
+	data, _ := ioutil.ReadAll(bodyfile)
 	actual := string(data)
-	expect := `["title: test_title"]`
+	expect := `[["title: test_title"]]`
 	if actual != expect {
 		t.Errorf("expected: \"%s\", actual: \"%s\"", expect, actual)
 	}

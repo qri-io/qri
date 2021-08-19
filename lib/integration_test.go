@@ -159,8 +159,8 @@ func TestReferencePulling(t *testing.T) {
 wbp = load_dataset("nasim/world_bank_population")
 
 def transform(ds, ctx):
-	body = wbp.get_body() + [["g","h","i",False,3]]
-	ds.set_body(body)
+	body = wbp.body + [["g","h","i",False,3]]
+	ds.body = body
 `
 	scriptPath, err := tr.adnanRepo.WriteRootFile("transform.star", tfScriptData)
 	if err != nil {

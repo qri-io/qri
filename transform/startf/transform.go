@@ -321,7 +321,8 @@ func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Contex
 		}
 	}
 
-	return nil
+	// assign the resulting dataframe to the dataset body
+	return d.AssignBodyFromDataframe()
 }
 
 func (t *transform) locals() starlark.StringDict {
