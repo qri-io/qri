@@ -51,5 +51,5 @@ func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, s Set, r repo.Rep
 		}
 	}
 
-	return s.PutList(ctx, ownerID, datasets)
+	return s.Add(ctx, ownerID, datasets...)
 }

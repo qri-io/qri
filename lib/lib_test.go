@@ -342,16 +342,14 @@ func TestNewInstanceWithCollectionOption(t *testing.T) {
 
 	kermit := profiletest.GetProfile("kermit")
 
-	expect := []dsref.VersionInfo{
-		{
-			InitID:    "init_id",
-			Username:  kermit.Peername,
-			Name:      "dataset",
-			ProfileID: kermit.ID.Encode(),
-		},
+	addInfo := dsref.VersionInfo{
+		InitID:    "init_id",
+		Username:  kermit.Peername,
+		Name:      "dataset",
+		ProfileID: kermit.ID.Encode(),
 	}
 
-	err = s.PutList(ctx, kermit.ID, expect)
+	err = s.Add(ctx, kermit.ID, addInfo)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -367,6 +365,7 @@ func TestNewInstanceWithCollectionOption(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	expect := []dsref.VersionInfo{addInfo}
 
 	if diff := cmp.Diff(expect, got); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)

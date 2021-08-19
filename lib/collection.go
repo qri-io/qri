@@ -81,9 +81,11 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 			// subsystem in the hopes that cloud code won't follow this path. Haven't
 			// confirmed that's the case
 			if scope.FSISubsystem() != nil {
-				// For each reference with a linked fsi working directory, check that the folder exists
-				// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
-				// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
+				// For each reference with a linked fsi working directory,
+				// check that the folder exists and has a .qri-ref file. If
+				// it's missing, remove the link from the centralized repo.
+				// Doing this every list operation is a bit inefficient, so
+				// the behavior is opt-in.
 				update := make([]dsref.VersionInfo, 0, len(infos))
 				for _, info := range infos {
 					if info.FSIPath != "" && !linkfile.ExistsInDir(info.FSIPath) {
@@ -91,7 +93,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 						update = append(update, info)
 					}
 				}
-				if err := s.PutList(scope.Context(), scope.ActiveProfile().ID, update); err != nil {
+				if err := s.Add(scope.Context(), scope.ActiveProfile().ID, update...); err != nil {
 					return nil, err
 				}
 			}

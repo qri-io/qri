@@ -44,11 +44,7 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 		}
 	})
 
-	t.Run("putlist", func(t *testing.T) {
-		if err := ec.PutList(ctx, kermit.ID, []dsref.VersionInfo{}); err != nil {
-			t.Error("expected put with empty item list NOT to error")
-		}
-
+	t.Run("add", func(t *testing.T) {
 		badItems := []struct {
 			problem string
 			item    dsref.VersionInfo
@@ -61,59 +57,56 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 
 		for _, bad := range badItems {
 			t.Run(fmt.Sprintf("bad_item_%s", bad.problem), func(t *testing.T) {
-				if err := ec.PutList(ctx, kermit.ID, []dsref.VersionInfo{bad.item}); err == nil {
+				if err := ec.Add(ctx, kermit.ID, bad.item); err == nil {
 					t.Error("expected error, got nil")
 				}
 			})
 		}
 
-		err := ec.PutList(ctx, kermit.ID,
-			[]dsref.VersionInfo{
-				{
-					ProfileID:  kermit.ID.Encode(),
-					InitID:     "muppet_names_init_id",
-					Username:   "kermit",
-					Name:       "muppet_names",
-					CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
-				},
-				{
-					ProfileID:  kermit.ID.Encode(),
-					InitID:     "muppet_names_and_ages_init_id",
-					Username:   "kermit",
-					Name:       "muppet_names_and_ages",
-					CommitTime: time.Date(2021, 1, 2, 0, 0, 0, 0, time.UTC),
-				},
-			})
+		err := ec.Add(ctx, kermit.ID,
+			dsref.VersionInfo{
+				ProfileID:  kermit.ID.Encode(),
+				InitID:     "muppet_names_init_id",
+				Username:   "kermit",
+				Name:       "muppet_names",
+				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			dsref.VersionInfo{
+				ProfileID:  kermit.ID.Encode(),
+				InitID:     "muppet_names_and_ages_init_id",
+				Username:   "kermit",
+				Name:       "muppet_names_and_ages",
+				CommitTime: time.Date(2021, 1, 2, 0, 0, 0, 0, time.UTC),
+			},
+		)
 
 		if err != nil {
 			t.Fatalf("error adding items: %s", err)
 		}
 
-		err = ec.PutList(ctx, missPiggy.ID,
-			[]dsref.VersionInfo{
-
-				{
-					ProfileID:  missPiggy.ID.Encode(),
-					InitID:     "secret_muppet_friends_init_id",
-					Username:   "miss_piggy",
-					Name:       "secret_muppet_friends",
-					CommitTime: time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC),
-				},
-				{
-					ProfileID:  missPiggy.ID.Encode(),
-					InitID:     "muppet_names_init_id",
-					Username:   "kermit",
-					Name:       "muppet_names",
-					CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
-				},
-				{
-					ProfileID:  missPiggy.ID.Encode(),
-					InitID:     "famous_muppets_init_id",
-					Username:   "famous_muppets",
-					Name:       "famous_muppets",
-					CommitTime: time.Date(2021, 1, 4, 0, 0, 0, 0, time.UTC),
-				},
-			})
+		err = ec.Add(ctx, missPiggy.ID,
+			dsref.VersionInfo{
+				ProfileID:  missPiggy.ID.Encode(),
+				InitID:     "secret_muppet_friends_init_id",
+				Username:   "miss_piggy",
+				Name:       "secret_muppet_friends",
+				CommitTime: time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC),
+			},
+			dsref.VersionInfo{
+				ProfileID:  missPiggy.ID.Encode(),
+				InitID:     "muppet_names_init_id",
+				Username:   "kermit",
+				Name:       "muppet_names",
+				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			dsref.VersionInfo{
+				ProfileID:  missPiggy.ID.Encode(),
+				InitID:     "famous_muppets_init_id",
+				Username:   "famous_muppets",
+				Name:       "famous_muppets",
+				CommitTime: time.Date(2021, 1, 4, 0, 0, 0, 0, time.UTC),
+			},
+		)
 
 		if err != nil {
 			t.Fatalf("error adding items: %s", err)
