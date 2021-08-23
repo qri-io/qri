@@ -294,7 +294,7 @@ func (s *MemStore) AddEvent(id string, e event.Event) error {
 // MarshalJSON satisfies the json.Marshaller interface
 func (s *MemStore) MarshalJSON() ([]byte, error) {
 	if s == nil {
-		s = &MemStore{}
+		s = NewMemStore()
 	}
 	return json.Marshal(struct {
 		Workflows map[workflow.ID]*workflowMeta `json:"workflows"`
