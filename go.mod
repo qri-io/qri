@@ -47,14 +47,14 @@ require (
 	github.com/qri-io/iso8601 v0.1.1-0.20201221213213-f31ee4cdc38b
 	github.com/qri-io/jsonschema v0.2.2-0.20210618085106-a515144d7449
 	github.com/qri-io/qfs v0.6.1-0.20210809192005-052457575e43
-	github.com/qri-io/starlib v0.4.2
+	github.com/qri-io/starlib v0.5.1-0.20210824120158-48045b19e5f3
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.1.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
 	github.com/ugorji/go/codec v1.1.7
 	github.com/vbauerster/mpb/v5 v5.3.0
-	go.starlark.net v0.0.0-20200619143648-50ca820fafb9
+	go.starlark.net v0.0.0-20210602144842-1cdb82c9e17a
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf
 	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	golang.org/x/sys v0.0.0-20210511113859-b0526f3d8744
