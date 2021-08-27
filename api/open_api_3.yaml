@@ -12,8 +12,6 @@ tags:
   description: "DatasetMethods work with datasets, creating new versions (save), reading dataset data (get), deleting versions (remove), and moving datasets over network connections (push & pull) "
 - name: diff
   description: "DiffMethods encapsulates logic for diffing Datasets on Qri "
-- name: fsi
-  description: "FSIMethods groups together methods for FSI "
 - name: peer
   description: "PeerMethods extends a lib.Instance with business logic for peer-to-peer interaction "
 - name: profile
@@ -24,8 +22,6 @@ tags:
   description: "RemoteMethods encapsulates business logic of remote operation TODO (b5): switch to using an Instance instead of separate fields "
 - name: search
   description: "SearchMethods groups together methods for search "
-- name: sql
-  description: "SQLMethods groups together methods for SQL "
 - name: automation
   description: "AutomationMethods groups together methods for automations "
 paths:
@@ -172,65 +168,6 @@ paths:
                         items:
                           allOf:
                             - $ref: '#/components/schemas/VersionInfo'
-
-          description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Bad request
-        '500':
-          content:
-            application/json:
-              schema:
-                type: string
-                nullable: true
-          description: Server error
-        default:
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Error
-  '/ds/componentstatus':
-    post:
-      description: ComponentStatus gets changes that happened at a particular version in the history of the given dataset reference. 
-      operationId: 'dataset.ComponentStatus'
-      tags:
-      - dataset
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              '$ref': '#/components/schemas/LinkParams'
-      
-      
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      data:
-
-                        type: array
-                        items:
-                          allOf:
-                            - $ref: '#/components/schemas/StatusItem'
 
           description: OK
         '400':
@@ -959,500 +896,6 @@ paths:
                       data:
                         allOf:
                           - $ref: '#/components/schemas/DiffResponse'
-
-          description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Bad request
-        '500':
-          content:
-            application/json:
-              schema:
-                type: string
-                nullable: true
-          description: Server error
-        default:
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Error
-  '/wd/caninitworkdir':
-    post:
-      description: CanInitDatasetWorkDir returns nil if the directory can init a dataset, or an error if not 
-      operationId: 'fsi.CanInitDatasetWorkDir'
-      tags:
-      - fsi
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      data:
-                        allOf:
-                          - $ref: '#/components/schemas/Nil'
-
-          description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Bad request
-        '500':
-          content:
-            application/json:
-              schema:
-                type: string
-                nullable: true
-          description: Server error
-        default:
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Error
-  '/wd/checkout':
-    post:
-      description: Checkout method writes a dataset to a directory as individual files. 
-      operationId: 'fsi.Checkout'
-      tags:
-      - fsi
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              '$ref': '#/components/schemas/LinkParams'
-      
-      
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      data:
-                        allOf:
-                          - $ref: '#/components/schemas/Nil'
-
-          description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Bad request
-        '500':
-          content:
-            application/json:
-              schema:
-                type: string
-                nullable: true
-          description: Server error
-        default:
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Error
-  '/wd/createlink':
-    post:
-      description: CreateLink creates a connection between a working directory and a dataset history 
-      operationId: 'fsi.CreateLink'
-      tags:
-      - fsi
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              '$ref': '#/components/schemas/LinkParams'
-      
-      
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      data:
-                        allOf:
-                          - $ref: '#/components/schemas/VersionInfo'
-
-          description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Bad request
-        '500':
-          content:
-            application/json:
-              schema:
-                type: string
-                nullable: true
-          description: Server error
-        default:
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Error
-  '/wd/ensureref':
-    post:
-      description: EnsureRef will modify the directory path in the repo for the given reference 
-      operationId: 'fsi.EnsureRef'
-      tags:
-      - fsi
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              '$ref': '#/components/schemas/LinkParams'
-      
-      
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      data:
-                        allOf:
-                          - $ref: '#/components/schemas/VersionInfo'
-
-          description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Bad request
-        '500':
-          content:
-            application/json:
-              schema:
-                type: string
-                nullable: true
-          description: Server error
-        default:
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Error
-  '/wd/init':
-    post:
-      description: Init initializes a new working directory for a linked dataset 
-      operationId: 'fsi.Init'
-      tags:
-      - fsi
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      data:
-                        allOf:
-                          - $ref: '#/components/schemas/RawResponse'
-
-          description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Bad request
-        '500':
-          content:
-            application/json:
-              schema:
-                type: string
-                nullable: true
-          description: Server error
-        default:
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Error
-  '/wd/restore':
-    post:
-      description: Restore method restores a component or all of the component files of a dataset from the repo 
-      operationId: 'fsi.Restore'
-      tags:
-      - fsi
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              '$ref': '#/components/schemas/RestoreParams'
-      
-      
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      data:
-                        allOf:
-                          - $ref: '#/components/schemas/Nil'
-
-          description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Bad request
-        '500':
-          content:
-            application/json:
-              schema:
-                type: string
-                nullable: true
-          description: Server error
-        default:
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Error
-  '/wd/status':
-    post:
-      description: Status checks for any modifications or errors in a linked directory against its previous version in the repo. Must only be called if FSI is enabled for this dataset. 
-      operationId: 'fsi.Status'
-      tags:
-      - fsi
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              '$ref': '#/components/schemas/LinkParams'
-      
-      
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      data:
-
-                        type: array
-                        items:
-                          allOf:
-                            - $ref: '#/components/schemas/StatusItem'
-
-          description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Bad request
-        '500':
-          content:
-            application/json:
-              schema:
-                type: string
-                nullable: true
-          description: Server error
-        default:
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Error
-  '/wd/unlink':
-    post:
-      description: Unlink removes the connection between a working directory and a dataset. If given only a directory, will remove the link file from that directory. If given only a reference, will remove the fsi path from that reference, and remove the link file from that fsi path 
-      operationId: 'fsi.Unlink'
-      tags:
-      - fsi
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              '$ref': '#/components/schemas/LinkParams'
-      
-      
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      data:
-                        allOf:
-                          - $ref: '#/components/schemas/RawResponse'
-
-          description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Bad request
-        '500':
-          content:
-            application/json:
-              schema:
-                type: string
-                nullable: true
-          description: Server error
-        default:
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Error
-  '/wd/write':
-    post:
-      description: Write mutates a linked dataset on the filesystem 
-      operationId: 'fsi.Write'
-      tags:
-      - fsi
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              '$ref': '#/components/schemas/FSIWriteParams'
-      
-      
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      data:
-
-                        type: array
-                        items:
-                          allOf:
-                            - $ref: '#/components/schemas/StatusItem'
 
           description: OK
         '400':
@@ -2376,62 +1819,6 @@ paths:
                         allOf:
                           - $ref: '#/components/schemas/APIMetaError'
           description: Error
-  '/sql':
-    post:
-      description: Exec runs an SQL query 
-      operationId: 'sql.Exec'
-      tags:
-      - sql
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              '$ref': '#/components/schemas/SQLQueryParams'
-      
-      
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      data:
-                        allOf:
-                          - $ref: '#/components/schemas/RawResponse'
-
-          description: OK
-        '400':
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Bad request
-        '500':
-          content:
-            application/json:
-              schema:
-                type: string
-                nullable: true
-          description: Server error
-        default:
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - properties:
-                      meta:
-                        allOf:
-                          - $ref: '#/components/schemas/APIMetaError'
-          description: Error
   '/auto/apply':
     post:
       description: Apply runs a transform script 
@@ -3081,23 +2468,6 @@ paths:
           description: Error
 components:
   schemas:
-    ActivityParams:
-      type: object
-      properties: 
-        ref:
-          type: string
-          description: "Reference to data to fetch history for"
-          example: "b5/world_bank_population"
-        pull:
-          type: boolean
-          description: "if true, pull any datasets that aren't stored locally"
-          example: "false"
-    ParseError:
-      type: object
-      properties: 
-        Message:
-          type: string
-
     ValidateParams:
       type: object
       properties: 
@@ -3113,98 +2483,17 @@ components:
         structureFilename:
           type: string
 
-    Stats:
+    MemResolver:
       type: object
       properties: 
-        path:
+        Username:
           type: string
 
-        qri:
-          type: string
-
-        stats:
+        RefMap:
           type: object 
 
-    DeployParams:
-      type: object
-      properties: 
-        Run:
-          type: boolean
-
-        Workflow:
+        IDMap:
           type: object 
-
-        Dataset:
-          type: object 
-
-    RenderParams:
-      type: object
-      properties: 
-        ref:
-          type: string
-          description: "Ref is a string reference to the dataset to render "
-        dataset:
-          type: object 
-          description: "Optionally pass an entire dataset in for rendering, if providing a dataset, the Ref field must be empty "
-        template:
-          type: object 
-          description: "Optional template override "
-        useFSI:
-          type: boolean
-          description: "TODO (b5): investigate if this field is still in use "
-        format:
-          type: string
-          description: "Output format. defaults to 'html' "
-        selector:
-          type: string
-          description: "Selector "
-    Transform:
-      type: object
-      properties: 
-        config:
-          type: object 
-          description: "Config outlines any configuration that would affect the resulting hash "
-        path:
-          type: string
-          description: "location of the transform object, transient "
-        qri:
-          type: string
-          description: "Kind should always equal KindTransform "
-        resources:
-          type: object 
-          description: "Resources is a map of all datasets referenced in this transform, with alphabetical keys generated by datasets in order of appearance within the transform "
-        scriptPath:
-          type: string
-          description: "ScriptPath is the path to the script that produced this transformation. Deprecated - use Steps instead "
-        text:
-          type: string
-          description: "Text contains the contents of the script, transient "
-        secrets:
-          type: object 
-          description: "Secrets is a map of secret values used in the transformation, transient. TODO (b5): make this not-transient by censoring the values used, but not keys "
-        steps:
-          type: object 
-
-        syntax:
-          type: string
-          description: "Syntax this transform was written in Deprecated - syntax is defined per-step "
-        syntaxVersion:
-          type: string
-          description: "SyntaxVersion is an identifier for the application and version number that produced the result Deprecated - use steps.Syntax with a version suffix instead "
-        syntaxes:
-          type: object 
-          description: "map of syntaxes used in this transform to their version identifier. "
-    WorkflowParams:
-      type: object
-      properties: 
-        workflowID:
-          type: string
-
-        initID:
-          type: string
-
-        ref:
-          type: string
 
     DAGInfoParams:
       type: object
@@ -3215,168 +2504,27 @@ components:
         label:
           type: string
 
-    ManifestParams:
+    RunParams:
       type: object
       properties: 
         ref:
           type: string
 
-    SearchParams:
-      type: object
-      properties: 
-        q:
+        initID:
           type: string
 
-        limit:
-          type: number
-
-        offset:
-          type: number
-
-    PullParams:
-      type: object
-      properties: 
-        ref:
+        workflowID:
           type: string
 
-        linkDir:
-          type: string
-
-        logsOnly:
-          type: boolean
-          description: "only fetch logbook data "
-    CreateAuthTokenParams:
+    RefListParams:
       type: object
       properties: 
-        granteeUsername:
+        Ref:
           type: string
-          description: "username to grant auth"
-          example: "keyboard_cat"
-        granteeProfileID:
-          type: string
-          description: "profile Identifier to grant token for"
-          example: "QmemJQrK7PTQvD3n8gmo9JhyaByyLmETiNR1Y8wS7hv4sP"
-        ttl:
-          type: object 
-          description: "lifespan of token in nanoseconds"
-          example: "2000000000000"
-    Structure:
-      type: object
-      properties: 
-        checksum:
-          type: string
-          description: "Checksum is a bas58-encoded multihash checksum of the entire data file this structure points to. This is different from IPFS hashes, which are calculated after breaking the file into blocks derived "
-        compression:
-          type: string
-          description: "Compression specifies any compression on the source data, if empty assume no compression "
-        depth:
+          description: "String value of a reference "
+        Offset:
           type: number
-          description: "Maximum nesting level of composite types in the dataset. eg: depth 1 == [], depth 2 == [[]] derived "
-        encoding:
-          type: string
-          description: "Encoding specifics character encoding, assume utf-8 if not specified "
-        errCount:
-          type: number
-          description: "ErrCount is the number of errors returned by validating data against this schema. required derived "
-        entries:
-          type: number
-          description: "Entries is number of top-level entries in the dataset. With tablular data this is the same as the number of 'rows' derived "
-        format:
-          type: string
-          description: "Format specifies the format of the raw data MIME type "
-        formatConfig:
-          type: object 
-          description: "FormatConfig removes as much ambiguity as possible about how to interpret the speficied format. FormatConfig FormatConfig `json:'formatConfig,omitempty'` "
-        length:
-          type: number
-          description: "Length is the length of the data object in bytes. must always match & be present derived "
-        path:
-          type: string
-          description: "location of this structure, transient derived "
-        qri:
-          type: string
-          description: "Qri should always be KindStructure derived "
-        schema:
-          type: object 
-          description: "Schema contains the schema definition for the underlying data, schemas are defined using the IETF json-schema specification. for more info on json-schema see: https://json-schema.org "
-        strict:
-          type: boolean
-          description: "Strict requires schema validation to pass without error. Datasets with strict: true can have additional functionality and performance speedups that comes with being able to assume that all data is valid "
-    Readme:
-      type: object
-      properties: 
-        format:
-          type: string
-          description: "Format designates the visualization configuration syntax. Only supported formats are 'html' and 'md' "
-        path:
-          type: string
-          description: "Path is the location of a readme, transient derived "
-        qri:
-          type: string
-          description: "Qri should always be 'rm:0' derived "
-        scriptPath:
-          type: string
-          description: "ScriptPath is the path to the script that created this "
-        text:
-          type: string
-          description: "Text contains the contents of the script, transient "
-        renderedPath:
-          type: string
-          description: "RenderedPath is the path to the file rendered using the readme script and the body "
-    SaveParams:
-      type: object
-      properties: 
-        Dataset:
-          type: object 
-          description: "dataset supplies params directly, all other param fields override values supplied by dataset "
-        ref:
-          type: string
-          description: "dataset reference string, the name to save to"
-          example: "b5/world_bank_population"
-        title:
-          type: string
-          description: "commit title, defaults to a generated string based on diff"
-          example: "update dataset meta"
-        Message:
-          type: string
-          description: "commit message, defaults to blank"
-          example: "reaname title & fill in supported langages"
-        bodyPath:
-          type: string
-          description: "path to body data "
-        filePaths:
-          type: object 
-          description: "absolute path or URL to the list of dataset files or components to load "
-        secrets:
-          type: object 
-          description: "secrets for transform execution. Should be a set of key: value pairs "
-        ScriptOutput:
-          type: object 
-          description: "optional writer to have transform script record standard output to note: this won't work over RPC, only on local calls "
-        apply:
-          type: boolean
-          description: "Apply runs a transform script to create the next version to save "
-        replace:
-          type: boolean
-          description: "Replace writes the entire given dataset as a new snapshot instead of applying save params as augmentations to the existing history "
-        private:
-          type: boolean
-          description: "option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates "
-        convertFormatToPrev:
-          type: boolean
-          description: "if true, convert body to the format of the previous version, if applicable "
-        drop:
-          type: string
-          description: "comma separated list of component names to delete before saving "
-        force:
-          type: boolean
-          description: "force a new commit, even if no changes are detected "
-        shouldRender:
-          type: boolean
-          description: "save a rendered version of the template along with the dataset "
-        newName:
-          type: boolean
-          description: "new dataset only, don't create a commit on an existing dataset, name will be unused "
+          description: "Pagination Parameters "
     VersionInfo:
       type: object
       properties: 
@@ -3431,9 +2579,6 @@ components:
         numVersions:
           type: number
           description: "About the dataset's history and location  Number of versions that the dataset has "
-        fsiPath:
-          type: string
-          description: "FSIPath is this dataset's link to the local filesystem if one exists "
         workflowID:
           type: string
           description: "Workflow fields "
@@ -3449,72 +2594,60 @@ components:
         runDuration:
           type: object 
           description: "RunDuration is how long the run took/has currently taken in nanoseconds default value of 0 means no duration data is available. RunDuration is not stored on a dataset version, and instead must come from either run state or a cache of run state "
-    TransformStep:
+    ConnectionsParams:
       type: object
       properties: 
+        limit:
+          type: number
+
+        offset:
+          type: number
+
+    User:
+      type: object
+      properties: 
+        id:
+          type: string
+
         name:
           type: string
 
-        path:
+        email:
           type: string
 
-        syntax:
-          type: string
-
-        category:
-          type: string
-
-        script:
-          type: object 
-
-    ConnectParamsPod:
+    DeployParams:
       type: object
       properties: 
-        peername:
-          type: string
+        Run:
+          type: boolean
 
-        profileID:
-          type: string
+        Workflow:
+          type: object 
 
-        networkID:
-          type: string
+        Dataset:
+          type: object 
 
-        multiaddr:
-          type: string
-
-    RunParams:
+    PushParams:
       type: object
       properties: 
         ref:
           type: string
 
-        initID:
+        remote:
           type: string
 
-        workflowID:
-          type: string
-
-        runID:
-          type: string
-
-    ChangeReportParams:
+        all:
+          type: boolean
+          description: "All indicates all versions of a dataset and the dataset namespace should be either published or removed "
+    Rev:
       type: object
       properties: 
-        leftRef:
+        Field:
           type: string
-
-        rightRef:
-          type: string
-
-    RefListParams:
-      type: object
-      properties: 
-        Ref:
-          type: string
-          description: "String value of a reference "
-        Offset:
+          description: "field scopt, currently can only be a component name, or the entire dataset "
+        Gen:
           type: number
-          description: "Pagination Parameters "
+          description: "the nth-generational ancestor of a history "
     CSVOptions:
       type: object
       properties: 
@@ -3530,26 +2663,27 @@ components:
         variadicFields:
           type: boolean
           description: "VariadicFields sets permits records to have a variable number of fields avoid using this "
-    DiffParams:
+    RenderParams:
       type: object
       properties: 
-        leftPath:
+        ref:
           type: string
-          description: "File paths or reference to datasets "
-        rightPath:
-          type: string
-
-        WorkingDir:
-          type: string
-          description: "If not null, the working directory that the diff is using "
-        UseLeftPrevVersion:
+          description: "Ref is a string reference to the dataset to render "
+        dataset:
+          type: object 
+          description: "Optionally pass an entire dataset in for rendering, if providing a dataset, the Ref field must be empty "
+        template:
+          type: object 
+          description: "Optional template override "
+        useFSI:
           type: boolean
-          description: "Whether to get the previous version of the left parameter "
-        Selector:
+          description: "TODO (b5): investigate if this field is still in use "
+        format:
           type: string
-          description: "Which component or part of a dataset to compare "
-    EmptyParams:
-      type: object
+          description: "Output format. defaults to 'html' "
+        selector:
+          type: string
+          description: "Selector "
     Dataset:
       type: object
       properties: 
@@ -3607,70 +2741,236 @@ components:
         viz:
           type: object 
           description: "Viz stores configuration data related to representing a dataset as a visualization "
-    SQLQueryParams:
+    GetConfigParams:
       type: object
       properties: 
-        query:
+        Field:
           type: string
 
-        format:
+        WithPrivateKey:
+          type: boolean
+
+        Format:
           type: string
 
-    RemoveParams:
+        Concise:
+          type: boolean
+
+    TransformStep:
+      type: object
+      properties: 
+        name:
+          type: string
+
+        path:
+          type: string
+
+        syntax:
+          type: string
+
+        category:
+          type: string
+
+        script:
+          type: object 
+
+    RenameParams:
+      type: object
+      properties: 
+        current:
+          type: string
+
+        next:
+          type: string
+
+    Theme:
+      type: object
+      properties: 
+        description:
+          type: string
+
+        display_name:
+          type: string
+
+        image_display_url:
+          type: string
+
+        id:
+          type: string
+
+        name:
+          type: string
+
+        title:
+          type: string
+
+    FileParams:
+      type: object
+      properties: 
+        filename:
+          type: string
+          description: "url to download data from. either Url or Data is required Url      string Filename of data file. extension is used for filetype detection "
+        data:
+          type: object 
+          description: "Data is the file as slice of bytes "
+    GetParams:
       type: object
       properties: 
         ref:
           type: string
-
-        revision:
-          type: object 
-
-        keepFiles:
-          type: boolean
-
-        force:
-          type: boolean
-
-    ValidateResponse:
+          description: "dataset reference to fetch"
+          example: "b5/world_bank_population"
+        selector:
+          type: string
+          description: "a component or nested field names to extract from the dataset"
+          example: "body"
+        limit:
+          type: number
+          description: "number of results to limit to. only applies when selector is 'body' "
+        offset:
+          type: number
+          description: "number of results to skip. only applies when selector is 'body' "
+    EmptyParams:
       type: object
-      properties: 
-        structure:
-          type: object 
-          description: "Structure used to perform validation "
-        errors:
-          type: object 
-          description: "Validation Errors "
     ProfileParams:
       type: object
-    SetProfileParams:
+    ActivityParams:
       type: object
       properties: 
-        pro:
-          type: object 
-
-    Ref:
-      type: object
-      properties: 
-        initID:
+        ref:
           type: string
-          description: "InitID is the canonical identifer for a dataset history "
-        username:
-          type: string
-          description: "Username of dataset owner "
-        profileID:
-          type: string
-          description: "ProfileID of dataset owner deprecated - avoid using this field, we're working towards removing it generally profile IDs should come from request scopes, or be fetched from stores of identity info (profile.Store) "
-        name:
-          type: string
-          description: "Unique name reference for this dataset "
-        path:
-          type: string
-          description: "Content-addressed path for this dataset "
+          description: "Reference to data to fetch history for"
+          example: "b5/world_bank_population"
+        pull:
+          type: boolean
+          description: "if true, pull any datasets that aren't stored locally"
+          example: "false"
     RegistryProfileParams:
       type: object
       properties: 
         Profile:
           type: object 
+
+    VersionInfoAggregator:
+      type: object
+    TransformResource:
+      type: object
+      properties: 
+        path:
+          type: string
+
+    ListParams:
+      type: object
+      properties: 
+        term:
+          type: string
+          description: "term to filter list by"
+          example: "population"
+        username:
+          type: string
+          description: "username to filter collection by"
+          example: "ramfox"
+        orderBy:
+          type: string
+          description: "field name to order list by"
+          example: "created"
+        limit:
+          type: number
+          description: "maximum number of datasets to use. use -1 to list all datasets"
+          example: "50"
+        offset:
+          type: number
+          description: "number of items to skip"
+          example: "0"
+        public:
+          type: boolean
+          description: "Public only applies to listing datasets, shows only datasets that are set to visible "
+    SaveParams:
+      type: object
+      properties: 
+        Dataset:
+          type: object 
+          description: "dataset supplies params directly, all other param fields override values supplied by dataset "
+        ref:
+          type: string
+          description: "dataset reference string, the name to save to"
+          example: "b5/world_bank_population"
+        title:
+          type: string
+          description: "commit title, defaults to a generated string based on diff"
+          example: "update dataset meta"
+        Message:
+          type: string
+          description: "commit message, defaults to blank"
+          example: "reaname title & fill in supported langages"
+        bodyPath:
+          type: string
+          description: "path to body data "
+        filePaths:
+          type: object 
+          description: "absolute path or URL to the list of dataset files or components to load "
+        secrets:
+          type: object 
+          description: "secrets for transform execution. Should be a set of key: value pairs "
+        ScriptOutput:
+          type: object 
+          description: "optional writer to have transform script record standard output to note: this won't work over RPC, only on local calls "
+        apply:
+          type: boolean
+          description: "Apply runs a transform script to create the next version to save "
+        replace:
+          type: boolean
+          description: "Replace writes the entire given dataset as a new snapshot instead of applying save params as augmentations to the existing history "
+        private:
+          type: boolean
+          description: "option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates "
+        convertFormatToPrev:
+          type: boolean
+          description: "if true, convert body to the format of the previous version, if applicable "
+        drop:
+          type: string
+          description: "comma separated list of component names to delete before saving "
+        force:
+          type: boolean
+          description: "force a new commit, even if no changes are detected "
+        shouldRender:
+          type: boolean
+          description: "save a rendered version of the template along with the dataset "
+        newName:
+          type: boolean
+          description: "new dataset only, don't create a commit on an existing dataset, name will be unused "
+    ApplyParams:
+      type: object
+      properties: 
+        ref:
+          type: string
+
+        transform:
+          type: object 
+
+        secrets:
+          type: object 
+
+        wait:
+          type: boolean
+
+        ScriptOutput:
+          type: object 
+          description: "TODO(arqu): substitute with websockets when working over the wire "
+        Hooks:
+          type: object 
+
+    WorkflowParams:
+      type: object
+      properties: 
+        workflowID:
+          type: string
+
+        initID:
+          type: string
+
+        ref:
+          type: string
 
     Meta:
       type: object
@@ -3726,57 +3026,6 @@ components:
         version:
           type: string
           description: "Version is the version identifier for this dataset "
-    PushParams:
-      type: object
-      properties: 
-        ref:
-          type: string
-
-        remote:
-          type: string
-
-        all:
-          type: boolean
-          description: "All indicates all versions of a dataset and the dataset namespace should be either published or removed "
-    License:
-      type: object
-      properties: 
-        type:
-          type: string
-
-        url:
-          type: string
-
-    ConnectionsParams:
-      type: object
-      properties: 
-        limit:
-          type: number
-
-        offset:
-          type: number
-
-    MemResolver:
-      type: object
-      properties: 
-        Username:
-          type: string
-
-        RefMap:
-          type: object 
-
-        IDMap:
-          type: object 
-
-    FileParams:
-      type: object
-      properties: 
-        filename:
-          type: string
-          description: "url to download data from. either Url or Data is required Url      string Filename of data file. extension is used for filetype detection "
-        data:
-          type: object 
-          description: "Data is the file as slice of bytes "
     Commit:
       type: object
       properties: 
@@ -3804,32 +3053,21 @@ components:
         runID:
           type: string
           description: "RunID is only present if an automated script was executed durning the commit time Commits with non-empty `RunID`s imply the existance of a transform component "
-    LinkParams:
+    ConnectParamsPod:
       type: object
       properties: 
-        dir:
+        peername:
           type: string
 
-        ref:
+        profileID:
           type: string
 
-    ManifestMissingParams:
-      type: object
-      properties: 
-        manifest:
-          type: object 
-
-    RenameParams:
-      type: object
-      properties: 
-        current:
+        networkID:
           type: string
 
-        next:
+        multiaddr:
           type: string
 
-    VersionInfoAggregator:
-      type: object
     Viz:
       type: object
       properties: 
@@ -3851,11 +3089,11 @@ components:
         renderedPath:
           type: string
           description: "RenderedPath is the path to the file rendered using the viz script and the body "
-    JSONOptions:
+    ManifestParams:
       type: object
       properties: 
-        Options:
-          type: object 
+        ref:
+          type: string
 
     SetupParams:
       type: object
@@ -3881,6 +3119,114 @@ components:
         Generator:
           type: object 
           description: "setup requires a crypto source "
+    ChangeReportParams:
+      type: object
+      properties: 
+        leftRef:
+          type: string
+
+        rightRef:
+          type: string
+
+    Structure:
+      type: object
+      properties: 
+        checksum:
+          type: string
+          description: "Checksum is a bas58-encoded multihash checksum of the entire data file this structure points to. This is different from IPFS hashes, which are calculated after breaking the file into blocks derived "
+        compression:
+          type: string
+          description: "Compression specifies any compression on the source data, if empty assume no compression "
+        depth:
+          type: number
+          description: "Maximum nesting level of composite types in the dataset. eg: depth 1 == [], depth 2 == [[]] derived "
+        encoding:
+          type: string
+          description: "Encoding specifics character encoding, assume utf-8 if not specified "
+        errCount:
+          type: number
+          description: "ErrCount is the number of errors returned by validating data against this schema. required derived "
+        entries:
+          type: number
+          description: "Entries is number of top-level entries in the dataset. With tablular data this is the same as the number of 'rows' derived "
+        format:
+          type: string
+          description: "Format specifies the format of the raw data MIME type "
+        formatConfig:
+          type: object 
+          description: "FormatConfig removes as much ambiguity as possible about how to interpret the speficied format. FormatConfig FormatConfig `json:'formatConfig,omitempty'` "
+        length:
+          type: number
+          description: "Length is the length of the data object in bytes. must always match & be present derived "
+        path:
+          type: string
+          description: "location of this structure, transient derived "
+        qri:
+          type: string
+          description: "Qri should always be KindStructure derived "
+        schema:
+          type: object 
+          description: "Schema contains the schema definition for the underlying data, schemas are defined using the IETF json-schema specification. for more info on json-schema see: https://json-schema.org "
+        strict:
+          type: boolean
+          description: "Strict requires schema validation to pass without error. Datasets with strict: true can have additional functionality and performance speedups that comes with being able to assume that all data is valid "
+    PreviewParams:
+      type: object
+      properties: 
+        ref:
+          type: string
+
+    SearchParams:
+      type: object
+      properties: 
+        q:
+          type: string
+
+        limit:
+          type: number
+
+        offset:
+          type: number
+
+    ParseError:
+      type: object
+      properties: 
+        Message:
+          type: string
+
+    Ref:
+      type: object
+      properties: 
+        initID:
+          type: string
+          description: "InitID is the canonical identifer for a dataset history "
+        username:
+          type: string
+          description: "Username of dataset owner "
+        profileID:
+          type: string
+          description: "ProfileID of dataset owner deprecated - avoid using this field, we're working towards removing it generally profile IDs should come from request scopes, or be fetched from stores of identity info (profile.Store) "
+        name:
+          type: string
+          description: "Unique name reference for this dataset "
+        path:
+          type: string
+          description: "Content-addressed path for this dataset "
+    ManifestMissingParams:
+      type: object
+      properties: 
+        manifest:
+          type: object 
+
+    PullParams:
+      type: object
+      properties: 
+        ref:
+          type: string
+
+        logsOnly:
+          type: boolean
+          description: "only fetch logbook data "
     RemoveResponse:
       type: object
       properties: 
@@ -3896,6 +3242,75 @@ components:
         unlinked:
           type: boolean
 
+    PeerInfoParams:
+      type: object
+      properties: 
+        peername:
+          type: string
+
+        profileID:
+          type: string
+
+        verbose:
+          type: boolean
+          description: "Verbose adds network details from the p2p Peerstore "
+    SetProfileParams:
+      type: object
+      properties: 
+        pro:
+          type: object 
+
+    License:
+      type: object
+      properties: 
+        type:
+          type: string
+
+        url:
+          type: string
+
+    PeerListParams:
+      type: object
+      properties: 
+        limit:
+          type: number
+
+        offset:
+          type: number
+
+        cached:
+          type: boolean
+          description: "Cached == true will return offline peers from the repo as well as online peers, default is to list connected peers only "
+    JSONOptions:
+      type: object
+      properties: 
+        Options:
+          type: object 
+
+    CreateAuthTokenParams:
+      type: object
+      properties: 
+        granteeUsername:
+          type: string
+          description: "username to grant auth"
+          example: "keyboard_cat"
+        granteeProfileID:
+          type: string
+          description: "profile Identifier to grant token for"
+          example: "QmemJQrK7PTQvD3n8gmo9JhyaByyLmETiNR1Y8wS7hv4sP"
+        ttl:
+          type: object 
+          description: "lifespan of token in nanoseconds"
+          example: "2000000000000"
+    GetResult:
+      type: object
+      properties: 
+        value:
+          type: object 
+
+        bytes:
+          type: object 
+
     TeardownParams:
       type: object
       properties: 
@@ -3908,138 +3323,6 @@ components:
         ConfigFilepath:
           type: string
 
-    ApplyParams:
-      type: object
-      properties: 
-        ref:
-          type: string
-
-        transform:
-          type: object 
-
-        secrets:
-          type: object 
-
-        wait:
-          type: boolean
-
-        ScriptOutput:
-          type: object 
-          description: "TODO(arqu): substitute with websockets when working over the wire "
-        Hooks:
-          type: object 
-
-    GetConfigParams:
-      type: object
-      properties: 
-        Field:
-          type: string
-
-        WithPrivateKey:
-          type: boolean
-
-        Format:
-          type: string
-
-        Concise:
-          type: boolean
-
-    RawLogbookParams:
-      type: object
-    TransformResource:
-      type: object
-      properties: 
-        path:
-          type: string
-
-    GetParams:
-      type: object
-      properties: 
-        ref:
-          type: string
-          description: "dataset reference to fetch"
-          example: "b5/world_bank_population"
-        selector:
-          type: string
-          description: "a component or nested field names to extract from the dataset"
-          example: "body"
-        limit:
-          type: number
-          description: "number of results to limit to. only applies when selector is 'body' "
-        offset:
-          type: number
-          description: "number of results to skip. only applies when selector is 'body' "
-    XLSXOptions:
-      type: object
-      properties: 
-        sheetName:
-          type: string
-
-    RestoreParams:
-      type: object
-      properties: 
-        dir:
-          type: string
-
-        ref:
-          type: string
-
-        version:
-          type: string
-
-        selector:
-          type: string
-
-    PreviewParams:
-      type: object
-      properties: 
-        ref:
-          type: string
-
-    ListParams:
-      type: object
-      properties: 
-        term:
-          type: string
-          description: "term to filter list by"
-          example: "population"
-        username:
-          type: string
-          description: "username to filter collection by"
-          example: "ramfox"
-        orderBy:
-          type: string
-          description: "field name to order list by"
-          example: "created"
-        limit:
-          type: number
-          description: "maximum number of datasets to use. use -1 to list all datasets"
-          example: "50"
-        offset:
-          type: number
-          description: "number of items to skip"
-          example: "0"
-        public:
-          type: boolean
-          description: "Public only applies to listing datasets, shows only datasets that are set to visible "
-    FSIWriteParams:
-      type: object
-      properties: 
-        ref:
-          type: string
-
-        dataset:
-          type: object 
-
-    Rev:
-      type: object
-      properties: 
-        Field:
-          type: string
-          description: "field scopt, currently can only be a component name, or the entire dataset "
-        Gen:
-          type: number
-          description: "the nth-generational ancestor of a history "
     DiffResponse:
       type: object
       properties: 
@@ -4055,72 +3338,131 @@ components:
         diff:
           type: object 
 
-    User:
+    ApplyResult:
       type: object
       properties: 
-        id:
-          type: string
-
-        name:
-          type: string
-
-        email:
-          type: string
-
-    GetResult:
-      type: object
-      properties: 
-        value:
+        Data:
           type: object 
 
-        bytes:
+        runID:
+          type: string
+
+    RemoveParams:
+      type: object
+      properties: 
+        ref:
+          type: string
+
+        revision:
           type: object 
 
-    PeerListParams:
-      type: object
-      properties: 
-        limit:
-          type: number
-
-        offset:
-          type: number
-
-        cached:
+        force:
           type: boolean
-          description: "Cached == true will return offline peers from the repo as well as online peers, default is to list connected peers only "
-    Theme:
+
+    DiffParams:
       type: object
       properties: 
-        description:
+        leftPath:
+          type: string
+          description: "File paths or reference to datasets "
+        rightPath:
           type: string
 
-        display_name:
+        WorkingDir:
           type: string
-
-        image_display_url:
-          type: string
-
-        id:
-          type: string
-
-        name:
-          type: string
-
-        title:
-          type: string
-
-    PeerInfoParams:
-      type: object
-      properties: 
-        peername:
-          type: string
-
-        profileID:
-          type: string
-
-        verbose:
+          description: "If not null, the working directory that the diff is using "
+        UseLeftPrevVersion:
           type: boolean
-          description: "Verbose adds network details from the p2p Peerstore "
+          description: "Whether to get the previous version of the left parameter "
+        Selector:
+          type: string
+          description: "Which component or part of a dataset to compare "
+    ValidateResponse:
+      type: object
+      properties: 
+        structure:
+          type: object 
+          description: "Structure used to perform validation "
+        errors:
+          type: object 
+          description: "Validation Errors "
+    RawLogbookParams:
+      type: object
+    Stats:
+      type: object
+      properties: 
+        path:
+          type: string
+
+        qri:
+          type: string
+
+        stats:
+          type: object 
+
+    Readme:
+      type: object
+      properties: 
+        format:
+          type: string
+          description: "Format designates the visualization configuration syntax. Only supported formats are 'html' and 'md' "
+        path:
+          type: string
+          description: "Path is the location of a readme, transient derived "
+        qri:
+          type: string
+          description: "Qri should always be 'rm:0' derived "
+        scriptPath:
+          type: string
+          description: "ScriptPath is the path to the script that created this "
+        text:
+          type: string
+          description: "Text contains the contents of the script, transient "
+        renderedPath:
+          type: string
+          description: "RenderedPath is the path to the file rendered using the readme script and the body "
+    Transform:
+      type: object
+      properties: 
+        config:
+          type: object 
+          description: "Config outlines any configuration that would affect the resulting hash "
+        path:
+          type: string
+          description: "location of the transform object, transient "
+        qri:
+          type: string
+          description: "Kind should always equal KindTransform "
+        resources:
+          type: object 
+          description: "Resources is a map of all datasets referenced in this transform, with alphabetical keys generated by datasets in order of appearance within the transform "
+        scriptPath:
+          type: string
+          description: "ScriptPath is the path to the script that produced this transformation. Deprecated - use Steps instead "
+        text:
+          type: string
+          description: "Text contains the contents of the script, transient "
+        secrets:
+          type: object 
+          description: "Secrets is a map of secret values used in the transformation, transient. TODO (b5): make this not-transient by censoring the values used, but not keys "
+        steps:
+          type: object 
+
+        syntax:
+          type: string
+          description: "Syntax this transform was written in Deprecated - syntax is defined per-step "
+        syntaxVersion:
+          type: string
+          description: "SyntaxVersion is an identifier for the application and version number that produced the result Deprecated - use steps.Syntax with a version suffix instead "
+        syntaxes:
+          type: object 
+          description: "map of syntaxes used in this transform to their version identifier. "
+    XLSXOptions:
+      type: object
+      properties: 
+        sheetName:
+          type: string
+
     Citation:
       type: object
       properties: 
@@ -4131,15 +3473,6 @@ components:
           type: string
 
         email:
-          type: string
-
-    ApplyResult:
-      type: object
-      properties: 
-        Data:
-          type: object 
-
-        runID:
           type: string
 
 ### Response Schemas

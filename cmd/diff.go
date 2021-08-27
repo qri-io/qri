@@ -100,7 +100,7 @@ func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
 		return
 	}
 
-	o.Refs, err = GetCurrentRefSelect(f, args, 2, nil)
+	o.Refs, err = GetCurrentRefSelect(f, args, 2)
 	return
 }
 
@@ -112,14 +112,7 @@ func (o *DiffOptions) Run() (err error) {
 		Selector: o.Selector,
 	}
 
-	if o.Refs.IsLinked() {
-		// > qri diff
-		// for linked dataset [me/example_ds]
-		//
-		// left = me/example_ds@head   right = me/example_ds@working_dir
-		p.LeftSide = o.Refs.Ref()
-		p.WorkingDir = o.Refs.Dir()
-	} else if len(o.Refs.RefList()) == 1 {
+	if len(o.Refs.RefList()) == 1 {
 		// > qri diff me/example_ds
 		//
 		// left = me/example_ds@previous   right = me/example_ds@head

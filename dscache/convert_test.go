@@ -60,7 +60,6 @@ func TestBuildDscacheFlatbuffer(t *testing.T) {
 				ProfileID: pid1.Encode(),
 				Name:      "checked_out_ds",
 				Path:      "/ipfs/QmExampleThird",
-				FSIPath:   "/path/to/workspace/checked_out_ds",
 			},
 		},
 		&entryInfo{
@@ -96,7 +95,6 @@ func TestBuildDscacheFlatbuffer(t *testing.T) {
      prettyName    = checked_out_ds
      commitTime    = -62135596800
      headRef       = /ipfs/QmExampleThird
-     fsiPath       = /path/to/workspace/checked_out_ds
   2) initID        = ds_init_id_0000
      profileID     = QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
      topIndex      = 0
@@ -188,7 +186,6 @@ func TestConvertLogbookAndRefsBasic(t *testing.T) {
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 				Name:      "first_new_name",
 				Path:      "QmHashOfVersion2",
-				FSIPath:   "/path/to/first_workspace",
 			},
 			TopIndex:    2,
 			CursorIndex: 2,
@@ -199,7 +196,6 @@ func TestConvertLogbookAndRefsBasic(t *testing.T) {
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 				Name:      "second_name",
 				Path:      "QmHashOfVersion6",
-				FSIPath:   "/path/to/second_workspace",
 			},
 			TopIndex:    3,
 			CursorIndex: 3,
@@ -243,7 +239,6 @@ func TestConvertLogbookAndRefsMissingDsref(t *testing.T) {
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 				Name:      "first_new_name",
 				Path:      "QmHashOfVersion2",
-				FSIPath:   "/path/to/first_workspace",
 			},
 			TopIndex:    2,
 			CursorIndex: 2,
@@ -315,7 +310,6 @@ func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 				Name:      "first_new_name",
 				Path:      "QmHashOfVersion2",
-				FSIPath:   "/path/to/first_workspace",
 			},
 			TopIndex:    2,
 			CursorIndex: 2,
@@ -326,7 +320,6 @@ func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 				Name:      "second_name",
 				Path:      "QmHashOfVersion6",
-				FSIPath:   "/path/to/second_workspace",
 			},
 			TopIndex:    3,
 			CursorIndex: 3,
@@ -336,7 +329,6 @@ func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 				Name:      "third_name",
 				Path:      "QmHashOfVersion100",
-				FSIPath:   "/path/to/third_workspace",
 			},
 		},
 	}
@@ -399,7 +391,6 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 				InitID:    "n6bxzf53b3g4gugtn7svgpz2xmmbxp5ls6witdilt7oh5dtdnxwa",
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 				Name:      "third_ds",
-				FSIPath:   "/path/to/third_workspace",
 			},
 		},
 		{
@@ -408,7 +399,6 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
 				Name:      "fourth_ds",
 				Path:      "QmHashOfVersion1005",
-				FSIPath:   "/path/to/fourth_workspace",
 			},
 			TopIndex:    2,
 			CursorIndex: 2,

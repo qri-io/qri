@@ -121,9 +121,7 @@ func (vis versionInfoStringer) String() string {
 	if vis.MetaTitle != "" {
 		fmt.Fprintf(w, "\n%s", vis.MetaTitle)
 	}
-	if vis.FSIPath != "" {
-		fmt.Fprintf(w, "\nlinked: %s", path(vis.FSIPath))
-	} else if vis.Path != "" {
+	if vis.Path != "" {
 		fmt.Fprintf(w, "\n%s", path(vis.Path))
 	}
 	if vis.Foreign {

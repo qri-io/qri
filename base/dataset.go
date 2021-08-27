@@ -249,7 +249,6 @@ func RawDatasetRefs(ctx context.Context, pid profile.ID, s collection.Set) (stri
 		fmt.Fprintf(&builder, "%s ProfileID: %s\n", padding, ref.ProfileID)
 		fmt.Fprintf(&builder, "%s Name:      %s\n", padding, ref.Name)
 		fmt.Fprintf(&builder, "%s Path:      %s\n", padding, ref.Path)
-		fmt.Fprintf(&builder, "%s FSIPath:   %s\n", padding, ref.FSIPath)
 		fmt.Fprintf(&builder, "%s Published: %v\n", padding, ref.Published)
 	}
 	return builder.String(), nil

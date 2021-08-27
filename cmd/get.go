@@ -94,7 +94,7 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 			args = args[1:]
 		}
 	}
-	if o.Refs, err = GetCurrentRefSelect(f, args, AnyNumberOfReferences, nil); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, AnyNumberOfReferences); err != nil {
 		return
 	}
 

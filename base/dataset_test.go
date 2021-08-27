@@ -111,7 +111,6 @@ func TestRawDatasetRefs(t *testing.T) {
   ProfileID: {{ .ProfileID }}
   Name:      cities
   Path:      {{ .Path }}
-  FSIPath:   
   Published: false
 `, map[string]string{
 		"ProfileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",

@@ -61,7 +61,7 @@ func (o *PreviewOptions) Complete(f Factory, args []string) (err error) {
 	if o.inst, err = f.Instance(); err != nil {
 		return err
 	}
-	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
 		return err
 	}
 	return nil

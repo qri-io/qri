@@ -1,15 +1,12 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/fsi"
-	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -17,15 +14,9 @@ import (
 type RefSelect struct {
 	kind string
 	refs []string
-	dir  string
 }
 
-// A notice on UI language used here. When a user has run the `qri use` command to select a
-// dataset ref to run commands on, the text sent to standard output should begin with:
-//
-// using dataset [peername/dataset_name]
-//
-// In contrast, when a user is running a command within a working directory that is linked to a
+// when a user is running a command within a working directory that is linked to a
 // dataset, the text sent to standard output shall begin with:
 //
 // for linked dataset [peername/dataset_name]
@@ -51,11 +42,6 @@ func NewListOfRefSelects(refs []string) *RefSelect {
 	return &RefSelect{refs: refs}
 }
 
-// NewLinkedDirectoryRefSelect returns a single reference implied by a linked directory
-func NewLinkedDirectoryRefSelect(ref dsref.Ref, dir string) *RefSelect {
-	return &RefSelect{kind: "for linked", refs: []string{ref.Human()}, dir: dir}
-}
-
 // NewUsingRefSelect returns a single reference implied by the use command
 func NewUsingRefSelect(ref string) *RefSelect {
 	return &RefSelect{kind: "using", refs: []string{ref}}
@@ -64,11 +50,6 @@ func NewUsingRefSelect(ref string) *RefSelect {
 // IsExplicit returns whether the reference is explicit
 func (r *RefSelect) IsExplicit() bool {
 	return r.kind == ""
-}
-
-// IsLinked returns whether the reference is implied by a linked directory
-func (r *RefSelect) IsLinked() bool {
-	return r.dir != ""
 }
 
 // Ref returns the reference as a string
@@ -85,11 +66,6 @@ func (r *RefSelect) RefList() []string {
 		return []string{""}
 	}
 	return r.refs
-}
-
-// Dir returns the directory of a linked directory reference
-func (r *RefSelect) Dir() string {
-	return r.dir
 }
 
 // String returns a stringified version of the ref selection
@@ -115,7 +91,7 @@ const (
 // This is the recommended method for command-line commands to get references.
 // If an Ensurer is passed in, it is used to ensure that the ref in the .qri-ref linkfile matches
 // what is in the repo.
-func GetCurrentRefSelect(f Factory, args []string, allowed int, ensurer *FSIRefLinkEnsurer) (*RefSelect, error) {
+func GetCurrentRefSelect(f Factory, args []string, allowed int) (*RefSelect, error) {
 	// If reference is specified by the user provide command-line arguments, use that reference.
 	if len(args) > 0 {
 		// If bad upper-case characters are allowed, skip checking for them
@@ -147,16 +123,7 @@ func GetCurrentRefSelect(f Factory, args []string, allowed int, ensurer *FSIRefL
 		}
 		return NewListOfRefSelects(args), nil
 	}
-	// If in a working directory that is linked to a dataset, use that link's reference.
-	refs, err := GetLinkedRefSelect()
-	if err == nil {
-		// Ensure that the link in the working directory matches what is in the repo.
-		err = ensurer.EnsureRef(refs)
-		if err != nil {
-			log.Debugf("%s", err)
-		}
-		return refs, nil
-	}
+
 	// Find what `use` is referencing and use that.
 	selected, err := DefaultSelectedRefList(f)
 	if err != nil {
@@ -167,20 +134,6 @@ func GetCurrentRefSelect(f Factory, args []string, allowed int, ensurer *FSIRefL
 	}
 	// Empty refselect
 	return NewEmptyRefSelect(), repo.ErrEmptyRef
-}
-
-// GetLinkedRefSelect returns the current reference selection only if it is a linked directory
-func GetLinkedRefSelect() (*RefSelect, error) {
-	// If in a working directory that is linked to a dataset, use that link's reference.
-	dir, err := os.Getwd()
-	if err == nil {
-		ref, ok := fsi.GetLinkedFilesysRef(dir)
-		if ok {
-			return NewLinkedDirectoryRefSelect(ref, dir), nil
-		}
-	}
-	// Empty refselect
-	return nil, repo.ErrEmptyRef
 }
 
 // DefaultSelectedRefList returns the list of currently `use`ing dataset references
@@ -202,39 +155,4 @@ func DefaultSelectedRefList(f Factory) ([]string, error) {
 	}
 
 	return res, nil
-}
-
-// EnsureFSIAgrees should be passed to GetCurrentRefSelect in order to ensure that any references
-// used by a command have agreement between what their .qri-ref linkfile thinks and what the
-// qri repository thinks. If there's a disagreement, the linkfile wins and the repository will
-// be updated to match.
-// This is useful if a user has a working directory, and then manually deletes the .qri-ref (which
-// will unlink the dataset), or renames / moves the directory and then runs a command in that
-// directory (which will update the repository with the new working directory's path).
-func EnsureFSIAgrees(inst *lib.Instance) *FSIRefLinkEnsurer {
-	if inst == nil {
-		return nil
-	}
-	return &FSIRefLinkEnsurer{FSIMethods: inst.Filesys()}
-}
-
-// FSIRefLinkEnsurer is a simple wrapper for ensuring the linkfile agrees with the repository. We
-// use it instead of a raw FSIMethods pointer so that users of this code see they need to call
-// EnsureFSIAgrees(*fsiMethods) when calling GetRefSelect, hopefully providing a bit of insight
-// about what this parameter is for.
-type FSIRefLinkEnsurer struct {
-	FSIMethods lib.FSIMethods
-}
-
-// EnsureRef checks if the linkfile and repository agree on the dataset's working directory path.
-// If not, it will modify the repository so that it matches the linkfile. The linkfile will
-// never be modified.
-func (e *FSIRefLinkEnsurer) EnsureRef(refs *RefSelect) error {
-	if e == nil {
-		return nil
-	}
-	p := lib.LinkParams{Dir: refs.Dir(), Ref: refs.Ref()}
-	ctx := context.TODO()
-	_, err := e.FSIMethods.EnsureRef(ctx, &p)
-	return err
 }

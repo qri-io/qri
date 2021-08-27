@@ -206,31 +206,26 @@ func TestListRawRefs(t *testing.T) {
   ProfileID: {{ .ProfileID }}
   Name:      cities
   Path:      {{ .citiesPath }}
-  FSIPath:   
   Published: false
 1 Peername:  peer
   ProfileID: {{ .ProfileID }}
   Name:      counter
   Path:      {{ .counterPath }}
-  FSIPath:   
   Published: false
 2 Peername:  peer
   ProfileID: {{ .ProfileID }}
   Name:      craigslist
   Path:      {{ .craigslistPath }}
-  FSIPath:   
   Published: false
 3 Peername:  peer
   ProfileID: {{ .ProfileID }}
   Name:      movies
   Path:      {{ .moviesPath }}
-  FSIPath:   
   Published: false
 4 Peername:  peer
   ProfileID: {{ .ProfileID }}
   Name:      sitemap
   Path:      {{ .sitemapPath }}
-  FSIPath:   
   Published: false
 `, map[string]string{
 		"ProfileID":      "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",

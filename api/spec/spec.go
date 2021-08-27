@@ -41,8 +41,6 @@ func AssertHTTPAPISpec(t *testing.T, baseURL, specPackagePath string) {
 		"testdata/peer.json",
 		"testdata/profile.json",
 		"testdata/remote.json",
-		"testdata/working_directory.json",
-
 		// sync.json is intentionally left out
 		// as it's more a protocol that doesn't belong
 		// in the RPC API

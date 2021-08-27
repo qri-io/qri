@@ -122,7 +122,7 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 		return
 	}
 
-	if o.Refs, err = GetCurrentRefSelect(f, args, BadUpperCaseOkayWhenSavingExistingDataset, nil); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, BadUpperCaseOkayWhenSavingExistingDataset); err != nil {
 		// Not an error to use an empty reference, it will be inferred later on.
 		if err != repo.ErrEmptyRef {
 			return

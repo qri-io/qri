@@ -13,7 +13,6 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/repo"
 	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/stats"
@@ -72,7 +71,7 @@ func getBaseCols() []*ChangeReportDeltaComponent {
 					"type": "numeric",
 				},
 				About: map[string]interface{}{
-					"status": fsi.STChange,
+					"status": STChange,
 				},
 			},
 			Title: "avg_age",
@@ -115,7 +114,7 @@ func getBaseCols() []*ChangeReportDeltaComponent {
 					"type": "string",
 				},
 				About: map[string]interface{}{
-					"status": fsi.STUnmodified,
+					"status": STUnmodified,
 				},
 			},
 			Title: "city",
@@ -141,7 +140,7 @@ func getBaseCols() []*ChangeReportDeltaComponent {
 					"type":       "boolean",
 				},
 				About: map[string]interface{}{
-					"status": fsi.STUnmodified,
+					"status": STUnmodified,
 				},
 			},
 			Title: "in_usa",
@@ -204,7 +203,7 @@ func getBaseCols() []*ChangeReportDeltaComponent {
 					"type": "numeric",
 				},
 				About: map[string]interface{}{
-					"status": fsi.STChange,
+					"status": STChange,
 				},
 			},
 			Title: "pop",
@@ -448,7 +447,7 @@ raleigh,5000.65,false`
 			},
 			Right: EmptyObject{},
 			About: map[string]interface{}{
-				"status": fsi.STRemoved,
+				"status": STRemoved,
 			},
 		},
 		Title: "pop",
@@ -526,7 +525,7 @@ raleigh,25000,5000.65,false,5`
 				"type": "numeric",
 			},
 			About: map[string]interface{}{
-				"status": fsi.STAdd,
+				"status": STAdd,
 			},
 		},
 		Title: "score",
@@ -604,7 +603,7 @@ raleigh,25000,5000.65,false`
 			},
 			Right: EmptyObject{},
 			About: map[string]interface{}{
-				"status": fsi.STRemoved,
+				"status": STRemoved,
 			},
 		},
 		Title: "pop",
@@ -645,7 +644,7 @@ raleigh,25000,5000.65,false`
 				"type": "numeric",
 			},
 			About: map[string]interface{}{
-				"status": fsi.STAdd,
+				"status": STAdd,
 			},
 		},
 		Title: "popz",

@@ -10,7 +10,6 @@ import (
 	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/fsi/linkfile"
 	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -71,35 +70,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 			Offset:  p.Offset,
 			Limit:   p.Limit,
 		}
-		infos, err := s.List(scope.ctx, scope.ActiveProfile().ID, lp)
-		if err != nil {
-			return nil, err
-		}
-
-		if p.EnsureFSIExists {
-			// TODO(b5): adding a defensive check for the existence of the FSI
-			// subsystem in the hopes that cloud code won't follow this path. Haven't
-			// confirmed that's the case
-			if scope.FSISubsystem() != nil {
-				// For each reference with a linked fsi working directory,
-				// check that the folder exists and has a .qri-ref file. If
-				// it's missing, remove the link from the centralized repo.
-				// Doing this every list operation is a bit inefficient, so
-				// the behavior is opt-in.
-				update := make([]dsref.VersionInfo, 0, len(infos))
-				for _, info := range infos {
-					if info.FSIPath != "" && !linkfile.ExistsInDir(info.FSIPath) {
-						info.FSIPath = ""
-						update = append(update, info)
-					}
-				}
-				if err := s.Add(scope.Context(), scope.ActiveProfile().ID, update...); err != nil {
-					return nil, err
-				}
-			}
-		}
-
-		return infos, nil
+		return s.List(scope.ctx, scope.ActiveProfile().ID, lp)
 	}
 	// TODO(dustmop): When List is converted to use scope, get the ProfileID from
 	// the scope if the user is authorized to only view their own datasets, as opposed
@@ -184,27 +155,6 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 	}
 	if err != nil {
 		return nil, err
-	}
-
-	if p.EnsureFSIExists {
-		// For each reference with a linked fsi working directory, check that the folder exists
-		// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
-		// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
-		for _, info := range infos {
-			if info.FSIPath != "" && !linkfile.ExistsInDir(info.FSIPath) {
-				info.FSIPath = ""
-				ref := reporef.RefFromVersionInfo(&info)
-				if ref.Path == "" {
-					if err = scope.Repo().DeleteRef(ref); err != nil {
-						log.Debugf("cannot delete ref for %q, err: %s", ref, err)
-					}
-					continue
-				}
-				if err = scope.Repo().PutRef(ref); err != nil {
-					log.Debugf("cannot put ref for %q, err: %s", ref, err)
-				}
-			}
-		}
 	}
 
 	if listWarning != nil {

@@ -261,7 +261,6 @@ func (inst *Instance) AllMethods() []MethodSet {
 		inst.Config(),
 		inst.Dataset(),
 		inst.Diff(),
-		inst.Filesys(),
 		inst.Log(),
 		inst.Peer(),
 		inst.Profile(),
@@ -282,7 +281,6 @@ func (inst *Instance) RegisterMethods() {
 	inst.registerOne("config", inst.Config(), configImpl{}, reg)
 	inst.registerOne("dataset", inst.Dataset(), datasetImpl{}, reg)
 	inst.registerOne("diff", inst.Diff(), diffImpl{}, reg)
-	inst.registerOne("fsi", inst.Filesys(), fsiImpl{}, reg)
 	inst.registerOne("log", inst.Log(), logImpl{}, reg)
 	inst.registerOne("peer", inst.Peer(), peerImpl{}, reg)
 	inst.registerOne("profile", inst.Profile(), profileImpl{}, reg)

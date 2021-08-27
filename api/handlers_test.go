@@ -8,6 +8,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -296,4 +299,65 @@ func TestExtensionToMimeType(t *testing.T) {
 			t.Errorf("case %d: expected %q got %q", i, c.expect, got)
 		}
 	}
+}
+
+// APICall calls the api and returns the status code and body
+func APICall(url string, hf http.HandlerFunc, muxVars map[string]string) (int, string) {
+	return APICallWithParams("GET", url, nil, hf, muxVars)
+}
+
+// APICallWithParams calls the api and returns the status code and body
+func APICallWithParams(method, reqURL string, params map[string]string, hf http.HandlerFunc, muxVars map[string]string) (int, string) {
+	// Add parameters from map
+	reqParams := url.Values{}
+	if params != nil {
+		for key := range params {
+			reqParams.Set(key, params[key])
+		}
+	}
+	req := httptest.NewRequest(method, reqURL, strings.NewReader(reqParams.Encode()))
+	if muxVars != nil {
+		req = mux.SetURLVars(req, muxVars)
+	}
+	setRefStringFromMuxVars(req)
+	if err := setMuxVarsToQueryParams(req); err != nil {
+		panic(err)
+	}
+	// Set form-encoded header so server will find the parameters
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(reqParams.Encode())))
+	w := httptest.NewRecorder()
+	hf(w, req)
+	res := w.Result()
+	statusCode := res.StatusCode
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
+	return statusCode, string(bodyBytes)
+}
+
+func JSONAPICallWithBody(method, reqURL string, data interface{}, hf http.HandlerFunc, muxVars map[string]string) (int, string) {
+	enc, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+
+	req := httptest.NewRequest(method, reqURL, bytes.NewReader(enc))
+	if muxVars != nil {
+		req = mux.SetURLVars(req, muxVars)
+	}
+	setRefStringFromMuxVars(req)
+	// Set form-encoded header so server will find the parameters
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	hf(w, req)
+	res := w.Result()
+	statusCode := res.StatusCode
+
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
+	return statusCode, string(bodyBytes)
 }

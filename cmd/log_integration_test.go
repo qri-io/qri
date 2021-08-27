@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset/dstest"
 )
 
@@ -142,4 +144,10 @@ func TestLogAndDeletes(t *testing.T) {
 
 	// TODO(dlong): Get the logbook, verify that it contains 2 books. The first should end
 	// with a deletion, the second should have only two entries (1 init, 1 save).
+}
+
+func cmpTextLines(left, right string) string {
+	lside := strings.Split(left, "\n")
+	rside := strings.Split(right, "\n")
+	return cmp.Diff(lside, rside)
 }

@@ -173,7 +173,6 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	var err error
 	ref := dsref.Ref{}
 	if p.Ref != "" {
-		scope.EnableWorkingDir(true)
 		ref, _, err = scope.ParseAndResolveRef(ctx, p.Ref)
 		if err != nil {
 			return nil, err

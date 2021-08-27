@@ -545,7 +545,6 @@ func TestRenameAfterRegistration(t *testing.T) {
   ProfileID: {{ .profileID }}
   Name:      first_name
   Path:      {{ .path }}
-  FSIPath:   
   Published: false
 
 `, tmplData)
@@ -565,7 +564,6 @@ func TestRenameAfterRegistration(t *testing.T) {
   ProfileID: {{ .profileID }}
   Name:      first_name
   Path:      {{ .path }}
-  FSIPath:   
   Published: false
 
 `, tmplData)
@@ -581,7 +579,6 @@ func TestRenameAfterRegistration(t *testing.T) {
   ProfileID: {{ .profileID }}
   Name:      second_name
   Path:      {{ .path }}
-  FSIPath:   
   Published: false
 
 `, tmplData)
@@ -598,7 +595,6 @@ func TestRenameAfterRegistration(t *testing.T) {
   ProfileID: {{ .profileID }}
   Name:      third_name
   Path:      {{ .path }}
-  FSIPath:   
   Published: false
 
 `, tmplData)
@@ -677,7 +673,7 @@ func TestSetupHappensBeforeOtherCommands(t *testing.T) {
 	qriHome := createTmpQriHome(t)
 	cmd, shutdown := newCommand(ctx, qriHome, repotest.NewTestCrypto())
 
-	cmdTextList := [7]string{"qri connect", "qri diff", "qri get", "qri init", "qri list", "qri pull", "qri search"}
+	cmdTextList := []string{"qri connect", "qri diff", "qri get", "qri list", "qri pull", "qri search"}
 	expect := "no qri repo exists\nhave you run 'qri setup'?"
 
 	for _, cmdText := range cmdTextList {
@@ -688,4 +684,17 @@ func TestSetupHappensBeforeOtherCommands(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func parseRefFromSave(output string) string {
+	pos := strings.Index(output, "saved: ")
+	if pos == -1 {
+		panic(fmt.Errorf("expected output to contain \"saved:\", got %q", output))
+	}
+	ref := output[pos+7:]
+	endPos := strings.Index(ref, "\n")
+	if endPos > -1 {
+		ref = ref[:endPos]
+	}
+	return strings.TrimSpace(ref)
 }

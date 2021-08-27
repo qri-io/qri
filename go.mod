@@ -6,7 +6,6 @@ require (
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0
-	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/flock v0.7.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible

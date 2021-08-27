@@ -70,7 +70,7 @@ func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
 	if o.inst, err = f.Instance(); err != nil {
 		return err
 	}
-	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
 		return err
 	}
 	return nil
@@ -133,7 +133,6 @@ func (o *RenderOptions) vizRenderParams() (p *lib.RenderParams, err error) {
 func (o *RenderOptions) readmeRenderParams() *lib.RenderParams {
 	return &lib.RenderParams{
 		Ref:      o.Refs.Ref(),
-		UseFSI:   o.Refs.IsLinked(),
 		Format:   "html",
 		Selector: "readme",
 	}

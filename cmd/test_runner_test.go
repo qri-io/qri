@@ -421,48 +421,6 @@ func (runner *TestRunner) LookupVersionInfo(t *testing.T, refStr string) *dsref.
 	return vi
 }
 
-// ClearFSIPath clears the FSIPath for a reference in the refstore
-// Note: ClearFSIPAth doesn't do reference resoultion, cannot use "me" in
-// dataset names
-func (runner *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
-	t.Helper()
-	dr, err := dsref.Parse(refStr)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	r, err := runner.RepoRoot.Repo(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	vi, err := repo.GetVersionInfoShim(r, dr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	vi.FSIPath = ""
-	if err := repo.PutVersionInfoShim(ctx, r, vi); err != nil {
-		t.Fatal(err)
-	}
-
-	shutdown := func() <-chan error {
-		finished := make(chan error)
-		go func() {
-			<-r.Done()
-			finished <- r.DoneErr()
-		}()
-
-		return finished
-	}
-
-	cancel()
-	if err := timedShutdown("ClearFSIPath", shutdown); err != nil {
-		t.Fatal(err)
-	}
-}
-
 // GetPathForDataset fetches a path for dataset index
 func (runner *TestRunner) GetPathForDataset(t *testing.T, index int) string {
 	path, err := runner.RepoRoot.GetPathForDataset(index)

@@ -67,10 +67,6 @@ func (sm *SetMaintainer) subscribe(bus event.Bus) {
 		event.ETAutomationWorkflowStopped,
 		event.ETAutomationWorkflowCreated,
 		event.ETAutomationWorkflowRemoved,
-
-		// fsi
-		event.ETFSICreateLink,
-		event.ETFSIRemoveLink,
 	)
 }
 
@@ -93,8 +89,6 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 		// keep in mind commit changes can mean added OR removed versions
 		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
 			sm.UpdateEverywhere(ctx, vi.InitID, func(m *dsref.VersionInfo) {
-				// preserve fsi path
-				vi.FSIPath = m.FSIPath
 				// preserve workflow id
 				vi.WorkflowID = m.WorkflowID
 				// preserve run information
@@ -184,18 +178,6 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 			if err != nil {
 				log.Debugw("updating dataset across all collections", "InitID", wf.InitID, "err", err)
 			}
-		}
-	case event.ETFSICreateLink:
-		if link, ok := e.Payload.(event.FSICreateLink); ok {
-			sm.UpdateEverywhere(ctx, link.InitID, func(vi *dsref.VersionInfo) {
-				vi.FSIPath = link.FSIPath
-			})
-		}
-	case event.ETFSIRemoveLink:
-		if change, ok := e.Payload.(event.FSIRemoveLink); ok {
-			sm.UpdateEverywhere(ctx, change.InitID, func(vi *dsref.VersionInfo) {
-				vi.FSIPath = ""
-			})
 		}
 	}
 	return nil

@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	logger "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 )
-
-var log = logger.Logger("component")
 
 // Component represents one of two things, either a single component (meta, body), or a collection
 // of components, such as an entire dataset or a directory of files that encode components.

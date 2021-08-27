@@ -75,7 +75,6 @@ func (o *PullOptions) Run(args []string) error {
 	for _, arg := range args {
 		p := &lib.PullParams{
 			Ref:      arg,
-			LinkDir:  o.LinkDir,
 			LogsOnly: o.LogsOnly,
 		}
 

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -15,6 +16,11 @@ import (
 	"github.com/qri-io/qri/base/fill"
 	"gopkg.in/yaml.v2"
 )
+
+// PathJoinPosix joins two paths, and makes it explicitly clear we want POSIX slashes
+func PathJoinPosix(left, right string) string {
+	return path.Join(left, right)
+}
 
 // ReadDatasetFiles reads zero or more files, each representing a dataset or component of a
 // dataset, and deserializes them, merging the results into a single dataset object. It is an

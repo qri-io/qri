@@ -10,22 +10,19 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	qerr "github.com/qri-io/qri/errors"
-	"github.com/qri-io/qri/fsi"
 )
 
 type datasetLoader struct {
 	inst      *Instance
 	userOwner string
 	source    string
-	useFSI    bool
 }
 
-func newDatasetLoader(inst *Instance, userOwner, source string, useFSI bool) dsref.Loader {
+func newDatasetLoader(inst *Instance, userOwner, source string) dsref.Loader {
 	return &datasetLoader{
 		inst:      inst,
 		userOwner: userOwner,
 		source:    source,
-		useFSI:    useFSI,
 	}
 }
 
@@ -59,8 +56,6 @@ Replace "me" with your username for the reference:
 		return nil, err
 	}
 
-	// Whether the reference came with an explicit version
-	pathGiven := ref.Path != ""
 	// Resolve the reference
 	location, err := resolver.ResolveRef(ctx, &ref)
 	if err != nil {
@@ -68,14 +63,6 @@ Replace "me" with your username for the reference:
 			return nil, qerr.New(err, fmt.Sprintf("reference %q not found", refstr))
 		}
 		return nil, err
-	}
-	// If no version was given, and FSI is enabled for the loader, look
-	// up if the dataset has a version on disk.
-	if !pathGiven && d.useFSI {
-		err = d.inst.fsi.ResolvedPath(&ref)
-		if err == fsi.ErrNoLink {
-			err = nil
-		}
 	}
 
 	if ref.Path == "" {
@@ -111,23 +98,10 @@ func (d *datasetLoader) loadRefFromLocation(ctx context.Context, ref dsref.Ref, 
 }
 
 func (d *datasetLoader) loadLocalDataset(ctx context.Context, ref dsref.Ref) (*dataset.Dataset, error) {
-	var (
-		ds  *dataset.Dataset
-		err error
-	)
-
-	if fsi.IsFSIPath(ref.Path) {
-		// Has an FSI Path, load from working directory
-		if ds, err = fsi.ReadDir(fsi.FilesystemPathToLocal(ref.Path)); err != nil {
-			return nil, err
-		}
-		// Assign the FSI path to the dataset so callers know where it was loaded from
-		ds.Path = ref.Path
-	} else {
-		// Load from dsfs
-		if ds, err = dsfs.LoadDataset(ctx, d.inst.qfs, ref.Path); err != nil {
-			return nil, err
-		}
+	// Load from dsfs
+	ds, err := dsfs.LoadDataset(ctx, d.inst.qfs, ref.Path)
+	if err != nil {
+		return nil, err
 	}
 	// Set transient info on the returned dataset
 	ds.Name = ref.Name

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/qri-io/qri/base/hiddenfile"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/fsi/hiddenfile"
 )
 
 // RefLinkTextFilename is the filename for a reference linkfile

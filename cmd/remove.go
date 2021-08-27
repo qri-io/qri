@@ -71,7 +71,6 @@ effect on local data.`,
 
 	cmd.Flags().StringVarP(&o.RevisionsText, "revisions", "r", "", "revisions to delete")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "synonym for --revisions=all")
-	cmd.Flags().BoolVar(&o.KeepFiles, "keep-files", false, "don't modify files in working directory")
 	cmd.Flags().BoolVarP(&o.Force, "force", "f", false, "remove files even if a working directory is dirty")
 	cmd.Flags().StringVar(&o.Remote, "remote", "", "remote address to remove from")
 
@@ -88,7 +87,6 @@ type RemoveOptions struct {
 	RevisionsText string
 	Revision      *dsref.Rev
 	All           bool
-	KeepFiles     bool
 	Force         bool
 
 	inst *lib.Instance
@@ -100,7 +98,7 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 		return
 	}
 
-	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
 		// This error will be handled during validation
 		if err != repo.ErrEmptyRef {
 			return
@@ -145,10 +143,9 @@ func (o *RemoveOptions) Run() (err error) {
 	}
 
 	params := lib.RemoveParams{
-		Ref:       o.Refs.Ref(),
-		Revision:  o.Revision,
-		KeepFiles: o.KeepFiles,
-		Force:     o.Force,
+		Ref:      o.Refs.Ref(),
+		Revision: o.Revision,
+		Force:    o.Force,
 	}
 
 	ctx := context.TODO()

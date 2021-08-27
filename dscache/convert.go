@@ -100,7 +100,6 @@ func buildDscacheFlatbuffer(userPairList []userProfilePair, entryInfoList []*ent
 		metaTitle := builder.CreateString(ce.MetaTitle)
 		themeList := builder.CreateString(ce.ThemeList)
 		headRef := builder.CreateString(ce.Path)
-		fsiPath := builder.CreateString(ce.FSIPath)
 		dscachefb.RefEntryInfoStart(builder)
 		dscachefb.RefEntryInfoAddInitID(builder, initID)
 		dscachefb.RefEntryInfoAddProfileID(builder, profileID)
@@ -114,7 +113,6 @@ func buildDscacheFlatbuffer(userPairList []userProfilePair, entryInfoList []*ent
 		dscachefb.RefEntryInfoAddCommitTime(builder, ce.CommitTime.Unix())
 		dscachefb.RefEntryInfoAddNumErrors(builder, int32(ce.NumErrors))
 		dscachefb.RefEntryInfoAddHeadRef(builder, headRef)
-		dscachefb.RefEntryInfoAddFsiPath(builder, fsiPath)
 		ref := dscachefb.RefEntryInfoEnd(builder)
 		refList = append(refList, ref)
 	}
@@ -174,7 +172,6 @@ func convertLogbookAndRefs(ctx context.Context, book *logbook.Book, dsrefs []rep
 	for _, ref := range dsrefs {
 		info := findMatchingInfo(ref, allInfoList)
 		if info != nil {
-			info.FSIPath = ref.FSIPath
 			continue
 		}
 		missingInfoList = append(missingInfoList, &entryInfo{
@@ -182,7 +179,6 @@ func convertLogbookAndRefs(ctx context.Context, book *logbook.Book, dsrefs []rep
 				ProfileID: ref.ProfileID.Encode(),
 				Name:      ref.Name,
 				Path:      ref.Path,
-				FSIPath:   ref.FSIPath,
 			},
 		})
 	}
