@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/profile"
@@ -32,7 +31,6 @@ type scope struct {
 	inst   *Instance
 	pro    *profile.Profile
 	source string
-	useFSI bool
 }
 
 func newScope(ctx context.Context, inst *Instance, source string) (scope, error) {
@@ -48,7 +46,6 @@ func newScope(ctx context.Context, inst *Instance, source string) (scope, error)
 		inst:   inst,
 		pro:    pro,
 		source: source,
-		useFSI: false,
 	}, nil
 }
 
@@ -65,7 +62,6 @@ func newScopeFromWorkflow(ctx context.Context, inst *Instance, wf *workflow.Work
 		inst:   inst,
 		pro:    pro,
 		source: "local",
-		useFSI: false,
 	}, nil
 }
 
@@ -137,26 +133,12 @@ func (s *scope) ReplaceParentContext(newParent context.Context) scope {
 		inst:   s.inst,
 		pro:    s.pro,
 		source: s.source,
-		useFSI: s.useFSI,
 	}
 }
 
 // Dscache returns the dscache
 func (s *scope) Dscache() *dscache.Dscache {
 	return s.inst.Dscache()
-}
-
-// EnableWorkingDir allows datasets to be loaded from working directories that
-// they may be linked to
-func (s *scope) EnableWorkingDir(state bool) {
-	s.useFSI = state
-}
-
-// FSISubsystem returns a reference to the FSI subsystem
-// TODO(dustmop): This subsystem contains global data, we should move that data
-// out and into scope
-func (s *scope) FSISubsystem() *fsi.FSI {
-	return s.inst.fsi
 }
 
 // Filesystem returns a filesystem
@@ -174,7 +156,7 @@ func (s *scope) GetVersionInfoShim(ref dsref.Ref) (*dsref.VersionInfo, error) {
 // Loader returns a loader that can load datasets
 func (s *scope) Loader() dsref.Loader {
 	username := s.inst.cfg.Profile.Peername
-	return newDatasetLoader(s.inst, username, s.source, s.useFSI)
+	return newDatasetLoader(s.inst, username, s.source)
 }
 
 // Logbook returns the repo logbook
@@ -189,7 +171,7 @@ func (s *scope) Node() *p2p.QriNode {
 
 // ParseAndResolveRef parses a reference and resolves it
 func (s *scope) ParseAndResolveRef(ctx context.Context, refStr string) (dsref.Ref, string, error) {
-	return s.inst.ParseAndResolveRef(ctx, refStr, s.source, s.useFSI)
+	return s.inst.ParseAndResolveRef(ctx, refStr, s.source)
 }
 
 // Profiles accesses the profile store

@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/fsi/watchfs"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
@@ -33,18 +32,7 @@ func NewWebsocketHandler(ctx context.Context, inst *Instance) (WebsocketHandler,
 		conns: []*websocket.Conn{},
 	}
 
-	watcher, err := watchfs.NewFilesysWatcher(ctx, inst.bus)
-	if err != nil {
-		log.Errorf("Watching filesystem error: %s", err)
-		return nil, err
-	}
-	inst.watcher = watcher
-	if err = inst.watcher.WatchAllFSIPaths(ctx, inst.repo); err != nil {
-		log.Error(err)
-		return nil, err
-	}
 	inst.bus.SubscribeAll(ws.wsMessageHandler)
-
 	return ws, nil
 }
 

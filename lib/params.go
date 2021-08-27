@@ -45,8 +45,6 @@ type ListParams struct {
 	// ShowNumVersions only applies to listing datasets
 	// TODO (b5): deprecate this once collection subsystem is up to speed
 	ShowNumVersions bool `json:"showNumVersions" docs:"hidden"`
-	// EnsureFSIExists controls whether to ensure references in the repo have correct FSIPaths
-	EnsureFSIExists bool `json:"ensureFSIExists" docs:"hidden"`
 }
 
 // SetNonZeroDefaults sets OrderBy to "created" if it's value is the empty string

@@ -112,7 +112,7 @@ func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf(`%q is not a valid output format. Please use one of: "table", "json", "csv"`, o.Format)
 	}
 
-	o.Refs, err = GetCurrentRefSelect(f, args, 1, nil)
+	o.Refs, err = GetCurrentRefSelect(f, args, 1)
 	if errors.Is(err, repo.ErrEmptyRef) {
 		// It is not an error to call validate without a dataset reference. Might be
 		// validating a body file against a schema file directly.

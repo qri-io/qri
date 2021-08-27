@@ -130,9 +130,6 @@ func (d *Dscache) VerboseString(showEmpty bool) string {
 		if len(r.HeadRef()) != 0 || showEmpty {
 			fmt.Fprintf(&out, "%sheadRef       = %s\n", indent, r.HeadRef())
 		}
-		if len(r.FsiPath()) != 0 || showEmpty {
-			fmt.Fprintf(&out, "%sfsiPath       = %s\n", indent, r.FsiPath())
-		}
 	}
 	return out.String()
 }
@@ -302,15 +299,6 @@ func (d *Dscache) handler(_ context.Context, e event.Event) error {
 		}
 	case event.ETDatasetRename:
 		// TODO(dustmop): Handle renames
-	case event.ETFSICreateLink:
-		act, ok := e.Payload.(event.FSICreateLink)
-		if !ok {
-			log.Error("dscache got an event with a payload that isn't a event.FSICreateLink type: %v", e.Payload)
-			return nil
-		}
-		if err := d.updateCreateLink(act); err != nil && err != ErrNoDscache {
-			log.Error(err)
-		}
 	}
 
 	return nil
@@ -426,40 +414,6 @@ func (d *Dscache) updateDeleteDataset(initID string) error {
 	return d.save()
 }
 
-// Copy the entire dscache, except for the matching entry, which is copied then assigned an fsiPath
-func (d *Dscache) updateCreateLink(act event.FSICreateLink) error {
-	if d.IsEmpty() {
-		return ErrNoDscache
-	}
-	// Flatbuffers for go do not allow mutation (for complex types like strings). So we construct
-	// a new flatbuffer entirely, copying the old one while replacing the entry we care to change.
-	builder := flatbuffers.NewBuilder(0)
-	users := d.copyUserAssociationList(builder)
-	refs := d.copyReferenceListWithReplacement(
-		builder,
-		// Function to match the entry we're looking to replace
-		func(r *dscachefb.RefEntryInfo) bool {
-			if act.InitID != "" {
-				return string(r.InitID()) == act.InitID
-			}
-			return d.DefaultUsername == act.Username && string(r.PrettyName()) == act.Name
-		},
-		// Function to replace the matching entry
-		func(refStartMutationFunc func(builder *flatbuffers.Builder)) {
-			fsiDir := builder.CreateString(string(act.FSIPath))
-			// Start building a ref object, by mutating an existing ref object.
-			refStartMutationFunc(builder)
-			// For this kind of update, only the fsiDir is modified
-			dscachefb.RefEntryInfoAddFsiPath(builder, fsiDir)
-			// Don't call RefEntryInfoEnd, that is handled by copyReferenceListWithReplacement
-		},
-	)
-	root, serialized := d.finishBuilding(builder, users, refs)
-	d.Root = root
-	d.Buffer = serialized
-	return d.save()
-}
-
 func convertEntryToVersionInfo(r *dscachefb.RefEntryInfo) dsref.VersionInfo {
 	return dsref.VersionInfo{
 		InitID:      string(r.InitID()),
@@ -476,7 +430,6 @@ func convertEntryToVersionInfo(r *dscachefb.RefEntryInfo) dsref.VersionInfo {
 		NumErrors:   int(r.NumErrors()),
 		CommitTime:  time.Unix(r.CommitTime(), 0),
 		NumVersions: int(r.NumVersions()),
-		FSIPath:     string(r.FsiPath()),
 	}
 }
 

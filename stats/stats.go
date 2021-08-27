@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dsstats"
-	"github.com/qri-io/qri/fsi"
 )
 
 var log = logger.Logger("stats")
@@ -91,20 +90,5 @@ func (s *Service) Stats(ctx context.Context, ds *dataset.Dataset) (*dataset.Stat
 }
 
 func (s *Service) cacheKey(ds *dataset.Dataset) (string, error) {
-	if fsi.IsFSIPath(ds.Path) {
-		// if the passed-in dataset is FSI-linked, use the body file
-		// as a basis for the cache key
-		// TODO(b5) - using only one file as a target means changing the structure
-		// component can't invalidate the cache. We should be able to specify
-		// an arbitrary number of target files for cache invalidation along with
-		// a single canonical path
-		bf := ds.BodyFile()
-		if bf == nil {
-			return "", fmt.Errorf("A Body File is required to calculate stats")
-		}
-		log.Debugw("dataset is FSI-linked, using body key", "path", ds.Path, "bodyPath", bf.FullPath())
-		return bf.FullPath(), nil
-	}
-
 	return ds.Path, nil
 }

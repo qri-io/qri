@@ -87,7 +87,6 @@ func (d *Dscache) copyReference(builder *flatbuffers.Builder, r *dscachefb.RefEn
 	metaTitle := builder.CreateString(string(r.MetaTitle()))
 	themeList := builder.CreateString(string(r.ThemeList()))
 	hashRef := builder.CreateString(string(r.HeadRef()))
-	fsiPath := builder.CreateString(string(r.FsiPath()))
 	dscachefb.RefEntryInfoStart(builder)
 	dscachefb.RefEntryInfoAddInitID(builder, initID)
 	dscachefb.RefEntryInfoAddProfileID(builder, profileID)
@@ -101,5 +100,4 @@ func (d *Dscache) copyReference(builder *flatbuffers.Builder, r *dscachefb.RefEn
 	dscachefb.RefEntryInfoAddCommitTime(builder, r.CommitTime())
 	dscachefb.RefEntryInfoAddNumErrors(builder, int32(r.NumErrors()))
 	dscachefb.RefEntryInfoAddHeadRef(builder, hashRef)
-	dscachefb.RefEntryInfoAddFsiPath(builder, fsiPath)
 }

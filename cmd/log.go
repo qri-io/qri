@@ -94,7 +94,7 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 		return errors.New(err, "cannot use 'local' flag with either the 'source' or 'pull' flags")
 	}
 
-	if o.Refs, err = GetCurrentRefSelect(f, args, AnyNumberOfReferences, nil); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, AnyNumberOfReferences); err != nil {
 		if err == repo.ErrEmptyRef {
 			return errors.New(err, "please provide a dataset reference")
 		}
@@ -202,7 +202,7 @@ func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
 			return fmt.Errorf("can't use dataset reference. the raw flag shows the entire logbook")
 		}
 	} else {
-		if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
+		if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
 			return err
 		}
 	}

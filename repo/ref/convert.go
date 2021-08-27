@@ -41,9 +41,6 @@ func ConvertToVersionInfo(r *DatasetRef) dsref.VersionInfo {
 	if ds != nil {
 		build.NumVersions = ds.NumVersions
 	}
-	if r.FSIPath != "" {
-		build.FSIPath = r.FSIPath
-	}
 	return build
 }
 
@@ -77,7 +74,6 @@ func RefFromVersionInfo(vi *dsref.VersionInfo) DatasetRef {
 		ProfileID: profile.IDB58DecodeOrEmpty(vi.ProfileID),
 		Name:      vi.Name,
 		Path:      vi.Path,
-		FSIPath:   vi.FSIPath,
 		Published: vi.Published,
 		Foreign:   vi.Foreign,
 	}

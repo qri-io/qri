@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -75,7 +74,6 @@ func TestPullAndListRefs(t *testing.T) {
   ProfileID: {{ .profileID }}
   Name:      my_dataset
   Path:      {{ .path }}
-  FSIPath:   
   Published: false
 
 `, map[string]string{
@@ -95,13 +93,11 @@ func TestPullAndListRefs(t *testing.T) {
   ProfileID: {{ .profileID1 }}
   Name:      their_dataset
   Path:      {{ .path1 }}
-  FSIPath:   
   Published: false
 1 Peername:  test_peer_pull_and_list
   ProfileID: {{ .profileID2 }}
   Name:      my_dataset
   Path:      {{ .path2 }}
-  FSIPath:   
   Published: false
 
 `, map[string]string{
@@ -161,43 +157,6 @@ structure:
 
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-}
-
-// Test pull a foreign dataset and check it out to a working directory
-func TestPullWithCheckout(t *testing.T) {
-	t.Skip("fsi linking is going away")
-	run := NewFSITestRunnerWithMockRemoteClient(t, "test_peer_pull_fsi_checkout", "pull_with_checkout")
-	defer run.Delete()
-
-	run.ChdirToRoot()
-
-	// Add and checkout another peer's dataset
-	run.MustExec(t, "qri pull other_peer/their_dataset --link workdir")
-	workDir := filepath.Join(run.RootPath, "workdir")
-
-	// List references, the dataset should be there, and should be checked out
-	actual := run.MustExec(t, "qri list --raw")
-	expect := dstest.Template(t, `0 Peername:  other_peer
-  ProfileID: {{ .profileID }}
-  Name:      their_dataset
-  Path:      {{ .path1 }}
-  FSIPath:   /tmp/workdir
-  Published: false
-
-`, map[string]string{
-		"profileID": "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
-		"path1":     "/ipfs/QmUv37uYowTAYx2VTsdBcpgHoqRQppQyrnf5yEZcAwcp9P",
-	})
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-
-	// Verify the directory contains the files that we expect.
-	dirContents := listDirectory(workDir)
-	expectContents := []string{".qri-ref", "body.json", "structure.json"}
-	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
-		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 }
 

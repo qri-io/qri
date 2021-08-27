@@ -23,13 +23,11 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
 	cmpopts "github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/jinzhu/copier"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/base/dsfs"
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
@@ -622,125 +620,6 @@ func TestGetCSV(t *testing.T) {
 	}
 }
 
-func TestGetFSI(t *testing.T) {
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	mr, err := testrepo.NewTestRepo()
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err.Error())
-	}
-	node, err := p2p.NewQriNode(mr, testcfg.DefaultP2PForTesting(), event.NilBus, nil)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-	ref, err := mr.GetRef(reporef.DatasetRef{Peername: "peer", Name: "movies"})
-	if err != nil {
-		t.Fatalf("error getting path: %s", err.Error())
-	}
-
-	moviesDs, err := dsfs.LoadDataset(ctx, mr.Filesystem(), ref.Path)
-	if err != nil {
-		t.Fatalf("error loading dataset: %s", err.Error())
-	}
-
-	moviesDs.OpenBodyFile(ctx, node.Repo.Filesystem())
-	moviesBodyFile := moviesDs.BodyFile()
-	reader, err := dsio.NewCSVReader(moviesDs.Structure, moviesBodyFile)
-	if err != nil {
-		t.Fatalf("creating CSV reader: %s", err)
-	}
-	moviesBody := mustBeArray(base.ReadEntries(reader))
-
-	tempDir, err := ioutil.TempDir("", "get_fsi_test")
-	defer os.RemoveAll(tempDir)
-
-	dsDir := filepath.Join(tempDir, "movies")
-	fsim := inst.Filesys()
-	p := &LinkParams{
-		Dir: dsDir,
-		Ref: "peer/movies",
-	}
-	if err := fsim.Checkout(ctx, p); err != nil {
-		t.Fatalf("error checking out dataset: %s", err)
-	}
-
-	var nilCommit *dataset.Commit
-
-	moviesDsAtPath := &dataset.Dataset{}
-	copier.Copy(moviesDsAtPath, moviesDs)
-
-	// get dataset with derived values dropped
-	comp := component.ConvertDatasetToComponents(moviesDs, inst.qfs)
-	comp.DropDerivedValues()
-	moviesDs, err = component.ToDataset(comp)
-	moviesDs.Commit = nil
-	moviesDs.Stats = nil
-	moviesDs.Meta.Qri = "md:0"
-	moviesDs.Structure.Qri = "st:0"
-	if err != nil {
-		t.Fatalf("error converting component into dataset: %s", err)
-	}
-
-	cases := []struct {
-		description string
-		params      *GetParams
-		expect      interface{}
-	}{
-
-		{"ref without path",
-			&GetParams{Ref: "peer/movies"},
-			setDatasetName(moviesDs, "peer/movies")},
-
-		{"ref with path",
-			&GetParams{Ref: fmt.Sprintf("peer/movies@%s", ref.Path)},
-			setDatasetName(moviesDsAtPath, "peer/movies")},
-
-		{"commit component",
-			&GetParams{Ref: "peer/movies", Selector: "commit"},
-			// fsi does not have a commit file, should be nil
-			nilCommit},
-
-		{"body",
-			&GetParams{Ref: "peer/movies", Selector: "body", All: true}, moviesBody},
-	}
-
-	for _, c := range cases {
-		t.Run(c.description, func(t *testing.T) {
-			got, err := inst.Dataset().Get(ctx, c.params)
-			if err != nil {
-				if err.Error() != c.expect {
-					t.Errorf("error mismatch: expected: %s, got: %s", c.expect, err)
-				}
-				return
-			}
-			if ds, ok := got.Value.(*dataset.Dataset); ok {
-				if ds.ID == "" {
-					t.Errorf("returned dataset should have a non-empty ID field")
-				}
-			}
-
-			if diff := cmp.Diff(
-				c.expect,
-				got.Value,
-				cmpopts.IgnoreUnexported(
-					dataset.Dataset{},
-					dataset.Meta{},
-					dataset.Commit{},
-					dataset.Structure{},
-					dataset.Viz{},
-					dataset.Readme{},
-					dataset.Transform{},
-				),
-				cmpopts.IgnoreFields(dataset.Dataset{}, "BodyPath", "ID"),
-			); diff != "" {
-				t.Errorf("fsi get output (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
 func TestGetBodySize(t *testing.T) {
 	run := newTestRunner(t)
 	defer run.Delete()
@@ -978,51 +857,6 @@ func TestDatasetRequestsRename(t *testing.T) {
 	}
 }
 
-func TestRenameNoHistory(t *testing.T) {
-	ctx := context.Background()
-	tr := newTestRunner(t)
-	defer tr.Delete()
-
-	workDir := tr.CreateAndChdirToWorkDir("remove_no_history")
-	initP := &InitDatasetParams{
-		TargetDir: workDir,
-		Name:      "rename_no_history",
-		Format:    "csv",
-	}
-	refstr, err := tr.Instance.Filesys().Init(ctx, initP)
-	if err != nil {
-		t.Fatal(err)
-	}
-	username := tr.MustOwner(t).Peername
-	expect := fmt.Sprintf("%s/rename_no_history", username)
-	if refstr != expect {
-		t.Errorf("dataset init refstring mismatch, expected %q, got %q", expect, refstr)
-	}
-
-	// Read .qri-ref file, it contains the reference this directory is linked to
-	actual := tr.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("qri list (-want +got):\n%s", diff)
-	}
-
-	// Rename before any commits have happened
-	renameP := &RenameParams{
-		Current: "me/rename_no_history",
-		Next:    "me/rename_second_name",
-	}
-	_, err = tr.Instance.WithSource("local").Dataset().Rename(ctx, renameP)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Read .qri-ref file, it contains the new reference name
-	actual = tr.MustReadFile(t, filepath.Join(workDir, ".qri-ref"))
-	expect = fmt.Sprintf("%s/rename_second_name", username)
-	if diff := cmp.Diff(expect, actual); diff != "" {
-		t.Errorf("qri list (-want +got):\n%s", diff)
-	}
-}
-
 func TestDatasetRequestsRemove(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
@@ -1039,8 +873,6 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 	allRevs := &dsref.Rev{Field: "ds", Gen: -1}
 
-	// we need some fsi stuff to fully test remove
-	fsim := inst.Filesys()
 	// create datasets working directory
 	datasetsDir, err := ioutil.TempDir("", "QriTestDatasetRequestsRemove")
 	if err != nil {
@@ -1048,37 +880,9 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 	defer os.RemoveAll(datasetsDir)
 
-	// initialize an example no-history dataset
-	initp := &InitDatasetParams{
-		Name:      "no_history",
-		TargetDir: filepath.Join(datasetsDir, "no_history"),
-		Format:    "csv",
-	}
-	if _, err := fsim.Init(ctx, initp); err != nil {
-		t.Fatal(err)
-	}
-
-	// link cities dataset with a checkout
-	checkoutp := &LinkParams{
-		Dir: filepath.Join(datasetsDir, "cities"),
-		Ref: "me/cities",
-	}
-	if err := fsim.Checkout(ctx, checkoutp); err != nil {
-		t.Fatal(err)
-	}
-
 	// add a commit to craigslist
 	_, err = inst.Dataset().Save(ctx, &SaveParams{Ref: "peer/craigslist", Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh word"}}})
 	if err != nil {
-		t.Fatal(err)
-	}
-
-	// link craigslist with a checkout
-	checkoutp = &LinkParams{
-		Dir: filepath.Join(datasetsDir, "craigslist"),
-		Ref: "me/craigslist",
-	}
-	if err := fsim.Checkout(ctx, checkoutp); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1090,7 +894,6 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		{"reference not found", RemoveParams{Ref: "abc/not_found", Revision: allRevs}},
 		{"can only remove whole dataset versions, not individual components", RemoveParams{Ref: "abc/not_found", Revision: &dsref.Rev{Field: "st", Gen: -1}}},
 		{"invalid number of revisions to delete: 0", RemoveParams{Ref: "peer/movies", Revision: &dsref.Rev{Field: "ds", Gen: 0}}},
-		{"dataset is not linked to filesystem, cannot use keep-files", RemoveParams{Ref: "peer/movies", Revision: allRevs, KeepFiles: true}},
 	}
 
 	for i, c := range badCases {
@@ -1319,28 +1122,6 @@ Pirates of the Caribbean: At World's End ,foo
 			t.Errorf("case %d error count mismatch. expected: %d, got: %d", i, c.numErrors, len(res.Errors))
 			continue
 		}
-	}
-}
-
-func TestDatasetRequestsValidateFSI(t *testing.T) {
-	ctx := context.Background()
-	tr := newTestRunner(t)
-	defer tr.Delete()
-
-	workDir := tr.CreateAndChdirToWorkDir("remove_no_history")
-	initP := &InitDatasetParams{
-		Name:      "validate_test",
-		TargetDir: filepath.Join(workDir, "validate_test"),
-		Format:    "csv",
-	}
-	refstr, err := tr.Instance.Filesys().Init(ctx, initP)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	vp := &ValidateParams{Ref: refstr}
-	if _, err := tr.Instance.WithSource("local").Dataset().Validate(ctx, vp); err != nil {
-		t.Fatal(err)
 	}
 }
 

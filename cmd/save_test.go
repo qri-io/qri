@@ -1222,7 +1222,7 @@ func TestSaveApply(t *testing.T) {
 
 // Test that saving with only a readme change will succeed
 func TestSaveWithReadmeFiles(t *testing.T) {
-	run := NewFSITestRunner(t, "test_peer_save_readme_files", "qri_test_save_readme_files")
+	run := NewTestRunner(t, "test_peer_save_readme_files", "qri_test_save_readme_files")
 	defer run.Delete()
 
 	err := run.ExecCommand("qri save --body testdata/movies/body_ten.csv me/with_readme")

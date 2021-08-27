@@ -11,8 +11,24 @@ import (
 	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/qri/dsref"
 	qerr "github.com/qri-io/qri/errors"
-	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/stats"
+)
+
+var (
+	// STUnmodified is "no status"
+	STUnmodified = "unmodified"
+	// STAdd is an added component
+	STAdd = "add"
+	// STChange is a modified component
+	STChange = "modified"
+	// STRemoved is a removed component
+	STRemoved = "removed"
+	// STParseError is a component that didn't parse
+	STParseError = "parse error"
+	// STMissing is a component that is missing
+	STMissing = "missing"
+	// STConflictError is a component with a conflict
+	STConflictError = "conflict error"
 )
 
 var (
@@ -363,21 +379,21 @@ func (svc *service) columnStatsDelta(left, right interface{}, lCol, rCol *tabula
 	}
 
 	if hasLeft && !hasRight {
-		aboutCol["status"] = fsi.STRemoved
+		aboutCol["status"] = STRemoved
 	} else if !hasLeft && hasRight {
-		aboutCol["status"] = fsi.STAdd
+		aboutCol["status"] = STAdd
 	} else if hasLeft && hasRight {
 		sum := float64(0)
 		for k := range deltaCol {
 			sum += deltaCol[k].(float64)
 		}
 		if sum == 0 {
-			aboutCol["status"] = fsi.STUnmodified
+			aboutCol["status"] = STUnmodified
 		} else {
-			aboutCol["status"] = fsi.STChange
+			aboutCol["status"] = STChange
 		}
 	} else {
-		aboutCol["status"] = fsi.STMissing
+		aboutCol["status"] = STMissing
 	}
 
 	return deltaCol, aboutCol, nil
@@ -415,9 +431,9 @@ func (svc *service) Report(ctx context.Context, leftRef, rightRef string) (*Chan
 	res.VersionInfo.About = EmptyObject{}
 
 	if leftVi.Path == rightVi.Path {
-		res.VersionInfo.About["status"] = fsi.STUnmodified
+		res.VersionInfo.About["status"] = STUnmodified
 	} else {
-		res.VersionInfo.About["status"] = fsi.STChange
+		res.VersionInfo.About["status"] = STChange
 	}
 
 	if leftDs.Commit != nil || rightDs.Commit != nil {
@@ -435,17 +451,17 @@ func (svc *service) Report(ctx context.Context, leftRef, rightRef string) (*Chan
 		res.Commit.About = EmptyObject{}
 
 		if leftDs.Commit != nil && rightDs.Commit == nil {
-			res.Commit.About["status"] = fsi.STRemoved
+			res.Commit.About["status"] = STRemoved
 		} else if leftDs.Commit == nil && rightDs.Commit != nil {
-			res.Commit.About["status"] = fsi.STAdd
+			res.Commit.About["status"] = STAdd
 		} else if leftDs.Commit != nil && rightDs.Commit != nil {
 			if leftDs.Commit.Path == rightDs.Commit.Path {
-				res.Commit.About["status"] = fsi.STUnmodified
+				res.Commit.About["status"] = STUnmodified
 			} else {
-				res.Commit.About["status"] = fsi.STChange
+				res.Commit.About["status"] = STChange
 			}
 		} else {
-			res.Commit.About["status"] = fsi.STMissing
+			res.Commit.About["status"] = STMissing
 		}
 	}
 
@@ -467,17 +483,17 @@ func (svc *service) Report(ctx context.Context, leftRef, rightRef string) (*Chan
 		res.Meta.About = EmptyObject{}
 
 		if hasLeftMeta && !hasRightMeta {
-			res.Meta.About["status"] = fsi.STRemoved
+			res.Meta.About["status"] = STRemoved
 		} else if !hasLeftMeta && hasRightMeta {
-			res.Meta.About["status"] = fsi.STAdd
+			res.Meta.About["status"] = STAdd
 		} else if hasLeftMeta && hasRightMeta {
 			if leftDs.Meta.Path == rightDs.Meta.Path {
-				res.Meta.About["status"] = fsi.STUnmodified
+				res.Meta.About["status"] = STUnmodified
 			} else {
-				res.Meta.About["status"] = fsi.STChange
+				res.Meta.About["status"] = STChange
 			}
 		} else {
-			res.Meta.About["status"] = fsi.STMissing
+			res.Meta.About["status"] = STMissing
 		}
 	}
 
@@ -496,17 +512,17 @@ func (svc *service) Report(ctx context.Context, leftRef, rightRef string) (*Chan
 		res.Readme.About = EmptyObject{}
 
 		if res.Readme.Left != "" && res.Readme.Right == "" {
-			res.Readme.About["status"] = fsi.STRemoved
+			res.Readme.About["status"] = STRemoved
 		} else if res.Readme.Left == "" && res.Readme.Right != "" {
-			res.Readme.About["status"] = fsi.STAdd
+			res.Readme.About["status"] = STAdd
 		} else if res.Readme.Left != "" && res.Readme.Right != "" {
 			if res.Readme.Left == res.Readme.Right {
-				res.Readme.About["status"] = fsi.STUnmodified
+				res.Readme.About["status"] = STUnmodified
 			} else {
-				res.Readme.About["status"] = fsi.STChange
+				res.Readme.About["status"] = STChange
 			}
 		} else {
-			res.Readme.About["status"] = fsi.STMissing
+			res.Readme.About["status"] = STMissing
 		}
 	}
 
@@ -531,17 +547,17 @@ func (svc *service) Report(ctx context.Context, leftRef, rightRef string) (*Chan
 		res.Structure.About = EmptyObject{}
 
 		if leftDs.Structure != nil && rightDs.Structure == nil {
-			res.Structure.About["status"] = fsi.STRemoved
+			res.Structure.About["status"] = STRemoved
 		} else if leftDs.Structure == nil && rightDs.Structure != nil {
-			res.Structure.About["status"] = fsi.STAdd
+			res.Structure.About["status"] = STAdd
 		} else if leftDs.Structure != nil && rightDs.Structure != nil {
 			if leftDs.Structure.Path == rightDs.Structure.Path {
-				res.Structure.About["status"] = fsi.STUnmodified
+				res.Structure.About["status"] = STUnmodified
 			} else {
-				res.Structure.About["status"] = fsi.STChange
+				res.Structure.About["status"] = STChange
 			}
 		} else {
-			res.Structure.About["status"] = fsi.STMissing
+			res.Structure.About["status"] = STMissing
 		}
 	}
 
@@ -560,17 +576,17 @@ func (svc *service) Report(ctx context.Context, leftRef, rightRef string) (*Chan
 		res.Transform.About = EmptyObject{}
 
 		if res.Transform.Left != "" && res.Transform.Right == "" {
-			res.Transform.About["status"] = fsi.STRemoved
+			res.Transform.About["status"] = STRemoved
 		} else if res.Transform.Left == "" && res.Transform.Right != "" {
-			res.Transform.About["status"] = fsi.STAdd
+			res.Transform.About["status"] = STAdd
 		} else if res.Transform.Left != "" && res.Transform.Right != "" {
 			if res.Transform.Left == res.Transform.Right {
-				res.Transform.About["status"] = fsi.STUnmodified
+				res.Transform.About["status"] = STUnmodified
 			} else {
-				res.Transform.About["status"] = fsi.STChange
+				res.Transform.About["status"] = STChange
 			}
 		} else {
-			res.Transform.About["status"] = fsi.STMissing
+			res.Transform.About["status"] = STMissing
 		}
 	}
 

@@ -226,36 +226,3 @@ func (tr *testRunner) DiffWithParams(p *DiffParams) (string, error) {
 	}
 	return string(data), nil
 }
-
-func (tr *testRunner) Init(refstr, format string) error {
-	ctx := tr.Ctx
-	ref, err := dsref.Parse(refstr)
-	if err != nil {
-		return err
-	}
-	m := tr.Instance.Filesys()
-	p := InitDatasetParams{
-		Name:      ref.Name,
-		TargetDir: tr.WorkDir,
-		Format:    format,
-	}
-	_, err = m.Init(ctx, &p)
-	return err
-}
-
-func (tr *testRunner) InitWithParams(p *InitDatasetParams) error {
-	ctx := tr.Ctx
-	m := tr.Instance.Filesys()
-	_, err := m.Init(ctx, p)
-	return err
-}
-
-func (tr *testRunner) Checkout(refstr, dir string) error {
-	ctx := tr.Ctx
-	m := tr.Instance.Filesys()
-	p := LinkParams{
-		Ref: refstr,
-		Dir: dir,
-	}
-	return m.Checkout(ctx, &p)
-}

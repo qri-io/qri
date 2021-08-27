@@ -142,8 +142,7 @@ func TestFetchCommand(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
 
-	// TODO(dustmop): Try to add the below to a separate test in api/. Need to populate the peers
-	// in a fashion similar to api/fsi_test.go's `TestNoHistory`.
+	// TODO(dustmop): Try to add the below to a separate test in api/
 
 	localInst, err := lib.NewInstance(
 		ctx,

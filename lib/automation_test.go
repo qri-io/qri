@@ -100,7 +100,7 @@ func TestAutomation(t *testing.T) {
 		Peername: tr.MustOwner(t).Peername,
 		Transform: &dataset.Transform{
 			Steps: []*dataset.TransformStep{
-				&dataset.TransformStep{
+				{
 					Name:     "transform",
 					Syntax:   "starlark",
 					Category: "transform",

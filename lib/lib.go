@@ -28,6 +28,7 @@ import (
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/base/hiddenfile"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
@@ -35,9 +36,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/fsi"
-	"github.com/qri-io/qri/fsi/hiddenfile"
-	"github.com/qri-io/qri/fsi/watchfs"
 	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
@@ -455,7 +453,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// if logAll is enabled, turn on debug level logging for all qri packages. Packages need to
 	// be explicitly enumerated here
 	if o.logAll {
-		allPackages := []string{"automation", "qriapi", "qrip2p", "base", "changes", "cmd", "config", "dsref", "dsfs", "friendly", "fsi", "lib", "logbook", "profile", "repo", "registry", "sql", "token"}
+		allPackages := []string{"automation", "qriapi", "qrip2p", "base", "changes", "cmd", "config", "dsref", "dsfs", "friendly", "lib", "logbook", "profile", "repo", "registry", "sql", "token"}
 		for _, name := range allPackages {
 			golog.SetLogLevel(name, "debug")
 		}
@@ -561,7 +559,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	// Try to make the repo a hidden directory, but it's okay if we can't. Ignore the error.
 	_ = hiddenfile.SetFileHidden(inst.repoPath)
-	inst.fsi = fsi.NewFSI(inst.repo, inst.bus)
 
 	if o.statsCache != nil {
 		inst.stats = stats.New(o.statsCache)
@@ -760,7 +757,6 @@ func NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts(ctx context.Context, 
 
 	r := node.Repo
 	pro := r.Profiles().Owner(ctx)
-	fsint := fsi.NewFSI(r, bus)
 	dc := dscache.NewDscache(ctx, r.Filesystem(), bus, pro.Peername, "")
 
 	// TODO (b5) - lots of tests pass "DefaultConfigForTesting", which uses a different peername /
@@ -788,7 +784,6 @@ func NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts(ctx context.Context, 
 	if node != nil && r != nil {
 		inst.repo = r
 		inst.bus = bus
-		inst.fsi = fsint
 		inst.qfs = r.Filesystem()
 	}
 
@@ -863,7 +858,6 @@ type Instance struct {
 	repo          repo.Repo
 	node          *p2p.QriNode
 	qfs           *muxfs.Mux
-	fsi           *fsi.FSI
 	remoteServer  *remote.Server
 	remoteClient  remote.Client
 	registry      *regclient.Client
@@ -874,7 +868,6 @@ type Instance struct {
 	automation    *automation.Orchestrator
 	tokenProvider token.Provider
 	bus           event.Bus
-	watcher       *watchfs.FilesysWatcher
 	appCtx        context.Context
 
 	profiles profile.Store
@@ -998,11 +991,6 @@ func (inst *Instance) Diff() DiffMethods {
 	return DiffMethods{d: inst}
 }
 
-// Filesys returns the FSIMethods that Instance has registered
-func (inst *Instance) Filesys() FSIMethods {
-	return FSIMethods{d: inst}
-}
-
 // Log returns the LogMethods that Instance has registered
 func (inst *Instance) Log() LogMethods {
 	return LogMethods{d: inst}
@@ -1111,14 +1099,6 @@ func (inst *Instance) Shutdown() <-chan error {
 	}()
 	inst.cancel()
 	return errCh
-}
-
-// FSI returns methods for using filesystem integration
-func (inst *Instance) FSI() *fsi.FSI {
-	if inst == nil {
-		return nil
-	}
-	return inst.fsi
 }
 
 // ChangeConfig implements the ConfigSetter interface

@@ -6,9 +6,6 @@ const rootUsageTemplate = `Usage:{{if .HasAvailableSubCommands}}
 Dataset Commands:{{range .Commands}}{{if eq .Annotations.group "dataset"}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
 
-Working Directory Commands:{{range .Commands}}{{if eq .Annotations.group "workdir"}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
-
 Network Commands:{{range .Commands}}{{if eq .Annotations.group "network"}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
 

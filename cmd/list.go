@@ -111,7 +111,6 @@ func (o *ListOptions) Run() (err error) {
 		Offset:          page.Offset(),
 		Public:          o.Public,
 		ShowNumVersions: o.ShowNumVersions,
-		EnsureFSIExists: true,
 	}
 	infos, err := o.inst.Collection().List(ctx, p)
 	if err != nil {

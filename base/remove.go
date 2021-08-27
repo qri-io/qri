@@ -16,8 +16,6 @@ import (
 // RemoveEntireDataset removes all of the information in the repository about a dataset. It will
 // continue on even if some error occurs, returning a comma-separated list of what locations data
 // was removed from, as well the last error that occurred, if any.
-// Note that in particular, FSI is not handled at all by this function. Callers should also
-// call any relevent FSI operations.
 func RemoveEntireDataset(ctx context.Context, r repo.Repo, author *profile.Profile, ref dsref.Ref, history []dsref.VersionInfo) (didRemove string, removeErr error) {
 	// If the dataset has no history (such as running `qri init` without `qri save`), then
 	// the ref has no path. Can't call RemoveNVersionsFromStore without a path, but don't

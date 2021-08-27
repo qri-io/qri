@@ -30,7 +30,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
-	"github.com/qri-io/qri/fsi"
 	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/remote"
@@ -53,7 +52,6 @@ func (m DatasetMethods) Name() string {
 // Attributes defines attributes for each method
 func (m DatasetMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
-		"componentstatus": {Endpoint: qhttp.AEComponentStatus, HTTPVerb: "POST"},
 		"get":             {Endpoint: qhttp.AEGet, HTTPVerb: "POST"},
 		"getcsv":          {Endpoint: qhttp.DenyHTTP}, // getcsv is not part of the json api, but is handled in a separate `GetBodyCSVHandler` function
 		"getzip":          {Endpoint: qhttp.DenyHTTP}, // getzip is not part of the json api, but is handled is a separate `GetHandler` function
@@ -319,10 +317,9 @@ func (m DatasetMethods) Rename(ctx context.Context, p *RenameParams) (*dsref.Ver
 
 // RemoveParams defines parameters for remove command
 type RemoveParams struct {
-	Ref       string     `json:"ref"`
-	Revision  *dsref.Rev `json:"revision"`
-	KeepFiles bool       `json:"keepFiles"`
-	Force     bool       `json:"force"`
+	Ref      string     `json:"ref"`
+	Revision *dsref.Rev `json:"revision"`
+	Force    bool       `json:"force"`
 }
 
 // RemoveResponse gives the results of a remove
@@ -354,8 +351,7 @@ func (m DatasetMethods) Remove(ctx context.Context, p *RemoveParams) (*RemoveRes
 
 // PullParams encapsulates parameters to the add command
 type PullParams struct {
-	Ref     string `json:"ref"`
-	LinkDir string `json:"linkDir" qri:"fspath"`
+	Ref string `json:"ref"`
 	// only fetch logbook data
 	LogsOnly bool `json:"logsOnly"`
 }
@@ -451,16 +447,6 @@ type DAGInfoParams struct {
 func (m DatasetMethods) DAGInfo(ctx context.Context, p *DAGInfoParams) (*dag.Info, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "daginfo"), p)
 	if res, ok := got.(*dag.Info); ok {
-		return res, err
-	}
-	return nil, dispatchReturnError(got, err)
-}
-
-// ComponentStatus gets changes that happened at a particular version in the history of the given
-// dataset reference.
-func (m DatasetMethods) ComponentStatus(ctx context.Context, p *LinkParams) ([]StatusItem, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "componentstatus"), p)
-	if res, ok := got.([]StatusItem); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -635,7 +621,7 @@ type datasetImpl struct{}
 
 // Get retrieves datasets and components for a given reference.t
 func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
-	ref, ds, err := openAndLoadFSIEnabledDataset(scope, p)
+	_, ds, err := openAndLoadDataset(scope, p)
 	if err != nil {
 		return nil, err
 	}
@@ -646,18 +632,6 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 		// `qri get body` loads the body
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
 			return nil, fmt.Errorf("invalid limit / offset settings")
-		}
-		if fsi.IsFSIPath(ref.Path) {
-			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
-			// but no structure, which should infer a schema in order to read the body. Once that
-			// works we can remove the fsi.GetBody call and just use base.GetBody.
-			fsiPath := fsi.FilesystemPathToLocal(ref.Path)
-			res.Value, err = fsi.GetBody(fsiPath, p.Offset, p.Limit, p.All)
-			if err != nil {
-				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", fsiPath, err)
-				return nil, err
-			}
-			return res, nil
 		}
 		if err := ensureValidGetSize(ds, p.Limit, p.All); err != nil {
 			return nil, err
@@ -696,18 +670,14 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 	return res, nil
 }
 
-func openAndLoadFSIEnabledDataset(scope scope, p *GetParams) (*dsref.Ref, *dataset.Dataset, error) {
-	scope.EnableWorkingDir(true)
+// TODO(b5): pretty sure this can be factored away completely
+func openAndLoadDataset(scope scope, p *GetParams) (*dsref.Ref, *dataset.Dataset, error) {
 	ds, err := scope.Loader().LoadDataset(scope.Context(), p.Ref)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	ref := dsref.ConvertDatasetToVersionInfo(ds).SimpleRef()
-
-	if fsi.IsFSIPath(ref.Path) {
-		ds.Path = ""
-	}
 
 	if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
 		log.Debugf("base.OpenDataset failed, error: %s", err)
@@ -736,7 +706,7 @@ func inlineAllScriptFiles(ctx context.Context, ds *dataset.Dataset, resolver qfs
 }
 
 func (datasetImpl) GetCSV(scope scope, p *GetParams) ([]byte, error) {
-	ref, ds, err := openAndLoadFSIEnabledDataset(scope, p)
+	_, ds, err := openAndLoadDataset(scope, p)
 	if err != nil {
 		return nil, err
 	}
@@ -754,19 +724,6 @@ func (datasetImpl) GetCSV(scope scope, p *GetParams) ([]byte, error) {
 		}
 	}
 
-	if fsi.IsFSIPath(ref.Path) {
-		// TODO(dustmop): Need to handle the special case where an FSI directory has a body
-		// but no structure, which should infer a schema in order to read the body. Once that
-		// works we can remove the fsi.ReadBodyBytes call and just use base.ReadBodyBytes
-		fsiPath := fsi.FilesystemPathToLocal(ref.Path)
-		bodyBytes, err := fsi.ReadBodyBytes(fsiPath, dataset.CSVDataFormat, fc, p.Offset, p.Limit, p.All)
-		if err != nil {
-			log.Debugf("lib.getBodyBytes, fsi.GetBody %q failed, error: %s", fsiPath, err)
-			return nil, err
-		}
-		return bodyBytes, nil
-	}
-
 	if err := ensureValidGetSize(ds, p.Limit, p.All); err != nil {
 		return nil, err
 	}
@@ -780,7 +737,7 @@ func (datasetImpl) GetCSV(scope scope, p *GetParams) ([]byte, error) {
 }
 
 func (datasetImpl) GetZip(scope scope, p *GetParams) (*GetZipResults, error) {
-	ref, ds, err := openAndLoadFSIEnabledDataset(scope, p)
+	ref, ds, err := openAndLoadDataset(scope, p)
 	if err != nil {
 		return nil, err
 	}
@@ -990,21 +947,6 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 	ds.Name = ref.Name
 	ds.Peername = ref.Username
 
-	var fsiPath string
-	if !isNew {
-		// check for FSI linked data
-		fsiRef := ref.Copy()
-		if err := scope.FSISubsystem().ResolvedPath(&fsiRef); err == nil {
-			fsiPath = fsi.FilesystemPathToLocal(fsiRef.Path)
-			fsiDs, err := fsi.ReadDir(fsiPath)
-			if err != nil {
-				return nil, err
-			}
-			fsiDs.Assign(ds)
-			ds = fsiDs
-		}
-	}
-
 	if !p.Force &&
 		!p.Apply &&
 		p.Drop == "" &&
@@ -1091,10 +1033,6 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		ds.Commit.RunID = runID
 	}
 
-	if fsiPath != "" && p.Drop != "" {
-		return nil, qrierr.New(fmt.Errorf("cannot drop while FSI-linked"), "can't drop component from a working-directory, delete files instead.")
-	}
-
 	fileHint := p.BodyPath
 	if len(p.FilePaths) > 0 {
 		fileHint = p.FilePaths[0]
@@ -1129,21 +1067,6 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 
 	success = true
 	*res = *savedDs
-
-	// TODO (b5) - this should be integrated into base.SaveDataset
-	if fsiPath != "" {
-		vi := dsref.ConvertDatasetToVersionInfo(savedDs)
-		vi.FSIPath = fsiPath
-		if err = repo.PutVersionInfoShim(scope.Context(), scope.Repo(), &vi); err != nil {
-			log.Debugw("save PutVersionInfoShim", "fsiPath", fsiPath, "err", err)
-			return nil, err
-		}
-		// Need to pass filesystem here so that we can read the README component and write it
-		// properly back to disk.
-		if writeErr := fsi.WriteComponents(savedDs, fsiPath, scope.Filesystem()); err != nil {
-			log.Error(writeErr)
-		}
-	}
 
 	return res, nil
 }
@@ -1184,12 +1107,6 @@ func (datasetImpl) Rename(scope scope, p *RenameParams) (*dsref.VersionInfo, err
 		return nil, err
 	}
 
-	// If the dataset is linked to a working directory, update the ref
-	if vi.FSIPath != "" {
-		if _, err = scope.FSISubsystem().ModifyLinkReference(vi.FSIPath, vi.SimpleRef()); err != nil {
-			return nil, err
-		}
-	}
 	return vi, nil
 }
 
@@ -1212,7 +1129,6 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 		return nil, fmt.Errorf("remove requires the 'local' source")
 	}
 
-	scope.EnableWorkingDir(true)
 	ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
 	if err != nil {
 		log.Debugw("Remove, repo.ParseAndResolveRef failed", "err", err)
@@ -1232,38 +1148,6 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 	}
 
 	res.Ref = ref.String()
-	var fsiPath string
-	if fsi.IsFSIPath(ref.Path) {
-		fsiPath = fsi.FilesystemPathToLocal(ref.Path)
-	}
-
-	if fsiPath != "" {
-		// Dataset is linked in a working directory.
-		if !(p.KeepFiles || p.Force) {
-			// Make sure that status is clean, otherwise, refuse to remove any revisions.
-			// Setting either --keep-files or --force will skip this check.
-			wdErr := scope.FSISubsystem().IsWorkingDirectoryClean(scope.Context(), fsiPath)
-			if wdErr != nil {
-				if wdErr == fsi.ErrWorkingDirectoryDirty {
-					log.Debugf("Remove, IsWorkingDirectoryDirty")
-					return nil, ErrCantRemoveDirectoryDirty
-				}
-				if errors.Is(wdErr, fsi.ErrNoLink) || strings.Contains(wdErr.Error(), "not a linked directory") {
-					// If the working directory has been removed (or renamed), could not get the
-					// status. However, don't let this stop the remove operation, since the files
-					// are already gone, and therefore won't be removed.
-					log.Debugf("Remove, couldn't get status for %s, maybe removed or renamed", fsiPath)
-					wdErr = nil
-				} else {
-					log.Debugf("Remove, IsWorkingDirectoryClean error: %s", err)
-					return nil, wdErr
-				}
-			}
-		}
-	} else if p.KeepFiles {
-		// If dataset is not linked in a working directory, --keep-files can't be used.
-		return nil, fmt.Errorf("dataset is not linked to filesystem, cannot use keep-files")
-	}
 
 	// Get the revisions that will be deleted.
 	history, err := base.DatasetLog(scope.Context(), scope.Repo(), ref, p.Revision.Gen+1, 0, false)
@@ -1283,87 +1167,19 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 	}
 
 	if p.Revision.Gen == dsref.AllGenerations {
-		// removing all revisions of a dataset must unlink it
-		if fsiPath != "" {
-			if err := scope.FSISubsystem().Unlink(scope.Context(), fsiPath, ref); err == nil {
-				res.Unlinked = true
-			} else {
-				log.Errorf("during Remove, dataset did not unlink: %s", err)
-			}
-		}
 
 		didRemove, _ := base.RemoveEntireDataset(scope.Context(), scope.Repo(), scope.ActiveProfile(), ref, history)
 		res.NumDeleted = dsref.AllGenerations
 		res.Message = didRemove
 
-		if fsiPath != "" && !p.KeepFiles {
-			// Remove all files
-			fsi.DeleteComponentFiles(fsiPath)
-			var err error
-			if p.Force {
-				err = scope.FSISubsystem().RemoveAll(fsiPath)
-			} else {
-				err = scope.FSISubsystem().Remove(fsiPath)
-			}
-			if err != nil {
-				if strings.Contains(err.Error(), "no such file or directory") {
-					// If the working directory has already been removed (or renamed), it is
-					// not an error that this remove operation fails, since we were trying to
-					// remove them anyway.
-					log.Debugf("Remove, couldn't remove %s, maybe already removed or renamed", fsiPath)
-					err = nil
-				} else {
-					log.Debugf("Remove, os.Remove failed, error: %s", err)
-					return nil, err
-				}
-			}
-		}
 	} else if len(history) > 0 {
-		if fsiPath != "" {
-			// if we're operating on an fsi-linked directory, we need to re-resolve to
-			// get the path on qfs. This could be avoided if we refactored ParseAndResolveRef
-			// to return an extra fsiPath value
-			qfsRef := ref.Copy()
-			qfsRef.Path = ""
-			if _, err := scope.ResolveReference(scope.Context(), &qfsRef); err != nil {
-				return nil, err
-			}
-			ref = qfsRef
-		}
 		// Delete the specific number of revisions.
-		info, err := base.RemoveNVersionsFromStore(scope.Context(), scope.Repo(), scope.ActiveProfile(), ref, p.Revision.Gen)
+		_, err := base.RemoveNVersionsFromStore(scope.Context(), scope.Repo(), scope.ActiveProfile(), ref, p.Revision.Gen)
 		if err != nil {
 			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
 			return nil, err
 		}
 		res.NumDeleted = p.Revision.Gen
-
-		if info.FSIPath != "" && !p.KeepFiles {
-			// Load dataset version that is at head after newer versions are removed
-			ds, err := dsfs.LoadDataset(scope.Context(), scope.Filesystem(), info.Path)
-			if err != nil {
-				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
-				return nil, err
-			}
-			ds.Name = info.Name
-			ds.Peername = info.Username
-			if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
-				log.Debugf("Remove, base.OpenDataset failed, error: %s", err)
-				return nil, err
-			}
-
-			// TODO(dlong): Add a method to FSI called ProjectOntoDirectory, use it here
-			// and also for Restore() in lib/fsi.go and also maybe WriteComponents in fsi/mapping.go
-
-			// Delete the old files
-			err = fsi.DeleteComponentFiles(info.FSIPath)
-			if err != nil {
-				log.Debug("Remove, fsi.DeleteComponentFiles failed, error: %s", err)
-			}
-
-			// Update the files in the working directory
-			fsi.WriteComponents(ds, info.FSIPath, scope.Filesystem())
-		}
 	}
 	log.Debugf("Remove finished")
 
@@ -1393,22 +1209,6 @@ func (datasetImpl) Pull(scope scope, p *PullParams) (*dataset.Dataset, error) {
 	}
 
 	*res = *ds
-
-	if p.LinkDir != "" {
-		checkoutp := &LinkParams{
-			Ref: ref.Human(),
-			Dir: p.LinkDir,
-		}
-		// TODO (ramfox): wasn't sure exactly how to handle this. We don't need `Checkout` to
-		// re-load/re-resolve the reference, but there is a bunch of other checking/verifying
-		// that `Filesys().Checkout` does that doesn't belong in this `Pull` function
-		// Should we allow method creation off of the `scope`? So in this case, `scope.Filesys()`
-		// Or should we be obscuring all of that to create a `scope.Checkout()` method?
-		if err = scope.inst.Filesys().Checkout(scope.Context(), checkoutp); err != nil {
-			return nil, err
-		}
-	}
-
 	return res, nil
 }
 
@@ -1467,35 +1267,23 @@ func (datasetImpl) Validate(scope scope, p *ValidateParams) (*ValidateResponse, 
 		return nil, qrierr.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
 	}
 
-	fsiPath := ""
 	var err error
 	ref := dsref.Ref{}
 
 	// if there is both a bodyfilename and a schema/structure
 	// we don't need to resolve any references
 	if p.BodyFilename == "" || schemaFlagType == "" {
-		scope.EnableWorkingDir(true)
 		ref, _, err = scope.ParseAndResolveRef(scope.Context(), p.Ref)
 		if err != nil {
 			return nil, err
-		}
-
-		if fsi.IsFSIPath(ref.Path) {
-			fsiPath = fsi.FilesystemPathToLocal(ref.Path)
 		}
 	}
 
 	var ds *dataset.Dataset
 
 	if p.Ref != "" {
-		if fsiPath != "" {
-			if ds, err = fsi.ReadDir(fsiPath); err != nil {
-				return nil, fmt.Errorf("loading linked dataset: %w", err)
-			}
-		} else {
-			if ds, err = dsfs.LoadDataset(scope.Context(), scope.Filesystem(), ref.Path); err != nil {
-				return nil, fmt.Errorf("loading dataset: %w", err)
-			}
+		if ds, err = dsfs.LoadDataset(scope.Context(), scope.Filesystem(), ref.Path); err != nil {
+			return nil, fmt.Errorf("loading dataset: %w", err)
 		}
 		if err = base.OpenDataset(scope.Context(), scope.Filesystem(), ds); err != nil {
 			return nil, err
@@ -1621,19 +1409,6 @@ func (datasetImpl) DAGInfo(scope scope, p *DAGInfoParams) (*dag.Info, error) {
 		return nil, err
 	}
 	return res, nil
-}
-
-// ComponentStatus gets changes that happened at a particular version in the history of the given
-// dataset reference.
-func (datasetImpl) ComponentStatus(scope scope, p *LinkParams) ([]StatusItem, error) {
-	ctx := scope.Context()
-
-	ref, _, err := scope.ParseAndResolveRef(ctx, p.Ref)
-	if err != nil {
-		return nil, err
-	}
-
-	return scope.FSISubsystem().StatusAtVersion(ctx, ref)
 }
 
 // Render renders a viz or readme component as html

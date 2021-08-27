@@ -1,21 +1,5 @@
 [
   {
-    "endpoint": "/ds/componentstatus",
-    "method": "POST",
-    "headers": {
-      "Content-Type": "application/json"
-    },
-    "body": {
-      "ref": "peer/movies"
-    },
-    "expect": {
-      "code": 200,
-      "headers": {
-        "Content-Type": "application/json"
-      }
-    }
-  },
-  {
     "endpoint": "/ds/get",
     "method": "POST",
     "headers": {

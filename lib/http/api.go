@@ -58,8 +58,6 @@ const (
 
 	// dataset endpoints
 
-	// AEComponentStatus returns what changed for a specific commit
-	AEComponentStatus APIEndpoint = "/ds/componentstatus"
 	// AEGet is an endpoint for fetch individual dataset components
 	AEGet APIEndpoint = "/ds/get"
 	// AEActivity is an endpoint that returns a dataset activity list
@@ -126,27 +124,6 @@ const (
 	AERegistryGetFollowing APIEndpoint = "/registry/follow/list"
 	// AERegistryFollow updates the follow status of the current user for a given dataset
 	AERegistryFollow APIEndpoint = "/registry/follow"
-
-	// fsi endpoints
-
-	// AEStatus returns the filesystem dataset status
-	AEStatus APIEndpoint = "/wd/status"
-	// AEInit invokes a dataset initialization on the filesystem
-	AEInit APIEndpoint = "/wd/init"
-	// AECanInitDatasetWorkDir returns whether a dataset can be initialized
-	AECanInitDatasetWorkDir APIEndpoint = "/wd/caninitworkdir"
-	// AECheckout invokes a dataset checkout to the filesystem
-	AECheckout APIEndpoint = "/wd/checkout"
-	// AERestore invokes a restore
-	AERestore APIEndpoint = "/wd/restore"
-	// AEFSIWrite writes input data to the filesystem
-	AEFSIWrite APIEndpoint = "/wd/write"
-	// AEFSICreateLink creates an fsi link
-	AEFSICreateLink APIEndpoint = "/wd/createlink"
-	// AEFSIUnlink removes the fsi link
-	AEFSIUnlink APIEndpoint = "/wd/unlink"
-	// AEEnsureRef ensures that the ref is fsi linked
-	AEEnsureRef APIEndpoint = "/wd/ensureref"
 
 	// sync endpoints
 

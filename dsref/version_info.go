@@ -83,8 +83,6 @@ type VersionInfo struct {
 	//
 	// Number of versions that the dataset has
 	NumVersions int `json:"numVersions,omitempty"`
-	// FSIPath is this dataset's link to the local filesystem if one exists
-	FSIPath string `json:"fsiPath,omitempty"`
 	//
 	// Workflow fields
 	//

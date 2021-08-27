@@ -39,8 +39,8 @@ func TestWebsocket(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// websockets should subscribe 2 new handlers: FS Watcher & the WS message handler
-	if inst.bus.NumSubscribers() != subsCount+2 {
+	// websockets should subscribe the WS message handler
+	if inst.bus.NumSubscribers() != subsCount+1 {
 		t.Fatalf("failed to subscribe websocket handlers")
 	}
 

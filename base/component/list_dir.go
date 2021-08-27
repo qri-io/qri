@@ -215,9 +215,9 @@ func GetKnownFilenames() map[string][]string {
 		"meta":      componentExtensionTypes,
 		"structure": componentExtensionTypes,
 		// TODO(dlong): Viz is deprecated
-		"viz":       []string{".html"},
+		"viz":       {".html"},
 		"readme":    readmeExtensionTypes,
-		"transform": []string{".star"},
+		"transform": {".star"},
 		"body":      bodyExtensionTypes,
 	}
 }
@@ -243,9 +243,7 @@ func IsKnownFilename(fullpath string, known map[string][]string) bool {
 }
 
 func normalizeExtensionFormat(text string) string {
-	if strings.HasPrefix(text, ".") {
-		text = text[1:]
-	}
+	text = strings.TrimPrefix(text, ".")
 	if text == "yml" {
 		text = "yaml"
 	}

@@ -5,32 +5,21 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/remote"
 )
 
 // ParseAndResolveRef combines reference parsing and resolution
-func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string, useFSI bool) (dsref.Ref, string, error) {
+func (inst *Instance) ParseAndResolveRef(ctx context.Context, refStr, source string) (dsref.Ref, string, error) {
 	log.Debugf("inst.ParseAndResolveRef refStr=%q source=%q", refStr, source)
 	ref, err := dsref.Parse(refStr)
 	if err != nil {
 		return ref, "", fmt.Errorf("%q is not a valid dataset reference: %w", refStr, err)
 	}
 
-	// Whether the reference came with an explicit version
-	pathProvided := ref.Path != ""
 	// Resolve the reference
 	location, err := inst.ResolveReference(ctx, &ref, source)
 	if err != nil {
 		return ref, location, err
-	}
-	// If no version was given, and FSI is enabled for resolution, look
-	// up if the dataset has a version on disk.
-	if !pathProvided && useFSI {
-		err = inst.fsi.ResolvedPath(&ref)
-		if err == fsi.ErrNoLink {
-			err = nil
-		}
 	}
 	return ref, location, err
 }

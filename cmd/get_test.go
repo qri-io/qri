@@ -300,30 +300,6 @@ Tangled ,100
 `
 	prevBodyJSON = `[["Avatar ",178],["Pirates of the Caribbean: At World's End ",169],["Spectre ",148],["The Dark Knight Rises ",164],["Star Wars: Episode VII - The Force Awakens             ",""],["John Carter ",132],["Spider-Man 3 ",156],["Tangled ",100]]
 `
-
-	currHeadFSI = `bodyPath: /tmp/my_ds/my_ds/body.csv
-id: nkt3s27sojzsiu7tcs6p5asrwbqf3yd5nhjtotsstd6ub2owecvq
-name: my_ds
-peername: test_peer_get
-qri: ds:0
-structure:
-  format: csv
-  formatConfig:
-    headerRow: true
-    lazyQuotes: true
-  qri: st:0
-  schema:
-    items:
-      items:
-      - title: movie_title
-        type: string
-      - title: duration
-        type: integer
-      type: array
-    type: array
-
-`
-	currBodyFSI = currBodyRepo
 )
 
 var (
@@ -404,63 +380,6 @@ func TestGetDatasetFromRepo(t *testing.T) {
 
 }
 
-func TestGetDatasetCheckedOut(t *testing.T) {
-	run := NewFSITestRunner(t, "test_peer_get", "get_dataset_checked_out")
-	defer run.Delete()
-
-	// Save two versions.
-	got := run.MustExecCombinedOutErr(t, "qri save --body=testdata/movies/body_ten.csv me/my_ds")
-	ref := parseRefFromSave(got)
-	run.MustExec(t, "qri save --body=testdata/movies/body_twenty.csv me/my_ds")
-
-	// Checkout to a working directory.
-	run.CreateAndChdirToWorkDir("my_ds")
-	run.MustExec(t, "qri checkout me/my_ds")
-
-	// Get head.
-	output := run.MustExec(t, "qri get me/my_ds")
-	expect := currHeadFSI
-	if diff := cmp.Diff(expect, output); diff != "" {
-		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-
-	// Get one version ago.
-	output = run.MustExec(t, fmt.Sprintf("qri get %s", ref))
-	expect = dstest.Template(t, prevHeadRepo, prevHeadRepoData)
-	if diff := cmp.Diff(expect, output); diff != "" {
-		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-
-	// Get body from current commit as csv
-	output = run.MustExec(t, "qri get body me/my_ds --format csv")
-	expect = currBodyFSI
-	if diff := cmp.Diff(expect, output); diff != "" {
-		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-
-	// Get body from current commit as json
-	output = run.MustExec(t, "qri get body me/my_ds")
-	expect = currBodyJSON
-	if diff := cmp.Diff(expect, output); diff != "" {
-		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-
-	// Get body from one version ago as csv
-	output = run.MustExec(t, fmt.Sprintf("qri get body %s --format csv", ref))
-	expect = prevBodyRepo
-	if diff := cmp.Diff(expect, output); diff != "" {
-		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-
-	// Get body from one version ago as json
-	output = run.MustExec(t, fmt.Sprintf("qri get body %s", ref))
-	expect = prevBodyJSON
-	if diff := cmp.Diff(expect, output); diff != "" {
-		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-
-}
-
 func TestGetDatasetUsingDscache(t *testing.T) {
 	t.Skip("TODO(dustmop): Need a way to enable Dscache without the Param field")
 
@@ -489,55 +408,6 @@ func TestGetDatasetUsingDscache(t *testing.T) {
 	// Get body from current commit.
 	output = run.MustExec(t, "qri get body me/my_ds")
 	expect = currBodyRepo
-	if diff := cmp.Diff(expect, output); diff != "" {
-		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-
-	// Get body from one version ago.
-	output = run.MustExec(t, fmt.Sprintf("qri get body %s", ref))
-	expect = prevBodyRepo
-	if diff := cmp.Diff(expect, output); diff != "" {
-		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-}
-
-func TestGetDatasetCheckedOutUsingDscache(t *testing.T) {
-	t.Skip("TODO(dustmop): Need a way to enable Dscache without the Param field")
-
-	run := NewFSITestRunner(t, "test_peer_get", "get_dataset_checked_out_using_dscache")
-	defer run.Delete()
-
-	// Save two versions.
-	got := run.MustExecCombinedOutErr(t, "qri save --body=testdata/movies/body_ten.csv me/my_ds")
-	ref := parseRefFromSave(got)
-	run.MustExec(t, "qri save --body=testdata/movies/body_twenty.csv me/my_ds")
-
-	// Checkout to a working directory.
-	run.CreateAndChdirToWorkDir("my_ds")
-	run.MustExec(t, "qri checkout me/my_ds")
-
-	// Build the dscache
-	// TODO(dustmop): Can't immitate the other tests, because checkout doesn't know about dscache
-	// yet, it doesn't set the FSIPath. Instead, build the dscache here, so that the FSIPath exists.
-	run.MustExec(t, "qri list --use-dscache")
-
-	// Get head.
-	output := run.MustExec(t, "qri get me/my_ds")
-	expect := currHeadFSI
-	if diff := cmp.Diff(expect, output); diff != "" {
-		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-
-	// Get one version ago.
-	output = run.MustExec(t, fmt.Sprintf("qri get %s", ref))
-	expect = dstest.Template(t, prevHeadRepo, prevHeadRepoData)
-	if diff := cmp.Diff(expect, output); diff != "" {
-		t.Errorf("unexpected (-want +got):\n%s", diff)
-	}
-
-	// Get body from current commit.
-	output = run.MustExec(t, "qri get body me/my_ds")
-	expect = currBodyFSI
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
