@@ -17,25 +17,13 @@ func TestBasicRefSelect(t *testing.T) {
 	if strings.Join(refs.RefList(), ",") != "" {
 		t.Errorf("expected ref list \"\", got %s", refs.RefList())
 	}
-	if refs.String() != "" {
-		t.Errorf("expected ref string \"\", got %s", refs.String())
-	}
-	if !refs.IsExplicit() {
-		t.Errorf("expected ref isExplict true, got %t", refs.IsExplicit())
-	}
 
-	refs = NewExplicitRefSelect("peername/test_ds")
+	refs = NewRefSelect("peername/test_ds")
 	if refs.Ref() != "peername/test_ds" {
 		t.Errorf("expected ref \"peername/test_ds\", got %s", refs.Ref())
 	}
 	if strings.Join(refs.RefList(), ",") != "peername/test_ds" {
 		t.Errorf("expected ref list \"peername/test_ds\", got %s", refs.RefList())
-	}
-	if refs.String() != "" {
-		t.Errorf("expected ref string \"\", got %s", refs.String())
-	}
-	if !refs.IsExplicit() {
-		t.Errorf("expected ref isExplict true, got %t", refs.IsExplicit())
 	}
 
 	refs = NewListOfRefSelects([]string{"peername/test_ds", "peername/another_ds"})
@@ -44,26 +32,6 @@ func TestBasicRefSelect(t *testing.T) {
 	}
 	if strings.Join(refs.RefList(), ",") != "peername/test_ds,peername/another_ds" {
 		t.Errorf("expected ref list \"peername/test_ds,peername/another_ds\", got %s", refs.RefList())
-	}
-	if refs.String() != "" {
-		t.Errorf("expected ref string \"\", got %s", refs.String())
-	}
-	if !refs.IsExplicit() {
-		t.Errorf("expected ref isExplict true, got %t", refs.IsExplicit())
-	}
-
-	refs = NewUsingRefSelect("peername/test_ds")
-	if refs.Ref() != "peername/test_ds" {
-		t.Errorf("expected ref \"peername/test_ds\", got %s", refs.Ref())
-	}
-	if strings.Join(refs.RefList(), ",") != "peername/test_ds" {
-		t.Errorf("expected ref list \"peername/test_ds\", got %s", refs.RefList())
-	}
-	if refs.String() != "using dataset [peername/test_ds]" {
-		t.Errorf("expected ref string \"using dataset [peername/test_ds]\", got %s", refs.String())
-	}
-	if refs.IsExplicit() {
-		t.Errorf("expected ref isExplict false, got %t", refs.IsExplicit())
 	}
 }
 
@@ -109,31 +77,6 @@ func TestGetCurrentRefSelect(t *testing.T) {
 	if refs.Ref() != "me/explicit_ds" {
 		t.Errorf("error: ref_select, actual: %s, expect: %s", refs.Ref(), "me/explicit_ds")
 	}
-
-	// Use dataset
-	data := []byte("[{\"peername\": \"me\",\"name\":\"use_ds\"}]")
-	err = ioutil.WriteFile(filepath.Join(qriPath, "selected_refs.json"), data, os.ModePerm)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	refs, err = GetCurrentRefSelect(f, []string{}, -1)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	if refs.Ref() != "me/use_ds" {
-		t.Errorf("error: ref_select, actual: %s, expect: %s", refs.Ref(), "me/use_ds")
-	}
-
-	// Explicit has higher precedence than use dataset
-	refs, err = GetCurrentRefSelect(f, []string{"me/explicit_ds"}, -1)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	if refs.Ref() != "me/explicit_ds" {
-		t.Errorf("error: ref_select, actual: %s, expect: %s", refs.Ref(), "me/explicit_ds")
-	}
-
 }
 
 func TestGetCurrentRefSelectUsingTwoArgs(t *testing.T) {

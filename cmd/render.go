@@ -96,7 +96,6 @@ func (o *RenderOptions) Run() error {
 		p = o.readmeRenderParams()
 	}
 
-	printRefSelect(o.ErrOut, o.Refs)
 	res, err := o.inst.Dataset().Render(context.TODO(), p)
 	if err != nil {
 		if errors.Is(err, dsref.ErrEmptyRef) {

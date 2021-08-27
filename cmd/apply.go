@@ -79,10 +79,7 @@ func (o *ApplyOptions) Complete(f Factory, args []string) (err error) {
 }
 
 // Run executes the apply command
-func (o *ApplyOptions) Run() error {
-	printRefSelect(o.ErrOut, o.Refs)
-
-	var err error
+func (o *ApplyOptions) Run() (err error) {
 
 	if !strings.HasSuffix(o.FilePath, ".star") {
 		return errors.New("only transform scripts are supported by --file")

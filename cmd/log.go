@@ -105,8 +105,6 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the log command
 func (o *LogOptions) Run() error {
-	printRefSelect(o.ErrOut, o.Refs)
-
 	// convert Page and PageSize to Limit and Offset
 	page := apiutil.NewPage(o.Page, o.PageSize)
 
@@ -212,8 +210,6 @@ func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
 
 // LogEntries gets entries from the logbook
 func (o *LogbookOptions) LogEntries() error {
-	printRefSelect(o.ErrOut, o.Refs)
-
 	// convert Page and PageSize to Limit and Offset
 	page := apiutil.NewPage(o.Page, o.PageSize)
 

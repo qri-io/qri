@@ -116,7 +116,7 @@ func TestValidateRun(t *testing.T) {
 
 			opt := &ValidateOptions{
 				IOStreams:         run.Streams,
-				Refs:              NewExplicitRefSelect(c.ref),
+				Refs:              NewRefSelect(c.ref),
 				BodyFilepath:      c.bodyPath,
 				SchemaFilepath:    c.schemaPath,
 				StructureFilepath: c.structurePath,
@@ -181,7 +181,7 @@ func TestValidateRun(t *testing.T) {
 
 			opt := &ValidateOptions{
 				IOStreams:         run.Streams,
-				Refs:              NewExplicitRefSelect(c.ref),
+				Refs:              NewRefSelect(c.ref),
 				BodyFilepath:      c.bodyPath,
 				SchemaFilepath:    c.schemaPath,
 				StructureFilepath: c.structurePath,

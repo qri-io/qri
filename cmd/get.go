@@ -127,8 +127,6 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the get command
 func (o *GetOptions) Run() (err error) {
-	printRefSelect(o.ErrOut, o.Refs)
-
 	if o.Offline {
 		if o.Remote != "" {
 			return fmt.Errorf("cannot use '--offline' and '--remote' flags together")

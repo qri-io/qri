@@ -106,8 +106,6 @@ func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the diff command
 func (o *DiffOptions) Run() (err error) {
-	printRefSelect(o.ErrOut, o.Refs)
-
 	p := &lib.DiffParams{
 		Selector: o.Selector,
 	}
