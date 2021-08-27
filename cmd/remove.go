@@ -136,8 +136,6 @@ func (o *RemoveOptions) Validate() error {
 
 // Run executes the remove command
 func (o *RemoveOptions) Run() (err error) {
-	printRefSelect(o.ErrOut, o.Refs)
-
 	if o.Remote != "" {
 		return o.RemoveRemote()
 	}

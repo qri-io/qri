@@ -2,54 +2,29 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 )
 
-// RefSelect represents zero or more references, either explicitly provided or implied
+// RefSelect represents zero or more references
 type RefSelect struct {
-	kind string
 	refs []string
 }
-
-// when a user is running a command within a working directory that is linked to a
-// dataset, the text sent to standard output shall begin with:
-//
-// for linked dataset [peername/dataset_name]
-//
-// That is, "using" is to `use`, as "for linked" is to `qri-ref`. In all other cases (an
-// explicit dataset ref provided on the command line) neither of these phrases should be
-// displayed. This way, the user can tell at a glance what dataset is being used, and the reason
-// for why is was selected. The `kind` field on RefSelect controls which of these kinds of
-// references is being used.
 
 // NewEmptyRefSelect returns an empty reference selection
 func NewEmptyRefSelect() *RefSelect {
 	return &RefSelect{refs: []string{}}
 }
 
-// NewExplicitRefSelect returns a single explicitly provided reference
-func NewExplicitRefSelect(ref string) *RefSelect {
+// NewRefSelect returns a single explicitly provided reference
+func NewRefSelect(ref string) *RefSelect {
 	return &RefSelect{refs: []string{ref}}
 }
 
 // NewListOfRefSelects returns a list of explicitly provided references
 func NewListOfRefSelects(refs []string) *RefSelect {
 	return &RefSelect{refs: refs}
-}
-
-// NewUsingRefSelect returns a single reference implied by the use command
-func NewUsingRefSelect(ref string) *RefSelect {
-	return &RefSelect{kind: "using", refs: []string{ref}}
-}
-
-// IsExplicit returns whether the reference is explicit
-func (r *RefSelect) IsExplicit() bool {
-	return r.kind == ""
 }
 
 // Ref returns the reference as a string
@@ -66,14 +41,6 @@ func (r *RefSelect) RefList() []string {
 		return []string{""}
 	}
 	return r.refs
-}
-
-// String returns a stringified version of the ref selection
-func (r *RefSelect) String() string {
-	if r.IsExplicit() {
-		return ""
-	}
-	return fmt.Sprintf("%s dataset [%s]", r.kind, strings.Join(r.refs, ", "))
 }
 
 const (
@@ -119,40 +86,11 @@ func GetCurrentRefSelect(f Factory, args []string, allowed int) (*RefSelect, err
 			return nil, fmt.Errorf("%d references allowed but %d were given", allowed, len(args))
 		}
 		if allowed == 1 {
-			return NewExplicitRefSelect(args[0]), nil
+			return NewRefSelect(args[0]), nil
 		}
 		return NewListOfRefSelects(args), nil
 	}
 
-	// Find what `use` is referencing and use that.
-	selected, err := DefaultSelectedRefList(f)
-	if err != nil {
-		return nil, err
-	}
-	if len(selected) == 1 {
-		return NewUsingRefSelect(selected[0]), nil
-	}
 	// Empty refselect
 	return NewEmptyRefSelect(), repo.ErrEmptyRef
-}
-
-// DefaultSelectedRefList returns the list of currently `use`ing dataset references
-func DefaultSelectedRefList(f Factory) ([]string, error) {
-	fileSelectionPath := filepath.Join(f.RepoPath(), FileSelectedRefs)
-
-	refs, err := readFile(fileSelectionPath)
-	if err != nil {
-		// If selected_refs.json is empty or doesn't exist, not an error.
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	res := make([]string, 0, len(refs))
-	for _, r := range refs {
-		res = append(res, r.String())
-	}
-
-	return res, nil
 }

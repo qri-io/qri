@@ -212,14 +212,6 @@ func printDiff(w io.Writer, res *lib.DiffResponse, summaryOnly bool) (err error)
 	return nil
 }
 
-func printRefSelect(w io.Writer, refset *RefSelect) {
-	if refset.IsExplicit() {
-		return
-	}
-	printInfo(w, refset.String())
-	fmt.Fprintln(w, "")
-}
-
 func renderTable(writer io.Writer, header []string, data [][]string) {
 	table := tablewriter.NewWriter(writer)
 	table.SetHeader(header)

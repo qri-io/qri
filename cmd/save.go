@@ -139,8 +139,6 @@ func (o *SaveOptions) Validate() error {
 
 // Run executes the save command
 func (o *SaveOptions) Run() (err error) {
-	printRefSelect(o.ErrOut, o.Refs)
-
 	p := &lib.SaveParams{
 		Ref:      o.Refs.Ref(),
 		BodyPath: o.BodyPath,

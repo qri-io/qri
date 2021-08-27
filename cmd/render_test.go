@@ -106,7 +106,7 @@ func TestRenderRun(t *testing.T) {
 
 		opt := &RenderOptions{
 			IOStreams: run.Streams,
-			Refs:      NewExplicitRefSelect(c.ref),
+			Refs:      NewRefSelect(c.ref),
 			UseViz:    true,
 			Template:  c.template,
 			Output:    c.output,

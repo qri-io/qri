@@ -124,8 +124,6 @@ func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the run command
 func (o *ValidateOptions) Run() (err error) {
-	printRefSelect(o.ErrOut, o.Refs)
-
 	o.StartSpinner()
 	defer o.StopSpinner()
 
