@@ -5,7 +5,7 @@
 				"name": "transform",
 				"syntax": "starlark",
 				"category": "transform",
-				"script": "body = 'a,b,c\n1,2,3\n,4,5,6\n'\ndef transform(ds,ctx):\n\tds.body.set_csv(body)\n"
+				"script": "load(\"dataframe.star\", \"dataframe\")\n\nbody = 'a,b,c\n1,2,3\n,4,5,6\n'\ndef transform(ds,ctx):\n\tds.body = dataframe.read_csv(body)\n"
 			}
 		]
 	}

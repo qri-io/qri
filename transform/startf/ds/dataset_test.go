@@ -37,7 +37,7 @@ func TestCannotSetIfReadOnly(t *testing.T) {
 	}
 }
 
-func TestSetBody(t *testing.T) {
+func TestSetAndGetBody(t *testing.T) {
 	ds := NewDataset(&dataset.Dataset{})
 	err := ds.SetField("body", starlark.NewList([]starlark.Value{starlark.NewList([]starlark.Value{starlark.String("a")})}))
 	if err != nil {
@@ -50,80 +50,6 @@ func TestSetBody(t *testing.T) {
 	actual := bd.String()
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
-	}
-}
-
-func TestChangeBody(t *testing.T) {
-	t.Skip("TODO(dustmop): dataset.set_body is changing to dataset.body =")
-	// Create the previous version with the body ["b"]
-	prev := &dataset.Dataset{
-		Structure: &dataset.Structure{
-			Format: "json",
-			Schema: dataset.BaseSchemaArray,
-		},
-	}
-	prev.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[\"b\"]")))
-	ds := NewDataset(prev)
-	thread := &starlark.Thread{}
-
-	body, err := callMethod(thread, ds, "get_body", starlark.Tuple{})
-	if err != nil {
-		t.Error(err)
-	}
-	expect := `["b"]`
-	if fmt.Sprintf("%s", body) != expect {
-		t.Errorf("expected body: %s, got: %s", expect, body)
-	}
-
-	_, err = callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
-	if err != nil {
-		t.Error(err)
-	}
-
-	body, err = callMethod(thread, ds, "get_body", starlark.Tuple{})
-	if err != nil {
-		t.Error(err)
-	}
-	expect = `["a"]`
-	if fmt.Sprintf("%s", body) != expect {
-		t.Errorf("expected body: %s, got: %s", expect, body)
-	}
-}
-
-func TestChangeBodyEvenIfTheSame(t *testing.T) {
-	t.Skip("TODO(dustmop): dataset.set_body is changing to dataset.body =")
-	// Create the previous version with the body ["a"]
-	prev := &dataset.Dataset{
-		Structure: &dataset.Structure{
-			Format: "json",
-			Schema: dataset.BaseSchemaArray,
-		},
-	}
-	prev.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[\"a\"]")))
-	ds := NewDataset(prev)
-	thread := &starlark.Thread{}
-
-	body, err := callMethod(thread, ds, "get_body", starlark.Tuple{})
-	if err != nil {
-		t.Error(err)
-	}
-	expect := `["a"]`
-	if fmt.Sprintf("%s", body) != expect {
-		t.Errorf("expected body: %s, got: %s", expect, body)
-	}
-
-	_, err = callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
-	if err != nil {
-		t.Error(err)
-	}
-
-	body, err = callMethod(thread, ds, "get_body", starlark.Tuple{})
-	if err != nil {
-		t.Error(err)
-	}
-	expect = `["a"]`
-	if fmt.Sprintf("%s", body) != expect {
-		t.Errorf("expected body: %s, got: %s", expect, body)
 	}
 }
 

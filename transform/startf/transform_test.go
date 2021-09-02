@@ -100,7 +100,7 @@ func TestExecScript(t *testing.T) {
 func TestExecScript2(t *testing.T) {
 	ctx := context.Background()
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"foo":["bar","baz","bat"]}`))
+		w.Write([]byte(`{"foo":[["bar","baz","bat"]]}`))
 	}))
 
 	ds := &dataset.Dataset{

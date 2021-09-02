@@ -6,5 +6,4 @@ def download(ctx):
   return res.json()['foo']
 
 def transform(ds, ctx):
-  # TODO(dustmop): Fix this, decide how Dataframes get data from `download`
-  ds.body = [['ctx.download']]
+  ds.body = ctx.download
