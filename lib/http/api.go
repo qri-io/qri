@@ -33,6 +33,8 @@ const (
 
 	// AEList lists all datasets in your collection
 	AEList APIEndpoint = "/list"
+	// AECollectionGet returns info on a head dataset in your collection
+	AECollectionGet APIEndpoint = "/collection/get"
 	// AEDiff is an endpoint for generating dataset diffs
 	AEDiff APIEndpoint = "/diff"
 	// AEChanges is an endpoint for generating dataset change reports

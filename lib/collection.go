@@ -35,6 +35,7 @@ func (m CollectionMethods) Attributes() map[string]AttributeSet {
 	return map[string]AttributeSet{
 		"list":        {Endpoint: qhttp.AEList, HTTPVerb: "POST"},
 		"listrawrefs": {Endpoint: qhttp.DenyHTTP},
+		"get":         {Endpoint: qhttp.AECollectionGet, HTTPVerb: "POST"},
 	}
 }
 
@@ -57,6 +58,29 @@ func (m CollectionMethods) ListRawRefs(ctx context.Context, p *EmptyParams) (str
 		return res, err
 	}
 	return "", dispatchReturnError(got, err)
+}
+
+// CollectionGetParams defines parameters for looking up the head of a dataset from the collection
+type CollectionGetParams struct {
+	Ref    string `json:"ref"`
+	InitID string `json:"initID"`
+}
+
+// Validate returns an error if CollectionGetParams fields are in an invalid state
+func (p *CollectionGetParams) Validate() error {
+	if p.Ref == "" && p.InitID == "" {
+		return fmt.Errorf("either ref or initID are required")
+	}
+	return nil
+}
+
+// Get gets the head of a dataset as a VersionInfo from the collection
+func (m CollectionMethods) Get(ctx context.Context, p *CollectionGetParams) (*dsref.VersionInfo, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "get"), p)
+	if res, ok := got.(*dsref.VersionInfo); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
 }
 
 // collectionImpl holds the method implementations for CollectionMethods
@@ -142,7 +166,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 			infos[i] = reporef.ConvertToVersionInfo(&r)
 		}
 	} else if listProfile.Peername == "" || reqProfile.Peername == listProfile.Peername {
-		infos, err = base.ListDatasets(scope.Context(), scope.Repo(), p.Term, restrictPid, p.Offset, p.Limit, p.Public, p.ShowNumVersions)
+		infos, err = base.ListDatasets(scope.Context(), scope.Repo(), p.Term, restrictPid, p.Offset, p.Limit, p.Public, true)
 		if errors.Is(err, ErrListWarning) {
 			// This warning can happen when there's conflicts between usernames and
 			// profileIDs. This type of conflict should not break listing functionality.
@@ -197,4 +221,20 @@ func (collectionImpl) ListRawRefs(scope scope, p *EmptyParams) (string, error) {
 		return text, nil
 	}
 	return base.RawDatasetRefs(scope.Context(), scope.ActiveProfile().ID, scope.CollectionSet())
+}
+
+// Get gets the head of a dataset as a VersionInfo from the collection
+func (collectionImpl) Get(scope scope, p *CollectionGetParams) (*dsref.VersionInfo, error) {
+	s := scope.CollectionSet()
+	if s == nil {
+		return nil, fmt.Errorf("no collection")
+	}
+	if p.InitID == "" {
+		ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
+		if err != nil {
+			return nil, err
+		}
+		p.InitID = ref.InitID
+	}
+	return s.Get(scope.Context(), scope.ActiveProfile().ID, p.InitID)
 }
