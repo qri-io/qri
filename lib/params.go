@@ -42,9 +42,6 @@ type ListParams struct {
 	// Public only applies to listing datasets, shows only datasets that are
 	// set to visible
 	Public bool `json:"public"`
-	// ShowNumVersions only applies to listing datasets
-	// TODO (b5): deprecate this once collection subsystem is up to speed
-	ShowNumVersions bool `json:"showNumVersions" docs:"hidden"`
 }
 
 // SetNonZeroDefaults sets OrderBy to "created" if it's value is the empty string

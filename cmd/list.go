@@ -105,12 +105,11 @@ func (o *ListOptions) Run() (err error) {
 	}
 
 	p := &lib.ListParams{
-		Term:            o.Term,
-		Username:        o.Username,
-		Limit:           page.Limit(),
-		Offset:          page.Offset(),
-		Public:          o.Public,
-		ShowNumVersions: o.ShowNumVersions,
+		Term:     o.Term,
+		Username: o.Username,
+		Limit:    page.Limit(),
+		Offset:   page.Offset(),
+		Public:   o.Public,
 	}
 	infos, err := o.inst.Collection().List(ctx, p)
 	if err != nil {

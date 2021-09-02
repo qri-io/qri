@@ -177,7 +177,7 @@ func (rcv *RefEntryInfo) MutateCommitTime(n int64) bool {
 	return rcv._tab.MutateInt64Slot(30, n)
 }
 
-func (rcv *RefEntryInfo) NumVersions() int32 {
+func (rcv *RefEntryInfo) CommitCount() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -185,7 +185,7 @@ func (rcv *RefEntryInfo) NumVersions() int32 {
 	return 0
 }
 
-func (rcv *RefEntryInfo) MutateNumVersions(n int32) bool {
+func (rcv *RefEntryInfo) MutateCommitCount(n int32) bool {
 	return rcv._tab.MutateInt32Slot(32, n)
 }
 
@@ -294,8 +294,8 @@ func RefEntryInfoAddNumErrors(builder *flatbuffers.Builder, numErrors int32) {
 func RefEntryInfoAddCommitTime(builder *flatbuffers.Builder, commitTime int64) {
 	builder.PrependInt64Slot(13, commitTime, 0)
 }
-func RefEntryInfoAddNumVersions(builder *flatbuffers.Builder, numVersions int32) {
-	builder.PrependInt32Slot(14, numVersions, 0)
+func RefEntryInfoAddCommitCount(builder *flatbuffers.Builder, commitCount int32) {
+	builder.PrependInt32Slot(14, commitCount, 0)
 }
 func RefEntryInfoAddHeadRef(builder *flatbuffers.Builder, headRef flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(headRef), 0)
