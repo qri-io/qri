@@ -29,6 +29,20 @@
     }
   },
   {
+    "endpoint": "/collection/get",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ref": "peer/movies"
+    },
+    "expect": {
+      "code": 200,
+      "Content-Type": "application/json"
+    }
+  },
+  {
     "endpoint": "/diff",
     "method": "POST",
     "headers": {
