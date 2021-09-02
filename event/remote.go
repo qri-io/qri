@@ -46,6 +46,18 @@ const (
 	// (logbook + versions) remove completed
 	// payload will be a RemoteEvent
 	ETRemoteClientRemoveDatasetCompleted = Type("remoteClient:RemoveDatasetCompleted")
+	// ETRemoteDatasetFollowed indicates that the dataset has been followed by a user
+	// payload is an `InitID` string
+	ETRemoteDatasetFollowed = Type("remote:DatasetFollowed")
+	// ETRemoteDatasetUnfollowed indicates that the dataset has been unfollowed by a user
+	// payload is an `InitID` string
+	ETRemoteDatasetUnfollowed = Type("remote:DatasetUnfollowed")
+	// ETRemoteDatasetIssueOpened indicates that an issue has been opened for this dataset
+	// payload is an `initID` string
+	ETRemoteDatasetIssueOpened = Type("remote:DatasetIssueOpened")
+	// ETRemoteDatasetIssueClosed indicates that an issue has been closed for this dataset
+	// payload is an `initID` string
+	ETRemoteDatasetIssueClosed = Type("remote:DatasetIssueClosed")
 )
 
 // RemoteEvent encapsulates the push / pull progress of a dataset version
