@@ -1,30 +1,31 @@
-// Package startf implements dataset transformations using the starlark programming dialect
-// For more info on starlark check github.com/google/starlark
 package startf
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qfs"
+	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
-	skyctx "github.com/qri-io/qri/transform/startf/context"
-	skyds "github.com/qri-io/qri/transform/startf/ds"
-	skyqri "github.com/qri-io/qri/transform/startf/qri"
+	starctx "github.com/qri-io/qri/transform/startf/context"
+	stards "github.com/qri-io/qri/transform/startf/ds"
 	"github.com/qri-io/qri/version"
 	"github.com/qri-io/starlib"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 )
 
-// Version is the version of qri that this transform was run with
-var Version = version.Version
+var (
+	// Version is the version of qri that this transform was run with
+	Version = version.Version
+	// ErrNotDefined is for when a starlark value is not defined or does not exist
+	ErrNotDefined = fmt.Errorf("not defined")
+)
 
 // ExecOpts defines options for execution
 type ExecOpts struct {
@@ -76,16 +77,6 @@ func AddEventsChannel(eventsCh chan event.Event) func(o *ExecOpts) {
 	}
 }
 
-// SetErrWriter provides a writer to record the "stderr" diagnostic output of
-// the transform script
-func SetErrWriter(w io.Writer) func(o *ExecOpts) {
-	return func(o *ExecOpts) {
-		if w != nil {
-			o.ErrWriter = w
-		}
-	}
-}
-
 // SetSecrets assigns environment secret key-value pairs for script execution
 func SetSecrets(secrets map[string]string) func(o *ExecOpts) {
 	return func(o *ExecOpts) {
@@ -118,48 +109,22 @@ func DefaultExecOpts(o *ExecOpts) {
 	o.ModuleLoader = DefaultModuleLoader
 }
 
-type transform struct {
-	ctx          context.Context
-	dsLoader     dsref.Loader
-	repo         repo.Repo
-	eventsCh     chan event.Event
-	target       *dataset.Dataset
-	skyqri       *skyqri.Module
-	globals      starlark.StringDict
-	bodyFile     qfs.File
-	stderr       io.Writer
-	moduleLoader ModuleLoader
-	changeSet    map[string]struct{}
-
-	download starlark.Iterable
+// StepRunner is able to run individual transform steps
+type StepRunner struct {
+	starCtx   *starctx.Context
+	dsLoader  dsref.Loader
+	target    *dataset.Dataset
+	globals   starlark.StringDict
+	eventsCh  chan event.Event
+	thread    *starlark.Thread
+	changeSet map[string]struct{}
 }
 
-// ModuleLoader is a function that can load starlark modules
-type ModuleLoader func(thread *starlark.Thread, module string) (starlark.StringDict, error)
-
-// DefaultModuleLoader is the loader ExecScript will use unless configured otherwise
-var DefaultModuleLoader = func(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
-	return starlib.Loader(thread, module)
-}
-
-// ExecScript executes a transformation against a starlark script file. The
-// target dataset has the previous version, if it exists, and may be mutated
-// with new data from the script. At a bare minimum this function will set
-// transformation details, but starlark scripts can modify many parts of the
-// dataset, including meta, structure, and transform. opts may provide more
-// ways for output to be produced from this function.
-func ExecScript(ctx context.Context, target *dataset.Dataset, opts ...func(o *ExecOpts)) error {
-	var err error
-	if target.Transform == nil || target.Transform.ScriptFile() == nil {
-		return fmt.Errorf("no script to execute")
-	}
-
+// NewStepRunner returns a new StepRunner for the given dataset
+func NewStepRunner(target *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunner {
 	o := &ExecOpts{}
 	DefaultExecOpts(o)
 	for _, opt := range opts {
-		if opt == nil {
-			return fmt.Errorf("nil option passed to ExecScript")
-		}
 		opt(o)
 	}
 
@@ -168,6 +133,7 @@ func ExecScript(ctx context.Context, target *dataset.Dataset, opts ...func(o *Ex
 	resolve.AllowSet = o.AllowSet
 	resolve.AllowLambda = o.AllowLambda
 	resolve.AllowNestedDef = o.AllowNestedDef
+	resolve.LoadBindsGlobally = true
 
 	// add error func to starlark environment
 	starlark.Universe["error"] = starlark.NewBuiltin("error", Error)
@@ -175,33 +141,34 @@ func ExecScript(ctx context.Context, target *dataset.Dataset, opts ...func(o *Ex
 		starlark.Universe[key] = val
 	}
 
-	// set transform details
-	target.Transform.Syntax = "starlark"
-	target.Transform.SyntaxVersion = Version
+	thread := &starlark.Thread{Load: o.ModuleLoader}
 
-	script := target.Transform.ScriptFile()
-	// "tee" the script reader to avoid losing script data, as starlark.ExecFile
-	// reads, data will be copied to buf, which is re-set to the transform script
-	buf := &bytes.Buffer{}
-	tr := io.TeeReader(script, buf)
-	pipeScript := qfs.NewMemfileReader(script.FileName(), tr)
+	starCtx := starctx.NewContext(nil, o.Secrets)
 
-	t := &transform{
-		ctx:          ctx,
-		dsLoader:     o.DatasetLoader,
-		eventsCh:     o.EventsCh,
-		target:       target,
-		skyqri:       skyqri.NewModule(o.Repo),
-		stderr:       o.ErrWriter,
-		moduleLoader: o.ModuleLoader,
-		changeSet:    o.ChangeSet,
+	r := &StepRunner{
+		starCtx:   starCtx,
+		dsLoader:  o.DatasetLoader,
+		eventsCh:  o.EventsCh,
+		target:    target,
+		thread:    thread,
+		globals:   starlark.StringDict{},
+		changeSet: o.ChangeSet,
 	}
 
-	skyCtx := skyctx.NewContext(target.Transform.Config, o.Secrets)
-	thread := &starlark.Thread{Load: t.ModuleLoader}
+	return r
+}
 
-	// execute the transformation
-	t.globals, err = starlark.ExecFile(thread, pipeScript.FileName(), pipeScript, t.locals())
+// RunStep runs the single transform step using the dataset
+func (r *StepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *dataset.TransformStep) error {
+	r.globals["print"] = starlark.NewBuiltin("print", r.print)
+	r.globals["load_dataset"] = starlark.NewBuiltin("load_dataset", r.LoadDatasetFunc(ctx, ds))
+
+	script, ok := st.Script.(string)
+	if !ok {
+		return fmt.Errorf("starlark step Script must be a string. got %T", st.Script)
+	}
+
+	globals, err := starlark.ExecFile(r.thread, fmt.Sprintf("%s.star", st.Name), strings.NewReader(script), r.globals)
 	if err != nil {
 		if evalErr, ok := err.(*starlark.EvalError); ok {
 			return fmt.Errorf(evalErr.Backtrace())
@@ -209,33 +176,145 @@ func ExecScript(ctx context.Context, target *dataset.Dataset, opts ...func(o *Ex
 		return err
 	}
 
-	funcs, err := t.specialFuncs()
+	for key, val := range globals {
+		r.globals[key] = val
+	}
+
+	if err := r.callStepFunc(ctx, r.thread, st.Category, ds); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *StepRunner) callStepFunc(ctx context.Context, thread *starlark.Thread, stepType string, ds *dataset.Dataset) error {
+	// a step of type "setup" skips any global calls
+	if stepType == "setup" {
+		return nil
+	}
+
+	// call download if defined
+	if dlFunc, err := r.globalFunc("download"); err == nil {
+		if err := r.callDownloadFunc(thread, dlFunc); err != nil {
+			return err
+		}
+	}
+
+	// call transform if defined
+	if tfFunc, err := r.globalFunc("transform"); err == nil {
+		if err := r.callTransformFunc(ctx, thread, tfFunc, ds); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// globalFunc checks if a global function is defined
+func (r *StepRunner) globalFunc(name string) (fn *starlark.Function, err error) {
+	x, ok := r.globals[name]
+	if !ok {
+		return fn, ErrNotDefined
+	}
+	if x.Type() != "function" {
+		return fn, fmt.Errorf("%q is not a function", name)
+	}
+	return x.(*starlark.Function), nil
+}
+
+func (r *StepRunner) callDownloadFunc(thread *starlark.Thread, download *starlark.Function) (err error) {
+	httpGuard.EnableNtwk()
+	defer httpGuard.DisableNtwk()
+
+	val, err := starlark.Call(thread, download, starlark.Tuple{r.starCtx.Struct()}, nil)
 	if err != nil {
 		return err
 	}
 
-	for name, fn := range funcs {
-		val, err := fn(t, thread, skyCtx)
+	r.starCtx.SetResult("download", val)
+	return nil
+}
 
+func (r *StepRunner) callTransformFunc(ctx context.Context, thread *starlark.Thread, transform *starlark.Function, ds *dataset.Dataset) (err error) {
+	d := stards.NewDataset(r.target)
+	if _, err = starlark.Call(thread, transform, starlark.Tuple{d, r.starCtx.Struct()}, nil); err != nil {
+		return err
+	}
+
+	// Which components were changed
+	if r.changeSet != nil {
+		changes := d.Changes()
+		for comp := range changes {
+			r.changeSet[comp] = changes[comp]
+		}
+	}
+
+	if r.eventsCh != nil {
+		pview, err := preview.Create(ctx, ds)
 		if err != nil {
-			if evalErr, ok := err.(*starlark.EvalError); ok {
-				return fmt.Errorf(evalErr.Backtrace())
-			}
 			return err
 		}
-
-		skyCtx.SetResult(name, val)
+		r.eventsCh <- event.Event{Type: event.ETTransformDatasetPreview, Payload: pview}
 	}
 
-	err = callTransformFunc(t, thread, skyCtx)
-	if evalErr, ok := err.(*starlark.EvalError); ok {
-		return fmt.Errorf(evalErr.Backtrace())
+	return nil
+}
+
+// LoadDatasetFunc returns an implementation of the starlark load_dataset function
+func (r *StepRunner) LoadDatasetFunc(ctx context.Context, target *dataset.Dataset) func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return func(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var refstr starlark.String
+		if err := starlark.UnpackArgs("load_dataset", args, kwargs, "ref", &refstr); err != nil {
+			return starlark.None, err
+		}
+
+		if r.dsLoader == nil {
+			return nil, fmt.Errorf("load_dataset function is not enabled")
+		}
+
+		ds, err := r.dsLoader.LoadDataset(ctx, refstr.GoString())
+		if err != nil {
+			return starlark.None, err
+		}
+
+		if target.Transform.Resources == nil {
+			target.Transform.Resources = map[string]*dataset.TransformResource{}
+		}
+
+		target.Transform.Resources[ds.Path] = &dataset.TransformResource{
+			// TODO(b5) - this should be a method on dataset.Dataset
+			// we should add an ID field to dataset, set that to the InitID, and
+			// add fields to dataset.TransformResource that effectively make it the
+			// same data structure as dsref.Ref
+			Path: fmt.Sprintf("%s/%s@%s", ds.Peername, ds.Name, ds.Path),
+		}
+
+		return stards.NewDataset(ds), nil
 	}
+}
 
-	// restore consumed script file
-	target.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", buf.Bytes()))
+func (r *StepRunner) print(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var message starlark.String
+	if err := starlark.UnpackArgs("print", args, kwargs, "message", &message); err != nil {
+		return starlark.None, err
+	}
+	if r.eventsCh != nil {
+		r.eventsCh <- event.Event{
+			Type: event.ETTransformPrint,
+			Payload: event.TransformMessage{
+				Msg: message.GoString(),
+			},
+		}
+	}
+	return starlark.None, nil
+}
 
-	return err
+// ModuleLoader is a function that can load starlark modules
+type ModuleLoader func(thread *starlark.Thread, module string) (starlark.StringDict, error)
+
+// DefaultModuleLoader loads starlib modules
+var DefaultModuleLoader = func(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
+	return starlib.Loader(thread, module)
 }
 
 // Error halts program execution with an error
@@ -246,150 +325,4 @@ func Error(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kw
 	}
 
 	return nil, fmt.Errorf("transform error: %s", msg)
-}
-
-// ErrNotDefined is for when a starlark value is not defined or does not exist
-var ErrNotDefined = fmt.Errorf("not defined")
-
-// globalFunc checks if a global function is defined
-func (t *transform) globalFunc(name string) (fn *starlark.Function, err error) {
-	x, ok := t.globals[name]
-	if !ok {
-		return fn, ErrNotDefined
-	}
-	if x.Type() != "function" {
-		return fn, fmt.Errorf("'%s' is not a function", name)
-	}
-	return x.(*starlark.Function), nil
-}
-
-func (t *transform) specialFuncs() (defined map[string]specialFunc, err error) {
-	specialFuncs := map[string]specialFunc{
-		"download": callDownloadFunc,
-	}
-
-	defined = map[string]specialFunc{}
-
-	for name, fn := range specialFuncs {
-		if _, err = t.globalFunc(name); err != nil {
-			if err == ErrNotDefined {
-				err = nil
-				continue
-			}
-			return nil, err
-		}
-		defined[name] = fn
-	}
-
-	return
-}
-
-func callDownloadFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (result starlark.Value, err error) {
-	httpGuard.EnableNtwk()
-	defer httpGuard.DisableNtwk()
-
-	var download *starlark.Function
-	if download, err = t.globalFunc("download"); err != nil {
-		if err == ErrNotDefined {
-			return starlark.None, nil
-		}
-		return starlark.None, err
-	}
-
-	return starlark.Call(thread, download, starlark.Tuple{ctx.Struct()}, nil)
-}
-
-func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context) error {
-	transform, err := t.globalFunc("transform")
-	if err != nil {
-		if err == ErrNotDefined {
-			return nil
-		}
-		return err
-	}
-
-	d := skyds.NewDataset(t.target)
-	if _, err = starlark.Call(thread, transform, starlark.Tuple{d, ctx.Struct()}, nil); err != nil {
-		return err
-	}
-
-	// Which components were changed
-	if t.changeSet != nil {
-		changes := d.Changes()
-		for comp := range changes {
-			t.changeSet[comp] = changes[comp]
-		}
-	}
-
-	return nil
-}
-
-func (t *transform) locals() starlark.StringDict {
-	return starlark.StringDict{
-		"load_dataset": starlark.NewBuiltin("load_dataset", t.LoadDataset),
-		"print":        starlark.NewBuiltin("print", t.print),
-	}
-}
-
-// ModuleLoader sums all loading assets to resolve a module name during transform execution
-func (t *transform) ModuleLoader(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
-	if module == skyqri.ModuleName && t.skyqri != nil {
-		return t.skyqri.Namespace(), nil
-	}
-
-	if t.moduleLoader == nil {
-		return nil, fmt.Errorf("couldn't load module: %s", module)
-	}
-
-	return t.moduleLoader(thread, module)
-}
-
-// LoadDataset implements the starlark load_dataset function
-func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var refstr starlark.String
-	if err := starlark.UnpackArgs("load_dataset", args, kwargs, "ref", &refstr); err != nil {
-		return starlark.None, err
-	}
-
-	if t.dsLoader == nil {
-		return nil, fmt.Errorf("load_dataset function is not enabled")
-	}
-
-	ds, err := t.dsLoader.LoadDataset(t.ctx, refstr.GoString())
-	if err != nil {
-		return starlark.None, err
-	}
-
-	if t.target.Transform.Resources == nil {
-		t.target.Transform.Resources = map[string]*dataset.TransformResource{}
-	}
-
-	t.target.Transform.Resources[ds.Path] = &dataset.TransformResource{
-		// TODO(b5) - this should be a method on dataset.Dataset
-		// we should add an ID field to dataset, set that to the InitID, and
-		// add fields to dataset.TransformResource that effectively make it the
-		// same data structure as dsref.Ref
-		Path: fmt.Sprintf("%s/%s@%s", ds.Peername, ds.Name, ds.Path),
-	}
-
-	return skyds.NewDataset(ds), nil
-}
-
-func (t *transform) print(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var message starlark.String
-	if err := starlark.UnpackArgs("print", args, kwargs, "message", &message); err != nil {
-		return starlark.None, err
-	}
-	if t.eventsCh != nil {
-		t.eventsCh <- event.Event{
-			Type: event.ETTransformPrint,
-			Payload: event.TransformMessage{
-				Msg: message.GoString(),
-			},
-		}
-	} else {
-		t.stderr.Write([]byte(message.GoString()))
-		t.stderr.Write([]byte("\n"))
-	}
-	return starlark.None, nil
 }

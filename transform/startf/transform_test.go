@@ -1,7 +1,6 @@
 package startf
 
 import (
-	"bytes"
 	"context"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
+	"github.com/qri-io/dataset/stepfile"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
@@ -34,7 +34,6 @@ func TestOpts(t *testing.T) {
 	o := &ExecOpts{}
 	SetSecrets(nil)(o)
 	SetSecrets(map[string]string{"a": "b"})(o)
-	SetErrWriter(nil)(o)
 	AddQriRepo(nil)(o)
 
 	expect := &ExecOpts{
@@ -54,29 +53,16 @@ func TestExecScript(t *testing.T) {
 	}
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/tf.star"))
 
-	stderr := &bytes.Buffer{}
-	err := ExecScript(ctx, ds, SetErrWriter(stderr))
-	if err != nil {
-		t.Error(err.Error())
-		return
+	if err := ExecScript(ctx, ds); err != nil {
+		t.Fatal(err)
 	}
 	if ds.Transform == nil {
 		t.Error("expected transform")
 	}
 
-	output, err := ioutil.ReadAll(stderr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expect := "hello world!\n"
-	if string(output) != expect {
-		t.Errorf("stderr mismatch. expected: '%s', got: '%s'", expect, string(output))
-	}
-
 	entryReader, err := dsio.NewEntryReader(ds.Structure, ds.BodyFile())
 	if err != nil {
-		t.Errorf("couldn't create entry reader from returned dataset & body file: %s", err.Error())
-		return
+		t.Fatalf("couldn't create entry reader from returned dataset & body file: %s", err.Error())
 	}
 
 	i := 0
@@ -121,7 +107,7 @@ func TestExecStep(t *testing.T) {
 	ds := &dataset.Dataset{
 		Transform: &dataset.Transform{
 			Steps: []*dataset.TransformStep{
-				&dataset.TransformStep{
+				{
 					Name:     "transform",
 					Syntax:   "starlark",
 					Category: "transform",
@@ -242,4 +228,23 @@ func testModuleLoader(t *testing.T) func(thread *starlark.Thread, module string)
 		}
 		return starlib.Loader(thread, module)
 	}
+}
+
+func ExecScript(ctx context.Context, ds *dataset.Dataset, opts ...func(o *ExecOpts)) error {
+	// Convert single-file transform scripts to steps
+	if len(ds.Transform.Steps) == 0 && ds.Transform.ScriptFile() != nil {
+		steps, err := stepfile.Read(ds.Transform.ScriptFile())
+		if err != nil {
+			return err
+		}
+		ds.Transform.Steps = steps
+	}
+
+	runner := NewStepRunner(ds, opts...)
+	for _, step := range ds.Transform.Steps {
+		if err := runner.RunStep(ctx, ds, step); err != nil {
+			return err
+		}
+	}
+	return nil
 }

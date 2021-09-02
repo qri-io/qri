@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/stepfile"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/transform/startf"
@@ -70,10 +70,9 @@ func (t *Transformer) Apply(
 	target *dataset.Dataset,
 	runID string,
 	wait bool,
-	scriptOut io.Writer,
 	secrets map[string]string,
 ) error {
-	return t.apply(ctx, target, runID, wait, scriptOut, secrets, RMApply)
+	return t.apply(ctx, target, runID, wait, secrets, RMApply)
 }
 
 // Commit applies the transform script to a target dataset, associating all
@@ -83,10 +82,9 @@ func (t *Transformer) Commit(
 	target *dataset.Dataset,
 	runID string,
 	wait bool,
-	scriptOut io.Writer,
 	secrets map[string]string,
 ) error {
-	return t.apply(ctx, target, runID, wait, scriptOut, secrets, RMCommit)
+	return t.apply(ctx, target, runID, wait, secrets, RMCommit)
 }
 
 func (t *Transformer) apply(
@@ -94,7 +92,6 @@ func (t *Transformer) apply(
 	target *dataset.Dataset,
 	runID string,
 	wait bool,
-	scriptOut io.Writer,
 	secrets map[string]string,
 	runMode string,
 ) error {
@@ -138,7 +135,6 @@ func (t *Transformer) apply(
 	eventsCh := make(chan event.Event)
 
 	opts := []func(*startf.ExecOpts){
-		startf.SetErrWriter(scriptOut),
 		startf.SetSecrets(secrets),
 		startf.AddDatasetLoader(t.loader),
 		startf.AddEventsChannel(eventsCh),
@@ -186,30 +182,14 @@ func (t *Transformer) apply(
 			status = StatusSucceeded
 		)
 
-		// Single-file transform scripts do not have steps, should be executed all at once.
-		if len(target.Transform.Steps) == 0 {
-			runErr = startf.ExecScript(ctx, target, opts...)
-			if runErr != nil {
-				status = StatusFailed
-				eventsCh <- event.Event{
-					Type: event.ETTransformError,
-					Payload: event.TransformMessage{
-						Lvl:  event.TransformMsgLvlError,
-						Msg:  runErr.Error(),
-						Mode: runMode,
-					},
-				}
+		// Convert single-file transform scripts to steps
+		if len(target.Transform.Steps) == 0 && target.Transform.ScriptFile() != nil {
+			steps, err := stepfile.Read(target.Transform.ScriptFile())
+			if err != nil {
+				doneCh <- err
+				return
 			}
-
-			eventsCh <- event.Event{
-				Type: event.ETTransformStop,
-				Payload: event.TransformLifecycle{
-					Status: status,
-					Mode:   runMode,
-				},
-			}
-			doneCh <- runErr
-			return
+			target.Transform.Steps = steps
 		}
 
 		// Run each step using a StepRunner

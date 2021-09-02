@@ -1,7 +1,6 @@
 package transform
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"testing"
@@ -126,7 +125,6 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform, runMode string
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	scriptOut := &bytes.Buffer{}
 	loader := &noHistoryLoader{}
 	target := &dataset.Dataset{Transform: tf}
 
@@ -146,11 +144,11 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform, runMode string
 
 	transformer := NewTransformer(ctx, loader, bus)
 	if runMode == "apply" {
-		if err := transformer.Apply(ctx, target, runID, false, scriptOut, nil); err != nil {
+		if err := transformer.Apply(ctx, target, runID, false, nil); err != nil {
 			t.Fatal(err)
 		}
 	} else {
-		if err := transformer.Commit(ctx, target, runID, false, scriptOut, nil); err != nil {
+		if err := transformer.Commit(ctx, target, runID, false, nil); err != nil {
 			t.Fatal(err)
 		}
 	}
