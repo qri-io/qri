@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
+	"github.com/qri-io/dataset/stepfile"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
@@ -211,8 +212,12 @@ func scriptFileSelection(ds *dataset.Dataset, selector string) (qfs.File, bool) 
 	if parts[1] != "script" {
 		return nil, false
 	}
-	if parts[0] == "transform" && ds.Transform != nil && ds.Transform.ScriptFile() != nil {
-		return ds.Transform.ScriptFile(), true
+	if parts[0] == "transform" && ds.Transform != nil {
+		buf := &bytes.Buffer{}
+		if err := stepfile.Write(ds.Transform.Steps, buf); err != nil {
+			log.Error("reading transform selector: %w", err)
+		}
+		return qfs.NewMemfileReader("transform", buf), true
 	} else if parts[0] == "readme" && ds.Readme != nil && ds.Readme.ScriptFile() != nil {
 		return ds.Readme.ScriptFile(), true
 	} else if parts[0] == "viz" && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
@@ -1008,7 +1013,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		// apply the transform
 		shouldWait := true
 		transformer := transform.NewTransformer(scope.AppContext(), scope.Loader(), scope.Bus())
-		if err := transformer.Commit(scope.Context(), ds, runID, shouldWait, scriptOut, secrets); err != nil {
+		if err := transformer.Commit(scope.Context(), ds, runID, shouldWait, secrets); err != nil {
 			log.Errorw("transform run error", "err", err.Error())
 			runState.Message = err.Error()
 			if err := scope.Logbook().WriteTransformRun(scope.Context(), scope.ActiveProfile(), ref.InitID, runState); err != nil {

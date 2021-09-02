@@ -17,7 +17,7 @@
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmZue7gzXjEg9hxAtjZXXw7hwkXqCZBMVB32yLS1b7AHac",
+  "path": "/ipfs/QmYSGrEPaBtC6a8MDRB6EkbAuXCDYcZxyUtmdAw3PBXL8m",
   "previousPath": "/ipfs/QmfSR1yRPszTNeBrHug3SDZaUsrJHFLGeezVp3T9Hfh1gN",
   "qri": "ds:0",
   "structure": {
@@ -104,10 +104,15 @@
   },
   "transform": {
     "qri": "tf:0",
-    "scriptPath": "/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN",
-    "text": "# transform that doesn't change anything.\ndef transform(ds, ctx):\n  print(\"hello Qri! \\n\")",
-    "syntax": "starlark",
-    "syntaxVersion": "test_version"
+    "scriptPath": "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH",
+    "steps": [
+      {
+        "name": "",
+        "syntax": "starlark",
+        "category": "",
+        "script": "# transform that doesn't change anything.\nds = dataset.latest()\nprint(\"hello Qri! \\n\")\ndataset.commit(ds)"
+      }
+    ]
   },
   "viz": {
     "format": "html",

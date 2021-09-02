@@ -1,3 +1,4 @@
 # transform that doesn't change anything.
-def transform(ds, ctx):
-  print("hello Qri! \n")
+ds = dataset.latest()
+print("hello Qri! \n")
+dataset.commit(ds)

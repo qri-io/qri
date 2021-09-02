@@ -33,15 +33,13 @@
 				"steps": [
 					{
 					  "syntax":"starlark",
-					  "category":"setup",
 					  "name":"setup",
-					  "script":"# load starlark dependencies\nload(\"encoding/csv.star\", \"csv\")\nload(\"time.star\", \"time\")\n"
+					  "script":"# load starlark dependencies\nload(\"encoding/csv.star\", \"csv\")\nload(\"time.star\", \"time\")\nds = dataset.latest()"
 					},
 					{
 					  "syntax":"starlark",
-					  "category":"transform",
 					  "name":"transform",
-					  "script":"# set the body\ndef transform(ds, ctx):\n  currentTime = time.now()\n  body = [\n    ['timestamp']\n  ]\n  body.append([str(currentTime)])\n  theCSV = csv.write_all(body)\n\n  ds.set_body(theCSV, parse_as='csv')\n"
+					  "script":"currentTime = time.now()\nbody = [\n    ['timestamp']\n  ]\n  body.append([str(currentTime)])\ntheCSV = csv.write_all(body)\n\nds.set_body(theCSV, parse_as='csv')\ndataset.commit(ds)"
 					}
 				]
 			}
