@@ -374,8 +374,8 @@ func (d *Dscache) updateChangeCursor(act dsref.VersionInfo) error {
 			// Start building a ref object, by mutating an existing ref object.
 			refStartMutationFunc(builder)
 			// Add only the fields we want to change.
-			dscachefb.RefEntryInfoAddTopIndex(builder, int32(act.NumVersions))
-			dscachefb.RefEntryInfoAddCursorIndex(builder, int32(act.NumVersions))
+			dscachefb.RefEntryInfoAddTopIndex(builder, int32(act.CommitCount))
+			dscachefb.RefEntryInfoAddCursorIndex(builder, int32(act.CommitCount))
 			dscachefb.RefEntryInfoAddMetaTitle(builder, metaTitle)
 			dscachefb.RefEntryInfoAddCommitTime(builder, act.CommitTime.Unix())
 			dscachefb.RefEntryInfoAddBodySize(builder, int64(act.BodySize))
@@ -429,7 +429,7 @@ func convertEntryToVersionInfo(r *dscachefb.RefEntryInfo) dsref.VersionInfo {
 		BodyFormat:  string(r.BodyFormat()),
 		NumErrors:   int(r.NumErrors()),
 		CommitTime:  time.Unix(r.CommitTime(), 0),
-		NumVersions: int(r.NumVersions()),
+		CommitCount: int(r.CommitCount()),
 	}
 }
 

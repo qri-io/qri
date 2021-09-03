@@ -557,7 +557,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, author *profile.Profile,
 	}
 
 	info := dsref.ConvertDatasetToVersionInfo(ds)
-	info.NumVersions = topIndex
+	info.CommitCount = topIndex
 
 	if err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, info); err != nil {
 		log.Error(err)
@@ -694,7 +694,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, author *profile.Profil
 	if len(items) > 0 {
 		lastItem := items[len(items)-1]
 		lastItem.InitID = initID
-		lastItem.NumVersions = len(items)
+		lastItem.CommitCount = len(items)
 
 		if err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, lastItem); err != nil {
 			log.Error(err)

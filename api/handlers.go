@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/archive"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -38,6 +40,7 @@ func GetBodyCSVHandler(inst *lib.Instance) http.HandlerFunc {
 			util.RespondWithError(w, err)
 			return
 		}
+		publishDownloadEvent(r.Context(), inst, p.Ref)
 		writeFileResponse(w, outBytes, "body.csv", "csv")
 	}
 }
@@ -71,6 +74,8 @@ func GetHandler(inst *lib.Instance, routePrefix string) http.HandlerFunc {
 				util.RespondWithError(w, err)
 				return
 			}
+
+			publishDownloadEvent(r.Context(), inst, p.Ref)
 			writeFileResponse(w, outBytes, "body.csv", "csv")
 			return
 
@@ -87,6 +92,7 @@ func GetHandler(inst *lib.Instance, routePrefix string) http.HandlerFunc {
 				util.RespondWithError(w, err)
 				return
 			}
+			publishDownloadEvent(r.Context(), inst, p.Ref)
 			writeFileResponse(w, zipResults.Bytes, zipResults.GeneratedName, "zip")
 			return
 
@@ -191,4 +197,13 @@ func arrayContains(subject []string, target string) bool {
 		}
 	}
 	return false
+}
+
+func publishDownloadEvent(ctx context.Context, inst *lib.Instance, refStr string) {
+	ref, _, err := inst.ParseAndResolveRef(ctx, refStr, "local")
+	if err != nil {
+		log.Debugw("api.GetBodyCSVHandler - unable to resolve ref %q", err)
+		return
+	}
+	inst.Bus().Publish(ctx, event.ETDatasetDownload, ref.InitID)
 }

@@ -138,12 +138,12 @@ func (vis versionInfoStringer) String() string {
 	} else {
 		fmt.Fprintf(w, ", %d errors", vis.NumErrors)
 	}
-	if vis.NumVersions == 0 {
+	if vis.CommitCount == 0 {
 		// nothing
-	} else if vis.NumVersions == 1 {
-		fmt.Fprintf(w, ", %d version", vis.NumVersions)
+	} else if vis.CommitCount == 1 {
+		fmt.Fprintf(w, ", %d version", vis.CommitCount)
 	} else {
-		fmt.Fprintf(w, ", %d versions", vis.NumVersions)
+		fmt.Fprintf(w, ", %d versions", vis.CommitCount)
 	}
 
 	fmt.Fprintf(w, "\n\n")

@@ -2,6 +2,7 @@ package collection_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -112,7 +113,6 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 			t.Fatalf("error adding items: %s", err)
 		}
 	})
-
 	t.Run("list", func(t *testing.T) {
 		assertCollectionList(ctx, t, kermit, params.ListAll, ec, []dsref.VersionInfo{
 			{
@@ -189,6 +189,40 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, ec, []dsref.VersionInfo{})
 	})
+
+	t.Run("get", func(t *testing.T) {
+		muppetDSInitID := "muppet_DS_init_id"
+		expect := &dsref.VersionInfo{
+			ProfileID:  kermit.ID.Encode(),
+			InitID:     muppetDSInitID,
+			Username:   "kermit",
+			Name:       "muppet_names",
+			CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+		}
+		err = ec.Add(ctx, kermit.ID, *expect)
+		if err != nil {
+			t.Fatalf("error adding items: %s", err)
+		}
+
+		got, err := ec.Get(ctx, kermit.ID, muppetDSInitID)
+		if err != nil {
+			t.Fatalf("error getting version info: %s", err)
+		}
+		if diff := cmp.Diff(expect, got); diff != "" {
+			t.Errorf("collection get version info mismatch (-want +got):\n%s", diff)
+		}
+
+		got, err = ec.Get(ctx, kermit.ID, "bad_init_id")
+		if !errors.Is(err, collection.ErrNotFound) {
+			t.Errorf("error mismatch, expected %q, got %q", collection.ErrNotFound, err)
+		}
+
+		got, err = ec.Get(ctx, missPiggy.ID, muppetDSInitID)
+		if !errors.Is(err, collection.ErrNotFound) {
+			t.Errorf("error mismatch, expected %q, got %q", collection.ErrNotFound, err)
+		}
+	})
+
 }
 
 // AssertCollectionEventListenerSpec defines expected behaviours for collections
@@ -241,6 +275,11 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		}
 		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
+		// simulate dataset download
+		mustPublish(ctx, t, bus, event.ETDatasetDownload, muppetNamesInitID)
+		expect[0].DownloadCount = 1
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
+
 		// simulate version creation
 		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
 			InitID:      muppetNamesInitID,
@@ -248,7 +287,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 			Path:        "/mem/PathToMuppetNamesVersionOne",
 			Username:    kermit.Peername,
 			Name:        muppetNamesName1,
-			NumVersions: 2,
+			CommitCount: 2,
 			BodySize:    20,
 		})
 
@@ -258,7 +297,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 				ProfileID:   kermit.ID.Encode(),
 				Username:    kermit.Peername,
 				Name:        muppetNamesName1,
-				NumVersions: 2,
+				CommitCount: 2,
 				Path:        "/mem/PathToMuppetNamesVersionOne",
 				BodySize:    20,
 			},
@@ -278,7 +317,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 				ProfileID:   kermit.ID.Encode(),
 				Username:    kermit.Peername,
 				Name:        muppetNamesName2,
-				NumVersions: 2,
+				CommitCount: 2,
 				Path:        "/mem/PathToMuppetNamesVersionOne",
 				BodySize:    20,
 			},
@@ -329,6 +368,58 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		// assert default ordering of datasets
 	})
 
+	t.Run("user_1_remote_actions", func(t *testing.T) {
+		muppetNamesInitID := "initID"
+		muppetNamesName1 := "muppet_names"
+
+		// initialize a dataset with the given name, initID, and profileID
+		mustPublish(ctx, t, bus, event.ETDatasetNameInit, dsref.VersionInfo{
+			InitID:    muppetNamesInitID,
+			ProfileID: kermit.ID.Encode(),
+			Username:  kermit.Peername,
+			Name:      muppetNamesName1,
+		})
+
+		expect := []dsref.VersionInfo{
+			{
+				InitID:    muppetNamesInitID,
+				ProfileID: kermit.ID.Encode(),
+				Username:  kermit.Peername,
+				Name:      muppetNamesName1,
+			},
+		}
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
+
+		// simulate that someone has followed the dataset
+		mustPublish(ctx, t, bus, event.ETRemoteDatasetFollowed, muppetNamesInitID)
+		expect[0].FollowerCount = 1
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
+
+		// simulate that someone has unfollowed the dataset
+		mustPublish(ctx, t, bus, event.ETRemoteDatasetUnfollowed, muppetNamesInitID)
+		expect[0].FollowerCount = 0
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
+
+		// simulate that someone has opened an issue on the dataset
+		mustPublish(ctx, t, bus, event.ETRemoteDatasetIssueOpened, muppetNamesInitID)
+		expect[0].OpenIssueCount = 1
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
+
+		// simulate that someone has closed an issue on the dataset
+		mustPublish(ctx, t, bus, event.ETRemoteDatasetIssueClosed, muppetNamesInitID)
+		expect[0].OpenIssueCount = 0
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
+
+		// dataset deleted using a scope associated with the owning profile
+		{
+			scopedCtx := profile.AddIDToContext(ctx, kermit.ID.Encode())
+			mustPublish(scopedCtx, t, bus, event.ETDatasetDeleteAll, muppetNamesInitID)
+		}
+
+		expect = []dsref.VersionInfo{}
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
+	})
+
 	t.Run("user_1_ordering_and_filtering", func(t *testing.T) {
 		t.Skip("TODO (b5): add a third dataset")
 	})
@@ -346,7 +437,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 
 		mustPublish(ctx, t, bus, event.ETDatasetNameInit, dsref.VersionInfo{
 			InitID:      missPiggyDatasetInitID,
-			NumVersions: 1,
+			CommitCount: 1,
 			Path:        "/mem/PathToMissPiggyDatasetVersionOne",
 			ProfileID:   missPiggy.ID.Encode(),
 			Username:    missPiggy.Peername,
@@ -359,7 +450,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 				ProfileID:   missPiggy.ID.Encode(),
 				Username:    missPiggy.Peername,
 				Name:        missPiggyDatasetName,
-				NumVersions: 1,
+				CommitCount: 1,
 				Path:        "/mem/PathToMissPiggyDatasetVersionOne",
 			},
 		}
@@ -379,13 +470,13 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 
 		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
 			InitID:      missPiggyDatasetInitID,
-			NumVersions: 2,
+			CommitCount: 2,
 			Path:        "/mem/PathToMissPiggyDatasetVersionTwo",
 			ProfileID:   missPiggy.ID.Encode(),
 			Username:    missPiggy.Peername,
 			Name:        missPiggyDatasetName,
 		})
-		expect[0].NumVersions = 2
+		expect[0].CommitCount = 2
 		expect[0].Path = "/mem/PathToMissPiggyDatasetVersionTwo"
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, s, expect)
 

@@ -56,11 +56,16 @@ func (sm *SetMaintainer) subscribe(bus event.Bus) {
 		event.ETDatasetCommitChange,
 		event.ETDatasetRename,
 		event.ETDatasetDeleteAll,
+		event.ETDatasetDownload,
 
 		// remote & registry events
 		event.ETDatasetPushed,
 		event.ETDatasetPulled,
 		event.ETRegistryProfileCreated,
+		event.ETRemoteDatasetFollowed,
+		event.ETRemoteDatasetUnfollowed,
+		event.ETRemoteDatasetIssueOpened,
+		event.ETRemoteDatasetIssueClosed,
 
 		// automation events
 		event.ETAutomationWorkflowStarted,
@@ -116,6 +121,12 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 				}
 			}
 		}
+	case event.ETDatasetDownload:
+		if initID, ok := e.Payload.(string); ok {
+			sm.UpdateEverywhere(ctx, initID, func(vi *dsref.VersionInfo) {
+				vi.DownloadCount++
+			})
+		}
 	case event.ETRegistryProfileCreated:
 		if p, ok := e.Payload.(event.RegistryProfileCreated); ok {
 			pid, err := profile.IDB58Decode(p.ProfileID)
@@ -139,6 +150,36 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 					log.Debugw("adding dataset to collection", "profileID", pid, "initID", vi.InitID, "err", err)
 				}
 			}
+		}
+	case event.ETRemoteDatasetFollowed:
+		if initID, ok := e.Payload.(string); ok {
+			sm.UpdateEverywhere(ctx, initID, func(vi *dsref.VersionInfo) {
+				vi.FollowerCount++
+			})
+		}
+	case event.ETRemoteDatasetUnfollowed:
+		if initID, ok := e.Payload.(string); ok {
+			sm.UpdateEverywhere(ctx, initID, func(vi *dsref.VersionInfo) {
+				vi.FollowerCount--
+				if vi.FollowerCount < 0 {
+					vi.FollowerCount = 0
+				}
+			})
+		}
+	case event.ETRemoteDatasetIssueOpened:
+		if initID, ok := e.Payload.(string); ok {
+			sm.UpdateEverywhere(ctx, initID, func(vi *dsref.VersionInfo) {
+				vi.OpenIssueCount++
+			})
+		}
+	case event.ETRemoteDatasetIssueClosed:
+		if initID, ok := e.Payload.(string); ok {
+			sm.UpdateEverywhere(ctx, initID, func(vi *dsref.VersionInfo) {
+				vi.OpenIssueCount--
+				if vi.OpenIssueCount < 0 {
+					vi.OpenIssueCount = 0
+				}
+			})
 		}
 	case event.ETAutomationWorkflowStarted:
 		if evt, ok := e.Payload.(event.WorkflowStartedEvent); ok {
@@ -194,7 +235,7 @@ type Set interface {
 	// List the collection of a single user
 	List(ctx context.Context, pid profile.ID, lp params.List) ([]dsref.VersionInfo, error)
 	// Get info about a single dataset in a single user's collection
-	Get(ctx context.Context, pid profile.ID, initID string) (dsref.VersionInfo, error)
+	Get(ctx context.Context, pid profile.ID, initID string) (*dsref.VersionInfo, error)
 	// Add adds a dataset or datasets to a user's collection
 	Add(ctx context.Context, pid profile.ID, add ...dsref.VersionInfo) error
 	// RenameUser changes a user's name
@@ -312,24 +353,24 @@ func (s *localSet) List(ctx context.Context, pid profile.ID, lp params.List) ([]
 	return results, nil
 }
 
-func (s *localSet) Get(ctx context.Context, pid profile.ID, initID string) (dsref.VersionInfo, error) {
+func (s *localSet) Get(ctx context.Context, pid profile.ID, initID string) (*dsref.VersionInfo, error) {
 	s.Lock()
 	defer s.Unlock()
 
 	if err := pid.Validate(); err != nil {
-		return dsref.VersionInfo{}, err
+		return nil, err
 	}
 
 	collection, ok := s.collections[pid]
 	if !ok {
-		return dsref.VersionInfo{}, fmt.Errorf("%w: no collection for profile ID %q", ErrNotFound, pid.Encode())
+		return nil, fmt.Errorf("%w: no collection for profile ID %q", ErrNotFound, pid.Encode())
 	}
 	for _, vi := range collection {
 		if vi.InitID == initID {
-			return vi, nil
+			return &vi, nil
 		}
 	}
-	return dsref.VersionInfo{}, ErrNotFound
+	return nil, ErrNotFound
 }
 
 func (s *localSet) Add(ctx context.Context, pid profile.ID, items ...dsref.VersionInfo) error {

@@ -79,10 +79,6 @@ type VersionInfo struct {
 	// Message field from the commit
 	CommitMessage string `json:"commitMessage,omitempty"`
 	//
-	// About the dataset's history and location
-	//
-	// Number of versions that the dataset has
-	NumVersions int `json:"numVersions,omitempty"`
 	//
 	// Workflow fields
 	//
@@ -106,6 +102,29 @@ type VersionInfo struct {
 	// RunDuration is not stored on a dataset version, and instead must come from
 	// either run state or a cache of run state
 	RunDuration int64 `json:"runDuration,omitempty"`
+	//
+	//
+	// Aggregate Fields
+	// TODO (ramfox): These fields are only temporarily living on `VersionInfo`.
+	// They are needed by the frontend to display "details" about the head of
+	// of the dataset. When we get more user feedback and settle what info
+	// users want about their datasets, these fields may move to a new struct
+	// store, or subsystem.
+	// These fields are not derived from any `dataset.Dataset` fields.
+	// These fields should only be used in the `collection` package.
+	//
+	// RunCount is the number of times this dataset's transform has been run
+	RunCount int `json:"runCount,omitempty"`
+	// CommitCount is the number of commits in this dataset's history
+	CommitCount int `json:"commitCount,omitempty"`
+	// DownloadCount is the number of times this dataset has been directly
+	// downloaded from this Qri node
+	DownloadCount int `json:"downloadCount,omitempty"`
+	// FollowerCount is the number of followers this dataset has on this Qri node
+	FollowerCount int `json:"followerCount,omitempty"`
+	// OpenIssueCount is the number of open issues this dataset has on this
+	// Qri node
+	OpenIssueCount int `json:"openIssueCount,omitempty"`
 }
 
 // NewVersionInfoFromRef creates a sparse-populated VersionInfo from a dsref.Ref

@@ -120,6 +120,49 @@ func compareVersionInfoAsSimple(a, b dsref.VersionInfo) error {
 	return nil
 }
 
+func TestGetFromCollection(t *testing.T) {
+	tr := newTestRunner(t)
+	defer tr.Delete()
+
+	// Save a dataset with a body
+	_, err := tr.SaveWithParams(&SaveParams{
+		Ref:      "me/cities_ds",
+		BodyPath: "testdata/cities_2/body.csv",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// get from the repo
+	ds := tr.MustGet(t, "me/cities_ds")
+	expect := dsref.ConvertDatasetToVersionInfo(ds)
+	pro, err := tr.Instance.activeProfile(tr.Ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect.ProfileID = pro.ID.Encode()
+	expect.CommitCount = 1
+
+	// fetch from the collection
+	got, err := tr.Instance.Collection().Get(tr.Ctx, &CollectionGetParams{Ref: "me/cities_ds"})
+	if err != nil {
+		t.Fatalf("error getting from collection by ref: %s", err)
+	}
+
+	if diff := cmp.Diff(expect, *got); diff != "" {
+		t.Errorf("get from collection mistmatch (-want +got):\n%s", diff)
+	}
+
+	got, err = tr.Instance.Collection().Get(tr.Ctx, &CollectionGetParams{InitID: expect.InitID})
+	if err != nil {
+		t.Fatalf("error getting from collection by initID: %s", err)
+	}
+
+	if diff := cmp.Diff(expect, *got); diff != "" {
+		t.Errorf("get from collection mistmatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestDatasetRequestsListP2p(t *testing.T) {
 	ctx, done := context.WithCancel(context.Background())
 	defer done()

@@ -16,6 +16,9 @@ const (
 	// ETDatasetCreateLink occurs when a dataset gets linked to a working directory
 	// payload is a dsref.VersionInfo
 	ETDatasetCreateLink = Type("dataset:CreateLink")
+	// ETDatasetDownload indicates that a dataset has been downloaded
+	// payload is an `InitID` string
+	ETDatasetDownload = Type("dataset:Download")
 
 	// ETDatasetSaveStarted occurs when a dataset starts being saved
 	// this event is sent asynchronously; the publisher is not blocked
