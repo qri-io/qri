@@ -179,7 +179,7 @@ func (t *Transformer) apply(
 			}
 		}()
 
-		eventsCh <- event.Event{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: len(target.Transform.Steps)}}
+		eventsCh <- event.Event{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: len(target.Transform.Steps), Mode: runMode}}
 
 		var (
 			runErr error
@@ -194,8 +194,9 @@ func (t *Transformer) apply(
 				eventsCh <- event.Event{
 					Type: event.ETTransformError,
 					Payload: event.TransformMessage{
-						Lvl: event.TransformMsgLvlError,
-						Msg: runErr.Error(),
+						Lvl:  event.TransformMsgLvlError,
+						Msg:  runErr.Error(),
+						Mode: runMode,
 					},
 				}
 			}
@@ -204,6 +205,7 @@ func (t *Transformer) apply(
 				Type: event.ETTransformStop,
 				Payload: event.TransformLifecycle{
 					Status: status,
+					Mode:   runMode,
 				},
 			}
 			doneCh <- runErr
@@ -220,6 +222,7 @@ func (t *Transformer) apply(
 					Payload: event.TransformStepLifecycle{
 						Name:     step.Name,
 						Category: step.Category,
+						Mode:     runMode,
 					},
 				}
 				continue
@@ -230,6 +233,7 @@ func (t *Transformer) apply(
 				Payload: event.TransformStepLifecycle{
 					Name:     step.Name,
 					Category: step.Category,
+					Mode:     runMode,
 				},
 			}
 
@@ -241,8 +245,9 @@ func (t *Transformer) apply(
 					eventsCh <- event.Event{
 						Type: event.ETTransformError,
 						Payload: event.TransformMessage{
-							Lvl: event.TransformMsgLvlError,
-							Msg: runErr.Error(),
+							Lvl:  event.TransformMsgLvlError,
+							Msg:  runErr.Error(),
+							Mode: runMode,
 						},
 					}
 					status = StatusFailed
@@ -256,8 +261,9 @@ func (t *Transformer) apply(
 					eventsCh <- event.Event{
 						Type: event.ETTransformError,
 						Payload: event.TransformMessage{
-							Lvl: event.TransformMsgLvlError,
-							Msg: fmt.Sprintf("unsupported transform syntax %q", step.Syntax),
+							Lvl:  event.TransformMsgLvlError,
+							Msg:  fmt.Sprintf("unsupported transform syntax %q", step.Syntax),
+							Mode: runMode,
 						},
 					}
 					status = StatusFailed
@@ -270,6 +276,7 @@ func (t *Transformer) apply(
 					Name:     step.Name,
 					Category: step.Category,
 					Status:   status,
+					Mode:     runMode,
 				},
 			}
 		}
@@ -278,6 +285,7 @@ func (t *Transformer) apply(
 			Type: event.ETTransformStop,
 			Payload: event.TransformLifecycle{
 				Status: status,
+				Mode:   runMode,
 			},
 		}
 		doneCh <- runErr

@@ -30,16 +30,16 @@ func TestApply(t *testing.T) {
 				},
 			},
 			[]event.Event{
-				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: 3}},
-				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "setup"}},
+				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: 3, Mode: "apply"}},
+				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "setup", Mode: "apply"}},
 				{Type: event.ETTransformPrint, Payload: event.TransformMessage{Msg: "oh, hello!"}},
-				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "setup", Status: StatusSucceeded}},
-				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "download"}},
-				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "download", Status: StatusSucceeded}},
-				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "transform"}},
+				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "setup", Status: StatusSucceeded, Mode: "apply"}},
+				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "download", Mode: "apply"}},
+				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "download", Status: StatusSucceeded, Mode: "apply"}},
+				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "transform", Mode: "apply"}},
 				{Type: event.ETTransformDatasetPreview, Payload: threeStepDatasetPreview},
-				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "transform", Status: StatusSucceeded}},
-				{Type: event.ETTransformStop, Payload: event.TransformLifecycle{Status: StatusSucceeded}},
+				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "transform", Status: StatusSucceeded, Mode: "apply"}},
+				{Type: event.ETTransformStop, Payload: event.TransformLifecycle{Status: StatusSucceeded, Mode: "apply"}},
 			},
 		},
 
@@ -50,18 +50,71 @@ func TestApply(t *testing.T) {
 				},
 			},
 			[]event.Event{
-				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: 1}},
-				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "setup"}},
-				{Type: event.ETTransformError, Payload: event.TransformMessage{Lvl: event.TransformMsgLvlError, Msg: "Traceback (most recent call last):\n  .star:1:6: in <toplevel>\nError in error: transform error: \"dang, it broke.\""}},
-				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "setup", Status: StatusFailed}},
-				{Type: event.ETTransformStop, Payload: event.TransformLifecycle{Status: StatusFailed}},
+				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: 1, Mode: "apply"}},
+				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "setup", Mode: "apply"}},
+				{Type: event.ETTransformError, Payload: event.TransformMessage{Lvl: event.TransformMsgLvlError, Msg: "Traceback (most recent call last):\n  .star:1:6: in <toplevel>\nError in error: transform error: \"dang, it broke.\"", Mode: "apply"}},
+				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "setup", Status: StatusFailed, Mode: "apply"}},
+				{Type: event.ETTransformStop, Payload: event.TransformLifecycle{Status: StatusFailed, Mode: "apply"}},
 			},
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			log := applyNoHistoryTransform(t, c.tf)
+			log := applyNoHistoryTransform(t, c.tf, "apply")
+			compareEventLogs(t, c.expect, log)
+		})
+	}
+}
+
+func TestCommit(t *testing.T) {
+	cases := []struct {
+		name   string
+		tf     *dataset.Transform
+		expect []event.Event
+	}{
+
+		{"three_step_success",
+			&dataset.Transform{
+				Steps: []*dataset.TransformStep{
+					{Syntax: "starlark", Category: "setup", Script: `print("oh, hello!")`},
+					{Syntax: "starlark", Category: "download", Script: "def download(ctx):\n\treturn"},
+					{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.set_body([[1,2,3]])"},
+				},
+			},
+			[]event.Event{
+				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: 3, Mode: "commit"}},
+				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "setup", Mode: "commit"}},
+				{Type: event.ETTransformPrint, Payload: event.TransformMessage{Msg: "oh, hello!"}},
+				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "setup", Status: StatusSucceeded, Mode: "commit"}},
+				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "download", Mode: "commit"}},
+				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "download", Status: StatusSucceeded, Mode: "commit"}},
+				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "transform", Mode: "commit"}},
+				{Type: event.ETTransformDatasetPreview, Payload: threeStepDatasetPreview},
+				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "transform", Status: StatusSucceeded, Mode: "commit"}},
+				{Type: event.ETTransformStop, Payload: event.TransformLifecycle{Status: StatusSucceeded, Mode: "commit"}},
+			},
+		},
+
+		{"one_step_error",
+			&dataset.Transform{
+				Steps: []*dataset.TransformStep{
+					{Syntax: "starlark", Category: "setup", Script: `error("dang, it broke.")`},
+				},
+			},
+			[]event.Event{
+				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: 1, Mode: "commit"}},
+				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "setup", Mode: "commit"}},
+				{Type: event.ETTransformError, Payload: event.TransformMessage{Lvl: event.TransformMsgLvlError, Msg: "Traceback (most recent call last):\n  .star:1:6: in <toplevel>\nError in error: transform error: \"dang, it broke.\"", Mode: "commit"}},
+				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "setup", Status: StatusFailed, Mode: "commit"}},
+				{Type: event.ETTransformStop, Payload: event.TransformLifecycle{Status: StatusFailed, Mode: "commit"}},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			log := applyNoHistoryTransform(t, c.tf, "commit")
 			compareEventLogs(t, c.expect, log)
 		})
 	}
@@ -69,7 +122,7 @@ func TestApply(t *testing.T) {
 
 // run a transform script & capture the event log. transform runs against an
 // empty dataset history
-func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event {
+func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform, runMode string) []event.Event {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -92,8 +145,14 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform) []event.Event 
 	}, runID)
 
 	transformer := NewTransformer(ctx, loader, bus)
-	if err := transformer.Apply(ctx, target, runID, false, scriptOut, nil); err != nil {
-		t.Fatal(err)
+	if runMode == "apply" {
+		if err := transformer.Apply(ctx, target, runID, false, scriptOut, nil); err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		if err := transformer.Commit(ctx, target, runID, false, scriptOut, nil); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	<-doneCh
