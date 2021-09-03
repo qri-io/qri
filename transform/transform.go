@@ -36,6 +36,17 @@ const (
 	StatusSkipped = "skipped"
 )
 
+const (
+	// RMApply indicates the transform was executed as an "apply"
+	// meaning, the transform was run with no intension to save the
+	// output dataset
+	RMApply = "apply"
+	// RMCommit indicates the transform was executed as a "commit"
+	// meaning, the transform was run with the intension to save the
+	// output dataset
+	RMCommit = "commit"
+)
+
 // Transformer holds dependencies needed for applying a transform
 type Transformer struct {
 	appCtx  context.Context
@@ -61,6 +72,31 @@ func (t *Transformer) Apply(
 	wait bool,
 	scriptOut io.Writer,
 	secrets map[string]string,
+) error {
+	return t.apply(ctx, target, runID, wait, scriptOut, secrets, RMApply)
+}
+
+// Commit applies the transform script to a target dataset, associating all
+// events with the "commit" RunMode
+func (t *Transformer) Commit(
+	ctx context.Context,
+	target *dataset.Dataset,
+	runID string,
+	wait bool,
+	scriptOut io.Writer,
+	secrets map[string]string,
+) error {
+	return t.apply(ctx, target, runID, wait, scriptOut, secrets, RMCommit)
+}
+
+func (t *Transformer) apply(
+	ctx context.Context,
+	target *dataset.Dataset,
+	runID string,
+	wait bool,
+	scriptOut io.Writer,
+	secrets map[string]string,
+	runMode string,
 ) error {
 	log.Debugw("applying transform", "runID", runID, "wait", wait)
 
