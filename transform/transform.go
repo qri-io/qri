@@ -179,7 +179,7 @@ func (t *Transformer) apply(
 			}
 		}()
 
-		eventsCh <- event.Event{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: len(target.Transform.Steps), Mode: runMode}}
+		eventsCh <- event.Event{Type: event.ETTransformStart, Payload: event.TransformLifecycle{InitID: target.ID, StepCount: len(target.Transform.Steps), Mode: runMode}}
 
 		var (
 			runErr error

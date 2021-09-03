@@ -36,6 +36,7 @@ type TransformLifecycle struct {
 	StepCount int    `json:"stepCount"`
 	Status    string `json:"status,omitempty"`
 	Mode      string `json:"mode,omitempty"`
+	InitID    string `json:"initID,omitempty"`
 }
 
 // TransformStepLifecycle describes the state of transform step execution at a

@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/profile"
 	profiletest "github.com/qri-io/qri/profile/test"
+	"github.com/qri-io/qri/transform"
 )
 
 // Constructor is a function for creating collections, used by spec tests
@@ -278,6 +279,11 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		// simulate dataset download
 		mustPublish(ctx, t, bus, event.ETDatasetDownload, muppetNamesInitID)
 		expect[0].DownloadCount = 1
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
+
+		// simulate a commit transform
+		mustPublish(ctx, t, bus, event.ETTransformStart, event.TransformLifecycle{Mode: transform.RMCommit, InitID: muppetNamesInitID})
+		expect[0].RunCount = 1
 		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// simulate version creation
