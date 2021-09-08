@@ -72,6 +72,9 @@ func (sm *SetMaintainer) subscribe(bus event.Bus) {
 		event.ETAutomationWorkflowStopped,
 		event.ETAutomationWorkflowCreated,
 		event.ETAutomationWorkflowRemoved,
+
+		// transform events
+		event.ETTransformStart,
 	)
 }
 
@@ -218,6 +221,17 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 
 			if err != nil {
 				log.Debugw("updating dataset across all collections", "InitID", wf.InitID, "err", err)
+			}
+		}
+	case event.ETTransformStart:
+		if te, ok := e.Payload.(event.TransformLifecycle); ok {
+			if te.Mode != "apply" {
+				err := sm.UpdateEverywhere(ctx, te.InitID, func(vi *dsref.VersionInfo) {
+					vi.RunCount++
+				})
+				if err != nil {
+					log.Debugw("update dataset across all collections", "InitID", te.InitID, "err", err)
+				}
 			}
 		}
 	}
