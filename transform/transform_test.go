@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 )
@@ -30,7 +29,7 @@ func TestApply(t *testing.T) {
 				},
 			},
 			[]event.Event{
-				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: 3, Mode: "apply"}},
+				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{RunID: "three_step_success", StepCount: 3, Mode: "apply"}},
 				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "setup", Mode: "apply"}},
 				{Type: event.ETTransformPrint, Payload: event.TransformMessage{Msg: "oh, hello!"}},
 				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "setup", Status: StatusSucceeded, Mode: "apply"}},
@@ -50,7 +49,7 @@ func TestApply(t *testing.T) {
 				},
 			},
 			[]event.Event{
-				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: 1, Mode: "apply"}},
+				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{RunID: "one_step_error", StepCount: 1, Mode: "apply"}},
 				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "setup", Mode: "apply"}},
 				{Type: event.ETTransformError, Payload: event.TransformMessage{Lvl: event.TransformMsgLvlError, Msg: "Traceback (most recent call last):\n  .star:1:6: in <toplevel>\nError in error: transform error: \"dang, it broke.\"", Mode: "apply"}},
 				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "setup", Status: StatusFailed, Mode: "apply"}},
@@ -61,7 +60,7 @@ func TestApply(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			log := applyNoHistoryTransform(t, c.tf, "apply")
+			log := applyNoHistoryTransform(t, c.tf, c.name, "apply")
 			compareEventLogs(t, c.expect, log)
 		})
 	}
@@ -83,7 +82,7 @@ func TestCommit(t *testing.T) {
 				},
 			},
 			[]event.Event{
-				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: 3, Mode: "commit"}},
+				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{RunID: "three_step_success", StepCount: 3, Mode: "commit"}},
 				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "setup", Mode: "commit"}},
 				{Type: event.ETTransformPrint, Payload: event.TransformMessage{Msg: "oh, hello!"}},
 				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "setup", Status: StatusSucceeded, Mode: "commit"}},
@@ -103,7 +102,7 @@ func TestCommit(t *testing.T) {
 				},
 			},
 			[]event.Event{
-				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{StepCount: 1, Mode: "commit"}},
+				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{RunID: "one_step_error", StepCount: 1, Mode: "commit"}},
 				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Category: "setup", Mode: "commit"}},
 				{Type: event.ETTransformError, Payload: event.TransformMessage{Lvl: event.TransformMsgLvlError, Msg: "Traceback (most recent call last):\n  .star:1:6: in <toplevel>\nError in error: transform error: \"dang, it broke.\"", Mode: "commit"}},
 				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Category: "setup", Status: StatusFailed, Mode: "commit"}},
@@ -114,7 +113,7 @@ func TestCommit(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			log := applyNoHistoryTransform(t, c.tf, "commit")
+			log := applyNoHistoryTransform(t, c.tf, c.name, "commit")
 			compareEventLogs(t, c.expect, log)
 		})
 	}
@@ -122,7 +121,7 @@ func TestCommit(t *testing.T) {
 
 // run a transform script & capture the event log. transform runs against an
 // empty dataset history
-func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform, runMode string) []event.Event {
+func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform, runID, runMode string) []event.Event {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -130,7 +129,6 @@ func applyNoHistoryTransform(t *testing.T, tf *dataset.Transform, runMode string
 	loader := &noHistoryLoader{}
 	target := &dataset.Dataset{Transform: tf}
 
-	runID := run.NewID()
 	bus := event.NewBus(ctx)
 	log := []event.Event{}
 	doneCh := make(chan struct{})

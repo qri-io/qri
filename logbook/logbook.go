@@ -549,7 +549,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, author *profile.Profile,
 		book.appendTransformRun(branchLog, rs)
 	}
 
-	topIndex := book.appendVersionSave(branchLog, ds)
+	book.appendVersionSave(branchLog, ds)
 	// TODO(dlong): Think about how to handle a failure exactly here, what needs to be rolled back?
 	err = book.save(ctx, nil, branchLog)
 	if err != nil {
@@ -557,7 +557,17 @@ func (book *Book) WriteVersionSave(ctx context.Context, author *profile.Profile,
 	}
 
 	info := dsref.ConvertDatasetToVersionInfo(ds)
-	info.CommitCount = topIndex
+	info.CommitCount = 0
+	for _, op := range branchLog.Ops() {
+		if op.Model == CommitModel {
+			info.CommitCount++
+		}
+	}
+	if rs != nil {
+		info.RunID = rs.ID
+		info.RunDuration = rs.Duration
+		info.RunStatus = string(rs.Status)
+	}
 
 	if err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, info); err != nil {
 		log.Error(err)
@@ -587,6 +597,15 @@ func (book *Book) WriteTransformRun(ctx context.Context, author *profile.Profile
 	}
 
 	book.appendTransformRun(branchLog, rs)
+	vi := dsref.VersionInfo{
+		InitID:      initID,
+		RunID:       rs.ID,
+		RunStatus:   string(rs.Status),
+		RunDuration: rs.Duration,
+	}
+	if err = book.publisher.Publish(ctx, event.ETTransformWriteRun, vi); err != nil {
+		log.Error(err)
+	}
 	// TODO(dlong): Think about how to handle a failure exactly here, what needs to be rolled back?
 	return book.save(ctx, nil, branchLog)
 }

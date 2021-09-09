@@ -257,6 +257,8 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		muppetNamesInitID := "initID"
 		muppetNamesName1 := "muppet_names"
 		muppetNamesName2 := "muppet_names_and_ages"
+		muppetNamesRunID1 := "muppet_names_run_id_1"
+		muppetNamesRunID2 := "muppet_names_run_id_2"
 
 		// initialize a dataset with the given name, initID, and profileID
 		mustPublish(ctx, t, bus, event.ETDatasetNameInit, dsref.VersionInfo{
@@ -282,11 +284,19 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// simulate a commit transform
-		mustPublish(ctx, t, bus, event.ETTransformStart, event.TransformLifecycle{Mode: transform.RMCommit, InitID: muppetNamesInitID})
+		mustPublish(ctx, t, bus, event.ETTransformStart, event.TransformLifecycle{RunID: muppetNamesRunID1, Mode: transform.RMCommit, InitID: muppetNamesInitID})
 		expect[0].RunCount = 1
+		expect[0].RunID = muppetNamesRunID1
+		expect[0].RunStatus = "running"
 		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
-		// simulate version creation
+		// simulate a "WriteTransformRun" in logbook
+		// this might occur if a transform has errored or resulted in no changes
+		mustPublish(ctx, t, bus, event.ETTransformWriteRun, dsref.VersionInfo{InitID: muppetNamesInitID, RunID: muppetNamesRunID1, RunStatus: "unchanged", RunDuration: 1000})
+		expect[0].RunStatus = "unchanged"
+		expect[0].RunDuration = 1000
+
+		// simulate version creation with no transform
 		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
 			InitID:      muppetNamesInitID,
 			ProfileID:   kermit.ID.Encode(),
@@ -297,17 +307,30 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 			BodySize:    20,
 		})
 
-		expect = []dsref.VersionInfo{
-			{
-				InitID:      muppetNamesInitID,
-				ProfileID:   kermit.ID.Encode(),
-				Username:    kermit.Peername,
-				Name:        muppetNamesName1,
-				CommitCount: 2,
-				Path:        "/mem/PathToMuppetNamesVersionOne",
-				BodySize:    20,
-			},
-		}
+		expect[0].CommitCount = 2
+		expect[0].BodySize = 20
+		expect[0].Path = "/mem/PathToMuppetNamesVersionOne"
+		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
+
+		// simulate version creation with a transform
+		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
+			InitID:      muppetNamesInitID,
+			ProfileID:   kermit.ID.Encode(),
+			Path:        "/mem/PathToMuppetNamesVersionTwo",
+			Username:    kermit.Peername,
+			Name:        muppetNamesName1,
+			CommitCount: 3,
+			BodySize:    25,
+			RunID:       muppetNamesRunID2,
+			RunStatus:   "success",
+			RunDuration: 2000,
+		})
+		expect[0].Path = "/mem/PathToMuppetNamesVersionTwo"
+		expect[0].CommitCount = 3
+		expect[0].BodySize = 25
+		expect[0].RunID = muppetNamesRunID2
+		expect[0].RunStatus = "success"
+		expect[0].RunDuration = 2000
 		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// simulate dataset being renamed
@@ -317,17 +340,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 			NewName: muppetNamesName2,
 		})
 
-		expect = []dsref.VersionInfo{
-			{
-				InitID:      muppetNamesInitID,
-				ProfileID:   kermit.ID.Encode(),
-				Username:    kermit.Peername,
-				Name:        muppetNamesName2,
-				CommitCount: 2,
-				Path:        "/mem/PathToMuppetNamesVersionOne",
-				BodySize:    20,
-			},
-		}
+		expect[0].Name = muppetNamesName2
 		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// dataset deleted using a scope associated with the owning profile

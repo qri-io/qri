@@ -68,13 +68,12 @@ func (sm *SetMaintainer) subscribe(bus event.Bus) {
 		event.ETRemoteDatasetIssueClosed,
 
 		// automation events
-		event.ETAutomationWorkflowStarted,
-		event.ETAutomationWorkflowStopped,
 		event.ETAutomationWorkflowCreated,
 		event.ETAutomationWorkflowRemoved,
 
 		// transform events
 		event.ETTransformStart,
+		event.ETTransformWriteRun,
 	)
 }
 
@@ -97,11 +96,20 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 		// keep in mind commit changes can mean added OR removed versions
 		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
 			sm.UpdateEverywhere(ctx, vi.InitID, func(m *dsref.VersionInfo) {
-				// preserve workflow id
+				// preserve fields that are not tracked in `ETDatasetCommitChanges`
 				vi.WorkflowID = m.WorkflowID
-				// preserve run information
-				vi.RunID = m.RunID
-				vi.RunStatus = m.RunStatus
+				vi.DownloadCount = m.DownloadCount
+				vi.RunCount = m.RunCount
+				vi.FollowerCount = m.FollowerCount
+				vi.OpenIssueCount = m.OpenIssueCount
+
+				// preserve "last run" information
+				if vi.RunID == "" {
+					vi.RunID = m.RunID
+					vi.RunStatus = m.RunStatus
+					vi.RunDuration = m.RunDuration
+				}
+
 				*m = vi
 			})
 		}
@@ -184,25 +192,6 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 				}
 			})
 		}
-	case event.ETAutomationWorkflowStarted:
-		if evt, ok := e.Payload.(event.WorkflowStartedEvent); ok {
-			err := sm.UpdateEverywhere(ctx, evt.InitID, func(vi *dsref.VersionInfo) {
-				vi.RunID = evt.RunID
-				vi.RunStatus = "running"
-			})
-			if err != nil {
-				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
-			}
-		}
-	case event.ETAutomationWorkflowStopped:
-		if evt, ok := e.Payload.(event.WorkflowStoppedEvent); ok {
-			err := sm.UpdateEverywhere(ctx, evt.InitID, func(vi *dsref.VersionInfo) {
-				vi.RunStatus = evt.Status
-			})
-			if err != nil {
-				log.Debugw("updating dataset across all collections", "InitID", evt.InitID, "err", err)
-			}
-		}
 	case event.ETAutomationWorkflowCreated:
 		if wf, ok := e.Payload.(workflow.Workflow); ok {
 			err := sm.UpdateEverywhere(ctx, wf.InitID, func(vi *dsref.VersionInfo) {
@@ -228,10 +217,23 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 			if te.Mode != "apply" {
 				err := sm.UpdateEverywhere(ctx, te.InitID, func(vi *dsref.VersionInfo) {
 					vi.RunCount++
+					vi.RunStatus = "running"
+					vi.RunID = te.RunID
 				})
 				if err != nil {
 					log.Debugw("update dataset across all collections", "InitID", te.InitID, "err", err)
 				}
+			}
+		}
+	case event.ETTransformWriteRun:
+		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
+			err := sm.UpdateEverywhere(ctx, vi.InitID, func(v *dsref.VersionInfo) {
+				v.RunID = vi.RunID
+				v.RunStatus = vi.RunStatus
+				v.RunDuration = vi.RunDuration
+			})
+			if err != nil {
+				log.Debugw("update dataset across all collections", "InitID", vi.InitID, "err", err)
 			}
 		}
 	}

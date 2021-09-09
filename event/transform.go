@@ -27,12 +27,18 @@ const (
 	// ETTransformDatasetPreview is an abbreviated dataset document in a transform
 	// Payload will be a *dataset.Dataset Preview
 	ETTransformDatasetPreview = Type("tf:DatasetPreview")
+
+	// ETTransformWriteRun is for when we have written the results of a
+	// transform to the logbook
+	// Payload will be a dsref.VersionInfo
+	ETTransformWriteRun = Type("tf:WriteRun")
 )
 
 // TransformLifecycle captures state about the execution of an entire transform
 // script
 // it's the payload of ETTransformStart/Stop
 type TransformLifecycle struct {
+	RunID     string `json:"runID,omitempty"`
 	StepCount int    `json:"stepCount"`
 	Status    string `json:"status,omitempty"`
 	Mode      string `json:"mode,omitempty"`
