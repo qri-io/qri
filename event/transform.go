@@ -33,6 +33,7 @@ const (
 // script
 // it's the payload of ETTransformStart/Stop
 type TransformLifecycle struct {
+	RunID     string `json:"runID,omitempty"`
 	StepCount int    `json:"stepCount"`
 	Status    string `json:"status,omitempty"`
 	Mode      string `json:"mode,omitempty"`

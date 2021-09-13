@@ -4,9 +4,6 @@ const (
 	// ETDatasetNameInit occurs when a dataset is first initialized
 	// payload is a dsref.VersionInfo
 	ETDatasetNameInit = Type("dataset:Init")
-	// ETDatasetCommitChange occurs when a dataset's head commit changes
-	// payload is a dsref.VersionInfo
-	ETDatasetCommitChange = Type("dataset:CommitChange")
 	// ETDatasetDeleteAll occurs when a dataset is being deleted
 	// payload is an `InitID`
 	ETDatasetDeleteAll = Type("dataset:DeleteAll")
