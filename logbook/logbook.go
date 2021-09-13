@@ -569,7 +569,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, author *profile.Profile,
 		info.RunStatus = string(rs.Status)
 	}
 
-	if err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, info); err != nil {
+	if err = book.publisher.Publish(ctx, event.ETLogbookWriteCommit, info); err != nil {
 		log.Error(err)
 	}
 
@@ -603,7 +603,7 @@ func (book *Book) WriteTransformRun(ctx context.Context, author *profile.Profile
 		RunStatus:   string(rs.Status),
 		RunDuration: rs.Duration,
 	}
-	if err = book.publisher.Publish(ctx, event.ETTransformWriteRun, vi); err != nil {
+	if err = book.publisher.Publish(ctx, event.ETLogbookWriteRun, vi); err != nil {
 		log.Error(err)
 	}
 	// TODO(dlong): Think about how to handle a failure exactly here, what needs to be rolled back?
@@ -715,7 +715,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, author *profile.Profil
 		lastItem.InitID = initID
 		lastItem.CommitCount = len(items)
 
-		if err = book.publisher.Publish(ctx, event.ETDatasetCommitChange, lastItem); err != nil {
+		if err = book.publisher.Publish(ctx, event.ETLogbookWriteCommit, lastItem); err != nil {
 			log.Error(err)
 		}
 	}

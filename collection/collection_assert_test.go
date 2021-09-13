@@ -292,12 +292,12 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 
 		// simulate a "WriteTransformRun" in logbook
 		// this might occur if a transform has errored or resulted in no changes
-		mustPublish(ctx, t, bus, event.ETTransformWriteRun, dsref.VersionInfo{InitID: muppetNamesInitID, RunID: muppetNamesRunID1, RunStatus: "unchanged", RunDuration: 1000})
+		mustPublish(ctx, t, bus, event.ETLogbookWriteRun, dsref.VersionInfo{InitID: muppetNamesInitID, RunID: muppetNamesRunID1, RunStatus: "unchanged", RunDuration: 1000})
 		expect[0].RunStatus = "unchanged"
 		expect[0].RunDuration = 1000
 
 		// simulate version creation with no transform
-		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
+		mustPublish(ctx, t, bus, event.ETLogbookWriteCommit, dsref.VersionInfo{
 			InitID:      muppetNamesInitID,
 			ProfileID:   kermit.ID.Encode(),
 			Path:        "/mem/PathToMuppetNamesVersionOne",
@@ -313,7 +313,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
 		// simulate version creation with a transform
-		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
+		mustPublish(ctx, t, bus, event.ETLogbookWriteCommit, dsref.VersionInfo{
 			InitID:      muppetNamesInitID,
 			ProfileID:   kermit.ID.Encode(),
 			Path:        "/mem/PathToMuppetNamesVersionTwo",
@@ -487,7 +487,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		expect[0].WorkflowID = "workflow_id"
 		assertCollectionList(ctx, t, missPiggy, params.ListAll, s, expect)
 
-		mustPublish(ctx, t, bus, event.ETDatasetCommitChange, dsref.VersionInfo{
+		mustPublish(ctx, t, bus, event.ETLogbookWriteCommit, dsref.VersionInfo{
 			InitID:      missPiggyDatasetInitID,
 			CommitCount: 2,
 			Path:        "/mem/PathToMissPiggyDatasetVersionTwo",

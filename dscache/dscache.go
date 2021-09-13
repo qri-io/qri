@@ -57,7 +57,7 @@ func NewDscache(ctx context.Context, fsys qfs.Filesystem, bus event.Bus, usernam
 	cache.DefaultUsername = username
 	bus.SubscribeTypes(cache.handler,
 		event.ETDatasetNameInit,
-		event.ETDatasetCommitChange,
+		event.ETLogbookWriteCommit,
 		event.ETDatasetDeleteAll,
 		event.ETDatasetRename,
 		event.ETDatasetCreateLink)
@@ -279,7 +279,7 @@ func (d *Dscache) handler(_ context.Context, e event.Event) error {
 		if err := d.updateInitDataset(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
-	case event.ETDatasetCommitChange:
+	case event.ETLogbookWriteCommit:
 		act, ok := e.Payload.(dsref.VersionInfo)
 		if !ok {
 			log.Error("dscache got an event with a payload that isn't a dsref.VersionInfo type: %v", e.Payload)

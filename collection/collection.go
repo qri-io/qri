@@ -53,7 +53,6 @@ func (sm *SetMaintainer) subscribe(bus event.Bus) {
 	bus.SubscribeTypes(sm.handleEvent,
 		// save events
 		event.ETDatasetNameInit,
-		event.ETDatasetCommitChange,
 		event.ETDatasetRename,
 		event.ETDatasetDeleteAll,
 		event.ETDatasetDownload,
@@ -73,7 +72,10 @@ func (sm *SetMaintainer) subscribe(bus event.Bus) {
 
 		// transform events
 		event.ETTransformStart,
-		event.ETTransformWriteRun,
+
+		// log events
+		event.ETLogbookWriteCommit,
+		event.ETLogbookWriteRun,
 	)
 }
 
@@ -92,11 +94,11 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 			}
 			log.Debugw("finished putting new name", "name", vi.Name, "initID", vi.InitID)
 		}
-	case event.ETDatasetCommitChange:
+	case event.ETLogbookWriteCommit:
 		// keep in mind commit changes can mean added OR removed versions
 		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
 			sm.UpdateEverywhere(ctx, vi.InitID, func(m *dsref.VersionInfo) {
-				// preserve fields that are not tracked in `ETDatasetCommitChanges`
+				// preserve fields that are not tracked in `ETLogbookWriteCommit`
 				vi.WorkflowID = m.WorkflowID
 				vi.DownloadCount = m.DownloadCount
 				vi.RunCount = m.RunCount
@@ -225,7 +227,7 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 				}
 			}
 		}
-	case event.ETTransformWriteRun:
+	case event.ETLogbookWriteRun:
 		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
 			err := sm.UpdateEverywhere(ctx, vi.InitID, func(v *dsref.VersionInfo) {
 				v.RunID = vi.RunID
