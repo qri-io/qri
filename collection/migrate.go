@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -42,6 +43,42 @@ func MigrateRepoStoreToLocalCollectionSet(ctx context.Context, s Set, r repo.Rep
 				datasets[i].MetaTitle = ds.Meta.Title
 			}
 		}
+
+		ulog, err := book.UserDatasetBranchesLog(ctx, datasets[i].InitID)
+		if err != nil {
+			log.Errorf("can't get user log for dataset %s, %s", datasets[i].InitID, err)
+			continue
+		}
+		dlog, err := ulog.Log(datasets[i].InitID)
+		if err != nil {
+			log.Errorf("can't get dataset log for dataset %s, %s", datasets[i].InitID, err)
+			continue
+		}
+		if len(dlog.Logs) < 0 {
+			log.Errorf("no branch logs for dataset log %s, %s", datasets[i].InitID, err)
+			continue
+		}
+		blog := dlog.Logs[0]
+		commitCount := 0
+		runCount := 0
+		mostRecentRunRecorded := false
+		for _, op := range blog.Ops {
+			if op.Model == logbook.CommitModel {
+				commitCount++
+				continue
+			}
+			if op.Model == logbook.RunModel {
+				runCount++
+				if !mostRecentRunRecorded {
+					datasets[i].RunID = op.Ref
+					datasets[i].RunDuration = op.Size
+					datasets[i].RunStatus = op.Note
+					mostRecentRunRecorded = true
+				}
+			}
+		}
+		datasets[i].CommitCount = commitCount
+		datasets[i].RunCount = runCount
 	}
 
 	// remove any datasets that couldn't be resolved

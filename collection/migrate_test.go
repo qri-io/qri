@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
@@ -30,6 +31,28 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 		t.Fatalf("test repo has no datasets")
 	}
 
+	// force log entries for runs
+	book := r.Logbook()
+	citiesRef := &dsref.Ref{Username: "peer", Name: "cities"}
+	_, err = r.ResolveRef(ctx, citiesRef)
+	if err != nil {
+		t.Fatalf("test repo cannot resolve dataset ref %q", "peer/cities")
+	}
+	err = book.WriteTransformRun(ctx, r.Profiles().Owner(ctx), citiesRef.InitID, &run.State{ID: "cities_run_id", Status: run.RSSucceeded, Duration: 1000})
+	if err != nil {
+		t.Fatalf("unable to add transform run op to logbook for dataset %s, %q", "peer/cities", err)
+	}
+
+	expect[0].RunCount = 1
+	expect[0].RunID = "cities_run_id"
+	expect[0].RunStatus = "succeeded"
+	expect[0].RunDuration = 1000
+
+	for i := 0; i < len(expect); i++ {
+		expect[i].CommitCount = 1
+	}
+
+	// migrate
 	set, err := NewLocalSet(ctx, "", func(o *LocalSetOptions) {
 		o.MigrateRepo = r
 	})
