@@ -25,7 +25,7 @@ func TestApply(t *testing.T) {
 				Steps: []*dataset.TransformStep{
 					{Syntax: "starlark", Category: "setup", Script: `print("oh, hello!")`},
 					{Syntax: "starlark", Category: "download", Script: "def download(ctx):\n\treturn"},
-					{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.set_body([[1,2,3]])"},
+					{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.body = [[1,2,3]]"},
 				},
 			},
 			[]event.Event{
@@ -78,7 +78,7 @@ func TestCommit(t *testing.T) {
 				Steps: []*dataset.TransformStep{
 					{Syntax: "starlark", Category: "setup", Script: `print("oh, hello!")`},
 					{Syntax: "starlark", Category: "download", Script: "def download(ctx):\n\treturn"},
-					{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.set_body([[1,2,3]])"},
+					{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.body = [[1,2,3]]"},
 				},
 			},
 			[]event.Event{
@@ -195,7 +195,7 @@ var threeStepDatasetPreview = &dataset.Dataset{
 		Steps: []*dataset.TransformStep{
 			{Syntax: "starlark", Category: "setup", Script: `print("oh, hello!")`},
 			{Syntax: "starlark", Category: "download", Script: "def download(ctx):\n\treturn"},
-			{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.set_body([[1,2,3]])"},
+			{Syntax: "starlark", Category: "transform", Script: "def transform(ds, ctx):\n\tds.body = [[1,2,3]]"},
 		},
 	},
 }

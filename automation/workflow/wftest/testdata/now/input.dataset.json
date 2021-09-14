@@ -7,13 +7,13 @@
 			  "syntax":"starlark",
 			  "category":"setup",
 			  "name":"setup",
-			  "script":"# load starlark dependencies\nload(\"encoding/csv.star\", \"csv\")\nload(\"time.star\", \"time\")\n"
+			  "script":"# load starlark dependencies\nload(\"encoding/csv.star\", \"csv\")\nload(\"time.star\", \"time\")\nload(\"dataframe.star\", \"dataframe\")\n"
 			},
 			{
 			  "syntax":"starlark",
 			  "category":"transform",
 			  "name":"transform",
-			  "script":"# set the body\ndef transform(ds, ctx):\n  currentTime = time.now()\n  body = [\n    ['timestamp']\n  ]\n  body.append([str(currentTime)])\n  theCSV = csv.write_all(body)\n\n  ds.set_body(theCSV, parse_as='csv')\n"
+			  "script":"# set the body\ndef transform(ds, ctx):\n  currentTime = time.now()\n  body = [\n    ['timestamp']\n  ]\n  body.append([str(currentTime)])\n  theCSV = csv.write_all(body)\n\n  ds.body = dataframe.read_csv(theCSV)\n"
 			}
 		]
 	}

@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"sort"
 	"sync"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsio"
+	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/base"
+	"github.com/qri-io/starlib/dataframe"
 	"github.com/qri-io/starlib/util"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
@@ -43,14 +47,15 @@ func LoadModule() (starlark.StringDict, error) {
 type Dataset struct {
 	frozen    bool
 	ds        *dataset.Dataset
-	bodyCache starlark.Iterable
+	bodyFrame starlark.Value
 	changes   map[string]struct{}
 }
 
 // compile-time interface assertions
 var (
-	_ starlark.Value    = (*Dataset)(nil)
-	_ starlark.HasAttrs = (*Dataset)(nil)
+	_ starlark.Value       = (*Dataset)(nil)
+	_ starlark.HasAttrs    = (*Dataset)(nil)
+	_ starlark.HasSetField = (*Dataset)(nil)
 )
 
 // methods defined on the dataset object
@@ -59,8 +64,6 @@ var dsMethods = map[string]*starlark.Builtin{
 	"get_meta":      starlark.NewBuiltin("get_meta", dsGetMeta),
 	"get_structure": starlark.NewBuiltin("get_structure", dsGetStructure),
 	"set_structure": starlark.NewBuiltin("set_structure", dsSetStructure),
-	"get_body":      starlark.NewBuiltin("get_body", dsGetBody),
-	"set_body":      starlark.NewBuiltin("set_body", dsSetBody),
 }
 
 // NewDataset creates a dataset object, intended to be called from go-land to prepare datasets
@@ -103,12 +106,26 @@ func (d *Dataset) Truth() starlark.Bool {
 
 // Attr gets a value for a string attribute
 func (d *Dataset) Attr(name string) (starlark.Value, error) {
+	if name == "body" {
+		return d.getBody()
+	}
 	return builtinAttr(d, name, dsMethods)
 }
 
 // AttrNames lists available attributes
 func (d *Dataset) AttrNames() []string {
-	return builtinAttrNames(dsMethods)
+	return append(builtinAttrNames(dsMethods), "body")
+}
+
+// SetField assigns to a field of the DataFrame
+func (d *Dataset) SetField(name string, val starlark.Value) error {
+	if d.frozen {
+		return fmt.Errorf("cannot set, Dataset is frozen")
+	}
+	if name == "body" {
+		return d.setBody(val)
+	}
+	return starlark.NoSuchAttrError(name)
 }
 
 func (d *Dataset) stringify() string {
@@ -137,16 +154,11 @@ func builtinAttrNames(methods map[string]*starlark.Builtin) []string {
 func dsGetMeta(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	self := b.Receiver().(*Dataset)
 
-	var provider *dataset.Meta
-	if self.ds != nil && self.ds.Meta != nil {
-		provider = self.ds.Meta
-	}
-
-	if provider == nil {
+	if self.ds.Meta == nil {
 		return starlark.None, nil
 	}
 
-	data, err := json.Marshal(provider)
+	data, err := json.Marshal(self.ds.Meta)
 	if err != nil {
 		return starlark.None, err
 	}
@@ -193,16 +205,11 @@ func dsSetMeta(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 func dsGetStructure(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	self := b.Receiver().(*Dataset)
 
-	var provider *dataset.Structure
-	if self.ds != nil && self.ds.Structure != nil {
-		provider = self.ds.Structure
-	}
-
-	if provider == nil {
+	if self.ds.Structure == nil {
 		return starlark.None, nil
 	}
 
-	data, err := json.Marshal(provider)
+	data, err := json.Marshal(self.ds.Structure)
 	if err != nil {
 		return starlark.None, err
 	}
@@ -247,134 +254,70 @@ func dsSetStructure(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple
 	return starlark.None, err
 }
 
-// dsGetBody returns the body of the dataset we're transforming. The read version is returned until
-// the dataset is modified by set_body, then the write version is returned instead.
-func dsGetBody(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	self := b.Receiver().(*Dataset)
-
-	if self.bodyCache != nil {
-		return self.bodyCache, nil
+func (d *Dataset) getBody() (starlark.Value, error) {
+	if d.bodyFrame != nil {
+		return d.bodyFrame, nil
 	}
 
-	var valx starlark.Value
-	if err := starlark.UnpackArgs("get_body", args, kwargs, "default?", &valx); err != nil {
-		return starlark.None, err
+	bodyfile := d.ds.BodyFile()
+	if bodyfile == nil {
+		// If no body exists, return an empty data frame
+		df, _ := dataframe.NewDataFrame(nil, nil, nil)
+		d.bodyFrame = df
+		return df, nil
 	}
 
-	var provider *dataset.Dataset
-	if self.ds != nil {
-		provider = self.ds
-	}
-
-	if provider.BodyFile() == nil {
-		if valx == nil {
-			return starlark.None, nil
-		}
-		return valx, nil
-	}
-
-	if provider.Structure == nil {
+	if d.ds.Structure == nil {
 		return starlark.None, fmt.Errorf("error: no structure for dataset")
 	}
 
-	// TODO - this is bad. make not bad.
-	data, err := ioutil.ReadAll(provider.BodyFile())
+	// TODO(dustmop): DataFrame should be able to work with an
+	// efficient, streaming body file.
+	data, err := ioutil.ReadAll(d.ds.BodyFile())
 	if err != nil {
 		return starlark.None, err
 	}
-	provider.SetBodyFile(qfs.NewMemfileBytes("body.json", data))
+	d.ds.SetBodyFile(qfs.NewMemfileBytes("body.json", data))
 
-	rr, err := dsio.NewEntryReader(provider.Structure, qfs.NewMemfileBytes("body.json", data))
+	rr, err := dsio.NewEntryReader(d.ds.Structure, qfs.NewMemfileBytes("body.json", data))
 	if err != nil {
 		return starlark.None, fmt.Errorf("error allocating data reader: %s", err)
 	}
-	w, err := NewStarlarkEntryWriter(provider.Structure)
-	if err != nil {
-		return starlark.None, fmt.Errorf("error allocating starlark entry writer: %s", err)
-	}
 
-	err = dsio.Copy(rr, w)
+	entries, err := base.ReadEntries(rr)
 	if err != nil {
 		return starlark.None, err
 	}
-	if err = w.Close(); err != nil {
-		return starlark.None, err
+	rows := [][]interface{}{}
+	eachEntry := entries.([]interface{})
+	for _, ent := range eachEntry {
+		r := ent.([]interface{})
+		rows = append(rows, r)
 	}
 
-	if iter, ok := w.Value().(starlark.Iterable); ok {
-		self.bodyCache = iter
-		return self.bodyCache, nil
+	df, err := dataframe.NewDataFrame(rows, nil, nil)
+	if err != nil {
+		return nil, err
 	}
-	return starlark.None, fmt.Errorf("value is not iterable")
+	d.bodyFrame = df
+	return df, nil
 }
 
-// dsSetBody assigns the dataset body. Future calls to GetBody will return this newly mutated body,
-// even if assigned value is the same as what was already there.
-func dsSetBody(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var (
-		data    starlark.Value
-		parseAs starlark.String
-	)
-	if err := starlark.UnpackArgs("set_body", args, kwargs, "data", &data, "parse_as?", &parseAs); err != nil {
-		return starlark.None, err
-	}
-	self := b.Receiver().(*Dataset)
-	self.changes["body"] = struct{}{}
-
-	if self.frozen {
-		return starlark.None, fmt.Errorf("cannot call set_body on frozen dataset")
-	}
-
-	if df := parseAs.GoString(); df != "" {
-		if _, err := dataset.ParseDataFormatString(df); err != nil {
-			return starlark.None, fmt.Errorf("invalid parse_as format: %q", df)
-		}
-
-		str, ok := data.(starlark.String)
-		if !ok {
-			return starlark.None, fmt.Errorf("expected data for %q format to be a string", df)
-		}
-
-		self.ds.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", df), []byte(string(str))))
-		self.bodyCache = nil
-
-		if err := detect.Structure(self.ds); err != nil {
-			return nil, err
-		}
-
-		return starlark.None, nil
-	}
-
-	iter, ok := data.(starlark.Iterable)
-	if !ok {
-		return starlark.None, fmt.Errorf("expected body data to be iterable")
-	}
-
-	self.ds.Structure = self.writeStructure(data)
-
-	w, err := dsio.NewEntryBuffer(self.ds.Structure)
+func (d *Dataset) setBody(val starlark.Value) error {
+	df, err := dataframe.NewDataFrame(val, nil, nil)
 	if err != nil {
-		return starlark.None, err
+		return err
 	}
-	r := NewEntryReader(self.ds.Structure, iter)
-	if err := dsio.Copy(r, w); err != nil {
-		return starlark.None, err
-	}
-	if err := w.Close(); err != nil {
-		return starlark.None, err
-	}
-
-	self.ds.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", self.ds.Structure.Format), w.Bytes()))
-	self.bodyCache = nil
-
-	return starlark.None, nil
+	d.bodyFrame = df
+	d.changes["body"] = struct{}{}
+	return nil
 }
 
 // writeStructure determines the destination data structure for writing a
 // dataset body, falling back to a default json structure based on input values
 // if no prior structure exists
 func (d *Dataset) writeStructure(data starlark.Value) *dataset.Structure {
-	// fall back to inheriting from read structure
+	// if the write structure has been set, use that
 	if d.ds != nil && d.ds.Structure != nil {
 		return d.ds.Structure
 	}
@@ -389,4 +332,45 @@ func (d *Dataset) writeStructure(data starlark.Value) *dataset.Structure {
 		Format: "json",
 		Schema: sch,
 	}
+}
+
+// AssignBodyFromDataframe converts the DataFrame on the object into
+// a proper dataset.bodyfile
+func (d *Dataset) AssignBodyFromDataframe() error {
+	if d.ds == nil {
+		return nil
+	}
+	if d.bodyFrame == nil {
+		return nil
+	}
+	df, ok := d.bodyFrame.(*dataframe.DataFrame)
+	if !ok {
+		return fmt.Errorf("bodyFrame has invalid type %v", reflect.TypeOf(d.bodyFrame))
+	}
+
+	st := d.ds.Structure
+	if st == nil {
+		st = &dataset.Structure{
+			Format: "json",
+			Schema: tabular.BaseTabularSchema,
+		}
+	}
+
+	w, err := dsio.NewEntryBuffer(st)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < df.NumRows(); i++ {
+		w.WriteEntry(dsio.Entry{Index: i, Value: df.Row(i)})
+	}
+	if err := w.Close(); err != nil {
+		return err
+	}
+	d.ds.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", st.Format), w.Bytes()))
+	err = detect.Structure(d.ds)
+	if err != nil {
+		return err
+	}
+	return nil
 }

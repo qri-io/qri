@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/starlib/testdata"
@@ -17,15 +18,17 @@ func callMethod(thread *starlark.Thread, v starlark.HasAttrs, name string, tuple
 	if err != nil {
 		return nil, err
 	}
+	if method == nil {
+		return nil, fmt.Errorf("method %s does not exist", name)
+	}
 	return starlark.Call(thread, method, tuple, nil)
 }
 
 func TestCannotSetIfReadOnly(t *testing.T) {
 	ds := NewDataset(&dataset.Dataset{})
 	ds.Freeze()
-	thread := &starlark.Thread{}
-	expect := "cannot call set_body on frozen dataset"
-	_, err := callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
+	expect := "cannot set, Dataset is frozen"
+	err := ds.SetField("body", starlark.NewList([]starlark.Value{starlark.NewList([]starlark.Value{starlark.String("a")})}))
 	if err == nil {
 		t.Fatal("expected error, did not get one")
 	}
@@ -34,75 +37,19 @@ func TestCannotSetIfReadOnly(t *testing.T) {
 	}
 }
 
-func TestChangeBody(t *testing.T) {
-	// Create the previous version with the body ["b"]
-	prev := &dataset.Dataset{
-		Structure: &dataset.Structure{
-			Format: "json",
-			Schema: dataset.BaseSchemaArray,
-		},
-	}
-	prev.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[\"b\"]")))
-	ds := NewDataset(prev)
-	thread := &starlark.Thread{}
-
-	body, err := callMethod(thread, ds, "get_body", starlark.Tuple{})
+func TestSetAndGetBody(t *testing.T) {
+	ds := NewDataset(&dataset.Dataset{})
+	err := ds.SetField("body", starlark.NewList([]starlark.Value{starlark.NewList([]starlark.Value{starlark.String("a")})}))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	expect := `["b"]`
-	if fmt.Sprintf("%s", body) != expect {
-		t.Errorf("expected body: %s, got: %s", expect, body)
-	}
-
-	_, err = callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
-	if err != nil {
-		t.Error(err)
-	}
-
-	body, err = callMethod(thread, ds, "get_body", starlark.Tuple{})
-	if err != nil {
-		t.Error(err)
-	}
-	expect = `["a"]`
-	if fmt.Sprintf("%s", body) != expect {
-		t.Errorf("expected body: %s, got: %s", expect, body)
-	}
-}
-
-func TestChangeBodyEvenIfTheSame(t *testing.T) {
-	// Create the previous version with the body ["a"]
-	prev := &dataset.Dataset{
-		Structure: &dataset.Structure{
-			Format: "json",
-			Schema: dataset.BaseSchemaArray,
-		},
-	}
-	prev.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[\"a\"]")))
-	ds := NewDataset(prev)
-	thread := &starlark.Thread{}
-
-	body, err := callMethod(thread, ds, "get_body", starlark.Tuple{})
-	if err != nil {
-		t.Error(err)
-	}
-	expect := `["a"]`
-	if fmt.Sprintf("%s", body) != expect {
-		t.Errorf("expected body: %s, got: %s", expect, body)
-	}
-
-	_, err = callMethod(thread, ds, "set_body", starlark.Tuple{starlark.NewList([]starlark.Value{starlark.String("a")})})
-	if err != nil {
-		t.Error(err)
-	}
-
-	body, err = callMethod(thread, ds, "get_body", starlark.Tuple{})
-	if err != nil {
-		t.Error(err)
-	}
-	expect = `["a"]`
-	if fmt.Sprintf("%s", body) != expect {
-		t.Errorf("expected body: %s, got: %s", expect, body)
+	expect := `     0
+0    a
+`
+	bd, _ := ds.Attr("body")
+	actual := bd.String()
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
 

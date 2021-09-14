@@ -432,14 +432,14 @@ func TestTransformUsingGetBodyAndSetBody(t *testing.T) {
 
 	// Save two versions, the second of which uses get_body in a transformation
 	run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/test_ds")
-	run.MustExec(t, "qri save --apply --file=testdata/movies/tf_add_one.star me/test_ds")
+	run.MustExec(t, "qri save --apply --file=testdata/movies/tf_add_row.star me/test_ds")
 
 	// Read body from the dataset that was created with the transform
 	dsPath := run.GetPathForDataset(t, 0)
 	actualBody := run.ReadBodyFromIPFS(t, dsPath+"/body.json")
 
 	// This body is body_two.json, with the numbers in the second column increased by 1.
-	expectBody := `[["Avatar",179],["Pirates of the Caribbean: At World's End",170]]`
+	expectBody := `[["Avatar",178],["Pirates of the Caribbean: At World's End",169],["Batman",126]]`
 	if actualBody != expectBody {
 		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actualBody, expectBody)
 	}
@@ -468,7 +468,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
 	expect := dstest.Template(t, `1   Commit:  {{ .commit1 }}
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
-    Size:    7 B
+    Size:    9 B
 
     transform updated text
     transform:
@@ -477,13 +477,13 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
 2   Commit:  {{ .commit2 }}
     Date:    Sun Dec 31 20:01:01 EST 2000
     Storage: local
-    Size:    7 B
+    Size:    9 B
 
     created dataset from tf_123.star
 
 `, map[string]string{
-		"commit1": "/ipfs/QmTAd6xBZmWPdKoZYyXufUSXva7SSsMuywokawMw9ozC6z",
-		"commit2": "/ipfs/QmTBMKzPKV82Adg1zzj2tqJEQqYwShvCcy8YifiLQqchcc",
+		"commit1": "/ipfs/QmUdopaB5HmCmU5YPz65VFMqo5JWHpgFHmE2XKYVxZRz3i",
+		"commit2": "/ipfs/QmT6DQbVQmwwgiaV5DF3gSDBHaASUZbkfEgaNTptmkq9E3",
 	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)

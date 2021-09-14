@@ -56,12 +56,14 @@ func TestApplyTransform(t *testing.T) {
 		Wait: true,
 		Transform: &dataset.Transform{
 			Text: `
+load("dataframe.star", "dataframe")
+
 body = """a,b,c
 1,2,3
 4,5,6
 """
 def transform(ds,ctx):
-	ds.set_body(body, parse_as="csv")
+	ds.body = dataframe.read_csv(body)
 `,
 		},
 	}
@@ -70,9 +72,14 @@ def transform(ds,ctx):
 		t.Fatal(err)
 	}
 
-	expectBody := json.RawMessage(`[[1,2,3],[4,5,6]]`)
+	expectBody := `[["1","2","3"],["4","5","6"]]`
 
-	if diff := cmp.Diff(expectBody, res.Body); diff != "" {
+	data, err := json.Marshal(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(expectBody, string(data)); diff != "" {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
 }
@@ -105,12 +112,15 @@ func TestAutomation(t *testing.T) {
 					Syntax:   "starlark",
 					Category: "transform",
 					Script: `
+load("dataframe.star", "dataframe")
+
 body = """a,b,c
 1,2,3
 4,5,6
+7,8,9
 """
 def transform(ds,ctx):
-	ds.set_body(body, parse_as="csv")
+	ds.body = dataframe.read_csv(body)
 `,
 				},
 			},
