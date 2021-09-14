@@ -1,2 +1,2 @@
 ds = dataset.latest()
-print('%s' % ds.body)
+print(ds.body)

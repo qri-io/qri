@@ -153,7 +153,20 @@ func NewStepRunner(target *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunn
 		starlark.Universe[key] = val
 	}
 
-	thread := &starlark.Thread{Load: o.ModuleLoader}
+	thread := &starlark.Thread{
+		Load: o.ModuleLoader,
+		Print: func(thread *starlark.Thread, msg string) {
+			if o.EventsCh != nil {
+				o.EventsCh <- event.Event{
+					Type: event.ETTransformPrint,
+					Payload: event.TransformMessage{
+						Msg: msg,
+					},
+				}
+			}
+			o.ErrWriter.Write([]byte(msg + "\n"))
+		},
+	}
 
 	r := &StepRunner{
 		config:    target.Transform.Config,
@@ -172,7 +185,6 @@ func NewStepRunner(target *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunn
 
 // RunStep runs the single transform step using the dataset
 func (r *StepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *dataset.TransformStep) error {
-	r.globals["print"] = starlark.NewBuiltin("print", r.print)
 	r.globals["load_dataset"] = starlark.NewBuiltin("load_dataset", r.loadDatasetFunc(ctx, ds))
 	r.globals["dataset"] = r.stards
 	r.globals["config"] = config(r.config)
@@ -277,22 +289,28 @@ func (r *StepRunner) loadDatasetFunc(ctx context.Context, target *dataset.Datase
 	}
 }
 
-func (r *StepRunner) print(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var message starlark.String
-	if err := starlark.UnpackArgs("print", args, kwargs, "message", &message); err != nil {
-		return starlark.None, err
-	}
-	if r.eventsCh != nil {
-		r.eventsCh <- event.Event{
-			Type: event.ETTransformPrint,
-			Payload: event.TransformMessage{
-				Msg: message.GoString(),
-			},
-		}
-	}
-	r.writer.Write([]byte(message.GoString() + "\n"))
-	return starlark.None, nil
-}
+// func (r *StepRunner) print(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+// 	var (
+// 		str string
+// 		message starlark.Value
+// 	)
+
+// 	if err := starlark.UnpackArgs("print", args, kwargs, "message", &message); err != nil {
+// 		return starlark.None, err
+// 	}
+
+// 	if stringer, ok := message.(starlark.GoString)
+// 	if r.eventsCh != nil {
+// 		r.eventsCh <- event.Event{
+// 			Type: event.ETTransformPrint,
+// 			Payload: event.TransformMessage{
+// 				Msg: message.GoString(),
+// 			},
+// 		}
+// 	}
+// 	r.writer.Write([]byte(message.GoString() + "\n"))
+// 	return starlark.None, nil
+// }
 
 func (r *StepRunner) onCommit(ds *stards.Dataset) error {
 	// Which components were changed
