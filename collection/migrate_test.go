@@ -3,9 +3,11 @@ package collection
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dsref"
@@ -33,12 +35,13 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 
 	// force log entries for runs
 	book := r.Logbook()
+	pro := r.Profiles().Owner(ctx)
 	citiesRef := &dsref.Ref{Username: "peer", Name: "cities"}
 	_, err = r.ResolveRef(ctx, citiesRef)
 	if err != nil {
 		t.Fatalf("test repo cannot resolve dataset ref %q", "peer/cities")
 	}
-	err = book.WriteTransformRun(ctx, r.Profiles().Owner(ctx), citiesRef.InitID, &run.State{ID: "cities_run_id", Status: run.RSSucceeded, Duration: 1000})
+	err = book.WriteTransformRun(ctx, pro, citiesRef.InitID, &run.State{ID: "cities_run_id", Status: run.RSSucceeded, Duration: 1000})
 	if err != nil {
 		t.Fatalf("unable to add transform run op to logbook for dataset %s, %q", "peer/cities", err)
 	}
@@ -47,6 +50,14 @@ func TestMigrateRepoStoreToLocalCollectionSet(t *testing.T) {
 	expect[0].RunID = "cities_run_id"
 	expect[0].RunStatus = "succeeded"
 	expect[0].RunDuration = 1000
+
+	citiesDS := &dataset.Dataset{ID: citiesRef.InitID, ProfileID: citiesRef.ProfileID, Peername: citiesRef.Username, Name: citiesRef.Name, PreviousPath: citiesRef.Path, Path: "new_path", Commit: &dataset.Commit{Timestamp: time.Unix(10000, 0), Title: "delete this commit"}}
+	if err = book.WriteVersionSave(ctx, pro, citiesDS, nil); err != nil {
+		t.Fatalf("unable to add commit op to logbook for dataset %s, %q", "peer/cities", err)
+	}
+	if err = book.WriteVersionDelete(ctx, pro, citiesRef.InitID, 1); err != nil {
+		t.Fatalf("unable to add delete op to logbook for dataset %s, %q", "peer/cities", err)
+	}
 
 	for i := 0; i < len(expect); i++ {
 		expect[i].CommitCount = 1
