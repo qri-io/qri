@@ -3,6 +3,7 @@ module github.com/qri-io/qri
 go 1.16
 
 require (
+	github.com/ahmetb/govvv v0.3.0 // indirect
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0
@@ -38,7 +39,7 @@ require (
 	github.com/multiformats/go-multihash v0.0.15
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/qri-io/dag v0.2.3-0.20210628012720-e8a2affbb114
-	github.com/qri-io/dataset v0.3.1-0.20210805145914-7be32a154c92
+	github.com/qri-io/dataset v0.3.1-0.20210913143355-efbeaaa2bf2e
 	github.com/qri-io/deepdiff v0.2.1
 	github.com/qri-io/didmod v0.1.0
 	github.com/qri-io/doggos v0.1.0

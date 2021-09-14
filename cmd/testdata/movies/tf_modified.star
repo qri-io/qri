@@ -1,4 +1,4 @@
 # transform that sets a simple body
-def transform(ds, ctx):
-  result = [[1,2,3]]
-  ds.body = result
+ds = dataset.latest()
+ds.body = [[1,2,3]]
+dataset.commit(ds)

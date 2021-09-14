@@ -444,5 +444,5 @@ func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *wo
 	}
 
 	transformer := transform.NewTransformer(scope.AppContext(), scope.Loader(), scope.Bus())
-	return transformer.Apply(ctx, ds, runID, wait, nil, secrets)
+	return transformer.Apply(ctx, ds, runID, wait, secrets)
 }

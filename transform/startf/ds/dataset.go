@@ -56,6 +56,7 @@ var (
 	_ starlark.Value       = (*Dataset)(nil)
 	_ starlark.HasAttrs    = (*Dataset)(nil)
 	_ starlark.HasSetField = (*Dataset)(nil)
+	_ starlark.Unpacker    = (*Dataset)(nil)
 )
 
 // methods defined on the dataset object
@@ -78,10 +79,24 @@ func New(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwar
 	return d, nil
 }
 
+// Unpack implements the starlark.Unpacker interface for unpacking starlark
+// arguments
+func (d *Dataset) Unpack(v starlark.Value) error {
+	ds, ok := v.(*Dataset)
+	if !ok {
+		return fmt.Errorf("expected dataset, got: %s", v.Type())
+	}
+	*d = *ds
+	return nil
+}
+
 // Changes returns a map of which components have been changed
 func (d *Dataset) Changes() map[string]struct{} {
 	return d.changes
 }
+
+// Dataset exposes the internal dataset pointer
+func (d *Dataset) Dataset() *dataset.Dataset { return d.ds }
 
 // String returns the Dataset as a string
 func (d *Dataset) String() string {

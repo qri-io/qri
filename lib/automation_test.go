@@ -57,13 +57,14 @@ func TestApplyTransform(t *testing.T) {
 		Transform: &dataset.Transform{
 			Text: `
 load("dataframe.star", "dataframe")
+ds = dataset.latest()
 
 body = """a,b,c
 1,2,3
 4,5,6
 """
-def transform(ds,ctx):
-	ds.body = dataframe.read_csv(body)
+ds.body = dataframe.read_csv(body)
+dataset.commit(ds)
 `,
 		},
 	}
@@ -119,8 +120,10 @@ body = """a,b,c
 4,5,6
 7,8,9
 """
-def transform(ds,ctx):
-	ds.body = dataframe.read_csv(body)
+
+ds = dataset.latest()
+ds.body = dataframe.read_csv(body)
+dataset.commit(ds)
 `,
 				},
 			},

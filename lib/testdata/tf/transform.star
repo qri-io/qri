@@ -1,4 +1,3 @@
-
-
-def transform(ds,ctx):
-  ds.body = [["hello", "world"]]
+ds = dataset.latest()
+ds.body = [["hello", "world"]]
+dataset.commit(ds)

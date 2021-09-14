@@ -1,2 +1,2 @@
-def transform(ds, ctx):
-  print('%s' % ds.body)
+ds = dataset.latest()
+print(ds.body)

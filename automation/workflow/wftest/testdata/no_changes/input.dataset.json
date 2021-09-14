@@ -4,8 +4,7 @@
 			{
 				"name": "transform",
 				"syntax": "starlark",
-				"category": "transform",
-				"script": "load(\"dataframe.star\", \"dataframe\")\n\nbody = 'a,b,c\n1,2,3\n,4,5,6\n'\ndef transform(ds,ctx):\n\tds.body = dataframe.read_csv(body)\n"
+				"script": "load(\"dataframe.star\", \"dataframe\")\nds = dataset.latest()\nbody = 'a,b,c\n1,2,3\n,4,5,6\n'\nds.body = dataframe.read_csv(body)\ndatset.commit(ds)"
 			}
 		]
 	}

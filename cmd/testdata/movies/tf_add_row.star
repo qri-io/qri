@@ -1,3 +1,3 @@
-def transform(ds, ctx):
-  body = ds.body
-  ds.body = body.append([['Batman', 126]])
+ds = dataset.latest()
+ds.body = ds.body.append([['Batman', 126]])
+dataset.commit(ds)

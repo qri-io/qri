@@ -77,10 +77,9 @@ func LoadDefaultTestCases() ([]*TestCase, error) {
 					Transform: &dataset.Transform{
 						Steps: []*dataset.TransformStep{
 							{
-								Name:     "transform",
-								Syntax:   "starlark",
-								Category: "transform",
-								Script:   "load(\"dataframe.star\", \"dataframe\")\nbody = '''a,b,c\n1,2,3\n4,5,6\n'''\ndef transform(ds,ctx):\n\tds.body = dataframe.read_csv(body)\n",
+								Name:   "transform",
+								Syntax: "starlark",
+								Script: "load(\"dataframe.star\", \"dataframe\")\nds = dataset.latest()\nbody = '''a,b,c\n1,2,3\n4,5,6\n'''\nds.body = dataframe.read_csv(body)\ndataset.commit(ds)",
 							},
 						},
 					},
@@ -107,16 +106,14 @@ func LoadDefaultTestCases() ([]*TestCase, error) {
 					Transform: &dataset.Transform{
 						Steps: []*dataset.TransformStep{
 							{
-								Syntax:   "starlark",
-								Category: "setup",
-								Name:     "setup",
-								Script:   "# load starlark dependencies\nload(\"encoding/csv.star\", \"csv\")\nload(\"time.star\", \"time\")\nload(\"dataframe.star\", \"dataframe\")\n",
+								Syntax: "starlark",
+								Name:   "setup",
+								Script: "load(\"time.star\", \"time\")\nload(\"dataframe.star\", \"dataframe\")\nds = dataset.latest()",
 							},
 							{
-								Syntax:   "starlark",
-								Category: "transform",
-								Name:     "transform",
-								Script:   "# set the body\ndef transform(ds, ctx):\n  currentTime = time.now()\n  body = [\n    ['timestamp']\n  ]\n  body.append([str(currentTime)])\n  theCSV = csv.write_all(body)\n\n  ds.body = dataframe.read_csv(theCSV)\n",
+								Syntax: "starlark",
+								Name:   "transform",
+								Script: "currentTime = time.now()\nbody = [\n    ['timestamp']\n  ]\nbody.append([str(currentTime)])\nds.body = body\ndataset.commit(ds)",
 							},
 						},
 					},

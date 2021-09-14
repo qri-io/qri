@@ -134,10 +134,10 @@ func TestReferencePulling(t *testing.T) {
 	// node should automatically pull to execute this script
 	tfScriptData := `
 wbp = load_dataset("nasim/world_bank_population")
+ds = dataset.latest()
 
-def transform(ds, ctx):
-	body = wbp.body + [["g","h","i",False,3]]
-	ds.body = body
+ds.body = wbp.body + [["g","h","i",False,3]]
+dataset.commit(ds)
 `
 	scriptPath, err := tr.adnanRepo.WriteRootFile("transform.star", tfScriptData)
 	if err != nil {
