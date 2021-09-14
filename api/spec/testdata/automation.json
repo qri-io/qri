@@ -34,12 +34,12 @@
 					{
 					  "syntax":"starlark",
 					  "name":"setup",
-					  "script":"# load starlark dependencies\nload(\"encoding/csv.star\", \"csv\")\nload(\"time.star\", \"time\")\nds = dataset.latest()"
+					  "script":"load(\"time.star\", \"time\")\nds = dataset.latest()"
 					},
 					{
 					  "syntax":"starlark",
 					  "name":"transform",
-					  "script":"currentTime = time.now()\nbody = [\n    ['timestamp']\n  ]\n  body.append([str(currentTime)])\ntheCSV = csv.write_all(body)\n\nds.set_body(theCSV, parse_as='csv')\ndataset.commit(ds)"
+					  "script":"currentTime = time.now()\nbody = [\n    ['timestamp']\n  ]\nds.body = body.append([[str(currentTime)]])\ndataset.commit(ds)"
 					}
 				]
 			}

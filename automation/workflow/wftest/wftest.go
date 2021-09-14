@@ -108,12 +108,12 @@ func LoadDefaultTestCases() ([]*TestCase, error) {
 							{
 								Syntax: "starlark",
 								Name:   "setup",
-								Script: "load(\"encoding/csv.star\", \"csv\")\nload(\"time.star\", \"time\")\nload(\"dataframe.star\", \"dataframe\")\nds = dataset.latest()",
+								Script: "load(\"time.star\", \"time\")\nload(\"dataframe.star\", \"dataframe\")\nds = dataset.latest()",
 							},
 							{
 								Syntax: "starlark",
 								Name:   "transform",
-								Script: "currentTime = time.now()\nbody = [\n    ['timestamp']\n  ]\n  body.append([str(currentTime)])\ntheCSV = csv.write_all(body)\n\nds.body = dataframe.read_csv(theCSV)\ndataset.commit(ds)",
+								Script: "currentTime = time.now()\nbody = [\n    ['timestamp']\n  ]\nbody.append([str(currentTime)])\nds.body = body\ndataset.commit(ds)",
 							},
 						},
 					},
