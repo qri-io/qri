@@ -557,12 +557,20 @@ func (book *Book) WriteVersionSave(ctx context.Context, author *profile.Profile,
 	}
 
 	info := dsref.ConvertDatasetToVersionInfo(ds)
-	info.CommitCount = 0
+	commitCount := int64(0)
 	for _, op := range branchLog.Ops() {
 		if op.Model == CommitModel {
-			info.CommitCount++
+			switch op.Type {
+			case oplog.OpTypeInit:
+				commitCount++
+			case oplog.OpTypeAmend:
+				continue
+			case oplog.OpTypeRemove:
+				commitCount = commitCount - op.Size
+			}
 		}
 	}
+	info.CommitCount = int(commitCount)
 	if rs != nil {
 		info.RunID = rs.ID
 		info.RunDuration = rs.Duration
