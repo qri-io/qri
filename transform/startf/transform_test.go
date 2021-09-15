@@ -77,6 +77,9 @@ func TestExecScript(t *testing.T) {
 	if i != 3 {
 		t.Errorf("expected 3 entries, got: %d", i)
 	}
+	if ds.Structure.Entries != 3 {
+		t.Errorf("expected `ds.Structure.Entries` to be 3, got: %d", i)
+	}
 }
 
 func TestExecScript2(t *testing.T) {
@@ -127,6 +130,13 @@ func TestExecStep(t *testing.T) {
 	if bodyfile == nil {
 		t.Fatal("dataset did not have body assigned")
 	}
+	// Check that the `ds.Structure.Entries` was set
+	if ds.Structure == nil {
+		t.Fatal("dataset does not have a structure assigned")
+	}
+	if ds.Structure.Entries != 1 {
+		t.Errorf("`ds.Structure.Entries` not assigned correctly, expected 1, got: %d", ds.Structure.Entries)
+	}
 	data, err := ioutil.ReadAll(bodyfile)
 	if err != nil {
 		t.Fatal(err)
@@ -135,6 +145,31 @@ func TestExecStep(t *testing.T) {
 	expect := `[[1,2,3]]`
 	if actual != expect {
 		t.Errorf("expected: %q, actual: %q", expect, actual)
+	}
+}
+
+func TestEditMeta(t *testing.T) {
+	ctx := context.Background()
+	r := testRepo(t)
+	ds := &dataset.Dataset{
+		Peername:  "peer",
+		Name:      "movies",
+		Transform: &dataset.Transform{},
+	}
+	ds.Transform.SetScriptFile(scriptFile(t, "testdata/set_meta.star"))
+
+	err := ExecScript(ctx, ds, func(o *ExecOpts) {
+		o.ModuleLoader = testModuleLoader(t)
+		o.DatasetLoader = base.NewTestDatasetLoader(r.Filesystem(), r)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ds.Meta.Title != "new title" {
+		t.Errorf("meta title was not changed")
+	}
+	if ds.Structure.Entries != 2335 {
+		t.Errorf("`ds.Structure.Entries` incorrect, expected 2335, got: %d", ds.Structure.Entries)
 	}
 }
 

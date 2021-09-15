@@ -387,5 +387,37 @@ func (d *Dataset) AssignBodyFromDataframe() error {
 	if err != nil {
 		return err
 	}
+	// adding `Entries` here allows us to know the entry count for
+	// transforms that are "applied" but not "commited"
+	// "commited" dataset versions get `Entries` and other stats
+	// computed at the time the version is saved
+	d.ds.Structure.Entries = df.NumRows()
+
 	return nil
+}
+
+// AssignPreviousStructureEntries assigns the count of entries to the dataset
+// structure. If a structure does not exist on the dataset, it will create an empty
+// structure and assign the entries to that.
+func (d *Dataset) AssignPreviousStructureEntries(entries int) {
+	if d.ds == nil {
+		return
+	}
+	if d.ds.Structure == nil {
+		// This structure is missing vital data if we need to commit
+		// the resulting dataset. However, this codepath should only be
+		// hit in two cases:
+		// 1) the transform we are applying does not alter the body of
+		// the dataset, and the previous dataset was not properly loaded
+		// before we called `transform.Commit`. In this case, we would
+		// have problems saving the resulting dataset, but we would
+		// have bigger errors loading the dataset in the first place
+		// 2) the transform we are applying does not alter the body of
+		// the dataset, we don't have any previous versions, and we are
+		// not expecting to commit the resulting dataset. Since we are
+		// not expecting to commit the resulting dataset, we don't have
+		// to worry that the structure is only partially filled.
+		d.ds.Structure = &dataset.Structure{}
+	}
+	d.ds.Structure.Entries = entries
 }
