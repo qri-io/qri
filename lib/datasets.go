@@ -1013,7 +1013,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		// apply the transform
 		shouldWait := true
 		transformer := transform.NewTransformer(scope.AppContext(), scope.Loader(), scope.Bus())
-		if err := transformer.Commit(scope.Context(), ds, runID, shouldWait, secrets); err != nil {
+		if err := transformer.Commit(scope.Context(), ref.InitID, ds, runID, shouldWait, secrets); err != nil {
 			log.Errorw("transform run error", "err", err.Error())
 			runState.Message = err.Error()
 			if err := scope.Logbook().WriteTransformRun(scope.Context(), scope.ActiveProfile(), ref.InitID, runState); err != nil {
