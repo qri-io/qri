@@ -73,7 +73,7 @@ dataset.commit(ds)
 		t.Fatal(err)
 	}
 
-	expectBody := `[["1","2","3"],["4","5","6"]]`
+	expectBody := `[[1,2,3],[4,5,6]]`
 
 	data, err := json.Marshal(res.Body)
 	if err != nil {

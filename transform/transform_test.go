@@ -227,8 +227,19 @@ func compareEventLogs(t *testing.T, expect, log []event.Event) {
 var threeStepDatasetPreview = &dataset.Dataset{
 	Body: json.RawMessage(`[[1,2,3]]`),
 	Structure: &dataset.Structure{
-		Format:  "json",
-		Schema:  map[string]interface{}{"type": "array"},
+		Format:       "csv",
+		FormatConfig: map[string]interface{}{"lazyQuotes": true},
+		Schema: map[string]interface{}{
+			"items": map[string]interface{}{
+				"items": []interface{}{
+					map[string]interface{}{"title": "field_1", "type": "integer"},
+					map[string]interface{}{"title": "field_2", "type": "integer"},
+					map[string]interface{}{"title": "field_3", "type": "integer"},
+				},
+				"type": "array",
+			},
+			"type": "array",
+		},
 		Entries: 1,
 	},
 	Transform: &dataset.Transform{

@@ -468,7 +468,7 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
 	expect := dstest.Template(t, `1   Commit:  {{ .commit1 }}
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
-    Size:    9 B
+    Size:    6 B
 
     transform added text
     transform:
@@ -477,13 +477,13 @@ func TestSaveTransformModifiedButSameBody(t *testing.T) {
 2   Commit:  {{ .commit2 }}
     Date:    Sun Dec 31 20:01:01 EST 2000
     Storage: local
-    Size:    9 B
+    Size:    6 B
 
     created dataset from tf_123.star
 
 `, map[string]string{
-		"commit1": "/ipfs/QmaCi7v2RH2S4GbrqJXUroMTnkkY5ATGbj9PsGPkr48tdz",
-		"commit2": "/ipfs/QmRVeHcJw3bjBZeTXWAxKNwLYhYB355J51yaV5VMB8pyxN",
+		"commit1": "/ipfs/QmNW9sK3LYopenAuoQVbEznJBBLiNHbzdgRuZMojsNbUD4",
+		"commit2": "/ipfs/QmYSEZWTzZEAArSN5fUVXAezExhTXa4hxyyzSYsafpXvJR",
 	})
 	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("log (-want +got):\n%s", diff)

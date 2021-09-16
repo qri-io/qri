@@ -142,7 +142,7 @@ func TestExecStep(t *testing.T) {
 		t.Fatal(err)
 	}
 	actual := string(data)
-	expect := `[[1,2,3]]`
+	expect := "1,2,3\n"
 	if actual != expect {
 		t.Errorf("expected: %q, actual: %q", expect, actual)
 	}
@@ -223,9 +223,9 @@ func TestGetMetaNilPrev(t *testing.T) {
 	}
 	data, _ := ioutil.ReadAll(bodyfile)
 	actual := string(data)
-	expect := `[["no title"]]`
+	expect := "no title\n"
 	if actual != expect {
-		t.Errorf("expected: \"%s\", actual: \"%s\"", expect, actual)
+		t.Errorf("expected: %q, actual: %q", expect, actual)
 	}
 }
 
@@ -249,9 +249,9 @@ func TestGetMetaWithPrev(t *testing.T) {
 	}
 	data, _ := ioutil.ReadAll(bodyfile)
 	actual := string(data)
-	expect := `[["title: test_title"]]`
+	expect := "title: test_title\n"
 	if actual != expect {
-		t.Errorf("expected: \"%s\", actual: \"%s\"", expect, actual)
+		t.Errorf("expected: %q, actual: %q", expect, actual)
 	}
 }
 
