@@ -1076,10 +1076,10 @@ func TestSaveTransformUsingConfigSecret(t *testing.T) {
 
 	// Read body from the dataset that was saved.
 	dsPath := run.GetPathForDataset(t, 0)
-	actualBody := run.ReadBodyFromIPFS(t, dsPath+"/body.json")
+	actualBody := run.ReadBodyFromIPFS(t, dsPath+"/body.csv")
 
 	// Expected result has the config and secret data
-	expectBody := `[["Name","cat"],["Sound","meow"]]`
+	expectBody := "Name,cat\nSound,meow\n"
 
 	// Make sure they match.
 	if diff := cmp.Diff(expectBody, actualBody); diff != "" {

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"reflect"
 	"sort"
 	"sync"
 
@@ -360,13 +359,13 @@ func (d *Dataset) AssignBodyFromDataframe() error {
 	}
 	df, ok := d.bodyFrame.(*dataframe.DataFrame)
 	if !ok {
-		return fmt.Errorf("bodyFrame has invalid type %v", reflect.TypeOf(d.bodyFrame))
+		return fmt.Errorf("bodyFrame has invalid type %T", d.bodyFrame)
 	}
 
 	st := d.ds.Structure
 	if st == nil {
 		st = &dataset.Structure{
-			Format: "json",
+			Format: "csv",
 			Schema: tabular.BaseTabularSchema,
 		}
 	}
