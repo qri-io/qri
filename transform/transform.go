@@ -72,23 +72,25 @@ func (t *Transformer) Apply(
 	wait bool,
 	secrets map[string]string,
 ) error {
-	return t.apply(ctx, target, runID, wait, secrets, RMApply)
+	return t.apply(ctx, "", target, runID, wait, secrets, RMApply)
 }
 
 // Commit applies the transform script to a target dataset, associating all
 // events with the "commit" RunMode
 func (t *Transformer) Commit(
 	ctx context.Context,
+	initID string,
 	target *dataset.Dataset,
 	runID string,
 	wait bool,
 	secrets map[string]string,
 ) error {
-	return t.apply(ctx, target, runID, wait, secrets, RMCommit)
+	return t.apply(ctx, initID, target, runID, wait, secrets, RMCommit)
 }
 
 func (t *Transformer) apply(
 	ctx context.Context,
+	initID string,
 	target *dataset.Dataset,
 	runID string,
 	wait bool,
@@ -175,7 +177,9 @@ func (t *Transformer) apply(
 			}
 		}()
 
-		eventsCh <- event.Event{Type: event.ETTransformStart, Payload: event.TransformLifecycle{RunID: runID, InitID: target.ID, StepCount: len(target.Transform.Steps), Mode: runMode}}
+		// "apply" runs are not expected to emit InitIDs in their
+		// TransformLifecyle events
+		eventsCh <- event.Event{Type: event.ETTransformStart, Payload: event.TransformLifecycle{RunID: runID, InitID: initID, StepCount: len(target.Transform.Steps), Mode: runMode}}
 
 		var (
 			runErr error
@@ -280,8 +284,12 @@ func (t *Transformer) apply(
 		eventsCh <- event.Event{
 			Type: event.ETTransformStop,
 			Payload: event.TransformLifecycle{
-				Status: status,
+				// "apply" runs are not expected to emit InitIDs
+				// in their TransformLifecycle events
+				InitID: initID,
+				RunID:  runID,
 				Mode:   runMode,
+				Status: status,
 			},
 		}
 		doneCh <- runErr
