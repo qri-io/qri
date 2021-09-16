@@ -53,8 +53,8 @@ func TestRegisterProfile(t *testing.T) {
 		err string
 	}{
 		{&Profile{Username: "a"}, "profileID is required"},
-		{&Profile{ProfileID: p.ProfileID, Username: p.Username, Signature: p.Signature, PublicKey: "bad_data"}, "publickey base64 encoding: illegal base64 data at input byte 3"},
-		{&Profile{ProfileID: p.ProfileID, Username: p.Username, Signature: p.Signature, PublicKey: base64.StdEncoding.EncodeToString([]byte("bad_data"))}, "invalid publickey: unexpected EOF"},
+		{&Profile{ProfileID: p.ProfileID, Username: p.Username, Signature: p.Signature, PublicKey: "bad_data"}, "invalid publickey: decoding base64-encoded public key: illegal base64 data at input byte 3"},
+		{&Profile{ProfileID: p.ProfileID, Username: p.Username, Signature: p.Signature, PublicKey: base64.StdEncoding.EncodeToString([]byte("bad_data"))}, `invalid publickey: public key "YmFkX2RhdGE=" is invalid: unexpected EOF`},
 		{&Profile{ProfileID: p.ProfileID, Username: p.Username, PublicKey: p.PublicKey, Signature: "bad_data"}, "signature base64 encoding: illegal base64 data at input byte 3"},
 		{&Profile{ProfileID: p.ProfileID, Username: p.Username, PublicKey: p.PublicKey, Signature: base64.StdEncoding.EncodeToString([]byte("bad_data"))}, "invalid signature: malformed signature: no header magic"},
 		{&Profile{ProfileID: p.ProfileID, Username: p.Username, PublicKey: p.PublicKey, Signature: base64.StdEncoding.EncodeToString(mismatchSig)}, "mismatched signature"},

@@ -22,6 +22,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs/qipfs"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -298,7 +299,7 @@ func (n *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 
 // makeBasicHost creates a LibP2P host from a NodeCfg
 func makeBasicHost(ctx context.Context, ps peerstore.Peerstore, p2pconf *config.P2P) (host.Host, error) {
-	pk, err := p2pconf.DecodePrivateKey()
+	pk, err := key.DecodeB64PrivKey(p2pconf.PrivKey)
 	if err != nil {
 		return nil, err
 	}

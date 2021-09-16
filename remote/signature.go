@@ -77,7 +77,7 @@ func VerifySigParams(pubkey crypto.PubKey, params map[string]string) (bool, erro
 	}
 	str := base64.StdEncoding.EncodeToString(sigBytes)
 	if str != signature {
-		return false, fmt.Errorf("signature was '%s', after decode then encode it was '%s", signature, str)
+		return false, fmt.Errorf("signature was %q, after decode then encode it was %q", signature, str)
 	}
 	rss := requestSigningString(timestamp, pid, path)
 	return pubkey.Verify([]byte(rss), sigBytes)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/event"
@@ -101,15 +102,14 @@ func (registryImpl) ProveProfileKey(scope scope, p *RegistryProfileParams) error
 	// For signing the outgoing message
 	privKey := scope.ActiveProfile().PrivKey
 
-	// Get public key to send to server
+	// set public key to send to server
 	pro := scope.ActiveProfile()
-	pubkeybytes, err := pro.PubKey.Bytes()
+	p.Profile.ProfileID = pro.ID.Encode()
+	p.Profile.PublicKey, err = key.EncodePubKeyB64(pro.PubKey)
 	if err != nil {
 		return err
 	}
 
-	p.Profile.ProfileID = pro.ID.Encode()
-	p.Profile.PublicKey = base64.StdEncoding.EncodeToString(pubkeybytes)
 	// TODO(dustmop): Expand the signature to sign more than just the username
 	sigbytes, err := privKey.Sign([]byte(p.Profile.Username))
 	p.Profile.Signature = base64.StdEncoding.EncodeToString(sigbytes)

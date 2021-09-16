@@ -1,9 +1,9 @@
 package regclient
 
 import (
-	"encoding/base64"
 	"testing"
 
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/registry"
 )
 
@@ -16,13 +16,13 @@ func TestProfileRequests(t *testing.T) {
 		Username: "b5",
 	}
 
-	pubBytes, err := tr.ClientPrivKey.GetPublic().Bytes()
+	pubKeyStr, err := key.EncodePubKeyB64(tr.ClientPrivKey.GetPublic())
 	if err != nil {
 		t.Error(err.Error())
 	}
 
 	p := &registry.Profile{
-		PublicKey: base64.StdEncoding.EncodeToString(pubBytes),
+		PublicKey: pubKeyStr,
 	}
 
 	err = client.GetProfile(p)

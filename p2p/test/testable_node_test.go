@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -80,7 +81,7 @@ func NewTestableNode(r repo.Repo, p2pconf *config.P2P, _ event.Publisher) (Testa
 	ctx := context.Background()
 	ps := pstoremem.NewPeerstore()
 	// this is essentially what is located in the p2p.makeBasicHost function
-	pk, err := p2pconf.DecodePrivateKey()
+	pk, err := key.DecodeB64PrivKey(p2pconf.PrivKey)
 	if err != nil {
 		return nil, err
 	}

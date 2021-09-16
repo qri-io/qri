@@ -4,17 +4,12 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/qri-io/qri/auth/key"
 )
 
 // verify accepts base64 encoded keys & signatures to validate data
 func verify(b64PubKey, b64Signature string, data []byte) error {
-	pkbytes, err := base64.StdEncoding.DecodeString(b64PubKey)
-	if err != nil {
-		return fmt.Errorf("publickey base64 encoding: %s", err.Error())
-	}
-
-	pubkey, err := crypto.UnmarshalPublicKey(pkbytes)
+	pubkey, err := key.DecodeB64PubKey(b64PubKey)
 	if err != nil {
 		return fmt.Errorf("invalid publickey: %s", err.Error())
 	}

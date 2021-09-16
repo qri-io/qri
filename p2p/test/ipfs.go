@@ -2,7 +2,6 @@ package p2ptest
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 
 	datastore "github.com/ipfs/go-datastore"
@@ -20,6 +19,7 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qfs/muxfs"
 	qipfs "github.com/qri-io/qfs/qipfs"
+	"github.com/qri-io/qri/auth/key"
 	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/event"
 	profile "github.com/qri-io/qri/profile"
@@ -100,14 +100,14 @@ func MakeIPFSSwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsN
 				return nil, nil, err
 			}
 
-			kbytes, err := sk.Bytes()
+			pkstr, err := key.EncodePrivKeyB64(sk)
 			if err != nil {
 				return nil, nil, err
 			}
 
 			ident = config.Identity{
 				PeerID:  id.Pretty(),
-				PrivKey: base64.StdEncoding.EncodeToString(kbytes),
+				PrivKey: pkstr,
 			}
 		} else {
 			ident = config.Identity{
