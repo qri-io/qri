@@ -50,7 +50,7 @@ func main() {
 	}
 
 	// generate markdown filenames
-	root, _ := qri.NewQriCommand(ctx, qri.StandardRepoPath(), key.NewCryptoSource(), ioes.NewStdIOStreams())
+	root, _ := qri.NewQriCommand(ctx, qri.StandardRepoPath(), key.NewCryptoGenerator(), ioes.NewStdIOStreams())
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0755)

@@ -20,9 +20,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Constructors encapsulates constructors required by the qri command
+type Constructors struct {
+	CryptoGenerator key.CryptoGenerator
+	InitIPFS        func(repoPath, configPath string) error
+}
+
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(ctx context.Context, repoPath string, generator key.CryptoGenerator, ioStreams ioes.IOStreams, libOpts ...lib.Option) (*cobra.Command, func() <-chan error) {
-	opt := NewQriOptions(ctx, repoPath, generator, ioStreams, libOpts)
+func NewQriCommand(ctx context.Context, repoPath string, ctors Constructors, ioStreams ioes.IOStreams, libOpts ...lib.Option) (*cobra.Command, func() <-chan error) {
+	opt := NewQriOptions(ctx, repoPath, ctors, ioStreams, libOpts)
 
 	cmd := &cobra.Command{
 		Use:   "qri",
@@ -89,7 +95,7 @@ type QriOptions struct {
 	// path to the qri data directory
 	repoPath string
 	// generator is source of generating cryptographic info
-	generator key.CryptoGenerator
+	ctors Constructors
 	// automatically run migrations if necessary
 	Migrate bool
 	// NoPrompt Disables all promt messages
@@ -106,14 +112,14 @@ type QriOptions struct {
 }
 
 // NewQriOptions creates an options object
-func NewQriOptions(ctx context.Context, repoPath string, generator key.CryptoGenerator, ioStreams ioes.IOStreams, libOpts []lib.Option) *QriOptions {
+func NewQriOptions(ctx context.Context, repoPath string, ctors Constructors, ioStreams ioes.IOStreams, libOpts []lib.Option) *QriOptions {
 	return &QriOptions{
 		IOStreams: ioStreams,
 		ctx:       ctx,
 		doneCh:    make(chan struct{}),
 		repoPath:  repoPath,
 		libOpts:   libOpts,
-		generator: generator,
+		ctors:     ctors,
 	}
 }
 
@@ -212,9 +218,9 @@ func (o *QriOptions) Config() (*config.Config, error) {
 	return o.inst.GetConfig(), nil
 }
 
-// CryptoGenerator returns a resource for generating cryptographic info
-func (o *QriOptions) CryptoGenerator() key.CryptoGenerator {
-	return o.generator
+// Constructors returns a struct for expensive constructor functions
+func (o *QriOptions) Constructors() Constructors {
+	return o.ctors
 }
 
 // HTTPClient returns a client for performing RPC over HTTP

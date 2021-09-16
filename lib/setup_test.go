@@ -23,6 +23,7 @@ func TestSetupTeardown(t *testing.T) {
 		Generator:           repotest.NewTestCrypto(),
 		SetupIPFS:           true,
 		SetupIPFSConfigData: ipfsCfg,
+		InitIPFSFunc:        repotest.InitIPFSRepo,
 		Register:            true,
 	}
 	params.Config.Profile.Peername = "hallo"

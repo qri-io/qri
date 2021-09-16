@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
-	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	qhttp "github.com/qri-io/qri/lib/http"
@@ -20,7 +19,7 @@ type Factory interface {
 
 	// path to qri data directory
 	RepoPath() string
-	CryptoGenerator() key.CryptoGenerator
+	Constructors() Constructors
 
 	Init() error
 	HTTPClient() *qhttp.Client

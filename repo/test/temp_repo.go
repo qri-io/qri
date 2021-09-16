@@ -80,7 +80,7 @@ func newTempRepo(peername, prefix string, g key.CryptoGenerator) (r TempRepo, er
 		return r, err
 	}
 	// Build IPFS repo directory by unzipping an empty repo.
-	err = g.GenerateEmptyIpfsRepo(IPFSPath, "")
+	err = InitIPFSRepo(IPFSPath, "")
 	if err != nil {
 		return r, err
 	}

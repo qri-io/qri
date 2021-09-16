@@ -38,6 +38,7 @@ type SetupParams struct {
 	// attempt to setup an IFPS repo
 	SetupIPFS           bool
 	SetupIPFSConfigData []byte
+	InitIPFSFunc        func(repoPath, configPath string) error
 	// setup requires a crypto source
 	Generator key.CryptoGenerator
 }
@@ -84,7 +85,7 @@ func Setup(p SetupParams) error {
 			return err
 		}
 
-		if err := initIPFS(ipfsPath, p.SetupIPFSConfigData, p.Generator); err != nil {
+		if err := initIPFS(ipfsPath, p.SetupIPFSConfigData, p.InitIPFSFunc); err != nil {
 			return err
 		}
 	}
@@ -141,7 +142,7 @@ func setup(repoPath string, cfg *config.Config, register bool) error {
 }
 
 // initIPFS initializes an IPFS repo
-func initIPFS(path string, cfgData []byte, g key.CryptoGenerator) error {
+func initIPFS(path string, cfgData []byte, initFunc func(string, string) error) error {
 	tmpIPFSConfigPath := ""
 	if cfgData != nil {
 		// TODO - remove this temp file & instead adjust ipfs.InitRepo to accept an io.Reader
@@ -156,7 +157,7 @@ func initIPFS(path string, cfgData []byte, g key.CryptoGenerator) error {
 		}()
 	}
 
-	if err := g.GenerateEmptyIpfsRepo(path, tmpIPFSConfigPath); err != nil {
+	if err := initFunc(path, tmpIPFSConfigPath); err != nil {
 		if !strings.Contains(err.Error(), "already") {
 			return fmt.Errorf("error creating IPFS repo: %s", err.Error())
 		}

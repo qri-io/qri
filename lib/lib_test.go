@@ -126,8 +126,7 @@ func TestNewDefaultInstance(t *testing.T) {
 	ipfsPath := filepath.Join(qriPath, "ipfs")
 	t.Logf(tempDir)
 
-	testCrypto := repotest.NewTestCrypto()
-	if err = testCrypto.GenerateEmptyIpfsRepo(ipfsPath, ""); err != nil {
+	if err = repotest.InitIPFSRepo(ipfsPath, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -255,8 +254,7 @@ func TestNewInstanceWithAccessControlPolicy(t *testing.T) {
 	ipfsPath := filepath.Join(qriPath, "ipfs")
 	t.Logf(tempDir)
 
-	testCrypto := repotest.NewTestCrypto()
-	if err = testCrypto.GenerateEmptyIpfsRepo(ipfsPath, ""); err != nil {
+	if err = repotest.InitIPFSRepo(ipfsPath, ""); err != nil {
 		t.Fatal(err)
 	}
 

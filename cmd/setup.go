@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
@@ -66,8 +67,8 @@ including all your datasets, and de-registers your username from the registry.`,
 // SetupOptions encapsulates state for the setup command
 type SetupOptions struct {
 	ioes.IOStreams
-	repoPath  string
-	Generator key.CryptoGenerator
+	repoPath string
+	ctors    Constructors
 
 	Anonymous      bool
 	Overwrite      bool
@@ -83,7 +84,7 @@ type SetupOptions struct {
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SetupOptions) Complete(f Factory, args []string) (err error) {
 	o.repoPath = f.RepoPath()
-	o.Generator = f.CryptoGenerator()
+	o.ctors = f.Constructors()
 	return
 }
 
@@ -163,11 +164,12 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 	}
 
 	p := lib.SetupParams{
-		Config:    cfg,
-		RepoPath:  o.repoPath,
-		SetupIPFS: o.IPFS,
-		Register:  o.Registry == "none",
-		Generator: o.Generator,
+		Config:       cfg,
+		RepoPath:     o.repoPath,
+		SetupIPFS:    o.IPFS,
+		InitIPFSFunc: o.ctors.InitIPFS,
+		Generator:    o.ctors.CryptoGenerator,
+		Register:     o.Registry == "none",
 	}
 
 	if o.IPFSConfigData != "" {
@@ -182,7 +184,7 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 
 // CreateAndDisplayDoggo creates and display a doggo name
 func (o *SetupOptions) CreateAndDisplayDoggo() error {
-	_, peerID := o.Generator.GeneratePrivateKeyAndPeerID()
+	_, peerID := o.ctors.CryptoGenerator.GeneratePrivateKeyAndPeerID()
 	dognick := profile.AnonUsername(peerID)
 	printSuccess(o.Out, dognick)
 	return nil
@@ -204,7 +206,7 @@ func setupRepoIfEmpty(repoPath, configPath string, g key.CryptoGenerator) error 
 			if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
 				return err
 			}
-			if err := g.GenerateEmptyIpfsRepo(repoPath, configPath); err != nil {
+			if err := qipfs.InitRepo(repoPath, configPath); err != nil {
 				return err
 			}
 		}

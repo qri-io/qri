@@ -17,6 +17,7 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config/migrate"
 	qrierr "github.com/qri-io/qri/errors"
@@ -44,7 +45,11 @@ func Execute() {
 
 	// root context
 	ctx := context.Background()
-	root, shutdown := NewQriCommand(ctx, StandardRepoPath(), key.NewCryptoSource(), ioes.NewStdIOStreams())
+	ctors := Constructors{
+		CryptoGenerator: key.NewCryptoGenerator(),
+		InitIPFS:        qipfs.InitRepo,
+	}
+	root, shutdown := NewQriCommand(ctx, StandardRepoPath(), ctors, ioes.NewStdIOStreams())
 	// If the subcommand hits an error, don't show usage or the error, since we'll show
 	// the error message below, on our own. Usage is still shown if the subcommand
 	// is missing command-line arguments.

@@ -5,7 +5,6 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/qri-io/qfs/qipfs"
 )
 
 // CryptoGenerator is an interface for generating cryptographic info like
@@ -17,10 +16,6 @@ type CryptoGenerator interface {
 	// GeneratePrivateKeyAndPeerID returns a base64 encoded private key, and a
 	// peerID
 	GeneratePrivateKeyAndPeerID() (string, string)
-	// GenerateEmptyIpfsRepo creates an empty IPFS repo at a given path
-	// TODO(b5): This shouldn't be part of the CryptoGenerator interface, should
-	// be moved to github.com/qri-io/qfs/qipfs
-	GenerateEmptyIpfsRepo(repoPath, cfgPath string) error
 }
 
 // cryptoGenerator is a source of cryptographic info
@@ -49,9 +44,4 @@ func (g cryptoGenerator) GeneratePrivateKeyAndPeerID() (privKey, peerID string) 
 		}
 	}
 	return
-}
-
-// GenerateEmptyIpfsRepo creates an empty IPFS repo in a secure manner at the given path
-func (g cryptoGenerator) GenerateEmptyIpfsRepo(repoPath, configPath string) error {
-	return qipfs.InitRepo(repoPath, configPath)
 }

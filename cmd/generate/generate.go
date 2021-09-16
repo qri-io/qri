@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/cmd"
 	"github.com/spf13/cobra/doc"
@@ -19,10 +20,15 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	ctors := cmd.Constructors{
+		CryptoGenerator: key.NewCryptoGenerator(),
+		InitIPFS:        qipfs.InitRepo,
+	}
+
 	switch lastArg {
 	case "completions":
 		fmt.Printf("generating completions file...")
-		root, _ := cmd.NewQriCommand(ctx, cmd.StandardRepoPath(), key.NewCryptoSource(), ioes.NewStdIOStreams())
+		root, _ := cmd.NewQriCommand(ctx, cmd.StandardRepoPath(), ctors, ioes.NewStdIOStreams())
 		root.GenBashCompletionFile("out.sh")
 		fmt.Println("done")
 	case "docs":
@@ -31,7 +37,7 @@ func main() {
 		if err := os.MkdirAll(path, os.ModePerm); err != nil {
 			log.Fatal(err)
 		}
-		root, _ := cmd.NewQriCommand(ctx, cmd.StandardRepoPath(), key.NewCryptoSource(), ioes.NewStdIOStreams())
+		root, _ := cmd.NewQriCommand(ctx, cmd.StandardRepoPath(), ctors, ioes.NewStdIOStreams())
 		err := doc.GenMarkdownTree(root, path)
 		if err != nil {
 			log.Fatal(err)
