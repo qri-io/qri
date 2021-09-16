@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/profile"
 )
 
 // QriRepoExists returns nil if a qri repo is defined at the given path
@@ -69,7 +70,7 @@ func Setup(p SetupParams) error {
 		cfg.Profile.ID = cfg.P2P.PeerID
 	}
 	if cfg.Profile.Peername == "" {
-		cfg.Profile.Peername = p.Generator.GenerateNickname(cfg.P2P.PeerID)
+		cfg.Profile.Peername = profile.AnonUsername(cfg.P2P.PeerID)
 	}
 
 	if err := setup(p.RepoPath, p.Config, p.Register); err != nil {

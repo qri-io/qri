@@ -15,6 +15,8 @@ func NewTestCrypto() key.CryptoGenerator {
 	return &testCryptoGenerator{}
 }
 
+var _ key.CryptoGenerator = (*testCryptoGenerator)(nil)
+
 type testCryptoGenerator struct {
 	count int
 }
@@ -23,10 +25,6 @@ func (g *testCryptoGenerator) GeneratePrivateKeyAndPeerID() (string, string) {
 	kd := testkeys.GetKeyData(g.count)
 	g.count++
 	return kd.EncodedPrivKey, kd.EncodedPeerID
-}
-
-func (g *testCryptoGenerator) GenerateNickname(peerID string) string {
-	return "testnick"
 }
 
 func (g *testCryptoGenerator) GenerateEmptyIpfsRepo(repoPath, configPath string) error {

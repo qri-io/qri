@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -182,7 +183,7 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 // CreateAndDisplayDoggo creates and display a doggo name
 func (o *SetupOptions) CreateAndDisplayDoggo() error {
 	_, peerID := o.Generator.GeneratePrivateKeyAndPeerID()
-	dognick := o.Generator.GenerateNickname(peerID)
+	dognick := profile.AnonUsername(peerID)
 	printSuccess(o.Out, dognick)
 	return nil
 }
