@@ -8,32 +8,6 @@ import (
 	testcfg "github.com/qri-io/qri/config/test"
 )
 
-func TestP2PDecodePrivateKey(t *testing.T) {
-	missingErr := "missing private key"
-	p := &config.P2P{}
-	_, err := p.DecodePrivateKey()
-	if err == nil {
-		t.Errorf("expected empty private key to err")
-	} else if err.Error() != missingErr {
-		t.Errorf("error mismatch. expected: %s, got: %s", missingErr, err.Error())
-	}
-
-	invalidErr := "decoding private key: illegal base64 data at input byte 4"
-	p = &config.P2P{PrivKey: "invalid"}
-	_, err = p.DecodePrivateKey()
-	if err == nil {
-		t.Errorf("expected empty private key to err")
-	} else if err.Error() != invalidErr {
-		t.Errorf("error mismatch. expected: %s, got: %s", invalidErr, err.Error())
-	}
-
-	p = testcfg.DefaultP2PForTesting()
-	_, err = p.DecodePrivateKey()
-	if err != nil {
-		t.Errorf("unexpected error: %s", err.Error())
-	}
-}
-
 func TestP2PValidate(t *testing.T) {
 	err := testcfg.DefaultP2PForTesting().Validate()
 	if err != nil {

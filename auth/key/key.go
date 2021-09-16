@@ -1,6 +1,7 @@
 package key
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	logger "github.com/ipfs/go-log"
@@ -42,4 +43,54 @@ func IDFromPubKey(pubKey crypto.PubKey) (string, error) {
 		return "", err
 	}
 	return id.Pretty(), err
+}
+
+// EncodePubKeyB64 serializes a public key to a base64-encoded string
+func EncodePubKeyB64(pub crypto.PubKey) (string, error) {
+	if pub == nil {
+		return "", fmt.Errorf("cannot encode nil public key")
+	}
+	pubBytes, err := pub.Bytes()
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(pubBytes), nil
+}
+
+// DecodeB64PubKey deserializes a base-64 encoded key string into a public key
+func DecodeB64PubKey(keystr string) (pk crypto.PubKey, err error) {
+	d, err := base64.StdEncoding.DecodeString(keystr)
+	if err != nil {
+		return nil, fmt.Errorf("decoding base64-encoded public key: %w", err)
+	}
+	pubKey, err := crypto.UnmarshalPublicKey(d)
+	if err != nil {
+		return nil, fmt.Errorf("public key %q is invalid: %w", keystr, err)
+	}
+	return pubKey, nil
+}
+
+// EncodePrivKeyB64 serializes a private key to a base64-encoded string
+func EncodePrivKeyB64(pk crypto.PrivKey) (string, error) {
+	if pk == nil {
+		return "", fmt.Errorf("cannot encode nil private key")
+	}
+	pdata, err := pk.Bytes()
+	return base64.StdEncoding.EncodeToString(pdata), err
+}
+
+// DecodeB64PrivKey deserializes a base-64 encoded key string into a private
+// key
+func DecodeB64PrivKey(keystr string) (pk crypto.PrivKey, err error) {
+	data, err := base64.StdEncoding.DecodeString(keystr)
+	if err != nil {
+		return nil, fmt.Errorf("decoding base64-encoded private key: %w", err)
+	}
+
+	pk, err = crypto.UnmarshalPrivateKey(data)
+	if err != nil {
+		return nil, fmt.Errorf("invalid private key: %w", err)
+	}
+
+	return pk, nil
 }

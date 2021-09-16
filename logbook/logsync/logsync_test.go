@@ -2,7 +2,6 @@ package logsync
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"net/http/httptest"
 	"testing"
@@ -13,6 +12,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/auth/key"
 	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -364,13 +364,7 @@ func TestNilCallable(t *testing.T) {
 }
 
 func makeJohnathonLogbook() *logbook.Book {
-	var aPk = testkeys.GetKeyData(10).EncodedPrivKey
-
-	pk, err := decodePk(aPk)
-	if err != nil {
-		panic(err)
-	}
-
+	pk := testkeys.GetKeyData(10).PrivKey
 	book, err := newTestbook("johnathon", pk)
 	if err != nil {
 		panic(err)
@@ -379,13 +373,7 @@ func makeJohnathonLogbook() *logbook.Book {
 }
 
 func makeBasitLogbook() *logbook.Book {
-	var bPk = testkeys.GetKeyData(9).EncodedPrivKey
-
-	pk, err := decodePk(bPk)
-	if err != nil {
-		panic(err)
-	}
-
+	pk := testkeys.GetKeyData(9).PrivKey
 	book, err := newTestbook("basit", pk)
 	if err != nil {
 		panic(err)
@@ -428,7 +416,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 		Ctx: context.Background(),
 	}
 
-	tr.APrivKey, err = decodePk(aPk)
+	tr.APrivKey, err = key.DecodeB64PrivKey(aPk)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -436,7 +424,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 		t.Fatal(err)
 	}
 
-	tr.BPrivKey, err = decodePk(bPk)
+	tr.BPrivKey, err = key.DecodeB64PrivKey(bPk)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -449,17 +437,6 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 		golog.SetLogLevel("logsync", "ERROR")
 	}
 	return tr, cleanup
-}
-
-func decodePk(b64pk string) (crypto.PrivKey, error) {
-	// logbooks are encrypted at rest, we need a private key to interact with
-	// them, including to create a new logbook. This is a dummy Private Key
-	// you should never, ever use in real life. demo only folks.
-	data, err := base64.StdEncoding.DecodeString(b64pk)
-	if err != nil {
-		return nil, err
-	}
-	return crypto.UnmarshalPrivateKey(data)
 }
 
 func newTestbook(username string, pk crypto.PrivKey) (*logbook.Book, error) {

@@ -2,7 +2,6 @@ package logsync
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -10,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/profile"
@@ -141,22 +140,16 @@ func (c *httpClient) del(ctx context.Context, author profile.Author, ref dsref.R
 func addAuthorHTTPHeaders(h http.Header, author profile.Author) error {
 	h.Set("ID", author.AuthorID())
 	h.Set("username", author.Username())
-
-	pubByteStr, err := author.AuthorPubKey().Bytes()
+	pubKey, err := key.EncodePubKeyB64(author.AuthorPubKey())
 	if err != nil {
 		return err
 	}
-	h.Set("PubKey", base64.StdEncoding.EncodeToString(pubByteStr))
+	h.Set("PubKey", pubKey)
 	return nil
 }
 
 func senderFromHTTPHeaders(h http.Header) (profile.Author, error) {
-	data, err := base64.StdEncoding.DecodeString(h.Get("PubKey"))
-	if err != nil {
-		return nil, err
-	}
-
-	pub, err := crypto.UnmarshalPublicKey(data)
+	pub, err := key.DecodeB64PubKey(h.Get("PubKey"))
 	if err != nil {
 		return nil, fmt.Errorf("decoding public key: %s", err)
 	}

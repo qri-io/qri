@@ -2,7 +2,6 @@ package key
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -43,8 +42,9 @@ func (g *CryptoSource) GeneratePrivateKeyAndPeerID() (privKey, peerID string) {
 	r := rand.Reader
 	// Generate a key pair for this host. This is a relatively expensive operation.
 	if priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r); err == nil {
-		if pdata, err := priv.Bytes(); err == nil {
-			privKey = base64.StdEncoding.EncodeToString(pdata)
+		privKey, err = EncodePrivKeyB64(priv)
+		if err != nil {
+			panic(err)
 		}
 		// Obtain peerID from public key
 		if pid, err := peer.IDFromPublicKey(pub); err == nil {

@@ -2,7 +2,6 @@
 package profile
 
 import (
-	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -130,17 +129,11 @@ func (p *Profile) Decode(sp *config.ProfilePod) error {
 	}
 
 	if sp.PrivKey != "" {
-		data, err := base64.StdEncoding.DecodeString(sp.PrivKey)
+		pro.PrivKey, err = key.DecodeB64PrivKey(sp.PrivKey)
 		if err != nil {
-			return fmt.Errorf("decoding private key: %s", err.Error())
+			return err
 		}
-
-		pk, err := crypto.UnmarshalPrivateKey(data)
-		if err != nil {
-			return fmt.Errorf("invalid private key: %s", err.Error())
-		}
-		pro.PrivKey = pk
-		pro.PubKey = pk.GetPublic()
+		pro.PubKey = pro.PrivKey.GetPublic()
 		pro.KeyID = pro.GetKeyID()
 	}
 
@@ -196,11 +189,11 @@ func (p Profile) Encode() (*config.ProfilePod, error) {
 		NetworkAddrs: addrs,
 	}
 	if p.PrivKey != nil {
-		pkB, err := p.PrivKey.Bytes()
+		var err error
+		pp.PrivKey, err = key.EncodePrivKeyB64(p.PrivKey)
 		if err != nil {
 			return nil, err
 		}
-		pp.PrivKey = base64.StdEncoding.EncodeToString(pkB)
 	}
 	return pp, nil
 }

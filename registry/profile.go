@@ -55,9 +55,9 @@ func (p *Profile) Verify() error {
 	return verify(p.PublicKey, p.Signature, []byte(p.Username))
 }
 
-// ProfileFromPrivateKey generates a profile struct from a private key & desired profile handle
-// It adds all the necessary components to pass profiles.Register, creating base64-encoded
-// PublicKey & Signature, and base58-encoded ProfileID
+// ProfileFromPrivateKey generates a profile struct from a private key & desired
+// profile handle It adds all the necessary components to pass profiles.Register
+// creating base64-encoded PublicKey & Signature, and base58-encoded ProfileID
 func ProfileFromPrivateKey(p *Profile, privKey crypto.PrivKey) (*Profile, error) {
 
 	sigbytes, err := privKey.Sign([]byte(p.Username))

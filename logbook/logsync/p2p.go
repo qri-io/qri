@@ -3,17 +3,16 @@ package logsync
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
 
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/qri-io/dag/dsync/p2putil"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/repo"
@@ -106,22 +105,15 @@ func (c *p2pClient) del(ctx context.Context, author profile.Author, ref dsref.Re
 }
 
 func addAuthorP2PHeaders(h []string, author profile.Author) ([]string, error) {
-	pkb, err := author.AuthorPubKey().Bytes()
+	pubKey, err := key.EncodePubKeyB64(author.AuthorPubKey())
 	if err != nil {
 		return nil, err
 	}
-	pubKey := base64.StdEncoding.EncodeToString(pkb)
-
 	return append(h, "author_id", author.AuthorID(), "pub_key", pubKey, "author_username", author.Username()), nil
 }
 
 func authorFromP2PHeaders(msg p2putil.Message) (profile.Author, error) {
-	data, err := base64.StdEncoding.DecodeString(msg.Header("pub_key"))
-	if err != nil {
-		return nil, err
-	}
-
-	pub, err := crypto.UnmarshalPublicKey(data)
+	pub, err := key.DecodeB64PubKey(msg.Header("pub_key"))
 	if err != nil {
 		return nil, fmt.Errorf("decoding public key: %s", err)
 	}

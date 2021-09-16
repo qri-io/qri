@@ -1,11 +1,9 @@
 package config
 
 import (
-	"encoding/base64"
 	"fmt"
 	"reflect"
 
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 
@@ -69,20 +67,6 @@ func DefaultP2P() *P2P {
 		},
 	}
 	return p2p
-}
-
-// DecodePrivateKey generates a PrivKey instance from base64-encoded config file bytes
-func (cfg *P2P) DecodePrivateKey() (crypto.PrivKey, error) {
-	if cfg.PrivKey == "" {
-		return nil, fmt.Errorf("missing private key")
-	}
-
-	data, err := base64.StdEncoding.DecodeString(cfg.PrivKey)
-	if err != nil {
-		return nil, fmt.Errorf("decoding private key: %s", err.Error())
-	}
-
-	return crypto.UnmarshalPrivateKey(data)
 }
 
 // DecodePeerID takes P2P.ID (a string), and decodes it into a peer.ID
