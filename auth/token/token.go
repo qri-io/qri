@@ -2,6 +2,7 @@ package token
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
@@ -77,9 +78,20 @@ func NewPrivKeyAuthToken(pk crypto.PrivKey, profileID string, ttl time.Duration)
 	if err != nil {
 		return "", err
 	}
-	signKey, err := x509.ParsePKCS1PrivateKey(rawPrivBytes)
-	if err != nil {
-		return "", err
+
+	var signKey interface{}
+
+	switch pk.Type() {
+	case crypto.RSA:
+		// TODO(b5) - detect if key is encoded as PEM block, here we're assuming it is
+		signKey, err = x509.ParsePKCS1PrivateKey(rawPrivBytes)
+		if err != nil {
+			return "", err
+		}
+	case crypto.Ed25519:
+		signKey = ed25519.PrivateKey(rawPrivBytes)
+	default:
+		return "", fmt.Errorf("unsupported key type for token creation: %q", pk.Type())
 	}
 
 	var exp int64
@@ -119,16 +131,23 @@ func ParseAuthToken(ctx context.Context, tokenString string, keystore key.Store)
 			return nil, err
 		}
 
-		verifyKeyiface, err := x509.ParsePKIXPublicKey(rawPubBytes)
-		if err != nil {
-			return nil, err
-		}
+		switch pubKey.Type() {
+		case crypto.RSA:
+			verifyKeyiface, err := x509.ParsePKIXPublicKey(rawPubBytes)
+			if err != nil {
+				return nil, err
+			}
 
-		verifyKey, ok := verifyKeyiface.(*rsa.PublicKey)
-		if !ok {
-			return nil, fmt.Errorf("public key is not an RSA key. got type: %T", verifyKeyiface)
+			verifyKey, ok := verifyKeyiface.(*rsa.PublicKey)
+			if !ok {
+				return nil, fmt.Errorf("public key is not an RSA key. got type: %T", verifyKeyiface)
+			}
+			return verifyKey, nil
+		case crypto.Ed25519:
+			return ed25519.PublicKey(rawPubBytes), nil
+		default:
+			return nil, fmt.Errorf("unsupported key type: %q", pubKey.Type())
 		}
-		return verifyKey, nil
 	})
 }
 
@@ -147,8 +166,9 @@ type Source interface {
 type pkSource struct {
 	pk            crypto.PrivKey
 	signingMethod jwt.SigningMethod
-	verifyKey     *rsa.PublicKey
-	signKey       *rsa.PrivateKey
+
+	verifyKey interface{} // one of: *rsa.PublicKey, *edsa.PublicKey
+	signKey   interface{} // one of: *rsa.PrivateKey,
 }
 
 // assert pkSource implements Source at compile time
@@ -157,37 +177,54 @@ var _ Source = (*pkSource)(nil)
 // NewPrivKeySource creates an authentication interface backed by a single
 // private key. Intended for a node running as remote, or providing a public API
 func NewPrivKeySource(privKey crypto.PrivKey) (Source, error) {
-	signingMethod, err := jwtSigningMethod(privKey)
-	if err != nil {
-		return nil, err
-	}
-
 	rawPrivBytes, err := privKey.Raw()
 	if err != nil {
-		return nil, err
-	}
-	signKey, err := x509.ParsePKCS1PrivateKey(rawPrivBytes)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting private key bytes: %w", err)
 	}
 
-	rawPubBytes, err := privKey.GetPublic().Raw()
-	if err != nil {
-		return nil, err
-	}
-	verifyKeyiface, err := x509.ParsePKIXPublicKey(rawPubBytes)
-	if err != nil {
-		return nil, err
-	}
+	var (
+		methodStr = ""
+		keyType   = privKey.Type()
+		signKey   interface{}
+		verifyKey interface{}
+	)
 
-	verifyKey, ok := verifyKeyiface.(*rsa.PublicKey)
-	if !ok {
-		return nil, fmt.Errorf("public key is not an RSA key. got type: %T", verifyKeyiface)
+	switch keyType {
+	case crypto.RSA:
+		methodStr = "RS256"
+		// TODO(b5) - detect if key is encoded as PEM block, here we're assuming it is
+		signKey, err = x509.ParsePKCS1PrivateKey(rawPrivBytes)
+		if err != nil {
+			return nil, err
+		}
+		rawPubBytes, err := privKey.GetPublic().Raw()
+		if err != nil {
+			return nil, fmt.Errorf("getting raw public key bytes: %w", err)
+		}
+		verifyKeyiface, err := x509.ParsePKIXPublicKey(rawPubBytes)
+		if err != nil {
+			return nil, fmt.Errorf("parsing public key bytes: %w", err)
+		}
+		var ok bool
+		verifyKey, ok = verifyKeyiface.(*rsa.PublicKey)
+		if !ok {
+			return nil, fmt.Errorf("public key is not an RSA key. got type: %T", verifyKeyiface)
+		}
+	case crypto.Ed25519:
+		methodStr = "EdDSA"
+		signKey = ed25519.PrivateKey(rawPrivBytes)
+		rawPubBytes, err := privKey.GetPublic().Raw()
+		if err != nil {
+			return nil, fmt.Errorf("getting raw public key bytes: %w", err)
+		}
+		verifyKey = ed25519.PublicKey(rawPubBytes)
+	default:
+		return nil, fmt.Errorf("unsupported key type for token creation: %q", keyType)
 	}
 
 	return &pkSource{
 		pk:            privKey,
-		signingMethod: signingMethod,
+		signingMethod: jwt.GetSigningMethod(methodStr),
 		verifyKey:     verifyKey,
 		signKey:       signKey,
 	}, nil
@@ -386,6 +423,8 @@ func jwtSigningMethod(pk crypto.PrivKey) (jwt.SigningMethod, error) {
 	switch keyType {
 	case "RSA":
 		return jwt.GetSigningMethod("RS256"), nil
+	case "Ed25519":
+		return jwt.GetSigningMethod("EdDSA"), nil
 	default:
 		return nil, fmt.Errorf("unsupported key type for token creation: %q", keyType)
 	}

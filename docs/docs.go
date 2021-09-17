@@ -13,7 +13,9 @@ import (
 	"strings"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs/qipfs"
 	"github.com/qri-io/qri/auth/key"
+	"github.com/qri-io/qri/cmd"
 	qri "github.com/qri-io/qri/cmd"
 	"github.com/spf13/cobra/doc"
 )
@@ -49,8 +51,12 @@ func main() {
 		return
 	}
 
+	ctors := cmd.Constructors{
+		CryptoGenerator: key.NewCryptoGenerator(),
+		InitIPFS:        qipfs.InitRepo,
+	}
 	// generate markdown filenames
-	root, _ := qri.NewQriCommand(ctx, qri.StandardRepoPath(), key.NewCryptoGenerator(), ioes.NewStdIOStreams())
+	root, _ := qri.NewQriCommand(ctx, qri.StandardRepoPath(), ctors, ioes.NewStdIOStreams())
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0755)
