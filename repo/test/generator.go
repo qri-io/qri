@@ -15,6 +15,8 @@ func NewTestCrypto() key.CryptoGenerator {
 	return &testCryptoGenerator{}
 }
 
+var _ key.CryptoGenerator = (*testCryptoGenerator)(nil)
+
 type testCryptoGenerator struct {
 	count int
 }
@@ -25,11 +27,8 @@ func (g *testCryptoGenerator) GeneratePrivateKeyAndPeerID() (string, string) {
 	return kd.EncodedPrivKey, kd.EncodedPeerID
 }
 
-func (g *testCryptoGenerator) GenerateNickname(peerID string) string {
-	return "testnick"
-}
-
-func (g *testCryptoGenerator) GenerateEmptyIpfsRepo(repoPath, configPath string) error {
+// InitIPFSRepo creates an IPFS repo by un-zipping a preconstructed IPFS repo
+func InitIPFSRepo(repoPath, configPath string) error {
 	unzipFile(TestdataPath("empty_ipfs_repo.zip"), repoPath)
 	return nil
 }

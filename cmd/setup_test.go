@@ -44,7 +44,7 @@ func TestSetupGimmeDoggo(t *testing.T) {
 	defer run.Delete()
 
 	actual := run.MustExec(t, "qri setup --gimme-doggo")
-	expect := "testnick\n"
+	expect := "peru_swedish_vallhund\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
@@ -71,7 +71,7 @@ func TestSetupWithNoInput(t *testing.T) {
 	configData := readConfigFile(t, qriHome)
 
 	username := configData["Profile"].(map[string]interface{})["peername"]
-	expect := "testnick"
+	expect := "red_munsell_coton_de_tulear"
 	if username != expect {
 		t.Errorf("setup didn't create correct username, expect: %s, got: %s", expect, username)
 	}
@@ -139,7 +139,7 @@ func TestSetupAnonymousIgnoresStdin(t *testing.T) {
 	configData := readConfigFile(t, qriHome)
 
 	username := configData["Profile"].(map[string]interface{})["peername"]
-	expect := "testnick"
+	expect := "red_munsell_coton_de_tulear"
 	if username != expect {
 		t.Errorf("setup didn't create correct username, expect: %s, got: %s", expect, username)
 	}
@@ -276,7 +276,7 @@ func TestSetupRealCrypto(t *testing.T) {
 	// be noticably slower than the other tests, and will also act non-deterministically.
 	// Do not use this function in other tests, it is only used here to explicitly
 	// verify that it works in this one case.
-	cmd, shutdown := newCommand(ctx, qriHome, key.NewCryptoSource())
+	cmd, shutdown := newCommand(ctx, qriHome, key.NewCryptoGenerator())
 
 	cmdText := "qri setup"
 	if err := executeCommand(cmd, cmdText); err != nil {
@@ -354,7 +354,11 @@ func newCommandWithStdin(ctx context.Context, path, stdinText string, generator 
 	if stdinText != "" {
 		in.WriteString(stdinText)
 	}
-	cmd, shutdown := NewQriCommand(ctx, path, generator, streams)
+	ctors := Constructors{
+		CryptoGenerator: generator,
+		InitIPFS:        repotest.InitIPFSRepo,
+	}
+	cmd, shutdown := NewQriCommand(ctx, path, ctors, streams)
 	cmd.SetOutput(streams.Out)
 	return cmd, shutdown
 }

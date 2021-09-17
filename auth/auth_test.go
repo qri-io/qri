@@ -27,7 +27,7 @@ func TestAuthAndGetProfile(t *testing.T) {
 	defer tr.Delete()
 
 	kd0 := testkeys.GetKeyData(0)
-	kd1 := testkeys.GetKeyData(1)
+	kd1 := testkeys.GetKeyData(11)
 
 	ks, err := key.NewMemStore()
 	if err != nil {
@@ -37,6 +37,7 @@ func TestAuthAndGetProfile(t *testing.T) {
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		t.Errorf("error creating tmp directory: %s", err.Error())
 	}
+	defer os.RemoveAll(path)
 
 	owner := &profile.Profile{
 		ID:       profile.IDFromPeerID(kd0.PeerID),

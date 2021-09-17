@@ -232,7 +232,11 @@ func (runner *TestRunner) ExecCommand(cmdText string) error {
 func (runner *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinText string) error {
 	setNoColor(true)
 	runner.Streams.In = strings.NewReader(stdinText)
-	cmd, shutdown := NewQriCommand(ctx, runner.RepoPath, runner.RepoRoot.TestCrypto, runner.Streams)
+	ctors := Constructors{
+		CryptoGenerator: runner.RepoRoot.TestCrypto,
+		InitIPFS:        repotest.InitIPFSRepo,
+	}
+	cmd, shutdown := NewQriCommand(ctx, runner.RepoPath, ctors, runner.Streams)
 	cmd.SetOutput(runner.OutStream)
 	runner.CmdR = cmd
 	if err := executeCommand(runner.CmdR, cmdText); err != nil {
@@ -344,7 +348,11 @@ func (runner *TestRunner) newCommandRunner(ctx context.Context, combineOutErr bo
 	if runner.RepoRoot.UseMockRemoteClient {
 		opts = append(opts, lib.OptRemoteClientConstructor(remotemock.NewClient))
 	}
-	cmd, shutdown := NewQriCommand(ctx, runner.RepoPath, runner.RepoRoot.TestCrypto, streams, opts...)
+	ctors := Constructors{
+		CryptoGenerator: runner.RepoRoot.TestCrypto,
+		InitIPFS:        repotest.InitIPFSRepo,
+	}
+	cmd, shutdown := NewQriCommand(ctx, runner.RepoPath, ctors, streams, opts...)
 	cmd.SetOutput(runner.OutStream)
 	return cmd, shutdown
 }

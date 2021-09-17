@@ -7,10 +7,17 @@ import (
 	"strings"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/qri-io/doggos"
 )
 
-// ID is a distinct thing form a peer.ID. They are *NOT* meant to be interchangable
-// but the mechanics of peer.ID & profile.ID are exactly the same
+// AnonUsername generates an anonymous username from a base58-encoded peer
+// identifier
+func AnonUsername(b58ID string) string {
+	return doggos.DoggoNick(b58ID)
+}
+
+// ID is a distinct thing form a peer.ID. They are *NOT* meant to be
+// interchangable, but the mechanics of peer.ID & profile.ID are similar
 type ID peer.ID
 
 // String converts a profileID to a string for debugging

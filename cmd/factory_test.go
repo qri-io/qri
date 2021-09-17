@@ -5,7 +5,6 @@ import (
 	"net/rpc"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/config"
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
@@ -22,8 +21,7 @@ type TestFactory struct {
 	ioes.IOStreams
 	// path to qri data directory
 	repoPath string
-	// generator is a source of cryptographic info
-	generator key.CryptoGenerator
+	ctors    Constructors
 
 	inst *lib.Instance
 	// Configuration object
@@ -51,7 +49,10 @@ func NewTestFactory(ctx context.Context) (tf TestFactory, err error) {
 
 	return TestFactory{
 		IOStreams: ioes.NewDiscardIOStreams(),
-		generator: repotest.NewTestCrypto(),
+		ctors: Constructors{
+			CryptoGenerator: repotest.NewTestCrypto(),
+			InitIPFS:        repotest.InitIPFSRepo,
+		},
 
 		repo:   repo,
 		rpc:    nil,
@@ -89,7 +90,10 @@ func NewTestFactoryInstanceOptions(ctx context.Context, repoPath string, opts ..
 
 	return TestFactory{
 		IOStreams: ioes.NewDiscardIOStreams(),
-		generator: repotest.NewTestCrypto(),
+		ctors: Constructors{
+			CryptoGenerator: repotest.NewTestCrypto(),
+			InitIPFS:        repotest.InitIPFSRepo,
+		},
 
 		repo:   repo,
 		rpc:    nil,
@@ -114,8 +118,8 @@ func (t TestFactory) RepoPath() string {
 }
 
 // CryptoGenerator
-func (t TestFactory) CryptoGenerator() key.CryptoGenerator {
-	return t.generator
+func (t TestFactory) Constructors() Constructors {
+	return t.ctors
 }
 
 // Init will initialize the internal state
