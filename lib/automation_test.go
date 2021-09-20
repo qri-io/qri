@@ -63,7 +63,7 @@ body = """a,b,c
 1,2,3
 4,5,6
 """
-ds.body = dataframe.read_csv(body)
+ds.body = dataframe.parse_csv(body)
 dataset.commit(ds)
 `,
 		},
@@ -122,7 +122,7 @@ body = """a,b,c
 """
 
 ds = dataset.latest()
-ds.body = dataframe.read_csv(body)
+ds.body = dataframe.parse_csv(body)
 dataset.commit(ds)
 `,
 				},
