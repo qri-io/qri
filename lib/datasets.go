@@ -144,6 +144,24 @@ func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
 	if !(p.Offset == 0 && p.Limit == 0) {
 		p.All = false
 	}
+
+	if p.All && p.Limit == 0 && p.Offset == 0 {
+		page := -1
+		pageSize := -1
+		if i := util.ReqParamInt(r, "page", 0); i != 0 {
+			page = i
+		}
+		if i := util.ReqParamInt(r, "pageSize", 0); i != 0 {
+			pageSize = i
+		}
+		// we don't want the defaults to override this and also only want to
+		// set values if they are present
+		if page >= 0 && pageSize >= 0 {
+			p.Limit = pageSize
+			p.Offset = (page - 1) * pageSize
+			p.All = false
+		}
+	}
 	return nil
 }
 
