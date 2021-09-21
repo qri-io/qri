@@ -79,7 +79,7 @@ func LoadDefaultTestCases() ([]*TestCase, error) {
 							{
 								Name:   "transform",
 								Syntax: "starlark",
-								Script: "load(\"dataframe.star\", \"dataframe\")\nds = dataset.latest()\nbody = '''a,b,c\n1,2,3\n4,5,6\n'''\nds.body = dataframe.read_csv(body)\ndataset.commit(ds)",
+								Script: "load(\"dataframe.star\", \"dataframe\")\nds = dataset.latest()\nbody = '''a,b,c\n1,2,3\n4,5,6\n'''\nds.body = dataframe.parse_csv(body)\ndataset.commit(ds)",
 							},
 						},
 					},

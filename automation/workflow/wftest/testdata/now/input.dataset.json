@@ -11,7 +11,7 @@
 			{
 			  "syntax":"starlark",
 			  "name":"transform",
-			  "script":"currentTime = time.now()\nbody = [\n    ['timestamp']\n  ]\nbody.append([str(currentTime)])\ntheCSV = csv.write_all(body)\nds.body = dataframe.read_csv(theCSV)\ndataset.commit(ds)"
+			  "script":"currentTime = time.now()\nbody = [\n    ['timestamp']\n  ]\nbody.append([str(currentTime)])\ntheCSV = csv.write_all(body)\nds.body = dataframe.parse_csv(theCSV)\ndataset.commit(ds)"
 			}
 		]
 	}

@@ -3,7 +3,6 @@ module github.com/qri-io/qri
 go 1.16
 
 require (
-	github.com/ahmetb/govvv v0.3.0 // indirect
 	github.com/beme/abide v0.0.0-20190723115211-635a09831760
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0
@@ -47,7 +46,7 @@ require (
 	github.com/qri-io/iso8601 v0.1.1-0.20201221213213-f31ee4cdc38b
 	github.com/qri-io/jsonschema v0.2.2-0.20210618085106-a515144d7449
 	github.com/qri-io/qfs v0.6.1-0.20210809192005-052457575e43
-	github.com/qri-io/starlib v0.5.1-0.20210830175022-afa05a06f318
+	github.com/qri-io/starlib v0.5.1-0.20210920143842-cd3dd3df5aa5
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.1.0
 	github.com/sirupsen/logrus v1.6.0

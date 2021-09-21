@@ -54,7 +54,6 @@ github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d h1:licZJFw2RwpH
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d/go.mod h1:asat636LX7Bqt5lYEZ27JNDcqxfjdBQuJ/MM4CN/Lzo=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5/go.mod h1:SkGFH1ia65gfNATL8TAiHDNxPzPdmEL5uirI2Uyuz6c=
-github.com/ahmetb/govvv v0.3.0/go.mod h1:4WRFpdWtc/YtKgPFwa1dr5+9hiRY5uKAL08bOlxOR6s=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 h1:JYp7IbQjafoB+tBA3gMyHYHrpOtNuDiK/uB5uXxq5wM=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
@@ -1362,8 +1361,8 @@ github.com/qri-io/jsonschema v0.2.2-0.20210618085106-a515144d7449/go.mod h1:g7DP
 github.com/qri-io/qfs v0.6.1-0.20210629014446-45bdcdb57434/go.mod h1:XX/caqvngrusufIrtnbo4iPtgsNfu0dfrE3pmLGte9w=
 github.com/qri-io/qfs v0.6.1-0.20210809192005-052457575e43 h1:3Nlkdpj+MYaiAq7MmZ3riECTO0mdU3btt0IjSapaCls=
 github.com/qri-io/qfs v0.6.1-0.20210809192005-052457575e43/go.mod h1:PCkSctLfc6OAquG5QtiUzddDkUE4wezDIvaUOaeuwu0=
-github.com/qri-io/starlib v0.5.1-0.20210830175022-afa05a06f318 h1:Oh8rnteccc4myq0KTI1xdp+EgYYmrD6IARPXvw4ihfo=
-github.com/qri-io/starlib v0.5.1-0.20210830175022-afa05a06f318/go.mod h1:NQ7kgFSsqf4TRuNbRD2ZQlBjQpH77ctFx0HpapFthQI=
+github.com/qri-io/starlib v0.5.1-0.20210920143842-cd3dd3df5aa5 h1:WxDzarW4+bFIJsLNHNK4kEmbSJVakD7hQMBaboxXMRw=
+github.com/qri-io/starlib v0.5.1-0.20210920143842-cd3dd3df5aa5/go.mod h1:NQ7kgFSsqf4TRuNbRD2ZQlBjQpH77ctFx0HpapFthQI=
 github.com/qri-io/varName v0.1.0 h1:dFP5qZHrxnn5fNoMbjfpMCRBYDrOsoyls7R07r+emk0=
 github.com/qri-io/varName v0.1.0/go.mod h1:IGWuuGOHhLJ9ZZg28C/+oMYm1QYP+pAorNZKQpdXhxQ=
 github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
