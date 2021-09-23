@@ -2,7 +2,6 @@ package startf
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -321,16 +320,10 @@ func (r *StepRunner) onCommit(ds *stards.Dataset) error {
 			r.changeSet[comp] = changes[comp]
 		}
 	}
-	if err := ds.AssignBodyFromDataframe(); err != nil {
-		return err
-	}
 
-	if _, ok := r.changeSet["body"]; !ok {
-		// the body has not changed, but the user still expects to see
-		// the number of entries the body has
-		if err := r.loadAndAssignPreviousStructureEntries(context.TODO(), ds); err != nil {
-			return err
-		}
+	ctx := context.TODO()
+	if err := ds.AssignComponentsFromDataframe(ctx, r.changeSet, r.dsLoader); err != nil {
+		return err
 	}
 
 	if r.eventsCh != nil {
@@ -341,25 +334,6 @@ func (r *StepRunner) onCommit(ds *stards.Dataset) error {
 		r.eventsCh <- event.Event{Type: event.ETTransformDatasetPreview, Payload: pview}
 	}
 	r.commitCalled = true
-	return nil
-}
-
-func (r *StepRunner) loadAndAssignPreviousStructureEntries(ctx context.Context, ds *stards.Dataset) error {
-	ref := dsref.ConvertDatasetToVersionInfo(ds.Dataset()).SimpleRef()
-	if ref.IsEmpty() {
-		return nil
-	}
-	prev, err := r.dsLoader.LoadDataset(ctx, ref.Alias())
-	if err != nil {
-		if errors.Is(err, dsref.ErrNoHistory) {
-			return nil
-		}
-		return err
-	}
-	if prev.Structure == nil {
-		return nil
-	}
-	ds.AssignPreviousStructureEntries(prev.Structure.Entries)
 	return nil
 }
 

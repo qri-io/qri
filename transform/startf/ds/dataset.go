@@ -2,7 +2,9 @@
 package ds
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"sort"
@@ -14,6 +16,7 @@ import (
 	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/starlib/dataframe"
 	"github.com/qri-io/starlib/util"
 	"go.starlark.net/starlark"
@@ -351,12 +354,31 @@ func (d *Dataset) writeStructure(data starlark.Value) *dataset.Structure {
 	}
 }
 
-// AssignBodyFromDataframe converts the DataFrame on the object into
-// a proper dataset.bodyfile
-func (d *Dataset) AssignBodyFromDataframe() error {
+// AssignComponentsFromDataframe looks for changes to the Dataframe body
+// and columns, and assigns them to the Dataset's body and structure
+func (d *Dataset) AssignComponentsFromDataframe(ctx context.Context, changeSet map[string]struct{}, loader dsref.Loader) error {
 	if d.ds == nil {
 		return nil
 	}
+
+	if err := d.assignBodyFromDataframe(); err != nil {
+		return err
+	}
+
+	if _, ok := changeSet["body"]; !ok {
+		// the body has not changed, but the user still expects to see
+		// the number of entries the body has
+		if err := d.loadAndAssignPreviousStructureEntries(ctx, loader); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AssignBodyFromDataframe converts the DataFrame on the object into
+// a proper dataset.bodyfile
+func (d *Dataset) assignBodyFromDataframe() error {
 	if d.bodyFrame == nil {
 		return nil
 	}
@@ -398,13 +420,24 @@ func (d *Dataset) AssignBodyFromDataframe() error {
 	return nil
 }
 
-// AssignPreviousStructureEntries assigns the count of entries to the dataset
-// structure. If a structure does not exist on the dataset, it will create an empty
-// structure and assign the entries to that.
-func (d *Dataset) AssignPreviousStructureEntries(entries int) {
-	if d.ds == nil {
-		return
+// load the previous dataset version to get the number of entries
+// and assign them to this version's structure
+func (d *Dataset) loadAndAssignPreviousStructureEntries(ctx context.Context, loader dsref.Loader) error {
+	ref := dsref.ConvertDatasetToVersionInfo(d.Dataset()).SimpleRef()
+	if ref.IsEmpty() {
+		return nil
 	}
+	prev, err := loader.LoadDataset(ctx, ref.Alias())
+	if err != nil {
+		if errors.Is(err, dsref.ErrNoHistory) {
+			return nil
+		}
+		return err
+	}
+	if prev.Structure == nil {
+		return nil
+	}
+
 	if d.ds.Structure == nil {
 		// This structure is missing vital data if we need to commit
 		// the resulting dataset. However, this codepath should only be
@@ -421,7 +454,8 @@ func (d *Dataset) AssignPreviousStructureEntries(entries int) {
 		// to worry that the structure is only partially filled.
 		d.ds.Structure = &dataset.Structure{}
 	}
-	d.ds.Structure.Entries = entries
+	d.ds.Structure.Entries = prev.Structure.Entries
+	return nil
 }
 
 func (d *Dataset) createColumnsFromStructure() []string {
