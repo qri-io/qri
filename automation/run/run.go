@@ -264,7 +264,7 @@ func (ss *StepState) UnmarshalJSON(data []byte) error {
 			}
 			e.Payload = p
 		case event.ETTransformPrint, event.ETTransformError:
-			p := ""
+			p := event.TransformMessage{}
 			if err := json.Unmarshal(re.Payload, &p); err != nil {
 				return err
 			}

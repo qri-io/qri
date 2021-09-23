@@ -76,7 +76,9 @@ func TestFileStore(t *testing.T) {
 					{
 						Type:      event.ETTransformPrint,
 						Timestamp: 3,
-						Payload:   "printing!",
+						Payload: event.TransformMessage{
+							Msg: "printing!",
+						},
 					},
 				},
 			},
@@ -164,7 +166,9 @@ func TestFileStore(t *testing.T) {
 					{
 						Type:      event.ETTransformPrint,
 						Timestamp: 3,
-						Payload:   "printing!",
+						Payload: event.TransformMessage{
+							Msg: "printing!",
+						},
 					},
 				},
 			},

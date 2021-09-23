@@ -1,6 +1,7 @@
 package run
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -25,6 +26,27 @@ func ExampleNewID() {
 
 func TestStateAddTransformEvent(t *testing.T) {
 	runID := NewID()
+	states := getStates(runID)
+	for i, s := range states {
+		t.Run(fmt.Sprintf("after_event_%d", i), func(t *testing.T) {
+			got := NewState(runID)
+			for j := 0; j <= i; j++ {
+				if err := got.AddTransformEvent(states[j].e); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			if diff := cmp.Diff(s.r, got); diff != "" {
+				t.Errorf("result mismatch. (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func getStates(runID string) []struct {
+	e event.Event
+	r *State
+} {
 	states := []struct {
 		e event.Event
 		r *State
@@ -113,7 +135,12 @@ func TestStateAddTransformEvent(t *testing.T) {
 			}},
 		},
 	}
+	return states
+}
 
+func TestRunStateMarshaling(t *testing.T) {
+	runID := NewID()
+	states := getStates(runID)
 	for i, s := range states {
 		t.Run(fmt.Sprintf("after_event_%d", i), func(t *testing.T) {
 			got := NewState(runID)
@@ -121,6 +148,20 @@ func TestStateAddTransformEvent(t *testing.T) {
 				if err := got.AddTransformEvent(states[j].e); err != nil {
 					t.Fatal(err)
 				}
+			}
+
+			serializedRun, err := json.Marshal(got)
+			if err != nil {
+				t.Fatal(err)
+			}
+			deserializedRun := &State{}
+			err = json.Unmarshal(serializedRun, deserializedRun)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(got, deserializedRun); diff != "" {
+				t.Errorf("serialization mismatch (-want +got):\n %s", diff)
 			}
 
 			if diff := cmp.Diff(s.r, got); diff != "" {

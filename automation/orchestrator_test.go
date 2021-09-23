@@ -394,25 +394,29 @@ func TestRunStoreEvents(t *testing.T) {
 			confirmStoredRun(ctx, t, runStore, r)
 
 			// event 2
-			bus.PublishID(ctx, event.ETTransformPrint, r.ID, "transform print")
+			bus.PublishID(ctx, event.ETTransformPrint, r.ID, event.TransformMessage{Msg: "transform print"})
 			ts = nextTimestamp()
 			expectedPrintEvent := event.Event{
 				Type:      event.ETTransformPrint,
 				Timestamp: (*ts).UnixNano(),
 				SessionID: r.ID,
-				Payload:   "transform print",
+				Payload: event.TransformMessage{
+					Msg: "transform print",
+				},
 			}
 			r.Steps[0].Output = []event.Event{expectedPrintEvent}
 			confirmStoredRun(ctx, t, runStore, r)
 
 			// event 3
-			bus.PublishID(ctx, event.ETTransformError, r.ID, "transform error")
+			bus.PublishID(ctx, event.ETTransformError, r.ID, event.TransformMessage{Msg: "transform error"})
 			ts = nextTimestamp()
 			expectedErrorEvent := event.Event{
 				Type:      event.ETTransformError,
 				Timestamp: (*ts).UnixNano(),
 				SessionID: r.ID,
-				Payload:   "transform error",
+				Payload: event.TransformMessage{
+					Msg: "transform error",
+				},
 			}
 			r.Steps[0].Output = []event.Event{expectedPrintEvent, expectedErrorEvent}
 			confirmStoredRun(ctx, t, runStore, r)
