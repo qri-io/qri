@@ -131,7 +131,7 @@ func (d *Dataset) AttrNames() []string {
 	return append(builtinAttrNames(dsMethods), "body")
 }
 
-// SetField assigns to a field of the DataFrame
+// SetField assigns to a field of the Dataset
 func (d *Dataset) SetField(name string, val starlark.Value) error {
 	if d.frozen {
 		return fmt.Errorf("cannot set, Dataset is frozen")
@@ -285,6 +285,9 @@ func (d *Dataset) getBody() (starlark.Value, error) {
 		return starlark.None, fmt.Errorf("error: no structure for dataset")
 	}
 
+	// Create columns from the structure, if one exists
+	columns := d.createColumnsFromStructure()
+
 	// TODO(dustmop): DataFrame should be able to work with an
 	// efficient, streaming body file.
 	data, err := ioutil.ReadAll(d.ds.BodyFile())
@@ -309,7 +312,7 @@ func (d *Dataset) getBody() (starlark.Value, error) {
 		rows = append(rows, r)
 	}
 
-	df, err := dataframe.NewDataFrame(rows, nil, nil)
+	df, err := dataframe.NewDataFrame(rows, columns, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -419,4 +422,44 @@ func (d *Dataset) AssignPreviousStructureEntries(entries int) {
 		d.ds.Structure = &dataset.Structure{}
 	}
 	d.ds.Structure.Entries = entries
+}
+
+func (d *Dataset) createColumnsFromStructure() []string {
+	var schema map[string]interface{}
+	schema = d.ds.Structure.Schema
+
+	itemsTop := schema["items"]
+	itemsArray, ok := itemsTop.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	columnItems := itemsArray["items"]
+	columnArray, ok := columnItems.([]interface{})
+	if !ok {
+		return nil
+	}
+
+	result := make([]string, len(columnArray))
+	for i, colObj := range columnArray {
+		colMap, ok := colObj.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+
+		colTitle, ok := colMap["title"].(string)
+		if !ok {
+			return nil
+		}
+		colType, ok := colMap["type"].(string)
+		if !ok {
+			return nil
+		}
+		result[i] = colTitle
+		// TODO: Perhaps use types to construct dataframe columns.
+		// Need a test for that behavior.
+		_ = colType
+	}
+
+	return result
 }
