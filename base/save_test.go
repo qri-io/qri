@@ -52,24 +52,6 @@ func TestSaveDataset(t *testing.T) {
 	// path and replaced with apply.
 }
 
-func TestSaveDatasetWithoutStructureOrBody(t *testing.T) {
-	run := newTestRunner(t)
-	defer run.Delete()
-
-	ds := &dataset.Dataset{
-		Name: "no_st_or_body_test",
-		Meta: &dataset.Meta{
-			Title: "test title",
-		},
-	}
-
-	_, err := run.SaveDataset(ds)
-	expect := "creating a new dataset requires a structure or a body"
-	if err == nil || err.Error() != expect {
-		t.Errorf("expected error, but got %s", err.Error())
-	}
-}
-
 func TestSaveDatasetReplace(t *testing.T) {
 	run := newTestRunner(t)
 	defer run.Delete()
