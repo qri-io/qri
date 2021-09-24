@@ -24,7 +24,7 @@ import (
 	"go.starlark.net/starlarkstruct"
 )
 
-var log = golog.Logger("ds")
+var log = golog.Logger("stards")
 
 // ModuleName defines the expected name for this Module when used
 // in starlark's load() function, eg: load('dataset.star', 'dataset')
@@ -496,6 +496,12 @@ func (d *Dataset) assignStructureFromDataframeColumns() error {
 			"type":  "array",
 			"items": cols,
 		},
+	}
+
+	if d.ds.Structure == nil {
+		d.ds.Structure = &dataset.Structure{
+			Format: "csv",
+		}
 	}
 	d.ds.Structure.Schema = newSchema
 
