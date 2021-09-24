@@ -67,13 +67,6 @@ func SaveDataset(
 		mutable.Commit = nil
 	}
 
-	// Save requires either a body or a structure.
-	// TODO(dustmop): Saving with only a structure is currently broken. See TestSaveBasicCommands
-	// in cmd/save_test.go
-	if prevPath == "" && changes.BodyFile() == nil && changes.Structure == nil {
-		return nil, fmt.Errorf("creating a new dataset requires a structure or a body")
-	}
-
 	// Handle a change in structure format.
 	if changes.BodyFile() != nil && prev.Structure != nil && changes.Structure != nil && prev.Structure.Format != changes.Structure.Format {
 		log.Debugf("body formats differ. prev=%q new=%q", prev.Structure.Format, changes.Structure.Format)
@@ -125,10 +118,7 @@ func SaveDataset(
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating the refstore
 func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, author *profile.Profile, ds, dsPrev *dataset.Dataset, sw SaveSwitches) (res *dataset.Dataset, err error) {
 	log.Debugw("CreateDataset", "ds.ID", ds.ID)
-	var (
-		path    string
-		resBody qfs.File
-	)
+	var path string
 
 	// TODO(dustmop): Remove the dependence on the ds having an assigned Name. It is only
 	// needed for updating the refstore. Either pass in the reference needed to update the refstore,
@@ -180,14 +170,6 @@ func CreateDataset(ctx context.Context, r repo.Repo, writeDest qfs.Filesystem, a
 		return nil, err
 	}
 
-	// need to open here b/c we might be doing a dry-run, which would mean we have
-	// references to files in a store that won't exist after this function call
-	// TODO (b5): this should be replaced with a call to OpenDataset with a qfs that
-	// knows about the store
-	if resBody, err = r.Filesystem().Get(ctx, ds.BodyPath); err != nil {
-		log.Error("error getting from store:", err.Error())
-	}
-	ds.SetBodyFile(resBody)
 	return ds, nil
 }
 

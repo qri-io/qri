@@ -95,6 +95,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 		res         *reporef.DatasetRef
 	}{
 		{"body file", SaveParams{Ref: "me/jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil},
+		{"no body", SaveParams{Ref: "me/no_body_dataset", Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "big things cooking"}}}, nil},
 		{"meta set title", SaveParams{Ref: "me/cities", FilePaths: []string{citiesMetaOnePath}}, nil},
 		{"meta set description, supply same body", SaveParams{Ref: "me/cities", FilePaths: []string{citiesMetaTwoPath}, BodyPath: s.URL + "/body.csv"}, nil},
 	}
