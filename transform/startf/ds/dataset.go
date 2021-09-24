@@ -2,23 +2,29 @@
 package ds
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"sort"
 	"sync"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/starlib/dataframe"
 	"github.com/qri-io/starlib/util"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
 )
+
+var log = golog.Logger("stards")
 
 // ModuleName defines the expected name for this Module when used
 // in starlark's load() function, eg: load('dataset.star', 'dataset')
@@ -131,7 +137,7 @@ func (d *Dataset) AttrNames() []string {
 	return append(builtinAttrNames(dsMethods), "body")
 }
 
-// SetField assigns to a field of the DataFrame
+// SetField assigns to a field of the Dataset
 func (d *Dataset) SetField(name string, val starlark.Value) error {
 	if d.frozen {
 		return fmt.Errorf("cannot set, Dataset is frozen")
@@ -285,6 +291,9 @@ func (d *Dataset) getBody() (starlark.Value, error) {
 		return starlark.None, fmt.Errorf("error: no structure for dataset")
 	}
 
+	// Create columns from the structure, if one exists
+	columns := d.createColumnsFromStructure()
+
 	// TODO(dustmop): DataFrame should be able to work with an
 	// efficient, streaming body file.
 	data, err := ioutil.ReadAll(d.ds.BodyFile())
@@ -309,7 +318,7 @@ func (d *Dataset) getBody() (starlark.Value, error) {
 		rows = append(rows, r)
 	}
 
-	df, err := dataframe.NewDataFrame(rows, nil, nil)
+	df, err := dataframe.NewDataFrame(rows, columns, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -348,12 +357,38 @@ func (d *Dataset) writeStructure(data starlark.Value) *dataset.Structure {
 	}
 }
 
-// AssignBodyFromDataframe converts the DataFrame on the object into
-// a proper dataset.bodyfile
-func (d *Dataset) AssignBodyFromDataframe() error {
+// AssignComponentsFromDataframe looks for changes to the Dataframe body
+// and columns, and assigns them to the Dataset's body and structure
+func (d *Dataset) AssignComponentsFromDataframe(ctx context.Context, changeSet map[string]struct{}, loader dsref.Loader) error {
 	if d.ds == nil {
 		return nil
 	}
+
+	// assign the structure first. This is necessary because the
+	// body writer will use this structure to serialize the new body
+	if err := d.assignStructureFromDataframeColumns(); err != nil {
+		return err
+	}
+
+	// assign body file from the dataframe
+	if err := d.assignBodyFromDataframe(); err != nil {
+		return err
+	}
+
+	if _, ok := changeSet["body"]; !ok {
+		// the body has not changed, but the user still expects to see
+		// the number of entries the body has
+		if err := d.loadAndAssignPreviousStructureEntries(ctx, loader); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AssignBodyFromDataframe converts the DataFrame on the object into
+// a proper dataset.bodyfile
+func (d *Dataset) assignBodyFromDataframe() error {
 	if d.bodyFrame == nil {
 		return nil
 	}
@@ -395,13 +430,24 @@ func (d *Dataset) AssignBodyFromDataframe() error {
 	return nil
 }
 
-// AssignPreviousStructureEntries assigns the count of entries to the dataset
-// structure. If a structure does not exist on the dataset, it will create an empty
-// structure and assign the entries to that.
-func (d *Dataset) AssignPreviousStructureEntries(entries int) {
-	if d.ds == nil {
-		return
+// load the previous dataset version to get the number of entries
+// and assign them to this version's structure
+func (d *Dataset) loadAndAssignPreviousStructureEntries(ctx context.Context, loader dsref.Loader) error {
+	ref := dsref.ConvertDatasetToVersionInfo(d.Dataset()).SimpleRef()
+	if ref.IsEmpty() {
+		return nil
 	}
+	prev, err := loader.LoadDataset(ctx, ref.Alias())
+	if err != nil {
+		if errors.Is(err, dsref.ErrNoHistory) {
+			return nil
+		}
+		return err
+	}
+	if prev.Structure == nil {
+		return nil
+	}
+
 	if d.ds.Structure == nil {
 		// This structure is missing vital data if we need to commit
 		// the resulting dataset. However, this codepath should only be
@@ -418,5 +464,101 @@ func (d *Dataset) AssignPreviousStructureEntries(entries int) {
 		// to worry that the structure is only partially filled.
 		d.ds.Structure = &dataset.Structure{}
 	}
-	d.ds.Structure.Entries = entries
+	d.ds.Structure.Entries = prev.Structure.Entries
+	return nil
+}
+
+func (d *Dataset) assignStructureFromDataframeColumns() error {
+	if d.bodyFrame == nil {
+		return nil
+	}
+	df, ok := d.bodyFrame.(*dataframe.DataFrame)
+	if !ok {
+		return fmt.Errorf("bodyFrame has invalid type %T", d.bodyFrame)
+	}
+
+	names, types := df.ColumnNamesTypes()
+	if names == nil || types == nil {
+		return nil
+	}
+
+	cols := make([]interface{}, len(names))
+	for i := range names {
+		cols[i] = map[string]string{
+			"title": names[i],
+			"type":  dataframeTypeToQriType(types[i]),
+		}
+	}
+
+	newSchema := map[string]interface{}{
+		"type": "array",
+		"items": map[string]interface{}{
+			"type":  "array",
+			"items": cols,
+		},
+	}
+
+	if d.ds.Structure == nil {
+		d.ds.Structure = &dataset.Structure{
+			Format: "csv",
+		}
+	}
+	d.ds.Structure.Schema = newSchema
+
+	return nil
+}
+
+func (d *Dataset) createColumnsFromStructure() []string {
+	var schema map[string]interface{}
+	schema = d.ds.Structure.Schema
+
+	itemsTop := schema["items"]
+	itemsArray, ok := itemsTop.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	columnItems := itemsArray["items"]
+	columnArray, ok := columnItems.([]interface{})
+	if !ok {
+		return nil
+	}
+
+	result := make([]string, len(columnArray))
+	for i, colObj := range columnArray {
+		colMap, ok := colObj.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+
+		colTitle, ok := colMap["title"].(string)
+		if !ok {
+			return nil
+		}
+		colType, ok := colMap["type"].(string)
+		if !ok {
+			return nil
+		}
+		result[i] = colTitle
+		// TODO: Perhaps use types to construct dataframe columns.
+		// Need a test for that behavior.
+		_ = colType
+	}
+
+	return result
+}
+
+// TODO(dustmop): Probably move this to some more common location
+func dataframeTypeToQriType(dfType string) string {
+	if dfType == "int64" {
+		return "number"
+	} else if dfType == "float64" {
+		return "number"
+	} else if dfType == "object" {
+		// TODO(dustmop): This is only usually going to work
+		return "string"
+	} else {
+		log.Errorf("unknown type %q tried to convert to qri type", dfType)
+		return ""
+	}
 }

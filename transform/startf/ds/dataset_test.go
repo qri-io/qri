@@ -106,3 +106,60 @@ bat,3,meh
 	d := NewDataset(ds)
 	return d
 }
+
+func TestCreateColumnsFromStructure(t *testing.T) {
+	cases := []struct {
+		desc   string
+		schema map[string]interface{}
+		expect []string
+	}{
+		{
+			// description
+			"typical schema and the columns it turns into",
+			//schema
+			map[string]interface{}{
+				"items": map[string]interface{}{
+					"items": []interface{}{
+						map[string]interface{}{
+							"title": "name",
+							"type":  "string",
+						},
+						map[string]interface{}{
+							"title": "sound",
+							"type":  "string",
+						},
+						map[string]interface{}{
+							"title": "weight",
+							"type":  "number",
+						},
+					},
+				},
+			},
+			//expect
+			[]string{"name", "sound", "weight"},
+		},
+
+		{
+			// description
+			"base array schema will not return any columns",
+			//schema
+			map[string]interface{}{
+				"type": "array",
+			},
+			//expect
+			nil,
+		},
+	}
+	for i, c := range cases {
+		ds := &dataset.Dataset{
+			Structure: &dataset.Structure{
+				Schema: c.schema,
+			},
+		}
+		d := NewDataset(ds)
+		actual := d.createColumnsFromStructure()
+		if diff := cmp.Diff(c.expect, actual); diff != "" {
+			t.Errorf("case %d %s: mismatch (-want +got):\n%s", i, c.desc, diff)
+		}
+	}
+}

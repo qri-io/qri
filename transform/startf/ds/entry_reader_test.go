@@ -2,7 +2,6 @@ package ds
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/qri-io/dataset"
