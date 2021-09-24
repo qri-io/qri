@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/lib"
 	qhttp "github.com/qri-io/qri/lib/http"
+	"github.com/qri-io/qri/lib/websocket"
 	"github.com/qri-io/qri/version"
 )
 
@@ -39,7 +40,7 @@ func init() {
 type Server struct {
 	*lib.Instance
 	Mux       *mux.Router
-	websocket lib.WebsocketHandler
+	websocket websocket.Handler
 }
 
 // New creates a new qri server from a p2p node & configuration
@@ -56,7 +57,7 @@ func (s Server) Serve(ctx context.Context) (err error) {
 
 	node.LocalStreams.Print(fmt.Sprintf("qri version v%s\nconnecting...\n", APIVersion))
 
-	ws, err := lib.NewWebsocketHandler(ctx, s.Instance)
+	ws, err := websocket.NewHandler(ctx, s.Instance.Bus(), s.Instance.KeyStore())
 	if err != nil {
 		return err
 	}
@@ -133,7 +134,7 @@ func readOnlyResponse(w http.ResponseWriter, endpoint string) {
 func (s *Server) HomeHandler(w http.ResponseWriter, r *http.Request) {
 	upgrade := r.Header.Get("Upgrade")
 	if upgrade == "websocket" {
-		s.websocket.WSConnectionHandler(w, r)
+		s.websocket.ConnectionHandler(w, r)
 	} else {
 		if r.URL.Path == "" || r.URL.Path == "/" {
 			HealthCheckHandler(w, r)
