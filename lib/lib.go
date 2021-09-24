@@ -1192,6 +1192,14 @@ func (inst *Instance) TokenProvider() token.Provider {
 	return inst.tokenProvider
 }
 
+// KeyStore exposes the instance key.Store
+func (inst *Instance) KeyStore() key.Store {
+	if inst == nil {
+		return nil
+	}
+	return inst.keystore
+}
+
 // activeProfile tries to extract the current user from values embedded in the
 // passed-in context, falling back to the repo owner as a default active profile
 func (inst *Instance) activeProfile(ctx context.Context) (pro *profile.Profile, err error) {
