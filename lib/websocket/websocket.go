@@ -104,7 +104,7 @@ func (h *connections) ConnectionHandler(w http.ResponseWriter, r *http.Request) 
 	h.connsLock.Lock()
 	defer h.connsLock.Unlock()
 	h.conns[id] = c
-	go h.read(r.Context(), id)
+	go h.read(id)
 }
 
 func (h *connections) messageHandler(_ context.Context, e event.Event) error {
@@ -230,14 +230,14 @@ func (h *connections) removeConn(id string) {
 
 // read listens to the given connection, handling any messages that come through
 // stops listening if it encounters any error
-func (h *connections) read(ctx context.Context, id string) error {
+func (h *connections) read(id string) error {
 	msg := &message{}
 
 	c, err := h.getConn(id)
 	if err != nil {
 		return fmt.Errorf("connection %q: %w", id, err)
 	}
-
+	ctx := context.Background()
 	for {
 		err = wsjson.Read(ctx, c.conn, msg)
 		if err != nil {
