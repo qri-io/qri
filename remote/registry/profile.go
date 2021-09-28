@@ -6,7 +6,7 @@ import (
 	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/multiformats/go-multihash"
+	"github.com/qri-io/qri/auth/key"
 )
 
 // Profile is a shorthand version of qri-io/qri/repo/profile.Profile
@@ -56,30 +56,25 @@ func (p *Profile) Verify() error {
 }
 
 // ProfileFromPrivateKey generates a profile struct from a private key & desired
-// profile handle. It adds all the necessary components to pass
-// profiles.Register, creating base64-encoded PublicKey & Signature, and
-// base58-encoded ProfileID
+// profile handle It adds all the necessary components to pass profiles.Register
+// creating base64-encoded PublicKey & Signature, and base58-encoded ProfileID
 func ProfileFromPrivateKey(p *Profile, privKey crypto.PrivKey) (*Profile, error) {
 
 	sigbytes, err := privKey.Sign([]byte(p.Username))
 	if err != nil {
-		return nil, fmt.Errorf("error signing %s", err.Error())
+		return nil, fmt.Errorf("error signing %q", err)
 	}
 
 	p.Signature = base64.StdEncoding.EncodeToString(sigbytes)
 
-	pubkeybytes, err := privKey.GetPublic().Bytes()
+	p.ProfileID, err = key.IDFromPubKey(privKey.GetPublic())
 	if err != nil {
-		return nil, fmt.Errorf("error getting pubkey bytes: %s", err.Error())
+		return nil, fmt.Errorf("error getting profile id: %q", err)
 	}
-
-	mh, err := multihash.Sum(pubkeybytes, multihash.SHA2_256, 32)
+	p.PublicKey, err = key.EncodePubKeyB64(privKey.GetPublic())
 	if err != nil {
-		return nil, fmt.Errorf("error summing pubkey: %s", err.Error())
+		return nil, fmt.Errorf("error encoding public key: %q", err)
 	}
-
-	p.ProfileID = mh.B58String()
-	p.PublicKey = base64.StdEncoding.EncodeToString(pubkeybytes)
 
 	return p, nil
 }

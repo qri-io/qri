@@ -6,7 +6,7 @@ import (
 	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/multiformats/go-multihash"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/dsref"
 )
 
@@ -16,7 +16,7 @@ var (
 )
 
 func sigParams(pk crypto.PrivKey, subjectUsername string, ref dsref.Ref) (map[string]string, error) {
-	pid, err := calcProfileID(pk)
+	pid, err := key.IDFromPrivKey(pk)
 	if err != nil {
 		return nil, err
 	}
@@ -93,18 +93,4 @@ func signString(privKey crypto.PrivKey, str string) (b64Sig string, err error) {
 		return "", fmt.Errorf("error signing %s", err.Error())
 	}
 	return base64.StdEncoding.EncodeToString(sigbytes), nil
-}
-
-func calcProfileID(privKey crypto.PrivKey) (string, error) {
-	pubkeybytes, err := privKey.GetPublic().Bytes()
-	if err != nil {
-		return "", fmt.Errorf("error getting pubkey bytes: %s", err.Error())
-	}
-
-	mh, err := multihash.Sum(pubkeybytes, multihash.SHA2_256, 32)
-	if err != nil {
-		return "", fmt.Errorf("error summing pubkey: %s", err.Error())
-	}
-
-	return mh.B58String(), nil
 }

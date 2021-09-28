@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
@@ -760,7 +761,7 @@ func (c *client) signHTTPRequest(ctx context.Context, req *http.Request) error {
 	now := fmt.Sprintf("%d", nowFunc().In(time.UTC).Unix())
 
 	// TODO (b5) - we shouldn't be calculating profile IDs here
-	peerID, err := calcProfileID(pk)
+	peerID, err := key.IDFromPrivKey(pk)
 	if err != nil {
 		return err
 	}

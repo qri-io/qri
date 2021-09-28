@@ -33,16 +33,18 @@ import (
 const (
 	alphaNumeric       = `[a-zA-Z][\w-]*`
 	alphaNumericDsname = `[a-zA-Z][\w-]{0,143}`
-	b58Id              = `Qm[0-9a-zA-Z]{0,44}`
+	b58IdRSA           = `Qm[0-9a-zA-Z]{0,44}`
+	b58IdED            = `12D[0-9a-zA-Z]{0,50}`
 	b32LogbookID       = `[a-z2-7]{0,52}`
 )
 
 var (
-	validName      = regexp.MustCompile(`^` + alphaNumeric)
-	dsNameCheck    = regexp.MustCompile(`^` + alphaNumericDsname + `$`)
-	concreteRef    = regexp.MustCompile(`^@(` + b32LogbookID + `|` + b58Id + `)?\/(` + alphaNumeric + `)\/(` + b58Id + `)`)
-	b58StrictCheck = regexp.MustCompile(`^Qm[1-9A-HJ-NP-Za-km-z]*$`)
-	b32LowerCheck  = regexp.MustCompile(`^[a-z2-7]*$`)
+	validName         = regexp.MustCompile(`^` + alphaNumeric)
+	dsNameCheck       = regexp.MustCompile(`^` + alphaNumericDsname + `$`)
+	concreteRef       = regexp.MustCompile(`^@(` + b32LogbookID + `|` + b58IdRSA + `|` + b58IdED + `)?\/(` + alphaNumeric + `)\/(` + b58IdRSA + `|` + b58IdED + `)`)
+	b58StrictCheckRSA = regexp.MustCompile(`^Qm[1-9A-HJ-NP-Za-km-z]*$`)
+	b58StrictCheckED  = regexp.MustCompile(`^12D[1-9A-HJ-NP-Za-km-z]*$`)
+	b32LowerCheck     = regexp.MustCompile(`^[a-z2-7]*$`)
 
 	// ErrEmptyRef is an error for when a reference is empty
 	ErrEmptyRef = fmt.Errorf("empty reference")
@@ -268,7 +270,7 @@ func parseConcreteRef(text string) (string, Ref, error) {
 	}
 	matchedLen := len(matches[0])
 	if matches[1] != "" {
-		if b58StrictCheck.FindString(matches[1]) != "" {
+		if b58StrictCheckRSA.FindString(matches[1]) != "" || b58StrictCheckED.FindString(matches[1]) != "" {
 			r.ProfileID = matches[1]
 		} else {
 			if b32LowerCheck.FindString(matches[1]) == "" {
@@ -277,7 +279,7 @@ func parseConcreteRef(text string) (string, Ref, error) {
 			r.InitID = matches[1]
 		}
 	}
-	if matches[3] != "" && b58StrictCheck.FindString(matches[3]) == "" {
+	if matches[3] != "" && b58StrictCheckRSA.FindString(matches[3]) == "" && b58StrictCheckED.FindString(matches[3]) == "" {
 		return text, r, NewParseError("path contains invalid base58 characters")
 	}
 	r.Path = fmt.Sprintf("/%s/%s", matches[2], matches[3])
