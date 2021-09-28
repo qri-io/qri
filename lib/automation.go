@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	qhttp "github.com/qri-io/qri/lib/http"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/transform"
 )
 
@@ -453,6 +454,7 @@ func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *wo
 		return err
 	}
 
-	transformer := transform.NewTransformer(scope.AppContext(), scope.Loader(), scope.Bus())
+	ctx = profile.AddIDToContext(scope.AppContext(), scope.ActiveProfile().ID.Encode())
+	transformer := transform.NewTransformer(ctx, scope.Loader(), scope.Bus())
 	return transformer.Apply(ctx, ds, runID, wait, secrets)
 }
