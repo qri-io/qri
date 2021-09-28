@@ -244,10 +244,23 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 func deploy(scope scope, p *DeployParams) {
 	vi := dsref.ConvertDatasetToVersionInfo(p.Dataset)
 	ref := vi.SimpleRef().String()
+
+	// TODO(ramfox): bandaid! remove when save can handle having saving a dataset with no body/structure
+	runID := ""
+	if p.Dataset.ID == "" && p.Dataset.BodyFile() == nil {
+		runID = run.NewID()
+		if p.Dataset.Commit == nil {
+			p.Dataset.Commit = &dataset.Commit{}
+		}
+		p.Dataset.Commit.RunID = runID
+	}
+
 	deployPayload := event.DeployEvent{
 		Ref:        ref,
 		InitID:     p.Dataset.ID,
 		WorkflowID: p.Workflow.ID.String(),
+		// TODO(ramfox): bandaid! remove when save can handle having saving a dataset with no body/structure
+		RunID: runID,
 	}
 
 	log.Debugw("deploy started", "ref", vi.SimpleRef().String(), "payload", deployPayload)
@@ -276,13 +289,10 @@ func deploy(scope scope, p *DeployParams) {
 	saveParams := &SaveParams{
 		Ref:     vi.SimpleRef().String(),
 		Dataset: p.Dataset,
-		Apply:   false,
+		// TODO(ramfox): bandaid! remove when save can handle having saving a dataset with no body/structure
+		Apply: runID != "",
 	}
 
-	// TODO(ramfox): bandaid! remove when save can handle having saving a dataset with no body/structure
-	if p.Dataset.ID == "" && p.Dataset.BodyFile() == nil {
-		saveParams.Apply = true
-	}
 	ds, err := datasetImpl{}.Save(scope, saveParams)
 	if err != nil && !errors.Is(err, dsfs.ErrNoChanges) {
 		log.Debugw("deploy save dataset", "error", err)
