@@ -50,3 +50,19 @@ func TestProfileRequests(t *testing.T) {
 		t.Error(err.Error())
 	}
 }
+
+func TestRegistryProfileIDGenerator(t *testing.T) {
+	gen := key.NewCryptoGenerator()
+	pks, pid := gen.GeneratePrivateKeyAndPeerID()
+	pk, err := key.DecodeB64PrivKey(pks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pro, err := registry.ProfileFromPrivateKey(&registry.Profile{Username: "test_user"}, pk)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if pid != pro.ProfileID {
+		t.Errorf("expected profile IDs to be equal %s, got: %s", pid, pro.ProfileID)
+	}
+}

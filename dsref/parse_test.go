@@ -18,6 +18,7 @@ func TestParseFull(t *testing.T) {
 		{"name-has-dash", "abc/my-dataset", Ref{Username: "abc", Name: "my-dataset"}},
 		{"dash-in-username", "some-user/my_dataset", Ref{Username: "some-user", Name: "my_dataset"}},
 		{"legacy profileID", "@QmFirst/ipfs/QmSecond", Ref{ProfileID: "QmFirst", Path: "/ipfs/QmSecond"}},
+		{"legacy profileID for ED key", "abc/my_dataset@12D3KooWDbd4L1UzsmxH7T7nufQBL3jC9MpS6syvXZjRdk4XqoK4/ipfs/QmSecond", Ref{Username: "abc", Name: "my_dataset", ProfileID: "12D3KooWDbd4L1UzsmxH7T7nufQBL3jC9MpS6syvXZjRdk4XqoK4", Path: "/ipfs/QmSecond"}},
 	}
 	for i, c := range goodCases {
 		ref, err := Parse(c.text)

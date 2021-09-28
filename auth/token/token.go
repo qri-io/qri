@@ -15,7 +15,6 @@ import (
 	"github.com/golang-jwt/jwt"
 	golog "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/profile"
@@ -118,7 +117,7 @@ func NewPrivKeyAuthToken(pk crypto.PrivKey, profileID string, ttl time.Duration)
 func ParseAuthToken(ctx context.Context, tokenString string, keystore key.Store) (*Token, error) {
 	claims := &Claims{}
 	return jwt.ParseWithClaims(tokenString, claims, func(t *Token) (interface{}, error) {
-		pid, err := peer.Decode(claims.Issuer)
+		pid, err := key.DecodeID(claims.Issuer)
 		if err != nil {
 			return nil, err
 		}

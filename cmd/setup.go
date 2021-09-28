@@ -55,6 +55,7 @@ including all your datasets, and de-registers your username from the registry.`,
 	cmd.Flags().BoolVarP(&o.Overwrite, "overwrite", "", false, "overwrite repo if one exists")
 	cmd.Flags().BoolVarP(&o.IPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
 	cmd.Flags().BoolVarP(&o.Remove, "remove", "", false, "permanently remove qri, overrides all setup options")
+	cmd.Flags().BoolVarP(&o.RSAKey, "rsa", "", false, "setup qri with an RSA key")
 	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "override default registry URL, set to 'none' to remove registry")
 	cmd.Flags().StringVarP(&o.Username, "username", "", "", "choose your desired username")
 	cmd.Flags().StringVarP(&o.IPFSConfigData, "ipfs-config", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
@@ -79,6 +80,7 @@ type SetupOptions struct {
 	IPFSConfigData string
 	ConfigData     string
 	GimmeDoggo     bool
+	RSAKey         bool
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -163,12 +165,17 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		cfg.Registry.Location = o.Registry
 	}
 
+	gen := o.ctors.CryptoGenerator
+	if o.RSAKey {
+		gen = key.NewRSACryptoGenerator()
+	}
+
 	p := lib.SetupParams{
 		Config:       cfg,
 		RepoPath:     o.repoPath,
 		SetupIPFS:    o.IPFS,
 		InitIPFSFunc: o.ctors.InitIPFS,
-		Generator:    o.ctors.CryptoGenerator,
+		Generator:    gen,
 		Register:     o.Registry == "none",
 	}
 

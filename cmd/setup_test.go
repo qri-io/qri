@@ -293,12 +293,12 @@ func TestSetupRealCrypto(t *testing.T) {
 	}
 
 	profileID := configData["Profile"].(map[string]interface{})["id"].(string)
-	if len(profileID) != 46 {
+	if len(profileID) != 52 {
 		t.Errorf("setup used real crypto, profileID seems wrong, len is %d", len(profileID))
 	}
 
 	privkey := configData["Profile"].(map[string]interface{})["privkey"].(string)
-	if len(privkey) != 1592 && len(privkey) != 1596 && len(privkey) != 1600 {
+	if len(privkey) != 92 {
 		t.Errorf("setup used real crypto, privkey seems wrong, len is %d", len(privkey))
 	}
 }

@@ -3,6 +3,7 @@ package remote
 import (
 	"testing"
 
+	"github.com/qri-io/qri/auth/key"
 	testkeys "github.com/qri-io/qri/auth/key/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/profile"
@@ -10,7 +11,7 @@ import (
 
 func TestVerifySigParams(t *testing.T) {
 	kd0 := testkeys.GetKeyData(0)
-	pid, err := calcProfileID(kd0.PrivKey)
+	pid, err := key.IDFromPrivKey(kd0.PrivKey)
 	if err != nil {
 		t.Errorf(err.Error())
 		return

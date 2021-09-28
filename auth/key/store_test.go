@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qri/auth/key"
 	testkeys "github.com/qri-io/qri/auth/key/test"
 )
@@ -29,7 +28,7 @@ func TestLocalStore(t *testing.T) {
 
 	kd0 := testkeys.GetKeyData(0)
 
-	if err = ks.AddPubKey(ctx, peer.ID("this_must_fail"), kd0.PrivKey.GetPublic()); err == nil {
+	if err = ks.AddPubKey(ctx, key.ID("this_must_fail"), kd0.PrivKey.GetPublic()); err == nil {
 		t.Error("expected adding public key with mismatching ID to fail. got nil")
 	} else if !errors.Is(err, key.ErrKeyAndIDMismatch) {
 		t.Errorf("mismatched ID error must wrap exported pacakge error, got: %s", err)
@@ -43,7 +42,7 @@ func TestLocalStore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = ks.AddPrivKey(ctx, peer.ID("this_must_fail"), kd0.PrivKey); err == nil {
+	if err = ks.AddPrivKey(ctx, key.ID("this_must_fail"), kd0.PrivKey); err == nil {
 		t.Error("expected adding private key with mismatching ID to fail. got nil")
 	} else if !errors.Is(err, key.ErrKeyAndIDMismatch) {
 		t.Errorf("mismatched ID error must wrap exported pacakge error, got: %s", err)

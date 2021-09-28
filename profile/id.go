@@ -41,12 +41,17 @@ func (id ID) Validate() error {
 	if err := peer.ID(id).Validate(); err != nil {
 		return err
 	}
+	// RSA based ID
 	b64str := id.Encode()
 	if strings.HasPrefix(b64str, "Qm") {
 		return nil
 	}
 	if strings.HasPrefix(b64str, "9t") {
 		return fmt.Errorf("profile.ID invalid, was double encoded as %q. do not pass a base64 encoded string, instead use IDB58Decode(b64encodedID)", b64str)
+	}
+	// ED based ID
+	if strings.HasPrefix(b64str, "12D") {
+		return nil
 	}
 	return fmt.Errorf("profile.ID invalid, encodes to %q", b64str)
 }
