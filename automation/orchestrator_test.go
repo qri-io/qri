@@ -65,7 +65,7 @@ func TestIntegration(t *testing.T) {
 	}
 	applied := make(chan string)
 	applyFuncFactory := func(ctx context.Context) Apply {
-		return func(ctx context.Context, wait bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
+		return func(ctx context.Context, wait, analyze bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
 			applied <- "applied"
 			return nil
 		}
@@ -191,7 +191,7 @@ func TestIntegration(t *testing.T) {
 	gotWorkflowEvents = []interface{}{}
 
 	done = errOnTimeout(t, applied, "o.ApplyWorkflow error: timed out before apply function called")
-	_, err = o.ApplyWorkflow(ctx, false, nil, got, nil, nil)
+	_, err = o.ApplyWorkflow(ctx, false, false, nil, got, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -465,7 +465,7 @@ func TestRunStoreEvents(t *testing.T) {
 		}
 	}
 	applyFuncFactory := func(ctx context.Context) Apply {
-		return func(ctx context.Context, wait bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
+		return func(ctx context.Context, wait, analyze bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
 			return nil
 		}
 	}

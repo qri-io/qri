@@ -44,7 +44,7 @@ type Run func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow,
 type RunFactory func(ctx context.Context) Run
 
 // Apply executes an ephemeral workflow transform
-type Apply func(ctx context.Context, wait bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error
+type Apply func(ctx context.Context, wait, analyze bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error
 
 // ApplyFactory is function that produces an Apply function
 type ApplyFactory func(ctx context.Context) Apply
@@ -376,7 +376,7 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 }
 
 // ApplyWorkflow runs the given workflow, but does not record the output
-func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) (string, error) {
+func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait, analyze bool, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) (string, error) {
 	o.runLock.Lock()
 	defer o.runLock.Unlock()
 	log.Debugw("ApplyWorkflow, workflow", "id", wf.ID)
@@ -401,7 +401,7 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 
 	// TODO (ramfox): when we understand what it means to dryrun a hook, this should wait for the err, iterator thought the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
-	return runID, apply(ctx, wait, runID, wf, ds, secrets)
+	return runID, apply(ctx, wait, analyze, runID, wf, ds, secrets)
 }
 
 // SaveWorkflow creates a new workflow if the workflow id is empty, or updates

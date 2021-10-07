@@ -46,6 +46,7 @@ type ApplyParams struct {
 	Transform *dataset.Transform `json:"transform"`
 	Secrets   map[string]string  `json:"secrets"`
 	Wait      bool               `json:"wait"`
+	Analyze   bool               `json:"analyze"`
 	// TODO(arqu): substitute with websockets when working over the wire
 	ScriptOutput io.Writer `json:"-"`
 	Hooks        []map[string]interface{}
@@ -198,7 +199,7 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 		wf.Hooks = p.Hooks
 	}
 
-	runID, err := scope.AutomationOrchestrator().ApplyWorkflow(ctx, p.Wait, p.ScriptOutput, wf, ds, p.Secrets)
+	runID, err := scope.AutomationOrchestrator().ApplyWorkflow(ctx, p.Wait, p.Analyze, p.ScriptOutput, wf, ds, p.Secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -434,7 +435,7 @@ func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workfl
 	return err
 }
 
-func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
+func (inst *Instance) apply(ctx context.Context, wait, analyze bool, runID string, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
 	scope, err := newScopeFromWorkflow(ctx, inst, wf)
 	if err != nil {
 		return err
@@ -442,5 +443,5 @@ func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *wo
 
 	ctx = profile.AddIDToContext(scope.AppContext(), scope.ActiveProfile().ID.Encode())
 	transformer := transform.NewTransformer(ctx, scope.Loader(), scope.Bus())
-	return transformer.Apply(ctx, ds, runID, wait, secrets)
+	return transformer.Apply(ctx, ds, runID, wait, analyze, secrets)
 }
