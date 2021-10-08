@@ -67,17 +67,17 @@ func TestWebsocket(t *testing.T) {
 	// upgrade connection w/ valid token
 	wsh.subscribeConn(connID, tokenStr)
 	proID := kd.KeyID.String()
-	gotConnID, err := wsh.getConnID(proID)
+	gotConnIDs, err := wsh.getConnIDs(proID)
 	if err != nil {
 		t.Fatal("connections.subscribeConn did not add profileID or conn to subscriptions map")
 	}
-	if gotConnID != connID {
-		t.Fatalf("connections.subscribeConn added incorrect connID to subscriptions map, expected %q, got %q", connID, gotConnID)
+	if _, ok := gotConnIDs[connID]; !ok {
+		t.Fatalf("connections.subscribeConn added incorrect connID to subscriptions map, expected %q, got %q", connID, gotConnIDs)
 	}
 
 	// unsubscribe connection via profileID
-	wsh.unsubscribeConn(proID)
-	if _, err := wsh.getConnID(proID); err == nil {
+	wsh.unsubscribeConn(proID, "")
+	if _, err := wsh.getConnIDs(proID); err == nil {
 		t.Fatal("connections.unsubscribeConn did not remove the profileID from the subscription map")
 	}
 	wsc, err := wsh.getConn(connID)
