@@ -47,19 +47,15 @@ type Handler interface {
 	ConnectionHandler(w http.ResponseWriter, r *http.Request)
 }
 
+type connectionSet map[string]struct{}
+
 // connections maintains the set of active websocket connections & associated
 // connection metadata
 type connections struct {
-	conns     map[string]*conn
-	connsLock sync.Mutex
-	keystore  key.Store
-	// TODO(ramfox): using a `map[string]string` to track connections and
-	// profile.IDs means that each profile can only have one connection
-	// which will cause two browser tabs from the same profile to fail.
-	// we need to support multiple connections for the same profile, which
-	// will require an array of connection ID strings rather than a single
-	// string
-	subscriptions map[string]string
+	conns         map[string]*conn
+	connsLock     sync.Mutex
+	keystore      key.Store
+	subscriptions map[string]connectionSet
 	subsLock      sync.Mutex
 }
 
@@ -78,7 +74,7 @@ func NewHandler(ctx context.Context, bus event.Bus, keystore key.Store) (Handler
 		conns:         map[string]*conn{},
 		connsLock:     sync.Mutex{},
 		keystore:      keystore,
-		subscriptions: map[string]string{},
+		subscriptions: map[string]connectionSet{},
 		subsLock:      sync.Mutex{},
 	}
 
@@ -120,19 +116,21 @@ func (h *connections) messageHandler(_ context.Context, e event.Event) error {
 	if profileIDString == "" {
 		return nil
 	}
-	connID, err := h.getConnID(profileIDString)
+	connIDs, err := h.getConnIDs(profileIDString)
 	if err != nil {
 		return fmt.Errorf("profile %q: %w", profileIDString, err)
 	}
 
-	c, err := h.getConn(connID)
-	if err != nil {
-		h.unsubscribeConn(profileIDString)
-		return fmt.Errorf("connection %q, profile %q: %w", connID, profileIDString, err)
-	}
-	log.Debugf("sending event %q to websocket conns %q", e.Type, profileIDString)
-	if err := wsjson.Write(ctx, c.conn, evt); err != nil {
-		log.Errorf("connection %q: wsjson write error: %s", profileIDString, err)
+	for connID := range connIDs {
+		c, err := h.getConn(connID)
+		if err != nil {
+			h.unsubscribeConn(profileIDString, connID)
+			log.Errorf("connection %q, profile %q: %w", connID, profileIDString, err)
+		}
+		log.Debugf("sending event %q to websocket conns %q", e.Type, profileIDString)
+		if err := wsjson.Write(ctx, c.conn, evt); err != nil {
+			log.Errorf("connection %q: wsjson write error: %s", profileIDString, err)
+		}
 	}
 	return nil
 }
@@ -149,14 +147,14 @@ func (h *connections) getConn(id string) (*conn, error) {
 }
 
 // getConnID returns the connection ID associated with the given profile.ID string
-func (h *connections) getConnID(profileID string) (string, error) {
+func (h *connections) getConnIDs(profileID string) (connectionSet, error) {
 	h.subsLock.Lock()
 	defer h.subsLock.Unlock()
-	id, ok := h.subscriptions[profileID]
+	ids, ok := h.subscriptions[profileID]
 	if !ok {
-		return "", errNotFound
+		return nil, errNotFound
 	}
-	return id, nil
+	return ids, nil
 }
 
 // subscribeConn authenticates the given token and adds the connID to the map
@@ -186,28 +184,43 @@ func (h *connections) subscribeConn(connID, tokenString string) error {
 
 	h.subsLock.Lock()
 	defer h.subsLock.Unlock()
-	h.subscriptions[claims.Subject] = connID
+	connIDs, ok := h.subscriptions[claims.Subject]
+	if !ok || connIDs == nil {
+		connIDs = connectionSet{}
+	}
+	connIDs[connID] = struct{}{}
+	h.subscriptions[claims.Subject] = connIDs
 	log.Debugw("subscribeConn", "id", connID)
 	return nil
 }
 
 // unsubscribeConn remove the profileID and connID from the map of "subscribed"
 // connections
-func (h *connections) unsubscribeConn(profileID string) {
-	connID, err := h.getConnID(profileID)
+func (h *connections) unsubscribeConn(profileID, connID string) {
+	connIDs, err := h.getConnIDs(profileID)
 	if err != nil {
 		return
 	}
 
-	c, err := h.getConn(connID)
-	if err != nil {
-		return
+	for cid := range connIDs {
+		if connID == "" || cid == connID {
+			c, err := h.getConn(cid)
+			if err != nil {
+				continue
+			}
+			c.profileID = ""
+		}
 	}
-	c.profileID = ""
 
 	h.subsLock.Lock()
 	defer h.subsLock.Unlock()
-	delete(h.subscriptions, profileID)
+	if connID == "" {
+		delete(h.subscriptions, profileID)
+	} else {
+		if _, ok := h.subscriptions[profileID]; ok {
+			delete(h.subscriptions[profileID], connID)
+		}
+	}
 }
 
 // removeConn removes the conn from the map of connections and subscriptions
@@ -221,7 +234,7 @@ func (h *connections) removeConn(id string) {
 		c.conn.Close(websocket.StatusNormalClosure, "pruning connection")
 	}()
 	if c.profileID != "" {
-		h.unsubscribeConn(c.profileID)
+		h.unsubscribeConn(c.profileID, id)
 	}
 	h.connsLock.Lock()
 	defer h.connsLock.Unlock()
@@ -267,7 +280,7 @@ func (h *connections) handleMessage(ctx context.Context, c *conn, msg *message) 
 		}
 		h.write(ctx, c, &message{Type: subscribeSuccess})
 	case unsubscribeRequest:
-		h.unsubscribeConn(c.profileID)
+		h.unsubscribeConn(c.profileID, c.id)
 	default:
 		log.Debug("unknown message type over websocket %s: %q", c.id, msg.Type)
 	}
