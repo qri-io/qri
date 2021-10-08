@@ -6,42 +6,42 @@ import (
 	"strings"
 )
 
-// CallGraph is a graph of function nodes and what they call
-type CallGraph struct {
-	nodes  []*FuncNode
-	lookup map[string]*FuncNode
+// callGraph is a graph of function nodes and what they call
+type callGraph struct {
+	nodes  []*funcNode
+	lookup map[string]*funcNode
 }
 
-// FuncNode is a single function definition and body, along with
+// funcNode is a single function definition and body, along with
 // additional information derived from static analysis
-type FuncNode struct {
+type funcNode struct {
 	name   string
-	fn     *FuncResult
-	outs   []*FuncNode
+	fn     *funcResult
+	outs   []*funcNode
 	reach  bool
 	height int
 }
 
-func buildCallGraph(functions []*FuncResult, entryPoints []string) *CallGraph {
+func buildCallGraph(functions []*funcResult, entryPoints []string) *callGraph {
 	// Add some built-in functions to the symbol table
-	symtable := map[string]*FuncResult{}
+	symtable := map[string]*funcResult{}
 	for _, f := range functions {
 		symtable[f.name] = f
 	}
-	symtable["print"] = &FuncResult{name: "print"}
-	symtable["range"] = &FuncResult{name: "range"}
+	symtable["print"] = &funcResult{name: "print"}
+	symtable["range"] = &funcResult{name: "range"}
 
 	// Build the call graph
-	graph := &CallGraph{
-		nodes:  make([]*FuncNode, 0, len(functions)),
-		lookup: make(map[string]*FuncNode),
+	graph := &callGraph{
+		nodes:  make([]*funcNode, 0, len(functions)),
+		lookup: make(map[string]*funcNode),
 	}
 	for _, f := range functions {
-		addToCallGraph(f, graph, symtable)
+		addTocallGraph(f, graph, symtable)
 	}
 
 	for _, n := range graph.nodes {
-		addCallHeight(n)
+		n.addCallHeight()
 	}
 
 	// Determine reachability using the given entry points
@@ -49,7 +49,7 @@ func buildCallGraph(functions []*FuncResult, entryPoints []string) *CallGraph {
 		for _, entry := range entryPoints {
 			root := graph.lookup[entry]
 			if root != nil {
-				markReachable(root)
+				root.markReachable()
 			}
 		}
 	}
@@ -57,15 +57,15 @@ func buildCallGraph(functions []*FuncResult, entryPoints []string) *CallGraph {
 	return graph
 }
 
-func addToCallGraph(f *FuncResult, graph *CallGraph, symtable map[string]*FuncResult) *FuncNode {
+func addTocallGraph(f *funcResult, graph *callGraph, symtable map[string]*funcResult) *funcNode {
 	me, ok := graph.lookup[f.name]
 	if ok {
 		return me
 	}
-	me = &FuncNode{
+	me = &funcNode{
 		name: f.name,
 		fn:   f,
-		outs: make([]*FuncNode, 0),
+		outs: make([]*funcNode, 0),
 	}
 	for _, call := range f.calls {
 		child, ok := symtable[call]
@@ -73,7 +73,7 @@ func addToCallGraph(f *FuncResult, graph *CallGraph, symtable map[string]*FuncRe
 			// Function not found, ignore it
 			continue
 		}
-		n := addToCallGraph(child, graph, symtable)
+		n := addTocallGraph(child, graph, symtable)
 		me.outs = append(me.outs, n)
 	}
 	graph.lookup[f.name] = me
@@ -81,50 +81,56 @@ func addToCallGraph(f *FuncResult, graph *CallGraph, symtable map[string]*FuncRe
 	return me
 }
 
-func addCallHeight(node *FuncNode) {
+func (n *funcNode) addCallHeight() {
 	maxChild := -1
-	for _, fn := range node.outs {
-		addCallHeight(fn)
-		if fn.height > maxChild {
-			maxChild = fn.height
+	for _, call := range n.outs {
+		call.addCallHeight()
+		if call.height > maxChild {
+			maxChild = call.height
 		}
 	}
-	node.height = maxChild + 1
+	n.height = maxChild + 1
 }
 
-func markReachable(node *FuncNode) {
-	node.reach = true
-	for _, call := range node.outs {
-		markReachable(call)
+func (n *funcNode) markReachable() {
+	n.reach = true
+	for _, call := range n.outs {
+		call.markReachable()
 	}
 }
 
-func (cg *CallGraph) findUnusedFuncs() []string {
+func (cg *callGraph) findUnusedFuncs() []Diagnostic {
 	// Recursively walk the tree to find unreachable nodes
 	unusedNames := map[string]struct{}{}
 	for _, f := range cg.nodes {
-		checkFuncNodeUnused(f, unusedNames)
+		checkfuncNodeUnused(f, unusedNames)
 	}
 	// Sort the function names
-	results := make([]string, 0, len(unusedNames))
+	results := make([]Diagnostic, 0, len(unusedNames))
 	for fname := range unusedNames {
-		results = append(results, fname)
+		results = append(results, Diagnostic{
+			Category: "unused",
+			Message:  fname,
+		})
 	}
-	sort.Strings(results)
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Message < results[j].Message
+	})
 	return results
 }
 
-func checkFuncNodeUnused(node *FuncNode, unusedNames map[string]struct{}) {
+func checkfuncNodeUnused(node *funcNode, unusedNames map[string]struct{}) {
 	if !node.reach {
+		// TODO(dustmop): Copy the position of the function definition
 		unusedNames[node.name] = struct{}{}
 	}
 	for _, call := range node.outs {
-		checkFuncNodeUnused(call, unusedNames)
+		checkfuncNodeUnused(call, unusedNames)
 	}
 }
 
 // String creates a string representation of functions in the call graph
-func (cg *CallGraph) String() string {
+func (cg *callGraph) String() string {
 	text := ""
 	for _, n := range cg.nodes {
 		text += stringifyNode(n, 0)
@@ -132,7 +138,7 @@ func (cg *CallGraph) String() string {
 	return text
 }
 
-func stringifyNode(n *FuncNode, depth int) string {
+func stringifyNode(n *funcNode, depth int) string {
 	padding := strings.Repeat(" ", depth)
 	seen := map[string]struct{}{}
 	text := fmt.Sprintf("%s%s\n", padding, n.name)

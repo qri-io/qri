@@ -57,6 +57,8 @@ const (
 	AEWorkflow APIEndpoint = "/auto/workflow"
 	// AERemoveWorkflow removes a workflow
 	AERemoveWorkflow APIEndpoint = "/auto/remove"
+	// AEAnalyzeTransform invokes ...
+	AEAnalyzeTransform APIEndpoint = "/auto/analyze-transform"
 
 	// dataset endpoints
 

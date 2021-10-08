@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/transform/startf"
-	"github.com/qri-io/qri/transform/staticlark"
 )
 
 var log = golog.Logger("transform")
@@ -71,10 +70,9 @@ func (t *Transformer) Apply(
 	target *dataset.Dataset,
 	runID string,
 	wait bool,
-	analyze bool,
 	secrets map[string]string,
 ) error {
-	return t.apply(ctx, "", target, runID, wait, analyze, secrets, RMApply)
+	return t.apply(ctx, "", target, runID, wait, secrets, RMApply)
 }
 
 // Commit applies the transform script to a target dataset, associating all
@@ -87,7 +85,7 @@ func (t *Transformer) Commit(
 	wait bool,
 	secrets map[string]string,
 ) error {
-	return t.apply(ctx, initID, target, runID, wait, false, secrets, RMCommit)
+	return t.apply(ctx, initID, target, runID, wait, secrets, RMCommit)
 }
 
 func (t *Transformer) apply(
@@ -96,7 +94,6 @@ func (t *Transformer) apply(
 	target *dataset.Dataset,
 	runID string,
 	wait bool,
-	analyze bool,
 	secrets map[string]string,
 	runMode string,
 ) error {
@@ -188,11 +185,6 @@ func (t *Transformer) apply(
 			runErr error
 			status = StatusSucceeded
 		)
-
-		if analyze {
-			// Perform static analysis and show the results
-			staticlark.ShowAnalysis(target.Transform.ScriptFile().FileName())
-		}
 
 		// Convert single-file transform scripts to steps
 		if len(target.Transform.Steps) == 0 && target.Transform.ScriptFile() != nil {

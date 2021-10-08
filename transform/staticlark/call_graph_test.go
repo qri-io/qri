@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"go.starlark.net/syntax"
 )
 
@@ -69,9 +70,12 @@ func TestUnusedFunctions(t *testing.T) {
 	callGraph := buildCallGraph(funcs, topLevel)
 
 	unused := callGraph.findUnusedFuncs()
-	expectUnused := []string{"func_c", "func_e", "func_f"}
-
-	if diff := cmp.Diff(expectUnused, unused); diff != "" {
+	expectUnused := []Diagnostic{
+		{Category: "unused", Message: "func_c"},
+		{Category: "unused", Message: "func_e"},
+		{Category: "unused", Message: "func_f"},
+	}
+	if diff := cmp.Diff(expectUnused, unused, cmpopts.IgnoreFields(Diagnostic{}, "Pos")); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}
 }

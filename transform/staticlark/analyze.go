@@ -1,37 +1,32 @@
 package staticlark
 
 import (
-	"fmt"
-	"strings"
-
 	"go.starlark.net/syntax"
 )
 
-// ShowAnalysis performs static analysis and prints the results to stdout
-func ShowAnalysis(filename string) {
-	err := doAnalyze(filename)
-	if err != nil {
-		fmt.Printf("analyzer error: %s\n", err)
-	}
-}
-
-// parse script, collect function definitions, build a call graph, then display it
-func doAnalyze(filename string) error {
+// AnalyzeFile performs static analysis and results diagnostic results
+func AnalyzeFile(filename string) ([]Diagnostic, error) {
+	// Parse the script to abstract syntax
 	f, err := syntax.Parse(filename, nil, 0)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	// Collect function definitions and top level function calls
 	funcs, topLevel, err := collectFuncDefsTopLevelCalls(f.Stmts)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
 	// Build a graph of all calls, using top level calls
 	callGraph := buildCallGraph(funcs, topLevel)
+	// Return any unused functions
+	// TODO(dustmop): As more analysis steps are introduced, refactor this
+	// into a generic interface that creates Diagnostics
+	return callGraph.findUnusedFuncs(), nil
+}
 
-	unused := callGraph.findUnusedFuncs()
-	if len(unused) > 0 {
-		fmt.Printf("Functions not called: %v\n", strings.Join(unused, " "))
-	}
-	return nil
+// Diagnostic represents a diagnostic message describing an issue with the code
+type Diagnostic struct {
+	Pos      syntax.Position
+	Category string
+	Message  string
 }

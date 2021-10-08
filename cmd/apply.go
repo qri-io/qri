@@ -44,7 +44,6 @@ the --apply flag on the save command to commit results from transforms.`,
 	cmd.Flags().StringVar(&o.FilePath, "file", "", "path of transform script file")
 	cmd.MarkFlagRequired("file")
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
-	cmd.Flags().BoolVar(&o.Analyze, "show-analysis", false, "show analysis results before running")
 
 	return cmd
 }
@@ -58,7 +57,6 @@ type ApplyOptions struct {
 	Refs     *RefSelect
 	FilePath string
 	Secrets  []string
-	Analyze  bool
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -106,7 +104,6 @@ func (o *ApplyOptions) Run() (err error) {
 		Transform:    &tf,
 		ScriptOutput: o.Out,
 		Wait:         true,
-		Analyze:      o.Analyze,
 	}
 
 	res, err := inst.Automation().Apply(ctx, &params)

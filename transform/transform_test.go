@@ -185,7 +185,7 @@ func applyNoHistoryTransform(t *testing.T, initID string, tf *dataset.Transform,
 
 	transformer := NewTransformer(ctx, loader, bus)
 	if runMode == "apply" {
-		if err := transformer.Apply(ctx, target, runID, false, false, nil); err != nil {
+		if err := transformer.Apply(ctx, target, runID, false, nil); err != nil {
 			t.Fatal(err)
 		}
 	} else {

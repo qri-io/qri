@@ -5,13 +5,12 @@ import (
 	"reflect"
 	"strings"
 
-	//"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 )
 
 // build a list of functions
-func collectFuncDefsTopLevelCalls(stmts []syntax.Stmt) ([]*FuncResult, []string, error) {
-	functions := []*FuncResult{}
+func collectFuncDefsTopLevelCalls(stmts []syntax.Stmt) ([]*funcResult, []string, error) {
+	functions := []*funcResult{}
 	topLevel := []string{}
 	for _, stmt := range stmts {
 		switch item := stmt.(type) {
@@ -30,7 +29,7 @@ func collectFuncDefsTopLevelCalls(stmts []syntax.Stmt) ([]*FuncResult, []string,
 }
 
 // build a function object, contains calls to other functions
-func analyzeFunction(def *syntax.DefStmt) (*FuncResult, error) {
+func analyzeFunction(def *syntax.DefStmt) (*funcResult, error) {
 	params := make([]string, len(def.Params))
 	for k, param := range def.Params {
 		p := parameterName(param)
@@ -56,21 +55,21 @@ func parameterName(e syntax.Expr) string {
 	return id.Name
 }
 
-// FuncResult is a function definition parsed from source code
-type FuncResult struct {
+// funcResult is a function definition parsed from source code
+type funcResult struct {
 	name   string
 	params string
 	calls  []string
 	body   []syntax.Stmt
 }
 
-// NewFuncResult constructs a new FuncResult
-func NewFuncResult() *FuncResult {
-	return &FuncResult{calls: []string{}}
+// newFuncResult constructs a new funcResult
+func newFuncResult() *funcResult {
+	return &funcResult{calls: []string{}}
 }
 
-func buildFromFuncBody(body []syntax.Stmt) (*FuncResult, error) {
-	result := NewFuncResult()
+func buildFromFuncBody(body []syntax.Stmt) (*funcResult, error) {
+	result := newFuncResult()
 	for _, stmt := range body {
 		switch item := stmt.(type) {
 		case *syntax.AssignStmt:
