@@ -385,17 +385,15 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 	runID := run.NewID()
 	if scriptOutput != nil {
 		o.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
-			go func() {
-				log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
-				if e.Type == event.ETTransformPrint {
-					if msg, ok := e.Payload.(event.TransformMessage); ok {
-						if scriptOutput != nil {
-							io.WriteString(scriptOutput, msg.Msg)
-							io.WriteString(scriptOutput, "\n")
-						}
+			log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
+			if e.Type == event.ETTransformPrint {
+				if msg, ok := e.Payload.(event.TransformMessage); ok {
+					if scriptOutput != nil {
+						io.WriteString(scriptOutput, msg.Msg)
+						io.WriteString(scriptOutput, "\n")
 					}
 				}
-			}()
+			}
 			return nil
 		}, runID)
 		// TODO (ramfox): defer unsubscribe to id
