@@ -70,50 +70,7 @@ func newFuncResult() *funcResult {
 
 func buildFromFuncBody(body []syntax.Stmt) (*funcResult, error) {
 	result := newFuncResult()
-	for _, stmt := range body {
-		switch item := stmt.(type) {
-		case *syntax.AssignStmt:
-			// Is the rhs a function call
-			calls := getFuncCallsInExpr(item.RHS)
-			result.calls = append(result.calls, calls...)
-
-		case *syntax.BranchStmt:
-			// TODO(dustmop)
-
-		case *syntax.DefStmt:
-			// TODO(dustmop)
-
-		case *syntax.ExprStmt:
-			calls := getFuncCallsInExpr(item.X)
-			result.calls = append(result.calls, calls...)
-
-		case *syntax.ForStmt:
-			calls := getFuncCallsInExpr(item.X)
-			calls = append(calls, getFuncCallsInStmtList(item.Body)...)
-			result.calls = calls
-
-		case *syntax.WhileStmt:
-			calls := getFuncCallsInExpr(item.Cond)
-			calls = append(calls, getFuncCallsInStmtList(item.Body)...)
-			result.calls = calls
-
-		case *syntax.IfStmt:
-			calls := getFuncCallsInExpr(item.Cond)
-			calls = append(calls, getFuncCallsInStmtList(item.True)...)
-			calls = append(calls, getFuncCallsInStmtList(item.False)...)
-			result.calls = calls
-
-		case *syntax.LoadStmt:
-			// pass
-
-		case *syntax.ReturnStmt:
-			calls := getFuncCallsInExpr(item.Result)
-			result.calls = append(result.calls, calls...)
-
-		default:
-			// pass
-		}
-	}
+	result.calls = getFuncCallsInStmtList(body)
 	return result, nil
 }
 
@@ -128,20 +85,24 @@ func getFuncCallsInStmtList(listStmt []syntax.Stmt) []string {
 			result = append(result, calls...)
 
 		case *syntax.BranchStmt:
-			// TODO(dustmop)
+			// pass
 
 		case *syntax.DefStmt:
-			// TODO(dustmop)
+			// TODO(dustmop): Add this definition to the lexical scope
 
 		case *syntax.ExprStmt:
 			calls := getFuncCallsInExpr(item.X)
 			result = append(result, calls...)
 
 		case *syntax.ForStmt:
-			// TODO(dustmop)
+			calls := getFuncCallsInExpr(item.X)
+			calls = append(calls, getFuncCallsInStmtList(item.Body)...)
+			result = append(result, calls...)
 
 		case *syntax.WhileStmt:
-			// TODO(dustmop)
+			calls := getFuncCallsInExpr(item.Cond)
+			calls = append(calls, getFuncCallsInStmtList(item.Body)...)
+			result = append(result, calls...)
 
 		case *syntax.IfStmt:
 			calls := getFuncCallsInExpr(item.Cond)
@@ -150,10 +111,11 @@ func getFuncCallsInStmtList(listStmt []syntax.Stmt) []string {
 			result = append(result, calls...)
 
 		case *syntax.LoadStmt:
-			// TODO(dustmop)
+			// pass
 
 		case *syntax.ReturnStmt:
-			// TODO(dustmop)
+			calls := getFuncCallsInExpr(item.Result)
+			result = append(result, calls...)
 
 		}
 	}
@@ -162,11 +124,16 @@ func getFuncCallsInStmtList(listStmt []syntax.Stmt) []string {
 }
 
 func getFuncCallsInExpr(expr syntax.Expr) []string {
+	if expr == nil {
+		return []string{}
+	}
 	switch item := expr.(type) {
 	case *syntax.BinaryExpr:
 		return append(getFuncCallsInExpr(item.X), getFuncCallsInExpr(item.Y)...)
 
 	case *syntax.CallExpr:
+		// TODO(dustmop): Add lexical scoping so that inner functions are
+		// correctly associated with their call sites
 		funcName := simpleExprToFuncName(item.Fn)
 		result := make([]string, 0, 1+len(item.Args))
 		result = append(result, funcName)
@@ -176,8 +143,8 @@ func getFuncCallsInExpr(expr syntax.Expr) []string {
 		return result
 
 	case *syntax.Comprehension:
-		// TODO
-		return []string{}
+		result := getFuncCallsInExpr(item.Body)
+		return result
 
 	case *syntax.CondExpr:
 		result := getFuncCallsInExpr(item.Cond)
@@ -196,7 +163,6 @@ func getFuncCallsInExpr(expr syntax.Expr) []string {
 		return result
 
 	case *syntax.DotExpr:
-		// TODO
 		return []string{}
 
 	case *syntax.Ident:
@@ -250,6 +216,10 @@ func getFuncCallsInExpr(expr syntax.Expr) []string {
 func simpleExprToFuncName(expr syntax.Expr) string {
 	if item, ok := expr.(*syntax.Ident); ok {
 		return item.Name
+	}
+	if item, ok := expr.(*syntax.DotExpr); ok {
+		lhs := simpleExprToFuncName(item.X)
+		return fmt.Sprintf("%s.%s", lhs, item.Name.Name)
 	}
 	return fmt.Sprintf("<Unknown Name, Type: %q>", reflect.TypeOf(expr))
 }

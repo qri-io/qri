@@ -39,6 +39,8 @@ another_function
  branch_no_else
   print
 top_level_func
+ use_branch
+  print
  branch_multiple
   print
  branch_no_else

@@ -57,7 +57,7 @@ const (
 	AEWorkflow APIEndpoint = "/auto/workflow"
 	// AERemoveWorkflow removes a workflow
 	AERemoveWorkflow APIEndpoint = "/auto/remove"
-	// AEAnalyzeTransform invokes ...
+	// AEAnalyzeTransform performs static analysis on a starlark transform script
 	AEAnalyzeTransform APIEndpoint = "/auto/analyze-transform"
 
 	// dataset endpoints
