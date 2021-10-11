@@ -418,7 +418,14 @@ func (book *Book) WriteDatasetRename(ctx context.Context, author *profile.Profil
 		log.Error(err)
 	}
 
-	return book.save(ctx, nil, nil)
+	authorLog, err := book.userLog(ctx, author.ID.Encode())
+	if err != nil {
+		return err
+	}
+
+	authorLog.AddChild(dsLog.l)
+
+	return book.save(ctx, authorLog, nil)
 }
 
 // RefToInitID converts a dsref to an initID by iterating the entire logbook looking for a match.
