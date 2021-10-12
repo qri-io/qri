@@ -3,11 +3,13 @@ package transform
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 )
@@ -249,4 +251,52 @@ var threeStepDatasetPreview = &dataset.Dataset{
 			{Syntax: "starlark", Script: "ds.body = [[1,2,3]]\ndataset.commit(ds)"},
 		},
 	},
+}
+
+func scriptFile(t *testing.T, path string) qfs.File {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return qfs.NewMemfileBytes(path, data)
+}
+
+func TestApplyAssignsColumnsAndBody(t *testing.T) {
+	ctx := context.Background()
+
+	loader := &noHistoryLoader{}
+	bus := event.NewBus(ctx)
+	transformer := NewTransformer(ctx, loader, bus)
+
+	ds := &dataset.Dataset{Transform: &dataset.Transform{}}
+	ds.Transform.SetScriptFile(scriptFile(t, "startf/testdata/csv_with_header.star"))
+	err := transformer.Apply(ctx, ds, "myRunID", true, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Schema created from the csv header row
+	actualBytes, err := json.Marshal(ds.Structure.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual := string(actualBytes)
+	expect := `{"items":{"items":[{"title":"name","type":"string"},{"title":"sound","type":"string"}],"type":"array"},"type":"array"}`
+
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+
+	// Body contains just the rows without header
+	actualBytes, err = ioutil.ReadAll(ds.BodyFile())
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual = string(actualBytes)
+	expect = "cat,meow\ndog,bark\n"
+
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+
 }
