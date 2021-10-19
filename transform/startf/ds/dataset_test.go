@@ -44,8 +44,7 @@ func TestSetAndGetBody(t *testing.T) {
 		t.Fatal(err)
 	}
 	expect := `     0
-0    a
-`
+0    a`
 	bd, _ := ds.Attr("body")
 	actual := bd.String()
 	if diff := cmp.Diff(expect, actual); diff != "" {
