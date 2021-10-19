@@ -29,8 +29,8 @@ bd = [[10,20,30]]
 bd_obj = {'a': [10,20,30]}
 
 # How the body renders a dataframe
-expect_bd = "      0   1   2\n0    10  20  30\n"
-expect_bd_obj = "      a\n0    10\n1    20\n2    30\n"
+expect_bd = "      0   1   2\n0    10  20  30"
+expect_bd_obj = "      a\n0    10\n1    20\n2    30"
 
 ds.body = bd
 assert.eq('%s' % ds.body, expect_bd)

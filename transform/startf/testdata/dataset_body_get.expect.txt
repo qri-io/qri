@@ -2,4 +2,3 @@
 0    cat  meow  5
 1    dog  bark  6
 2    eel   zap  7
-

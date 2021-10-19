@@ -503,6 +503,17 @@ func (d *Dataset) assignStructureFromDataframeColumns() error {
 			Format: "csv",
 		}
 	}
+
+	// TODO(dustmop): Hack to clone the schema object to fix the unit tests.
+	// The proper fix is to understand why the above construction doesn't work.
+	data, err := json.Marshal(newSchema)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(data, &newSchema)
+	if err != nil {
+		return err
+	}
 	d.ds.Structure.Schema = newSchema
 
 	return nil
@@ -551,14 +562,16 @@ func (d *Dataset) createColumnsFromStructure() []string {
 // TODO(dustmop): Probably move this to some more common location
 func dataframeTypeToQriType(dfType string) string {
 	if dfType == "int64" {
-		return "number"
+		return "integer"
 	} else if dfType == "float64" {
 		return "number"
 	} else if dfType == "object" {
 		// TODO(dustmop): This is only usually going to work
 		return "string"
+	} else if dfType == "bool" {
+		return "boolean"
 	} else {
 		log.Errorf("unknown type %q tried to convert to qri type", dfType)
-		return ""
+		return "object"
 	}
 }
