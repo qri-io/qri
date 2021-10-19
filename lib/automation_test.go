@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/event"
@@ -102,7 +101,6 @@ func TestApplyTransformValidationFailure(t *testing.T) {
 
 func TestAutomation(t *testing.T) {
 	tr := newTestRunner(t)
-	bodyFile := qfs.NewMemfileBytes("body.csv", []byte("1,2,3\n4,5,6"))
 	ds := &dataset.Dataset{
 		Name:     "test",
 		Peername: tr.MustOwner(t).Peername,
@@ -129,7 +127,6 @@ dataset.commit(ds)
 			},
 		},
 	}
-	ds.SetBodyFile(bodyFile)
 	wf := &workflow.Workflow{
 		OwnerID: tr.MustOwner(t).ID,
 		Active:  true,
@@ -167,7 +164,6 @@ dataset.commit(ds)
 	}
 	cancel()
 
-	// Wait to make sure the workflow runs without error
 	errMsg := <-done
 	if errMsg != "" {
 		t.Fatal(errMsg)
@@ -201,7 +197,7 @@ dataset.commit(ds)
 	}
 	cancel()
 
-	// Wait to make sure the workflow runs without error
+	// Wait to make sure the workflow runs without error with no dataset changes
 	errMsg = <-done
 	if errMsg != "" {
 		t.Fatal(errMsg)
