@@ -50,6 +50,7 @@ https://github.com/qri-io/qri/issues`,
 
 	cmd.AddCommand(
 		NewAccessCommand(opt, ioStreams),
+		NewAnalyzeTransformCommand(opt, ioStreams),
 		NewApplyCommand(opt, ioStreams),
 		NewAutocompleteCommand(opt, ioStreams),
 		NewConfigCommand(opt, ioStreams),

@@ -17,6 +17,7 @@ import (
 	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/transform"
+	"github.com/qri-io/qri/transform/staticlark"
 )
 
 // AutomationMethods groups together methods for automations
@@ -37,6 +38,9 @@ func (m AutomationMethods) Attributes() map[string]AttributeSet {
 		"run":      {Endpoint: qhttp.AERun, HTTPVerb: "POST"},
 		"workflow": {Endpoint: qhttp.AEWorkflow, HTTPVerb: "POST"},
 		"remove":   {Endpoint: qhttp.AERemoveWorkflow, HTTPVerb: "POST"},
+
+		// NOTE: Temporary undocumented command for using the static analyzer
+		"analyzetransform": {Endpoint: qhttp.DenyHTTP},
 	}
 }
 
@@ -160,6 +164,33 @@ func (m AutomationMethods) Workflow(ctx context.Context, p *WorkflowParams) (*wo
 func (m AutomationMethods) Remove(ctx context.Context, p *WorkflowParams) error {
 	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "remove"), p)
 	return dispatchReturnError(nil, err)
+}
+
+// AnalyzeTransformParams are parameters for the analyzetransform command
+type AnalyzeTransformParams struct {
+	ScriptFileName string `json:"scriptFileName"`
+}
+
+// Validate ...
+func (p *AnalyzeTransformParams) Validate() error {
+	if p.ScriptFileName == "" {
+		return fmt.Errorf("ScriptFileName is required")
+	}
+	return nil
+}
+
+// AnalyzeTransformResult ...
+type AnalyzeTransformResult struct {
+	Diagnostics []staticlark.Diagnostic
+}
+
+// AnalyzeTransform ...
+func (m AutomationMethods) AnalyzeTransform(ctx context.Context, p *AnalyzeTransformParams) (*AnalyzeTransformResult, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "analyzetransform"), p)
+	if res, ok := got.(*AnalyzeTransformResult); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
 }
 
 // Implementations for automation methods follow
@@ -443,4 +474,20 @@ func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *wo
 	ctx = profile.AddIDToContext(scope.AppContext(), scope.ActiveProfile().ID.Encode())
 	transformer := transform.NewTransformer(ctx, scope.Loader(), scope.Bus())
 	return transformer.Apply(ctx, ds, runID, wait, secrets)
+}
+
+// AnalyzeTransform runs analysis on a transform script
+func (automationImpl) AnalyzeTransform(scope scope, p *AnalyzeTransformParams) (*AnalyzeTransformResult, error) {
+	ctx := scope.Context()
+	_ = ctx
+
+	// Perform static analysis and show the results
+	diagnostics, err := staticlark.AnalyzeFile(p.ScriptFileName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AnalyzeTransformResult{
+		Diagnostics: diagnostics,
+	}, nil
 }
