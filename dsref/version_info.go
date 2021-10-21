@@ -100,8 +100,11 @@ type VersionInfo struct {
 	// RunDuration is how long the run took/has currently taken in nanoseconds
 	// default value of 0 means no duration data is available.
 	// RunDuration is not stored on a dataset version, and instead must come from
-	// either run state or a cache of run state
+	// either run state or logbook
 	RunDuration int64 `json:"runDuration,omitempty"`
+	// RunStart is the start time of the run. It is not stored on a dataset version
+	// and instead must come from either run state or logbook
+	RunStart *time.Time `json:"runStart,omitempty"`
 	//
 	//
 	// Aggregate Fields

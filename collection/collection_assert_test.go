@@ -290,11 +290,13 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 		expect[0].RunStatus = "running"
 		assertCollectionList(ctx, t, kermit, params.ListAll, s, expect)
 
+		runStart := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
 		// simulate a "WriteTransformRun" in logbook
 		// this might occur if a transform has errored or resulted in no changes
-		mustPublish(ctx, t, bus, event.ETLogbookWriteRun, dsref.VersionInfo{InitID: muppetNamesInitID, RunID: muppetNamesRunID1, RunStatus: "unchanged", RunDuration: 1000})
+		mustPublish(ctx, t, bus, event.ETLogbookWriteRun, dsref.VersionInfo{InitID: muppetNamesInitID, RunID: muppetNamesRunID1, RunStatus: "unchanged", RunDuration: 1000, RunStart: &runStart})
 		expect[0].RunStatus = "unchanged"
 		expect[0].RunDuration = 1000
+		expect[0].RunStart = &runStart
 
 		// simulate version creation with no transform
 		mustPublish(ctx, t, bus, event.ETLogbookWriteCommit, dsref.VersionInfo{
@@ -323,6 +325,7 @@ func AssertCollectionEventListenerSpec(t *testing.T, constructor Constructor) {
 			BodySize:    25,
 			RunID:       muppetNamesRunID2,
 			RunStatus:   "success",
+			RunStart:    &runStart,
 			RunDuration: 2000,
 		})
 		expect[0].Path = "/mem/PathToMuppetNamesVersionTwo"

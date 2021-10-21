@@ -110,6 +110,7 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 					vi.RunID = m.RunID
 					vi.RunStatus = m.RunStatus
 					vi.RunDuration = m.RunDuration
+					vi.RunStart = m.RunStart
 				}
 
 				*m = vi
@@ -221,6 +222,7 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 					vi.RunCount++
 					vi.RunStatus = "running"
 					vi.RunID = te.RunID
+					vi.RunStart = nil
 				})
 				if err != nil {
 					log.Debugw("update dataset across all collections", "InitID", te.InitID, "err", err)
@@ -230,6 +232,7 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 	case event.ETLogbookWriteRun:
 		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
 			err := sm.UpdateEverywhere(ctx, vi.InitID, func(v *dsref.VersionInfo) {
+				v.RunStart = vi.RunStart
 				v.RunID = vi.RunID
 				v.RunStatus = vi.RunStatus
 				v.RunDuration = vi.RunDuration
