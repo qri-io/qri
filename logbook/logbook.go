@@ -617,6 +617,7 @@ func (book *Book) WriteTransformRun(ctx context.Context, author *profile.Profile
 		RunID:       rs.ID,
 		RunStatus:   string(rs.Status),
 		RunDuration: rs.Duration,
+		RunStart:    rs.StartTime,
 	}
 	if err = book.publisher.Publish(ctx, event.ETLogbookWriteRun, vi); err != nil {
 		log.Error(err)
@@ -1196,11 +1197,12 @@ func versionInfoFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
 }
 
 func runItemFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
+	runStart := time.Unix(0, op.Timestamp)
 	return dsref.VersionInfo{
 		Username:    ref.Username,
 		ProfileID:   ref.ProfileID,
 		Name:        ref.Name,
-		CommitTime:  time.Unix(0, op.Timestamp),
+		RunStart:    &runStart,
 		RunID:       op.Ref,
 		RunStatus:   op.Note,
 		RunDuration: int64(op.Size),
