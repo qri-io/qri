@@ -17,7 +17,7 @@
     "qri": "md:0",
     "title": "example movie data"
   },
-  "path": "/ipfs/QmfZWgcC5bRHLvqa7ntZxxQwgq6XMVLepWJs1NL6fPRc1B",
+  "path": "/ipfs/QmNVJu9Lv7CeQRtPnSFJ7uBaCUEg3UXEPUTyNUKVWW6t1M",
   "previousPath": "/ipfs/QmfSR1yRPszTNeBrHug3SDZaUsrJHFLGeezVp3T9Hfh1gN",
   "qri": "ds:0",
   "structure": {
@@ -104,7 +104,7 @@
   },
   "transform": {
     "qri": "tf:0",
-    "scriptPath": "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH",
+    "scriptPath": "/ipfs/QmTBrUJiu2omdjzYMcqfjHFS33wDtNukf8KCs8v9NfTUdo",
     "steps": [
       {
         "name": "",

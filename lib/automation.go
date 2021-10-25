@@ -472,7 +472,7 @@ func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *wo
 	}
 
 	ctx = profile.AddIDToContext(scope.AppContext(), scope.ActiveProfile().ID.Encode())
-	transformer := transform.NewTransformer(ctx, scope.Loader(), scope.Bus())
+	transformer := transform.NewTransformer(ctx, scope.Filesystem(), scope.Loader(), scope.Bus())
 	return transformer.Apply(ctx, ds, runID, wait, secrets)
 }
 
