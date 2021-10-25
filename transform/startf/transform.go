@@ -9,6 +9,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
@@ -31,6 +32,8 @@ var (
 type ExecOpts struct {
 	// loader for loading datasets
 	DatasetLoader dsref.Loader
+	// filesystem for loading scripts
+	Filesystem qfs.Filesystem
 	// supply a repo to make the 'qri' module available in starlark
 	Repo repo.Repo
 	// allow floating-point numbers
@@ -59,6 +62,13 @@ type ExecOpts struct {
 func AddDatasetLoader(loader dsref.Loader) func(o *ExecOpts) {
 	return func(o *ExecOpts) {
 		o.DatasetLoader = loader
+	}
+}
+
+// AddFilesystem adds a filesystem to the transformer
+func AddFilesystem(fs qfs.Filesystem) func(o *ExecOpts) {
+	return func(o *ExecOpts) {
+		o.Filesystem = fs
 	}
 }
 
@@ -121,6 +131,7 @@ func DefaultExecOpts(o *ExecOpts) {
 type StepRunner struct {
 	config       map[string]interface{}
 	secrets      map[string]interface{}
+	fs           qfs.Filesystem
 	dsLoader     dsref.Loader
 	stards       *stards.BoundDataset
 	globals      starlark.StringDict
@@ -171,6 +182,7 @@ func NewStepRunner(target *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunn
 	r := &StepRunner{
 		config:    target.Transform.Config,
 		secrets:   o.Secrets,
+		fs:        o.Filesystem,
 		dsLoader:  o.DatasetLoader,
 		eventsCh:  o.EventsCh,
 		writer:    o.ErrWriter,
@@ -322,7 +334,7 @@ func (r *StepRunner) onCommit(ds *stards.Dataset) error {
 	}
 
 	ctx := context.TODO()
-	if err := ds.AssignComponentsFromDataframe(ctx, r.changeSet, r.dsLoader); err != nil {
+	if err := ds.AssignComponentsFromDataframe(ctx, r.changeSet, r.fs, r.dsLoader); err != nil {
 		return err
 	}
 

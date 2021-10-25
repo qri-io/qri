@@ -17,7 +17,7 @@
     "qri": "md:0",
     "title": "different title"
   },
-  "path": "/ipfs/QmYSGrEPaBtC6a8MDRB6EkbAuXCDYcZxyUtmdAw3PBXL8m",
+  "path": "/ipfs/QmTToHeJfHL2tx8wTr4U3Yxkm5DPQscPFZFVy553hV2DP7",
   "previousPath": "/ipfs/QmfSR1yRPszTNeBrHug3SDZaUsrJHFLGeezVp3T9Hfh1gN",
   "qri": "ds:0",
   "structure": {
@@ -104,7 +104,7 @@
   },
   "transform": {
     "qri": "tf:0",
-    "scriptPath": "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH",
+    "scriptPath": "/ipfs/QmTBrUJiu2omdjzYMcqfjHFS33wDtNukf8KCs8v9NfTUdo",
     "steps": [
       {
         "name": "",

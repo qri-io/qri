@@ -8,6 +8,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/stepfile"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/transform/startf"
@@ -51,15 +52,17 @@ const (
 type Transformer struct {
 	appCtx  context.Context
 	loader  dsref.Loader
+	fs      qfs.Filesystem
 	pub     event.Publisher
 	changes map[string]struct{}
 }
 
 // NewTransformer returns a new transformer
-func NewTransformer(appCtx context.Context, loader dsref.Loader, pub event.Publisher) *Transformer {
+func NewTransformer(appCtx context.Context, fs qfs.Filesystem, loader dsref.Loader, pub event.Publisher) *Transformer {
 	return &Transformer{
 		appCtx: appCtx,
 		loader: loader,
+		fs:     fs,
 		pub:    pub,
 	}
 }
@@ -139,6 +142,7 @@ func (t *Transformer) apply(
 	opts := []func(*startf.ExecOpts){
 		startf.SetSecrets(secrets),
 		startf.AddDatasetLoader(t.loader),
+		startf.AddFilesystem(t.fs),
 		startf.AddEventsChannel(eventsCh),
 		startf.TrackChanges(t.changes),
 	}

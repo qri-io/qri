@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sort"
+	"strings"
 	"sync"
 
 	golog "github.com/ipfs/go-log"
@@ -17,6 +18,7 @@ import (
 	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/starlib/dataframe"
 	"github.com/qri-io/starlib/util"
@@ -359,7 +361,7 @@ func (d *Dataset) writeStructure(data starlark.Value) *dataset.Structure {
 
 // AssignComponentsFromDataframe looks for changes to the Dataframe body
 // and columns, and assigns them to the Dataset's body and structure
-func (d *Dataset) AssignComponentsFromDataframe(ctx context.Context, changeSet map[string]struct{}, loader dsref.Loader) error {
+func (d *Dataset) AssignComponentsFromDataframe(ctx context.Context, changeSet map[string]struct{}, fs qfs.Filesystem, loader dsref.Loader) error {
 	if d.ds == nil {
 		return nil
 	}
@@ -375,14 +377,12 @@ func (d *Dataset) AssignComponentsFromDataframe(ctx context.Context, changeSet m
 		return err
 	}
 
-	if _, ok := changeSet["body"]; !ok {
-		// the body has not changed, but the user still expects to see
-		// the number of entries the body has
-		if err := d.loadAndAssignPreviousStructureEntries(ctx, loader); err != nil {
-			return err
-		}
+	// assign details to structure and commit based upon how and
+	// whether the body has changed
+	_, hasBodyChange := changeSet["body"]
+	if err := d.assignStructureAndCommitDetails(ctx, fs, loader, hasBodyChange); err != nil {
+		return err
 	}
-
 	return nil
 }
 
@@ -416,7 +416,8 @@ func (d *Dataset) assignBodyFromDataframe() error {
 	if err := w.Close(); err != nil {
 		return err
 	}
-	d.ds.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", st.Format), w.Bytes()))
+	bodyBytes := w.Bytes()
+	d.ds.SetBodyFile(qfs.NewMemfileBytes(fmt.Sprintf("body.%s", st.Format), bodyBytes))
 	err = detect.Structure(d.ds)
 	if err != nil {
 		return err
@@ -424,27 +425,55 @@ func (d *Dataset) assignBodyFromDataframe() error {
 	// adding `Entries` here allows us to know the entry count for
 	// transforms that are "applied" but not "commited"
 	// "commited" dataset versions get `Entries` and other stats
-	// computed at the time the version is saved
+	// computed at the time the version is saved. also get the
+	// `Length` to help generate a commit message
 	d.ds.Structure.Entries = df.NumRows()
+	d.ds.Structure.Length = len(bodyBytes)
 
 	return nil
 }
 
 // load the previous dataset version to get the number of entries
 // and assign them to this version's structure
-func (d *Dataset) loadAndAssignPreviousStructureEntries(ctx context.Context, loader dsref.Loader) error {
+func (d *Dataset) assignStructureAndCommitDetails(ctx context.Context, fs qfs.Filesystem, loader dsref.Loader, hasBodyChange bool) error {
+	// get the previous dataset version, if one exists
+	var prev *dataset.Dataset
 	ref := dsref.ConvertDatasetToVersionInfo(d.Dataset()).SimpleRef()
-	if ref.IsEmpty() {
-		return nil
-	}
-	prev, err := loader.LoadDataset(ctx, ref.Alias())
-	if err != nil {
-		if errors.Is(err, dsref.ErrNoHistory) {
-			return nil
+	if !ref.IsEmpty() {
+		var err error
+		prev, err = loader.LoadDataset(ctx, ref.Alias())
+		if err != nil {
+			if errors.Is(err, dsref.ErrNoHistory) || errors.Is(err, dsref.ErrRefNotFound) {
+				err = nil
+			} else {
+				return err
+			}
 		}
+	}
+
+	// calculate the commit title and message
+	bodyAct := dsfs.BodyDefault
+	if !hasBodyChange {
+		bodyAct = dsfs.BodySame
+	} else if d.ds.Structure.Length > dsfs.BodySizeSmallEnoughToDiff {
+		bodyAct = dsfs.BodyTooBig
+	}
+	fileHint := d.ds.Transform.ScriptPath
+	if strings.HasPrefix(fileHint, "/ipfs/") {
+		fileHint = ""
+	}
+	err := dsfs.EnsureCommitTitleAndMessage(ctx, fs, d.ds, prev, bodyAct, fileHint, false)
+	if err != nil && !errors.Is(err, dsfs.ErrNoChanges) {
 		return err
 	}
-	if prev.Structure == nil {
+
+	if prev == nil || prev.Structure == nil {
+		return nil
+	}
+
+	// if the body changed, no need to copy the entries from the
+	// previous version
+	if hasBodyChange {
 		return nil
 	}
 

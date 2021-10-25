@@ -67,11 +67,16 @@ func TestApply(t *testing.T) {
 			[]event.Event{
 				{Type: event.ETTransformStart, Payload: event.TransformLifecycle{RunID: "two_commit_calls_error", StepCount: 1, Mode: "apply"}},
 				{Type: event.ETTransformStepStart, Payload: event.TransformStepLifecycle{Mode: "apply"}},
-				{Type: event.ETTransformDatasetPreview, Payload: &dataset.Dataset{Transform: &dataset.Transform{
-					Steps: []*dataset.TransformStep{
-						{Syntax: "starlark", Script: "ds = dataset.latest()\ndataset.commit(ds)\ndataset.commit(ds)"},
+				{Type: event.ETTransformDatasetPreview, Payload: &dataset.Dataset{
+					Commit: &dataset.Commit{
+						Message: "created dataset",
+						Title:   "created dataset",
 					},
-				}}},
+					Transform: &dataset.Transform{
+						Steps: []*dataset.TransformStep{
+							{Syntax: "starlark", Script: "ds = dataset.latest()\ndataset.commit(ds)\ndataset.commit(ds)"},
+						},
+					}}},
 				{Type: event.ETTransformError, Payload: event.TransformMessage{Lvl: event.TransformMsgLvlError, Msg: "Traceback (most recent call last):\n  .star:3:15: in <toplevel>\nError in commit: commit can only be called once in a transform script", Mode: "apply"}},
 				{Type: event.ETTransformStepStop, Payload: event.TransformStepLifecycle{Status: StatusFailed, Mode: "apply"}},
 				{Type: event.ETTransformStop, Payload: event.TransformLifecycle{RunID: "two_commit_calls_error", Status: StatusFailed, Mode: "apply"}},
@@ -174,7 +179,6 @@ func applyNoHistoryTransform(t *testing.T, initID string, tf *dataset.Transform,
 	log := []event.Event{}
 	doneCh := make(chan struct{})
 	bus.SubscribeID(func(ctx context.Context, e event.Event) error {
-
 		log = append(log, e)
 		switch e.Type {
 		case event.ETTransformStop:
@@ -183,7 +187,8 @@ func applyNoHistoryTransform(t *testing.T, initID string, tf *dataset.Transform,
 		return nil
 	}, runID)
 
-	transformer := NewTransformer(ctx, loader, bus)
+	fs := qfs.NewMemFS()
+	transformer := NewTransformer(ctx, fs, loader, bus)
 	if runMode == "apply" {
 		if err := transformer.Apply(ctx, target, runID, false, nil); err != nil {
 			t.Fatal(err)
@@ -228,6 +233,10 @@ func compareEventLogs(t *testing.T, expect, log []event.Event) {
 
 var threeStepDatasetPreview = &dataset.Dataset{
 	Body: json.RawMessage(`[[1,2,3]]`),
+	Commit: &dataset.Commit{
+		Message: "created dataset",
+		Title:   "created dataset",
+	},
 	Structure: &dataset.Structure{
 		Format:       "csv",
 		FormatConfig: map[string]interface{}{"lazyQuotes": true},
@@ -242,6 +251,7 @@ var threeStepDatasetPreview = &dataset.Dataset{
 			},
 			"type": "array",
 		},
+		Length:  6,
 		Entries: 1,
 	},
 	Transform: &dataset.Transform{
@@ -266,7 +276,8 @@ func TestApplyAssignsColumnsAndBody(t *testing.T) {
 
 	loader := &noHistoryLoader{}
 	bus := event.NewBus(ctx)
-	transformer := NewTransformer(ctx, loader, bus)
+	fs := qfs.NewMemFS()
+	transformer := NewTransformer(ctx, fs, loader, bus)
 
 	ds := &dataset.Dataset{Transform: &dataset.Transform{}}
 	ds.Transform.SetScriptFile(scriptFile(t, "startf/testdata/csv_with_header.star"))
