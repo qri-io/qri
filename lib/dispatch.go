@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/qri-io/qri/auth/token"
+	"github.com/qri-io/qri/event"
 	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/profile"
 )
@@ -169,6 +170,11 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 
 		// Handle filepaths in the params by calling qfs.Abs on each of them
 		param = normalizeInputParams(param)
+
+		inst.Bus().Publish(ctx, event.ETDispatchMethodCall, event.DispatchCall{
+			Method: method,
+			Params: param,
+		})
 
 		// Construct the parameter list for the function call, then call it
 		args := make([]reflect.Value, 3)
