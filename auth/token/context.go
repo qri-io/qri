@@ -2,11 +2,8 @@ package token
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/qri-io/qri/api/util"
 )
 
 // CtxKey defines a distinct type for context keys used by the access
@@ -54,7 +51,7 @@ func OAuthTokenMiddleware(next http.Handler) http.Handler {
 		}
 
 		if !strings.HasPrefix(reqToken, httpAuthorizationBearerPrefix) {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad token"))
+			next.ServeHTTP(w, r)
 			return
 		}
 
