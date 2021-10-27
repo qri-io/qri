@@ -322,8 +322,8 @@ func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID, runID s
 	return runID, o.runWorkflow(ctx, wf, runID)
 }
 
-func (o *Orchestrator) listenForCancellation(ctx context.Context, cancel context.CancelFunc, runID string) {
-	log.Debugw("listenForCancellation", "runID", runID)
+func (o *Orchestrator) listenForCancelation(ctx context.Context, cancel context.CancelFunc, runID string) {
+	log.Debugw("listenForCancelation", "runID", runID)
 	for {
 		select {
 		case cancelRunID := <-o.cancelRunCh:
@@ -347,7 +347,7 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	go o.listenForCancellation(ctx, cancel, runID)
+	go o.listenForCancelation(ctx, cancel, runID)
 
 	go func(wf *workflow.Workflow) {
 		if err := o.bus.PublishID(ctx, event.ETAutomationWorkflowStarted, wf.ID.String(), event.WorkflowStartedEvent{
@@ -421,7 +421,7 @@ func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	go o.listenForCancellation(ctx, cancel, runID)
+	go o.listenForCancelation(ctx, cancel, runID)
 
 	if scriptOutput != nil {
 		o.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
