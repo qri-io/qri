@@ -56,7 +56,11 @@ type Orchestrator struct {
 	// the workflows in the expected order, running only as many at once as configured, and
 	// allows communication back to the user about where they are in the run queue, allows for
 	// cancelling runs that haven't happened yet
-	runLock      sync.Mutex
+	runLock sync.Mutex
+	// TODO(ramfox): `cancelRunCh` is the current shim to ensure we can
+	// cancel the currently running run. Like the above `runLock`, this should be
+	// replaced with a subsystem that queues/orders/cancels runs
+	cancelRunCh  chan string
 	workflows    workflow.Store
 	listeners    map[string]trigger.Listener
 	runs         run.Store
@@ -101,6 +105,7 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 		workflows:    opts.WorkflowStore,
 		runs:         opts.RunStore,
 		runLock:      sync.Mutex{},
+		cancelRunCh:  make(chan string),
 	}
 
 	for _, l := range opts.Listeners {
@@ -317,11 +322,32 @@ func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID, runID s
 	return runID, o.runWorkflow(ctx, wf, runID)
 }
 
+func (o *Orchestrator) listenForCancellation(ctx context.Context, cancel context.CancelFunc, runID string) {
+	log.Debugw("listenForCancellation", "runID", runID)
+	for {
+		select {
+		case cancelRunID := <-o.cancelRunCh:
+			if runID == cancelRunID {
+				cancel()
+				o.runLock.Unlock()
+				return
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
 func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, runID string) error {
 	o.runLock.Lock()
 	defer o.runLock.Unlock()
 	wid := wf.ID
 	log.Debugw("runWorkflow, workflow", "id", wid)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go o.listenForCancellation(ctx, cancel, runID)
 
 	go func(wf *workflow.Workflow) {
 		if err := o.bus.PublishID(ctx, event.ETAutomationWorkflowStarted, wf.ID.String(), event.WorkflowStartedEvent{
@@ -389,8 +415,13 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string, runID string) error {
 	o.runLock.Lock()
 	defer o.runLock.Unlock()
-	log.Debugw("ApplyWorkflow, workflow", "id", wf.ID)
+
 	apply := o.applyFactory(ctx)
+	log.Debugw("ApplyWorkflow", "workflow id", wf.ID, "run id", runID)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go o.listenForCancellation(ctx, cancel, runID)
 
 	if scriptOutput != nil {
 		o.bus.SubscribeID(func(ctx context.Context, e event.Event) error {

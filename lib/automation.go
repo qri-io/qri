@@ -15,7 +15,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	qhttp "github.com/qri-io/qri/lib/http"
-	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/transform"
 	"github.com/qri-io/qri/transform/staticlark"
 )
@@ -38,6 +37,7 @@ func (m AutomationMethods) Attributes() map[string]AttributeSet {
 		"run":      {Endpoint: qhttp.AERun, HTTPVerb: "POST"},
 		"workflow": {Endpoint: qhttp.AEWorkflow, HTTPVerb: "POST"},
 		"remove":   {Endpoint: qhttp.AERemoveWorkflow, HTTPVerb: "POST"},
+		"cancel":   {Endpoint: qhttp.AECancel, HTTPVerb: "POST"},
 
 		// NOTE: Temporary undocumented command for using the static analyzer
 		"analyzetransform": {Endpoint: qhttp.DenyHTTP},
@@ -130,6 +130,25 @@ func (m AutomationMethods) Run(ctx context.Context, p *RunParams) (string, error
 		return res, err
 	}
 	return "", dispatchReturnError(got, err)
+}
+
+// CancelParams are parameters for the cancel command
+type CancelParams struct {
+	RunID string `json:"runID"`
+}
+
+// Validate returns an error if CancelParams fields are in an invalid state
+func (p *CancelParams) Validate() error {
+	if p.RunID == "" {
+		return fmt.Errorf("cancel params: run id required")
+	}
+	return nil
+}
+
+// Cancel cancels the run for the given runID
+func (m AutomationMethods) Cancel(ctx context.Context, p *CancelParams) error {
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "cancel"), p)
+	return dispatchReturnError(nil, err)
 }
 
 // WorkflowParams are parameters for the Workflow command
@@ -400,6 +419,12 @@ func (automationImpl) Run(scope scope, p *RunParams) (string, error) {
 	runID := run.NewID()
 	go scope.AutomationOrchestrator().RunWorkflow(scope.AppContext(), workflow.ID(p.WorkflowID), runID)
 	return runID, nil
+}
+
+// Cancel cancels a run
+func (automationImpl) Cancel(scope scope, p *CancelParams) error {
+	scope.AutomationOrchestrator().CancelRun(scope.Context(), p.RunID)
+	return nil
 }
 
 // Workflow fetches a workflow by the workflow or dataset id
