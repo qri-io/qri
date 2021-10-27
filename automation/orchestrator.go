@@ -377,12 +377,21 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 
 // ApplyWorkflow runs the given workflow, but does not record the output
 func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) (string, error) {
+	runID := run.NewID()
+	if wait {
+		return runID, o.applyWorkflow(ctx, scriptOutput, wf, ds, secrets, runID)
+	}
+
+	go o.applyWorkflow(ctx, scriptOutput, wf, ds, secrets, runID)
+	return runID, nil
+}
+
+func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string, runID string) error {
 	o.runLock.Lock()
 	defer o.runLock.Unlock()
 	log.Debugw("ApplyWorkflow, workflow", "id", wf.ID)
 	apply := o.applyFactory(ctx)
 
-	runID := run.NewID()
 	if scriptOutput != nil {
 		o.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
 			log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
@@ -401,7 +410,13 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 
 	// TODO (ramfox): when we understand what it means to dryrun a hook, this should wait for the err, iterator thought the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
-	return runID, apply(ctx, wait, runID, wf, ds, secrets)
+	return apply(ctx, true, runID, wf, ds, secrets)
+}
+
+// CancelRun cancels the run of the given runID
+func (o *Orchestrator) CancelRun(ctx context.Context, runID string) {
+	log.Debugw("orchestrator.CancelRun", "runID", runID)
+	o.cancelRunCh <- runID
 }
 
 // SaveWorkflow creates a new workflow if the workflow id is empty, or updates

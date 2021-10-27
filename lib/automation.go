@@ -200,12 +200,10 @@ type automationImpl struct{}
 
 // Apply runs a transform script
 func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
-	ctx := scope.Context()
-
 	var err error
 	ref := dsref.Ref{}
 	if p.Ref != "" {
-		ref, _, err = scope.ParseAndResolveRef(ctx, p.Ref)
+		ref, _, err = scope.ParseAndResolveRef(scope.Context(), p.Ref)
 		if err != nil {
 			return nil, err
 		}
@@ -219,7 +217,7 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	}
 	if p.Transform != nil {
 		ds.Transform = p.Transform
-		ds.Transform.OpenScriptFile(ctx, scope.Filesystem())
+		ds.Transform.OpenScriptFile(scope.Context(), scope.Filesystem())
 	}
 
 	wf := &workflow.Workflow{
@@ -229,6 +227,11 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 		wf.Hooks = p.Hooks
 	}
 
+	ctx := scope.Context()
+	if !p.Wait {
+		ctx = scope.AppContext()
+	}
+
 	runID, err := scope.AutomationOrchestrator().ApplyWorkflow(ctx, p.Wait, p.ScriptOutput, wf, ds, p.Secrets)
 	if err != nil {
 		return nil, err
@@ -236,7 +239,7 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 
 	res := &ApplyResult{}
 	if p.Wait {
-		ds, err := preview.Create(ctx, ds)
+		ds, err := preview.Create(scope.Context(), ds)
 		if err != nil {
 			return nil, err
 		}
@@ -471,9 +474,8 @@ func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *wo
 		return err
 	}
 
-	ctx = profile.AddIDToContext(scope.AppContext(), scope.ActiveProfile().ID.Encode())
 	transformer := transform.NewTransformer(ctx, scope.Filesystem(), scope.Loader(), scope.Bus())
-	return transformer.Apply(ctx, ds, runID, wait, secrets)
+	return transformer.Apply(scope.Context(), ds, runID, wait, secrets)
 }
 
 // AnalyzeTransform runs analysis on a transform script
