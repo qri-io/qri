@@ -262,7 +262,7 @@ func (j *Journal) Get(_ context.Context, id string) (*Log, error) {
 			return l, nil
 		}
 	}
-	return nil, fmt.Errorf("getting log %q %w", id, ErrNotFound)
+	return nil, ErrNotFound
 }
 
 // GetAuthorID fetches the first log that matches the given model and authorID

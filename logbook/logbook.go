@@ -485,6 +485,27 @@ func (book *Book) branchLog(ctx context.Context, initID string) (*BranchLog, err
 	return newBranchLog(lg.Logs[0]), nil
 }
 
+// ProfileCanWrite is a utility to check whether a given profile
+// has write access to a given dataset by initID
+func (book *Book) ProfileCanWrite(ctx context.Context, initID string, pro *profile.Profile) error {
+	log, err := book.branchLog(ctx, initID)
+	if err != nil {
+		if err == oplog.ErrNotFound {
+			return nil
+		}
+		return err
+	}
+	ul, err := book.userLog(ctx, pro.ID.Encode())
+	if err != nil {
+		return err
+	}
+
+	if log.l.Ops[0].AuthorID != ul.l.ID() {
+		return fmt.Errorf("%w: you do not have write access", ErrAccessDenied)
+	}
+	return nil
+}
+
 // hasWriteAccess is a simple author-matching check
 func (book *Book) hasWriteAccess(ctx context.Context, log *oplog.Log, pro *profile.Profile) error {
 	ul, err := book.userLog(ctx, pro.ID.Encode())

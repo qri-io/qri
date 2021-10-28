@@ -432,6 +432,28 @@ func TestWritePermissions(t *testing.T) {
 	}
 }
 
+func TestProfileCanWrite(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	otherLogbook := tr.foreignLogbook(t, "janelle")
+
+	initID, log := GenerateExampleOplog(ctx, t, otherLogbook, "atmospheric_particulates", "/ipld/QmExample")
+
+	if err := tr.Book.MergeLog(ctx, otherLogbook.Owner().PubKey, log); err != nil {
+		t.Fatal(err)
+	}
+
+	author := tr.Owner
+	if err := tr.Book.ProfileCanWrite(ctx, initID, author); !errors.Is(err, logbook.ErrAccessDenied) {
+		t.Errorf("ProfileCanWrite must return a wrap of logbook.ErrAccessDenied for foreign datasets")
+	}
+
+}
+
 func TestPushModel(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
