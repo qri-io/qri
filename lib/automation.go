@@ -210,6 +210,9 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 			return nil, err
 		}
 	}
+	if err := scope.Logbook().ProfileCanWrite(scope.Context(), ref.InitID, scope.ActiveProfile()); err != nil {
+		return nil, fmt.Errorf("profile %s can not write to dataset %s", scope.ActiveProfile().ID.Encode(), ref.InitID)
+	}
 
 	ds := &dataset.Dataset{}
 	if !ref.IsEmpty() {
@@ -260,6 +263,9 @@ func (automationImpl) Deploy(scope scope, p *DeployParams) error {
 		if p.Workflow.OwnerID != wf.OwnerID {
 			return fmt.Errorf("deploy: given workflow and workflow on record have different OwnerIDs")
 		}
+	}
+	if err := scope.Logbook().ProfileCanWrite(scope.Context(), p.Workflow.InitID, scope.ActiveProfile()); err != nil {
+		return fmt.Errorf("profile %s can not write to dataset %s", scope.ActiveProfile().ID.Encode(), p.Workflow.InitID)
 	}
 
 	// Because deploy runs as a background task, re-root execution context atop
@@ -394,6 +400,9 @@ func (automationImpl) Run(scope scope, p *RunParams) (string, error) {
 		}
 		p.WorkflowID = wf.WorkflowID()
 	}
+	if err := scope.Logbook().ProfileCanWrite(scope.Context(), p.InitID, scope.ActiveProfile()); err != nil {
+		return "", fmt.Errorf("profile %s can not write to dataset %s", scope.ActiveProfile().ID.Encode(), p.InitID)
+	}
 	runID := run.NewID()
 	go scope.AutomationOrchestrator().RunWorkflow(scope.AppContext(), workflow.ID(p.WorkflowID), runID)
 	return runID, nil
@@ -435,6 +444,9 @@ func (automationImpl) Remove(scope scope, p *WorkflowParams) error {
 			return err
 		}
 		p.WorkflowID = wf.WorkflowID()
+	}
+	if err := scope.Logbook().ProfileCanWrite(scope.Context(), p.InitID, scope.ActiveProfile()); err != nil {
+		return fmt.Errorf("profile %s can not write to dataset %s", scope.ActiveProfile().ID.Encode(), p.InitID)
 	}
 
 	return scope.AutomationOrchestrator().RemoveWorkflow(scope.Context(), workflow.ID(p.WorkflowID))
