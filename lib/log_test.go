@@ -53,7 +53,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		err         string
 	}{
 		{"log list - empty",
-			&ActivityParams{}, nil, `"" is not a valid dataset reference: empty reference`},
+			&ActivityParams{}, nil, `activity: ref required`},
 		{"log list - bad path",
 			&ActivityParams{Ref: "/badpath"}, nil, `"/badpath" is not a valid dataset reference: unexpected character at position 0: '/'`},
 		{"log list - default",

@@ -25,12 +25,12 @@ func TestDatasetLog(t *testing.T) {
 	cities := updateCitiesDataset(t, mr, "")
 
 	ref := dsref.MustParse("me/not_a_dataset")
-	log, err := DatasetLog(ctx, mr, ref, -1, 0, true)
+	log, err := DatasetLog(ctx, mr, ref, -1, 0, "", true)
 	if err == nil {
 		t.Errorf("expected lookup for nonexistent log to fail")
 	}
 
-	if log, err = DatasetLog(ctx, mr, cities, 1, 0, true); err != nil {
+	if log, err = DatasetLog(ctx, mr, cities, 1, 0, "", true); err != nil {
 		t.Error(err.Error())
 	}
 	if len(log) != 1 {
@@ -111,7 +111,7 @@ func TestDatasetLogForeign(t *testing.T) {
 	book := builder.Logbook()
 	mr.SetLogbook(book)
 
-	log, err := DatasetLog(ctx, mr, ref, 1, 0, true)
+	log, err := DatasetLog(ctx, mr, ref, 1, 0, "", true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -158,7 +158,7 @@ func TestDatasetLogForeignTimeout(t *testing.T) {
 	}
 
 	// Get a dataset log, which should timeout with an error
-	_, err = DatasetLog(ctx, mr, ref, -1, 0, true)
+	_, err = DatasetLog(ctx, mr, ref, -1, 0, "", true)
 	if err == nil {
 		t.Fatal("expected lookup for foreign log to fail")
 	}
@@ -224,7 +224,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	mr.SetLogbook(book)
 
 	// confirm no history exists:
-	if _, err = book.Items(ctx, ref, 0, 100); err == nil {
+	if _, err = book.Items(ctx, ref, 0, 100, ""); err == nil {
 		t.Errorf("expected versions for nonexistent history to fail")
 	}
 
@@ -253,7 +253,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	}
 
 	// confirm history exists:
-	log, err := DatasetLog(ctx, mr, ref, 100, 0, true)
+	log, err := DatasetLog(ctx, mr, ref, 100, 0, "", true)
 	if err != nil {
 		t.Error(err)
 	}

@@ -15,9 +15,9 @@ import (
 const TimeoutDuration = 100 * time.Millisecond
 
 // DatasetLog fetches the change version history of a dataset
-func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset int, loadDatasets bool) ([]dsref.VersionInfo, error) {
+func DatasetLog(ctx context.Context, r repo.Repo, ref dsref.Ref, limit, offset int, term string, loadDatasets bool) ([]dsref.VersionInfo, error) {
 	if book := r.Logbook(); book != nil {
-		if items, err := book.Items(ctx, ref, offset, limit); err == nil {
+		if items, err := book.Items(ctx, ref, offset, limit, term); err == nil {
 			// logs are ok with history not existing. This keeps FSI interaction behaviour consistent
 			// TODO (b5) - we should consider having "empty history" be an ok state, instead of marking as an error
 			if len(items) == 0 {

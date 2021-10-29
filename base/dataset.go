@@ -204,7 +204,7 @@ func ListDatasets(ctx context.Context, r repo.Repo, term, profileID string, offs
 			ref.Dataset = ds
 
 			if showVersions {
-				dsVersions, err := DatasetLog(ctx, r, reporef.ConvertToDsref(ref), 1000000, 0, false)
+				dsVersions, err := DatasetLog(ctx, r, reporef.ConvertToDsref(ref), 1000000, 0, "", false)
 				if err != nil {
 					return nil, err
 				}
