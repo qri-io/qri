@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	testkeys "github.com/qri-io/qri/auth/key/test"
+	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
 	"github.com/qri-io/qri/event"
@@ -146,7 +147,7 @@ func Example() {
 	// now for the fun bit. When we ask for the state of the log, it will
 	// play our opsets forward and get us the current state of the log
 	// we can also get the state of a log from the book:
-	log, err := book.Items(ctx, ref, 0, 100)
+	log, err := book.Items(ctx, ref, 0, 100, "")
 	if err != nil {
 		panic(err)
 	}
@@ -704,7 +705,7 @@ func TestLogTransfer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	revs, err := book2.Items(tr.Ctx, tr.WorldBankRef(), 0, 30)
+	revs, err := book2.Items(tr.Ctx, tr.WorldBankRef(), 0, 30, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -853,7 +854,7 @@ func TestItems(t *testing.T) {
 	tr.WriteMoreWorldBankCommits(t, initID)
 	book := tr.Book
 
-	items, err := book.Items(tr.Ctx, tr.WorldBankRef(), 0, 10)
+	items, err := book.Items(tr.Ctx, tr.WorldBankRef(), 0, 10, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -886,7 +887,7 @@ func TestItems(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 
-	items, err = book.Items(tr.Ctx, tr.WorldBankRef(), 1, 1)
+	items, err = book.Items(tr.Ctx, tr.WorldBankRef(), 1, 1, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -898,6 +899,73 @@ func TestItems(t *testing.T) {
 			Path:        "QmHashOfVersion4",
 			CommitTime:  mustTime("2000-01-03T19:00:00-05:00"),
 			CommitTitle: "v4",
+		},
+	}
+	if diff := cmp.Diff(expect, items); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestFilteredItems(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	_ = tr.WriteBabyNamesExample(t)
+	book := tr.Book
+
+	items, err := book.Items(tr.Ctx, tr.BabyNamesRef(), 0, 10, "history")
+	if err != nil {
+		t.Error(err)
+	}
+
+	run2Start := mustTime("2000-01-01T04:00:00-00:00")
+	expect := []dsref.VersionInfo{
+		{
+			Username:    "test_author",
+			Name:        "baby_names",
+			Path:        "QmVersion2",
+			CommitTime:  mustTime("2000-01-01T04:01:00-00:00"),
+			CommitTitle: "second commit",
+			RunStart:    &run2Start,
+			RunDuration: time.Minute.Nanoseconds(),
+			RunID:       "run2",
+		},
+		{
+			Username:    "test_author",
+			Name:        "baby_names",
+			Path:        "QmVersion0",
+			CommitTime:  mustTime("2000-01-01T01:01:00-00:00"),
+			CommitTitle: "init dataset",
+		},
+	}
+
+	if diff := cmp.Diff(expect, items); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+
+	items, err = book.Items(tr.Ctx, tr.BabyNamesRef(), 0, -1, "run")
+	if err != nil {
+		t.Error(err)
+	}
+
+	run1Start := mustTime("2000-01-01T03:00:00-00:00")
+	expect = []dsref.VersionInfo{
+		{
+			Username:    "test_author",
+			Name:        "baby_names",
+			Path:        "QmVersion2",
+			CommitTime:  mustTime("2000-01-01T04:01:00-00:00"),
+			CommitTitle: "second commit",
+			RunStart:    &run2Start,
+			RunDuration: time.Minute.Nanoseconds(),
+			RunID:       "run2",
+		},
+		{
+			Username:    "test_author",
+			Name:        "baby_names",
+			RunStart:    &run1Start,
+			RunDuration: time.Minute.Nanoseconds(),
+			RunID:       "run1",
 		},
 	}
 	if diff := cmp.Diff(expect, items); diff != "" {
@@ -957,7 +1025,7 @@ func TestConstructDatasetLog(t *testing.T) {
 	// now for the fun bit. When we ask for the state of the log, it will
 	// play our opsets forward and get us the current state of tne log
 	// we can also get the state of a log from the book:
-	items, err := book.Items(tr.Ctx, ref, 0, 100)
+	items, err := book.Items(tr.Ctx, ref, 0, 100, "")
 	if err != nil {
 		t.Errorf("getting items: %s", err)
 	}
@@ -993,6 +1061,7 @@ type testRunner struct {
 
 	renameInitID    string
 	worldBankInitID string
+	babyNamesInitID string
 }
 
 func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
@@ -1129,6 +1198,87 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T, initID string) {
 	if err := book.WriteVersionSave(tr.Ctx, tr.Owner, ds, nil); err != nil {
 		panic(err)
 	}
+}
+
+// writeBabyNamesLog yields 3 total Items, 2 "history" & 2 "run" (one is both a "history" and a "run")
+func (tr *testRunner) WriteBabyNamesExample(t *testing.T) string {
+	name := "baby_names"
+	book := tr.Book
+	author := book.Owner()
+	ctx := tr.Ctx
+
+	initID, err := book.WriteDatasetInit(ctx, author, name)
+	if err != nil {
+		panic(err)
+	}
+	tr.babyNamesInitID = initID
+
+	timestamp := time.Date(2000, time.January, 1, 1, 1, 0, 0, time.UTC)
+
+	ds := &dataset.Dataset{
+		ID:       initID,
+		Peername: author.Peername,
+		Name:     name,
+		Commit: &dataset.Commit{
+			Timestamp: timestamp,
+			Title:     "init dataset",
+		},
+		Path:         "QmVersion0",
+		PreviousPath: "",
+	}
+
+	if err = book.WriteVersionSave(ctx, author, ds, nil); err != nil {
+		panic(err)
+	}
+
+	ds.Commit.Title = "first commit"
+	ds.Commit.Timestamp = time.Date(2000, time.January, 1, 2, 1, 0, 0, time.UTC)
+	ds.PreviousPath = ds.Path
+	ds.Path = "QmVersion1"
+
+	if err = book.WriteVersionSave(ctx, author, ds, nil); err != nil {
+		panic(err)
+	}
+
+	if err = book.WriteVersionDelete(ctx, author, initID, 1); err != nil {
+		panic(err)
+	}
+
+	runStart := time.Date(2000, time.January, 1, 3, 0, 0, 0, time.UTC)
+	runEnd := time.Date(2000, time.January, 1, 3, 1, 0, 0, time.UTC)
+	rs := &run.State{
+		ID:        "run1",
+		Number:    1,
+		StartTime: &runStart,
+		StopTime:  &runEnd,
+		Duration:  time.Minute.Nanoseconds(),
+	}
+
+	if err = book.WriteTransformRun(ctx, author, initID, rs); err != nil {
+		panic(err)
+	}
+
+	ds.Commit.Title = "second commit"
+	ds.Commit.Timestamp = time.Date(2000, time.January, 1, 4, 1, 0, 0, time.UTC)
+	ds.Commit.RunID = "run2"
+	ds.PreviousPath = ds.Path
+	ds.Path = "QmVersion2"
+
+	rs.ID = "run2"
+	rs.Number = 2
+	rs.StopTime = &ds.Commit.Timestamp
+	rs.Duration = time.Minute.Nanoseconds()
+	runStart = time.Date(2000, time.January, 1, 4, 0, 0, 0, time.UTC)
+	rs.StartTime = &runStart
+
+	if err = book.WriteVersionSave(ctx, author, ds, rs); err != nil {
+		panic(err)
+	}
+	return initID
+}
+
+func (tr *testRunner) BabyNamesRef() dsref.Ref {
+	return dsref.Ref{Username: tr.Owner.Peername, Name: "baby_names", InitID: tr.babyNamesInitID}
 }
 
 func (tr *testRunner) RenameInitialRef() dsref.Ref {

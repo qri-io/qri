@@ -53,7 +53,7 @@ func TestP2PLogsync(t *testing.T) {
 		t.Error(err)
 	}
 
-	items, err := tr.B.Items(tr.Ctx, worldBankRef, 0, 10)
+	items, err := tr.B.Items(tr.Ctx, worldBankRef, 0, 10, "")
 	if err != nil {
 		t.Errorf("expected no error fetching dslog items after pull. got: %s", err)
 	}
@@ -79,7 +79,7 @@ func TestP2PLogsync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	items, err = tr.B.Items(tr.Ctx, nasdaqRef, 0, 10)
+	items, err = tr.B.Items(tr.Ctx, nasdaqRef, 0, 10, "")
 	if err != nil {
 		t.Errorf("expected no error fetching dslog items after pull. got: %s", err)
 	}
@@ -91,7 +91,7 @@ func TestP2PLogsync(t *testing.T) {
 	if err := lsA.DoRemove(tr.Ctx, nasdaqRef, bID); err != nil {
 		t.Errorf("unexpected error doing remove request: %s", err)
 	}
-	if _, err = tr.B.Items(tr.Ctx, nasdaqRef, 0, 10); err == nil {
+	if _, err = tr.B.Items(tr.Ctx, nasdaqRef, 0, 10, ""); err == nil {
 		t.Errorf("expected error fetching dslog items. got nil")
 	}
 }
