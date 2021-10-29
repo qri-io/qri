@@ -53,6 +53,8 @@ const (
 	AEDeploy APIEndpoint = "/auto/deploy"
 	// AERun manually runs a workflow
 	AERun APIEndpoint = "/auto/run"
+	// AECancel cancels a run
+	AECancel APIEndpoint = "/auto/cancel"
 	// AEWorkflow fetches a workflow
 	AEWorkflow APIEndpoint = "/auto/workflow"
 	// AERemoveWorkflow removes a workflow

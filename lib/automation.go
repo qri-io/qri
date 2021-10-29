@@ -15,7 +15,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	qhttp "github.com/qri-io/qri/lib/http"
-	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/transform"
 	"github.com/qri-io/qri/transform/staticlark"
 )
@@ -38,6 +37,7 @@ func (m AutomationMethods) Attributes() map[string]AttributeSet {
 		"run":      {Endpoint: qhttp.AERun, HTTPVerb: "POST"},
 		"workflow": {Endpoint: qhttp.AEWorkflow, HTTPVerb: "POST"},
 		"remove":   {Endpoint: qhttp.AERemoveWorkflow, HTTPVerb: "POST"},
+		"cancel":   {Endpoint: qhttp.AECancel, HTTPVerb: "POST"},
 
 		// NOTE: Temporary undocumented command for using the static analyzer
 		"analyzetransform": {Endpoint: qhttp.DenyHTTP},
@@ -132,6 +132,25 @@ func (m AutomationMethods) Run(ctx context.Context, p *RunParams) (string, error
 	return "", dispatchReturnError(got, err)
 }
 
+// CancelParams are parameters for the cancel command
+type CancelParams struct {
+	RunID string `json:"runID"`
+}
+
+// Validate returns an error if CancelParams fields are in an invalid state
+func (p *CancelParams) Validate() error {
+	if p.RunID == "" {
+		return fmt.Errorf("cancel params: run id required")
+	}
+	return nil
+}
+
+// Cancel cancels the run for the given runID
+func (m AutomationMethods) Cancel(ctx context.Context, p *CancelParams) error {
+	_, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "cancel"), p)
+	return dispatchReturnError(nil, err)
+}
+
 // WorkflowParams are parameters for the Workflow command
 type WorkflowParams struct {
 	WorkflowID string `json:"workflowID"`
@@ -200,12 +219,10 @@ type automationImpl struct{}
 
 // Apply runs a transform script
 func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
-	ctx := scope.Context()
-
 	var err error
 	ref := dsref.Ref{}
 	if p.Ref != "" {
-		ref, _, err = scope.ParseAndResolveRef(ctx, p.Ref)
+		ref, _, err = scope.ParseAndResolveRef(scope.Context(), p.Ref)
 		if err != nil {
 			return nil, err
 		}
@@ -219,7 +236,7 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 	}
 	if p.Transform != nil {
 		ds.Transform = p.Transform
-		ds.Transform.OpenScriptFile(ctx, scope.Filesystem())
+		ds.Transform.OpenScriptFile(scope.Context(), scope.Filesystem())
 	}
 
 	wf := &workflow.Workflow{
@@ -229,6 +246,11 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 		wf.Hooks = p.Hooks
 	}
 
+	ctx := scope.Context()
+	if !p.Wait {
+		ctx = scope.AppContext()
+	}
+
 	runID, err := scope.AutomationOrchestrator().ApplyWorkflow(ctx, p.Wait, p.ScriptOutput, wf, ds, p.Secrets)
 	if err != nil {
 		return nil, err
@@ -236,7 +258,7 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 
 	res := &ApplyResult{}
 	if p.Wait {
-		ds, err := preview.Create(ctx, ds)
+		ds, err := preview.Create(scope.Context(), ds)
 		if err != nil {
 			return nil, err
 		}
@@ -399,6 +421,12 @@ func (automationImpl) Run(scope scope, p *RunParams) (string, error) {
 	return runID, nil
 }
 
+// Cancel cancels a run
+func (automationImpl) Cancel(scope scope, p *CancelParams) error {
+	scope.AutomationOrchestrator().CancelRun(scope.Context(), p.RunID)
+	return nil
+}
+
 // Workflow fetches a workflow by the workflow or dataset id
 func (automationImpl) Workflow(scope scope, p *WorkflowParams) (*workflow.Workflow, error) {
 	if p.WorkflowID != "" {
@@ -471,9 +499,8 @@ func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *wo
 		return err
 	}
 
-	ctx = profile.AddIDToContext(scope.AppContext(), scope.ActiveProfile().ID.Encode())
 	transformer := transform.NewTransformer(ctx, scope.Filesystem(), scope.Loader(), scope.Bus())
-	return transformer.Apply(ctx, ds, runID, wait, secrets)
+	return transformer.Apply(scope.Context(), ds, runID, wait, secrets)
 }
 
 // AnalyzeTransform runs analysis on a transform script

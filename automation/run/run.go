@@ -170,6 +170,8 @@ func (rs *State) AddTransformEvent(e event.Event) error {
 		event.ETTransformError,
 		event.ETTransformDatasetPreview:
 		return rs.appendStepOutputLog(e)
+	case event.ETTransformCanceled:
+		return nil
 	}
 	return fmt.Errorf("unexpected event type: %q", e.Type)
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/profile"
 	"github.com/qri-io/qri/transform/startf"
 )
 
@@ -112,6 +113,8 @@ func (t *Transformer) apply(
 		return errors.New("apply requires a runID")
 	}
 
+	ownerID := profile.IDFromCtx(ctx)
+
 	if target.Name != "" {
 		head, err := t.loader.LoadDataset(ctx, fmt.Sprintf("%s/%s", target.Peername, target.Name))
 		if errors.Is(err, dsref.ErrRefNotFound) || errors.Is(err, dsref.ErrNoHistory) {
@@ -165,6 +168,8 @@ func (t *Transformer) apply(
 		// Forward events from the events channel to the eventBus
 		go func() {
 			receivedTransformStopEvt := false
+			inTransformStep := false
+			transformStepPayload := event.TransformStepLifecycle{}
 			for {
 				select {
 				case e := <-eventsCh:
@@ -172,9 +177,51 @@ func (t *Transformer) apply(
 					if e.Type == event.ETTransformStop {
 						receivedTransformStopEvt = true
 					}
+					if e.Type == event.ETTransformStepStart {
+						inTransformStep = true
+						ok := false
+						transformStepPayload, ok = e.Payload.(event.TransformStepLifecycle)
+						if !ok {
+							log.Debug("transform.apply: event.ETTransformStepStart does not have the expected `event.TransformStepLifecycle` payload")
+						}
+					}
+					if e.Type == event.ETTransformStop {
+						inTransformStep = false
+						transformStepPayload = event.TransformStepLifecycle{}
+					}
 				case <-ctx.Done():
 					if !receivedTransformStopEvt {
 						log.Warnw("context closed before transform stop event was sent", "runID", runID)
+
+						ctx, cancel := context.WithCancel(t.appCtx)
+						defer cancel()
+
+						ctx = profile.AddIDToContext(ctx, ownerID)
+
+						t.pub.PublishID(ctx, event.ETTransformError, runID, event.TransformMessage{
+							Lvl:  event.TransformMsgLvlError,
+							Msg:  "run canceled",
+							Mode: runMode,
+						})
+						if inTransformStep {
+							transformStepPayload.Status = "failed"
+							t.pub.PublishID(ctx, event.ETTransformStepStop, runID, transformStepPayload)
+						}
+						t.pub.PublishID(ctx, event.ETTransformStop, runID, event.TransformLifecycle{
+							InitID: initID,
+							RunID:  runID,
+							Mode:   runMode,
+							Status: "failed",
+						})
+						err := t.pub.PublishID(ctx, event.ETTransformCanceled, runID, event.TransformLifecycle{
+							InitID: initID,
+							RunID:  runID,
+							Mode:   runMode,
+							Status: "failed",
+						})
+						if err != nil {
+							log.Debugw("error publishing ETTransformCanceled", "err", err)
+						}
 					}
 					return
 				}
