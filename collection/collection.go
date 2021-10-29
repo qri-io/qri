@@ -72,6 +72,7 @@ func (sm *SetMaintainer) subscribe(bus event.Bus) {
 
 		// transform events
 		event.ETTransformStart,
+		event.ETTransformCanceled,
 
 		// log events
 		event.ETLogbookWriteCommit,
@@ -239,6 +240,15 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 			})
 			if err != nil {
 				log.Debugw("update dataset across all collections", "InitID", vi.InitID, "err", err)
+			}
+		}
+	case event.ETTransformCanceled:
+		if te, ok := e.Payload.(event.TransformLifecycle); ok {
+			err := sm.UpdateEverywhere(ctx, te.InitID, func(v *dsref.VersionInfo) {
+				v.RunStatus = "failed"
+			})
+			if err != nil {
+				log.Debugw("update dataset across all collections", "InitID", te.InitID, "err", err)
 			}
 		}
 	}

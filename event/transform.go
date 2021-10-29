@@ -27,6 +27,11 @@ const (
 	// ETTransformDatasetPreview is an abbreviated dataset document in a transform
 	// Payload will be a *dataset.Dataset Preview
 	ETTransformDatasetPreview = Type("tf:DatasetPreview")
+
+	// ETTransformCanceled is for when a transform is canceled before
+	// it can complete its run
+	// Payload will be a TransformLifecycle
+	ETTransformCanceled = Type("tf:Canceled")
 )
 
 // TransformLifecycle captures state about the execution of an entire transform

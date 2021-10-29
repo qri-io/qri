@@ -213,6 +213,15 @@ func (t *Transformer) apply(
 							Mode:   runMode,
 							Status: "failed",
 						})
+						err := t.pub.PublishID(ctx, event.ETTransformCanceled, runID, event.TransformLifecycle{
+							InitID: initID,
+							RunID:  runID,
+							Mode:   runMode,
+							Status: "failed",
+						})
+						if err != nil {
+							log.Debugw("error publishing ETTransformCanceled", "err", err)
+						}
 					}
 					return
 				}
