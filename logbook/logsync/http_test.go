@@ -40,10 +40,10 @@ func TestSyncHTTP(t *testing.T) {
 	}
 
 	var expect, got []dsref.VersionInfo
-	if expect, err = tr.A.Items(tr.Ctx, ref, 0, 100); err != nil {
+	if expect, err = tr.A.Items(tr.Ctx, ref, 0, 100, ""); err != nil {
 		t.Error(err)
 	}
-	if got, err = tr.B.Items(tr.Ctx, ref, 0, 100); err != nil {
+	if got, err = tr.B.Items(tr.Ctx, ref, 0, 100, ""); err != nil {
 		t.Error(err)
 	}
 
@@ -65,10 +65,10 @@ func TestSyncHTTP(t *testing.T) {
 		t.Error(err)
 	}
 
-	if expect, err = tr.B.Items(tr.Ctx, worldBankRef, 0, 100); err != nil {
+	if expect, err = tr.B.Items(tr.Ctx, worldBankRef, 0, 100, ""); err != nil {
 		t.Error(err)
 	}
-	if got, err = tr.A.Items(tr.Ctx, worldBankRef, 0, 100); err != nil {
+	if got, err = tr.A.Items(tr.Ctx, worldBankRef, 0, 100, ""); err != nil {
 		t.Error(err)
 	}
 	if diff := cmp.Diff(expect, got); diff != "" {
@@ -83,7 +83,7 @@ func TestSyncHTTP(t *testing.T) {
 		t.Errorf("delete err: %s", err)
 	}
 
-	if got, err = tr.A.Items(tr.Ctx, worldBankRef, 0, 100); err == nil {
+	if got, err = tr.A.Items(tr.Ctx, worldBankRef, 0, 100, ""); err == nil {
 		t.Logf("%v\n", got)
 		t.Error("expected an err fetching removed reference")
 	}

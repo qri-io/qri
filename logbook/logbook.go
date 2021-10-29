@@ -724,7 +724,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, author *profile.Profil
 	})
 
 	// Calculate the commits after collapsing deletions found at the tail of history (most recent).
-	items := branchToVersionInfos(branchLog, dsref.Ref{}, 0, -1, false)
+	items := branchToVersionInfos(branchLog, dsref.Ref{}, false)
 
 	if len(items) > 0 {
 		lastItem := items[len(items)-1]
@@ -1222,7 +1222,7 @@ func addCommitDetailsToRunItem(li dsref.VersionInfo, op oplog.Op) dsref.VersionI
 }
 
 // Items collapses the history of a dataset branch into linear log items
-func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int) ([]dsref.VersionInfo, error) {
+func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int, term string) ([]dsref.VersionInfo, error) {
 	initID, err := book.RefToInitID(dsref.Ref{Username: ref.Username, Name: ref.Name})
 	if err != nil {
 		return nil, err
@@ -1232,18 +1232,61 @@ func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int) ([
 		return nil, err
 	}
 
-	return branchToVersionInfos(branchLog, ref, offset, limit, true), nil
+	return filteredBranchToVersionInfos(branchLog, ref, offset, limit, term, true), nil
 }
 
 // ConvertLogsToVersionInfos collapses the history of a dataset branch into linear log items
 func ConvertLogsToVersionInfos(l *oplog.Log, ref dsref.Ref) []dsref.VersionInfo {
-	return branchToVersionInfos(newBranchLog(l), ref, 0, -1, true)
+	return branchToVersionInfos(newBranchLog(l), ref, true)
 }
 
-// Items collapses the history of a dataset branch into linear log items
+// filteredBranchToVersionInfos filters and paginates a branchLog as a list of
+// VersionInfos. If collapseAllDeletes is true, all delete operations will remove
+// the refs before them. Otherwise, only refs at the end of history will be removed
+// in this manner.
+// TODO (ramfox): this is not the "optimal" way of doing filtering on the log, since
+// this version requires iterating over the full list after it has already been
+// generated. Can refactor for better performance (examining the log Model as we
+// iterate) in the future
+func filteredBranchToVersionInfos(blog *BranchLog, ref dsref.Ref, offset, limit int, term string, collapseAllDeletes bool) []dsref.VersionInfo {
+	refs := branchToVersionInfos(blog, ref, collapseAllDeletes)
+	filteredRefs := []dsref.VersionInfo{}
+
+	// TODO (ramfox): when we learn what other potential things a user could want
+	// to filter for, let's create a type & solidify the language
+	switch term {
+	case "history":
+		for _, ref := range refs {
+			if ref.Path != "" {
+				filteredRefs = append(filteredRefs, ref)
+			}
+			refs = filteredRefs
+		}
+	case "run":
+		for _, ref := range refs {
+			if ref.RunID != "" {
+				filteredRefs = append(filteredRefs, ref)
+			}
+			refs = filteredRefs
+		}
+	}
+
+	if offset > len(refs) {
+		offset = len(refs)
+	}
+	refs = refs[offset:]
+
+	if limit < len(refs) && limit >= 0 {
+		refs = refs[:limit]
+	}
+
+	return refs
+}
+
+// branchToVersionInfos collapses the history of a dataset branch into linear log items
 // If collapseAllDeletes is true, all delete operations will remove the refs before them. Otherwise,
 // only refs at the end of history will be removed in this manner.
-func branchToVersionInfos(blog *BranchLog, ref dsref.Ref, offset, limit int, collapseAllDeletes bool) []dsref.VersionInfo {
+func branchToVersionInfos(blog *BranchLog, ref dsref.Ref, collapseAllDeletes bool) []dsref.VersionInfo {
 	refs := []dsref.VersionInfo{}
 	deleteAtEnd := 0
 	for _, op := range blog.Ops() {
@@ -1303,16 +1346,6 @@ func branchToVersionInfos(blog *BranchLog, ref dsref.Ref, offset, limit int, col
 		opp := len(refs) - 1 - i
 		refs[i], refs[opp] = refs[opp], refs[i]
 	}
-
-	if offset > len(refs) {
-		offset = len(refs)
-	}
-	refs = refs[offset:]
-
-	if limit < len(refs) && limit != -1 {
-		refs = refs[:limit]
-	}
-
 	return refs
 }
 

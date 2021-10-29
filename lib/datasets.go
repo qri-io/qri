@@ -255,6 +255,20 @@ type ActivityParams struct {
 	Pull bool `json:"pull"`
 }
 
+// Validate gives a dataset of errors and issues for a given dataset
+func (p *ActivityParams) Validate() error {
+	if p.Ref == "" {
+		return fmt.Errorf("activity: ref required")
+	}
+	// TODO (ramfox): when we learn other possible filter "terms" & this
+	// feature has settled a bit, let's solidify these as their own types
+	// that we import from logbook
+	if p.Term != "" && !(p.Term == "history" || p.Term == "run") {
+		return fmt.Errorf("activity: 'term' must be 'history' or 'run'")
+	}
+	return nil
+}
+
 // Activity returns the activity and changes for a given dataset
 func (m DatasetMethods) Activity(ctx context.Context, params *ActivityParams) ([]dsref.VersionInfo, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "activity"), params)
@@ -828,7 +842,7 @@ func (datasetImpl) Activity(scope scope, params *ActivityParams) ([]dsref.Versio
 
 	if location == "" {
 		// local resolution
-		return base.DatasetLog(scope.Context(), scope.Repo(), ref, params.Limit, params.Offset, true)
+		return base.DatasetLog(scope.Context(), scope.Repo(), ref, params.Limit, params.Offset, params.Term, true)
 	}
 
 	logs, err := scope.RemoteClient().FetchLogs(scope.Context(), ref, location)
@@ -1173,7 +1187,7 @@ func (datasetImpl) Remove(scope scope, p *RemoveParams) (*RemoveResponse, error)
 	res.Ref = ref.String()
 
 	// Get the revisions that will be deleted.
-	history, err := base.DatasetLog(scope.Context(), scope.Repo(), ref, p.Revision.Gen+1, 0, false)
+	history, err := base.DatasetLog(scope.Context(), scope.Repo(), ref, p.Revision.Gen+1, 0, "", false)
 	if err == nil && p.Revision.Gen >= len(history) {
 		// If the number of revisions to delete is greater than or equal to the amount in history,
 		// treat this operation as deleting everything.

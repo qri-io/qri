@@ -152,7 +152,7 @@ func (lsync *Logsync) DoRemove(ctx context.Context, ref dsref.Ref, remoteAddr st
 		return err
 	}
 
-	versions, err := lsync.book.Items(ctx, ref, 0, -1)
+	versions, err := lsync.book.Items(ctx, ref, 0, -1, "")
 	if err != nil {
 		return err
 	}
