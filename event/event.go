@@ -153,11 +153,11 @@ func (b *bus) PublishID(ctx context.Context, typ Type, sessionID string, payload
 func (b *bus) publish(ctx context.Context, typ Type, sessionID string, payload interface{}) error {
 	log.Debugw("publish", "type", typ, "payload", payload)
 	log.Debugf("event bus locking")
-	b.lk.RLock()
+	b.lk.Lock()
 	log.Debugf("event bus locked")
 	defer func() {
 		log.Debugf("event bus unlocked")
-		b.lk.RUnlock()
+		b.lk.Unlock()
 	}()
 
 	if b.closed {
