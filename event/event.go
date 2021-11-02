@@ -151,15 +151,22 @@ func (b *bus) PublishID(ctx context.Context, typ Type, sessionID string, payload
 }
 
 func (b *bus) publish(ctx context.Context, typ Type, sessionID string, payload interface{}) error {
-	b.lk.RLock()
-	defer b.lk.RUnlock()
 	log.Debugw("publish", "type", typ, "payload", payload)
+	log.Debugf("event bus locking")
+	b.lk.RLock()
+	log.Debugf("event bus locked")
+	defer func() {
+		log.Debugf("event bus unlocked")
+		b.lk.RUnlock()
+	}()
 
 	if b.closed {
+		log.Debugf("event bus closed")
 		return ErrBusClosed
 	}
 
 	profileid := profile.IDFromCtx(ctx)
+	log.Debugf("event bus got profile")
 
 	e := Event{
 		Type:      typ,
@@ -172,22 +179,28 @@ func (b *bus) publish(ctx context.Context, typ Type, sessionID string, payload i
 	// TODO(dustmop): Add instrumentation, perhaps to ctx, to make logging / tracing
 	// a single event easier to do.
 
+	log.Debugf("event bus typ subs")
 	for _, handler := range b.subs[typ] {
 		if err := handler(ctx, e); err != nil {
+			log.Debugf("event bus typ subs err: %q", err)
 			return err
 		}
 	}
 
 	if sessionID != "" {
+		log.Debugf("event bus session subs")
 		for _, handler := range b.idSubs[sessionID] {
 			if err := handler(ctx, e); err != nil {
+				log.Debugf("event bus session subs err: %q", err)
 				return err
 			}
 		}
 	}
 
+	log.Debugf("event bus all subs")
 	for _, handler := range b.allSubs {
 		if err := handler(ctx, e); err != nil {
+			log.Debugf("event bus all subs err: %q", err)
 			return err
 		}
 	}
