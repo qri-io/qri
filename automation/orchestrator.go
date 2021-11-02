@@ -550,20 +550,30 @@ func (o *Orchestrator) RemoveWorkflow(ctx context.Context, id workflow.ID) error
 // runEventsHandler returns a handler that writes run events to a run store
 func runEventsHandler(store run.Store) event.Handler {
 	return func(ctx context.Context, e event.Event) error {
-		if adder, ok := store.(run.EventAdder); ok {
-			return adder.AddEvent(e.SessionID, e)
-		}
+		go func() {
+			if adder, ok := store.(run.EventAdder); ok {
+				if err := adder.AddEvent(e.SessionID, e); err != nil {
+					log.Debugf("runEventsHandler - adding event to run store: %w", err)
+					return
+				}
+			}
 
-		r, err := store.Get(ctx, e.SessionID)
-		if err != nil {
-			return err
-		}
-		if err := r.AddTransformEvent(e); err != nil {
-			return err
-		}
+			r, err := store.Get(ctx, e.SessionID)
+			if err != nil {
+				log.Debugf("runEventsHandler - fetching from run store: %w", err)
+				return
+			}
+			if err := r.AddTransformEvent(e); err != nil {
+				log.Debugf("runEventsHandler - adding transform event to run: %w", err)
+				return
+			}
 
-		_, err = store.Put(ctx, r)
-		return err
+			if _, err = store.Put(ctx, r); err != nil {
+				log.Debugf("rrunEventsHandler - putting run into store: %w", err)
+				return
+			}
+		}()
+		return nil
 	}
 }
 
