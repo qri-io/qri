@@ -357,6 +357,15 @@ func OptDscache(dscache *dscache.Dscache) Option {
 // function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
 	log.Debugw("NewInstance", "repoPath", repoPath, "opts", opts)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Debug("Instance context canceled")
+			}
+		}
+	}()
+
 	ctx, cancel := context.WithCancel(ctx)
 	ok := false
 	defer func() {
