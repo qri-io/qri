@@ -118,7 +118,8 @@ func (h *connections) messageHandler(_ context.Context, e event.Event) error {
 	}
 	connIDs, err := h.getConnIDs(profileIDString)
 	if err != nil {
-		return fmt.Errorf("profile %q: %w", profileIDString, err)
+		log.Errorf("profile %q: %w", profileIDString, err)
+		return nil
 	}
 
 	for connID := range connIDs {
@@ -126,10 +127,12 @@ func (h *connections) messageHandler(_ context.Context, e event.Event) error {
 		if err != nil {
 			h.unsubscribeConn(profileIDString, connID)
 			log.Errorf("connection %q, profile %q: %w", connID, profileIDString, err)
+			return nil
 		}
 		log.Debugf("sending event %q to websocket conns %q", e.Type, profileIDString)
 		if err := wsjson.Write(ctx, c.conn, evt); err != nil {
 			log.Errorf("connection %q: wsjson write error: %s", profileIDString, err)
+			return nil
 		}
 	}
 	return nil
