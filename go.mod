@@ -31,7 +31,7 @@ require (
 	github.com/libp2p/go-libp2p-swarm v0.5.0
 	github.com/libp2p/go-msgio v0.0.6
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
-	github.com/microcosm-cc/bluemonday v1.0.5
+	github.com/microcosm-cc/bluemonday v1.0.16
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.3.3
@@ -55,7 +55,7 @@ require (
 	github.com/vbauerster/mpb/v5 v5.3.0
 	go.starlark.net v0.0.0-20210602144842-1cdb82c9e17a
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf
-	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
+	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 	golang.org/x/sys v0.0.0-20210511113859-b0526f3d8744
 	golang.org/x/text v0.3.6
 	gopkg.in/yaml.v2 v2.4.0
