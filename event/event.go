@@ -151,9 +151,9 @@ func (b *bus) PublishID(ctx context.Context, typ Type, sessionID string, payload
 }
 
 func (b *bus) publish(ctx context.Context, typ Type, sessionID string, payload interface{}) error {
-	b.lk.RLock()
-	defer b.lk.RUnlock()
 	log.Debugw("publish", "type", typ, "payload", payload)
+	b.lk.Lock()
+	defer b.lk.Unlock()
 
 	if b.closed {
 		return ErrBusClosed
