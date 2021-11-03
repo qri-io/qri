@@ -349,7 +349,18 @@ func (o *Orchestrator) listenForCancelationAndUnlock(ctx context.Context, cancel
 }
 
 func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, runID string) error {
+	go func() {
+		if err := o.bus.Publish(ctx, event.ETAutomationRunQueuePush, &runID); err != nil {
+			log.Debug(err)
+		}
+	}()
 	o.lock()
+	go func() {
+		if err := o.bus.Publish(ctx, event.ETAutomationRunQueuePop, &runID); err != nil {
+			log.Debug(err)
+		}
+	}()
+
 	wid := wf.ID
 	log.Debugw("runWorkflow, workflow", "id", wid)
 
@@ -422,7 +433,17 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 }
 
 func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string, runID string) error {
+	go func() {
+		if err := o.bus.Publish(ctx, event.ETAutomationApplyQueuePush, &runID); err != nil {
+			log.Debug(err)
+		}
+	}()
 	o.lock()
+	go func() {
+		if err := o.bus.Publish(ctx, event.ETAutomationApplyQueuePop, &runID); err != nil {
+			log.Debug(err)
+		}
+	}()
 
 	apply := o.applyFactory(ctx)
 	log.Debugw("ApplyWorkflow", "workflow id", wf.ID, "run id", runID)
