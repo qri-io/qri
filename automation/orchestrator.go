@@ -330,20 +330,19 @@ func (o *Orchestrator) lock() {
 
 func (o *Orchestrator) unlock() {
 	o.runLock.Unlock()
-	log.Debug("orchestrator run mutext lock unlocked")
+	log.Debug("orchestrator run mutex lock unlocked")
 }
 
-func (o *Orchestrator) listenForCancelation(ctx context.Context, cancel context.CancelFunc, runID string) {
+func (o *Orchestrator) listenForCancelationAndUnlock(ctx context.Context, cancel context.CancelFunc, runID string) {
 	log.Debugw("listenForCancelation", "runID", runID)
 	for {
 		select {
 		case cancelRunID := <-o.cancelRunCh:
 			if runID == cancelRunID {
 				cancel()
-				o.unlock()
-				return
 			}
 		case <-ctx.Done():
+			o.unlock()
 			return
 		}
 	}
@@ -351,14 +350,13 @@ func (o *Orchestrator) listenForCancelation(ctx context.Context, cancel context.
 
 func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, runID string) error {
 	o.lock()
-	defer o.unlock()
 	wid := wf.ID
 	log.Debugw("runWorkflow, workflow", "id", wid)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	go o.listenForCancelation(ctx, cancel, runID)
+	go o.listenForCancelationAndUnlock(ctx, cancel, runID)
 
 	go func(wf *workflow.Workflow) {
 		if err := o.bus.PublishID(ctx, event.ETAutomationWorkflowStarted, wf.ID.String(), event.WorkflowStartedEvent{
@@ -425,14 +423,13 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 
 func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string, runID string) error {
 	o.lock()
-	defer o.unlock()
 
 	apply := o.applyFactory(ctx)
 	log.Debugw("ApplyWorkflow", "workflow id", wf.ID, "run id", runID)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	go o.listenForCancelation(ctx, cancel, runID)
+	go o.listenForCancelationAndUnlock(ctx, cancel, runID)
 
 	if scriptOutput != nil {
 		o.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
