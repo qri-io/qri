@@ -196,7 +196,7 @@ func NewStepRunner(target *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunn
 }
 
 // RunStep runs the single transform step using the dataset
-func (r *StepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *dataset.TransformStep) error {
+func (r *StepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *dataset.TransformStep) (err error) {
 	r.globals["load_dataset"] = starlark.NewBuiltin("load_dataset", r.loadDatasetFunc(ctx, ds))
 	r.globals["dataset"] = r.stards
 	r.globals["config"] = config(r.config)
@@ -206,6 +206,15 @@ func (r *StepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *datas
 	if !ok {
 		return fmt.Errorf("starlark step Script must be a string. got %T", st.Script)
 	}
+
+	// Recover from errors.
+	defer func() {
+		if r := recover(); r != nil {
+			// Need to assign to the named return value from
+			// a recovery
+			err = fmt.Errorf("running transform: %w", r)
+		}
+	}()
 
 	// Parse, resolve, and compile a Starlark source file.
 	file, mod, err := starlark.SourceProgram(fmt.Sprintf("%s.star", st.Name), strings.NewReader(script), r.globals.Has)
@@ -226,7 +235,7 @@ func (r *StepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *datas
 		r.globals[key] = val
 	}
 
-	return nil
+	return
 }
 
 // TODO(b5): this needs to be finished
