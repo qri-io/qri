@@ -271,23 +271,6 @@ func TestIntegration(t *testing.T) {
 	done = shouldTimeout(t, workflowStoppedEventFired, "o.Stop error: orchestrator that has stopped listening should not respond to triggers")
 	runtimeListener.TriggerCh <- wtp
 	<-done
-
-	// test we can receive off of the `cancelRunCh`
-	doneCh := make(chan struct{})
-	runID = "test-cancel-id"
-	go func() {
-		select {
-		case gotID := <-o.cancelRunCh:
-			if gotID != runID {
-				log.Error("o.CancelRun error: run id mismatch, expected %q, got %q", runID, gotID)
-			}
-		case <-time.After(200 * time.Millisecond):
-			log.Error("o.CancelRun error: never received run ID over `Orchestrator.cancelRunCh`")
-		}
-		doneCh <- struct{}{}
-	}()
-	o.CancelRun(ctx, runID)
-	<-doneCh
 }
 
 func errOnTimeout(t *testing.T, c chan string, errMsg string) <-chan struct{} {
