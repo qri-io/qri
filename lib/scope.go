@@ -30,10 +30,11 @@ type scope struct {
 	ctx    context.Context
 	inst   *Instance
 	pro    *profile.Profile
+	method string
 	source string
 }
 
-func newScope(ctx context.Context, inst *Instance, source string) (scope, error) {
+func newScope(ctx context.Context, inst *Instance, method, source string) (scope, error) {
 	pro, err := inst.activeProfile(ctx)
 	if err != nil {
 		return scope{}, err
@@ -44,6 +45,7 @@ func newScope(ctx context.Context, inst *Instance, source string) (scope, error)
 	return scope{
 		ctx:    ctx,
 		inst:   inst,
+		method: method,
 		pro:    pro,
 		source: source,
 	}, nil
@@ -162,6 +164,14 @@ func (s *scope) Loader() dsref.Loader {
 // Logbook returns the repo logbook
 func (s *scope) Logbook() *logbook.Book {
 	return s.inst.logbook
+}
+
+// MakeCursor returns a cursor that is able to retrieve the next page of results
+func (s *scope) MakeCursor(numReturned int, nextPage interface{}) Cursor {
+	if numReturned < 1 {
+		return nil
+	}
+	return cursor{s.inst, s.method, nextPage}
 }
 
 // Node returns the p2p.QriNode

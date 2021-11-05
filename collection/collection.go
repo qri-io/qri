@@ -364,7 +364,7 @@ func (s *localSet) List(ctx context.Context, pid profile.ID, lp params.List) ([]
 	}
 
 	if lp.Limit < 0 {
-		lp.Limit = len(col)
+		return nil, fmt.Errorf("invalid limit: %d", lp.Limit)
 	}
 
 	results := make([]dsref.VersionInfo, 0, lp.Limit)

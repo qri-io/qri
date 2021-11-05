@@ -9,6 +9,7 @@ import (
 type Response struct {
 	Data       interface{} `json:"data,omitempty"`
 	Meta       *Meta       `json:"meta,omitempty"`
+	NextPage   string      `json:"nextpage,omitempty"`
 	Pagination *Page       `json:"pagination,omitempty"`
 }
 
@@ -25,6 +26,17 @@ func WriteResponse(w http.ResponseWriter, data interface{}) error {
 		Meta: &Meta{
 			Code: http.StatusOK,
 		},
+		Data: data,
+	}
+	return jsonResponse(w, env)
+}
+
+func WriteResponseWithNextPage(w http.ResponseWriter, data interface{}, nextPage string) error {
+	env := Response{
+		Meta: &Meta{
+			Code: http.StatusOK,
+		},
+		NextPage: nextPage,
 		Data: data,
 	}
 	return jsonResponse(w, env)

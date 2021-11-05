@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	//"github.com/google/go-querystring/query"
 	"github.com/qri-io/qri/auth/token"
 	"github.com/qri-io/qri/event"
 	qhttp "github.com/qri-io/qri/lib/http"
@@ -20,6 +21,8 @@ var (
 	ErrDispatchNilInstance = errors.New("instance is nil, cannot dispatch")
 	// ErrDispatchNilParam indicates that the param passed to dispatch is nil
 	ErrDispatchNilParam = errors.New("param is nil, cannot dispatch")
+	// ErrCursorComplete is returned by Cursor.Next when the cursor is completed
+	ErrCursorComplete = errors.New("cursor is complete")
 )
 
 // dispatcher isolates the dispatch method
@@ -28,7 +31,57 @@ type dispatcher interface {
 }
 
 // Cursor is used to paginate results for methods that support it
-type Cursor interface{}
+type Cursor interface{
+	Next(ctx context.Context) (interface{}, error)
+	ToQueryParams() string
+}
+
+type cursor struct {
+	d        dispatcher
+	method   string
+	nextPage interface{}
+}
+
+// Next will fetch the next page of results, or return ErrCursorComplete if no
+// results are left
+func (c cursor) Next(ctx context.Context) (interface{}, error) {
+	res, cur, err := c.d.Dispatch(ctx, c.method, c.nextPage)
+	if err != nil {
+		return nil, err
+	}
+	if cur == nil {
+		return nil, ErrCursorComplete
+	}
+	return res, nil
+}
+
+func (c cursor) ToQueryParams() string {
+	result := make([]string, 0)
+	target := reflect.ValueOf(c.nextPage)
+	if target.Kind() == reflect.Ptr {
+		target = target.Elem()
+	}
+	for i := 0; i < target.NumField(); i++ {
+		// Lowercase the key in order to make matching case-insensitive.
+		fieldName := target.Type().Field(i).Name
+		lowerName := strings.ToLower(fieldName)
+		fieldTag := target.Type().Field(i).Tag
+		if fieldTag != "" && fieldTag.Get("json") != "" {
+			jsonName := fieldTag.Get("json")
+			pos := strings.Index(jsonName, ",")
+			if pos != -1 {
+				jsonName = jsonName[:pos]
+			}
+			lowerName = strings.ToLower(jsonName)
+		}
+		v := target.Field(i)
+		if v.IsZero() {
+			continue
+		}
+		result = append(result, fmt.Sprintf("%s=%v", lowerName, v))
+	}
+	return "?" + strings.Join(result, "&")
+}
 
 // MethodSet represents a set of methods to be registered
 // Each registered method should have 2 input parameters and 1-3 output values
@@ -163,7 +216,7 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 		// or use copy-on-write semantics, so that one method running at the same time as
 		// another cannot modify the out-of-scope data of the other. This will mostly
 		// involve making copies of the right things
-		scope, err := newScope(ctx, inst, source)
+		scope, err := newScope(ctx, inst, method, source)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -201,7 +254,10 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 			out = outVals[0].Interface()
 		}
 		if len(outVals) == 3 {
-			cur = outVals[1].Interface()
+			curVal := outVals[1].Interface()
+			if c, ok := curVal.(Cursor); ok {
+				cur = c
+			}
 		}
 		// Error always comes last
 		errVal := outVals[len(outVals)-1].Interface()
@@ -353,7 +409,7 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 		if numOuts == 3 {
 			// Second output must be a cursor
 			outCursorType := f.Out(1)
-			if outCursorType.Name() != "Cursor" {
+			if !strings.HasSuffix(outCursorType.Name(), "Cursor") {
 				regFail("%s: second output val must be a cursor, got %v", funcName, outCursorType)
 			}
 			returnsCursor = true
