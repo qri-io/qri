@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/qri-io/qri/dsref"
@@ -152,14 +153,15 @@ const (
 )
 
 // DsRefFromPath parses a path and returns a dsref.Ref
-func DsRefFromPath(path string) (dsref.Ref, error) {
-	refstr := PathToQriPath(path)
+func DsRefFromPath(prefix, path string) (dsref.Ref, error) {
+	refstr := PathToQriPath(prefix, path)
 	return dsref.ParsePeerRef(refstr)
 }
 
 // PathToQriPath converts a http path to a
 // qri path
-func PathToQriPath(path string) string {
+func PathToQriPath(prefix, path string) string {
+	path = strings.TrimPrefix(path, prefix)
 	paramIndex := strings.Index(path, "?")
 	if paramIndex != -1 {
 		path = path[:paramIndex]
@@ -168,4 +170,13 @@ func PathToQriPath(path string) string {
 	path = strings.Replace(path, "/at/", "@/", 1)
 	path = strings.TrimPrefix(path, "/")
 	return path
+}
+
+// DatasetRefFromReq examines the path element of a request URL
+// to
+func DatasetRefFromReq(prefix string, r *http.Request) (dsref.Ref, error) {
+	if r.URL.String() == "" || r.URL.Path == "" {
+		return dsref.Ref{}, nil
+	}
+	return DsRefFromPath(prefix, r.URL.Path)
 }
