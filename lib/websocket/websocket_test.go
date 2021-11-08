@@ -95,6 +95,73 @@ func TestWebsocket(t *testing.T) {
 	}
 }
 
+func TestWebsocketUnsubscribe(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// create key store & add test key
+	kd := testkeys.GetKeyData(0)
+	ks, err := key.NewMemStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ks.AddPubKey(context.Background(), kd.KeyID, kd.PrivKey.GetPublic()); err != nil {
+		t.Fatal(err)
+	}
+
+	// create bus
+	bus := event.NewBus(ctx)
+
+	subsCount := bus.NumSubscribers()
+
+	// create Handler
+	websocketHandler, err := NewHandler(ctx, bus, ks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wsh := websocketHandler.(*connections)
+
+	// websockets should subscribe the message handler
+	if bus.NumSubscribers() != subsCount+1 {
+		t.Fatalf("failed to subscribe websocket handlers")
+	}
+
+	// add connection
+	randIDStr := "test_connection_id_str"
+	setIDRand(strings.NewReader(randIDStr))
+	connID := newID()
+	setIDRand(strings.NewReader(randIDStr))
+
+	wsh.ConnectionHandler(mockWriterAndRequest())
+	if _, err := wsh.getConn(connID); err != nil {
+		t.Fatal("ConnectionHandler did not create a connection")
+	}
+
+	// create a token from a private key with no profileID
+	kd = testkeys.GetKeyData(0)
+	tokenStr, err := token.NewPrivKeyAuthToken(kd.PrivKey, "", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proID := kd.KeyID.String()
+
+	err = wsh.subscribeConn(connID, tokenStr)
+	if err == nil {
+		t.Fatal("connections.subscribeConn subscribed connection with no profileID to subscriptions map")
+	}
+	_, err = wsh.getConn(connID)
+	if err == nil {
+		t.Fatal("connections.subscribeConn got connection which shouldn't exist")
+	}
+	gotConnIDs, err := wsh.getConnIDs(proID)
+	if err == nil {
+		t.Fatal("connections.subscribeConn contains profileID in subscriptions map")
+	}
+	if _, ok := gotConnIDs[connID]; ok {
+		t.Fatalf("connections.subscribeConn added incorrect connID to subscriptions map, expected %q, got %q", connID, gotConnIDs)
+	}
+}
+
 func mockWriterAndRequest() (http.ResponseWriter, *http.Request) {
 	w := mockHijacker{
 		ResponseWriter: httptest.NewRecorder(),
