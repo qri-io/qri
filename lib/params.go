@@ -30,18 +30,18 @@ type ListParams struct {
 	// TODO(b5): what is this being used for?
 	ProfileID profile.ID `json:"-" docs:"hidden"`
 	// term to filter list by; e.g. "population"
-	Term string `json:"term"`
+	Term string `json:"term,omitempty"`
 	// username to filter collection by; e.g. "ramfox"
-	Username string `json:"username"`
+	Username string `json:"username,omitempty"`
 	// field name to order list by; e.g. "created"
-	OrderBy string `json:"orderBy"`
+	OrderBy string `json:"orderBy,omitempty"`
 	// maximum number of datasets to use. use -1 to list all datasets; e.g. 50
 	Limit int `json:"limit"`
 	// number of items to skip; e.g. 0
 	Offset int `json:"offset"`
 	// Public only applies to listing datasets, shows only datasets that are
 	// set to visible
-	Public bool `json:"public"`
+	Public bool `json:"public,omitempty"`
 }
 
 // SetNonZeroDefaults sets OrderBy to "created" if it's value is the empty string

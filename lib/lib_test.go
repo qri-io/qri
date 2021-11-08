@@ -353,7 +353,7 @@ func TestNewInstanceWithCollectionOption(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := inst.Collection().List(ctx, &ListParams{Limit: -1})
+	got, _, err := inst.Collection().List(ctx, &ListParams{Limit: -1})
 	if err != nil {
 		t.Error(err)
 	}

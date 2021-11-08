@@ -81,7 +81,7 @@ func TestDatasetRequestsList(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got, err := inst.Collection().List(ctx, c.p)
+		got, _, err := inst.Collection().List(ctx, c.p)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)
@@ -195,7 +195,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 
 			inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
 			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
-			res, err := inst.Collection().List(ctx, p)
+			res, _, err := inst.Collection().List(ctx, p)
 			if err != nil {
 				t.Errorf("error listing dataset: %s", err.Error())
 			}

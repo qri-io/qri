@@ -27,9 +27,6 @@ type dispatcher interface {
 	Dispatch(ctx context.Context, method string, param interface{}) (interface{}, Cursor, error)
 }
 
-// Cursor is used to paginate results for methods that support it
-type Cursor interface{}
-
 // MethodSet represents a set of methods to be registered
 // Each registered method should have 2 input parameters and 1-3 output values
 //   Input: (context.Context, input struct)
@@ -163,7 +160,7 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 		// or use copy-on-write semantics, so that one method running at the same time as
 		// another cannot modify the out-of-scope data of the other. This will mostly
 		// involve making copies of the right things
-		scope, err := newScope(ctx, inst, source)
+		scope, err := newScope(ctx, inst, method, source)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -201,7 +198,10 @@ func (inst *Instance) dispatchMethodCall(ctx context.Context, method string, par
 			out = outVals[0].Interface()
 		}
 		if len(outVals) == 3 {
-			cur = outVals[1].Interface()
+			curVal := outVals[1].Interface()
+			if c, ok := curVal.(Cursor); ok {
+				cur = c
+			}
 		}
 		// Error always comes last
 		errVal := outVals[len(outVals)-1].Interface()
@@ -353,7 +353,7 @@ func (inst *Instance) registerOne(ourName string, methods MethodSet, impl interf
 		if numOuts == 3 {
 			// Second output must be a cursor
 			outCursorType := f.Out(1)
-			if outCursorType.Name() != "Cursor" {
+			if !strings.HasSuffix(outCursorType.Name(), "Cursor") {
 				regFail("%s: second output val must be a cursor, got %v", funcName, outCursorType)
 			}
 			returnsCursor = true
