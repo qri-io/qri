@@ -146,6 +146,9 @@ func (h *connections) getConn(id string) (*conn, error) {
 	if !ok {
 		return nil, errNotFound
 	}
+	if c == nil {
+		return nil, errNotFound
+	}
 	return c, nil
 }
 
@@ -155,6 +158,10 @@ func (h *connections) getConnIDs(profileID string) (connectionSet, error) {
 	defer h.subsLock.Unlock()
 	ids, ok := h.subscriptions[profileID]
 	if !ok {
+		return nil, errNotFound
+	}
+	if ids == nil {
+		delete(h.subscriptions, profileID)
 		return nil, errNotFound
 	}
 	return ids, nil
@@ -171,6 +178,7 @@ func (h *connections) subscribeConn(connID, tokenString string) error {
 
 	claims, ok := tok.Claims.(*token.Claims)
 	if !ok || claims.Subject == "" {
+		h.removeConn(connID)
 		return fmt.Errorf("cannot get profile.ID from token")
 	}
 	// TODO(b5): at this point we have a valid signature of a profileID string
@@ -204,11 +212,10 @@ func (h *connections) unsubscribeConn(profileID, connID string) {
 	if err != nil {
 		return
 	}
-
 	for cid := range connIDs {
 		if connID == "" || cid == connID {
 			c, err := h.getConn(cid)
-			if err != nil {
+			if err != nil || c == nil {
 				continue
 			}
 			c.profileID = ""
@@ -222,6 +229,9 @@ func (h *connections) unsubscribeConn(profileID, connID string) {
 	} else {
 		if _, ok := h.subscriptions[profileID]; ok {
 			delete(h.subscriptions[profileID], connID)
+		}
+		if len(h.subscriptions[profileID]) == 0 {
+			delete(h.subscriptions, profileID)
 		}
 	}
 }
