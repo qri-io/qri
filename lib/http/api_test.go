@@ -1,4 +1,4 @@
-package api
+package http
 
 import (
 	"bytes"
@@ -37,7 +37,7 @@ func TestDatasetRefFromReq(t *testing.T) {
 		if err != nil {
 			t.Errorf("case %d, error making request: %s", i, err)
 		}
-		got, err := DatasetRefFromReq(r)
+		got, err := DatasetRefFromReq("", r)
 		if (c.err != "" && err == nil) || (err != nil && c.err != err.Error()) {
 			t.Errorf("case %d, error mismatch: expected '%s' but got '%s'", i, c.err, err)
 			continue
