@@ -12,24 +12,15 @@ type callGraph struct {
 	lookup map[string]*funcNode
 }
 
-// funcNode is a single function definition and body, along with
-// additional information derived from static analysis
-type funcNode struct {
-	name   string
-	fn     *funcResult
-	outs   []*funcNode
-	reach  bool
-	height int
-}
-
-func buildCallGraph(functions []*funcResult, entryPoints []string) *callGraph {
-	// Add some built-in functions to the symbol table
-	symtable := map[string]*funcResult{}
+// buildCallGraph iterates the function nodes provided, and adds
+// the list of calls that each makes, forming an acyclic graph
+// of the entire script. This is the basis of whole file analysis,
+// such as dataflow analysis
+func buildCallGraph(functions []*funcNode, entryPoints []string, symtable map[string]*funcNode) *callGraph {
+	// Add top level functions to the symbol table
 	for _, f := range functions {
 		symtable[f.name] = f
 	}
-	symtable["print"] = &funcResult{name: "print"}
-	symtable["range"] = &funcResult{name: "range"}
 
 	// Build the call graph
 	graph := &callGraph{
@@ -37,11 +28,11 @@ func buildCallGraph(functions []*funcResult, entryPoints []string) *callGraph {
 		lookup: make(map[string]*funcNode),
 	}
 	for _, f := range functions {
-		addTocallGraph(f, graph, symtable)
+		addToCallGraph(f, graph, symtable)
 	}
 
 	for _, n := range graph.nodes {
-		n.addCallHeight()
+		n.setCallHeight()
 	}
 
 	// Determine reachability using the given entry points
@@ -57,34 +48,33 @@ func buildCallGraph(functions []*funcResult, entryPoints []string) *callGraph {
 	return graph
 }
 
-func addTocallGraph(f *funcResult, graph *callGraph, symtable map[string]*funcResult) *funcNode {
+func addToCallGraph(f *funcNode, graph *callGraph, symtable map[string]*funcNode) *funcNode {
 	me, ok := graph.lookup[f.name]
 	if ok {
 		return me
 	}
 	me = &funcNode{
-		name: f.name,
-		fn:   f,
-		outs: make([]*funcNode, 0),
+		name:  f.name,
+		calls: make([]*funcNode, 0),
 	}
-	for _, call := range f.calls {
-		child, ok := symtable[call]
+	for _, name := range f.callNames {
+		child, ok := symtable[name]
 		if !ok {
-			// Function not found, ignore it
+			log.Debugw("addToCallGraph func not found", "name", name)
 			continue
 		}
-		n := addTocallGraph(child, graph, symtable)
-		me.outs = append(me.outs, n)
+		n := addToCallGraph(child, graph, symtable)
+		me.calls = append(me.calls, n)
 	}
 	graph.lookup[f.name] = me
 	graph.nodes = append(graph.nodes, me)
 	return me
 }
 
-func (n *funcNode) addCallHeight() {
+func (n *funcNode) setCallHeight() {
 	maxChild := -1
-	for _, call := range n.outs {
-		call.addCallHeight()
+	for _, call := range n.calls {
+		call.setCallHeight()
 		if call.height > maxChild {
 			maxChild = call.height
 		}
@@ -94,7 +84,7 @@ func (n *funcNode) addCallHeight() {
 
 func (n *funcNode) markReachable() {
 	n.reach = true
-	for _, call := range n.outs {
+	for _, call := range n.calls {
 		call.markReachable()
 	}
 }
@@ -124,7 +114,7 @@ func checkfuncNodeUnused(node *funcNode, unusedNames map[string]struct{}) {
 		// TODO(dustmop): Copy the position of the function definition
 		unusedNames[node.name] = struct{}{}
 	}
-	for _, call := range node.outs {
+	for _, call := range node.calls {
 		checkfuncNodeUnused(call, unusedNames)
 	}
 }
@@ -142,7 +132,7 @@ func stringifyNode(n *funcNode, depth int) string {
 	padding := strings.Repeat(" ", depth)
 	seen := map[string]struct{}{}
 	text := fmt.Sprintf("%s%s\n", padding, n.name)
-	for _, call := range n.outs {
+	for _, call := range n.calls {
 		if _, ok := seen[call.name]; ok {
 			continue
 		}

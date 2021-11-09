@@ -40,7 +40,6 @@ def branch_nested(container):
     d = a
     if d > c:
       c = d + 2
-    e = c + 2
   else:
     c = a + 1
     print(c)
@@ -62,3 +61,19 @@ def another_function():
   more = []
   branch_nested(more)
   branch_no_else(more)
+
+
+def branch_elses(container):
+  a = 1
+  b = 2
+  if a < b:
+    c = b + 1
+    if c < 1:
+      print('small')
+    elif c < 5:
+      print('medium')
+    else:
+      print('large')
+  else:
+    print('ok')
+  print('done')

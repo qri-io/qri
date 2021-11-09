@@ -3,14 +3,13 @@ package staticlark
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
 	"go.starlark.net/syntax"
 )
 
 // build a list of functions
-func collectFuncDefsTopLevelCalls(stmts []syntax.Stmt) ([]*funcResult, []string, error) {
-	functions := []*funcResult{}
+func collectFuncDefsTopLevelCalls(stmts []syntax.Stmt) ([]*funcNode, []string, error) {
+	functions := []*funcNode{}
 	topLevel := []string{}
 	for _, stmt := range stmts {
 		switch item := stmt.(type) {
@@ -29,7 +28,7 @@ func collectFuncDefsTopLevelCalls(stmts []syntax.Stmt) ([]*funcResult, []string,
 }
 
 // build a function object, contains calls to other functions
-func analyzeFunction(def *syntax.DefStmt) (*funcResult, error) {
+func analyzeFunction(def *syntax.DefStmt) (*funcNode, error) {
 	params := make([]string, len(def.Params))
 	for k, param := range def.Params {
 		p := parameterName(param)
@@ -41,7 +40,7 @@ func analyzeFunction(def *syntax.DefStmt) (*funcResult, error) {
 		return nil, err
 	}
 	res.name = def.Name.Name
-	res.params = strings.Join(params, ",")
+	res.params = params
 	res.body = def.Body
 
 	return res, nil
@@ -55,23 +54,29 @@ func parameterName(e syntax.Expr) string {
 	return id.Name
 }
 
-// funcResult is a function definition parsed from source code
-type funcResult struct {
+// funcNode is a single function definition and body, along with
+// additional information derived from static analysis
+type funcNode struct {
 	name   string
-	params string
-	calls  []string
+	params []string
 	body   []syntax.Stmt
+	calls  []*funcNode
+	reach  bool
+	height int
+	// the string names of functions that are called, only needed
+	// until call graph is built, and the `calls` field is set
+	callNames []string
 }
 
-// newFuncResult constructs a new funcResult
-func newFuncResult() *funcResult {
-	return &funcResult{calls: []string{}}
+// newFuncNode constructs a new funcNode
+func newFuncNode() *funcNode {
+	return &funcNode{calls: []*funcNode{}}
 }
 
-func buildFromFuncBody(body []syntax.Stmt) (*funcResult, error) {
-	result := newFuncResult()
-	result.calls = getFuncCallsInStmtList(body)
-	return result, nil
+func buildFromFuncBody(body []syntax.Stmt) (*funcNode, error) {
+	node := newFuncNode()
+	node.callNames = getFuncCallsInStmtList(body)
+	return node, nil
 }
 
 func getFuncCallsInStmtList(listStmt []syntax.Stmt) []string {

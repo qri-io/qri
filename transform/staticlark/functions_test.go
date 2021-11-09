@@ -22,7 +22,7 @@ func TestCollectFunctions(t *testing.T) {
 
 	text := ""
 	for i, f := range funcs {
-		text = fmt.Sprintf("%s%d: %s %v\n", text, i, f.name, f.calls)
+		text = fmt.Sprintf("%s%d: %s %v\n", text, i, f.name, f.callNames)
 	}
 
 	expect := `0: use_branch [print]
@@ -31,6 +31,7 @@ func TestCollectFunctions(t *testing.T) {
 3: branch_nested [print print]
 4: top_level_func [use_branch len branch_multiple branch_no_else another_function]
 5: another_function [branch_nested branch_no_else]
+6: branch_elses [print print print print print]
 `
 	if diff := cmp.Diff(expect, text); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
@@ -51,7 +52,7 @@ func TestCollectFunctionsAllSyntax(t *testing.T) {
 
 	text := ""
 	for i, f := range funcs {
-		text = fmt.Sprintf("%s%d: %s %v\n", text, i, f.name, f.calls)
+		text = fmt.Sprintf("%s%d: %s %v\n", text, i, f.name, f.callNames)
 	}
 
 	// TODO(dustmop): fact_iter is the name of 2 different inner functions

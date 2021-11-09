@@ -1,10 +1,14 @@
 package staticlark
 
 import (
+	golog "github.com/ipfs/go-log"
+	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 )
 
-// AnalyzeFile performs static analysis and results diagnostic results
+var log = golog.Logger("staticlark")
+
+// AnalyzeFile performs static analysis and returns diagnostic results
 func AnalyzeFile(filename string) ([]Diagnostic, error) {
 	// Parse the script to abstract syntax
 	f, err := syntax.Parse(filename, nil, 0)
@@ -16,8 +20,10 @@ func AnalyzeFile(filename string) ([]Diagnostic, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Build a graph of all calls, using top level calls
-	callGraph := buildCallGraph(funcs, topLevel)
+	// Constuct pre-defined global symbols
+	globals := newSymtable(starlark.Universe)
+	// Build a graph of all calls, using top level calls and pre-defined globals
+	callGraph := buildCallGraph(funcs, topLevel, globals)
 	// Return any unused functions
 	// TODO(dustmop): As more analysis steps are introduced, refactor this
 	// into a generic interface that creates Diagnostics
@@ -29,4 +35,12 @@ type Diagnostic struct {
 	Pos      syntax.Position
 	Category string
 	Message  string
+}
+
+func newSymtable(symbols starlark.StringDict) map[string]*funcNode {
+	table := make(map[string]*funcNode)
+	for name := range symbols {
+		table[name] = &funcNode{name: name}
+	}
+	return table
 }

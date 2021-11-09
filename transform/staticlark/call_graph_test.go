@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 )
 
@@ -21,7 +22,7 @@ func TestCallGraph(t *testing.T) {
 	}
 
 	// Build a graph of all calls, Detect unused functions
-	callGraph := buildCallGraph(funcs, topLevel)
+	callGraph := buildCallGraph(funcs, topLevel, newSymtable(starlark.Universe))
 
 	actual := callGraph.String()
 	expect := `print
@@ -33,6 +34,7 @@ branch_no_else
  print
 branch_nested
  print
+len
 another_function
  branch_nested
   print
@@ -41,6 +43,7 @@ another_function
 top_level_func
  use_branch
   print
+ len
  branch_multiple
   print
  branch_no_else
@@ -50,6 +53,8 @@ top_level_func
    print
   branch_no_else
    print
+branch_elses
+ print
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
@@ -69,7 +74,7 @@ func TestUnusedFunctions(t *testing.T) {
 	}
 
 	// Build a graph of all calls, Detect unused functions
-	callGraph := buildCallGraph(funcs, topLevel)
+	callGraph := buildCallGraph(funcs, topLevel, newSymtable(starlark.Universe))
 
 	unused := callGraph.findUnusedFuncs()
 	expectUnused := []Diagnostic{
