@@ -16,14 +16,11 @@ type callGraph struct {
 // the list of calls that each makes, forming an acyclic graph
 // of the entire script. This is the basis of whole file analysis,
 // such as dataflow analysis
-func buildCallGraph(functions []*funcNode, entryPoints []string) *callGraph {
-	// Add some built-in functions to the symbol table
-	symtable := map[string]*funcNode{}
+func buildCallGraph(functions []*funcNode, entryPoints []string, symtable map[string]*funcNode) *callGraph {
+	// Add top level functions to the symbol table
 	for _, f := range functions {
 		symtable[f.name] = f
 	}
-	symtable["print"] = &funcNode{name: "print"}
-	symtable["range"] = &funcNode{name: "range"}
 
 	// Build the call graph
 	graph := &callGraph{
@@ -31,7 +28,7 @@ func buildCallGraph(functions []*funcNode, entryPoints []string) *callGraph {
 		lookup: make(map[string]*funcNode),
 	}
 	for _, f := range functions {
-		addTocallGraph(f, graph, symtable)
+		addToCallGraph(f, graph, symtable)
 	}
 
 	for _, n := range graph.nodes {
@@ -51,7 +48,7 @@ func buildCallGraph(functions []*funcNode, entryPoints []string) *callGraph {
 	return graph
 }
 
-func addTocallGraph(f *funcNode, graph *callGraph, symtable map[string]*funcNode) *funcNode {
+func addToCallGraph(f *funcNode, graph *callGraph, symtable map[string]*funcNode) *funcNode {
 	me, ok := graph.lookup[f.name]
 	if ok {
 		return me
@@ -63,10 +60,10 @@ func addTocallGraph(f *funcNode, graph *callGraph, symtable map[string]*funcNode
 	for _, name := range f.callNames {
 		child, ok := symtable[name]
 		if !ok {
-			// Function not found, ignore it
+			log.Debugw("addToCallGraph func not found", "name", name)
 			continue
 		}
-		n := addTocallGraph(child, graph, symtable)
+		n := addToCallGraph(child, graph, symtable)
 		me.calls = append(me.calls, n)
 	}
 	graph.lookup[f.name] = me
