@@ -315,151 +315,129 @@ func TestRunStoreEvents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := &run.State{WorkflowID: wf.ID}
 
 	// We are only interested in ensuring that the runEventsHandler is working
 	// properly. To make sure that the mock time only effects the events we
 	// are checking for, lets make sure to wait for the `ETAutomationWorkflowStarted` event
 	// to pass, before we mock the transform events sequence
-	workflowStarted := make(chan struct{})
-	handleWorkflowStarted := func(ctx context.Context, e event.Event) error {
-		if e.Type == event.ETAutomationWorkflowStarted {
-			workflowStarted <- struct{}{}
+	transformStopped := make(chan struct{})
+	handleEventTiming := func(ctx context.Context, e event.Event) error {
+		if e.Type == event.ETTransformStop {
+			transformStopped <- struct{}{}
 		}
 		return nil
 	}
-	bus.SubscribeTypes(handleWorkflowStarted, event.ETAutomationWorkflowStarted)
+	bus.SubscribeTypes(handleEventTiming, event.ETTransformStop)
+	runID := "TestRunStoreEventsRunID"
+
+	// event 0
+	r0 := &run.State{
+		ID:         runID,
+		WorkflowID: wf.ID,
+		Status:     run.RSRunning,
+	}
+
+	// event 1
+	expectedStartStep := &run.StepState{
+		Name:     "step start",
+		Category: "step start category",
+		Status:   run.RSRunning,
+	}
+	r1 := r0.Copy()
+	r1.Steps = []*run.StepState{expectedStartStep}
+
+	// event 2
+	expectedPrintEvent := event.Event{
+		Type:      event.ETTransformPrint,
+		SessionID: runID,
+		Payload: event.TransformMessage{
+			Msg: "transform print",
+		},
+	}
+	r2 := r1.Copy()
+	r2.Steps = []*run.StepState{expectedStartStep.Copy()}
+	r2.Steps[0].Output = []event.Event{expectedPrintEvent}
+
+	// event 3
+	expectedErrorEvent := event.Event{
+		Type:      event.ETTransformError,
+		SessionID: runID,
+		Payload: event.TransformMessage{
+			Msg: "transform error",
+		},
+	}
+	r3 := r2.Copy()
+	r3.Steps = []*run.StepState{expectedStartStep.Copy()}
+	r3.Steps[0].Output = []event.Event{expectedPrintEvent, expectedErrorEvent}
+
+	// event 4
+	expectedDatasetPreviewEvent := event.Event{
+		Type:      event.ETTransformDatasetPreview,
+		SessionID: runID,
+		Payload:   "transform dataset preview",
+	}
+	r4 := r3.Copy()
+	r4.Steps = []*run.StepState{expectedStartStep.Copy()}
+	r4.Steps[0].Output = []event.Event{expectedPrintEvent, expectedErrorEvent, expectedDatasetPreviewEvent}
+
+	// event 5
+	expectedStartStepDone := expectedStartStep.Copy()
+	expectedStartStepDone.Status = run.RSSucceeded
+	r5 := r4.Copy()
+	r5.Steps = []*run.StepState{expectedStartStepDone}
+	r5.Steps[0].Output = []event.Event{expectedPrintEvent, expectedErrorEvent, expectedDatasetPreviewEvent}
+
+	// event 6
+	expectedSkipStep := &run.StepState{
+		Name:     "step skip",
+		Category: "step skip category",
+		Status:   run.RSSkipped,
+	}
+	r6 := r5.Copy()
+	r6.Steps = []*run.StepState{expectedStartStepDone, expectedSkipStep}
+	r6.Steps[0].Output = []event.Event{expectedPrintEvent, expectedErrorEvent, expectedDatasetPreviewEvent}
+
+	// event 7
+	r7 := r6.Copy()
+	r7.Status = run.RSSucceeded
+
 	// this runFunc simulates events emitted by the transform package
 	runFuncFactory := func(ctx context.Context) Run {
 		return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
-			select {
-			case <-workflowStarted:
-				break
-			case <-time.After(200 * time.Millisecond):
-				t.Fatal("RunWorkflow error: should have received `ETAutomationWorkflowStarted` event")
-			}
-
-			// mock time
-			prevNow := event.NowFunc
-			defer func() { event.NowFunc = prevNow }()
-
-			timestamps := []time.Time{}
-			totalEventsEmitted := 8
-			eventNumber := 0
-			for i := 0; i < totalEventsEmitted; i++ {
-				t := time.Unix(int64(i), 0)
-				timestamps = append(timestamps, t)
-			}
-			event.NowFunc = func() time.Time {
-				if len(timestamps) <= eventNumber {
-					t.Fatal("NowFunc error, more events than timestamps created")
-				}
-				t := timestamps[eventNumber]
-				eventNumber++
-				return t
-			}
-
-			timestampNum := 0
-			nextTimestamp := func() *time.Time {
-				if timestampNum >= len(timestamps) {
-					t.Fatal("timestamp error, out of bounds")
-				}
-				t := timestamps[timestampNum]
-				timestampNum++
-				return &t
-			}
-
-			r.ID = runID
-
 			// event 0
-			bus.PublishID(ctx, event.ETTransformStart, r.ID, nil)
-			ts := nextTimestamp()
-			r.Status = run.RSRunning
-			r.StartTime = ts
-			confirmStoredRun(ctx, t, runStore, r)
+			bus.PublishID(ctx, event.ETTransformStart, runID, nil)
+			confirmStoredRun(ctx, t, runStore, r0)
 
 			// event 1
-			bus.PublishID(ctx, event.ETTransformStepStart, r.ID, event.TransformStepLifecycle{
+			bus.PublishID(ctx, event.ETTransformStepStart, runID, event.TransformStepLifecycle{
 				Name:     "step start",
 				Category: "step start category",
 			})
-			ts = nextTimestamp()
-			expectedStep := &run.StepState{
-				Name:      "step start",
-				Category:  "step start category",
-				Status:    run.RSRunning,
-				StartTime: ts,
-			}
-			r.Steps = append(r.Steps, expectedStep)
-			confirmStoredRun(ctx, t, runStore, r)
+			confirmStoredRun(ctx, t, runStore, r1)
 
 			// event 2
-			bus.PublishID(ctx, event.ETTransformPrint, r.ID, event.TransformMessage{Msg: "transform print"})
-			ts = nextTimestamp()
-			expectedPrintEvent := event.Event{
-				Type:      event.ETTransformPrint,
-				Timestamp: (*ts).UnixNano(),
-				SessionID: r.ID,
-				Payload: event.TransformMessage{
-					Msg: "transform print",
-				},
-			}
-			r.Steps[0].Output = []event.Event{expectedPrintEvent}
-			confirmStoredRun(ctx, t, runStore, r)
+			bus.PublishID(ctx, event.ETTransformPrint, runID, event.TransformMessage{Msg: "transform print"})
+			confirmStoredRun(ctx, t, runStore, r2)
 
 			// event 3
-			bus.PublishID(ctx, event.ETTransformError, r.ID, event.TransformMessage{Msg: "transform error"})
-			ts = nextTimestamp()
-			expectedErrorEvent := event.Event{
-				Type:      event.ETTransformError,
-				Timestamp: (*ts).UnixNano(),
-				SessionID: r.ID,
-				Payload: event.TransformMessage{
-					Msg: "transform error",
-				},
-			}
-			r.Steps[0].Output = []event.Event{expectedPrintEvent, expectedErrorEvent}
-			confirmStoredRun(ctx, t, runStore, r)
+			bus.PublishID(ctx, event.ETTransformError, runID, event.TransformMessage{Msg: "transform error"})
+			confirmStoredRun(ctx, t, runStore, r3)
 
 			// event 4
-			bus.PublishID(ctx, event.ETTransformDatasetPreview, r.ID, "transform dataset preview")
-			ts = nextTimestamp()
-			expectedDatasetPreviewEvent := event.Event{
-				Type:      event.ETTransformDatasetPreview,
-				Timestamp: (*ts).UnixNano(),
-				SessionID: r.ID,
-				Payload:   "transform dataset preview",
-			}
-			r.Steps[0].Output = []event.Event{expectedPrintEvent, expectedErrorEvent, expectedDatasetPreviewEvent}
-			confirmStoredRun(ctx, t, runStore, r)
+			bus.PublishID(ctx, event.ETTransformDatasetPreview, runID, "transform dataset preview")
+			confirmStoredRun(ctx, t, runStore, r4)
 
 			// event 5
-			bus.PublishID(ctx, event.ETTransformStepStop, r.ID, event.TransformStepLifecycle{Status: "succeeded"})
-			ts = nextTimestamp()
-			expectedStep = r.Steps[0]
-			expectedStep.StopTime = ts
-			expectedStep.Status = run.RSSucceeded
-			expectedStep.Duration = int64(expectedStep.StopTime.Sub(*expectedStep.StartTime))
-			confirmStoredRun(ctx, t, runStore, r)
+			bus.PublishID(ctx, event.ETTransformStepStop, runID, event.TransformStepLifecycle{Status: "succeeded"})
+			confirmStoredRun(ctx, t, runStore, r5)
 
 			// event 6
-			bus.PublishID(ctx, event.ETTransformStepSkip, r.ID, event.TransformStepLifecycle{Name: "step skip", Category: "step skip category", Status: "skipped"})
-			ts = nextTimestamp()
-			expectedSkipStep := &run.StepState{
-				Name:     "step skip",
-				Category: "step skip category",
-				Status:   run.RSSkipped,
-			}
-			r.Steps = append(r.Steps, expectedSkipStep)
-			confirmStoredRun(ctx, t, runStore, r)
+			bus.PublishID(ctx, event.ETTransformStepSkip, runID, event.TransformStepLifecycle{Name: "step skip", Category: "step skip category", Status: "skipped"})
+			confirmStoredRun(ctx, t, runStore, r6)
 
 			// event 7
-			bus.PublishID(ctx, event.ETTransformStop, r.ID, event.TransformLifecycle{Status: "succeeded"})
-			ts = nextTimestamp()
-			r.StopTime = ts
-			r.Status = run.RSSucceeded
-			r.Duration = int64(r.StopTime.Sub(*r.StartTime))
-			confirmStoredRun(ctx, t, runStore, r)
+			bus.PublishID(ctx, event.ETTransformStop, runID, event.TransformLifecycle{Status: "succeeded"})
+			confirmStoredRun(ctx, t, runStore, r7)
 
 			return nil
 		}
@@ -480,9 +458,10 @@ func TestRunStoreEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer o.Stop()
-	if _, err := o.RunWorkflow(ctx, wf.ID, ""); err != nil {
+	if _, err := o.RunWorkflow(ctx, wf.ID, runID); err != nil {
 		t.Fatal(err)
 	}
+	<-transformStopped
 }
 
 func confirmStoredRun(ctx context.Context, t *testing.T, s run.Store, expect *run.State) {
@@ -492,7 +471,7 @@ func confirmStoredRun(ctx context.Context, t *testing.T, s run.Store, expect *ru
 		t.Fatalf("getting run: %s", err)
 	}
 
-	if diff := cmp.Diff(expect, got); diff != "" {
+	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(run.State{}, "StartTime", "StopTime", "Duration"), cmpopts.IgnoreFields(run.StepState{}, "StartTime", "StopTime", "Duration"), cmpopts.IgnoreFields(event.Event{}, "Timestamp")); diff != "" {
 		t.Errorf("stored run mismatch: (-want +got):\n%s", diff)
 	}
 }
