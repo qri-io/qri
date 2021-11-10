@@ -360,32 +360,19 @@ func TestRunStoreEvents(t *testing.T) {
 			prevNow := event.NowFunc
 			defer func() { event.NowFunc = prevNow }()
 
-			timestamps := []time.Time{}
-			totalEventsEmitted := 8
-			eventNumber := 0
-			for i := 0; i < totalEventsEmitted; i++ {
-				t := time.Unix(int64(i), 0)
-				timestamps = append(timestamps, t)
-			}
+			counter := 0
 			event.NowFunc = func() time.Time {
-				if len(timestamps) <= eventNumber {
-					t.Fatal("NowFunc error, more events than timestamps created")
-				}
-				t := timestamps[eventNumber]
-				eventNumber++
+				t := time.Unix(int64(1234000+counter), 0)
+				counter++
 				return t
 			}
 
-			timestampNum := 0
+			expectedCounter := 0
 			nextTimestamp := func() *time.Time {
-				if timestampNum >= len(timestamps) {
-					t.Fatal("timestamp error, out of bounds")
-				}
-				t := timestamps[timestampNum]
-				timestampNum++
+				t := time.Unix(int64(1234000+expectedCounter), 0)
+				expectedCounter++
 				return &t
 			}
-
 			r.ID = runID
 
 			// event 0
