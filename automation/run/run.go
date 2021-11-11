@@ -204,6 +204,19 @@ type StepState struct {
 	Output    []event.Event `json:"output"`
 }
 
+// Copy returns a shallow copy of the receiver
+func (ss *StepState) Copy() *StepState {
+	return &StepState{
+		Name:      ss.Name,
+		Category:  ss.Category,
+		Status:    ss.Status,
+		StartTime: ss.StartTime,
+		StopTime:  ss.StopTime,
+		Duration:  ss.Duration,
+		Output:    ss.Output,
+	}
+}
+
 // NewStepStateFromEvent constructs StepState from an event
 func NewStepStateFromEvent(e event.Event) (*StepState, error) {
 	if tsl, ok := e.Payload.(event.TransformStepLifecycle); ok {

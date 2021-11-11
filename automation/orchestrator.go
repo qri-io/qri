@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sync"
 	"time"
 
 	golog "github.com/ipfs/go-log"
@@ -51,16 +50,7 @@ type ApplyFactory func(ctx context.Context) Apply
 
 // Orchestrator manages automation in qri
 type Orchestrator struct {
-	// TODO(ramfox): this runLock is the current shim to ensure only one workflow runs at a time
-	// we should probably have a run queue subsystem that ensure the orchestrator is running
-	// the workflows in the expected order, running only as many at once as configured, and
-	// allows communication back to the user about where they are in the run queue, allows for
-	// cancelling runs that haven't happened yet
-	runLock sync.Mutex
-	// TODO(ramfox): `cancelRunCh` is the current shim to ensure we can
-	// cancel the currently running run. Like the above `runLock`, this should be
-	// replaced with a subsystem that queues/orders/cancels runs
-	cancelRunCh  chan string
+	runQueue     RunQueue
 	workflows    workflow.Store
 	listeners    map[string]trigger.Listener
 	runs         run.Store
@@ -104,8 +94,7 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 		applyFactory: applyFactory,
 		workflows:    opts.WorkflowStore,
 		runs:         opts.RunStore,
-		runLock:      sync.Mutex{},
-		cancelRunCh:  make(chan string),
+		runQueue:     NewRunQueue(ctx, bus, 50*time.Millisecond, 1),
 	}
 
 	for _, l := range opts.Listeners {
@@ -196,7 +185,7 @@ func (o *Orchestrator) Stop() {
 	<-o.doneCh
 }
 
-// Done retrns a read only channel that will close when the Orchestrator
+// Done returns a read only channel that will close when the Orchestrator
 // finishes stopping
 func (o *Orchestrator) Done() <-chan struct{} {
 	return o.doneCh
@@ -210,6 +199,9 @@ func (o *Orchestrator) handleContextClose(ctx context.Context) {
 	}
 	if err := o.runs.Shutdown(); err != nil {
 		log.Errorw("runs.Shutdown", "error", err)
+	}
+	if err := o.runQueue.Shutdown(); err != nil {
+		log.Errorw("runQueue.Shutdown", "error", err)
 	}
 	// TODO (ramfox): when we have added a way to unsubscribe from a bus, this is where we should do it
 
@@ -302,12 +294,26 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 				log.Debugw("handleTrigger: error saving workflow", "id", wtp.WorkflowID, "err", err)
 			}
 			runID := run.NewID()
-			if err := o.runWorkflow(ctx, wf, runID); err != nil {
-				log.Debugw("handleTrigger: error running workflow", "err", err)
+			runFunc := o.runWorkflowFactory(wf, runID)
+			if err := o.runQueue.Push(ctx, wf.OwnerID.Encode(), runID, "run", runFunc); err != nil {
+
+				log.Debugw("handleTrigger: error queuing workflow", "err", err)
 			}
 		}()
 	}
 	return nil
+}
+
+func (o *Orchestrator) runWorkflowFactory(wf *workflow.Workflow, runID string) runQueueFunc {
+	return func(ctx context.Context) error {
+		return o.runWorkflow(ctx, wf, runID)
+	}
+}
+
+func (o *Orchestrator) applyWorkflowFactory(scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string, runID string) runQueueFunc {
+	return func(ctx context.Context) error {
+		return o.applyWorkflow(ctx, scriptOutput, wf, ds, secrets, runID)
+	}
 }
 
 // RunWorkflow runs the given workflow
@@ -319,55 +325,14 @@ func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID, runID s
 	if err != nil {
 		return "", err
 	}
-	return runID, o.runWorkflow(ctx, wf, runID)
-}
 
-func (o *Orchestrator) lock() {
-	log.Debug("orchestrator run mutex lock locking...")
-	o.runLock.Lock()
-	log.Debug("orchestrator run mutex lock locked")
-}
-
-func (o *Orchestrator) unlock() {
-	o.runLock.Unlock()
-	log.Debug("orchestrator run mutex lock unlocked")
-}
-
-func (o *Orchestrator) listenForCancelationAndUnlock(ctx context.Context, cancel context.CancelFunc, runID string) {
-	log.Debugw("listenForCancelation", "runID", runID)
-	for {
-		select {
-		case cancelRunID := <-o.cancelRunCh:
-			if runID == cancelRunID {
-				cancel()
-			}
-		case <-ctx.Done():
-			o.unlock()
-			return
-		}
-	}
+	runFunc := o.runWorkflowFactory(wf, runID)
+	return runID, o.runQueue.Push(ctx, wf.OwnerID.Encode(), runID, "run", runFunc)
 }
 
 func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, runID string) error {
-	go func() {
-		if err := o.bus.Publish(ctx, event.ETAutomationRunQueuePush, &runID); err != nil {
-			log.Debug(err)
-		}
-	}()
-	o.lock()
-	go func() {
-		if err := o.bus.Publish(ctx, event.ETAutomationRunQueuePop, &runID); err != nil {
-			log.Debug(err)
-		}
-	}()
-
 	wid := wf.ID
 	log.Debugw("runWorkflow, workflow", "id", wid)
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	go o.listenForCancelationAndUnlock(ctx, cancel, runID)
 
 	go func(wf *workflow.Workflow) {
 		if err := o.bus.PublishID(ctx, event.ETAutomationWorkflowStarted, wf.ID.String(), event.WorkflowStartedEvent{
@@ -428,30 +393,13 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 		return runID, o.applyWorkflow(ctx, scriptOutput, wf, ds, secrets, runID)
 	}
 
-	go o.applyWorkflow(ctx, scriptOutput, wf, ds, secrets, runID)
-	return runID, nil
+	applyFunc := o.applyWorkflowFactory(scriptOutput, wf, ds, secrets, runID)
+	return runID, o.runQueue.Push(ctx, wf.OwnerID.Encode(), runID, "apply", applyFunc)
 }
 
 func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string, runID string) error {
-	go func() {
-		if err := o.bus.Publish(ctx, event.ETAutomationApplyQueuePush, &runID); err != nil {
-			log.Debug(err)
-		}
-	}()
-	o.lock()
-	go func() {
-		if err := o.bus.Publish(ctx, event.ETAutomationApplyQueuePop, &runID); err != nil {
-			log.Debug(err)
-		}
-	}()
-
 	apply := o.applyFactory(ctx)
 	log.Debugw("ApplyWorkflow", "workflow id", wf.ID, "run id", runID)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	go o.listenForCancelationAndUnlock(ctx, cancel, runID)
-
 	if scriptOutput != nil {
 		o.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
 			log.Debugw("apply transform event", "type", e.Type, "payload", e.Payload)
@@ -476,7 +424,7 @@ func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer
 // CancelRun cancels the run of the given runID
 func (o *Orchestrator) CancelRun(ctx context.Context, runID string) {
 	log.Debugw("orchestrator.CancelRun", "runID", runID)
-	o.cancelRunCh <- runID
+	o.runQueue.Cancel(runID)
 }
 
 // SaveWorkflow creates a new workflow if the workflow id is empty, or updates
