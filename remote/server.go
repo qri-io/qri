@@ -641,7 +641,7 @@ func (r *Server) FeedHTTPHandler(prefix string) http.HandlerFunc {
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 		}
 
-		apiutil.WritePageResponse(w, refs, req, page)
+		apiutil.WriteResponse(w, refs)
 	}
 }
 
