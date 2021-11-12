@@ -530,3 +530,20 @@ func (automationImpl) AnalyzeTransform(scope scope, p *AnalyzeTransformParams) (
 		Diagnostics: diagnostics,
 	}, nil
 }
+
+// methods that run workflows, used by the automation orchestrator via
+// dependency injection
+type runner struct {
+	owner *Instance
+}
+
+// RunEphemeral runs a workflow only to generate output, not to create a
+// dataset version
+func (r *runner) RunEphemeral(ctx context.Context, runID string, wf *workflow.Workflow, ds *dataset.Dataset, wait bool, secrets map[string]string) error {
+	return r.owner.apply(ctx, wait, runID, wf, ds, secrets)
+}
+
+// RunAndCommit runs a workflow and commits a new dataset version
+func (r *runner) RunAndCommit(ctx context.Context, runID string, wf *workflow.Workflow, streams ioes.IOStreams) error {
+	return r.owner.run(ctx, streams, wf, runID)
+}

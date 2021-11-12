@@ -36,44 +36,36 @@ type OrchestratorOptions struct {
 	RunStore      run.Store
 }
 
-// Run persists the dataset that results from executing a workflow transform
-type Run func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error
-
-// RunFactory is a function that produces a Run function
-type RunFactory func(ctx context.Context) Run
-
-// Apply executes an ephemeral workflow transform
-type Apply func(ctx context.Context, wait bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error
-
-// ApplyFactory is function that produces an Apply function
-type ApplyFactory func(ctx context.Context) Apply
+// WorkflowRunner is for running workflows using some execution engine
+// only non-test implementation is lib.Instance, but this interface is used
+// to avoid a direct dependency
+type WorkflowRunner interface {
+	RunEphemeral(context.Context, string, *workflow.Workflow, *dataset.Dataset, bool, map[string]string) error
+	RunAndCommit(context.Context, string, *workflow.Workflow, ioes.IOStreams) error
+}
 
 // Orchestrator manages automation in qri
 type Orchestrator struct {
-	runQueue     RunQueue
-	workflows    workflow.Store
-	listeners    map[string]trigger.Listener
-	runs         run.Store
-	runFactory   RunFactory
-	applyFactory ApplyFactory
-	bus          event.Bus
-	cancel       context.CancelFunc
-	doneCh       chan struct{}
-	running      bool
+	runQueue  RunQueue
+	workflows workflow.Store
+	listeners map[string]trigger.Listener
+	runs      run.Store
+	runner    WorkflowRunner
+	bus       event.Bus
+	cancel    context.CancelFunc
+	doneCh    chan struct{}
+	running   bool
 }
 
 // NewOrchestrator constructs an orchestrator
-func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, applyFactory ApplyFactory, opts OrchestratorOptions) (*Orchestrator, error) {
+func NewOrchestrator(ctx context.Context, bus event.Bus, runner WorkflowRunner, opts OrchestratorOptions) (*Orchestrator, error) {
 	log.Debugw("NewOrchestrator", "opts", opts)
 
 	if bus == nil {
 		return nil, fmt.Errorf("bus of type event.Bus required")
 	}
-	if runFactory == nil {
-		return nil, fmt.Errorf("runFactory of type RunFactory required")
-	}
-	if applyFactory == nil {
-		return nil, fmt.Errorf("applyFactory of type ApplyFactory required")
+	if runner == nil {
+		return nil, fmt.Errorf("WorkflowRunner required")
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -89,12 +81,11 @@ func NewOrchestrator(ctx context.Context, bus event.Bus, runFactory RunFactory, 
 		cancel: cancel,
 		doneCh: make(chan struct{}),
 
-		bus:          bus,
-		runFactory:   runFactory,
-		applyFactory: applyFactory,
-		workflows:    opts.WorkflowStore,
-		runs:         opts.RunStore,
-		runQueue:     NewRunQueue(ctx, bus, 50*time.Millisecond, 1),
+		bus:       bus,
+		runner:    runner,
+		workflows: opts.WorkflowStore,
+		runs:      opts.RunStore,
+		runQueue:  NewRunQueue(ctx, bus, 50*time.Millisecond, 1),
 	}
 
 	for _, l := range opts.Listeners {
@@ -310,12 +301,6 @@ func (o *Orchestrator) runWorkflowFactory(wf *workflow.Workflow, runID string) r
 	}
 }
 
-func (o *Orchestrator) applyWorkflowFactory(scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string, runID string) runQueueFunc {
-	return func(ctx context.Context) error {
-		return o.applyWorkflow(ctx, scriptOutput, wf, ds, secrets, runID)
-	}
-}
-
 // RunWorkflow runs the given workflow
 func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID, runID string) (string, error) {
 	if runID == "" {
@@ -357,11 +342,10 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 		// defer o.bus.UnsubscribeID(runID)
 	}
 
-	runFunc := o.runFactory(ctx)
 	// need to replace w/ log collector
 	streams := ioes.NewDiscardIOStreams()
 
-	err := runFunc(ctx, streams, wf, runID)
+	err := o.runner.RunAndCommit(ctx, runID, wf, streams)
 	go func(wf *workflow.Workflow) {
 		runStatus := run.RSFailed
 		if err == nil {
@@ -393,12 +377,14 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 		return runID, o.applyWorkflow(ctx, scriptOutput, wf, ds, secrets, runID)
 	}
 
-	applyFunc := o.applyWorkflowFactory(scriptOutput, wf, ds, secrets, runID)
-	return runID, o.runQueue.Push(ctx, wf.OwnerID.Encode(), runID, "apply", applyFunc)
+	// enqueue the workflow, with a function to run it once the queue is ready
+	runFunc := func(ctx context.Context) error {
+		return o.applyWorkflow(ctx, scriptOutput, wf, ds, secrets, runID)
+	}
+	return runID, o.runQueue.Push(ctx, wf.OwnerID.Encode(), runID, "apply", runFunc)
 }
 
 func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string, runID string) error {
-	apply := o.applyFactory(ctx)
 	log.Debugw("ApplyWorkflow", "workflow id", wf.ID, "run id", runID)
 	if scriptOutput != nil {
 		o.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
@@ -418,7 +404,7 @@ func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer
 
 	// TODO (ramfox): when we understand what it means to dryrun a hook, this should wait for the err, iterator thought the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
-	return apply(ctx, true, runID, wf, ds, secrets)
+	return o.runner.RunEphemeral(ctx, runID, wf, ds, true, secrets)
 }
 
 // CancelRun cancels the run of the given runID
