@@ -172,7 +172,7 @@ func TestIntegration(t *testing.T) {
 	gotWorkflowEvents = []interface{}{}
 
 	done = errOnTimeout(t, applied, "o.ApplyWorkflow error: timed out before apply function called")
-	_, err = o.ApplyWorkflow(ctx, false, nil, got, nil, nil)
+	_, err = o.ApplyWorkflow(ctx, false, nil, got, nil, WorkflowRunParams{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -454,12 +454,12 @@ func newTestWorkflowRunner(store run.Store, applied chan string) *testWorkflowRu
 	}
 }
 
-func (r *testWorkflowRunner) RunEphemeral(ctx context.Context, runID string, wf *workflow.Workflow, ds *dataset.Dataset, wait bool, secrets map[string]string) error {
+func (r *testWorkflowRunner) RunEphemeral(ctx context.Context, runID string, wf *workflow.Workflow, ds *dataset.Dataset, wait bool, params WorkflowRunParams) error {
 	r.applied <- "applied"
 	return nil
 }
 
-func (r *testWorkflowRunner) RunAndCommit(ctx context.Context, runID string, wf *workflow.Workflow, streams ioes.IOStreams) error {
+func (r *testWorkflowRunner) RunAndCommit(ctx context.Context, runID string, wf *workflow.Workflow, streams ioes.IOStreams, params WorkflowRunParams) error {
 	//return r.owner.run(ctx, streams, wf, runID)
 	// since we don't actually run anything
 	// we need to mock the success of the run
@@ -497,7 +497,7 @@ func newWorkflowRunSimulator(t *testing.T, store run.Store, bus event.Bus, event
 }
 
 // RunAndCommit simulates events emitted by the transform package
-func (r *workflowRunSimulator) RunAndCommit(ctx context.Context, runID string, wf *workflow.Workflow, streams ioes.IOStreams) error {
+func (r *workflowRunSimulator) RunAndCommit(ctx context.Context, runID string, wf *workflow.Workflow, streams ioes.IOStreams, params WorkflowRunParams) error {
 	for _, runEvent := range r.events {
 		r.bus.PublishID(ctx, runEvent.etype, runID, runEvent.payload)
 		confirmStoredRun(ctx, r.t, r.store, runEvent.state)
@@ -505,6 +505,6 @@ func (r *workflowRunSimulator) RunAndCommit(ctx context.Context, runID string, w
 	return nil
 }
 
-func (r *workflowRunSimulator) RunEphemeral(ctx context.Context, runID string, wf *workflow.Workflow, ds *dataset.Dataset, wait bool, secrets map[string]string) error {
+func (r *workflowRunSimulator) RunEphemeral(ctx context.Context, runID string, wf *workflow.Workflow, ds *dataset.Dataset, wait bool, params WorkflowRunParams) error {
 	return nil
 }

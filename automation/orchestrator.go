@@ -40,8 +40,15 @@ type OrchestratorOptions struct {
 // only non-test implementation is lib.Instance, but this interface is used
 // to avoid a direct dependency
 type WorkflowRunner interface {
-	RunEphemeral(context.Context, string, *workflow.Workflow, *dataset.Dataset, bool, map[string]string) error
-	RunAndCommit(context.Context, string, *workflow.Workflow, ioes.IOStreams) error
+	RunEphemeral(context.Context, string, *workflow.Workflow, *dataset.Dataset, bool, WorkflowRunParams) error
+	RunAndCommit(context.Context, string, *workflow.Workflow, ioes.IOStreams, WorkflowRunParams) error
+}
+
+// WorkflowRunParams are additional parameters for a workflow run
+type WorkflowRunParams struct {
+	Secrets      map[string]string
+	OutputWidth  int
+	OutputHeight int
 }
 
 // Orchestrator manages automation in qri
@@ -345,7 +352,8 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 	// need to replace w/ log collector
 	streams := ioes.NewDiscardIOStreams()
 
-	err := o.runner.RunAndCommit(ctx, runID, wf, streams)
+	// TODO(dustmop): Retrieve params from enqueued run, pass them into RunAndCommit
+	err := o.runner.RunAndCommit(ctx, runID, wf, streams, WorkflowRunParams{})
 	go func(wf *workflow.Workflow) {
 		runStatus := run.RSFailed
 		if err == nil {
@@ -371,20 +379,20 @@ func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, r
 }
 
 // ApplyWorkflow runs the given workflow, but does not record the output
-func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) (string, error) {
+func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, params WorkflowRunParams) (string, error) {
 	runID := run.NewID()
 	if wait {
-		return runID, o.applyWorkflow(ctx, scriptOutput, wf, ds, secrets, runID)
+		return runID, o.applyWorkflow(ctx, scriptOutput, wf, ds, runID, params)
 	}
 
 	// enqueue the workflow, with a function to run it once the queue is ready
 	runFunc := func(ctx context.Context) error {
-		return o.applyWorkflow(ctx, scriptOutput, wf, ds, secrets, runID)
+		return o.applyWorkflow(ctx, scriptOutput, wf, ds, runID, params)
 	}
 	return runID, o.runQueue.Push(ctx, wf.OwnerID.Encode(), runID, "apply", runFunc)
 }
 
-func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string, runID string) error {
+func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, runID string, params WorkflowRunParams) error {
 	log.Debugw("ApplyWorkflow", "workflow id", wf.ID, "run id", runID)
 	if scriptOutput != nil {
 		o.bus.SubscribeID(func(ctx context.Context, e event.Event) error {
@@ -404,7 +412,7 @@ func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer
 
 	// TODO (ramfox): when we understand what it means to dryrun a hook, this should wait for the err, iterator thought the hooks
 	// for this workflow, and emit the events for hooks that this orchestrator understands
-	return o.runner.RunEphemeral(ctx, runID, wf, ds, true, secrets)
+	return o.runner.RunEphemeral(ctx, runID, wf, ds, true, params)
 }
 
 // CancelRun cancels the run of the given runID

@@ -51,20 +51,28 @@ const (
 
 // Transformer holds dependencies needed for applying a transform
 type Transformer struct {
-	appCtx  context.Context
-	loader  dsref.Loader
-	fs      qfs.Filesystem
-	pub     event.Publisher
-	changes map[string]struct{}
+	appCtx   context.Context
+	loader   dsref.Loader
+	fs       qfs.Filesystem
+	pub      event.Publisher
+	sizeInfo SizeInfo
+	changes  map[string]struct{}
+}
+
+// SizeInfo is info about the size of the area that output is displayed on
+type SizeInfo struct {
+	OutputWidth  int
+	OutputHeight int
 }
 
 // NewTransformer returns a new transformer
-func NewTransformer(appCtx context.Context, fs qfs.Filesystem, loader dsref.Loader, pub event.Publisher) *Transformer {
+func NewTransformer(appCtx context.Context, fs qfs.Filesystem, loader dsref.Loader, pub event.Publisher, info SizeInfo) *Transformer {
 	return &Transformer{
-		appCtx: appCtx,
-		loader: loader,
-		fs:     fs,
-		pub:    pub,
+		appCtx:   appCtx,
+		loader:   loader,
+		fs:       fs,
+		pub:      pub,
+		sizeInfo: info,
 	}
 }
 
@@ -148,6 +156,7 @@ func (t *Transformer) apply(
 		startf.AddFilesystem(t.fs),
 		startf.AddEventsChannel(eventsCh),
 		startf.TrackChanges(t.changes),
+		startf.SizeInfo(t.sizeInfo.OutputWidth, t.sizeInfo.OutputHeight),
 	}
 
 	doneCh := make(chan error)

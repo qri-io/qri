@@ -56,6 +56,7 @@ type Dataset struct {
 	ds        *dataset.Dataset
 	bodyFrame starlark.Value
 	changes   map[string]struct{}
+	outconf   *dataframe.OutputConfig
 }
 
 // compile-time interface assertions
@@ -76,8 +77,8 @@ var dsMethods = map[string]*starlark.Builtin{
 
 // NewDataset creates a dataset object, intended to be called from go-land to prepare datasets
 // for handing to other functions
-func NewDataset(ds *dataset.Dataset) *Dataset {
-	return &Dataset{ds: ds, changes: make(map[string]struct{})}
+func NewDataset(ds *dataset.Dataset, outconf *dataframe.OutputConfig) *Dataset {
+	return &Dataset{ds: ds, outconf: outconf, changes: make(map[string]struct{})}
 }
 
 // New creates a new dataset from starlark land
@@ -284,7 +285,7 @@ func (d *Dataset) getBody() (starlark.Value, error) {
 	bodyfile := d.ds.BodyFile()
 	if bodyfile == nil {
 		// If no body exists, return an empty data frame
-		df, _ := dataframe.NewDataFrame(nil, nil, nil)
+		df, _ := dataframe.NewDataFrame(nil, nil, nil, d.outconf)
 		d.bodyFrame = df
 		return df, nil
 	}
@@ -320,7 +321,7 @@ func (d *Dataset) getBody() (starlark.Value, error) {
 		rows = append(rows, r)
 	}
 
-	df, err := dataframe.NewDataFrame(rows, columns, nil)
+	df, err := dataframe.NewDataFrame(rows, columns, nil, d.outconf)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +330,7 @@ func (d *Dataset) getBody() (starlark.Value, error) {
 }
 
 func (d *Dataset) setBody(val starlark.Value) error {
-	df, err := dataframe.NewDataFrame(val, nil, nil)
+	df, err := dataframe.NewDataFrame(val, nil, nil, d.outconf)
 	if err != nil {
 		return err
 	}

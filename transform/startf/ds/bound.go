@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/starlib/dataframe"
 	"go.starlark.net/starlark"
 )
 
@@ -12,6 +13,7 @@ type BoundDataset struct {
 	frozen       bool
 	commitCalled bool
 	latest       *dataset.Dataset
+	outconf      *dataframe.OutputConfig
 	onCommit     func(ds *Dataset) error
 	load         func(refstr string) (*Dataset, error)
 }
@@ -23,8 +25,8 @@ var (
 )
 
 // NewBoundDataset constructs a target dataset
-func NewBoundDataset(latest *dataset.Dataset, onCommit func(ds *Dataset) error) *BoundDataset {
-	return &BoundDataset{latest: latest, onCommit: onCommit}
+func NewBoundDataset(latest *dataset.Dataset, outconf *dataframe.OutputConfig, onCommit func(ds *Dataset) error) *BoundDataset {
+	return &BoundDataset{latest: latest, onCommit: onCommit, outconf: outconf}
 }
 
 // String returns the Dataset as a string
@@ -64,7 +66,7 @@ var boundDatasetMethods = map[string]*starlark.Builtin{
 
 func head(thread *starlark.Thread, builtin *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	self := builtin.Receiver().(*BoundDataset)
-	return NewDataset(self.latest), nil
+	return NewDataset(self.latest, self.outconf), nil
 }
 
 func commit(thread *starlark.Thread, builtin *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

@@ -44,6 +44,7 @@ the --apply flag on the save command to commit results from transforms.`,
 	cmd.Flags().StringVar(&o.FilePath, "file", "", "path of transform script file")
 	cmd.MarkFlagRequired("file")
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
+	cmd.Flags().BoolVar(&o.Quiet, "quiet", false, "whether to suppress output from the application")
 
 	return cmd
 }
@@ -56,6 +57,7 @@ type ApplyOptions struct {
 
 	Refs     *RefSelect
 	FilePath string
+	Quiet    bool
 	Secrets  []string
 }
 
@@ -106,15 +108,23 @@ func (o *ApplyOptions) Run() (err error) {
 		Wait:         true,
 	}
 
+	terminalWidth, terminalHeight := sizeOfTerminal()
+	if terminalWidth > 0 && terminalHeight > 0 {
+		params.OutputWidth = terminalWidth
+		params.OutputHeight = terminalHeight
+	}
+
 	res, err := inst.Automation().Apply(ctx, &params)
 	if err != nil {
 		return err
 	}
 
-	data, err := json.MarshalIndent(res.Data, "", " ")
-	if err != nil {
-		return err
+	if !o.Quiet {
+		data, err := json.MarshalIndent(res.Data, "", " ")
+		if err != nil {
+			return err
+		}
+		printSuccess(o.Out, string(data))
 	}
-	printSuccess(o.Out, string(data))
 	return nil
 }

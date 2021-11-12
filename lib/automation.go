@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/automation"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/workflow"
 	"github.com/qri-io/qri/base/dsfs"
@@ -53,6 +54,9 @@ type ApplyParams struct {
 	// TODO(arqu): substitute with websockets when working over the wire
 	ScriptOutput io.Writer `json:"-"`
 	Hooks        []map[string]interface{}
+	// size of the output area that the results will display on
+	OutputWidth  int `json:"outputWidth"`
+	OutputHeight int `json:"outputHeight"`
 }
 
 // Validate returns an error if ApplyParams fields are in an invalid state
@@ -254,7 +258,13 @@ func (automationImpl) Apply(scope scope, p *ApplyParams) (*ApplyResult, error) {
 		ctx = scope.AppContext()
 	}
 
-	runID, err := scope.AutomationOrchestrator().ApplyWorkflow(ctx, p.Wait, p.ScriptOutput, wf, ds, p.Secrets)
+	params := automation.WorkflowRunParams{
+		Secrets:      p.Secrets,
+		OutputWidth:  p.OutputWidth,
+		OutputHeight: p.OutputHeight,
+	}
+
+	runID, err := scope.AutomationOrchestrator().ApplyWorkflow(ctx, p.Wait, p.ScriptOutput, wf, ds, params)
 	if err != nil {
 		return nil, err
 	}
@@ -480,7 +490,7 @@ func (automationImpl) Remove(scope scope, p *WorkflowParams) error {
 	return scope.AutomationOrchestrator().RemoveWorkflow(scope.Context(), workflow.ID(p.WorkflowID))
 }
 
-func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
+func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string, params automation.WorkflowRunParams) error {
 	scope, err := newScopeFromWorkflow(ctx, inst, w)
 	if err != nil {
 		return err
@@ -505,14 +515,19 @@ func (inst *Instance) run(ctx context.Context, streams ioes.IOStreams, w *workfl
 	return err
 }
 
-func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
+func (inst *Instance) apply(ctx context.Context, wait bool, runID string, wf *workflow.Workflow, ds *dataset.Dataset, params automation.WorkflowRunParams) error {
 	scope, err := newScopeFromWorkflow(ctx, inst, wf)
 	if err != nil {
 		return err
 	}
 
-	transformer := transform.NewTransformer(ctx, scope.Filesystem(), scope.Loader(), scope.Bus())
-	return transformer.Apply(scope.Context(), ds, runID, wait, secrets)
+	sizeInfo := transform.SizeInfo{
+		OutputWidth:  params.OutputWidth,
+		OutputHeight: params.OutputHeight,
+	}
+
+	transformer := transform.NewTransformer(ctx, scope.Filesystem(), scope.Loader(), scope.Bus(), sizeInfo)
+	return transformer.Apply(scope.Context(), ds, runID, wait, params.Secrets)
 }
 
 // AnalyzeTransform runs analysis on a transform script
@@ -539,11 +554,11 @@ type runner struct {
 
 // RunEphemeral runs a workflow only to generate output, not to create a
 // dataset version
-func (r *runner) RunEphemeral(ctx context.Context, runID string, wf *workflow.Workflow, ds *dataset.Dataset, wait bool, secrets map[string]string) error {
-	return r.owner.apply(ctx, wait, runID, wf, ds, secrets)
+func (r *runner) RunEphemeral(ctx context.Context, runID string, wf *workflow.Workflow, ds *dataset.Dataset, wait bool, params automation.WorkflowRunParams) error {
+	return r.owner.apply(ctx, wait, runID, wf, ds, params)
 }
 
 // RunAndCommit runs a workflow and commits a new dataset version
-func (r *runner) RunAndCommit(ctx context.Context, runID string, wf *workflow.Workflow, streams ioes.IOStreams) error {
-	return r.owner.run(ctx, streams, wf, runID)
+func (r *runner) RunAndCommit(ctx context.Context, runID string, wf *workflow.Workflow, streams ioes.IOStreams, params automation.WorkflowRunParams) error {
+	return r.owner.run(ctx, streams, wf, runID, params)
 }
