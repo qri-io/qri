@@ -40,8 +40,8 @@ type OrchestratorOptions struct {
 // only non-test implementation is lib.Instance, but this interface is used
 // to avoid a direct dependency
 type WorkflowRunner interface {
-	RunEphemeral(context.Context, string, *workflow.Workflow, *dataset.Dataset, bool, WorkflowRunParams) error
-	RunAndCommit(context.Context, string, *workflow.Workflow, ioes.IOStreams, WorkflowRunParams) error
+	RunEphemeral(ctx context.Context, runID string, wf *workflow.Workflow, ds *dataset.Dataset, wait bool, params WorkflowRunParams) error
+	RunAndCommit(ctx context.Context, runID string, wf *workflow.Workflow, streams ioes.IOStreams, params WorkflowRunParams) error
 }
 
 // WorkflowRunParams are additional parameters for a workflow run
