@@ -212,17 +212,17 @@ func TestUnitBasic(t *testing.T) {
 		atom: "set!",
 		tail: []*unit{
 			&unit{atom: "a"},
-			&unit{atom: "1"},
+			&unit{atom: "b"},
 		},
 	}
 	actual := root.String()
-	expect := `[set! a 1]`
+	expect := `[set! a b]`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}
 
 	actualSrc := root.DataSources()
-	expectSrc := []string{"a"}
+	expectSrc := []string{"b"}
 	if diff := cmp.Diff(expectSrc, actualSrc); diff != "" {
 		t.Errorf("sources mismatch (-want +got):\n%s", diff)
 	}

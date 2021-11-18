@@ -24,6 +24,13 @@ func AnalyzeFile(filename string) ([]Diagnostic, error) {
 	globals := newSymtable(starlark.Universe)
 	// Build a graph of all calls, using top level calls and pre-defined globals
 	callGraph := buildCallGraph(funcs, topLevel, globals)
+
+	// Trace sensitive data using dataflow analysis
+	// TODO(dustmop): Have this step return []Diagnostic
+	if err := analyzeSensitiveDataflow(callGraph, nil); err != nil {
+		return nil, err
+	}
+
 	// Return any unused functions
 	// TODO(dustmop): As more analysis steps are introduced, refactor this
 	// into a generic interface that creates Diagnostics

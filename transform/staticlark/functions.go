@@ -66,6 +66,11 @@ type funcNode struct {
 	// the string names of functions that are called, only needed
 	// until call graph is built, and the `calls` field is set
 	callNames []string
+	// used by dataflow analysis to track sensitive data and
+	// dangerous parameters, to ensure safe data usage
+	dangerousParams []bool
+	sensitiveReturn bool
+	reasonParams    []reason
 }
 
 // newFuncNode constructs a new funcNode
