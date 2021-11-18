@@ -75,7 +75,8 @@ func TestGetComplete(t *testing.T) {
 }
 
 const (
-	currHeadRepo = `bodyPath: {{ .bodyPath }}
+	currHeadRepo = `body:{{ .body }}
+bodyPath: {{ .bodyPath }}
 commit:
   author:
     id: {{ .profileID }}
@@ -183,7 +184,8 @@ structure:
 
 `
 
-	prevHeadRepo = `bodyPath: {{ .bodyPath }}
+	prevHeadRepo = `body:{{ .body }}
+bodyPath: {{ .bodyPath }}
 commit:
   author:
     id: {{ .profileID }}
@@ -287,6 +289,44 @@ The Avengers ,173
 	currBodyJSON = `[["Avatar ",178],["Pirates of the Caribbean: At World's End ",169],["Spectre ",148],["The Dark Knight Rises ",164],["Star Wars: Episode VII - The Force Awakens             ",""],["John Carter ",132],["Spider-Man 3 ",156],["Tangled ",100],["Avengers: Age of Ultron ",141],["Harry Potter and the Half-Blood Prince ",153],["Batman v Superman: Dawn of Justice ",183],["Superman Returns ",169],["Quantum of Solace ",106],["Pirates of the Caribbean: Dead Man's Chest ",151],["The Lone Ranger ",150],["Man of Steel ",143],["The Chronicles of Narnia: Prince Caspian ",150],["The Avengers ",173]]
 `
 
+	currBodyYAML = `
+- - 'Avatar '
+  - 178
+- - 'Pirates of the Caribbean: At World''s End '
+  - 169
+- - 'Spectre '
+  - 148
+- - 'The Dark Knight Rises '
+  - 164
+- - 'Star Wars: Episode VII - The Force Awakens             '
+  - ""
+- - 'John Carter '
+  - 132
+- - 'Spider-Man 3 '
+  - 156
+- - 'Tangled '
+  - 100
+- - 'Avengers: Age of Ultron '
+  - 141
+- - 'Harry Potter and the Half-Blood Prince '
+  - 153
+- - 'Batman v Superman: Dawn of Justice '
+  - 183
+- - 'Superman Returns '
+  - 169
+- - 'Quantum of Solace '
+  - 106
+- - 'Pirates of the Caribbean: Dead Man''s Chest '
+  - 151
+- - 'The Lone Ranger '
+  - 150
+- - 'Man of Steel '
+  - 143
+- - 'The Chronicles of Narnia: Prince Caspian '
+  - 150
+- - 'The Avengers '
+  - 173`
+
 	prevBodyRepo = `movie_title,duration
 Avatar ,178
 Pirates of the Caribbean: At World's End ,169
@@ -300,12 +340,31 @@ Tangled ,100
 `
 	prevBodyJSON = `[["Avatar ",178],["Pirates of the Caribbean: At World's End ",169],["Spectre ",148],["The Dark Knight Rises ",164],["Star Wars: Episode VII - The Force Awakens             ",""],["John Carter ",132],["Spider-Man 3 ",156],["Tangled ",100]]
 `
+
+	prevBodyYAML = `
+- - 'Avatar '
+  - 178
+- - 'Pirates of the Caribbean: At World''s End '
+  - 169
+- - 'Spectre '
+  - 148
+- - 'The Dark Knight Rises '
+  - 164
+- - 'Star Wars: Episode VII - The Force Awakens             '
+  - ""
+- - 'John Carter '
+  - 132
+- - 'Spider-Man 3 '
+  - 156
+- - 'Tangled '
+  - 100`
 )
 
 var (
 	currHeadRepoData = map[string]string{
 		"id":            "nkt3s27sojzsiu7tcs6p5asrwbqf3yd5nhjtotsstd6ub2owecvq",
 		"profileID":     "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"body":          currBodyYAML,
 		"bodyPath":      "/ipfs/QmeLmPMNSCxVxCdDmdunBCfiN1crb3C2eUnZex6QgHpFiB",
 		"commitPath":    "/ipfs/QmQb3AfjzFn5RWGkrcFHV4GEDWAt97P9q3JhM8qJm69wZ3",
 		"signature":     "hK9sMkmsRqH8xKDNxTwQX0IfDsHX8wB08SQA/tz0R8V0QaWfPgjPBhvFvWXKXtM+UqxKDp1YzGLyAcozk7BIgRLPEcQI+TMvjpqf9UKlu7f0pmtnT6w7Vj8hHcVk/yvG+MfpKLWIK+FLWqIj46aeYztjtweN2AC1Xebky7ISzkczaOg0rL6hcbWoxE96Eqw5mvcX3iO9l/zfbF6GkRAhzKVHkNdmwvqPaMRE/XTdR9+F5bIodwpqJGmqM7igewimGQAe/UTyFhOYi7Z7LJxCGKeKJ/7n8mk7CfRQPmhqk8hzcVm5yTNjTUOUueK9Os1g8b3z6FgnWpIaMOV0L/ARqg==",
@@ -317,6 +376,7 @@ var (
 	prevHeadRepoData = map[string]string{
 		"id":            "nkt3s27sojzsiu7tcs6p5asrwbqf3yd5nhjtotsstd6ub2owecvq",
 		"profileID":     "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		"body":          prevBodyYAML,
 		"bodyPath":      "/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn",
 		"commitPath":    "/ipfs/QmRQo5ivNLbQdu1ps3iyEaVknyTYisUwsL152dwSorskJB",
 		"signature":     "iGs2R/GWE8f0YqRhTnaw6r/geX+5hSmTxOG68vdYbJ5dkqLXcp7nYkuezvs9aHPTLPgqoshJ6w0va8JthSSGkRkm6ue5iItLqN0Vbi2Ru/b7BAfvpJwoeb/FJCj41bFtqojs9S9flNJB7RmQl03usiaauUw/dkNE7KXZkT0DGA3Fo8cHKeAgyhYdZzPeXKu1RIp+rIMZMJOwj0Rw7oLBXjiWcqttwJQsvx8qAS72xhQZysGGicImdTPzeTK+7wwBnm99f2afjB1v3TD7h5XMmFRiOBtNx3U6snzTcUPvGeL895Q7ZBco9fEAPhgxgrV51b28IS0ci6qXyYfIOKNARg==",
@@ -442,7 +502,9 @@ func TestGetRemoteDataset(t *testing.T) {
 		t.Errorf("response mismatch\nwant: %q\n got: %q", expect, err)
 	}
 
-	expect = dstest.Template(t, `bodyPath: {{ .bodyPath }}
+	// mock remote datasets have empty bodies
+	expect = dstest.Template(t, `body: {}
+bodyPath: {{ .bodyPath }}
 commit:
   message: created dataset
   path: {{ .commitPath }}

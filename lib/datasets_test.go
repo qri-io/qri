@@ -26,6 +26,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
@@ -313,6 +314,16 @@ func TestGet(t *testing.T) {
 	}
 	moviesBody := mustBeArray(base.ReadEntries(reader))
 
+	moviesPreviewDs, err := dsfs.LoadDataset(ctx, mr.Filesystem(), ref.Path)
+	if err != nil {
+		t.Fatalf("error loading dataset: %s", err.Error())
+	}
+	base.OpenDataset(ctx, node.Repo.Filesystem(), moviesPreviewDs)
+	moviesPreview, err := preview.Create(ctx, moviesPreviewDs)
+	if err != nil {
+		t.Fatalf("creating preview: %s", err)
+	}
+
 	cases := []struct {
 		description string
 		params      *GetParams
@@ -327,11 +338,11 @@ func TestGet(t *testing.T) {
 
 		{"ref without path",
 			&GetParams{Ref: "peer/movies"},
-			setDatasetName(moviesDs, "peer/movies")},
+			setDatasetName(moviesPreview, "peer/movies")},
 
 		{"ref with path",
 			&GetParams{Ref: fmt.Sprintf("peer/movies@%s", ref.Path)},
-			setDatasetName(moviesDs, "peer/movies")},
+			setDatasetName(moviesPreview, "peer/movies")},
 
 		{"commit component",
 			&GetParams{Ref: "peer/movies", Selector: "commit"},

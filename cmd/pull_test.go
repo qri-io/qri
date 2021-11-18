@@ -121,7 +121,9 @@ func TestPullAndGet(t *testing.T) {
 	run.MustExec(t, "qri pull other_peer/their_dataset")
 
 	output := run.MustExec(t, "qri get other_peer/their_dataset")
-	expect := dstest.Template(t, `bodyPath: {{ .bodyPath }}
+	// mock remote datasets have empty bodies
+	expect := dstest.Template(t, `body: {}
+bodyPath: {{ .bodyPath }}
 commit:
   message: created dataset
   path: {{ .commitPath }}

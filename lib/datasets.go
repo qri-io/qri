@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
+	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/dataset/stepfile"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
@@ -665,7 +666,15 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 
 	res := &GetResult{}
 
-	if p.Selector == "body" {
+	scriptFile, scriptFileOk := scriptFileSelection(ds, p.Selector)
+
+	switch {
+	case p.Selector == "":
+		res.Value, err = preview.Create(scope.Context(), ds)
+		if err != nil {
+			return nil, err
+		}
+	case p.Selector == "body":
 		// `qri get body` loads the body
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
 			return nil, fmt.Errorf("invalid limit / offset settings")
@@ -678,32 +687,29 @@ func (datasetImpl) Get(scope scope, p *GetParams) (*GetResult, error) {
 			log.Debugf("Get dataset, base.GetBody %q failed, error: %s", ds, err)
 			return nil, err
 		}
-		return res, nil
-	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
-		// Fields that have qfs.File types should be read and returned
-		res.Bytes, err = ioutil.ReadAll(scriptFile)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	} else if p.Selector == "stats" {
+	case p.Selector == "stats":
 		sa, err := scope.Stats().Stats(scope.Context(), ds)
 		if err != nil {
 			return nil, err
 		}
 		res.Value = sa.Stats
-		return res, nil
+	case scriptFileOk:
+		// Fields that have qfs.File types should be read and returned
+		res.Bytes, err = ioutil.ReadAll(scriptFile)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		if err := inlineAllScriptFiles(scope.Context(), ds, scope.Filesystem()); err != nil {
+			return nil, err
+		}
+		// `qri get <selector>` loads only the applicable component / field
+		res.Value, err = base.ApplyPath(ds, p.Selector)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	if err := inlineAllScriptFiles(scope.Context(), ds, scope.Filesystem()); err != nil {
-		return nil, err
-	}
-
-	// `qri get <selector>` loads only the applicable component / field
-	res.Value, err = base.ApplyPath(ds, p.Selector)
-	if err != nil {
-		return nil, err
-	}
 	return res, nil
 }
 
