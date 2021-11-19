@@ -286,7 +286,7 @@ func errOnTimeout(t *testing.T, c chan string) <-chan string {
 		select {
 		case msg := <-c:
 			done <- msg
-		case <-time.After(200 * time.Millisecond):
+		case <-time.After(500 * time.Millisecond):
 			done <- "failed to complete before timeout"
 		}
 	}()
