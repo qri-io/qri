@@ -25,7 +25,7 @@ func callMethod(thread *starlark.Thread, v starlark.HasAttrs, name string, tuple
 }
 
 func TestCannotSetIfReadOnly(t *testing.T) {
-	ds := NewDataset(&dataset.Dataset{})
+	ds := NewDataset(&dataset.Dataset{}, nil)
 	ds.Freeze()
 	expect := "cannot set, Dataset is frozen"
 	err := ds.SetField("body", starlark.NewList([]starlark.Value{starlark.NewList([]starlark.Value{starlark.String("a")})}))
@@ -38,7 +38,7 @@ func TestCannotSetIfReadOnly(t *testing.T) {
 }
 
 func TestSetAndGetBody(t *testing.T) {
-	ds := NewDataset(&dataset.Dataset{})
+	ds := NewDataset(&dataset.Dataset{}, nil)
 	err := ds.SetField("body", starlark.NewList([]starlark.Value{starlark.NewList([]starlark.Value{starlark.String("a")})}))
 	if err != nil {
 		t.Fatal(err)
@@ -102,7 +102,7 @@ bat,3,meh
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.csv", []byte(text)))
 
-	d := NewDataset(ds)
+	d := NewDataset(ds, nil)
 	return d
 }
 
@@ -155,7 +155,7 @@ func TestCreateColumnsFromStructure(t *testing.T) {
 				Schema: c.schema,
 			},
 		}
-		d := NewDataset(ds)
+		d := NewDataset(ds, nil)
 		actual := d.createColumnsFromStructure()
 		if diff := cmp.Diff(c.expect, actual); diff != "" {
 			t.Errorf("case %d %s: mismatch (-want +got):\n%s", i, c.desc, diff)

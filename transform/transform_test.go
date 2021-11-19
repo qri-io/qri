@@ -188,7 +188,7 @@ func applyNoHistoryTransform(t *testing.T, initID string, tf *dataset.Transform,
 	}, runID)
 
 	fs := qfs.NewMemFS()
-	transformer := NewTransformer(ctx, fs, loader, bus)
+	transformer := NewTransformer(ctx, fs, loader, bus, SizeInfo{})
 	if runMode == "apply" {
 		if err := transformer.Apply(ctx, target, runID, false, nil); err != nil {
 			t.Fatal(err)
@@ -277,7 +277,7 @@ func TestApplyAssignsColumnsAndBody(t *testing.T) {
 	loader := &noHistoryLoader{}
 	bus := event.NewBus(ctx)
 	fs := qfs.NewMemFS()
-	transformer := NewTransformer(ctx, fs, loader, bus)
+	transformer := NewTransformer(ctx, fs, loader, bus, SizeInfo{})
 
 	ds := &dataset.Dataset{Transform: &dataset.Transform{}}
 	ds.Transform.SetScriptFile(scriptFile(t, "startf/testdata/csv_with_header.star"))

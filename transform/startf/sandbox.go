@@ -22,11 +22,11 @@ type HTTPGuard struct {
 }
 
 // Allowed implements starlib/http RequestGuard
-func (h *HTTPGuard) Allowed(req *http.Request) error {
+func (h *HTTPGuard) Allowed(_ *starlark.Thread, req *http.Request) (*http.Request, error) {
 	if !h.NetworkEnabled {
-		return ErrNtwkDisabled
+		return nil, ErrNtwkDisabled
 	}
-	return nil
+	return req, nil
 }
 
 // EnableNtwk allows network calls

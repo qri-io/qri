@@ -16,6 +16,7 @@ import (
 	stards "github.com/qri-io/qri/transform/startf/ds"
 	"github.com/qri-io/qri/version"
 	"github.com/qri-io/starlib"
+	"github.com/qri-io/starlib/dataframe"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
@@ -56,6 +57,9 @@ type ExecOpts struct {
 	EventsCh chan event.Event
 	// map containing components that have been changed
 	ChangeSet map[string]struct{}
+	// the size of the output area, for stringifying large objects
+	OutputWidth  int
+	OutputHeight int
 }
 
 // AddDatasetLoader is required to enable the load_dataset starlark builtin
@@ -114,6 +118,14 @@ func SetErrWriter(w io.Writer) func(o *ExecOpts) {
 func TrackChanges(changes map[string]struct{}) func(o *ExecOpts) {
 	return func(o *ExecOpts) {
 		o.ChangeSet = changes
+	}
+}
+
+// SizeInfo sets the size of the area that will display output
+func SizeInfo(outWidth, outHeight int) func(o *ExecOpts) {
+	return func(o *ExecOpts) {
+		o.OutputWidth = outWidth
+		o.OutputHeight = outHeight
 	}
 }
 
@@ -179,6 +191,14 @@ func NewStepRunner(target *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunn
 		},
 	}
 
+	// Store the OutputConfig on the starlark thread. This allows functions
+	// such as the DataFrame constructor to get this configuration
+	outconf := &dataframe.OutputConfig{
+		Width:  o.OutputWidth,
+		Height: o.OutputHeight,
+	}
+	thread.SetLocal("OutputConig", &outconf)
+
 	r := &StepRunner{
 		config:    target.Transform.Config,
 		secrets:   o.Secrets,
@@ -190,7 +210,7 @@ func NewStepRunner(target *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunn
 		globals:   starlark.StringDict{},
 		changeSet: o.ChangeSet,
 	}
-	r.stards = stards.NewBoundDataset(target, r.onCommit)
+	r.stards = stards.NewBoundDataset(target, outconf, r.onCommit)
 
 	return r
 }
@@ -306,7 +326,8 @@ func (r *StepRunner) loadDatasetFunc(ctx context.Context, target *dataset.Datase
 			Path: fmt.Sprintf("%s/%s@%s", ds.Peername, ds.Name, ds.Path),
 		}
 
-		return stards.NewDataset(ds), nil
+		outconf, _ := thread.Local("OutputConfig").(*dataframe.OutputConfig)
+		return stards.NewDataset(ds, outconf), nil
 	}
 }
 

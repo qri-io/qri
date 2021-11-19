@@ -58,3 +58,12 @@ func defaultFilePermMask() int {
 	syscall.Umask(mask)
 	return mask
 }
+
+// sizeOfTerminal returns the width and height of the terminal, or -1, -1 if there isn't one
+func sizeOfTerminal() (int, int) {
+	width, height, err := terminal.GetSize(0)
+	if err != nil {
+		return -1, -1
+	}
+	return width, height
+}

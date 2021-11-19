@@ -15,3 +15,8 @@ func stdoutIsTerminal() bool {
 func defaultFilePermMask() int {
 	return 0
 }
+
+// sizeOfTerminal returns an invalid size on Windows
+func sizeOfTerminal() (int, int) {
+	return -1, -1
+}

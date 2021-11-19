@@ -1042,9 +1042,12 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 			return nil
 		}, runID)
 
+		// TODO(dustmop): Get actual size info from the proper place
+		sizeInfo := transform.SizeInfo{}
+
 		// apply the transform
 		shouldWait := true
-		transformer := transform.NewTransformer(scope.AppContext(), scope.Filesystem(), scope.Loader(), scope.Bus())
+		transformer := transform.NewTransformer(scope.AppContext(), scope.Filesystem(), scope.Loader(), scope.Bus(), sizeInfo)
 		if err := transformer.Commit(scope.Context(), ref.InitID, ds, runID, shouldWait, secrets); err != nil {
 			log.Errorw("transform run error", "err", err.Error())
 			runState.Message = err.Error()

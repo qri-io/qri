@@ -644,12 +644,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	runFactory := func(ctx context.Context) automation.Run {
-		return inst.run
-	}
-	applyFactory := func(ctx context.Context) automation.Apply {
-		return inst.apply
-	}
 	if o.automationOptions == nil {
 		// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
 		// basic orchestrator options. When we get the automation configuration settled
@@ -660,7 +654,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 		o.automationOptions = &orchestratorOpts
 	}
-	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, *o.automationOptions)
+	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, &runner{owner: inst}, *o.automationOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -795,13 +789,6 @@ func NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts(ctx context.Context, 
 		inst.qfs = r.Filesystem()
 	}
 
-	runFactory := func(ctx context.Context) automation.Run {
-		return inst.run
-	}
-	applyFactory := func(ctx context.Context) automation.Apply {
-		return inst.apply
-	}
-
 	var err error
 	// TODO(ramfox): using `DefaultOrchestratorOptions` func for now to generate
 	// basic orchestrator options. When we get the automation configuration settled
@@ -815,7 +802,7 @@ func NewInstanceFromConfigAndNodeAndBusAndOrchestratorOpts(ctx context.Context, 
 			RunStore: run.NewMemStore(),
 		}
 	}
-	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, runFactory, applyFactory, *o)
+	inst.automation, err = automation.NewOrchestrator(ctx, inst.bus, &runner{owner: inst}, *o)
 	if err != nil {
 		cancel()
 		panic(err)

@@ -49,29 +49,10 @@ func TestIntegration(t *testing.T) {
 		Listeners:     []trigger.Listener{runtimeListener},
 	}
 
-	runFuncFactory := func(ctx context.Context) Run {
-		return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
-			// since we don't actually run anything
-			// we need to mock the success of the run
-			runStore.Put(ctx, &run.State{
-				ID:         runID,
-				WorkflowID: w.ID,
-				Status:     run.RSSucceeded,
-			})
-			<-time.After(50 * time.Millisecond)
-			t.Log("ran!")
-			return nil
-		}
-	}
 	applied := make(chan string)
-	applyFuncFactory := func(ctx context.Context) Apply {
-		return func(ctx context.Context, wait bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
-			applied <- "applied"
-			return nil
-		}
-	}
+	runner := newTestWorkflowRunner(runStore, applied)
 
-	o, err := NewOrchestrator(ctx, bus, runFuncFactory, applyFuncFactory, opts)
+	o, err := NewOrchestrator(ctx, bus, runner, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +172,7 @@ func TestIntegration(t *testing.T) {
 	gotWorkflowEvents = []interface{}{}
 
 	done = errOnTimeout(t, applied, "o.ApplyWorkflow error: timed out before apply function called")
-	_, err = o.ApplyWorkflow(ctx, false, nil, got, nil, nil)
+	_, err = o.ApplyWorkflow(ctx, false, nil, got, nil, WorkflowRunParams{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -401,59 +382,43 @@ func TestRunStoreEvents(t *testing.T) {
 	r7 := r6.Copy()
 	r7.Status = run.RSSucceeded
 
-	// this runFunc simulates events emitted by the transform package
-	runFuncFactory := func(ctx context.Context) Run {
-		return func(ctx context.Context, streams ioes.IOStreams, w *workflow.Workflow, runID string) error {
-			// event 0
-			bus.PublishID(ctx, event.ETTransformStart, runID, nil)
-			confirmStoredRun(ctx, t, runStore, r0)
-
-			// event 1
-			bus.PublishID(ctx, event.ETTransformStepStart, runID, event.TransformStepLifecycle{
+	events := []simulatedRunEvent{
+		{
+			r0, event.ETTransformStart, nil,
+		},
+		{
+			r1, event.ETTransformStepStart, event.TransformStepLifecycle{
 				Name:     "step start",
 				Category: "step start category",
-			})
-			confirmStoredRun(ctx, t, runStore, r1)
-
-			// event 2
-			bus.PublishID(ctx, event.ETTransformPrint, runID, event.TransformMessage{Msg: "transform print"})
-			confirmStoredRun(ctx, t, runStore, r2)
-
-			// event 3
-			bus.PublishID(ctx, event.ETTransformError, runID, event.TransformMessage{Msg: "transform error"})
-			confirmStoredRun(ctx, t, runStore, r3)
-
-			// event 4
-			bus.PublishID(ctx, event.ETTransformDatasetPreview, runID, "transform dataset preview")
-			confirmStoredRun(ctx, t, runStore, r4)
-
-			// event 5
-			bus.PublishID(ctx, event.ETTransformStepStop, runID, event.TransformStepLifecycle{Status: "succeeded"})
-			confirmStoredRun(ctx, t, runStore, r5)
-
-			// event 6
-			bus.PublishID(ctx, event.ETTransformStepSkip, runID, event.TransformStepLifecycle{Name: "step skip", Category: "step skip category", Status: "skipped"})
-			confirmStoredRun(ctx, t, runStore, r6)
-
-			// event 7
-			bus.PublishID(ctx, event.ETTransformStop, runID, event.TransformLifecycle{Status: "succeeded"})
-			confirmStoredRun(ctx, t, runStore, r7)
-
-			return nil
-		}
+			},
+		},
+		{
+			r2, event.ETTransformPrint, event.TransformMessage{Msg: "transform print"},
+		},
+		{
+			r3, event.ETTransformError, event.TransformMessage{Msg: "transform error"},
+		},
+		{
+			r4, event.ETTransformDatasetPreview, "transform dataset preview",
+		},
+		{
+			r5, event.ETTransformStepStop, event.TransformStepLifecycle{Status: "succeeded"},
+		},
+		{
+			r6, event.ETTransformStepSkip, event.TransformStepLifecycle{Name: "step skip", Category: "step skip category", Status: "skipped"},
+		},
+		{
+			r7, event.ETTransformStop, event.TransformLifecycle{Status: "succeeded"},
+		},
 	}
-	applyFuncFactory := func(ctx context.Context) Apply {
-		return func(ctx context.Context, wait bool, runID string, w *workflow.Workflow, ds *dataset.Dataset, secrets map[string]string) error {
-			return nil
-		}
-	}
+	simulator := newWorkflowRunSimulator(t, runStore, bus, events)
 
 	opts := OrchestratorOptions{
 		WorkflowStore: workflowStore,
 		RunStore:      runStore,
 		Listeners:     []trigger.Listener{listener},
 	}
-	o, err := NewOrchestrator(ctx, bus, runFuncFactory, applyFuncFactory, opts)
+	o, err := NewOrchestrator(ctx, bus, simulator, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -474,4 +439,72 @@ func confirmStoredRun(ctx context.Context, t *testing.T, s run.Store, expect *ru
 	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(run.State{}, "StartTime", "StopTime", "Duration"), cmpopts.IgnoreFields(run.StepState{}, "StartTime", "StopTime", "Duration"), cmpopts.IgnoreFields(event.Event{}, "Timestamp")); diff != "" {
 		t.Errorf("stored run mismatch: (-want +got):\n%s", diff)
 	}
+}
+
+// a workflow runner that doesn't do too much, just for testing
+type testWorkflowRunner struct {
+	store   run.Store
+	applied chan string
+}
+
+func newTestWorkflowRunner(store run.Store, applied chan string) *testWorkflowRunner {
+	return &testWorkflowRunner{
+		store:   store,
+		applied: applied,
+	}
+}
+
+func (r *testWorkflowRunner) RunEphemeral(ctx context.Context, runID string, wf *workflow.Workflow, ds *dataset.Dataset, wait bool, params WorkflowRunParams) error {
+	r.applied <- "applied"
+	return nil
+}
+
+func (r *testWorkflowRunner) RunAndCommit(ctx context.Context, runID string, wf *workflow.Workflow, streams ioes.IOStreams, params WorkflowRunParams) error {
+	//return r.owner.run(ctx, streams, wf, runID)
+	// since we don't actually run anything
+	// we need to mock the success of the run
+	r.store.Put(ctx, &run.State{
+		ID:         runID,
+		WorkflowID: wf.ID,
+		Status:     run.RSSucceeded,
+	})
+	<-time.After(50 * time.Millisecond)
+	return nil
+}
+
+// a simulated event and run state
+type simulatedRunEvent struct {
+	state   *run.State
+	etype   event.Type
+	payload interface{}
+}
+
+// a workflow runner that simulates events
+type workflowRunSimulator struct {
+	t      *testing.T
+	bus    event.Bus
+	store  run.Store
+	events []simulatedRunEvent
+}
+
+func newWorkflowRunSimulator(t *testing.T, store run.Store, bus event.Bus, events []simulatedRunEvent) *workflowRunSimulator {
+	return &workflowRunSimulator{
+		t:      t,
+		bus:    bus,
+		store:  store,
+		events: events,
+	}
+}
+
+// RunAndCommit simulates events emitted by the transform package
+func (r *workflowRunSimulator) RunAndCommit(ctx context.Context, runID string, wf *workflow.Workflow, streams ioes.IOStreams, params WorkflowRunParams) error {
+	for _, runEvent := range r.events {
+		r.bus.PublishID(ctx, runEvent.etype, runID, runEvent.payload)
+		confirmStoredRun(ctx, r.t, r.store, runEvent.state)
+	}
+	return nil
+}
+
+func (r *workflowRunSimulator) RunEphemeral(ctx context.Context, runID string, wf *workflow.Workflow, ds *dataset.Dataset, wait bool, params WorkflowRunParams) error {
+	return nil
 }
