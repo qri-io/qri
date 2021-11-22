@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"runtime/debug"
 	"strings"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/preview"
 	"github.com/qri-io/qfs"
@@ -27,6 +29,8 @@ var (
 	Version = version.Version
 	// ErrNotDefined is for when a starlark value is not defined or does not exist
 	ErrNotDefined = fmt.Errorf("not defined")
+	// log for this package
+	log = golog.Logger("startf")
 )
 
 // ExecOpts defines options for execution
@@ -233,6 +237,7 @@ func (r *StepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *datas
 			// Need to assign to the named return value from
 			// a recovery
 			err = fmt.Errorf("running transform: %w", r)
+			log.Error("%w, stacktrace: %s", err, debug.Stack())
 		}
 	}()
 
