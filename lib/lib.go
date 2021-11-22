@@ -461,7 +461,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	// if logAll is enabled, turn on debug level logging for all qri packages. Packages need to
 	// be explicitly enumerated here
 	if o.logAll {
-		allPackages := []string{"automation", "qriapi", "qrip2p", "base", "changes", "cmd", "config", "dsref", "dsfs", "friendly", "lib", "logbook", "profile", "repo", "registry", "sql", "token"}
+		allPackages := []string{"automation", "qriapi", "qrip2p", "base", "changes", "cmd", "config", "dsref", "dsfs", "friendly", "lib", "logbook", "profile", "repo", "registry", "startf", "sql", "token"}
 		for _, name := range allPackages {
 			golog.SetLogLevel(name, "debug")
 		}
