@@ -54,8 +54,10 @@ func addToCallGraph(f *funcNode, graph *callGraph, symtable map[string]*funcNode
 		return me
 	}
 	me = &funcNode{
-		name:  f.name,
-		calls: make([]*funcNode, 0),
+		name:   f.name,
+		params: f.params,
+		body:   f.body,
+		calls:  make([]*funcNode, 0),
 	}
 	for _, name := range f.callNames {
 		child, ok := symtable[name]
