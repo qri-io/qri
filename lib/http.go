@@ -44,12 +44,12 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 
 		if cursor != nil {
 			nextURL := r.URL.Path
-			nextBody, err := cursor.ToJSON()
+			nextParams, err := cursor.ToParams()
 			if err != nil {
 				apiutil.RespondWithError(w, err)
 				return
 			}
-			apiutil.WriteResponseWithNextPageJSON(w, res, nextURL, nextBody)
+			apiutil.WriteResponseWithNextPage(w, res, nextURL, nextParams)
 			return
 		}
 

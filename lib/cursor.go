@@ -2,7 +2,6 @@ package lib
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -17,8 +16,7 @@ var (
 // Cursor is used to paginate results for methods that support it
 type Cursor interface {
 	Next(ctx context.Context) (interface{}, error)
-	ToJSON() (string, error)
-	ToQueryParams() (string, error)
+	ToParams() (map[string]string, error)
 }
 
 type cursor struct {
@@ -40,18 +38,9 @@ func (c cursor) Next(ctx context.Context) (interface{}, error) {
 	return res, nil
 }
 
-// ToJSON returns the cursor's input params as json
-func (c cursor) ToJSON() (string, error) {
-	data, err := json.Marshal(c.nextPage)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
-
-// ToQueryParams returns the cursor's input params as http query parameters
-func (c cursor) ToQueryParams() (string, error) {
-	result := make([]string, 0)
+// ToParams returns the cursor's input params as a map of strings to strings
+func (c cursor) ToParams() (map[string]string, error) {
+	params := make(map[string]string)
 	target := reflect.ValueOf(c.nextPage)
 	if target.Kind() == reflect.Ptr {
 		target = target.Elem()
@@ -73,7 +62,7 @@ func (c cursor) ToQueryParams() (string, error) {
 		if v.IsZero() {
 			continue
 		}
-		result = append(result, fmt.Sprintf("%s=%v", lowerName, v))
+		params[lowerName] = fmt.Sprintf("%v", v)
 	}
-	return fmt.Sprintf("?%s", strings.Join(result, "&")), nil
+	return params, nil
 }

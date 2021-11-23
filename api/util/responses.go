@@ -21,10 +21,8 @@ type Meta struct {
 
 // NextPageReq is the request to get the next page of results
 type NextPageReq struct {
-	Method      string `json:"method"`
-	URL         string `json:"url"`
-	ContentType string `json:"contentType"`
-	JSONBody    string `json:"jsonBody"`
+	URL    string            `json:"url"`
+	Params map[string]string `json:"params"`
 }
 
 // WriteResponse wraps response data in an envelope & writes it
@@ -38,18 +36,16 @@ func WriteResponse(w http.ResponseWriter, data interface{}) error {
 	return jsonResponse(w, env)
 }
 
-// WriteResponseWithNextPageJSON writes the http response and
-// includes the json call to get the next page of results
-func WriteResponseWithNextPageJSON(w http.ResponseWriter, data interface{}, nextURL, nextBody string) error {
+// WriteResponseWithNextPage writes the http response and includes
+// the body data usable to get the next page of results
+func WriteResponseWithNextPage(w http.ResponseWriter, data interface{}, nextURL string, nextParams map[string]string) error {
 	env := Response{
 		Meta: &Meta{
 			Code: http.StatusOK,
 		},
 		NextPage: &NextPageReq{
-			Method:      http.MethodPost,
-			URL:         nextURL,
-			ContentType: "application/json",
-			JSONBody:    nextBody,
+			URL:    nextURL,
+			Params: nextParams,
 		},
 		Data: data,
 	}
