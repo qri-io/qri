@@ -24,4 +24,6 @@ const (
 	AEGetCSVShortRef qhttp.APIEndpoint = "/ds/get/{username}/{name}/body.csv"
 	// AEUnpack unpacks a zip file and sends it back
 	AEUnpack qhttp.APIEndpoint = "/ds/unpack"
+	// AESaveByUpload is the route used to save a dataset using a multipart form file in the request
+	AESaveByUpload qhttp.APIEndpoint = "/ds/save/upload"
 )

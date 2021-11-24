@@ -241,6 +241,7 @@ func NewServerRoutes(s Server) *mux.Router {
 	routeParams = newrefRouteParams(qhttp.AEGet, false, true, http.MethodGet)
 	handleRefRoute(m, routeParams, s.Middleware(GetHandler(s.Instance, qhttp.AEGet.String())))
 	m.Handle(AEUnpack.String(), s.Middleware(UnpackHandler(AEUnpack.NoTrailingSlash())))
+	m.Handle(AESaveByUpload.String(), s.Middleware(SaveByUploadHandler(s.Instance, AESaveByUpload.NoTrailingSlash())))
 
 	// sync/protocol endpoints
 	if cfg.RemoteServer != nil && cfg.RemoteServer.Enabled {

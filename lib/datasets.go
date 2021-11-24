@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
@@ -489,123 +488,6 @@ func (m DatasetMethods) DAGInfo(ctx context.Context, p *DAGInfoParams) (*dag.Inf
 	return nil, dispatchReturnError(got, err)
 }
 
-// formFileDataset extracts a dataset document from a http Request
-func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
-	datafile, dataHeader, err := r.FormFile("file")
-	if err == http.ErrMissingFile {
-		err = nil
-	} else if err != nil {
-		err = fmt.Errorf("error opening dataset file: %s", err)
-		return
-	}
-	if datafile != nil {
-		switch strings.ToLower(filepath.Ext(dataHeader.Filename)) {
-		case ".yaml", ".yml":
-			var data []byte
-			data, err = ioutil.ReadAll(datafile)
-			if err != nil {
-				err = fmt.Errorf("reading dataset file: %w", err)
-				return
-			}
-			fields := &map[string]interface{}{}
-			if err = yaml.Unmarshal(data, fields); err != nil {
-				err = fmt.Errorf("deserializing YAML file: %w", err)
-				return
-			}
-			if err = fill.Struct(*fields, ds); err != nil {
-				return
-			}
-		case ".json":
-			if err = json.NewDecoder(datafile).Decode(ds); err != nil {
-				err = fmt.Errorf("error decoding json file: %s", err)
-				return
-			}
-		}
-	}
-
-	if peername := r.FormValue("peername"); peername != "" {
-		ds.Peername = peername
-	}
-	if name := r.FormValue("name"); name != "" {
-		ds.Name = name
-	}
-	if bp := r.FormValue("body_path"); bp != "" {
-		ds.BodyPath = bp
-	}
-
-	tfFile, tfHeader, err := r.FormFile("transform")
-	if err == http.ErrMissingFile {
-		err = nil
-	} else if err != nil {
-		err = fmt.Errorf("error opening transform file: %s", err)
-		return
-	}
-	if tfFile != nil {
-		var tfData []byte
-		if tfData, err = ioutil.ReadAll(tfFile); err != nil {
-			return
-		}
-		if ds.Transform == nil {
-			ds.Transform = &dataset.Transform{}
-		}
-		ds.Transform.Syntax = "starlark"
-		ds.Transform.Text = string(tfData)
-		ds.Transform.ScriptPath = tfHeader.Filename
-	}
-
-	vizFile, vizHeader, err := r.FormFile("viz")
-	if err == http.ErrMissingFile {
-		err = nil
-	} else if err != nil {
-		err = fmt.Errorf("error opening viz file: %s", err)
-		return
-	}
-	if vizFile != nil {
-		var vizData []byte
-		if vizData, err = ioutil.ReadAll(vizFile); err != nil {
-			return
-		}
-		if ds.Viz == nil {
-			ds.Viz = &dataset.Viz{}
-		}
-		ds.Viz.Format = "html"
-		ds.Viz.Text = string(vizData)
-		ds.Viz.ScriptPath = vizHeader.Filename
-	}
-
-	bodyfile, bodyHeader, err := r.FormFile("body")
-	if err == http.ErrMissingFile {
-		err = nil
-	} else if err != nil {
-		err = fmt.Errorf("error opening body file: %s", err)
-		return
-	}
-	if bodyfile != nil {
-		var bodyData []byte
-		if bodyData, err = ioutil.ReadAll(bodyfile); err != nil {
-			return
-		}
-		ds.BodyPath = bodyHeader.Filename
-		ds.BodyBytes = bodyData
-
-		if ds.Structure == nil {
-			// TODO - this is silly and should move into base.PrepareDataset funcs
-			ds.Structure = &dataset.Structure{}
-			format, comp, err := detect.FormatFromFilename(bodyHeader.Filename)
-			if err != nil {
-				return err
-			}
-			st, _, err := detect.FromReader(format, comp, bytes.NewReader(ds.BodyBytes))
-			if err != nil {
-				return err
-			}
-			ds.Structure = st
-		}
-	}
-
-	return
-}
-
 // RenderParams defines parameters for the Render method
 type RenderParams struct {
 	// Ref is a string reference to the dataset to render
@@ -989,6 +871,7 @@ func (datasetImpl) Save(scope scope, p *SaveParams) (*dataset.Dataset, error) {
 		p.Drop == "" &&
 		ds.BodyPath == "" &&
 		ds.Body == nil &&
+		ds.BodyFile() == nil &&
 		ds.BodyBytes == nil &&
 		ds.Structure == nil &&
 		ds.Meta == nil &&
