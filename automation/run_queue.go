@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/qri-io/qri/event"
+	"github.com/qri-io/qri/profile"
 )
 
 var (
@@ -131,14 +132,15 @@ func (r *runQueue) pollQueue(ctx context.Context, interval time.Duration) {
 func (r *runQueue) Push(ctx context.Context, ownerID string, runID string, mode string, f runQueueFunc) error {
 	r.qlk.Lock()
 	defer r.qlk.Unlock()
+	scopedCtx := profile.AddIDToContext(ctx, ownerID)
 	go func() {
 		switch mode {
 		case "run":
-			if err := r.pub.Publish(ctx, event.ETAutomationRunQueuePush, &runID); err != nil {
+			if err := r.pub.PublishID(scopedCtx, event.ETAutomationRunQueuePush, runID, &runID); err != nil {
 				log.Debug(err)
 			}
 		case "apply":
-			if err := r.pub.Publish(ctx, event.ETAutomationApplyQueuePush, &runID); err != nil {
+			if err := r.pub.PublishID(scopedCtx, event.ETAutomationApplyQueuePush, runID, &runID); err != nil {
 				log.Debug(err)
 			}
 		}
