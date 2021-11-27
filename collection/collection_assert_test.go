@@ -35,6 +35,8 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 	kermit := profiletest.GetProfile("kermit")
 	missPiggy := profiletest.GetProfile("miss_piggy")
 
+	muppetNamesRunStart := time.Date(2021, 1, 6, 0, 0, 0, 0, time.UTC)
+
 	t.Run("empty_list", func(t *testing.T) {
 		res, err := ec.List(ctx, missPiggy.ID, params.ListAll)
 		if err == nil {
@@ -67,11 +69,13 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 
 		err := ec.Add(ctx, kermit.ID,
 			dsref.VersionInfo{
-				ProfileID:  kermit.ID.Encode(),
-				InitID:     "muppet_names_init_id",
-				Username:   "kermit",
-				Name:       "muppet_names",
-				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				ProfileID:   kermit.ID.Encode(),
+				InitID:      "muppet_names_init_id",
+				Username:    "kermit",
+				Name:        "muppet_names",
+				CommitTime:  time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				RunStart:    &muppetNamesRunStart,
+				RunDuration: 1,
 			},
 			dsref.VersionInfo{
 				ProfileID:  kermit.ID.Encode(),
@@ -88,18 +92,13 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 
 		err = ec.Add(ctx, missPiggy.ID,
 			dsref.VersionInfo{
-				ProfileID:  missPiggy.ID.Encode(),
-				InitID:     "secret_muppet_friends_init_id",
-				Username:   "miss_piggy",
-				Name:       "secret_muppet_friends",
-				CommitTime: time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC),
-			},
-			dsref.VersionInfo{
-				ProfileID:  missPiggy.ID.Encode(),
-				InitID:     "muppet_names_init_id",
-				Username:   "kermit",
-				Name:       "muppet_names",
-				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				ProfileID:   missPiggy.ID.Encode(),
+				InitID:      "muppet_names_init_id",
+				Username:    "kermit",
+				Name:        "muppet_names",
+				CommitTime:  time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				RunStart:    &muppetNamesRunStart,
+				RunDuration: 1,
 			},
 			dsref.VersionInfo{
 				ProfileID:  missPiggy.ID.Encode(),
@@ -107,6 +106,13 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 				Username:   "famous_muppets",
 				Name:       "famous_muppets",
 				CommitTime: time.Date(2021, 1, 4, 0, 0, 0, 0, time.UTC),
+			},
+			dsref.VersionInfo{
+				ProfileID:  missPiggy.ID.Encode(),
+				InitID:     "secret_muppet_friends_init_id",
+				Username:   "miss_piggy",
+				Name:       "secret_muppet_friends",
+				CommitTime: time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC),
 			},
 		)
 
@@ -117,11 +123,13 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 	t.Run("list", func(t *testing.T) {
 		assertCollectionList(ctx, t, kermit, params.ListAll, ec, []dsref.VersionInfo{
 			{
-				ProfileID:  kermit.ID.Encode(),
-				InitID:     "muppet_names_init_id",
-				Username:   "kermit",
-				Name:       "muppet_names",
-				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				ProfileID:   kermit.ID.Encode(),
+				InitID:      "muppet_names_init_id",
+				Username:    "kermit",
+				Name:        "muppet_names",
+				CommitTime:  time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				RunStart:    &muppetNamesRunStart,
+				RunDuration: 1,
 			},
 			{
 				ProfileID:  kermit.ID.Encode(),
@@ -141,11 +149,73 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 				CommitTime: time.Date(2021, 1, 4, 0, 0, 0, 0, time.UTC),
 			},
 			{
+				ProfileID:   missPiggy.ID.Encode(),
+				InitID:      "muppet_names_init_id",
+				Username:    "kermit",
+				Name:        "muppet_names",
+				CommitTime:  time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				RunStart:    &muppetNamesRunStart,
+				RunDuration: 1,
+			},
+			{
 				ProfileID:  missPiggy.ID.Encode(),
-				InitID:     "muppet_names_init_id",
-				Username:   "kermit",
-				Name:       "muppet_names",
-				CommitTime: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				InitID:     "secret_muppet_friends_init_id",
+				Username:   "miss_piggy",
+				Name:       "secret_muppet_friends",
+				CommitTime: time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC),
+			},
+		})
+
+		listByUpdated := params.List{
+			Limit:   -1,
+			OrderBy: []string{"updated"},
+		}
+		assertCollectionList(ctx, t, missPiggy, listByUpdated, ec, []dsref.VersionInfo{
+			{
+				ProfileID:   missPiggy.ID.Encode(),
+				InitID:      "muppet_names_init_id",
+				Username:    "kermit",
+				Name:        "muppet_names",
+				CommitTime:  time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				RunStart:    &muppetNamesRunStart,
+				RunDuration: 1,
+			},
+			{
+				ProfileID:  missPiggy.ID.Encode(),
+				InitID:     "famous_muppets_init_id",
+				Username:   "famous_muppets",
+				Name:       "famous_muppets",
+				CommitTime: time.Date(2021, 1, 4, 0, 0, 0, 0, time.UTC),
+			},
+			{
+				ProfileID:  missPiggy.ID.Encode(),
+				InitID:     "secret_muppet_friends_init_id",
+				Username:   "miss_piggy",
+				Name:       "secret_muppet_friends",
+				CommitTime: time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC),
+			},
+		})
+
+		listByName := params.List{
+			Limit:   -1,
+			OrderBy: []string{"name"},
+		}
+		assertCollectionList(ctx, t, missPiggy, listByName, ec, []dsref.VersionInfo{
+			{
+				ProfileID:  missPiggy.ID.Encode(),
+				InitID:     "famous_muppets_init_id",
+				Username:   "famous_muppets",
+				Name:       "famous_muppets",
+				CommitTime: time.Date(2021, 1, 4, 0, 0, 0, 0, time.UTC),
+			},
+			{
+				ProfileID:   missPiggy.ID.Encode(),
+				InitID:      "muppet_names_init_id",
+				Username:    "kermit",
+				Name:        "muppet_names",
+				CommitTime:  time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+				RunStart:    &muppetNamesRunStart,
+				RunDuration: 1,
 			},
 			{
 				ProfileID:  missPiggy.ID.Encode(),

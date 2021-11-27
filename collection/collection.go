@@ -8,8 +8,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	logger "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/automation/workflow"
@@ -350,6 +352,8 @@ func NewLocalSet(ctx context.Context, repoDir string, options ...LocalSetOptionF
 	return s, err
 }
 
+// List currently supports ordering by name (ascending) and last update (descending)
+// default is name
 func (s *localSet) List(ctx context.Context, pid profile.ID, lp params.List) ([]dsref.VersionInfo, error) {
 	s.Lock()
 	defer s.Unlock()
@@ -368,6 +372,18 @@ func (s *localSet) List(ctx context.Context, pid profile.ID, lp params.List) ([]
 	}
 
 	results := make([]dsref.VersionInfo, 0, lp.Limit)
+
+	if len(lp.OrderBy) != 0 {
+		switch lp.OrderBy[0] {
+		case "updated":
+			sortedCol := make([]dsref.VersionInfo, len(col))
+			copy(sortedCol, col)
+			sort.Sort(byUpdated(sortedCol))
+			col = sortedCol
+		case "name":
+		default:
+		}
+	}
 
 	for _, item := range col {
 		lp.Offset--
@@ -589,4 +605,25 @@ func (s *localSet) UpdateEverywhere(ctx context.Context, initID string, mutate f
 
 func isCollectionFilename(filename string) bool {
 	return strings.HasSuffix(filename, ".json")
+}
+
+// byUpdate sorts by updated time (commit or run), decending
+type byUpdated []dsref.VersionInfo
+
+func (u byUpdated) Len() int      { return len(u) }
+func (u byUpdated) Swap(i, j int) { u[i], u[j] = u[j], u[i] }
+func (u byUpdated) Less(i, j int) bool {
+	ivi := u[i]
+	jvi := u[j]
+	iTime := ivi.CommitTime
+	jTime := jvi.CommitTime
+
+	if ivi.RunStart != nil {
+		iTime = ivi.RunStart.Add(time.Duration(ivi.RunDuration))
+	}
+	if jvi.RunStart != nil {
+		jTime = jvi.RunStart.Add(time.Duration(jvi.RunDuration))
+	}
+
+	return iTime.After(jTime)
 }
