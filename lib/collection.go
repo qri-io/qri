@@ -43,12 +43,12 @@ func (m CollectionMethods) Attributes() map[string]AttributeSet {
 var ErrListWarning = base.ErrUnlistableReferences
 
 // List gets the reflist for either the local repo or a peer
-func (m CollectionMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, error) {
-	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "list"), p)
+func (m CollectionMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, Cursor, error) {
+	got, cur, err := m.d.Dispatch(ctx, dispatchMethodName(m, "list"), p)
 	if res, ok := got.([]dsref.VersionInfo); ok {
-		return res, err
+		return res, cur, err
 	}
-	return nil, dispatchReturnError(got, err)
+	return nil, nil, dispatchReturnError(got, err)
 }
 
 // ListRawRefs gets the list of raw references as string
@@ -87,15 +87,26 @@ func (m CollectionMethods) Get(ctx context.Context, p *CollectionGetParams) (*ds
 type collectionImpl struct{}
 
 // List gets the reflist for either the local repo or a peer
-func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, error) {
+func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, Cursor, error) {
 	if s := scope.CollectionSet(); s != nil {
 		lp := params.List{
 			OrderBy: []string{p.OrderBy},
 			Offset:  p.Offset,
 			Limit:   p.Limit,
 		}
-		return s.List(scope.ctx, scope.ActiveProfile().ID, lp)
+		infos, err := s.List(scope.ctx, scope.ActiveProfile().ID, lp)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// Create a cursor that points to the next page of results
+		// A cursor is simply the current input params to this method, tweaked such that
+		// they get the next page of results
+		p.Offset += p.Limit
+		cur := scope.MakeCursor(len(infos), p)
+		return infos, cur, nil
 	}
+
 	// TODO(dustmop): When List is converted to use scope, get the ProfileID from
 	// the scope if the user is authorized to only view their own datasets, as opposed
 	// to the full collection that exists in this node's repository.
@@ -113,7 +124,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 	reqProfile := scope.Repo().Profiles().Owner(scope.Context())
 	listProfile, err := getProfile(scope.Context(), scope.Repo().Profiles(), reqProfile.ID.Encode(), p.Username)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// If the list operation leads to a warning, store it in this var
@@ -126,7 +137,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 			log.Infof("building dscache from repo's logbook, profile, and dsref")
 			built, err := build.DscacheFromRepo(scope.Context(), scope.Repo())
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			err = c.Assign(built)
 			if err != nil {
@@ -135,7 +146,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 		}
 		refs, err := c.ListRefs()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		// Filter references so that only with a matching name are returned
 		if p.Term != "" {
@@ -175,20 +186,26 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, err
 			err = nil
 		}
 	} else {
-		return nil, fmt.Errorf("listing datasets on a peer is not implemented")
+		return nil, nil, fmt.Errorf("listing datasets on a peer is not implemented")
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+
+	// Create a cursor that points to the next page of results
+	// A cursor is simply the current input params to this method, tweaked such that
+	// they get the next page of results
+	p.Offset += p.Limit
+	cur := scope.MakeCursor(len(infos), p)
 
 	if listWarning != nil {
 		// If there was a warning listing the datasets, we should still return the list
 		// itself. The caller should handle this warning by simply printing it, but this
 		// shouldn't break the `list` functionality.
-		return infos, listWarning
+		return infos, cur, listWarning
 	}
 
-	return infos, nil
+	return infos, cur, nil
 }
 
 func getProfile(ctx context.Context, pros profile.Store, idStr, peername string) (pro *profile.Profile, err error) {

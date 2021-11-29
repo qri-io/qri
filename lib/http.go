@@ -43,7 +43,13 @@ func NewHTTPRequestHandler(inst *Instance, libMethod string) http.HandlerFunc {
 		}
 
 		if cursor != nil {
-			apiutil.WritePageResponse(w, res, r, apiutil.PageFromRequest(r))
+			nextURL := r.URL.Path
+			nextParams, err := cursor.ToParams()
+			if err != nil {
+				apiutil.RespondWithError(w, err)
+				return
+			}
+			apiutil.WriteResponseWithNextPage(w, res, nextURL, nextParams)
 			return
 		}
 
