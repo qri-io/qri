@@ -36,6 +36,7 @@ func (m AutomationMethods) Attributes() map[string]AttributeSet {
 		"apply":    {Endpoint: qhttp.AEApply, HTTPVerb: "POST"},
 		"deploy":   {Endpoint: qhttp.AEDeploy, HTTPVerb: "POST", DefaultSource: "local"},
 		"run":      {Endpoint: qhttp.AERun, HTTPVerb: "POST"},
+		"runinfo":  {Endpoint: qhttp.AERunInfo, HTTPVerb: "POST"},
 		"workflow": {Endpoint: qhttp.AEWorkflow, HTTPVerb: "POST"},
 		"remove":   {Endpoint: qhttp.AERemoveWorkflow, HTTPVerb: "POST"},
 		"cancel":   {Endpoint: qhttp.AECancel, HTTPVerb: "POST"},
@@ -134,6 +135,20 @@ func (m AutomationMethods) Run(ctx context.Context, p *RunParams) (string, error
 		return res, err
 	}
 	return "", dispatchReturnError(got, err)
+}
+
+// RunInfoParams are parameters for the run info command
+type RunInfoParams struct {
+	ID string `json:"id"`
+}
+
+// RunInfo fetches the full run info for a workflow run
+func (m AutomationMethods) RunInfo(ctx context.Context, p *RunInfoParams) (*run.State, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "runinfo"), p)
+	if res, ok := got.(*run.State); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
 }
 
 // CancelParams are parameters for the cancel command
@@ -438,6 +453,14 @@ func (automationImpl) Run(scope scope, p *RunParams) (string, error) {
 	runID := run.NewID()
 	go scope.AutomationOrchestrator().RunWorkflow(scope.AppContext(), workflow.ID(p.WorkflowID), runID)
 	return runID, nil
+}
+
+// Fetches the full run info for a workflow run
+func (automationImpl) RunInfo(scope scope, p *RunInfoParams) (*run.State, error) {
+	if p.ID == "" {
+		return nil, errors.New("run id is required")
+	}
+	return scope.AutomationOrchestrator().RunInfo(scope.Context(), p.ID)
 }
 
 // Cancel cancels a run

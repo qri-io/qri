@@ -510,6 +510,11 @@ func (o *Orchestrator) RemoveWorkflow(ctx context.Context, id workflow.ID) error
 	return nil
 }
 
+// RunInfo returns the run info for the given runID from the run.Store
+func (o *Orchestrator) RunInfo(ctx context.Context, id string) (*run.State, error) {
+	return o.runs.Get(ctx, id)
+}
+
 // runEventsHandler returns a handler that writes run events to a run store
 func runEventsHandler(store run.Store) event.Handler {
 	return func(ctx context.Context, e event.Event) error {
