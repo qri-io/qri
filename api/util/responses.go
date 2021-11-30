@@ -10,6 +10,10 @@ type Response struct {
 	Data     interface{}  `json:"data,omitempty"`
 	Meta     *Meta        `json:"meta,omitempty"`
 	NextPage *NextPageReq `json:"nextPage,omitempty"`
+	// TODO(dustmop): Cloud depends upon this. Remove once more
+	// methods have started using Cursor/NextPage and cloud is
+	// able to switch over.
+	Pagination *Page `json:"pagination,omitempty"`
 }
 
 // Meta is the JSON API response meta object wrapper
@@ -32,6 +36,26 @@ func WriteResponse(w http.ResponseWriter, data interface{}) error {
 			Code: http.StatusOK,
 		},
 		Data: data,
+	}
+	return jsonResponse(w, env)
+}
+
+// WritePageResponse wraps response data and pagination information in an
+// envelope and writes it
+// TODO(dustmop): Cloud depends upon this
+func WritePageResponse(w http.ResponseWriter, data interface{}, r *http.Request, p Page) error {
+	if p.PrevPageExists() {
+		p.PrevURL = p.Prev().SetQueryParams(r.URL).String()
+	}
+	if p.NextPageExists() {
+		p.NextURL = p.Next().SetQueryParams(r.URL).String()
+	}
+	env := Response{
+		Meta: &Meta{
+			Code: http.StatusOK,
+		},
+		Data:       data,
+		Pagination: &p,
 	}
 	return jsonResponse(w, env)
 }
