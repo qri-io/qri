@@ -1,0 +1,20 @@
+commit:
+  title: initial commit for testing init endpoint
+  message: testing this out to see if it works!
+structure:
+  format: csv
+  formatConfig:
+    headerRow: true
+  schema:
+    items:
+      items:
+      - title: city
+        type: string
+      - title: pop
+        type: integer
+      - title: avg_age
+        type: number
+      - title: in_usa
+        type: boolean
+      type: array
+    type: array

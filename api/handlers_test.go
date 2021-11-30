@@ -5,15 +5,21 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/gorilla/mux"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
@@ -173,6 +179,35 @@ func TestUnpackHandler(t *testing.T) {
 	}
 }
 
+func TestSaveByUploadHandler(t *testing.T) {
+	run := NewAPITestRunner(t)
+	defer run.Delete()
+
+	r := newFormFileRequest(t, "/ds/save/upload", map[string]string{
+		"file":      dstestTestdataFile("cities/init_dataset.json"),
+		"viz":       dstestTestdataFile("cities/template.html"),
+		"transform": dstestTestdataFile("cities/transform.star"),
+		"readme":    dstestTestdataFile("cities/readme.md"),
+		"body":      dstestTestdataFile("cities/data.csv"),
+	}, map[string]string{
+		"ref":   "peer/test_form_upload",
+		"apply": "false",
+	})
+
+	w := httptest.NewRecorder()
+	h := SaveByUploadHandler(run.Instance(), "/ds/save/upload")
+	h(w, r)
+	res := w.Result()
+	statusCode := res.StatusCode
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
+	assertStatusCode(t, "SaveByUploadHandler unexpected status code", statusCode, 200)
+	got := datasetJSONResponse(t, string(bodyBytes))
+	dstest.CompareGoldenDatasetAndUpdateIfEnvVarSet(t, "testdata/expect/TestSaveByUpload.test_ds.json", got)
+}
+
 func assertStatusCode(t *testing.T, description string, actualStatusCode, expectStatusCode int) {
 	t.Helper()
 	if expectStatusCode != actualStatusCode {
@@ -299,6 +334,128 @@ func TestExtensionToMimeType(t *testing.T) {
 			t.Errorf("case %d: expected %q got %q", i, c.expect, got)
 		}
 	}
+}
+
+func TestParseSaveParamsFromRequest(t *testing.T) {
+	expect := &lib.SaveParams{
+		Ref:                 "test/ref",
+		Title:               "test title",
+		Message:             "test message",
+		Apply:               true,
+		Replace:             true,
+		ConvertFormatToPrev: true,
+		Drop:                "drop",
+		Force:               true,
+		NewName:             true,
+		Dataset: &dataset.Dataset{
+			Name:     "dataset name",
+			Peername: "test peername",
+			Meta: &dataset.Meta{
+				Title: "test meta title",
+				Qri:   "md:0",
+			},
+		},
+	}
+
+	dsBytes, err := json.Marshal(expect.Dataset)
+	if err != nil {
+		t.Fatalf("error marshaling dataset: %s", err)
+	}
+
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	writer.WriteField("ref", expect.Ref)
+	writer.WriteField("title", expect.Title)
+	writer.WriteField("message", expect.Message)
+	writer.WriteField("apply", "true")
+	writer.WriteField("replace", "true")
+	writer.WriteField("convertFormatToPrev", "true")
+	writer.WriteField("drop", "drop")
+	writer.WriteField("force", "true")
+	writer.WriteField("newName", "true")
+	writer.WriteField("dataset", string(dsBytes))
+	writer.Close()
+
+	r, err := http.NewRequest(http.MethodPost, "save", body)
+	if err != nil {
+		t.Fatalf("error creating new request: %s", err)
+	}
+	r.Header.Add("Content-Type", writer.FormDataContentType())
+	got := &lib.SaveParams{}
+	err = parseSaveParamsFromRequest(r, got)
+	if err != nil {
+		t.Fatalf("error saving params from request: %s", err)
+	}
+	if diff := cmp.Diff(expect, got, cmpopts.IgnoreUnexported(dataset.Dataset{}), cmpopts.IgnoreUnexported(dataset.Meta{})); diff != "" {
+		t.Errorf("SaveParams mismatch (-want +got):%s\n", diff)
+	}
+}
+
+func TestFormFileDataset(t *testing.T) {
+	r := newFormFileRequest(t, "/", nil, nil)
+	dsp := &dataset.Dataset{}
+	if err := formFileDataset(r, dsp); err != nil {
+		t.Error("expected 'empty' request to be ok")
+	}
+
+	r = newFormFileRequest(t, "/", map[string]string{
+		"file":      dstestTestdataFile("cities/init_dataset.json"),
+		"viz":       dstestTestdataFile("cities/template.html"),
+		"transform": dstestTestdataFile("cities/transform.star"),
+		"readme":    dstestTestdataFile("cities/readme.md"),
+		"body":      dstestTestdataFile("cities/data.csv"),
+	}, nil)
+	if err := formFileDataset(r, dsp); err != nil {
+		t.Error(err)
+	}
+
+	r = newFormFileRequest(t, "/", map[string]string{
+		"file": "testdata/cities/dataset.yml",
+		"body": dstestTestdataFile("cities/data.csv"),
+	}, nil)
+	if err := formFileDataset(r, dsp); err != nil {
+		t.Error(err)
+	}
+}
+
+func newFormFileRequest(t *testing.T, url string, files, params map[string]string) *http.Request {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	for name, path := range files {
+		data, err := os.Open(path)
+		if err != nil {
+			t.Fatalf("error opening datafile: %s %s", name, err)
+		}
+		dataPart, err := writer.CreateFormFile(name, filepath.Base(path))
+		if err != nil {
+			t.Fatalf("error adding data file to form: %s %s", name, err)
+		}
+
+		if _, err := io.Copy(dataPart, data); err != nil {
+			t.Fatalf("error copying data: %s", err)
+		}
+	}
+
+	for key, val := range params {
+		if err := writer.WriteField(key, val); err != nil {
+			t.Fatalf("error adding field to writer: %s", err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		t.Fatalf("error closing writer: %s", err)
+	}
+
+	req := httptest.NewRequest("POST", url, body)
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+	return req
+}
+
+func dstestTestdataFile(path string) string {
+	_, currfile, _, _ := runtime.Caller(0)
+	testdataPath := filepath.Join(filepath.Dir(currfile), "testdata")
+	return filepath.Join(testdataPath, path)
 }
 
 // APICall calls the api and returns the status code and body

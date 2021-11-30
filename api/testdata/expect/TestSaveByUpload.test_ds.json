@@ -1,0 +1,142 @@
+{
+  "bodyPath": "/mem/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
+  "commit": {
+    "author": {
+      "id": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"
+    },
+    "message": "testing this out to see if it works!",
+    "path": "/mem/QmThjHkfp9eejPu9KbqEZg1hEgGRktiuLT3vt2VPqzFxtV",
+    "qri": "cm:0",
+    "signature": "EqlXyA/H95V9+JNELu2dleMvqeCpZVBusvN9mV2AuvU61k9uvk+mUGXCjrcqjzFl0U2+yg1u4PTF3LWzYao0WwJ2JCzUzAvRMBUvSdKzhjmXgGlrONrYH+fDG8ZxXdj8i1ehCETdMq5aqKEdvW88tWhyGQzAPYOHKuprijgpV6zqCIR7wa8bfgZQA1rGXbSzyyrNWQWo4lWwRw2DyBKiAkOBQhjqdjmZIU2aufnjHFJqRmorRUytnVuyEoZHT2i0qZaLBjgI9qgEwzLg6j731cjgG7oSmwtRNq7RMmE+U5x/fpNFtJk2fT7FZHNGOVneAa0L00bYIrZi4zwzVlurCA==",
+    "timestamp": "2001-01-01T01:01:01.000000001Z",
+    "title": "initial commit for testing init endpoint"
+  },
+  "id": "nye5b5kwmlhnztbrwus4m4skojwu3nw7krjngl56fz5gptyqz74q",
+  "name": "test_form_upload",
+  "path": "/mem/Qmaz567cjJ3JVSN2AyLaVCi6HMsXgiXLDvbB5LRh4jw6pW",
+  "peername": "peer",
+  "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+  "readme": {
+    "qri": "rm:0",
+    "scriptPath": "/mem/Qmdj5Az84we9KK4im2FMJBuv2VZrmpD6s6oJBsrvoX6HDx"
+  },
+  "qri": "ds:0",
+  "structure": {
+    "checksum": "/mem/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
+    "depth": 2,
+    "entries": 5,
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "length": 154,
+    "path": "/mem/QmNe9EFznkmZ8GnK5k33yypC7hb1wLmKB3yqTxgYhUKn2r",
+    "qri": "st:0",
+    "schema": {
+      "items": {
+        "items": [
+          {
+            "title": "city",
+            "type": "string"
+          },
+          {
+            "title": "pop",
+            "type": "integer"
+          },
+          {
+            "title": "avg_age",
+            "type": "number"
+          },
+          {
+            "title": "in_usa",
+            "type": "boolean"
+          }
+        ],
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "stats": {
+    "path": "/mem/QmZjVHiq1brwXQRKMDcc2TuE8UHhQCyTa3WMWnrYXJRUUG",
+    "qri": "sa:0",
+    "stats": [
+      {
+        "count": 5,
+        "frequencies": {
+          "chatham": 1,
+          "chicago": 1,
+          "new york": 1,
+          "raleigh": 1,
+          "toronto": 1
+        },
+        "maxLength": 8,
+        "minLength": 7,
+        "type": "string",
+        "unique": 5
+      },
+      {
+        "count": 5,
+        "histogram": {
+          "bins": [
+            35000,
+            250000,
+            300000,
+            8500000,
+            40000000,
+            40000001
+          ],
+          "frequencies": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        "max": 40000000,
+        "mean": 9817000,
+        "median": 300000,
+        "min": 35000,
+        "type": "numeric"
+      },
+      {
+        "count": 5,
+        "histogram": {
+          "bins": [
+            44.4,
+            50.65,
+            55.5,
+            65.25,
+            66.25
+          ],
+          "frequencies": [
+            2,
+            1,
+            1,
+            1
+          ]
+        },
+        "max": 65.25,
+        "mean": 52.04,
+        "median": 50.65,
+        "min": 44.4,
+        "type": "numeric"
+      },
+      {
+        "count": 5,
+        "falseCount": 1,
+        "trueCount": 4,
+        "type": "boolean"
+      }
+    ]
+  },
+  "transform": {
+    "qri": "tf:0",
+    "scriptPath": "/mem/QmRTcYgS7ADbX33nM1KJq2FStJWXNLLWdPyrTuuf8qjC66"
+  },
+  "viz": {
+    "qri": "vz:0",
+    "scriptPath": "/mem/Qmdw2L6ZvxdDh9Pd5sGwF9ga4FoyXK3LWBvPp2Ypc3BXYo"
+  }
+}
