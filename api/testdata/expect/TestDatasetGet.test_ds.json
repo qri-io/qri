@@ -1,4 +1,11 @@
 {
+  "body": [
+    ["toronto", 40000000, 55.5, false], 
+    ["new york", 8500000, 44.4, true],
+    ["chicago", 300000, 44.4, true],
+    ["chatham", 35000, 65.25, true],
+    ["raleigh", 250000, 50.65, true]
+  ],
   "bodyPath": "/mem/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
   "id": "6yn4jmjjsndpwf4qllvjcunrzni3o3vcejlkvdsvhayfcvrgrpsq",
   "commit": {
@@ -22,7 +29,8 @@
   "peername": "peer",
   "readme": {
     "qri": "rm:0",
-    "text": "hello world"
+    "text": "hello world",
+    "scriptPath": "/mem/QmaozNR7DZHQK1ZcU9p7QdrshMvXqWK6gpu5rmrkPdT3L4"
   },
   "qri": "ds:0",
   "structure": {
