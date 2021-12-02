@@ -2,8 +2,8 @@ package staticlark
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
+	"unicode"
 
 	"go.starlark.net/syntax"
 )
@@ -20,12 +20,21 @@ type unit struct {
 
 // String converts a unit into a prefix notation string
 func (u *unit) String() string {
-	if len(u.tail) == 0 {
+	// atom only
+	if u.tail == nil {
 		if u.todo {
 			return fmt.Sprintf("TODO:%s", u.atom)
 		}
 		return u.atom
 	}
+	// function with no args
+	if len(u.tail) == 0 {
+		if u.todo {
+			return fmt.Sprintf("TODO:[%s]", u.atom)
+		}
+		return fmt.Sprintf("[%s]", u.atom)
+	}
+	// function with args
 	res := make([]string, len(u.tail))
 	for i, node := range u.tail {
 		res[i] = node.String()
@@ -44,20 +53,87 @@ func (u *unit) Push(text string) {
 // return all of the sources of data, as lexical tokens, that affect
 // the calculation of this unit's value
 func (u *unit) DataSources() []string {
-	if len(u.tail) == 0 {
-		if _, err := strconv.Atoi(u.atom); err == nil {
-			// if a number, return no identifiers
-			return []string{}
-		}
-		return []string{u.atom}
+	startIndex := 1
+	if u.atom == "set!" {
+		startIndex = 2
+	}
+	if len(u.tail) < startIndex {
+		return []string{}
 	}
 	res := []string{}
-	for _, t := range u.tail {
-		res = append(res, t.DataSources()...)
+	for i, t := range u.tail {
+		if i < (startIndex - 1) {
+			continue
+		}
+		res = append(res, t.getSources()...)
 	}
 	return res
 }
 
+func (u *unit) getSources() []string {
+	if len(u.tail) == 0 {
+		if isIdent(u.atom) {
+			return []string{u.atom}
+		}
+		return []string{}
+	}
+	res := []string{}
+	for _, t := range u.tail {
+		res = append(res, t.getSources()...)
+	}
+	return res
+}
+
+type invoke struct {
+	Name string   `json:"name"`
+	Args []string `json:"args"`
+}
+
+func (u *unit) Invocations() []invoke {
+	if u.atom == "set!" {
+		return u.tail[1].Invocations()
+	}
+	if u.atom == "return" {
+		return u.invokeFromList()
+	}
+	if isIdent(u.atom) && u.tail != nil {
+		name := u.atom
+		args := u.getSources()
+		inv := invoke{Name: name, Args: args}
+		return append([]invoke{inv}, u.invokeFromList()...)
+	}
+	return u.invokeFromList()
+}
+
+func (u *unit) invokeFromList() []invoke {
+	if u.tail == nil {
+		return []invoke{}
+	}
+	var res []invoke
+	for _, t := range u.tail {
+		res = append(res, t.Invocations()...)
+	}
+	if res == nil {
+		return []invoke{}
+	}
+	return res
+}
+
+func (u *unit) AssignsTo() string {
+	if u.atom == "set!" {
+		return u.tail[0].atom
+	}
+	return ""
+}
+
+func (u *unit) IsReturn() bool {
+	return u.atom == "return"
+}
+
 func toUnitTODO(text string) *unit {
 	return &unit{atom: text, todo: true}
+}
+
+func isIdent(text string) bool {
+	return unicode.IsLetter([]rune(text)[0])
 }
