@@ -94,7 +94,17 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, Cur
 			Offset:  p.Offset,
 			Limit:   p.Limit,
 		}
-		infos, err := s.List(scope.ctx, scope.ActiveProfile().ID, lp)
+
+		id := scope.ActiveProfile().ID
+		if p.Username != "" {
+			pro, err := getProfile(scope.Context(), scope.Profiles(), "", p.Username)
+			if err != nil {
+				return nil, nil, err
+			}
+			id = pro.ID
+		}
+
+		infos, err := s.List(scope.ctx, id, lp)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -246,12 +256,28 @@ func (collectionImpl) Get(scope scope, p *CollectionGetParams) (*dsref.VersionIn
 	if s == nil {
 		return nil, fmt.Errorf("no collection")
 	}
-	if p.InitID == "" {
-		ref, _, err := scope.ParseAndResolveRef(scope.Context(), p.Ref)
+
+	var err error
+
+	ref := dsref.Ref{
+		InitID: p.InitID,
+	}
+
+	if ref.InitID != "" {
+		_, err = scope.ResolveReference(scope.Context(), &ref)
 		if err != nil {
 			return nil, err
 		}
-		p.InitID = ref.InitID
+	} else {
+		ref, _, err = scope.ParseAndResolveRef(scope.Context(), p.Ref)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return s.Get(scope.Context(), scope.ActiveProfile().ID, p.InitID)
+
+	id, err := profile.IDB58Decode(ref.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+	return s.Get(scope.Context(), id, ref.InitID)
 }
