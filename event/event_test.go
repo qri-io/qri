@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -167,5 +168,44 @@ func TestEventSubscribeAll(t *testing.T) {
 	expectNum := 4
 	if diff := cmp.Diff(expectNum, gotNumEvents); diff != "" {
 		t.Errorf("num events (-want +got):\n%s", diff)
+	}
+}
+
+func TestEventMarshaling(t *testing.T) {
+	evt := &Event{
+		Type:    ETMainSaidHello,
+		Payload: "hello",
+	}
+	evtJSON, err := json.Marshal(evt)
+	if err != nil {
+		t.Errorf("error marshaling event: %v", err)
+	}
+	expectJSON := `{"type":"main:SaidHello","timestamp":0,"profileID":"","sessionID":"","payload":"hello"}`
+	if diff := cmp.Diff(expectJSON, string(evtJSON)); diff != "" {
+		t.Errorf("json (-want +got):\n%s", diff)
+	}
+
+	evt = &Event{}
+	err = json.Unmarshal(evtJSON, evt)
+	if err != nil {
+		t.Errorf("error unmarshaling event: %v", err)
+	}
+
+	oldEvt := &Event{}
+	oldEvtJSON := []byte(`{"Type":"main:SaidHello","Timestamp":0,"ProfileID":"","SessionID":"","Payload":"hello"}`)
+	err = json.Unmarshal(oldEvtJSON, oldEvt)
+	if err != nil {
+		t.Errorf("error unmarshaling event: %v", err)
+	}
+
+	if diff := cmp.Diff(evt, oldEvt); diff != "" {
+		t.Errorf("event (-want +got):\n%s", diff)
+	}
+
+	badEvt := &Event{}
+	badEvtJSON := []byte(`{"Timestamp":0,"ProfileID":"","SessionID":"","Payload":"hello"}`)
+	err = json.Unmarshal(badEvtJSON, badEvt)
+	if err == nil {
+		t.Errorf("expected error unmarshaling event with no type")
 	}
 }

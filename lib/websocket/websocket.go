@@ -107,9 +107,9 @@ func (h *connections) messageHandler(_ context.Context, e event.Event) error {
 	ctx := context.Background()
 	evt := map[string]interface{}{
 		"type":      string(e.Type),
-		"ts":        e.Timestamp,
+		"timestamp": e.Timestamp,
 		"sessionID": e.SessionID,
-		"data":      e.Payload,
+		"payload":   e.Payload,
 	}
 
 	profileIDString := e.ProfileID

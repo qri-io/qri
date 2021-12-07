@@ -243,6 +243,7 @@ type _event struct {
 	Type      event.Type      `json:"type"`
 	Timestamp int64           `json:"timestamp"`
 	SessionID string          `json:"sessionID"`
+	ProfileID string          `json:"profileID"`
 	Payload   json.RawMessage `json:"payload"`
 }
 
@@ -264,6 +265,7 @@ func (ss *StepState) UnmarshalJSON(data []byte) error {
 			Type:      re.Type,
 			Timestamp: re.Timestamp,
 			SessionID: re.SessionID,
+			ProfileID: re.ProfileID,
 		}
 		switch e.Type {
 		case event.ETTransformStart, event.ETTransformStop:

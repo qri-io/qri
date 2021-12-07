@@ -5,6 +5,7 @@ package event
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -32,11 +33,11 @@ type Type string
 
 // Event represents an event that subscribers will receive from the bus
 type Event struct {
-	Type      Type
-	Timestamp int64
-	ProfileID string
-	SessionID string
-	Payload   interface{}
+	Type      Type        `json:"type"`
+	Timestamp int64       `json:"timestamp"`
+	ProfileID string      `json:"profileID"`
+	SessionID string      `json:"sessionID"`
+	Payload   interface{} `json:"payload"`
 }
 
 // Handler is a function that will be called by the event bus whenever a
@@ -235,4 +236,63 @@ func (b *bus) NumSubscribers() int {
 	}
 	total += len(b.allSubs)
 	return total
+}
+
+// UnmarshalJSON satisfies the json.Unmarshaller interface
+// The custom unmarshaler is required to support loading old
+// event types encoded with the default field names and
+// to support the new field names.
+func (e *Event) UnmarshalJSON(data []byte) error {
+	var eventType struct {
+		TypeA string `json:"type"`
+		TypeB string `json:"Type"`
+	}
+	err := json.Unmarshal(data, &eventType)
+	if err != nil {
+		return err
+	}
+	if eventType.TypeA != "" {
+		tmpEvent := &struct {
+			Type      Type        `json:"type"`
+			Timestamp int64       `json:"timestamp"`
+			ProfileID string      `json:"profileID"`
+			SessionID string      `json:"sessionID"`
+			Payload   interface{} `json:"payload"`
+		}{}
+		err = json.Unmarshal(data, tmpEvent)
+		if err != nil {
+			return err
+		}
+		evt := &Event{
+			Type:      tmpEvent.Type,
+			Timestamp: tmpEvent.Timestamp,
+			ProfileID: tmpEvent.ProfileID,
+			SessionID: tmpEvent.SessionID,
+			Payload:   tmpEvent.Payload,
+		}
+		*e = *evt
+		return nil
+	} else if eventType.TypeB != "" {
+		tmpEvent := &struct {
+			Type      Type
+			Timestamp int64
+			ProfileID string
+			SessionID string
+			Payload   interface{}
+		}{}
+		err = json.Unmarshal(data, tmpEvent)
+		if err != nil {
+			return err
+		}
+		evt := &Event{
+			Type:      tmpEvent.Type,
+			Timestamp: tmpEvent.Timestamp,
+			ProfileID: tmpEvent.ProfileID,
+			SessionID: tmpEvent.SessionID,
+			Payload:   tmpEvent.Payload,
+		}
+		*e = *evt
+		return nil
+	}
+	return fmt.Errorf("invalid event type")
 }
