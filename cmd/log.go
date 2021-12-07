@@ -8,7 +8,6 @@ import (
 	"io"
 
 	"github.com/qri-io/ioes"
-	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
@@ -56,8 +55,8 @@ on the network at a remote.
 	}
 
 	// cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
-	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
-	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
+	cmd.Flags().IntVar(&o.Offset, "offset", 0, "skip this number of records from the results, default 0")
+	cmd.Flags().IntVar(&o.Limit, "limit", 25, "size of results, default 25")
 	cmd.Flags().StringVarP(&o.Source, "source", "", "", "name of source to fetch from, disables local actions. `registry` will search the default qri registry")
 	cmd.Flags().BoolVarP(&o.Local, "local", "l", false, "only fetch local logs, disables network actions")
 	cmd.Flags().BoolVarP(&o.Pull, "pull", "p", false, "fetch the latest logs from the network")
@@ -69,11 +68,11 @@ on the network at a remote.
 type LogOptions struct {
 	ioes.IOStreams
 
-	PageSize int
-	Page     int
-	Refs     *RefSelect
-	Local    bool
-	Pull     bool
+	Offset int
+	Limit  int
+	Refs   *RefSelect
+	Local  bool
+	Pull   bool
 
 	// remote fetching specific flags
 	Source     string
@@ -105,16 +104,14 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the log command
 func (o *LogOptions) Run() error {
-	// convert Page and PageSize to Limit and Offset
-	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	ctx := context.TODO()
 	p := &lib.ActivityParams{
 		Ref:  o.Refs.Ref(),
 		Pull: o.Pull,
 		ListParams: lib.ListParams{
-			Limit:  page.Limit(),
-			Offset: page.Offset(),
+			Offset: o.Offset,
+			Limit:  o.Limit,
 		},
 	}
 
@@ -123,17 +120,17 @@ func (o *LogOptions) Run() error {
 		return err
 	}
 
-	makeItemsAndPrint(res, o.Out, page)
+	makeItemsAndPrint(res, o.Out, o.Offset)
 	return nil
 }
 
-func makeItemsAndPrint(refs []dsref.VersionInfo, out io.Writer, page apiutil.Page) {
+func makeItemsAndPrint(refs []dsref.VersionInfo, out io.Writer, offset int) {
 	items := make([]fmt.Stringer, len(refs))
 	for i, r := range refs {
 		items[i] = dslogItemStringer(r)
 	}
 
-	printItems(out, items, page.Offset())
+	printItems(out, items, offset)
 }
 
 // NewLogbookCommand creates a `qri logbook` cobra command
@@ -165,8 +162,8 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 		},
 	}
 
-	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
-	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
+	cmd.Flags().IntVar(&o.Offset, "offset", 0, "skip this number of records from the results, default 0")
+	cmd.Flags().IntVar(&o.Limit, "limit", 25, "size of results, default 25")
 	cmd.Flags().BoolVar(&o.Raw, "raw", false, "full logbook in raw JSON format. overrides all other flags")
 	cmd.Flags().BoolVar(&o.Summary, "summary", false, "print one oplog per line in the format 'MODEL ID OPCOUNT NAME'. overrides all other flags")
 
@@ -177,8 +174,8 @@ The logbook command shows entries for a dataset, from newest to oldest.`,
 type LogbookOptions struct {
 	ioes.IOStreams
 
-	PageSize     int
-	Page         int
+	Offset       int
+	Limit        int
 	Refs         *RefSelect
 	Raw, Summary bool
 
@@ -210,13 +207,11 @@ func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
 
 // LogEntries gets entries from the logbook
 func (o *LogbookOptions) LogEntries() error {
-	// convert Page and PageSize to Limit and Offset
-	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	p := &lib.RefListParams{
 		Ref:    o.Refs.Ref(),
-		Limit:  page.Limit(),
-		Offset: page.Offset(),
+		Offset: o.Offset,
+		Limit:  o.Limit,
 	}
 
 	ctx := context.TODO()
@@ -236,7 +231,7 @@ func (o *LogbookOptions) LogEntries() error {
 		items[j] = logEntryStringer(r)
 	}
 
-	printItems(o.Out, items, page.Offset())
+	printItems(o.Out, items, o.Offset)
 	return nil
 }
 

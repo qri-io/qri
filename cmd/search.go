@@ -8,7 +8,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
-	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -41,8 +40,8 @@ Any dataset that has been pushed to the registry is available for search.`,
 	}
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json|simple]")
-	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
-	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
+	cmd.Flags().IntVar(&o.Offset, "offset", 0, "number of records to skip from results, default 0")
+	cmd.Flags().IntVar(&o.Limit, "limit", 25, "size of results, default 25")
 
 	return cmd
 }
@@ -51,10 +50,10 @@ Any dataset that has been pushed to the registry is available for search.`,
 type SearchOptions struct {
 	ioes.IOStreams
 
-	Query    string
-	Format   string
-	PageSize int
-	Page     int
+	Query  string
+	Format string
+	Offset int
+	Limit  int
 	// Reindex bool
 
 	Instance *lib.Instance
@@ -89,13 +88,10 @@ func (o *SearchOptions) Run() (err error) {
 
 	// TODO: add reindex option back in
 
-	// convert Page and PageSize to Limit and Offset
-	page := apiutil.NewPage(o.Page, o.PageSize)
-
 	p := &lib.SearchParams{
 		Query:  o.Query,
-		Limit:  page.Limit(),
-		Offset: page.Offset(),
+		Offset: o.Offset,
+		Limit:  o.Limit,
 	}
 
 	results, err := inst.Search().Search(ctx, p)
@@ -111,7 +107,7 @@ func (o *SearchOptions) Run() (err error) {
 			items[i] = searchResultStringer(result)
 		}
 		o.StopSpinner()
-		printItems(o.Out, items, page.Offset())
+		printItems(o.Out, items, o.Offset)
 		return nil
 	case "simple":
 		items := make([]string, len(results))

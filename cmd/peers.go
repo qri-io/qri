@@ -7,7 +7,6 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/ioes"
-	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -86,9 +85,8 @@ connected, use the ` + "`--cached`" + ` flag.`,
 	list.Flags().BoolVarP(&o.Cached, "cached", "c", false, "show peers that aren't online, but previously seen")
 	list.Flags().StringVarP(&o.Network, "network", "n", "", "specify network to show peers from (qri|ipfs) (defaults to qri)")
 	list.Flags().StringVarP(&o.Format, "format", "", "", "output format. formats: simple")
-	// TODO (ramfox): when we determine the best way to order and paginate peers, restore!
-	// list.Flags().IntVar(&o.PageSize, "page-size", 200, "max page size number of peers to show, default 200")
-	// list.Flags().IntVar(&o.Page, "page", 1, "page number of peers, default 1")
+	list.Flags().IntVar(&o.Offset, "offset", 0, "number of peers to skip from the results, default 0")
+	list.Flags().IntVar(&o.Limit, "limit", 200, "max number of peers to show, default 200")
 
 	connect := &cobra.Command{
 		Use:   "connect (NAME|ADDRESS)",
@@ -156,8 +154,8 @@ type PeersOptions struct {
 	Format   string
 	Cached   bool
 	Network  string
-	PageSize int
-	Page     int
+	Offset   int
+	Limit    int
 
 	UsingRPC bool
 	Instance *lib.Instance
@@ -211,14 +209,12 @@ func (o *PeersOptions) Info() (err error) {
 
 // List shows a list of peers
 func (o *PeersOptions) List() (err error) {
-	// convert Page and PageSize to Limit and Offset
-	page := apiutil.NewPage(o.Page, o.PageSize)
 
 	res := []*config.ProfilePod{}
 	ctx := context.TODO()
 
 	if o.Network == "ipfs" {
-		params := &lib.ConnectionsParams{Limit: page.Limit()}
+		params := &lib.ConnectionsParams{Limit: o.Limit}
 		res, err = o.Instance.Peer().ConnectedQriProfiles(ctx, params)
 		if err != nil {
 			return err
@@ -231,8 +227,8 @@ func (o *PeersOptions) List() (err error) {
 		}
 
 		p := &lib.PeerListParams{
-			Limit:  page.Limit(),
-			Offset: page.Offset(),
+			Limit:  o.Limit,
+			Offset: o.Offset,
 			Cached: o.Cached,
 		}
 		res, err = o.Instance.Peer().List(ctx, p)
@@ -251,7 +247,7 @@ func (o *PeersOptions) List() (err error) {
 	if o.Format == "simple" {
 		printlnStringItems(o.Out, peerNames)
 	} else {
-		printItems(o.Out, items, page.Offset())
+		printItems(o.Out, items, o.Offset)
 	}
 	return
 }

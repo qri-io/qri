@@ -9,7 +9,6 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/ioes"
-	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -50,8 +49,8 @@ dataset and its fields.`,
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json, yaml, csv, zip]. If format is set to 'zip' it will save the entire dataset as a zip archive.")
 	cmd.Flags().BoolVar(&o.Pretty, "pretty", false, "whether to print output with indentation, only for json format")
-	cmd.Flags().IntVar(&o.PageSize, "page-size", -1, "for body, limit how many entries to get per page")
-	cmd.Flags().IntVar(&o.Page, "page", -1, "for body, page at which to get entries")
+	cmd.Flags().IntVar(&o.Limit, "limit", -1, "for body, limit how many entries to get per request")
+	cmd.Flags().IntVar(&o.Offset, "offset", -1, "for body, offset amount at which to get entries")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", true, "for body, whether to get all entries")
 	cmd.Flags().StringVarP(&o.Outfile, "outfile", "o", "", "file to write output to")
 
@@ -69,9 +68,9 @@ type GetOptions struct {
 	Selector string
 	Format   string
 
-	Page     int
-	PageSize int
-	All      bool
+	Limit  int
+	Offset int
+	All    bool
 
 	Pretty  bool
 	Outfile string
@@ -99,23 +98,21 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 	}
 
 	if o.Selector == "body" {
-		// if we have a PageSize, but not Page, assume an Page of 1
-		if o.PageSize != -1 && o.Page == -1 {
-			o.Page = 1
+		if o.Limit != -1 && o.Offset == -1 {
+			o.Offset = 0
 		}
-		// set all to false if PageSize or Page values are provided
-		if o.PageSize != -1 || o.Page != -1 {
+		if o.Offset != -1 || o.Limit != -1 {
 			o.All = false
 		}
 	} else {
 		if o.Format == "csv" {
 			return fmt.Errorf("can only use --format=csv when getting body")
 		}
-		if o.PageSize != -1 {
-			return fmt.Errorf("can only use --page-size flag when getting body")
+		if o.Limit != -1 {
+			return fmt.Errorf("can only use --limit flag when getting body")
 		}
-		if o.Page != -1 {
-			return fmt.Errorf("can only use --page flag when getting body")
+		if o.Offset != -1 {
+			return fmt.Errorf("can only use --offset flag when getting body")
 		}
 		if !o.All {
 			return fmt.Errorf("can only use --all flag when getting body")
@@ -139,14 +136,12 @@ func (o *GetOptions) Run() (err error) {
 	// 1) Correctly handling the pager output, and having headers between each ref
 	// 2) Identifying cases that limit Get to only work on 1 dataset. For example, the -o flag
 
-	// convert Page and PageSize to Limit and Offset
-	page := apiutil.NewPage(o.Page, o.PageSize)
 	ctx := context.TODO()
 	p := &lib.GetParams{
 		Ref:      o.Refs.Ref(),
 		Selector: o.Selector,
-		Offset:   page.Offset(),
-		Limit:    page.Limit(),
+		Offset:   o.Offset,
+		Limit:    o.Limit,
 		All:      o.All,
 	}
 	var outBytes []byte

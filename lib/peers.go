@@ -199,7 +199,7 @@ func (peerImpl) List(scope scope, p *PeerListParams) ([]*config.ProfilePod, erro
 	var err error
 
 	if p.Limit <= 0 {
-		p.Limit = DefaultPageSize
+		p.Limit = DefaultLimit
 	}
 
 	// requesting user is hardcoded as node owner
