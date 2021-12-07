@@ -82,7 +82,9 @@ func (sm *SetMaintainer) subscribe(bus event.Bus) {
 	)
 }
 
-func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
+func (sm *SetMaintainer) handleEvent(_ context.Context, e event.Event) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
 	switch e.Type {
 	case event.ETDatasetNameInit:
 		if vi, ok := e.Payload.(dsref.VersionInfo); ok {
@@ -137,6 +139,8 @@ func (sm *SetMaintainer) handleEvent(ctx context.Context, e event.Event) error {
 					log.Debugw("removing dataset from collection", "profileID", pid, "initID", initID, "err", err)
 				}
 			}
+		} else {
+			log.Debugf("ETDatasetDeleteAll: ProfileID is empty")
 		}
 	case event.ETDatasetDownload:
 		if initID, ok := e.Payload.(string); ok {
