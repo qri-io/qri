@@ -10,7 +10,7 @@ var ListAll = List{Limit: -1}
 // List defines input parameters for listing operations
 type List struct {
 	Filter  []string
-	OrderBy []string
+	OrderBy OrderBy
 	Limit   int
 	Offset  int
 }
@@ -42,21 +42,21 @@ func (lp List) WithOffsetLimit(offset, limit int) List {
 	}
 }
 
-// WithFilters returns a new List struct that replaces the Filters field
-func (lp List) WithFilters(f ...string) List {
+// WithOrderBy returns a new List struct that replaces the OrderBy field
+func (lp List) WithOrderBy(ob string) List {
 	return List{
-		Filter:  f,
-		OrderBy: lp.OrderBy,
+		Filter:  lp.Filter,
+		OrderBy: NewOrderByFromString(ob),
 		Offset:  lp.Offset,
 		Limit:   lp.Limit,
 	}
 }
 
-// WithOrderBy returns a new List struct that replaces the OrderBy field
-func (lp List) WithOrderBy(ob ...string) List {
+// WithFilters returns a new List struct that replaces the Filters field
+func (lp List) WithFilters(f ...string) List {
 	return List{
-		Filter:  lp.Filter,
-		OrderBy: ob,
+		Filter:  f,
+		OrderBy: lp.OrderBy,
 		Offset:  lp.Offset,
 		Limit:   lp.Limit,
 	}

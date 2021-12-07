@@ -168,7 +168,7 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 
 		listByUpdated := params.List{
 			Limit:   -1,
-			OrderBy: []string{"updated"},
+			OrderBy: params.NewOrderByFromString("-updated"),
 		}
 		assertCollectionList(ctx, t, missPiggy, listByUpdated, ec, []dsref.VersionInfo{
 			{
@@ -198,7 +198,7 @@ func AssertSetSpec(t *testing.T, constructor Constructor) {
 
 		listByName := params.List{
 			Limit:   -1,
-			OrderBy: []string{"name"},
+			OrderBy: params.NewOrderByFromString("+name"),
 		}
 		assertCollectionList(ctx, t, missPiggy, listByName, ec, []dsref.VersionInfo{
 			{

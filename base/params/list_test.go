@@ -9,13 +9,13 @@ import (
 
 func TestParamsWith(t *testing.T) {
 	expect := List{
-		OrderBy: []string{"1", "2", "3"},
+		OrderBy: OrderBy{{Key: "1", Direction: OrderASC}, {Key: "2", Direction: OrderASC}, {Key: "3", Direction: OrderASC}},
 		Filter:  []string{"a", "b", "c"},
 		Offset:  200,
 		Limit:   100,
 	}
 
-	got := ListAll.WithFilters("a", "b", "c").WithOrderBy("1", "2", "3").WithOffsetLimit(200, 100)
+	got := ListAll.WithFilters("a", "b", "c").WithOrderBy("1,2,3").WithOffsetLimit(200, 100)
 
 	if diff := cmp.Diff(expect, got); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
@@ -55,12 +55,12 @@ func TestListParamsAll(t *testing.T) {
 		expect bool
 	}{
 		{List{Limit: -1, Offset: 0}, true},
-		{List{OrderBy: []string{"date"}, Limit: -1, Offset: 0}, true},
+		{List{OrderBy: OrderBy{{Key: "date", Direction: OrderDESC}}, Limit: -1, Offset: 0}, true},
 		{List{Filter: []string{"user:noodles"}, Limit: -1, Offset: 0}, true},
 
 		{List{Limit: 0, Offset: 0}, false},
 		{List{Limit: -1, Offset: 100000}, false},
-		{List{OrderBy: []string{"time"}, Limit: 0, Offset: 0}, false},
+		{List{OrderBy: OrderBy{{Key: "time", Direction: OrderASC}}, Limit: 0, Offset: 0}, false},
 	}
 
 	for i, c := range cases {

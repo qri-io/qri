@@ -374,7 +374,7 @@ func (s *localSet) List(ctx context.Context, pid profile.ID, lp params.List) ([]
 	results := make([]dsref.VersionInfo, 0, lp.Limit)
 
 	if len(lp.OrderBy) != 0 {
-		switch lp.OrderBy[0] {
+		switch lp.OrderBy[0].Key {
 		case "updated":
 			sortedCol := make([]dsref.VersionInfo, len(col))
 			copy(sortedCol, col)

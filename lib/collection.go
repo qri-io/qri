@@ -90,7 +90,7 @@ type collectionImpl struct{}
 func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, Cursor, error) {
 	if s := scope.CollectionSet(); s != nil {
 		lp := params.List{
-			OrderBy: []string{p.OrderBy},
+			OrderBy: params.OrderBy{},
 			Offset:  p.Offset,
 			Limit:   p.Limit,
 		}
