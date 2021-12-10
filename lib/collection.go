@@ -42,6 +42,13 @@ func (m CollectionMethods) Attributes() map[string]AttributeSet {
 // ErrListWarning is a warning that can occur while listing
 var ErrListWarning = base.ErrUnlistableReferences
 
+type CollectionParams struct {
+	params.List `json:"list,omitempty"`
+	Username    string `json:"username,omitempty"`
+	Public      bool   `json"public,omitempty"`
+	Term        string `json:"term,omitempty"`
+}
+
 // List gets the reflist for either the local repo or a peer
 func (m CollectionMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, Cursor, error) {
 	got, cur, err := m.d.Dispatch(ctx, dispatchMethodName(m, "list"), p)
