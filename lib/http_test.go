@@ -11,14 +11,14 @@ import (
 	"github.com/qri-io/qri/base/params"
 )
 
-func TestDecodeCollectionParams(t *testing.T) {
-	p := &CollectionParams{}
+func TestDecodeParams(t *testing.T) {
+	p := &CollectionListParams{}
 	r, err := http.NewRequest("POST", "/test", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expect := &CollectionParams{
+	expect := &CollectionListParams{
 		List: params.List{
 			Offset:  10,
 			Limit:   10,
@@ -39,7 +39,7 @@ func TestDecodeCollectionParams(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(expect, p); diff != "" {
-		t.Errorf("CollectionParams mismatch (+want,-got):\n%s", diff)
+		t.Errorf("CollectionListParams mismatch (+want,-got):\n%s", diff)
 	}
 
 	lp := params.List{}
@@ -61,7 +61,7 @@ func TestDecodeCollectionParams(t *testing.T) {
 		t.Errorf("list.Params mismatch (+want,-got):\n%s", diff)
 	}
 
-	enc, err := json.Marshal(CollectionParams{List: params.List{Offset: 10}})
+	enc, err := json.Marshal(CollectionListParams{List: params.List{Offset: 10}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestDecodeCollectionParams(t *testing.T) {
 	q.Add("orderby", "+name,-updated")
 	r.URL.RawQuery = q.Encode()
 
-	cp := &CollectionParams{}
+	cp := &CollectionListParams{}
 	if err := DecodeParams(r, cp); !errors.Is(err, params.ErrListParamsNotEmpty) {
 		t.Fatalf("error mismatch, expected %q, got %q", params.ErrListParamsNotEmpty, err)
 	}

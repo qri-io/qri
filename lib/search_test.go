@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/config"
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
@@ -34,7 +35,7 @@ func TestSearch(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(ctx, config.DefaultConfig(), node)
 	inst.registry = rc
 
-	p := &SearchParams{"nuun", 0, 100}
+	p := &SearchParams{Query: "nuun", List: params.List{Offset: 0, Limit: 100}}
 	got, err := inst.Search().Search(ctx, p)
 	if err != nil {
 		t.Error(err)

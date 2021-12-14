@@ -3,6 +3,7 @@ package lib
 import (
 	"context"
 
+	"github.com/qri-io/qri/base/params"
 	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regclient"
@@ -28,9 +29,18 @@ func (m SearchMethods) Attributes() map[string]AttributeSet {
 
 // SearchParams defines paremeters for the search Method
 type SearchParams struct {
-	Query  string `json:"q"`
-	Limit  int    `json:"limit,omitempty"`
-	Offset int    `json:"offset,omitempty"`
+	params.List
+	Query string `json:"q"`
+}
+
+// SetNonZeroDefaults sets a default limit and offset
+func (p *SearchParams) SetNonZeroDefaults() {
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+	if p.Limit <= 0 {
+		p.Limit = params.DefaultListLimit
+	}
 }
 
 // Search queries for items on qri related to given parameters

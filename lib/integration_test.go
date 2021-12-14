@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/auth/key"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	dsrefspec "github.com/qri-io/qri/dsref/spec"
@@ -104,7 +105,7 @@ func TestReferencePulling(t *testing.T) {
 	PushToRegistry(tr.Ctx, t, nasim, ref.Alias())
 
 	// - nasim's local repo should reflect publication
-	logRes, err := nasim.Dataset().Activity(tr.Ctx, &ActivityParams{Ref: ref.Alias(), ListParams: ListParams{Limit: 1}})
+	logRes, err := nasim.Dataset().Activity(tr.Ctx, &ActivityParams{Ref: ref.Alias(), List: params.List{Limit: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +158,7 @@ dataset.commit(ds)
 	}
 
 	// - adnan's local repo should reflect nasim's publication
-	logRes, err = adnan.Dataset().Activity(tr.Ctx, &ActivityParams{Ref: ref.Alias(), ListParams: ListParams{Limit: 1}})
+	logRes, err = adnan.Dataset().Activity(tr.Ctx, &ActivityParams{Ref: ref.Alias(), List: params.List{Limit: 1}})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,20 +1,9 @@
 package lib
 
 import (
-	"fmt"
 	"path/filepath"
 	"testing"
 )
-
-func ListParamsEqual(a, b ListParams) error {
-	if a.Limit != b.Limit {
-		return fmt.Errorf("ListParams.Limit fields not equal: '%d' != '%d'", a.Limit, b.Limit)
-	}
-	if a.Offset != b.Offset {
-		return fmt.Errorf("ListParams.Offset fields not equal: '%d' != '%d'", a.Offset, b.Offset)
-	}
-	return nil
-}
 
 type testStruct struct {
 	Name  string

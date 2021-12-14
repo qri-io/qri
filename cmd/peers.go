@@ -7,6 +7,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -214,7 +215,7 @@ func (o *PeersOptions) List() (err error) {
 	ctx := context.TODO()
 
 	if o.Network == "ipfs" {
-		params := &lib.ConnectionsParams{Limit: o.Limit}
+		params := &lib.ConnectionsParams{List: params.List{Limit: o.Limit}}
 		res, err = o.Instance.Peer().ConnectedQriProfiles(ctx, params)
 		if err != nil {
 			return err
@@ -227,8 +228,10 @@ func (o *PeersOptions) List() (err error) {
 		}
 
 		p := &lib.PeerListParams{
-			Limit:  o.Limit,
-			Offset: o.Offset,
+			List: params.List{
+				Limit:  o.Limit,
+				Offset: o.Offset,
+			},
 			Cached: o.Cached,
 		}
 		res, err = o.Instance.Peer().List(ctx, p)

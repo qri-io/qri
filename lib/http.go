@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"reflect"
 
 	apiutil "github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/base/params"
@@ -83,37 +82,13 @@ func DecodeParams(r *http.Request, p interface{}) error {
 		}
 	}
 
-	if err := listParamsFromRequest(r, p); err != nil {
-		return fmt.Errorf("unable to pull list params from request url: %w", err)
+	if lp, ok := p.(params.ListParams); ok {
+		if err := lp.ListParamsFromRequest(r); err != nil {
+			return fmt.Errorf("unable to get list params from request: %w", err)
+		}
 	}
 
 	// allow empty params
-	return nil
-}
-
-func listParamsFromRequest(r *http.Request, p interface{}) error {
-	pa, ok := p.(params.ListParams)
-	if !ok {
-		return nil
-	}
-	lp, err := pa.ListParamsFromRequest(r)
-	if err != nil {
-		return err
-	}
-	v := reflect.ValueOf(p).Elem()
-	lpv := reflect.ValueOf(lp)
-	if v.Type() == lpv.Type() {
-		v.Set(lpv)
-		return nil
-	}
-	// ensure we are setting the correct field
-	l := v.FieldByName("List")
-	if l.Type() != lpv.Type() ||
-		!l.IsValid() ||
-		!l.CanSet() {
-		return fmt.Errorf("cannot set `params.List` field on param %s", v.Type())
-	}
-	l.Set(lpv)
 	return nil
 }
 

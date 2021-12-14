@@ -10,6 +10,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base/component"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -140,9 +141,11 @@ func (o *GetOptions) Run() (err error) {
 	p := &lib.GetParams{
 		Ref:      o.Refs.Ref(),
 		Selector: o.Selector,
-		Offset:   o.Offset,
-		Limit:    o.Limit,
 		All:      o.All,
+		List: params.List{
+			Offset: o.Offset,
+			Limit:  o.Limit,
+		},
 	}
 	var outBytes []byte
 	switch {

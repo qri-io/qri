@@ -11,11 +11,14 @@ import (
 var (
 	// ErrListParamsNotEmpty indicates that there are list values in the params
 	ErrListParamsNotEmpty = fmt.Errorf("list params not empty")
+	// DefaultListLimit is the default value for a list
+	DefaultListLimit = 25
 )
 
+// ListParams can pull list param information from an http.Request
 type ListParams interface {
 	// ListParamsFromRequest pulls list params from the URL
-	ListParamsFromRequest(r *http.Request) (List, error)
+	ListParamsFromRequest(r *http.Request) error
 }
 
 // ListAll uses a limit of -1 & offset of 0 as a sentinel value for listing
@@ -31,13 +34,13 @@ type List struct {
 }
 
 // ListParamsFromRequest satisfies the ListParams interface
-func (lp List) ListParamsFromRequest(r *http.Request) (List, error) {
+func (lp *List) ListParamsFromRequest(r *http.Request) error {
 	l := List{}
 	limitStr := r.URL.Query().Get("limit")
 	if limitStr != "" {
 		limit, err := strconv.ParseInt(limitStr, 10, 0)
 		if err != nil {
-			return lp, err
+			return err
 		}
 		l.Limit = int(limit)
 	}
@@ -45,7 +48,7 @@ func (lp List) ListParamsFromRequest(r *http.Request) (List, error) {
 	if offsetStr != "" {
 		offset, err := strconv.ParseInt(offsetStr, 10, 0)
 		if err != nil {
-			return lp, err
+			return err
 		}
 		l.Offset = int(offset)
 	}
@@ -58,13 +61,14 @@ func (lp List) ListParamsFromRequest(r *http.Request) (List, error) {
 	l = l.WithOrderBy(r.URL.Query().Get("orderby"))
 
 	if l.IsEmpty() {
-		return lp, nil
+		return nil
 	}
 	if !lp.IsEmpty() {
-		return lp, ErrListParamsNotEmpty
+		return ErrListParamsNotEmpty
 	}
 
-	return l, nil
+	*lp = l
+	return nil
 }
 
 // All returns true if List is attempting to list all available items
@@ -85,9 +89,10 @@ func (lp List) Validate() error {
 
 // IsEmpty determines if the List struct is empty
 func (lp List) IsEmpty() bool {
-	return lp.Limit == 0 && lp.Offset == 0 &&
-		(lp.Filter == nil || len(lp.Filter) == 0) &&
-		(lp.OrderBy == nil || len(lp.OrderBy) == 0)
+	return lp.Limit == 0 &&
+		lp.Offset == 0 &&
+		len(lp.Filter) == 0 &&
+		len(lp.OrderBy) == 0
 }
 
 // WithOffsetLimit returns a new List struct that replaces the offset & limit

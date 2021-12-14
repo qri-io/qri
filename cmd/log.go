@@ -8,6 +8,7 @@ import (
 	"io"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
@@ -109,7 +110,7 @@ func (o *LogOptions) Run() error {
 	p := &lib.ActivityParams{
 		Ref:  o.Refs.Ref(),
 		Pull: o.Pull,
-		ListParams: lib.ListParams{
+		List: params.List{
 			Offset: o.Offset,
 			Limit:  o.Limit,
 		},

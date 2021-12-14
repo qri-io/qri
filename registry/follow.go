@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/base/params"
 )
 
 // Follower is an opt-in interface for registries that wish to
@@ -15,10 +16,18 @@ type Follower interface {
 
 // FollowGetParams encapsulates parameters provided to Follower.Get
 type FollowGetParams struct {
+	params.List
 	Username string `json:"username"`
-	Limit    int    `json:"limit"`
-	Offset   int    `json:"offset"`
-	// TODO(arqu): order by fields are missing
+}
+
+// SetNonZeroDefaults sets a default limit and offset
+func (p *FollowGetParams) SetNonZeroDefaults() {
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+	if p.Limit <= 0 {
+		p.Limit = params.DefaultListLimit
+	}
 }
 
 // FollowParams encapsulates parameters provided to Follower.Follow

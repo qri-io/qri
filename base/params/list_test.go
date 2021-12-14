@@ -19,12 +19,13 @@ func TestListParamsFromRequest(t *testing.T) {
 	// should not error if there is an already populated params.List and no list
 	// information in the request
 	expect := List{Offset: 10}
-	got, err := List{Offset: 10}.ListParamsFromRequest(r)
+	got := List{Offset: 10}
+	err = got.ListParamsFromRequest(r)
 	if err != nil {
 		t.Fatalf("ListParamsFromRequest should not error if there is no list information in the request: %s", err)
 	}
 	if diff := cmp.Diff(expect, got); diff != "" {
-		t.Errorf("params.List mismatch (+want,-got):\n%s", diff)
+		t.Errorf("params.List mismatch (-want,+got):\n%s", diff)
 	}
 
 	// add list queries to the request
@@ -42,17 +43,17 @@ func TestListParamsFromRequest(t *testing.T) {
 		Filter:  []string{"username:peer"},
 		OrderBy: OrderBy{{Key: "name", Direction: OrderASC}, {Key: "updated", Direction: OrderDESC}},
 	}
-	got, err = got.ListParamsFromRequest(r)
+	err = got.ListParamsFromRequest(r)
 	if err != nil {
 		t.Fatalf("ListParamsFromRequest unexpected error: %s", err)
 	}
 	if diff := cmp.Diff(expect, got); diff != "" {
-		t.Errorf("params.List mismatch (+want,-got):\n%s", diff)
+		t.Errorf("params.List mismatch (-want,+got):\n%s", diff)
 	}
 
 	// should error if list params are not empty & there is list info in the request
 	got = List{Filter: []string{"name:test"}}
-	got, err = got.ListParamsFromRequest(r)
+	err = got.ListParamsFromRequest(r)
 	if !errors.Is(err, ErrListParamsNotEmpty) {
 		t.Errorf("expected error to be %q, got %s", ErrListParamsNotEmpty, err)
 	}
@@ -74,7 +75,7 @@ func TestIsEmpty(t *testing.T) {
 	for _, c := range cases {
 		got := c.lp.IsEmpty()
 		if got != c.expect {
-			fmt.Errorf("error in case %q, expected %t, got %t", c.description, c.expect, got)
+			t.Errorf("error in case %q, expected %t, got %t", c.description, c.expect, got)
 		}
 	}
 }

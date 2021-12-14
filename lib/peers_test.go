@@ -7,6 +7,7 @@ import (
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/muxfs"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/config"
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/event"
@@ -69,7 +70,7 @@ func TestConnectedQriProfiles(t *testing.T) {
 		peerCount int
 		err       string
 	}{
-		{&ConnectionsParams{Limit: 100}, 0, ""},
+		{&ConnectionsParams{List: params.List{Limit: 100}}, 0, ""},
 	}
 
 	node := newTestQriNode(t)
@@ -97,7 +98,7 @@ func TestConnections(t *testing.T) {
 		peerCount int
 		err       string
 	}{
-		{&ConnectionsParams{Limit: 100}, 0, ""},
+		{&ConnectionsParams{List: params.List{Limit: 100}}, 0, ""},
 	}
 
 	node := newTestQriNode(t)

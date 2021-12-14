@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/gorilla/mux"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -56,8 +57,10 @@ func TestParseGetParamsFromRequest(t *testing.T) {
 			&lib.GetParams{
 				Ref:      "peer/my_ds",
 				Selector: "body",
-				Limit:    0,
-				Offset:   10,
+				List: params.List{
+					Offset: 10,
+					Limit:  0,
+				},
 			},
 			map[string]string{"ref": "peer/my_ds", "selector": "body", "limit": "0", "offset": "10"},
 		},

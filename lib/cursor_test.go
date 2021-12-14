@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/qri/base/params"
 )
 
 func TestCursorToParams(t *testing.T) {
-	lp := ListParams{
-		OrderBy: "created",
+	lp := params.List{
+		OrderBy: params.OrderBy{{Key: "created", Direction: params.OrderDESC}},
 		Limit:   10,
 		Offset:  20,
 	}
@@ -22,7 +23,7 @@ func TestCursorToParams(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expect := `{"limit":"10","offset":"20","orderby":"created"}`
+	expect := `{"limit":"10","offset":"20","orderby":"-created"}`
 	if diff := cmp.Diff(expect, string(actual)); diff != "" {
 		t.Errorf("output mismatch (-want +got):\n%s", diff)
 	}

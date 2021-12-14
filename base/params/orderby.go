@@ -74,6 +74,8 @@ func NewOrder(key, orderDirection string) *Order {
 	}
 }
 
+// NewOrderFromString constructs an order using a string
+// Default direction is ascending
 func NewOrderFromString(orderStr string) *Order {
 	if orderStr == "" {
 		return nil

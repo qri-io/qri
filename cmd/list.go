@@ -9,6 +9,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -104,12 +105,14 @@ func (o *ListOptions) Run() (err error) {
 		return nil
 	}
 
-	p := &lib.ListParams{
+	p := &lib.CollectionListParams{
 		Term:     o.Term,
 		Username: o.Username,
-		Offset:   o.Offset,
-		Limit:    o.Limit,
-		Public:   o.Public,
+		List: params.List{
+			Offset: o.Offset,
+			Limit:  o.Limit,
+		},
+		Public: o.Public,
 	}
 	infos, cur, err := o.inst.Collection().List(ctx, p)
 	if err != nil {

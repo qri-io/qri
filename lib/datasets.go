@@ -26,6 +26,7 @@ import (
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/base/fill"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dsref"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
@@ -70,16 +71,14 @@ func (m DatasetMethods) Attributes() map[string]AttributeSet {
 
 // GetParams defines parameters for looking up the head or body of a dataset
 type GetParams struct {
+	params.List
 	// dataset reference to fetch; e.g. "b5/world_bank_population"
 	Ref string `json:"ref"`
 	// a component or nested field names to extract from the dataset; e.g. "body"
 	Selector string `json:"selector"`
-	// number of results to limit to. only applies when selector is "body"
-	Limit int `json:"limit"`
-	// number of results to skip. only applies when selector is "body"
-	Offset int `json:"offset"`
 	// TODO(dustmop): Remove `All` once `Cursor` is in use. Instead, callers should
 	// loop over their `Cursor` in order to get all rows.
+	// TODO(ramfox): are we in a place to remove All?
 	All bool `json:"all" docs:"hidden"`
 }
 
@@ -87,15 +86,14 @@ type GetParams struct {
 func (p *GetParams) SetNonZeroDefaults() {
 	if p.Selector == "body" {
 		if !p.All {
-			// ensure valid limit value
-			if p.Limit <= 0 {
-				p.Limit = 25
-			}
 			// ensure valid offset value
 			if p.Offset < 0 {
 				p.Offset = 0
 			}
-
+			// ensure valid limit value
+			if p.Limit <= 0 {
+				p.Limit = params.DefaultListLimit
+			}
 		}
 	}
 }
@@ -203,11 +201,23 @@ func scriptFileSelection(ds *dataset.Dataset, selector string) (qfs.File, bool) 
 
 // ActivityParams defines parameters for the Activity method
 type ActivityParams struct {
-	ListParams
+	params.List
+	// Term filters for "history" or "run" activity type
+	Term string `json:"term,omitempty"`
 	// Reference to data to fetch history for; e.g. "b5/world_bank_population"
 	Ref string `json:"ref"`
 	// if true, pull any datasets that aren't stored locally; e.g. false
 	Pull bool `json:"pull"`
+}
+
+// SetNonZeroDefaults sets a default limit and offset
+func (p *ActivityParams) SetNonZeroDefaults() {
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+	if p.Limit <= 0 {
+		p.Limit = params.DefaultListLimit
+	}
 }
 
 // Validate gives a dataset of errors and issues for a given dataset

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/qri-io/qri/base/params"
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -59,11 +60,11 @@ func TestHistoryRequestsLog(t *testing.T) {
 		{"log list - default",
 			&ActivityParams{Ref: firstRef}, items, ""},
 		{"log list - offset 0 limit 3",
-			&ActivityParams{Ref: firstRef, ListParams: ListParams{Offset: 0, Limit: 3}}, items[:3], ""},
+			&ActivityParams{Ref: firstRef, List: params.List{Offset: 0, Limit: 3}}, items[:3], ""},
 		{"log list - offset 3 limit 3",
-			&ActivityParams{Ref: firstRef, ListParams: ListParams{Offset: 3, Limit: 3}}, items[3:], ""},
+			&ActivityParams{Ref: firstRef, List: params.List{Offset: 3, Limit: 3}}, items[3:], ""},
 		{"log list - offset 6 limit 3",
-			&ActivityParams{Ref: firstRef, ListParams: ListParams{Offset: 6, Limit: 3}}, nil, "repo: no history"},
+			&ActivityParams{Ref: firstRef, List: params.List{Offset: 6, Limit: 3}}, nil, "repo: no history"},
 	}
 
 	inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)

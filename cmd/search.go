@@ -8,6 +8,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -89,9 +90,11 @@ func (o *SearchOptions) Run() (err error) {
 	// TODO: add reindex option back in
 
 	p := &lib.SearchParams{
-		Query:  o.Query,
-		Offset: o.Offset,
-		Limit:  o.Limit,
+		Query: o.Query,
+		List: params.List{
+			Offset: o.Offset,
+			Limit:  o.Limit,
+		},
 	}
 
 	results, err := inst.Search().Search(ctx, p)
