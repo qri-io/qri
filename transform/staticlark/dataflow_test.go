@@ -17,7 +17,7 @@ func TestSingleFunctionDataflow(t *testing.T) {
 	// something unsafe with its first parameter
 	axioms := map[string]*funcNode{
 		"get_secret": &funcNode{
-			name: "get_secret",
+			name:            "get_secret",
 			sensitiveReturn: true,
 		},
 		"dangerous": &funcNode{
@@ -61,7 +61,7 @@ func TestCallTraceDataflow(t *testing.T) {
 	// something unsafe with its first parameter
 	axioms := map[string]*funcNode{
 		"get_secret": &funcNode{
-			name: "get_secret",
+			name:            "get_secret",
 			sensitiveReturn: true,
 		},
 		"dangerous": &funcNode{
@@ -82,7 +82,7 @@ func TestCallTraceDataflow(t *testing.T) {
 		Diagnostic{
 			Pos:      syntax.MakePosition(&filename, 33, 3),
 			Category: "leak",
-		Message: `secrets may leak, variable i is secret
+			Message: `secrets may leak, variable i is secret
 call_trace.star:26: middle passes f to bottom argument m
 call_trace.star:17: bottom passes b to dangerous argument s
 assume it is dangerous`,
@@ -90,12 +90,56 @@ assume it is dangerous`,
 		Diagnostic{
 			Pos:      syntax.MakePosition(&filename, 33, 3),
 			Category: "leak",
-		Message: `secrets may leak, variable k is secret
+			Message: `secrets may leak, variable k is secret
 call_trace.star:26: middle passes g to bottom argument n
 call_trace.star:18: bottom passes n to dangerous argument s
 assume it is dangerous`,
 		},
 	}
+
+	ignoreCmp := cmpopts.IgnoreUnexported(syntax.Position{})
+	if diff := cmp.Diff(expectDiags, diags, ignoreCmp); diff != "" {
+		t.Errorf("mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestIfStatementDataflow(t *testing.T) {
+	filename := "testdata/control_funcs.star"
+	callGraph := mustBuildCallGraphFromFile(t, filename)
+
+	// axioms: get_secret returns a sensitive value, and dangerous does
+	// something unsafe with its first parameter
+	axioms := map[string]*funcNode{
+		"get_secret": &funcNode{
+			name:            "get_secret",
+			sensitiveReturn: true,
+		},
+		"dangerous": &funcNode{
+			dangerousParams: []bool{true, false},
+			reasonParams: []reason{
+				reason{lines: []string{"assume it is dangerous"}},
+				reason{},
+			},
+		},
+	}
+
+	diags, err := analyzeSensitiveDataflow(callGraph, axioms)
+	if err != nil {
+		t.Error(err)
+	}
+
+	expectDiags := []Diagnostic{
+		Diagnostic{
+			Pos:      syntax.MakePosition(&filename, 33, 3),
+			Category: "leak",
+			Message: `secrets may leak, variable z is secret
+control_funcs.star:27: something passes m to dangerous argument s
+assume it is dangerous`,
+		},
+	}
+
+	// TODO(dustmop): Add this to the reason
+	// control_funcs.star:17: m is influenced by c due to control flow
 
 	ignoreCmp := cmpopts.IgnoreUnexported(syntax.Position{})
 	if diff := cmp.Diff(expectDiags, diags, ignoreCmp); diff != "" {

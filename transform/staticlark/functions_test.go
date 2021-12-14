@@ -32,6 +32,7 @@ func TestCollectFunctions(t *testing.T) {
 4: top_level_func [use_branch len branch_multiple branch_no_else another_function]
 5: another_function [branch_nested branch_no_else]
 6: branch_elses [print print print print print]
+7: branch_elses_contained [print print print print print print]
 `
 	if diff := cmp.Diff(expect, text); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)

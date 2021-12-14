@@ -133,6 +133,20 @@ func (b *codeBlock) stringify() string {
 	return result
 }
 
+func (b *codeBlock) isLinear() bool {
+	return len(b.edges) <= 1
+}
+
+func (b *codeBlock) isIfCondition() bool {
+	if len(b.units) == 1 {
+		u := b.units[0]
+		if u.atom == "if" {
+			return true
+		}
+	}
+	return false
+}
+
 func (b *codeBlock) String() string {
 	return b.stringify()
 }

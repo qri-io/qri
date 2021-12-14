@@ -3,6 +3,7 @@ package staticlark
 import (
 	"fmt"
 	"path"
+	"sort"
 	"strings"
 
 	"go.starlark.net/syntax"
@@ -23,6 +24,57 @@ func newEnvironment() *environment {
 		vars:   make(map[string]*deriv),
 		taints: make(map[string]reason),
 	}
+}
+
+func (e *environment) String() string {
+	result := "Env:\n"
+	keys := getKeys(e.vars)
+	for _, name := range keys {
+		der := e.vars[name]
+		status := ""
+		if _, ok := e.taints[name]; ok {
+			status = " tainted"
+		}
+		result += fmt.Sprintf("  %s -> %s%s\n", name, der, status)
+	}
+	return result
+}
+
+func (e *environment) clone() *environment {
+	vars := make(map[string]*deriv, len(e.vars))
+	taints := make(map[string]reason, len(e.taints))
+	for name := range e.vars {
+		vars[name] = e.vars[name].clone()
+	}
+	for name := range e.taints {
+		taints[name] = e.taints[name].clone()
+	}
+	return &environment{vars: vars, taints: taints}
+}
+
+func (e *environment) union(other *environment) *environment {
+	result := e.clone()
+	for name := range other.vars {
+		otherDerivs := other.vars[name]
+		result.vars[name].merge(otherDerivs)
+		// TODO(dustmop): union taints also
+	}
+	return result
+}
+
+func (e *environment) copyFrom(other *environment) {
+	for name := range other.vars {
+		e.vars[name] = other.vars[name]
+	}
+}
+
+func getKeys(m map[string]*deriv) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func (e *environment) markParams(params []string) {
@@ -92,8 +144,48 @@ type deriv struct {
 	param  bool
 }
 
+func (d *deriv) String() string {
+	return strings.Join(d.inputs, ",")
+}
+
+func (d *deriv) clone() *deriv {
+	inputs := make([]string, len(d.inputs))
+	for i, inp := range d.inputs {
+		inputs[i] = inp
+	}
+	return &deriv{inputs: inputs, param: d.param}
+}
+
+func (d *deriv) merge(other *deriv) {
+	for _, val := range other.inputs {
+		if !arrayContains(d.inputs, val) {
+			d.inputs = append(d.inputs, val)
+		}
+	}
+	if other.param {
+		d.param = true
+	}
+}
+
+func arrayContains(arr []string, val string) bool {
+	for _, elem := range arr {
+		if elem == val {
+			return true
+		}
+	}
+	return false
+}
+
 type reason struct {
 	lines []string
+}
+
+func (r reason) clone() reason {
+	lines := make([]string, len(r.lines))
+	for i, ln := range r.lines {
+		lines[i] = ln
+	}
+	return reason{lines: lines}
 }
 
 func makeReason(pos syntax.Position, currFunc, varName, invokeName, paramName string, prev reason) reason {
