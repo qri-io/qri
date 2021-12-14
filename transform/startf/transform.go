@@ -197,11 +197,7 @@ func NewStepRunner(target *dataset.Dataset, opts ...func(o *ExecOpts)) *StepRunn
 
 	// Store the OutputConfig on the starlark thread. This allows functions
 	// such as the DataFrame constructor to get this configuration
-	outconf := &dataframe.OutputConfig{
-		Width:  o.OutputWidth,
-		Height: o.OutputHeight,
-	}
-	thread.SetLocal("OutputConig", &outconf)
+	outconf := dataframe.SetOutputSize(thread, o.OutputWidth, o.OutputHeight)
 
 	r := &StepRunner{
 		config:    target.Transform.Config,
@@ -237,7 +233,7 @@ func (r *StepRunner) RunStep(ctx context.Context, ds *dataset.Dataset, st *datas
 			// Need to assign to the named return value from
 			// a recovery
 			err = fmt.Errorf("running transform: %w", r)
-			log.Error("%w, stacktrace: %s", err, debug.Stack())
+			log.Errorf("%s, stacktrace: %s", err, debug.Stack())
 		}
 	}()
 
