@@ -18,7 +18,7 @@ func TestControlFlowIf(t *testing.T) {
    [set! b 2]
   out: 1
 1: [if [< a b]]
-  out: 2,3
+  out: 2,3, join: 4
 2: [set! c [+ b 1]]
   out: 4
 3: [set! c [+ a 1]]
@@ -41,7 +41,7 @@ func TestControlFlowIf(t *testing.T) {
    [set! b 2]
   out: 1
 1: [if [< a b]]
-  out: 2,3
+  out: 2,3, join: 3
 2: [set! c [+ b 1]]
    [print [% '%d' c]]
   out: 3
@@ -64,12 +64,12 @@ func TestControlFlowIf(t *testing.T) {
    [set! b 2]
   out: 1
 1: [if [< a b]]
-  out: 2,5
+  out: 2,5, join: 6
 2: [set! c [+ b 1]]
    [set! d a]
   out: 3
 3: [if [> d c]]
-  out: 4,6
+  out: 4,6, join: 6
 4: [set! c [+ d 2]]
   out: 6
 5: [set! c [+ a 1]]
@@ -95,15 +95,15 @@ func TestControlFlowIf(t *testing.T) {
    [set! b 2]
   out: 1
 1: [if [< a b]]
-  out: 2,8
+  out: 2,8, join: 9
 2: [set! c [+ b 1]]
   out: 3
 3: [if [< c 1]]
-  out: 4,5
+  out: 4,5, join: 9
 4: [print 'small']
   out: 9
 5: [if [< c 5]]
-  out: 6,7
+  out: 6,7, join: 9
 6: [print 'medium']
   out: 9
 7: [print 'large']

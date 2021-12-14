@@ -78,31 +78,7 @@ func newControlFlowFromFunc(fn *funcNode) (*controlFlow, error) {
 func (c *controlFlow) stringify() string {
 	result := ""
 	for i, block := range c.blocks {
-		result += fmt.Sprintf("%d: ", i)
-		for j, unit := range block.units {
-			if j == 0 {
-				result += fmt.Sprintf("%s\n", unit)
-			} else {
-				padding := strings.Repeat(" ", 3)
-				result += fmt.Sprintf("%s%s\n", padding, unit)
-			}
-		}
-		if len(block.units) == 0 {
-			result += "-\n"
-		}
-		if len(block.edges) == 0 {
-			result += "  out: -\n"
-		} else if len(block.edges) == 1 && block.edges[0] == -1 {
-			result += "  out: return\n"
-		} else if len(block.edges) == 1 && block.edges[0] == -2 {
-			result += "  out: break\n"
-		} else {
-			outs := make([]string, len(block.edges))
-			for j, edge := range block.edges {
-				outs[j] = strconv.Itoa(edge)
-			}
-			result += fmt.Sprintf("  out: %s\n", strings.Join(outs, ","))
-		}
+		result += fmt.Sprintf("%d: %s\n", i, block.stringify())
 	}
 	return result
 }
@@ -113,12 +89,52 @@ func (c *controlFlow) stringify() string {
 type codeBlock struct {
 	units []*unit
 	edges []int
+	// if the block has multiple edges that branch forward, join is
+	// the index that those branches join at. Only used by `if`
+	join int
 }
 
 func newCodeBlock() *codeBlock {
 	return &codeBlock{
 		units: []*unit{},
 	}
+}
+
+func (b *codeBlock) stringify() string {
+	result := ""
+	for j, unit := range b.units {
+		if j == 0 {
+			result += fmt.Sprintf("%s\n", unit)
+		} else {
+			padding := strings.Repeat(" ", 3)
+			result += fmt.Sprintf("%s%s\n", padding, unit)
+		}
+	}
+	if len(b.units) == 0 {
+		result += "-\n"
+	}
+	if len(b.edges) == 0 {
+		result += "  out: -"
+	} else if len(b.edges) == 1 && b.edges[0] == -1 {
+		result += "  out: return"
+	} else if len(b.edges) == 1 && b.edges[0] == -2 {
+		result += "  out: break"
+	} else {
+		outs := make([]string, len(b.edges))
+		for j, edge := range b.edges {
+			outs[j] = strconv.Itoa(edge)
+		}
+		if b.join > 0 {
+			result += fmt.Sprintf("  out: %s, join: %d", strings.Join(outs, ","), b.join)
+		} else {
+			result += fmt.Sprintf("  out: %s", strings.Join(outs, ","))
+		}
+	}
+	return result
+}
+
+func (b *codeBlock) String() string {
+	return b.stringify()
 }
 
 // cfBuilder is a builder that creates a control flow
@@ -129,6 +145,8 @@ type cfBuilder struct {
 	curr *codeBlock
 	// references to blocks that do not have outgoing edges
 	dangling []int
+	// references to blocks that want to join at the next block
+	danglingJoin []int
 }
 
 func newControlFlowBuilder() *cfBuilder {
@@ -155,10 +173,24 @@ func (builder *cfBuilder) addEdges(blockRefs []int, dest []int) {
 	}
 }
 
+// mark the referenced blocks as needing to join to the next block
+func (builder *cfBuilder) wantJoin(blockRefs []int) {
+	for _, ref := range blockRefs {
+		builder.flow.blocks[ref].join = -1
+	}
+	builder.danglingJoin = append(builder.danglingJoin, blockRefs...)
+}
+
 // add a new block to the control flow, and point any dangling edges to it
 func (builder *cfBuilder) makeBlock() {
 	if len(builder.dangling) != 0 {
 		index := builder.refNext()
+		if len(builder.dangling) > 1 && builder.danglingJoin != nil {
+			for _, idx := range builder.danglingJoin {
+				builder.flow.blocks[idx].join = index
+			}
+			builder.danglingJoin = nil
+		}
 		builder.addEdges(builder.dangling, []int{index})
 	}
 
@@ -264,6 +296,7 @@ func (builder *cfBuilder) buildSingleNode(stmt syntax.Stmt) {
 			builder.addEdges(branchEntry, []int{truePos})
 			builder.dangling = append(exitTrue, branchEntry...)
 		}
+		builder.wantJoin(branchEntry)
 
 	case *syntax.LoadStmt:
 		// nothing to do
