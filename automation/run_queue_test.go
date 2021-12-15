@@ -21,6 +21,7 @@ func TestRunQueue(t *testing.T) {
 	}
 	ownerID := "owner"
 	runID := "run"
+	initID := "init"
 	mode := "apply"
 	f := func(msg string) runQueueFunc {
 		return func(ctx context.Context) error {
@@ -29,7 +30,7 @@ func TestRunQueue(t *testing.T) {
 		}
 	}
 
-	if err := rq.Push(ctx, ownerID, runID, mode, f(expectMsgs[0])); err != nil {
+	if err := rq.Push(ctx, ownerID, initID, runID, mode, f(expectMsgs[0])); err != nil {
 		t.Fatal(err)
 	}
 	<-time.After(100 * time.Millisecond)
@@ -38,15 +39,15 @@ func TestRunQueue(t *testing.T) {
 		return
 	}
 
-	if err := rq.Push(ctx, ownerID, runID, mode, f(expectMsgs[1])); err != nil {
+	if err := rq.Push(ctx, ownerID, initID, runID, mode, f(expectMsgs[1])); err != nil {
 		t.Fatal(err)
 	}
-	if err := rq.Push(ctx, ownerID, runID, mode, f(expectMsgs[2])); err != nil {
+	if err := rq.Push(ctx, ownerID, initID, runID, mode, f(expectMsgs[2])); err != nil {
 		t.Fatal(err)
 	}
 	<-time.After(200 * time.Millisecond)
 	cancel()
-	if err := rq.Push(ctx, ownerID, runID, mode, f("bad message")); err != nil {
+	if err := rq.Push(ctx, ownerID, initID, runID, mode, f("bad message")); err != nil {
 		t.Fatal(err)
 	}
 	<-time.After(100 * time.Millisecond)
@@ -61,6 +62,7 @@ func TestRunQueueCancel(t *testing.T) {
 	defer cancel()
 	rq := NewRunQueue(ctx, event.NilBus, 50*time.Millisecond, 1)
 	ownerID := "owner"
+	initID := "init"
 	runID := "run"
 	mode := "apply"
 	msg := make(chan string)
@@ -77,7 +79,7 @@ func TestRunQueueCancel(t *testing.T) {
 		}
 	}
 
-	if err := rq.Push(ctx, ownerID, runID, mode, f); err != nil {
+	if err := rq.Push(ctx, ownerID, initID, runID, mode, f); err != nil {
 		t.Fatal(err)
 	}
 	<-runStarted

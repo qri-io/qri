@@ -293,7 +293,7 @@ func (o *Orchestrator) handleTrigger(ctx context.Context, e event.Event) error {
 			}
 			runID := run.NewID()
 			runFunc := o.runWorkflowFactory(wf, runID)
-			if err := o.runQueue.Push(ctx, wf.OwnerID.Encode(), runID, "run", runFunc); err != nil {
+			if err := o.runQueue.Push(ctx, wf.OwnerID.Encode(), wf.InitID, runID, "run", runFunc); err != nil {
 
 				log.Debugw("handleTrigger: error queuing workflow", "err", err)
 			}
@@ -319,7 +319,7 @@ func (o *Orchestrator) RunWorkflow(ctx context.Context, wid workflow.ID, runID s
 	}
 
 	runFunc := o.runWorkflowFactory(wf, runID)
-	return runID, o.runQueue.Push(ctx, wf.OwnerID.Encode(), runID, "run", runFunc)
+	return runID, o.runQueue.Push(ctx, wf.OwnerID.Encode(), wf.InitID, runID, "run", runFunc)
 }
 
 func (o *Orchestrator) runWorkflow(ctx context.Context, wf *workflow.Workflow, runID string) error {
@@ -389,7 +389,7 @@ func (o *Orchestrator) ApplyWorkflow(ctx context.Context, wait bool, scriptOutpu
 	runFunc := func(ctx context.Context) error {
 		return o.applyWorkflow(ctx, scriptOutput, wf, ds, runID, params)
 	}
-	return runID, o.runQueue.Push(ctx, wf.OwnerID.Encode(), runID, "apply", runFunc)
+	return runID, o.runQueue.Push(ctx, wf.OwnerID.Encode(), wf.InitID, runID, "apply", runFunc)
 }
 
 func (o *Orchestrator) applyWorkflow(ctx context.Context, scriptOutput io.Writer, wf *workflow.Workflow, ds *dataset.Dataset, runID string, params WorkflowRunParams) error {

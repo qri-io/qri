@@ -19,7 +19,7 @@ type runQueueFunc func(context.Context) error
 
 // RunQueue queues runs and apply transforms & allows you to cancel runs and apply transforms
 type RunQueue interface {
-	Push(ctx context.Context, ownerID string, runID string, mode string, f runQueueFunc) error
+	Push(ctx context.Context, ownerID string, initID string, runID string, mode string, f runQueueFunc) error
 	Pop(ctx context.Context) (*runQueueInfo, error)
 	Cancel(runID string) error
 	Shutdown() error
@@ -27,6 +27,7 @@ type RunQueue interface {
 
 type runQueueInfo struct {
 	ownerID string
+	initID  string
 	runID   string
 	mode    string
 	f       runQueueFunc
@@ -129,24 +130,25 @@ func (r *runQueue) pollQueue(ctx context.Context, interval time.Duration) {
 	}
 }
 
-func (r *runQueue) Push(ctx context.Context, ownerID string, runID string, mode string, f runQueueFunc) error {
+func (r *runQueue) Push(ctx context.Context, ownerID string, initID string, runID string, mode string, f runQueueFunc) error {
 	r.qlk.Lock()
 	defer r.qlk.Unlock()
 	scopedCtx := profile.AddIDToContext(ctx, ownerID)
 	go func() {
 		switch mode {
 		case "run":
-			if err := r.pub.PublishID(scopedCtx, event.ETAutomationRunQueuePush, runID, &runID); err != nil {
+			if err := r.pub.PublishID(scopedCtx, event.ETAutomationRunQueuePush, runID, &initID); err != nil {
 				log.Debug(err)
 			}
 		case "apply":
-			if err := r.pub.PublishID(scopedCtx, event.ETAutomationApplyQueuePush, runID, &runID); err != nil {
+			if err := r.pub.PublishID(scopedCtx, event.ETAutomationApplyQueuePush, runID, &initID); err != nil {
 				log.Debug(err)
 			}
 		}
 	}()
 	info := &runQueueInfo{
 		ownerID: ownerID,
+		initID:  initID,
 		runID:   runID,
 		mode:    mode,
 		f:       f,
@@ -166,7 +168,7 @@ func (r *runQueue) Pop(ctx context.Context) (*runQueueInfo, error) {
 	go func() {
 		switch info.mode {
 		case "run":
-			if err := r.pub.Publish(ctx, event.ETAutomationRunQueuePop, &info.runID); err != nil {
+			if err := r.pub.PublishID(ctx, event.ETAutomationRunQueuePop, info.runID, info.initID); err != nil {
 				log.Debug(err)
 			}
 		case "apply":

@@ -58,11 +58,13 @@ const (
 	// the deploy ended in error
 	ETAutomationDeployEnd = Type("automation:DeployEnd")
 	// ETAutomationRunQueuePush signals the run is queued to execute
-	// Payload will be a runID
+	// Payload will be a initID
+	// SessionID will be a runID
 	// This event should not block
 	ETAutomationRunQueuePush = Type("automation:RunQueuePush")
 	// ETAutomationRunQueuePop signals the run is queued to execute
-	// Payload will be a runID
+	// Payload will be a initID
+	// SessionID will be a runID
 	// This event should not block
 	ETAutomationRunQueuePop = Type("automation:RunQueuePop")
 	// ETAutomationApplyQueuePush signals the apply is queued to execute
