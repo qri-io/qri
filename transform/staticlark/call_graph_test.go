@@ -55,6 +55,8 @@ top_level_func
    print
 branch_elses
  print
+branch_elses_contained
+ print
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)

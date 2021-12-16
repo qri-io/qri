@@ -31,6 +31,9 @@ type dataflowAnalyzer struct {
 	axioms map[string]*funcNode
 	seen   map[string]struct{}
 	diags  []Diagnostic
+	// a stack of sources: values that influence any assignments created
+	// within the current control structure
+	controlSrcStack [][]string
 }
 
 // recursively call this function until all leaf functions are handled
@@ -68,8 +71,8 @@ func satisfiesAxiom(fn *funcNode, axioms map[string]*funcNode) bool {
 	return false
 }
 
-func (da *dataflowAnalyzer) analyzeFunction(analyzing *funcNode) error {
-	fname := analyzing.name
+func (da *dataflowAnalyzer) analyzeFunction(fn *funcNode) error {
+	fname := fn.name
 	f := da.graph.lookup[fname]
 	if f == nil {
 		return fmt.Errorf("showing control flow, function %q not found", fname)
@@ -84,81 +87,168 @@ func (da *dataflowAnalyzer) analyzeFunction(analyzing *funcNode) error {
 	env := newEnvironment()
 	env.markParams(params)
 
-	// TODO(dustmop): This only handles linear control flow. Need to handle
-	// branch and loops also.
-	// * Branch: run this over each branch, union the results
-	// * Loop: run the loop repeatedly until a fixed-point is reached
-	for _, block := range controlFlow.blocks {
+	if err := da.analyzeSequence(0, len(controlFlow.blocks), controlFlow, env, fn); err != nil {
+		return err
+	}
 
-		// Iterate each unit, an assignment, or function call, etc
-		for _, unit := range block.units {
+	dangerousParams, reasonParams := env.getHighSensitive(params)
+	fn.dangerousParams = dangerousParams
+	fn.reasonParams = reasonParams
+	return nil
+}
 
-			// Get data sources that are not function calls
-			sources := []string{}
+// analyze the sequence of blocks beginning at start, until finish
+func (da *dataflowAnalyzer) analyzeSequence(start, finish int, cf *controlFlow, env *environment, fn *funcNode) error {
+
+	index := start
+	for index >= 0 && index < finish {
+		block := cf.blocks[index]
+
+		if block.isLinear() {
+			// linear flow simply analyzes the block, then follows the edge
+			if err := da.analyzeBlock(block, env, fn); err != nil {
+				return err
+			}
+
+			if len(block.edges) == 1 {
+				index = block.edges[0]
+			} else {
+				break
+			}
+
+		} else if block.isIfCondition() {
+			// if statements will analyze both true and false branches, then union
+			// the environments from each
+			trueIdx := block.edges[0]
+			falseIdx := block.edges[1]
+			joinIdx := block.join
+
+			trueEnv := env.clone()
+			falseEnv := env.clone()
+
+			// the data sources for the if condition will influence any assignments
+			// that happen in either branch
+			da.pushControlBindings(block.units[0].DataSources())
+
+			if err := da.analyzeSequence(trueIdx, joinIdx, cf, trueEnv, fn); err != nil {
+				return err
+			}
+			if err := da.analyzeSequence(falseIdx, joinIdx, cf, falseEnv, fn); err != nil {
+				return err
+			}
+
+			da.popControlBindings()
+
+			env.copyFrom(trueEnv.union(falseEnv))
+			index = joinIdx
+
+		} else {
+			// TODO(dustmop): Handle loops also - run the loop repeatedly
+			// until the environment reaches a fixed-point
+			return fmt.Errorf("TODO: block type %v not implemented", block)
+		}
+	}
+
+	return nil
+}
+
+func (da *dataflowAnalyzer) analyzeBlock(block *codeBlock, env *environment, fn *funcNode) error {
+	fname := fn.name
+	// iterate each unit. Could be an assignment, or function call, etc
+	for _, unit := range block.units {
+
+		// get data sources that are not function calls
+		sources := []string{}
+		for _, src := range unit.DataSources() {
+			if _, ok := da.graph.lookup[src]; !ok {
+				sources = append(sources, src)
+			}
+		}
+
+		invokes := unit.Invocations()
+		if dest := unit.AssignsTo(); dest != "" {
+			// if this variable is being assigned the output of a function
+			// that returns secret data, mark it as secret itself
+			for _, inv := range invokes {
+				if fn, ok := da.graph.lookup[inv.Name]; ok && fn.sensitiveReturn {
+					sources = append(sources, sensitiveVarName)
+				}
+			}
+			// assign the data sources to this variable
+			sources = append(sources, da.controlSources()...)
+			env.assign(dest, sources)
+		}
+
+		if unit.IsReturn() {
+			// if the unit is a return statement, which is returning secret
+			// data, mark the return of this function as being sensitive
 			for _, src := range unit.DataSources() {
 				_, ok := da.graph.lookup[src]
 				if !ok {
-					sources = append(sources, src)
-				}
-			}
-
-			invokes := unit.Invocations()
-			if dest := unit.AssignsTo(); dest != "" {
-				// If this variable is being assigned the output of a function
-				// that returns secret data, mark it as secret itself
-				for _, inv := range invokes {
-					fn, ok := da.graph.lookup[inv.Name]
-					if ok && fn.sensitiveReturn {
-						sources = append(sources, sensitiveVarName)
-					}
-				}
-				// Assign the data sources to this variable
-				env.assign(dest, sources)
-			}
-
-			if unit.IsReturn() {
-				for _, src := range unit.DataSources() {
-					_, ok := da.graph.lookup[src]
-					if !ok {
-						if env.isSecret(src) {
-							analyzing.sensitiveReturn = true
-						}
+					if env.isSecret(src) {
+						fn.sensitiveReturn = true
 					}
 				}
 			}
+		}
 
-			// Check if any secret data is being passed to sensitive function
-			// arguments
-			for _, inv := range invokes {
-				fn, ok := da.graph.lookup[inv.Name]
-				if !ok {
-					return fmt.Errorf("invoked function %s not found", inv.Name)
-				}
+		// check if any secret data is being passed to sensitive function
+		// arguments
+		for _, inv := range invokes {
+			// skip built-in functions and control structures
+			if da.builtinOrControlStructure(inv.Name) {
+				continue
+			}
 
-				for i, arg := range inv.Args {
-					danger := fn.dangerousParams
-					if danger != nil && i < len(danger) && danger[i] {
-						if env.isSecret(arg) {
-							prev := fn.reasonParams[i]
-							d := Diagnostic{
-								Pos:      unit.where,
-								Category: "leak",
-								Message:  fmt.Sprintf("secrets may leak, variable %s is secret\n%s", arg, prev.String()),
-							}
-							da.diags = append(da.diags, d)
-						}
-						// taint vars so that the sources become dangerous
+			fn, ok := da.graph.lookup[inv.Name]
+			if !ok {
+				return fmt.Errorf("invoked function %s not found", inv.Name)
+			}
+
+			for i, arg := range inv.Args {
+				danger := fn.dangerousParams
+				if danger != nil && i < len(danger) && danger[i] {
+					// receiving param can potentially be dangerous
+					if env.isSecret(arg) {
+						// secret being sent to dangerous param
 						prev := fn.reasonParams[i]
-						reason := makeReason(unit.where, fname, arg, inv.Name, fn.params[i], prev)
-						env.taint(arg, reason)
+						msg := fmt.Sprintf("secrets may leak, variable %s is secret\n%s", arg, prev.String())
+						d := Diagnostic{
+							Pos:      unit.where,
+							Category: "leak",
+							Message:  msg,
+						}
+						da.diags = append(da.diags, d)
 					}
+					// taint vars so that the sources become dangerous
+					prev := fn.reasonParams[i]
+					reason := makeReason(unit.where, fname, arg, inv.Name, fn.params[i], prev)
+					env.taint(arg, reason)
 				}
 			}
 		}
 	}
 
-	dangerousParams, reasonParams := env.getHighSensitive(params)
-	analyzing.dangerousParams = dangerousParams
-	analyzing.reasonParams = reasonParams
 	return nil
+}
+
+func (da *dataflowAnalyzer) builtinOrControlStructure(name string) bool {
+	return name == "if"
+}
+
+func (da *dataflowAnalyzer) pushControlBindings(sources []string) {
+	da.controlSrcStack = append(da.controlSrcStack, sources)
+}
+
+func (da *dataflowAnalyzer) popControlBindings() {
+	lastIndex := len(da.controlSrcStack) - 1
+	da.controlSrcStack = da.controlSrcStack[:lastIndex]
+}
+
+func (da *dataflowAnalyzer) controlSources() []string {
+	result := make([]string, 0)
+	for _, row := range da.controlSrcStack {
+		result = append(result, row...)
+	}
+	return result
 }

@@ -18,7 +18,7 @@ func TestControlFlowIf(t *testing.T) {
    [set! b 2]
   out: 1
 1: [if [< a b]]
-  out: 2,3
+  out: 2,3, join: 4
 2: [set! c [+ b 1]]
   out: 4
 3: [set! c [+ a 1]]
@@ -41,7 +41,7 @@ func TestControlFlowIf(t *testing.T) {
    [set! b 2]
   out: 1
 1: [if [< a b]]
-  out: 2,3
+  out: 2,3, join: 3
 2: [set! c [+ b 1]]
    [print [% '%d' c]]
   out: 3
@@ -64,12 +64,12 @@ func TestControlFlowIf(t *testing.T) {
    [set! b 2]
   out: 1
 1: [if [< a b]]
-  out: 2,5
+  out: 2,5, join: 6
 2: [set! c [+ b 1]]
    [set! d a]
   out: 3
 3: [if [> d c]]
-  out: 4,6
+  out: 4,6, join: 6
 4: [set! c [+ d 2]]
   out: 6
 5: [set! c [+ a 1]]
@@ -95,15 +95,15 @@ func TestControlFlowIf(t *testing.T) {
    [set! b 2]
   out: 1
 1: [if [< a b]]
-  out: 2,8
+  out: 2,8, join: 9
 2: [set! c [+ b 1]]
   out: 3
 3: [if [< c 1]]
-  out: 4,5
+  out: 4,5, join: 9
 4: [print 'small']
   out: 9
 5: [if [< c 5]]
-  out: 6,7
+  out: 6,7, join: 9
 6: [print 'medium']
   out: 9
 7: [print 'large']
@@ -111,6 +111,43 @@ func TestControlFlowIf(t *testing.T) {
 8: [print 'ok']
   out: 9
 9: [print 'done']
+  out: -
+`
+	actual = cf.stringify()
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("mismatch (-want +got):\n%s", diff)
+	}
+
+	// this function has another statement (block 8) which ensures
+	// that the inner if statement is completely contained in the outer
+	funcmap = mustReadScriptFunctionMap(t, "testdata/some_funcs.star")
+	cf, err = newControlFlowFromFunc(funcmap["branch_elses_contained"])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expect = `0: [set! a 1]
+   [set! b 2]
+  out: 1
+1: [if [< a b]]
+  out: 2,9, join: 10
+2: [set! c [+ b 1]]
+  out: 3
+3: [if [< c 1]]
+  out: 4,5, join: 8
+4: [print 'small']
+  out: 8
+5: [if [< c 5]]
+  out: 6,7, join: 8
+6: [print 'medium']
+  out: 8
+7: [print 'large']
+  out: 8
+8: [print 'sized']
+  out: 10
+9: [print 'ok']
+  out: 10
+10: [print 'done']
   out: -
 `
 	actual = cf.stringify()

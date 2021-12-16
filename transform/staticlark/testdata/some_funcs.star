@@ -77,3 +77,19 @@ def branch_elses(container):
   else:
     print('ok')
   print('done')
+
+def branch_elses_contained(container):
+  a = 1
+  b = 2
+  if a < b:
+    c = b + 1
+    if c < 1:
+      print('small')
+    elif c < 5:
+      print('medium')
+    else:
+      print('large')
+    print('sized')
+  else:
+    print('ok')
+  print('done')
