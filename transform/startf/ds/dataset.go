@@ -83,7 +83,11 @@ func NewDataset(ds *dataset.Dataset, outconf *dataframe.OutputConfig) *Dataset {
 
 // New creates a new dataset from starlark land
 func New(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	d := &Dataset{ds: &dataset.Dataset{}, changes: make(map[string]struct{})}
+	// TODO(dustmop): Add a function to starlib/dataframe that returns this,
+	// use that instead. That way all uses of the thread local data stay in
+	// that package, instead of leaking out here.
+	outconf, _ := thread.Local("OutputConfig").(*dataframe.OutputConfig)
+	d := &Dataset{ds: &dataset.Dataset{}, outconf: outconf, changes: make(map[string]struct{})}
 	return d, nil
 }
 
