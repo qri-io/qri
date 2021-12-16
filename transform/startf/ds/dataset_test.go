@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/starlib/dataframe"
 	"github.com/qri-io/starlib/testdata"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
@@ -38,7 +39,8 @@ func TestCannotSetIfReadOnly(t *testing.T) {
 }
 
 func TestSetAndGetBody(t *testing.T) {
-	ds := NewDataset(&dataset.Dataset{}, nil)
+	outconf := &dataframe.OutputConfig{}
+	ds := NewDataset(&dataset.Dataset{}, outconf)
 	err := ds.SetField("body", starlark.NewList([]starlark.Value{starlark.NewList([]starlark.Value{starlark.String("a")})}))
 	if err != nil {
 		t.Fatal(err)
@@ -56,6 +58,7 @@ func TestFile(t *testing.T) {
 	resolve.AllowFloat = true
 	thread := &starlark.Thread{Load: newLoader()}
 	starlarktest.SetReporter(thread, t)
+	dataframe.SetOutputSize(thread, 0, 0)
 
 	// Execute test file
 	_, err := starlark.ExecFile(thread, "testdata/test.star", nil, starlark.StringDict{
@@ -102,7 +105,8 @@ bat,3,meh
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.csv", []byte(text)))
 
-	d := NewDataset(ds, nil)
+	outconf := &dataframe.OutputConfig{}
+	d := NewDataset(ds, outconf)
 	return d
 }
 
