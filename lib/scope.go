@@ -6,6 +6,7 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/automation"
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
@@ -119,6 +120,11 @@ func (s *scope) AppContext() context.Context {
 // CollectionSet returns the set of collections
 func (s *scope) CollectionSet() collection.Set {
 	return s.inst.collections
+}
+
+// ComponentStatus returns functionality concerning component status changes
+func (s *scope) ComponentStatus() *base.ComponentStatus {
+	return s.inst.compStat
 }
 
 // ReplaceParentContext returns a copy of the scope bound to a new parent
