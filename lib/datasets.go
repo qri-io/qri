@@ -1393,7 +1393,7 @@ func (datasetImpl) Render(scope scope, p *RenderParams) (res []byte, err error) 
 	return res, nil
 }
 
-// Whatchanges ...
+// WhatChanged gets what components changed for the given version
 func (datasetImpl) WhatChanged(scope scope, p *WhatChangedParams) ([]base.StatusItem, error) {
 	ref, err := dsref.Parse(p.Ref)
 	if err != nil {
