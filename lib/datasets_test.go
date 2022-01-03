@@ -1200,6 +1200,69 @@ func TestDatasetRequestsStats(t *testing.T) {
 	}
 }
 
+func TestDatasetWhatChanged(t *testing.T) {
+	run := newTestRunner(t)
+	defer run.Delete()
+
+	// Save a first version, with just a body
+	run.MustSaveFromBody(t, "cities_ds", "testdata/cities_2/body.csv")
+
+	// Save a second version, with a meta.title
+	ref, err := run.SaveWithParams(&SaveParams{
+		Ref: "me/cities_ds",
+		Dataset: &dataset.Dataset{
+			Meta: &dataset.Meta{
+				Title: "city data",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	version2 := ref.String()
+
+	// Save a third version, with a different meta.title, changed body, added readme
+	ref, err = run.SaveWithParams(&SaveParams{
+		Ref: "me/cities_ds",
+		Dataset: &dataset.Dataset{
+			Meta: &dataset.Meta{
+				Title: "city data 2",
+			},
+			Readme: &dataset.Readme{
+				Text: "# About\n\nThis is a test dataset",
+			},
+		},
+		BodyPath: "testdata/cities_2/body_more.csv",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	version3 := ref.String()
+
+	// Check what changed for version 2: a meta was added
+	items := run.MustWhatChanged(t, version2)
+	expectItems := []base.StatusItem{
+		{Component: "meta", Type: "add"},
+		{Component: "structure", Type: "unmodified"},
+		{Component: "body", Type: "unmodified"},
+	}
+	if diff := cmp.Diff(expectItems, items); diff != "" {
+		t.Errorf("error mismatch (-want +got):%s\n", diff)
+	}
+
+	// Check what changed for version 3: meta and body changed, readme added
+	items = run.MustWhatChanged(t, version3)
+	expectItems = []base.StatusItem{
+		{Component: "meta", Type: "modified"},
+		{Component: "structure", Type: "unmodified"},
+		{Component: "readme", Type: "add"},
+		{Component: "body", Type: "modified"},
+	}
+	if diff := cmp.Diff(expectItems, items); diff != "" {
+		t.Errorf("error mismatch (-want +got):%s\n", diff)
+	}
+}
+
 // Convert the interface value into an array, or panic if not possible
 func mustBeArray(i interface{}, err error) []interface{} {
 	if err != nil {

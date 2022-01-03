@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs/muxfs"
@@ -36,27 +35,18 @@ var (
 // StatusItem is the status of a component of a dataset, and whether it
 // was changed at a specific version in history
 type StatusItem struct {
-	SourceFile string    `json:"sourceFile"`
-	Component  string    `json:"component"`
-	Type       string    `json:"type"`
-	Message    string    `json:"message"`
-	Mtime      time.Time `json:"mtime"`
+	Component string `json:"component"`
+	Type      string `json:"type"`
 }
 
-// MarshalJSON marshals a StatusItem, handling mtime specially
+// MarshalJSON marshals a StatusItem
 func (si StatusItem) MarshalJSON() ([]byte, error) {
 	obj := struct {
-		SourceFile string `json:"sourceFile"`
-		Component  string `json:"component"`
-		Type       string `json:"type"`
-		Message    string `json:"message"`
-		Mtime      string `json:"mtime,omitempty"`
+		Component string `json:"component"`
+		Type      string `json:"type"`
 	}{
-		SourceFile: si.SourceFile,
-		Component:  si.Component,
-		Type:       si.Type,
-		Message:    si.Message,
-		Mtime:      si.Mtime.Format(time.RFC3339),
+		Component: si.Component,
+		Type:      si.Type,
 	}
 	return json.Marshal(obj)
 }
@@ -112,12 +102,6 @@ func (cs *ComponentStatus) WhatChanged(ctx context.Context, ref dsref.Ref) (chan
 	if err != nil {
 		return nil, err
 	}
-	for i, ch := range changes {
-		comp := ch.Component
-		if comp == "meta" || comp == "body" || comp == "structure" {
-			changes[i].SourceFile = comp
-		}
-	}
 	return changes, nil
 }
 
@@ -130,10 +114,8 @@ func (cs *ComponentStatus) calculateStateTransition(ctx context.Context, prev, n
 	dsComp := next.Base().GetSubcomponent("dataset")
 	if dsComp != nil && dsComp.Base().ProblemKind != "" {
 		changes = append(changes, StatusItem{
-			SourceFile: dsComp.Base().SourceFile,
-			Component:  "dataset",
-			Type:       dsComp.Base().ProblemKind,
-			Mtime:      dsComp.Base().ModTime,
+			Component: "dataset",
+			Type:      dsComp.Base().ProblemKind,
 		})
 	}
 
@@ -144,10 +126,8 @@ func (cs *ComponentStatus) calculateStateTransition(ctx context.Context, prev, n
 		// Next component might have a problem, such as a parse error, or permission problem.
 		if nextComp != nil && nextComp.Base().ProblemKind != "" {
 			changes = append(changes, StatusItem{
-				SourceFile: nextComp.Base().SourceFile,
-				Component:  compName,
-				Type:       nextComp.Base().ProblemKind,
-				Mtime:      nextComp.Base().ModTime,
+				Component: compName,
+				Type:      nextComp.Base().ProblemKind,
 			})
 			continue
 		}
@@ -158,10 +138,8 @@ func (cs *ComponentStatus) calculateStateTransition(ctx context.Context, prev, n
 		} else if prevComp == nil && nextComp != nil {
 			// Didn't exist before, does now - component was added.
 			changes = append(changes, StatusItem{
-				SourceFile: nextComp.Base().SourceFile,
-				Component:  compName,
-				Type:       STAdd,
-				Mtime:      nextComp.Base().ModTime,
+				Component: compName,
+				Type:      STAdd,
 			})
 			continue
 		} else if prevComp != nil && nextComp == nil {
@@ -176,27 +154,21 @@ func (cs *ComponentStatus) calculateStateTransition(ctx context.Context, prev, n
 		isEqual, err := prevComp.Compare(nextComp)
 		if err != nil {
 			changes = append(changes, StatusItem{
-				SourceFile: nextComp.Base().SourceFile,
-				Component:  compName,
-				Type:       STParseError,
-				Mtime:      nextComp.Base().ModTime,
+				Component: compName,
+				Type:      STParseError,
 			})
 			continue
 		}
 
 		if isEqual {
 			changes = append(changes, StatusItem{
-				SourceFile: nextComp.Base().SourceFile,
-				Component:  compName,
-				Type:       STUnmodified,
-				Mtime:      nextComp.Base().ModTime,
+				Component: compName,
+				Type:      STUnmodified,
 			})
 		} else {
 			changes = append(changes, StatusItem{
-				SourceFile: nextComp.Base().SourceFile,
-				Component:  compName,
-				Type:       STChange,
-				Mtime:      nextComp.Base().ModTime,
+				Component: compName,
+				Type:      STChange,
 			})
 		}
 	}

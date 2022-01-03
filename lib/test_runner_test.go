@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
@@ -225,4 +226,13 @@ func (tr *testRunner) DiffWithParams(p *DiffParams) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+func (tr *testRunner) MustWhatChanged(t *testing.T, ref string) []base.StatusItem {
+	p := WhatChangedParams{Ref: ref}
+	items, err := tr.Instance.Dataset().WhatChanged(tr.Ctx, &p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return items
 }
