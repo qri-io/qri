@@ -91,6 +91,8 @@ const (
 	AEManifestMissing APIEndpoint = "/ds/manifest/missing"
 	// AEDAGInfo generates a dag.Info for a dataset path
 	AEDAGInfo APIEndpoint = "/ds/daginfo"
+	// AEWhatChanged gets what changed at a specific version in history
+	AEWhatChanged APIEndpoint = "/ds/whatchanged"
 
 	// peer endpoints
 

@@ -67,6 +67,7 @@ func (m DatasetMethods) Attributes() map[string]AttributeSet {
 		"manifest":        {Endpoint: qhttp.AEManifest, HTTPVerb: "POST", DefaultSource: "local"},
 		"manifestmissing": {Endpoint: qhttp.AEManifestMissing, HTTPVerb: "POST", DefaultSource: "local"},
 		"daginfo":         {Endpoint: qhttp.AEDAGInfo, HTTPVerb: "POST", DefaultSource: "local"},
+		"whatchanged":     {Endpoint: qhttp.AEWhatChanged, HTTPVerb: "POST", DefaultSource: "local"},
 	}
 }
 
@@ -531,6 +532,20 @@ func (p *RenderParams) Validate() error {
 func (m DatasetMethods) Render(ctx context.Context, p *RenderParams) ([]byte, error) {
 	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "render"), p)
 	if res, ok := got.([]byte); ok {
+		return res, err
+	}
+	return nil, dispatchReturnError(got, err)
+}
+
+// WhatChangedParams are parameters for the whatchanged command
+type WhatChangedParams struct {
+	Ref string `json:"ref"`
+}
+
+// WhatChanged gets what components have changed at a version in history
+func (m DatasetMethods) WhatChanged(ctx context.Context, p *WhatChangedParams) ([]base.StatusItem, error) {
+	got, _, err := m.d.Dispatch(ctx, dispatchMethodName(m, "whatchanged"), p)
+	if res, ok := got.([]base.StatusItem); ok {
 		return res, err
 	}
 	return nil, dispatchReturnError(got, err)
@@ -1376,4 +1391,16 @@ func (datasetImpl) Render(scope scope, p *RenderParams) (res []byte, err error) 
 		return nil, fmt.Errorf("selector must be one of 'viz' or 'readme'")
 	}
 	return res, nil
+}
+
+// WhatChanged gets what components changed for the given version
+func (datasetImpl) WhatChanged(scope scope, p *WhatChangedParams) ([]base.StatusItem, error) {
+	ref, err := dsref.Parse(p.Ref)
+	if err != nil {
+		return nil, err
+	}
+	if ref.Path == "" {
+		return nil, fmt.Errorf("whatchanged requires 'Path'")
+	}
+	return scope.ComponentStatus().WhatChanged(scope.Context(), ref)
 }

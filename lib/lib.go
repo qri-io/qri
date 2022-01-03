@@ -27,6 +27,7 @@ import (
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/automation/trigger"
 	"github.com/qri-io/qri/automation/workflow"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/base/hiddenfile"
 	"github.com/qri-io/qri/collection"
@@ -565,6 +566,10 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	if inst.compStat == nil {
+		inst.compStat = base.NewComponentStatus(ctx, inst.qfs)
+	}
+
 	// Try to make the repo a hidden directory, but it's okay if we can't. Ignore the error.
 	_ = hiddenfile.SetFileHidden(inst.repoPath)
 
@@ -861,6 +866,7 @@ type Instance struct {
 	dscache       *dscache.Dscache
 	collections   *collection.SetMaintainer
 	automation    *automation.Orchestrator
+	compStat      *base.ComponentStatus
 	tokenProvider token.Provider
 	bus           event.Bus
 	appCtx        context.Context
