@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -22,12 +21,12 @@ import (
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
-	"github.com/qri-io/qri/api/util"
 	"github.com/qri-io/qri/automation/run"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/base/fill"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dsref"
 	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/event"
@@ -73,16 +72,14 @@ func (m DatasetMethods) Attributes() map[string]AttributeSet {
 
 // GetParams defines parameters for looking up the head or body of a dataset
 type GetParams struct {
+	params.List
 	// dataset reference to fetch; e.g. "b5/world_bank_population"
 	Ref string `json:"ref"`
 	// a component or nested field names to extract from the dataset; e.g. "body"
 	Selector string `json:"selector"`
-	// number of results to limit to. only applies when selector is "body"
-	Limit int `json:"limit"`
-	// number of results to skip. only applies when selector is "body"
-	Offset int `json:"offset"`
 	// TODO(dustmop): Remove `All` once `Cursor` is in use. Instead, callers should
 	// loop over their `Cursor` in order to get all rows.
+	// TODO(ramfox): are we in a place to remove All?
 	All bool `json:"all" docs:"hidden"`
 }
 
@@ -90,15 +87,14 @@ type GetParams struct {
 func (p *GetParams) SetNonZeroDefaults() {
 	if p.Selector == "body" {
 		if !p.All {
-			// ensure valid limit value
-			if p.Limit <= 0 {
-				p.Limit = 25
-			}
 			// ensure valid offset value
 			if p.Offset < 0 {
 				p.Offset = 0
 			}
-
+			// ensure valid limit value
+			if p.Limit <= 0 {
+				p.Limit = params.DefaultListLimit
+			}
 		}
 	}
 }
@@ -122,49 +118,6 @@ func isValidSelector(selector string) bool {
 }
 
 var validSelector = regexp.MustCompile(`^$|^[\w-\.]*[\w]$`)
-
-// UnmarshalFromRequest satisfies the Unmarshaller interface
-func (p *GetParams) UnmarshalFromRequest(r *http.Request) error {
-	log.Debugf("GetParams.UnmarshalFromRequest ref:%s", r.FormValue("ref"))
-	p.Ref = r.FormValue("ref")
-
-	ref, err := dsref.Parse(p.Ref)
-	if err != nil {
-		return err
-	}
-
-	if ref.Username == "me" {
-		return fmt.Errorf("username \"me\" not allowed")
-	}
-
-	p.Selector = r.FormValue("selector")
-
-	p.All = util.ReqParamBool(r, "all", true)
-	p.Limit = util.ReqParamInt(r, "limit", 0)
-	p.Offset = util.ReqParamInt(r, "offset", 0)
-	if !(p.Offset == 0 && p.Limit == 0) {
-		p.All = false
-	}
-
-	if p.All && p.Limit == 0 && p.Offset == 0 {
-		page := -1
-		pageSize := -1
-		if i := util.ReqParamInt(r, "page", 0); i != 0 {
-			page = i
-		}
-		if i := util.ReqParamInt(r, "pageSize", 0); i != 0 {
-			pageSize = i
-		}
-		// we don't want the defaults to override this and also only want to
-		// set values if they are present
-		if page >= 0 && pageSize >= 0 {
-			p.Limit = pageSize
-			p.Offset = (page - 1) * pageSize
-			p.All = false
-		}
-	}
-	return nil
-}
 
 // GetResult returns the dataset or some part of it as structured data inside the `Value` field
 // The `Bytes` field is reserved for data that can only be expressed as a slice of bytes
@@ -249,11 +202,23 @@ func scriptFileSelection(ds *dataset.Dataset, selector string) (qfs.File, bool) 
 
 // ActivityParams defines parameters for the Activity method
 type ActivityParams struct {
-	ListParams
+	params.List
+	// Term filters for "history" or "run" activity type
+	Term string `json:"term,omitempty"`
 	// Reference to data to fetch history for; e.g. "b5/world_bank_population"
 	Ref string `json:"ref"`
 	// if true, pull any datasets that aren't stored locally; e.g. false
 	Pull bool `json:"pull"`
+}
+
+// SetNonZeroDefaults sets a default limit and offset
+func (p *ActivityParams) SetNonZeroDefaults() {
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+	if p.Limit <= 0 {
+		p.Limit = params.DefaultListLimit
+	}
 }
 
 // Validate gives a dataset of errors and issues for a given dataset

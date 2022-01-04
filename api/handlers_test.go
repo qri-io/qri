@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/gorilla/mux"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
@@ -333,88 +332,6 @@ func TestExtensionToMimeType(t *testing.T) {
 		if c.expect != got {
 			t.Errorf("case %d: expected %q got %q", i, c.expect, got)
 		}
-	}
-}
-
-func TestParseSaveParamsFromRequest(t *testing.T) {
-	expect := &lib.SaveParams{
-		Ref:                 "test/ref",
-		Title:               "test title",
-		Message:             "test message",
-		Apply:               true,
-		Replace:             true,
-		ConvertFormatToPrev: true,
-		Drop:                "drop",
-		Force:               true,
-		NewName:             true,
-		Dataset: &dataset.Dataset{
-			Name:     "dataset name",
-			Peername: "test peername",
-			Meta: &dataset.Meta{
-				Title: "test meta title",
-				Qri:   "md:0",
-			},
-		},
-	}
-
-	dsBytes, err := json.Marshal(expect.Dataset)
-	if err != nil {
-		t.Fatalf("error marshaling dataset: %s", err)
-	}
-
-	body := new(bytes.Buffer)
-	writer := multipart.NewWriter(body)
-	writer.WriteField("ref", expect.Ref)
-	writer.WriteField("title", expect.Title)
-	writer.WriteField("message", expect.Message)
-	writer.WriteField("apply", "true")
-	writer.WriteField("replace", "true")
-	writer.WriteField("convertFormatToPrev", "true")
-	writer.WriteField("drop", "drop")
-	writer.WriteField("force", "true")
-	writer.WriteField("newName", "true")
-	writer.WriteField("dataset", string(dsBytes))
-	writer.Close()
-
-	r, err := http.NewRequest(http.MethodPost, "save", body)
-	if err != nil {
-		t.Fatalf("error creating new request: %s", err)
-	}
-	r.Header.Add("Content-Type", writer.FormDataContentType())
-	got := &lib.SaveParams{}
-	err = parseSaveParamsFromRequest(r, got)
-	if err != nil {
-		t.Fatalf("error saving params from request: %s", err)
-	}
-	if diff := cmp.Diff(expect, got, cmpopts.IgnoreUnexported(dataset.Dataset{}), cmpopts.IgnoreUnexported(dataset.Meta{})); diff != "" {
-		t.Errorf("SaveParams mismatch (-want +got):%s\n", diff)
-	}
-}
-
-func TestFormFileDataset(t *testing.T) {
-	r := newFormFileRequest(t, "/", nil, nil)
-	dsp := &dataset.Dataset{}
-	if err := formFileDataset(r, dsp); err != nil {
-		t.Error("expected 'empty' request to be ok")
-	}
-
-	r = newFormFileRequest(t, "/", map[string]string{
-		"file":      dstestTestdataFile("cities/init_dataset.json"),
-		"viz":       dstestTestdataFile("cities/template.html"),
-		"transform": dstestTestdataFile("cities/transform.star"),
-		"readme":    dstestTestdataFile("cities/readme.md"),
-		"body":      dstestTestdataFile("cities/data.csv"),
-	}, nil)
-	if err := formFileDataset(r, dsp); err != nil {
-		t.Error(err)
-	}
-
-	r = newFormFileRequest(t, "/", map[string]string{
-		"file": "testdata/cities/dataset.yml",
-		"body": dstestTestdataFile("cities/data.csv"),
-	}, nil)
-	if err := formFileDataset(r, dsp); err != nil {
-		t.Error(err)
 	}
 }
 

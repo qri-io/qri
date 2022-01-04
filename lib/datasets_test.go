@@ -26,6 +26,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/base/params"
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -356,23 +357,23 @@ func TestGet(t *testing.T) {
 
 		{"body with limit and offfset",
 			&GetParams{Ref: "peer/movies", Selector: "body",
-				Limit: 5, Offset: 0, All: false}, moviesBody[:5]},
+				List: params.List{Limit: 5, Offset: 0}, All: false}, moviesBody[:5]},
 
 		{"body with invalid limit and offset",
 			&GetParams{Ref: "peer/movies", Selector: "body",
-				Limit: -5, Offset: -100, All: false}, "invalid limit / offset settings"},
+				List: params.List{Limit: -5, Offset: -100}, All: false}, "invalid limit / offset settings"},
 
 		{"body with all flag ignores invalid limit and offset",
 			&GetParams{Ref: "peer/movies", Selector: "body",
-				Limit: -5, Offset: -100, All: true}, moviesBody},
+				List: params.List{Limit: -5, Offset: -100}, All: true}, moviesBody},
 
 		{"body with all flag",
 			&GetParams{Ref: "peer/movies", Selector: "body",
-				Limit: 0, Offset: 0, All: true}, moviesBody},
+				List: params.List{Limit: 0, Offset: 0}, All: true}, moviesBody},
 
 		{"body with limit and non-zero offset",
 			&GetParams{Ref: "peer/movies", Selector: "body",
-				Limit: 2, Offset: 10, All: false}, moviesBody[10:12]},
+				List: params.List{Limit: 2, Offset: 10}, All: false}, moviesBody[10:12]},
 	}
 
 	for _, c := range cases {
@@ -418,126 +419,21 @@ func TestGetParamsValidate(t *testing.T) {
 func TestGetParamsSetNonZeroDefaults(t *testing.T) {
 	gotParams := &GetParams{
 		Selector: "body",
-		Offset:   -1,
+		List: params.List{
+			Offset: -1,
+		},
 	}
 	expectParams := &GetParams{
 		Selector: "body",
-		Limit:    25,
-		Offset:   0,
+		List: params.List{
+			Limit:  25,
+			Offset: 0,
+		},
 	}
 	gotParams.SetNonZeroDefaults()
 	if diff := cmp.Diff(expectParams, gotParams); diff != "" {
 		t.Errorf("output mismatch (-want +got):\n%s", diff)
 	}
-}
-
-func TestGetParamsUnmarshalFromRequest(t *testing.T) {
-	cases := []struct {
-		description  string
-		url          string
-		expectParams *GetParams
-		muxVars      map[string]string
-	}{
-		{
-			"get request with ref",
-			"/get/peer/my_ds",
-			&GetParams{
-				Ref: "peer/my_ds",
-				All: true,
-			},
-			map[string]string{"ref": "peer/my_ds"},
-		},
-		{
-			"get request with a selector",
-			"/get/peer/my_ds/meta",
-			&GetParams{
-				Ref:      "peer/my_ds",
-				Selector: "meta",
-				All:      true,
-			},
-			map[string]string{"ref": "peer/my_ds", "selector": "meta"},
-		},
-		{
-			"get request with limit and offset",
-			"/get/peer/my_ds/body",
-			&GetParams{
-				Ref:      "peer/my_ds",
-				Selector: "body",
-				Limit:    0,
-				Offset:   10,
-			},
-			map[string]string{"ref": "peer/my_ds", "selector": "body", "limit": "0", "offset": "10"},
-		},
-		{
-			"get request with 'all'",
-			"/get/peer/my_ds/body",
-			&GetParams{
-				Ref:      "peer/my_ds",
-				Selector: "body",
-				All:      true,
-			},
-			map[string]string{"ref": "peer/my_ds", "selector": "body", "all": "true"},
-		},
-	}
-	for _, c := range cases {
-		t.Run(c.description, func(t *testing.T) {
-			r := httptest.NewRequest("GET", c.url, nil)
-			mustSetMuxVarsOnRequest(t, r, c.muxVars)
-			gotParams := &GetParams{}
-			err := gotParams.UnmarshalFromRequest(r)
-			if err != nil {
-				t.Error(err)
-				return
-			}
-			if diff := cmp.Diff(c.expectParams, gotParams); diff != "" {
-				t.Errorf("output mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-
-	badCases := []struct {
-		description string
-		url         string
-		expectErr   string
-		muxVars     map[string]string
-	}{
-		{
-			"get me",
-			"/get/me/my_ds",
-			`username "me" not allowed`,
-			map[string]string{"ref": "me/my_ds"},
-		},
-		{
-			"bad parse",
-			"/get/peer/my+ds",
-			`unexpected character at position 7: '+'`,
-			map[string]string{"ref": "peer/my+ds"},
-		},
-	}
-	for i, c := range badCases {
-		t.Run(c.description, func(t *testing.T) {
-			r := httptest.NewRequest("GET", c.url, nil)
-			mustSetMuxVarsOnRequest(t, r, c.muxVars)
-			gotParams := &GetParams{}
-			err := gotParams.UnmarshalFromRequest(r)
-			if err == nil {
-				t.Errorf("case %d: expected error, but did not get one", i)
-				return
-			}
-			if diff := cmp.Diff(c.expectErr, err.Error()); diff != "" {
-				t.Errorf("output mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func mustSetMuxVarsOnRequest(t *testing.T, r *http.Request, muxVars map[string]string) {
-	q := r.URL.Query()
-	for varName, val := range muxVars {
-		q.Add(varName, val)
-	}
-	r.URL.RawQuery = q.Encode()
-	return
 }
 
 func TestGetZip(t *testing.T) {
@@ -660,14 +556,14 @@ func TestGetBodySize(t *testing.T) {
 	ctx := run.Ctx
 
 	// Get the small dataset's body, which is okay
-	params := GetParams{Ref: "me/small_ds", Selector: "body", Limit: -1, All: true}
+	params := GetParams{Ref: "me/small_ds", Selector: "body", List: params.List{Limit: -1}, All: true}
 	_, err = inst.Dataset().Get(ctx, &params)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
 
 	// Get the large dataset's body, which will return an error
-	params = GetParams{Ref: "me/large_ds", Selector: "body", Limit: -1, All: true}
+	params.Ref = "me/large_ds"
 	_, err = inst.Dataset().Get(ctx, &params)
 	if err == nil {
 		t.Errorf("expected error, did not get one")
@@ -678,14 +574,14 @@ func TestGetBodySize(t *testing.T) {
 	}
 
 	// Get the small dataset's body in CSV format, which is okay
-	params = GetParams{Ref: "me/small_ds", Selector: "body", Limit: -1, All: true}
+	params.Ref = "me/small_ds"
 	_, err = inst.Dataset().GetCSV(ctx, &params)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
 
 	// Get the large dataset's body in CSV format, which will return an error
-	params = GetParams{Ref: "me/large_ds", Selector: "body", Limit: -1, All: true}
+	params.Ref = "me/large_ds"
 	_, err = inst.Dataset().GetCSV(ctx, &params)
 	if err == nil {
 		t.Errorf("expected error, did not get one")

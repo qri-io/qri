@@ -9,7 +9,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
-	apiutil "github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -54,8 +54,8 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	}
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json|simple]")
-	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
-	cmd.Flags().IntVar(&o.Page, "page", 1, "page number results, default 1")
+	cmd.Flags().IntVar(&o.Offset, "offset", 0, "skip this number of records from the results, default 0")
+	cmd.Flags().IntVar(&o.Limit, "limit", 25, "size of results, default 25")
 	cmd.Flags().BoolVar(&o.All, "all", false, "get all results")
 	cmd.Flags().BoolVarP(&o.Public, "public", "p", false, "list only publically visible")
 	cmd.Flags().BoolVarP(&o.ShowNumVersions, "num-versions", "n", false, "show number of versions")
@@ -71,8 +71,8 @@ type ListOptions struct {
 	ioes.IOStreams
 
 	Format          string
-	PageSize        int
-	Page            int
+	Offset          int
+	Limit           int
 	All             bool
 	Term            string
 	Username        string
@@ -94,8 +94,6 @@ func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the list command
 func (o *ListOptions) Run() (err error) {
-	// convert Page and PageSize to Limit and Offset
-	page := apiutil.NewPage(o.Page, o.PageSize)
 	ctx := context.TODO()
 
 	if o.Raw {
@@ -107,12 +105,14 @@ func (o *ListOptions) Run() (err error) {
 		return nil
 	}
 
-	p := &lib.ListParams{
+	p := &lib.CollectionListParams{
 		Term:     o.Term,
 		Username: o.Username,
-		Limit:    page.Limit(),
-		Offset:   page.Offset(),
-		Public:   o.Public,
+		List: params.List{
+			Offset: o.Offset,
+			Limit:  o.Limit,
+		},
+		Public: o.Public,
 	}
 	infos, cur, err := o.inst.Collection().List(ctx, p)
 	if err != nil {
@@ -173,7 +173,7 @@ func (o *ListOptions) Run() (err error) {
 		for i, r := range infos {
 			items[i] = versionInfoStringer(r)
 		}
-		printItems(o.Out, items, page.Offset())
+		printItems(o.Out, items, o.Offset)
 		return nil
 	case "simple":
 		items := make([]string, len(infos))

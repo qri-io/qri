@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/config"
 	qhttp "github.com/qri-io/qri/lib/http"
 	"github.com/qri-io/qri/p2p"
@@ -38,11 +39,20 @@ func (m PeerMethods) Attributes() map[string]AttributeSet {
 
 // PeerListParams defines parameters for the List method
 type PeerListParams struct {
-	Limit  int `json:"limit"`
-	Offset int `json:"offset"`
+	params.List
 	// Cached == true will return offline peers from the repo
 	// as well as online peers, default is to list connected peers only
 	Cached bool `json:"cached"`
+}
+
+// SetNonZeroDefaults sets a default limit and offset
+func (p *PeerListParams) SetNonZeroDefaults() {
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+	if p.Limit <= 0 {
+		p.Limit = params.DefaultListLimit
+	}
 }
 
 // List lists Peers on the qri network
@@ -88,8 +98,17 @@ func (m PeerMethods) Disconnect(ctx context.Context, p *ConnectParamsPod) error 
 
 // ConnectionsParams defines parameters for the Connections method
 type ConnectionsParams struct {
-	Limit  int `json:"limit"`
-	Offset int `json:"offset"`
+	params.List
+}
+
+// SetNonZeroDefaults sets a default limit and offset
+func (p *ConnectionsParams) SetNonZeroDefaults() {
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+	if p.Limit <= 0 {
+		p.Limit = params.DefaultListLimit
+	}
 }
 
 // Connections lists PeerID's we're currently connected to. If running
@@ -198,10 +217,6 @@ func (peerImpl) List(scope scope, p *PeerListParams) ([]*config.ProfilePod, erro
 
 	var err error
 
-	if p.Limit <= 0 {
-		p.Limit = DefaultPageSize
-	}
-
 	// requesting user is hardcoded as node owner
 	u := scope.ActiveProfile()
 	res, err = p2p.ListPeers(scope.Context(), scope.Node(), u.ID, p.Offset, p.Limit, !p.Cached)
@@ -297,29 +312,12 @@ func (peerImpl) Disconnect(scope scope, p *ConnectParamsPod) error {
 // IPFS this will also return connected IPFS nodes
 func (peerImpl) Connections(scope scope, p *ConnectionsParams) ([]string, error) {
 	// TODO (ramfox): limit and offset not currently used
-	// ensure valid limit value
-	if p.Limit <= 0 {
-		p.Limit = 25
-	}
-	// ensure valid offset value
-	if p.Offset < 0 {
-		p.Offset = 0
-	}
 	return scope.Node().ConnectedPeers(), nil
 }
 
 // ConnectedQriProfiles lists profiles we're currently connected to
 func (peerImpl) ConnectedQriProfiles(scope scope, p *ConnectionsParams) ([]*config.ProfilePod, error) {
 	// TODO (ramfox): offset not currently used
-	// ensure valid limit value
-	if p.Limit <= 0 {
-		p.Limit = 25
-	}
-	// ensure valid offset value
-	if p.Offset < 0 {
-		p.Offset = 0
-	}
-
 	connected := scope.Node().ConnectedQriProfiles(scope.Context())
 
 	build := make([]*config.ProfilePod, intMin(len(connected), p.Limit))

@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	apiutil "github.com/qri-io/qri/api/util"
+	"github.com/qri-io/qri/base/params"
 	qhttp "github.com/qri-io/qri/lib/http"
 )
 
@@ -80,6 +81,13 @@ func DecodeParams(r *http.Request, p interface{}) error {
 			return fmt.Errorf("unable to decode params from request body: %w", err)
 		}
 	}
+
+	if lp, ok := p.(params.ListParams); ok {
+		if err := lp.ListParamsFromRequest(r); err != nil {
+			return fmt.Errorf("unable to get list params from request: %w", err)
+		}
+	}
+
 	// allow empty params
 	return nil
 }

@@ -42,8 +42,29 @@ func (m CollectionMethods) Attributes() map[string]AttributeSet {
 // ErrListWarning is a warning that can occur while listing
 var ErrListWarning = base.ErrUnlistableReferences
 
+// CollectionListParams defines parameters for listing a user's collection
+type CollectionListParams struct {
+	params.List
+	Username string `json:"username,omitempty"`
+	Public   bool   `json:"public,omitempty"`
+	Term     string `json:"term,omitempty"`
+}
+
+// SetNonZeroDefaults sets OrderBy to "created" if it's value is empty
+func (p *CollectionListParams) SetNonZeroDefaults() {
+	if len(p.OrderBy) == 0 {
+		p.List = p.List.WithOrderBy("created")
+	}
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
+	if p.Limit <= 0 {
+		p.Limit = params.DefaultListLimit
+	}
+}
+
 // List gets the reflist for either the local repo or a peer
-func (m CollectionMethods) List(ctx context.Context, p *ListParams) ([]dsref.VersionInfo, Cursor, error) {
+func (m CollectionMethods) List(ctx context.Context, p *CollectionListParams) ([]dsref.VersionInfo, Cursor, error) {
 	got, cur, err := m.d.Dispatch(ctx, dispatchMethodName(m, "list"), p)
 	if res, ok := got.([]dsref.VersionInfo); ok {
 		return res, cur, err
@@ -87,13 +108,8 @@ func (m CollectionMethods) Get(ctx context.Context, p *CollectionGetParams) (*ds
 type collectionImpl struct{}
 
 // List gets the reflist for either the local repo or a peer
-func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, Cursor, error) {
+func (collectionImpl) List(scope scope, p *CollectionListParams) ([]dsref.VersionInfo, Cursor, error) {
 	if s := scope.CollectionSet(); s != nil {
-		lp := params.List{
-			OrderBy: []string{p.OrderBy},
-			Offset:  p.Offset,
-			Limit:   p.Limit,
-		}
 
 		id := scope.ActiveProfile().ID
 		if p.Username != "" {
@@ -104,7 +120,7 @@ func (collectionImpl) List(scope scope, p *ListParams) ([]dsref.VersionInfo, Cur
 			id = pro.ID
 		}
 
-		infos, err := s.List(scope.ctx, id, lp)
+		infos, err := s.List(scope.ctx, id, p.List)
 		if err != nil {
 			return nil, nil, err
 		}

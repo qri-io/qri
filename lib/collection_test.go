@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/base/params"
 	testcfg "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
@@ -64,20 +65,20 @@ func TestDatasetRequestsList(t *testing.T) {
 
 	cases := []struct {
 		description string
-		p           *ListParams
+		p           *CollectionListParams
 		res         []dsref.VersionInfo
 		err         string
 	}{
-		{"list datasets - empty (default)", &ListParams{}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - weird (returns sensible default)", &ListParams{OrderBy: "chaos", Limit: -33, Offset: -50}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - happy path", &ListParams{OrderBy: "", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - limit 2 offset 0", &ListParams{OrderBy: "", Limit: 2, Offset: 0}, []dsref.VersionInfo{cities, counter}, ""},
-		{"list datasets - limit 2 offset 2", &ListParams{OrderBy: "", Limit: 2, Offset: 2}, []dsref.VersionInfo{craigslist, movies}, ""},
-		{"list datasets - limit 2 offset 4", &ListParams{OrderBy: "", Limit: 2, Offset: 4}, []dsref.VersionInfo{sitemap}, ""},
-		{"list datasets - limit 2 offset 5", &ListParams{OrderBy: "", Limit: 2, Offset: 5}, []dsref.VersionInfo{}, ""},
-		{"list datasets - order by timestamp", &ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - username 'me'", &ListParams{Username: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
-		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*dsref.VersionInfo{cities, counter, movies}, ""},
+		{"list datasets - empty (default)", &CollectionListParams{}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - weird", &CollectionListParams{List: params.List{Limit: -33, Offset: -50}}, []dsref.VersionInfo{}, "limit of -33 is out of bounds"},
+		{"list datasets - happy path", &CollectionListParams{List: params.List{Limit: 30, Offset: 0}}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - limit 2 offset 0", &CollectionListParams{List: params.List{Limit: 2, Offset: 0}}, []dsref.VersionInfo{cities, counter}, ""},
+		{"list datasets - limit 2 offset 2", &CollectionListParams{List: params.List{Limit: 2, Offset: 2}}, []dsref.VersionInfo{craigslist, movies}, ""},
+		{"list datasets - limit 2 offset 4", &CollectionListParams{List: params.List{Limit: 2, Offset: 4}}, []dsref.VersionInfo{sitemap}, ""},
+		{"list datasets - limit 2 offset 5", &CollectionListParams{List: params.List{Limit: 2, Offset: 5}}, []dsref.VersionInfo{}, ""},
+		{"list datasets - order by timestamp", &CollectionListParams{List: params.List{OrderBy: params.OrderBy{{Key: "timestamp", Direction: params.OrderDESC}}, Limit: 30, Offset: 0}}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - username 'me'", &CollectionListParams{Username: "me", List: params.List{OrderBy: params.OrderBy{{Key: "timestamp", Direction: params.OrderDESC}}, Limit: 30, Offset: 0}}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
+		// TODO: re-enable {&CollectionListParams{List: params.List {OrderBy: params.OrderBy{{Key: "name", Direction: OrderASC }}, Limit: 30, Offset: 0}}, []*dsref.VersionInfo{cities, counter, movies}, ""}},
 	}
 
 	for _, c := range cases {
@@ -194,7 +195,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 			defer wg.Done()
 
 			inst := NewInstanceFromConfigAndNode(ctx, testcfg.DefaultConfigForTesting(), node)
-			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
+			p := &CollectionListParams{List: params.List{Limit: 30, Offset: 0}}
 			res, _, err := inst.Collection().List(ctx, p)
 			if err != nil {
 				t.Errorf("error listing dataset: %s", err.Error())

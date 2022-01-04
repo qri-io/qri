@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/auth/key"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/params"
 	"github.com/qri-io/qri/collection"
 	"github.com/qri-io/qri/config"
 	testcfg "github.com/qri-io/qri/config/test"
@@ -353,7 +354,7 @@ func TestNewInstanceWithCollectionOption(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, _, err := inst.Collection().List(ctx, &ListParams{Limit: -1})
+	got, _, err := inst.Collection().List(ctx, &CollectionListParams{List: params.List{Limit: -1}})
 	if err != nil {
 		t.Error(err)
 	}
