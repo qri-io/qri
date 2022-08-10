@@ -62,7 +62,6 @@ func main() {
 		err = os.MkdirAll(dir, 0755)
 		if err != nil {
 			log.Fatal(err)
-			os.Exit(1)
 		}
 	}
 
@@ -70,7 +69,6 @@ func main() {
 		buf, err := OpenAPIYAML()
 		if err != nil {
 			log.Fatal(err)
-			os.Exit(1)
 		}
 
 		path := filepath.Join(dir, "open_api_spec.yaml")
